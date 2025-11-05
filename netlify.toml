@@ -3,7 +3,9 @@
   publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "20"# SPA fallback - all routes go to index.html
+  NODE_VERSION = "20"
+
+# SPA fallback - all routes go to index.html
 [[redirects]]
   from = "/*"
   to = "/index.html"
