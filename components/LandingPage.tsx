@@ -138,43 +138,61 @@ export function LandingPage() {
               description="Perfect for exploring and getting started"
               features={[
                 "20 AI requests/month",
-                "Basic task management",
-                "1 workspace",
-                "Community support"
+                "25 files",
+                "100 MB storage",
+                "Basic AI Assistant",
+                "Task Management",
+                "CRM (limited)",
+                "Document Library (25 files)",
+                "Basic Analytics"
               ]}
               cta="Start Free"
               highlighted={false}
             />
             <PricingCard
-              name="Pro"
-              price="$29"
+              name="Power"
+              price="$99"
               period="/month"
               description="For serious founders building their business"
               features={[
-                "500 AI requests/month",
-                "Full task & CRM features",
-                "Unlimited workspaces",
-                "Priority email support",
-                "Advanced analytics",
-                "Document storage"
+                "Unlimited AI requests/month",
+                "Unlimited files",
+                "5 GB storage",
+                "Unlimited AI Assistant",
+                "Unlimited Tasks",
+                "Full CRM Features",
+                "Unlimited Documents",
+                "Advanced Analytics",
+                "Priority Support",
+                "Export Data",
+                "API Access",
+                "Custom Integrations"
               ]}
-              cta="Start 14-Day Trial"
+              cta="Subscribe Now"
               highlighted={true}
             />
             <PricingCard
-              name="Team"
-              price="$99"
+              name="Team Pro"
+              price="$149"
               period="/month"
               description="For teams collaborating together"
+              additionalPricing="+ $25/user/month"
               features={[
-                "Unlimited AI requests",
-                "Everything in Pro",
-                "Up to 10 team members",
-                "Team collaboration tools",
-                "Role-based permissions",
-                "Priority support"
+                "Unlimited AI requests/month per user",
+                "Unlimited files per user",
+                "10 GB storage shared",
+                "All Power Features",
+                "Team Collaboration",
+                "Shared Workspaces",
+                "Team Achievements",
+                "Member Management",
+                "Team Analytics",
+                "Role-Based Access",
+                "Advanced Permissions",
+                "Priority Team Support",
+                "Custom Onboarding"
               ]}
-              cta="Contact Sales"
+              cta="Subscribe Now"
               highlighted={false}
             />
           </div>
@@ -186,28 +204,28 @@ export function LandingPage() {
         <h2 className="text-4xl font-bold mb-12 text-center">Frequently Asked Questions</h2>
         <div className="space-y-6">
           <FAQItem
-            question="How does the AI assistant work?"
-            answer="Our AI assistant is powered by Google Gemini, one of the most advanced AI models available. It can help you brainstorm ideas, draft content, analyze data, and provide strategic insights specific to your business context."
+            question="Can I change plans later?"
+            answer="Yes! You can upgrade or downgrade anytime from your settings."
           />
           <FAQItem
-            question="Can I cancel anytime?"
-            answer="Yes! You can cancel your subscription at any time from the Settings page. Your access continues until the end of your billing period, and you can export all your data before canceling."
+            question="What payment methods do you accept?"
+            answer="We accept all major credit cards through Stripe."
+          />
+          <FAQItem
+            question="Is there a free trial?"
+            answer="The Free plan is available forever! Upgrade when you're ready."
+          />
+          <FAQItem
+            question="How does team billing work?"
+            answer="You pay a base price plus per-seat pricing. Add or remove seats anytime."
           />
           <FAQItem
             question="What happens to my data?"
             answer="Your data is stored securely using industry-standard encryption. You own your data and can export it anytime. If you delete your account, we permanently remove your data within 30 days."
           />
           <FAQItem
-            question="Do you offer refunds?"
-            answer="We offer pro-rated refunds for annual subscriptions within 30 days. Monthly subscriptions are non-refundable, but you can cancel anytime to avoid future charges."
-          />
-          <FAQItem
             question="Is my data secure?"
             answer="Absolutely. We use SSL/TLS encryption for all data transmission, row-level security in our database, and regular security audits. Your data is hosted on secure cloud infrastructure."
-          />
-          <FAQItem
-            question="Can I upgrade or downgrade my plan?"
-            answer="Yes, you can change your plan at any time. Upgrades take effect immediately, and downgrades take effect at the end of your current billing period."
           />
         </div>
       </section>
@@ -294,7 +312,8 @@ function PricingCard({
   name, 
   price, 
   period, 
-  description, 
+  description,
+  additionalPricing,
   features, 
   cta, 
   highlighted 
@@ -302,7 +321,8 @@ function PricingCard({
   name: string; 
   price: string; 
   period: string; 
-  description: string; 
+  description: string;
+  additionalPricing?: string;
   features: string[]; 
   cta: string; 
   highlighted: boolean;
@@ -316,10 +336,15 @@ function PricingCard({
       )}
       <div className="text-center mb-6">
         <h3 className="text-2xl font-bold mb-2">{name}</h3>
-        <div className="mb-4">
+        <div className="mb-2">
           <span className="text-4xl font-bold">{price}</span>
           <span className="text-gray-600">{period}</span>
         </div>
+        {additionalPricing && (
+          <div className="text-sm text-gray-600 font-medium mb-2">
+            {additionalPricing}
+          </div>
+        )}
         <p className="text-sm text-gray-600">{description}</p>
       </div>
       <ul className="space-y-3 mb-8">
