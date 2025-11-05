@@ -1,12 +1,32 @@
 import React, { useEffect, useState } from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
 import { WorkspaceProvider } from './contexts/WorkspaceContext'
 import { LoginForm } from './components/auth/LoginForm'
 import { FullPageLoading } from './components/shared/Loading'
 import { InviteAcceptPage } from './components/shared/InviteAcceptPage'
+import { LandingPage } from './components/LandingPage'
 import DashboardApp from './DashboardApp'
 
 const App: React.FC = () => {
+  return (
+    <Router>
+      <Routes>
+        {/* Public landing page */}
+        <Route path="/" element={<LandingPage />} />
+        
+        {/* App routes (requires auth) */}
+        <Route path="/app/*" element={<AppRoutes />} />
+        
+        {/* Redirect old root to landing */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
+  )
+}
+
+// Protected app routes
+function AppRoutes() {
   const { user, loading } = useAuth()
   const [inviteToken, setInviteToken] = useState<string | null>(null)
 
@@ -26,7 +46,7 @@ const App: React.FC = () => {
         token={inviteToken} 
         onComplete={() => {
           setInviteToken(null)
-          window.location.href = '/' // Reload to proper state
+          window.location.href = '/app' // Reload to app
         }}
       />
     )
