@@ -6,6 +6,8 @@ import { LoginForm } from './components/auth/LoginForm'
 import { FullPageLoading } from './components/shared/Loading'
 import { InviteAcceptPage } from './components/shared/InviteAcceptPage'
 import { LandingPage } from './components/LandingPage'
+import { PrivacyPolicyPage } from './components/PrivacyPolicyPage'
+import { TermsOfServicePage } from './components/TermsOfServicePage'
 import DashboardApp from './DashboardApp'
 
 const App: React.FC = () => {
@@ -14,6 +16,10 @@ const App: React.FC = () => {
       <Routes>
         {/* Public landing page */}
         <Route path="/" element={<LandingPage />} />
+        
+        {/* Legal pages */}
+        <Route path="/privacy" element={<PrivacyPolicyPage />} />
+        <Route path="/terms" element={<TermsOfServicePage />} />
         
         {/* App routes (requires auth) */}
         <Route path="/app/*" element={<AppRoutes />} />
