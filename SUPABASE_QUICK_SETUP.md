@@ -13,7 +13,7 @@ This is because Supabase requires email confirmation by default. For development
 ### Step-by-step:
 
 1. **Go to Supabase Dashboard:**
-   - Open: https://jffnzpdcmdalxqhkfymx.supabase.co
+   - Open: https://supabase.com/dashboard (select your project)
 
 2. **Navigate to Authentication Settings:**
    - Click **Authentication** in left sidebar
@@ -197,7 +197,7 @@ Go to **Authentication** → **Settings**:
 
 ## 🔗 Useful Links
 
-- **Your Supabase Project:** https://jffnzpdcmdalxqhkfymx.supabase.co
+- **Supabase Dashboard:** https://supabase.com/dashboard
 - **Authentication Docs:** https://supabase.com/docs/guides/auth
 - **RLS Policies Docs:** https://supabase.com/docs/guides/auth/row-level-security
 

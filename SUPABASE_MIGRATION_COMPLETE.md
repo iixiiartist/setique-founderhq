@@ -400,11 +400,11 @@ await DatabaseService.updateTask(itemId, { notes: updatedNotes });
 - Verify user is authenticated
 
 **Type errors:**
-- Regenerate types: `npx supabase gen types typescript --project-id jffnzpdcmdalxqhkfymx`
+- Regenerate types: `npx supabase gen types typescript --project-id YOUR_PROJECT_ID`
 - Restart TypeScript server in VS Code
 
 ### Resources
-- Supabase Dashboard: https://jffnzpdcmdalxqhkfymx.supabase.co
+- Supabase Dashboard: https://supabase.com/dashboard
 - Supabase Docs: https://supabase.com/docs
 - Testing Guide: `SUPABASE_TESTING_GUIDE.md`
 - Schema: `supabase/schema.sql`

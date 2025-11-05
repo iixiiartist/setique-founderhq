@@ -28,7 +28,7 @@ All 30 action functions have been successfully migrated from local reducer-based
 
 **Verify in Supabase:**
 ```
-1. Go to https://jffnzpdcmdalxqhkfymx.supabase.co
+1. Go to your Supabase dashboard (https://supabase.com/dashboard)
 2. Navigate to Authentication > Users
 3. You should see your new user
 4. Navigate to Table Editor > profiles
@@ -328,8 +328,8 @@ SELECT 'documents', COUNT(*) FROM documents;
 **Fix:**
 1. Check `.env` file has correct values:
    ```
-   VITE_SUPABASE_URL=https://jffnzpdcmdalxqhkfymx.supabase.co
-   VITE_SUPABASE_ANON_KEY=eyJhbGc...
+   VITE_SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
+   VITE_SUPABASE_ANON_KEY=your_anon_key_here
    ```
 2. Restart dev server: `npm run dev`
 3. Check browser console for connection errors
@@ -367,7 +367,7 @@ SELECT 'documents', COUNT(*) FROM documents;
 **Fix:**
 1. Regenerate types:
    ```bash
-   npx supabase gen types typescript --project-id jffnzpdcmdalxqhkfymx > lib/types/database.ts
+   npx supabase gen types typescript --project-id YOUR_PROJECT_ID > lib/types/database.ts
    ```
 2. Verify enums match schema.sql:
    - task_status: 'Todo' | 'InProgress' | 'Done'
