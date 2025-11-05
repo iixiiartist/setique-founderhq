@@ -1,0 +1,1 @@
+SELECT id, email, is_admin FROM profiles WHERE id = 'f8722baa-9f38-44bf-81ef-ec167dc135c3';
