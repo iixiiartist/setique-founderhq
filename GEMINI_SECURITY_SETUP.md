@@ -17,7 +17,7 @@ Your Gemini API key is now **secured on the server-side** using a Supabase Edge 
 Run this command in your terminal (from the project root):
 
 ```bash
-supabase secrets set GEMINI_API_KEY=AIzaSyDgANd84p364cLKpCGzUeXbN34mjnlNZ6k
+supabase secrets set GEMINI_API_KEY=your_actual_gemini_api_key_here
 ```
 
 This stores your API key securely in Supabase's secret management system where only Edge Functions can access it.

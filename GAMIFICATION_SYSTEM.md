@@ -284,7 +284,7 @@ ORDER BY (gamification->>'xp')::int DESC;
 The `.env.local` file had `GEMINI_API_KEY` instead of `VITE_GEMINI_API_KEY`.
 
 ### Fix Applied
-Changed to: `VITE_GEMINI_API_KEY=AIzaSyDgANd84p364cLKpCGzUeXbN34mjnlNZ6k`
+Changed to: `VITE_GEMINI_API_KEY=your_gemini_api_key_here`
 
 ### Why This Matters
 Vite requires the `VITE_` prefix for environment variables accessible in client-side code via `import.meta.env`.
