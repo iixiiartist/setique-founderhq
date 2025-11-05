@@ -1,6 +1,6 @@
-# Setique Founder Dashboard
+# FounderHQ - A Setique Tool
 
-A comprehensive, production-ready dashboard application built with React and TypeScript for solo founders to manage their business operations, featuring AI-powered insights, database persistence, and user authentication.
+A comprehensive, production-ready dashboard application built with React and TypeScript for founders to manage their business operations, featuring AI-powered insights, database persistence, and user authentication.
 
 ## 🚀 Features
 

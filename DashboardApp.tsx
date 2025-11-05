@@ -1462,7 +1462,7 @@ const DashboardApp: React.FC = () => {
                             </svg>
                         </button>
                         <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-black">
-                            Setique <span className="text-gray-600 hidden sm:inline" style={{ fontWeight: 400, fontFamily: "'Inter', sans-serif" }}>Founder Dashboard</span>
+                            FounderHQ <span className="text-gray-600 hidden sm:inline" style={{ fontWeight: 400, fontFamily: "'Inter', sans-serif" }}>A Setique Tool</span>
                         </h1>
                         
                         {/* Workspace name display (no switching in single-workspace model) */}

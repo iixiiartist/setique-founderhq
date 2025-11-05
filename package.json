@@ -1,8 +1,8 @@
 {
-  "name": "setique-founder-dashboard",
+  "name": "founderhq",
   "private": true,
   "version": "1.0.0",
-  "description": "Setique Founder Dashboard - Desktop Application",
+  "description": "FounderHQ - A Setique Tool for Founders",
   "author": "Setique",
   "main": "electron/main.js",
   "homepage": "./",
