@@ -1552,6 +1552,137 @@ export class DatabaseService {
     }
   }
 
+  // Get subscription with usage data
+  static async getSubscriptionUsage(workspaceId: string) {
+    try {
+      const { data: subscription, error } = await supabase
+        .from('subscriptions')
+        .select('plan_type, ai_requests_used, ai_requests_limit, storage_bytes_used, storage_bytes_limit, file_count_used, file_count_limit, seat_count, used_seats')
+        .eq('workspace_id', workspaceId)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      // If no subscription exists, return default free plan data
+      if (!subscription) {
+        return {
+          data: {
+            planType: 'free' as const,
+            aiRequestsUsed: 0,
+            aiRequestsLimit: 0,
+            storageUsed: 0,
+            storageLimit: 104857600, // 100 MB
+            fileCountUsed: 0,
+            fileCountLimit: 0,
+            seatCount: 1,
+            usedSeats: 1
+          },
+          error: null
+        };
+      }
+
+      return {
+        data: {
+          planType: subscription.plan_type,
+          aiRequestsUsed: subscription.ai_requests_used || 0,
+          aiRequestsLimit: subscription.ai_requests_limit,
+          storageUsed: subscription.storage_bytes_used || 0,
+          storageLimit: subscription.storage_bytes_limit,
+          fileCountUsed: subscription.file_count_used || 0,
+          fileCountLimit: subscription.file_count_limit,
+          seatCount: subscription.seat_count || 1,
+          usedSeats: subscription.used_seats || 1
+        },
+        error: null
+      };
+    } catch (error) {
+      console.error('Error fetching subscription usage:', error);
+      return { data: null, error };
+    }
+  }
+
+  // Increment file count when files are uploaded
+  static async incrementFileCount(workspaceId: string, fileSizeBytes: number) {
+    try {
+      const { data: subscription, error: fetchError } = await supabase
+        .from('subscriptions')
+        .select('file_count_used, storage_bytes_used')
+        .eq('workspace_id', workspaceId)
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+
+      const newFileCount = (subscription?.file_count_used || 0) + 1;
+      const newStorageUsed = (subscription?.storage_bytes_used || 0) + fileSizeBytes;
+
+      if (!subscription) {
+        // Create subscription if it doesn't exist
+        const { error: createError } = await supabase
+          .from('subscriptions')
+          .insert({
+            workspace_id: workspaceId,
+            plan_type: 'free',
+            file_count_used: 1,
+            storage_bytes_used: fileSizeBytes
+          });
+
+        if (createError) throw createError;
+      } else {
+        // Update existing subscription
+        const { error: updateError } = await supabase
+          .from('subscriptions')
+          .update({
+            file_count_used: newFileCount,
+            storage_bytes_used: newStorageUsed,
+            updated_at: new Date().toISOString()
+          })
+          .eq('workspace_id', workspaceId);
+
+        if (updateError) throw updateError;
+      }
+
+      console.log('[Database] Incremented file count:', newFileCount, 'Storage:', newStorageUsed);
+      return { error: null };
+    } catch (error) {
+      console.error('Error incrementing file count:', error);
+      return { error };
+    }
+  }
+
+  // Decrement file count when files are deleted
+  static async decrementFileCount(workspaceId: string, fileSizeBytes: number) {
+    try {
+      const { data: subscription, error: fetchError } = await supabase
+        .from('subscriptions')
+        .select('file_count_used, storage_bytes_used')
+        .eq('workspace_id', workspaceId)
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+      if (!subscription) return { error: null }; // Nothing to decrement
+
+      const newFileCount = Math.max(0, (subscription.file_count_used || 0) - 1);
+      const newStorageUsed = Math.max(0, (subscription.storage_bytes_used || 0) - fileSizeBytes);
+
+      const { error: updateError } = await supabase
+        .from('subscriptions')
+        .update({
+          file_count_used: newFileCount,
+          storage_bytes_used: newStorageUsed,
+          updated_at: new Date().toISOString()
+        })
+        .eq('workspace_id', workspaceId);
+
+      if (updateError) throw updateError;
+
+      console.log('[Database] Decremented file count:', newFileCount, 'Storage:', newStorageUsed);
+      return { error: null };
+    } catch (error) {
+      console.error('Error decrementing file count:', error);
+      return { error };
+    }
+  }
+
   static async checkStorageLimit(workspaceId: string, fileSizeBytes: number) {
     try {
       const { data, error } = await supabase.rpc('check_storage_limit', {

@@ -103,19 +103,20 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
 
     const renderUsageBar = (label: string, used: number, limit: number | null, formatFn?: (val: number) => string) => {
         const percentage = getUsagePercentage(used, limit);
-        const displayUsed = formatFn ? formatFn(used) : used.toString();
-        const displayLimit = limit === null ? 'Unlimited' : (formatFn ? formatFn(limit) : limit.toString());
+        const displayUsed = formatFn ? formatFn(used) : used.toLocaleString();
+        const displayLimit = limit === null ? '∞' : (formatFn ? formatFn(limit) : limit.toLocaleString());
+        const isUnlimited = limit === null;
 
         return (
             <div className="flex-1 min-w-[200px]">
                 <div className="flex justify-between text-xs text-black font-bold mb-1">
                     <span>{label}</span>
-                    <span>{displayUsed} / {displayLimit}</span>
+                    <span className={isUnlimited ? 'text-green-600' : ''}>{displayUsed} / {displayLimit}</span>
                 </div>
                 <div className="w-full bg-gray-200 border-2 border-black h-6">
                     <div
-                        className={`h-full transition-all ${getProgressColor(percentage)}`}
-                        style={{ width: `${Math.min(percentage, 100)}%` }}
+                        className={`h-full transition-all ${isUnlimited ? 'bg-green-600' : getProgressColor(percentage)}`}
+                        style={{ width: `${isUnlimited ? 100 : Math.min(percentage, 100)}%` }}
                     />
                 </div>
             </div>

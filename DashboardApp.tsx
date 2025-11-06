@@ -22,6 +22,7 @@ import { useWorkspace } from './contexts/WorkspaceContext';
 import { LoadingSpinner } from './components/shared/Loading';
 import { useLazyDataPersistence } from './hooks/useLazyDataPersistence';
 import { DataPersistenceAdapter } from './lib/services/dataPersistenceAdapter';
+import { DatabaseService } from './lib/services/database';
 import { GamificationService, TeamAchievementService } from './lib/services/gamificationService';
 import { supabase } from './lib/supabase';
 
@@ -1212,6 +1213,15 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             }
 
             try {
+                // Calculate file size (content is base64)
+                const fileSizeBytes = content ? Math.ceil((content.length * 3) / 4) : 0;
+
+                // Check storage limit before uploading
+                const { data: limitCheck } = await DatabaseService.checkStorageLimit(workspace.id, fileSizeBytes);
+                if (limitCheck === false) {
+                    return { success: false, message: 'Storage limit exceeded. Please upgrade your plan or delete some files.' };
+                }
+
                 await DataPersistenceAdapter.uploadDocument(userId, workspace.id, {
                     name,
                     mimeType,
@@ -1222,6 +1232,10 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     uploadedBy: user?.id,
                     uploadedByName: user?.user_metadata?.full_name || user?.email
                 });
+
+                // Increment file count and storage usage
+                await DatabaseService.incrementFileCount(workspace.id, fileSizeBytes);
+
                 await reload();
                 invalidateCache('documents');
                 handleToast(`Document "${name}" saved to library.`, 'success');
@@ -1254,8 +1268,22 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 return { success: false, message: 'Database not connected' };
             }
 
+            if (!workspace?.id) {
+                return { success: false, message: 'No workspace found' };
+            }
+
             try {
+                // Get document info before deleting to calculate size
+                const doc = data.documents.find(d => d.id === docId);
+                const fileSizeBytes = doc?.content ? Math.ceil((doc.content.length * 3) / 4) : 0;
+
                 await DataPersistenceAdapter.deleteDocument(docId);
+
+                // Decrement file count and storage usage
+                if (fileSizeBytes > 0) {
+                    await DatabaseService.decrementFileCount(workspace.id, fileSizeBytes);
+                }
+
                 await reload();
                 invalidateCache('documents');
                 handleToast("Document deleted.", 'info');

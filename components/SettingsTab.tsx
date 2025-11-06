@@ -98,12 +98,53 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ settings, onUpdateSettings, a
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [pendingInvitations, setPendingInvitations] = useState<any[]>([]);
     const [isLoadingInvitations, setIsLoadingInvitations] = useState(false);
+    const [usageData, setUsageData] = useState({
+        aiRequestsUsed: 0,
+        storageUsed: 0,
+        fileCountUsed: 0,
+        seatCount: 1,
+        usedSeats: 1
+    });
+    const [isLoadingUsage, setIsLoadingUsage] = useState(true);
     const { user } = useAuth();
     const { workspace, workspaceMembers, isLoadingMembers, refreshMembers } = useWorkspace();
 
     // Handle both camelCase (TypeScript) and snake_case (database) property names
     const workspacePlanType = (workspace as any)?.plan_type || workspace?.planType || 'free';
     const isTeamPlan = workspacePlanType.startsWith('team');
+
+    // Fetch real usage data
+    useEffect(() => {
+        const loadUsageData = async () => {
+            if (!workspace?.id) {
+                setIsLoadingUsage(false);
+                return;
+            }
+
+            try {
+                setIsLoadingUsage(true);
+                const { data, error } = await DatabaseService.getSubscriptionUsage(workspace.id);
+                
+                if (error) {
+                    console.error('Error loading usage data:', error);
+                } else if (data) {
+                    setUsageData({
+                        aiRequestsUsed: data.aiRequestsUsed,
+                        storageUsed: data.storageUsed,
+                        fileCountUsed: data.fileCountUsed,
+                        seatCount: data.seatCount,
+                        usedSeats: data.usedSeats
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading usage data:', error);
+            } finally {
+                setIsLoadingUsage(false);
+            }
+        };
+
+        loadUsageData();
+    }, [workspace?.id]);
 
     // Check for pending checkout and auto-trigger
     useEffect(() => {
@@ -272,13 +313,17 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ settings, onUpdateSettings, a
     return (
         <div className="max-w-3xl mx-auto">
             {/* Subscription Banner */}
-            <SubscriptionBanner
-                planType={workspacePlanType as any}
-                aiRequestsUsed={5}
-                storageUsed={10485760} // 10 MB
-                fileCountUsed={8}
-                onUpgrade={() => setShowPricingPage(true)}
-            />
+            {!isLoadingUsage && (
+                <SubscriptionBanner
+                    planType={workspacePlanType as any}
+                    aiRequestsUsed={usageData.aiRequestsUsed}
+                    storageUsed={usageData.storageUsed}
+                    fileCountUsed={usageData.fileCountUsed}
+                    seatCount={usageData.seatCount}
+                    usedSeats={usageData.usedSeats}
+                    onUpgrade={() => setShowPricingPage(true)}
+                />
+            )}
 
             {/* Profile Settings Section */}
             <div className="mb-8">
