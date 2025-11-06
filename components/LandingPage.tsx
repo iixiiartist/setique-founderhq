@@ -263,9 +263,8 @@ export function LandingPage() {
                 "Document Library (25 files)",
                 "Basic Analytics"
               ]}
-              cta="Get Started Free"
+              cta="Get Started"
               highlighted={false}
-              planType="free"
             />
             <PricingCard
               name="Power"
@@ -285,9 +284,8 @@ export function LandingPage() {
                 "Export Data",
                 "API Access"
               ]}
-              cta="Start Free, Upgrade Anytime"
+              cta="Get Started"
               highlighted={true}
-              planType="free"
             />
             <PricingCard
               name="Team Pro"
@@ -309,9 +307,8 @@ export function LandingPage() {
                 "Advanced Permissions",
                 "Priority Team Support"
               ]}
-              cta="Start Free, Upgrade Anytime"
+              cta="Get Started"
               highlighted={false}
-              planType="free"
             />
           </div>
         </div>
@@ -448,8 +445,7 @@ function PricingCard({
   additionalPricing,
   features, 
   cta, 
-  highlighted,
-  planType
+  highlighted
 }: { 
   name: string; 
   price: string; 
@@ -459,15 +455,7 @@ function PricingCard({
   features: string[]; 
   cta: string; 
   highlighted: boolean;
-  planType?: string;
 }) {
-  const getSubscribeLink = () => {
-    if (planType) {
-      return `/app?subscribe=${planType}`;
-    }
-    return '/app';
-  };
-
   return (
     <div className={`p-8 border-2 border-black ${highlighted ? 'bg-yellow-50 shadow-neo-lg' : 'bg-white shadow-neo'} relative`}>
       {highlighted && (
@@ -497,7 +485,7 @@ function PricingCard({
         ))}
       </ul>
       <Link
-        to={getSubscribeLink()}
+        to="/app"
         className={`block w-full py-3 text-center border-2 border-black font-medium transition-all ${
           highlighted 
             ? 'bg-black text-white shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none' 
