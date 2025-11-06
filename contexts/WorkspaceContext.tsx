@@ -311,7 +311,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
             setIsLoadingWorkspace(false);
             setIsLoadingProfile(false);
         }
-    }, [user]);
+    }, [user?.id, refreshWorkspace]); // Use user.id instead of user object to prevent unnecessary re-renders
 
     // Load business profile when workspace changes
     useEffect(() => {
@@ -334,7 +334,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
             setIsLoadingProfile(false);
             setIsLoadingMembers(false);
         }
-    }, [workspace]);
+    }, [workspace?.id, refreshBusinessProfile, refreshMembers]); // Use workspace.id to prevent unnecessary re-renders
 
     const value: WorkspaceContextType = {
         workspace,

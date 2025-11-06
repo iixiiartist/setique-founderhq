@@ -185,7 +185,8 @@ ${businessContext}
             const response = await getAiResponse(
                 [{ role: 'user', parts: [{ text: userPrompt }] }],
                 systemPrompt,
-                false // Do not use tools for the briefing
+                false, // Do not use tools for the briefing
+                workspace?.id // Pass workspaceId for rate limiting
             );
             // Extract text from the GenerateContentResponse format
             const briefingText = response.candidates?.[0]?.content?.parts?.[0]?.text ?? "Could not generate a briefing at this time.";
