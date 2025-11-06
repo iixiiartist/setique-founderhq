@@ -12,6 +12,7 @@ export const Tab = {
     Documents: 'documents',
     Achievements: 'achievements',
     Settings: 'settings',
+    Admin: 'admin',
 } as const;
 
 export type TabType = typeof Tab[keyof typeof Tab];
@@ -33,6 +34,7 @@ export const NAV_ITEMS: NavItem[] = [
     { id: Tab.Documents, label: 'File Library' },
     { id: Tab.Achievements, label: 'Achievements' },
     { id: Tab.Settings, label: 'Settings' },
+    { id: Tab.Admin, label: '🔐 Admin' },
 ];
 
 export const EMPTY_DASHBOARD_DATA: DashboardData = {

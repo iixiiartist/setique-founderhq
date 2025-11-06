@@ -10,9 +10,10 @@ interface SideMenuProps {
     gamification: GamificationData;
     onProgressBarClick: () => void;
     workspacePlan?: PlanType;
+    isAdmin?: boolean;
 }
 
-const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, activeTab, onSwitchTab, gamification, onProgressBarClick, workspacePlan }) => {
+const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, activeTab, onSwitchTab, gamification, onProgressBarClick, workspacePlan, isAdmin }) => {
     const activeClass = "text-blue-500 border-black bg-gray-100";
     const inactiveClass = "text-gray-600 border-transparent";
 
@@ -20,9 +21,12 @@ const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, activeTab, onSwitc
     const currentLevelThreshold = levelThreshold(gamification.level);
     const progressPercentage = Math.min(100, (gamification.xp / currentLevelThreshold) * 100);
     
-    // Filter out Documents tab for free users
+    // Filter out Documents tab for free users and Admin tab for non-admins
     const filteredNavItems = NAV_ITEMS.filter(item => {
         if (item.id === Tab.Documents && workspacePlan === 'free') {
+            return false;
+        }
+        if (item.id === Tab.Admin && !isAdmin) {
             return false;
         }
         return true;

@@ -10,6 +10,7 @@ import FinancialsTab from './components/FinancialsTab';
 import SettingsTab from './components/SettingsTab';
 import Toast from './components/shared/Toast';
 import FileLibraryTab from './components/FileLibraryTab';
+import AdminTab from './components/AdminTab';
 import AchievementsTab from './components/AchievementsTab';
 import TaskFocusModal from './components/shared/TaskFocusModal';
 import CalendarTab from './components/CalendarTab';
@@ -29,6 +30,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
     const { workspace, businessProfile, showOnboarding, saveBusinessProfile, dismissOnboarding, isLoadingWorkspace, refreshWorkspace, canEditTask, workspaceMembers } = useWorkspace();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showBusinessProfileModal, setShowBusinessProfileModal] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
     
     // Persist active tab in localStorage so it survives page refresh
     const [activeTab, setActiveTab] = useState<TabType>(() => {
@@ -65,6 +67,29 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
     useEffect(() => {
         localStorage.setItem('activeTab', activeTab);
     }, [activeTab]);
+
+    // Check if current user is admin
+    useEffect(() => {
+        const checkAdminStatus = async () => {
+            if (!user) return;
+            
+            try {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('is_admin')
+                    .eq('id', user.id)
+                    .single();
+                
+                if (!error && data) {
+                    setIsAdmin(data.is_admin || false);
+                }
+            } catch (error) {
+                console.error('Error checking admin status:', error);
+            }
+        };
+
+        checkAdminStatus();
+    }, [user]);
 
     // Handle pending subscription redirect
     useEffect(() => {
@@ -1409,6 +1434,8 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 />;
             case Tab.Settings:
                 return <SettingsTab settings={data.settings} onUpdateSettings={actions.updateSettings} actions={actions} workspaceId={workspace?.id} />;
+            case Tab.Admin:
+                return isAdmin ? <AdminTab /> : <div className="p-8 text-center text-red-600 font-mono">Access Denied: Admin Only</div>;
             default:
                 return <DashboardTab data={data} actions={actions} businessProfile={businessProfile} />;
         }
@@ -1489,6 +1516,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 gamification={data.gamification}
                 onProgressBarClick={() => setIsTaskFocusModalOpen(true)}
                 workspacePlan={workspace?.planType}
+                isAdmin={isAdmin}
             />
             <div className="min-h-screen p-3 sm:p-4 md:p-8">
                 <header className="mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
