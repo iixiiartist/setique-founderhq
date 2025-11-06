@@ -53,7 +53,14 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
         try {
             setIsLoadingWorkspace(true);
             console.log('[WorkspaceContext] Loading workspace for user:', user.id);
-            const { data: workspaces, error } = await DatabaseService.getWorkspaces(user.id);
+            
+            // Add timeout to prevent infinite loading
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Workspace loading timeout')), 10000)
+            );
+            
+            const loadPromise = DatabaseService.getWorkspaces(user.id);
+            const { data: workspaces, error } = await Promise.race([loadPromise, timeoutPromise]) as any;
             
             console.log('[WorkspaceContext] Workspace loaded:', { workspaces, error });
             
