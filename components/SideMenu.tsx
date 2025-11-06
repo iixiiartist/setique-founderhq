@@ -1,7 +1,6 @@
-
 import React from 'react';
-import { NAV_ITEMS, TabType } from '../constants';
-import { GamificationData } from '../types';
+import { NAV_ITEMS, TabType, Tab } from '../constants';
+import { GamificationData, PlanType } from '../types';
 
 interface SideMenuProps {
     isOpen: boolean;
@@ -10,15 +9,24 @@ interface SideMenuProps {
     onSwitchTab: (tab: TabType) => void;
     gamification: GamificationData;
     onProgressBarClick: () => void;
+    workspacePlan?: PlanType;
 }
 
-const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, activeTab, onSwitchTab, gamification, onProgressBarClick }) => {
+const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, activeTab, onSwitchTab, gamification, onProgressBarClick, workspacePlan }) => {
     const activeClass = "text-blue-500 border-black bg-gray-100";
     const inactiveClass = "text-gray-600 border-transparent";
 
     const levelThreshold = (level: number) => 100 * level + Math.pow(level, 2) * 50;
     const currentLevelThreshold = levelThreshold(gamification.level);
     const progressPercentage = Math.min(100, (gamification.xp / currentLevelThreshold) * 100);
+    
+    // Filter out Documents tab for free users
+    const filteredNavItems = NAV_ITEMS.filter(item => {
+        if (item.id === Tab.Documents && workspacePlan === 'free') {
+            return false;
+        }
+        return true;
+    });
     
     return (
         <>
@@ -40,7 +48,7 @@ const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, activeTab, onSwitc
                     <button onClick={onClose} className="text-3xl hover:text-gray-600 transition-colors" aria-label="Close menu">&times;</button>
                 </div>
                 <nav className="flex-grow overflow-y-auto custom-scrollbar pr-2 -mr-2">
-                    {NAV_ITEMS.map(item => (
+                    {filteredNavItems.map(item => (
                         <a 
                             key={item.id} 
                             href="#" 

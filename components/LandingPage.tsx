@@ -254,11 +254,9 @@ export function LandingPage() {
               period="/month"
               description="Perfect for exploring and getting started"
               features={[
-                "25 files",
-                "1 GB storage",
+                "100 MB storage",
                 "Task Management",
                 "CRM (limited)",
-                "Document Library",
                 "Basic Analytics"
               ]}
               cta="Get Started"

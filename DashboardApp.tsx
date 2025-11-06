@@ -1379,6 +1379,26 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
                 />;
             case Tab.Documents:
+                // Hide file library for free users
+                if (workspace?.planType === 'free') {
+                    return (
+                        <div className="p-8 text-center">
+                            <div className="max-w-md mx-auto">
+                                <div className="mb-6 text-6xl">📁</div>
+                                <h2 className="text-2xl font-bold mb-4">File Library - Premium Feature</h2>
+                                <p className="text-gray-600 mb-6">
+                                    Upload and organize your documents, pitch decks, and important files. Available on Power and Team Pro plans.
+                                </p>
+                                <button
+                                    onClick={() => setActiveTab(Tab.Settings)}
+                                    className="px-6 py-3 bg-yellow-400 text-black font-bold border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+                                >
+                                    Upgrade to Access File Library
+                                </button>
+                            </div>
+                        </div>
+                    );
+                }
                 return <FileLibraryTab documents={data.documents} actions={actions} companies={allCompanies} contacts={allContacts} />;
             case Tab.Achievements:
                 return <AchievementsTab 
@@ -1468,6 +1488,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 onSwitchTab={switchTab}
                 gamification={data.gamification}
                 onProgressBarClick={() => setIsTaskFocusModalOpen(true)}
+                workspacePlan={workspace?.planType}
             />
             <div className="min-h-screen p-3 sm:p-4 md:p-8">
                 <header className="mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">

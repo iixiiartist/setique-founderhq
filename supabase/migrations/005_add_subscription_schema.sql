@@ -214,8 +214,8 @@ BEGIN
     CASE NEW.plan_type
         WHEN 'free' THEN
             NEW.ai_requests_limit := 0; -- No AI access
-            NEW.storage_bytes_limit := 1073741824; -- 1 GB
-            NEW.file_count_limit := 25;
+            NEW.storage_bytes_limit := 104857600; -- 100 MB
+            NEW.file_count_limit := 0; -- No file access
             NEW.seat_count := 1;
             
         WHEN 'power-individual' THEN
