@@ -482,6 +482,14 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 // Reload tasks to get the real data with correct ID
                 invalidateCache('tasks');
                 const updatedTasks = await loadTasks();
+                
+                console.log('[DashboardApp] Updated tasks after create:', {
+                    platformTasks: updatedTasks.platformTasks?.length,
+                    investorTasks: updatedTasks.investorTasks?.length,
+                    category: category,
+                    categoryCount: updatedTasks[category]?.length
+                });
+                
                 setData(prev => ({ ...prev, ...updatedTasks }));
                 
                 handleToast(`Task "${text}" created.`, 'success');
