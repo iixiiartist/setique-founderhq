@@ -90,7 +90,9 @@ interface SettingsTabProps {
 
 const SettingsTab: React.FC<SettingsTabProps> = ({ settings, onUpdateSettings, actions, workspaceId }) => {
     const [localSettings, setLocalSettings] = useState<SettingsData>(settings);
-    const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
+    const [notificationPermission, setNotificationPermission] = useState(
+        typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default'
+    );
     const [showPricingPage, setShowPricingPage] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [showInviteModal, setShowInviteModal] = useState(false);
@@ -204,12 +206,22 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ settings, onUpdateSettings, a
     };
 
     const handlePermissionRequest = async () => {
-        const permission = await Notification.requestPermission();
-        setNotificationPermission(permission);
-        if (permission === 'granted') {
-            handleSettingChange('desktopNotifications', true);
-        } else {
-            handleSettingChange('desktopNotifications', false);
+        if (typeof window === 'undefined' || !('Notification' in window)) {
+            alert('Notifications are not supported in this browser.');
+            return;
+        }
+        
+        try {
+            const permission = await Notification.requestPermission();
+            setNotificationPermission(permission);
+            if (permission === 'granted') {
+                handleSettingChange('desktopNotifications', true);
+            } else {
+                handleSettingChange('desktopNotifications', false);
+            }
+        } catch (error) {
+            console.error('Error requesting notification permission:', error);
+            alert('Failed to request notification permission.');
         }
     };
     
