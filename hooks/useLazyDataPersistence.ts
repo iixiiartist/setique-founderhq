@@ -82,12 +82,12 @@ export const useLazyDataPersistence = () => {
       const { data: tasks } = await DatabaseService.getTasks(user.id, workspace.id)
       
       const result = {
-        platformTasks: tasks?.filter(t => t.category === 'platform') || [],
-        investorTasks: tasks?.filter(t => t.category === 'investor') || [],
-        customerTasks: tasks?.filter(t => t.category === 'customer') || [],
-        partnerTasks: tasks?.filter(t => t.category === 'partner') || [],
-        marketingTasks: tasks?.filter(t => t.category === 'marketing') || [],
-        financialTasks: tasks?.filter(t => t.category === 'financial') || []
+        platformTasks: tasks?.filter(t => t.category === 'platformTasks') || [],
+        investorTasks: tasks?.filter(t => t.category === 'investorTasks') || [],
+        customerTasks: tasks?.filter(t => t.category === 'customerTasks') || [],
+        partnerTasks: tasks?.filter(t => t.category === 'partnerTasks') || [],
+        marketingTasks: tasks?.filter(t => t.category === 'marketingTasks') || [],
+        financialTasks: tasks?.filter(t => t.category === 'financialTasks') || []
       }
 
       setDataCache(prev => ({
