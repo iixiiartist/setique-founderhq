@@ -95,8 +95,8 @@ export function LandingPage() {
       <section className="bg-gray-50 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Who Uses FounderHQ?</h2>
-            <p className="text-lg text-gray-600">Real professionals managing real businesses</p>
+            <h2 className="text-3xl font-bold mb-4">Built for Ambitious Professionals</h2>
+            <p className="text-lg text-gray-600">Whether you're scaling a startup or managing clients, FounderHQ adapts to your workflow</p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             <UseCase
