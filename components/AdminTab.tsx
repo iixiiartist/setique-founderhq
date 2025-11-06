@@ -19,8 +19,8 @@ interface SignupStats {
     today: number;
     thisWeek: number;
     thisMonth: number;
-    confirmed: number;
-    unconfirmed: number;
+    freePlan: number;
+    paidPlan: number;
 }
 
 const AdminTab: React.FC = () => {
@@ -29,7 +29,6 @@ const AdminTab: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterPlan, setFilterPlan] = useState<string>('all');
-    const [filterConfirmed, setFilterConfirmed] = useState<string>('all');
 
     useEffect(() => {
         loadUserData();
@@ -47,8 +46,6 @@ const AdminTab: React.FC = () => {
                     email,
                     full_name,
                     created_at,
-                    email_confirmed_at,
-                    last_sign_in_at,
                     is_admin
                 `)
                 .order('created_at', { ascending: false });
@@ -70,11 +67,11 @@ const AdminTab: React.FC = () => {
                     email: profile.email,
                     fullName: profile.full_name || 'N/A',
                     createdAt: profile.created_at,
-                    emailConfirmed: !!profile.email_confirmed_at,
+                    emailConfirmed: true, // Assume confirmed since they can only sign in if confirmed
                     planType: workspace?.plan_type || 'free',
                     workspaceId: workspace?.id || '',
                     workspaceName: workspace?.name || 'No workspace',
-                    lastSignIn: profile.last_sign_in_at,
+                    lastSignIn: null, // Not available in profiles table
                     isAdmin: profile.is_admin || false
                 };
             });
@@ -92,8 +89,8 @@ const AdminTab: React.FC = () => {
                 today: usersData.filter(u => new Date(u.createdAt) >= today).length,
                 thisWeek: usersData.filter(u => new Date(u.createdAt) >= weekAgo).length,
                 thisMonth: usersData.filter(u => new Date(u.createdAt) >= monthAgo).length,
-                confirmed: usersData.filter(u => u.emailConfirmed).length,
-                unconfirmed: usersData.filter(u => !u.emailConfirmed).length
+                freePlan: usersData.filter(u => u.planType === 'free').length,
+                paidPlan: usersData.filter(u => u.planType !== 'free').length
             };
 
             setStats(stats);
@@ -110,12 +107,8 @@ const AdminTab: React.FC = () => {
             user.fullName.toLowerCase().includes(searchQuery.toLowerCase());
         
         const matchesPlan = filterPlan === 'all' || user.planType === filterPlan;
-        const matchesConfirmed = 
-            filterConfirmed === 'all' || 
-            (filterConfirmed === 'confirmed' && user.emailConfirmed) ||
-            (filterConfirmed === 'unconfirmed' && !user.emailConfirmed);
 
-        return matchesSearch && matchesPlan && matchesConfirmed;
+        return matchesSearch && matchesPlan;
     });
 
     const formatDate = (dateString: string) => {
@@ -180,20 +173,20 @@ const AdminTab: React.FC = () => {
                         <div className="text-3xl font-bold text-purple-700 font-mono">{stats.thisMonth}</div>
                         <div className="text-sm text-gray-600 font-mono">This Month</div>
                     </div>
-                    <div className="bg-yellow-50 p-4 border-2 border-black shadow-neo">
-                        <div className="text-3xl font-bold text-yellow-700 font-mono">{stats.confirmed}</div>
-                        <div className="text-sm text-gray-600 font-mono">Confirmed</div>
+                    <div className="bg-gray-50 p-4 border-2 border-black shadow-neo">
+                        <div className="text-3xl font-bold text-gray-700 font-mono">{stats.freePlan}</div>
+                        <div className="text-sm text-gray-600 font-mono">Free Plan</div>
                     </div>
-                    <div className="bg-red-50 p-4 border-2 border-black shadow-neo">
-                        <div className="text-3xl font-bold text-red-700 font-mono">{stats.unconfirmed}</div>
-                        <div className="text-sm text-gray-600 font-mono">Unconfirmed</div>
+                    <div className="bg-yellow-50 p-4 border-2 border-black shadow-neo">
+                        <div className="text-3xl font-bold text-yellow-700 font-mono">{stats.paidPlan}</div>
+                        <div className="text-sm text-gray-600 font-mono">Paid Plans</div>
                     </div>
                 </div>
             )}
 
             {/* Filters */}
             <div className="bg-white p-6 border-2 border-black shadow-neo">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-bold font-mono text-black mb-2">
                             Search Users
@@ -221,20 +214,6 @@ const AdminTab: React.FC = () => {
                             <option value="team-pro">Team Pro</option>
                         </select>
                     </div>
-                    <div>
-                        <label className="block text-sm font-bold font-mono text-black mb-2">
-                            Email Status
-                        </label>
-                        <select
-                            value={filterConfirmed}
-                            onChange={(e) => setFilterConfirmed(e.target.value)}
-                            className="w-full px-4 py-2 border-2 border-black focus:outline-none focus:border-yellow-400 font-mono text-sm"
-                        >
-                            <option value="all">All</option>
-                            <option value="confirmed">Confirmed</option>
-                            <option value="unconfirmed">Unconfirmed</option>
-                        </select>
-                    </div>
                 </div>
             </div>
 
@@ -247,9 +226,7 @@ const AdminTab: React.FC = () => {
                                 <th className="px-4 py-3 text-left text-sm font-mono">User</th>
                                 <th className="px-4 py-3 text-left text-sm font-mono">Email</th>
                                 <th className="px-4 py-3 text-left text-sm font-mono">Signed Up</th>
-                                <th className="px-4 py-3 text-left text-sm font-mono">Status</th>
                                 <th className="px-4 py-3 text-left text-sm font-mono">Plan</th>
-                                <th className="px-4 py-3 text-left text-sm font-mono">Last Sign In</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y-2 divide-black">
@@ -274,17 +251,6 @@ const AdminTab: React.FC = () => {
                                         {getTimeSince(user.createdAt)}
                                     </td>
                                     <td className="px-4 py-3">
-                                        {user.emailConfirmed ? (
-                                            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-mono border-2 border-black">
-                                                ✓ Confirmed
-                                            </span>
-                                        ) : (
-                                            <span className="px-2 py-1 bg-red-100 text-red-800 text-xs font-mono border-2 border-black">
-                                                ⚠ Pending
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-3">
                                         <span className={`px-2 py-1 text-xs font-mono border-2 border-black ${
                                             user.planType === 'free' ? 'bg-gray-100 text-gray-800' :
                                             user.planType === 'power-individual' ? 'bg-yellow-100 text-yellow-800' :
@@ -295,9 +261,6 @@ const AdminTab: React.FC = () => {
                                              user.planType === 'team-pro' ? 'TEAM PRO' :
                                              user.planType.toUpperCase()}
                                         </span>
-                                    </td>
-                                    <td className="px-4 py-3 font-mono text-xs text-gray-600">
-                                        {user.lastSignIn ? getTimeSince(user.lastSignIn) : 'Never'}
                                     </td>
                                 </tr>
                             ))}
