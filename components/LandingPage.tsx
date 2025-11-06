@@ -55,9 +55,9 @@ export function LandingPage() {
             ⚡ AI-POWERED FOUNDER DASHBOARD
           </div>
           <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
-            Build Your Business
+            Your Command Center
             <br />
-            <span className="text-blue-600">Faster & Smarter</span>
+            <span className="text-blue-600">For Business Growth</span>
           </h1>
           <p className="text-xl text-gray-700 mb-8 leading-relaxed">
             The all-in-one workspace for founders, consultants, sales reps, and small businesses. Manage projects, track finances, engage customers, and get AI-powered insights—all in one place.
