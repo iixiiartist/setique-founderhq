@@ -103,6 +103,21 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ settings, onUpdateSettings, a
     const workspacePlanType = (workspace as any)?.plan_type || workspace?.planType || 'free';
     const isTeamPlan = workspacePlanType.startsWith('team');
 
+    // Check for pending checkout and auto-trigger
+    useEffect(() => {
+        const checkoutPlan = sessionStorage.getItem('checkout_plan');
+        if (checkoutPlan && workspace?.id) {
+            // Clear the checkout plan
+            sessionStorage.removeItem('checkout_plan');
+            
+            // Auto-open the pricing modal
+            console.log('Auto-triggering checkout for plan:', checkoutPlan);
+            setTimeout(() => {
+                setShowPricingPage(true);
+            }, 500);
+        }
+    }, [workspace?.id]);
+
     useEffect(() => {
         setLocalSettings(settings);
     }, [settings]);
