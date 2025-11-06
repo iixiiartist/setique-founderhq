@@ -13,6 +13,7 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false)
 
   const { signIn, signUp, resetPassword } = useAuth()
 
@@ -35,7 +36,9 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
             setError(error.message)
           }
         } else {
-          setMessage('✅ Account created! Please check your email to confirm your account before signing in.')
+          setAwaitingConfirmation(true)
+          setMessage('✅ Account created! Check your email and click the confirmation link to complete your signup. The email should arrive within a few minutes.')
+          // Keep them on signup view but disable switching
         }
       } else {
         const { data, error } = await signIn(email, password)
@@ -44,7 +47,8 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
           if (error.message.includes('Invalid login credentials')) {
             setError('❌ Invalid email or password. Please check your credentials and try again.')
           } else if (error.message.includes('Email not confirmed')) {
-            setError('⚠️ Please confirm your email address. Check your inbox for the confirmation link.')
+            setError('⚠️ Please confirm your email address first. Check your inbox for the confirmation link we sent you.')
+            setAwaitingConfirmation(true)
           } else if (error.message.includes('User not found')) {
             setError('❌ No account found with this email. Please sign up first.')
           } else {
@@ -78,6 +82,31 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
         setError(error.message)
       } else {
         setMessage('✅ Password reset email sent! Check your inbox for the reset link.')
+      }
+    } catch (err) {
+      setError('⚠️ An unexpected error occurred. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleResendConfirmation = async () => {
+    if (!email) {
+      setError('⚠️ Please enter your email address')
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    setMessage(null)
+
+    try {
+      // Try to sign up again with the same email - Supabase will resend the confirmation
+      const { error } = await signUp(email, password, fullName)
+      if (error && !error.message.includes('already registered')) {
+        setError(error.message)
+      } else {
+        setMessage('✅ Confirmation email resent! Check your inbox (and spam folder).')
       }
     } catch (err) {
       setError('⚠️ An unexpected error occurred. Please try again.')
@@ -178,31 +207,80 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
                   <span className="text-green-600 text-xl mr-2">✓</span>
                   <div className="text-sm font-mono text-green-800">{message}</div>
                 </div>
+                {awaitingConfirmation && (
+                  <div className="mt-3 pt-3 border-t border-green-300">
+                    <p className="text-xs font-mono text-green-700 mb-2">
+                      Didn't receive the email?
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleResendConfirmation}
+                      disabled={loading}
+                      className="text-xs font-mono font-bold text-green-700 hover:text-green-900 underline"
+                    >
+                      Resend confirmation email
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 px-4 bg-yellow-400 border-2 border-black font-bold font-mono text-black hover:bg-yellow-300 transition-colors shadow-[4px_4px_0_rgba(0,0,0,1)] hover:shadow-[2px_2px_0_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_rgba(0,0,0,1)]"
-            >
-              {loading ? 'PROCESSING...' : (isSignUp ? 'CREATE ACCOUNT →' : 'SIGN IN →')}
-            </button>
+            {!awaitingConfirmation && (
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 px-4 bg-yellow-400 border-2 border-black font-bold font-mono text-black hover:bg-yellow-300 transition-colors shadow-[4px_4px_0_rgba(0,0,0,1)] hover:shadow-[2px_2px_0_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_rgba(0,0,0,1)]"
+              >
+                {loading ? 'PROCESSING...' : (isSignUp ? 'CREATE ACCOUNT →' : 'SIGN IN →')}
+              </button>
+            )}
+
+            {awaitingConfirmation && (
+              <div className="rounded-none bg-yellow-50 p-4 border-2 border-yellow-600">
+                <p className="text-sm font-mono text-yellow-900 mb-3">
+                  📧 <strong>Check your email!</strong>
+                </p>
+                <p className="text-xs font-mono text-yellow-800 mb-2">
+                  We sent a confirmation link to <strong>{email}</strong>
+                </p>
+                <p className="text-xs font-mono text-yellow-700">
+                  Click the link in the email to activate your account, then come back here to sign in.
+                </p>
+              </div>
+            )}
 
             <div className="flex items-center justify-between pt-4 border-t-2 border-gray-200">
-              <button
-                type="button"
-                className="text-sm font-mono text-black hover:text-yellow-600 font-bold underline"
-                onClick={() => {
-                  setIsSignUp(!isSignUp)
-                  setError(null)
-                  setMessage(null)
-                }}
-              >
-                {isSignUp ? '← Back to Sign In' : 'Create Account →'}
-              </button>
+              {!awaitingConfirmation && (
+                <button
+                  type="button"
+                  className="text-sm font-mono text-black hover:text-yellow-600 font-bold underline"
+                  onClick={() => {
+                    setIsSignUp(!isSignUp)
+                    setError(null)
+                    setMessage(null)
+                    setAwaitingConfirmation(false)
+                  }}
+                >
+                  {isSignUp ? '← Back to Sign In' : 'Create Account →'}
+                </button>
+              )}
+              
+              {awaitingConfirmation && (
+                <button
+                  type="button"
+                  className="text-sm font-mono text-black hover:text-yellow-600 font-bold underline"
+                  onClick={() => {
+                    setAwaitingConfirmation(false)
+                    setIsSignUp(false)
+                    setError(null)
+                    setMessage(null)
+                  }}
+                >
+                  ← Back to Sign In
+                </button>
+              )}
 
-              {!isSignUp && (
+              {!isSignUp && !awaitingConfirmation && (
                 <button
                   type="button"
                   className="text-sm font-mono text-gray-600 hover:text-black underline"
