@@ -268,7 +268,7 @@ export function LandingPage() {
             />
             <PricingCard
               name="Power"
-              price="$99"
+              price="$49"
               period="/month"
               description="For serious founders building their business"
               features={[
@@ -289,7 +289,7 @@ export function LandingPage() {
             />
             <PricingCard
               name="Team Pro"
-              price="$149"
+              price="$99"
               period="/month"
               description="For teams collaborating together"
               additionalPricing="+ $25/user/month"

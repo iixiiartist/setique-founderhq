@@ -6,10 +6,10 @@ export type { PlanType };
 // Plan pricing in cents
 export const PLAN_PRICES = {
   'free': 0,
-  'pro-individual': 2900, // $29/month
-  'power-individual': 9900, // $99/month
-  'team-starter': 4900, // $49/month base
-  'team-pro': 14900, // $149/month base
+  'pro-individual': 2900, // $29/month (legacy)
+  'power-individual': 4900, // $49/month
+  'team-starter': 4900, // $49/month base (legacy)
+  'team-pro': 9900, // $99/month base
 } as const;
 
 // Additional seat pricing for team plans (in cents)
