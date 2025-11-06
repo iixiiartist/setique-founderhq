@@ -453,8 +453,12 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             try {
                 console.log('[DashboardApp] Creating task with workspace:', workspace.id);
                 await DataPersistenceAdapter.createTask(userId, category, text, priority, crmItemId, contactId, dueDate, workspace.id, assignedTo);
-                await reload();
+                
+                // Only reload tasks, not everything (prevents glitch)
                 invalidateCache('tasks');
+                const updatedTasks = await loadTasks();
+                setData(prev => ({ ...prev, ...updatedTasks }));
+                
                 handleToast(`Task "${text}" created.`, 'success');
                 return { success: true, message: `Task "${text}" created.` };
             } catch (error) {
@@ -497,7 +501,11 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 }
 
                 await DataPersistenceAdapter.updateTask(taskId, updates, user?.id, workspace?.id);
-                await reload();
+                
+                // Only reload tasks, not everything (prevents glitch)
+                invalidateCache('tasks');
+                const updatedTasks = await loadTasks();
+                setData(prev => ({ ...prev, ...updatedTasks }));
 
                 // Award XP if task was just completed (not already done)
                 if (wasCompleted && previousStatus !== 'Done') {
@@ -1057,42 +1065,29 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 // Invalidate appropriate cache and clear loaded tabs
                 if (collection === 'financials' || collection === 'expenses') {
                     invalidateCache('financials');
-                    setLoadedTabs(prev => {
-                        const newSet = new Set(prev);
-                        newSet.delete('financials');
-                        return newSet;
-                    });
                     // Reload financial data immediately
                     const freshFinancials = await loadFinancials();
                     setData(prev => ({ ...prev, ...freshFinancials }));
                 } else if (collection === 'marketing') {
                     invalidateCache('marketing');
-                    setLoadedTabs(prev => {
-                        const newSet = new Set(prev);
-                        newSet.delete('marketing');
-                        return newSet;
-                    });
+                    // Reload marketing data immediately
+                    const freshMarketing = await loadMarketing();
+                    setData(prev => ({ ...prev, marketing: freshMarketing }));
                 } else if (['investors', 'customers', 'partners'].includes(collection) || collection === 'contacts') {
                     invalidateCache('crm');
-                    setLoadedTabs(prev => {
-                        const newSet = new Set(prev);
-                        newSet.delete('crm');
-                        return newSet;
-                    });
+                    // Reload CRM data immediately
+                    const freshCrm = await loadCrmItems();
+                    setData(prev => ({ ...prev, ...freshCrm }));
                 } else if (['platformTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketingTasks', 'financialTasks'].includes(collection)) {
                     invalidateCache('tasks');
-                    setLoadedTabs(prev => {
-                        const newSet = new Set(prev);
-                        newSet.delete('tasks');
-                        return newSet;
-                    });
+                    // Reload tasks immediately
+                    const freshTasks = await loadTasks();
+                    setData(prev => ({ ...prev, ...freshTasks }));
                 } else if (collection === 'documents') {
                     invalidateCache('documents');
-                    setLoadedTabs(prev => {
-                        const newSet = new Set(prev);
-                        newSet.delete('documents');
-                        return newSet;
-                    });
+                    // Reload documents immediately
+                    const freshDocuments = await loadDocuments();
+                    setData(prev => ({ ...prev, documents: freshDocuments }));
                 }
                 
                 handleToast(`Item deleted from ${collection}.`, 'info');
