@@ -1,6 +1,67 @@
-# FounderHQ - A Setique Tool
+# FounderHQ - Lightweight GTM Hub with AI
 
-A comprehensive, production-ready dashboard application built with React and TypeScript for founders to manage their business operations, featuring AI-powered insights, database persistence, and user authentication.
+**Your focused workspace for go-to-market teams.** FounderHQ is a lightweight, AI-powered platform designed for founders, consultants, sales professionals, and small business owners who need to manage their entire GTM motion without the complexity of enterprise tools.
+
+## 🎯 What is FounderHQ?
+
+FounderHQ is a comprehensive yet lightweight platform that combines CRM, task management, AI assistants, marketing planning, and financial tracking in one focused workspace. Unlike bloated enterprise tools, FounderHQ gives you exactly what you need for GTM—nothing more, nothing less.
+
+### Perfect For:
+- **Founders** - Track investor relationships, manage product development, monitor business metrics
+- **Consultants** - Manage multiple client projects, organize deliverables, client communications
+- **Sales Professionals** - Track customer pipeline, manage follow-ups, close deals
+- **Small Business Owners** - Day-to-day operations, expense tracking, team coordination
+
+## ⚡ Key Features
+
+### 🤝 3-in-1 CRM
+Separate pipelines for your entire GTM ecosystem:
+- **Investors Pipeline** - Track fundraising conversations, next steps, meeting history
+- **Customers Pipeline** - Manage sales opportunities, deal values, customer relationships
+- **Partners Pipeline** - Strategic partnerships, integration opportunities, co-marketing deals
+
+### 🤖 AI Assistants for Every GTM Function
+Context-aware AI assistants trained on your business profile and data:
+- **Platform AI** - Technical guidance, feature prioritization, product roadmap
+- **Fundraising AI** - Investor research, outreach emails, pitch deck feedback
+- **Sales AI** - Proposal generation, deal strategies, customer insights
+- **Partnerships AI** - Partnership opportunities, deal structuring, relationship management
+- **Marketing AI** - Campaign planning, content ideas, strategy optimization
+- **Financials AI** - Expense analysis, revenue forecasting, financial insights
+
+### ✅ Smart Task Management
+- Organize by category (Platform, Investor, Customer, Partner, Marketing, Ops)
+- Assign to team members
+- Priority tracking with XP rewards
+- Gamification for motivation
+
+### 📣 Marketing Planner
+- Campaign planning and tracking
+- Blog posts, newsletters, social media scheduling
+- Status tracking (planned, in progress, published)
+- Content calendar view
+
+### 💰 Financial Dashboard
+- Track MRR, GMV, signups, and expenses
+- Visual trend analysis with interactive charts
+- Burn rate monitoring
+- Financial forecasting
+
+### 📁 Smart Document Library
+- Upload and organize files by module
+- AI document analysis and chat
+- Reference documents in AI conversations
+
+### 📅 Unified Calendar
+- All tasks, meetings, and deadlines in one view
+- Filter by type and priority
+- Integration with CRM meetings
+
+### 👥 Team Collaboration
+- Invite team members to workspace
+- Assign tasks and CRM items
+- Track team activity
+- Role-based permissions
 
 ## 🚀 Features
 
