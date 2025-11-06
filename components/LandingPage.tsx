@@ -87,30 +87,59 @@ export function LandingPage() {
       <section className="bg-gray-50 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Perfect For</h2>
-            <p className="text-lg text-gray-600">Built to support your unique workflow</p>
+            <h2 className="text-3xl font-bold mb-4">Who Uses FounderHQ?</h2>
+            <p className="text-lg text-gray-600">Real professionals managing real businesses</p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             <UseCase
-              title="Founders & Startups"
-              description="Build your business from idea to scale with comprehensive tools for every stage."
+              title="Founders"
+              description="Track investor relationships, manage product development, and monitor business metrics in one place."
               emoji="🚀"
             />
             <UseCase
-              title="Independent Consultants"
-              description="Manage client projects, track billable hours, and deliver exceptional results."
+              title="Consultants"
+              description="Manage multiple client projects, organize deliverables, and keep client communications organized."
               emoji="💼"
             />
             <UseCase
-              title="Sales Representatives"
-              description="Track leads, manage your pipeline, and close more deals with powerful CRM tools."
+              title="Sales Professionals"
+              description="Track your customer pipeline, manage follow-ups, and never miss a deal opportunity."
               emoji="📈"
             />
             <UseCase
-              title="Small Businesses"
-              description="Run your entire operation from one dashboard—projects, finances, and team management."
+              title="Small Business Owners"
+              description="Manage day-to-day operations, track expenses, and coordinate your team's tasks."
               emoji="🏪"
             />
+          </div>
+        </div>
+      </section>
+
+      {/* AI Features Highlight */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-black shadow-neo-lg p-8 md:p-12">
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="inline-block mb-4 px-4 py-2 bg-purple-300 border-2 border-black shadow-neo font-mono text-sm font-bold">
+              🤖 POWERED BY GOOGLE GEMINI AI
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">Context-Aware AI Assistants</h2>
+            <p className="text-lg text-gray-700 mb-6 leading-relaxed">
+              Every module has a dedicated AI assistant tuned to your specific business function—whether it's fundraising, sales, partnerships, marketing, or financials. Each assistant is grounded with your business profile and context, providing relevant insights and suggestions based on your actual data.
+            </p>
+            <div className="grid md:grid-cols-3 gap-4 text-left">
+              <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
+                <h3 className="font-bold mb-2">📊 Fundraising AI</h3>
+                <p className="text-sm text-gray-600">Get investor research, draft outreach emails, and manage your fundraising pipeline.</p>
+              </div>
+              <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
+                <h3 className="font-bold mb-2">💼 Sales AI</h3>
+                <p className="text-sm text-gray-600">Generate proposals, track customer conversations, and get deal-closing strategies.</p>
+              </div>
+              <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
+                <h3 className="font-bold mb-2">📣 Marketing AI</h3>
+                <p className="text-sm text-gray-600">Plan campaigns, generate content ideas, and optimize your marketing strategy.</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -125,48 +154,48 @@ export function LandingPage() {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           <FeatureCard
             icon={<Brain className="w-8 h-8" />}
-            title="AI Assistant"
-            description="Get instant answers, generate content, and receive strategic insights powered by Google Gemini."
+            title="Module AI Assistants"
+            description="Specialized AI for each business function—fundraising, sales, partnerships, marketing, and more. Context-aware and trained on your data."
           />
           <FeatureCard
             icon={<Target className="w-8 h-8" />}
-            title="Project & Task Management"
-            description="Track tasks, set priorities, assign to team members, and manage projects with deadlines."
+            title="Smart Task Management"
+            description="Organize tasks by category (Platform, Investor, Customer, etc.), assign to team members, and track priorities with XP rewards."
           />
           <FeatureCard
             icon={<Users className="w-8 h-8" />}
-            title="CRM & Pipeline"
-            description="Manage investors, customers, and partners. Perfect for sales reps tracking deals and relationships."
+            title="3-in-1 CRM"
+            description="Separate pipelines for Investors, Customers, and Partners. Track contacts, meetings, next actions, and deal values."
           />
           <FeatureCard
             icon={<Megaphone className="w-8 h-8" />}
-            title="Marketing Hub"
-            description="Plan campaigns, track content, manage social media, and organize marketing initiatives."
+            title="Marketing Planner"
+            description="Plan and track marketing campaigns, blog posts, newsletters, and social media content with status tracking."
           />
           <FeatureCard
             icon={<BarChart3 className="w-8 h-8" />}
-            title="Financial Tracking"
-            description="Monitor expenses, track revenue, and visualize your financial health with charts and analytics."
+            title="Financial Dashboard"
+            description="Log MRR, GMV, signups, and expenses. Visualize trends with interactive charts and track your burn rate."
           />
           <FeatureCard
             icon={<FileText className="w-8 h-8" />}
-            title="Document Library"
-            description="Store proposals, contracts, pitch decks, and important files in one organized place."
+            title="Smart Document Library"
+            description="Upload and organize files by module. AI can analyze your documents and reference them in conversations."
           />
           <FeatureCard
             icon={<Calendar className="w-8 h-8" />}
-            title="Calendar & Meetings"
-            description="Schedule client meetings, set reminders, and keep track of all your appointments."
+            title="Unified Calendar"
+            description="See all your tasks, meetings, and marketing deadlines in one calendar view. Filter by type and priority."
           />
           <FeatureCard
             icon={<Shield className="w-8 h-8" />}
-            title="Team Collaboration"
-            description="Share workspaces, assign tasks, and collaborate with your team in real-time."
+            title="Team Workspaces"
+            description="Invite team members, assign tasks and CRM items, track who's working on what, and collaborate in real-time."
           />
           <FeatureCard
             icon={<Clock className="w-8 h-8" />}
-            title="Daily Briefings"
-            description="AI-generated daily summaries of your tasks, meetings, and priorities to start each day focused."
+            title="AI Daily Briefings"
+            description="Start each day with an AI-generated summary of your priorities, overdue items, and upcoming meetings."
           />
         </div>
       </section>
