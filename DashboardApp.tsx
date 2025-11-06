@@ -684,7 +684,6 @@ const DashboardApp: React.FC = () => {
             try {
                 const newCompanyName = itemData.company || 'New Item';
                 await DataPersistenceAdapter.createCrmItem(userId, workspace.id, collection, itemData as any);
-                await reload();
                 invalidateCache('crm');
                 
                 // Award XP for creating CRM item
@@ -707,6 +706,7 @@ const DashboardApp: React.FC = () => {
                     handleToast(`${titleCase(collection.slice(0, -1))} "${newCompanyName}" created.`, 'success');
                 }
                 
+                // Reload data once after all operations
                 await reload();
                 return { success: true, message: `${collection} item created.` };
             } catch (error) {

@@ -129,12 +129,66 @@ export const useLazyDataPersistence = () => {
         [cacheKey]: { ...prev[cacheKey], isLoading: true }
       }))
 
-      const { data: crmItems } = await DatabaseService.getCrmItems(workspace.id)
+      // Load CRM items with their related contacts and meetings
+      const [crmItemsResult, contactsResult, meetingsResult] = await Promise.all([
+        DatabaseService.getCrmItems(workspace.id),
+        DatabaseService.getContacts(workspace.id),
+        DatabaseService.getMeetings(workspace.id)
+      ])
+
+      const crmItems = crmItemsResult.data || []
+      const allContacts = contactsResult.data || []
+      const allMeetings = meetingsResult.data || []
+
+      // Transform CRM items with contacts and meetings
+      const transformedCrmItems = crmItems.map(item => {
+        const itemContacts = allContacts
+          .filter(c => c.crm_item_id === item.id)
+          .map(contact => {
+            const contactMeetings = allMeetings.filter(m => m.contact_id === contact.id)
+            return {
+              id: contact.id,
+              crmItemId: contact.crm_item_id,
+              name: contact.name,
+              email: contact.email,
+              linkedin: contact.linkedin,
+              notes: contact.notes || [],
+              assignedTo: contact.assigned_to || undefined,
+              assignedToName: contact.assigned_to_name || undefined,
+              createdByName: contact.created_by_name || undefined,
+              meetings: contactMeetings.map(m => ({
+                id: m.id,
+                timestamp: new Date(m.timestamp).getTime(),
+                title: m.title,
+                attendees: m.attendees,
+                summary: m.summary
+              }))
+            }
+          })
+
+        return {
+          id: item.id,
+          company: item.company,
+          contacts: itemContacts, // Always an array, even if empty
+          priority: item.priority,
+          status: item.status,
+          nextAction: item.next_action || undefined,
+          nextActionDate: item.next_action_date || undefined,
+          createdAt: new Date(item.created_at).getTime(),
+          notes: item.notes || [],
+          checkSize: item.check_size || undefined,
+          dealValue: item.deal_value || undefined,
+          opportunity: item.opportunity || undefined,
+          assignedTo: item.assigned_to || undefined,
+          assignedToName: item.assigned_to_name || undefined,
+          type: item.type // Keep type for filtering
+        }
+      })
 
       const result = {
-        investors: crmItems?.filter(item => item.type === 'investor') || [],
-        customers: crmItems?.filter(item => item.type === 'customer') || [],
-        partners: crmItems?.filter(item => item.type === 'partner') || []
+        investors: transformedCrmItems.filter(item => item.type === 'investor'),
+        customers: transformedCrmItems.filter(item => item.type === 'customer'),
+        partners: transformedCrmItems.filter(item => item.type === 'partner')
       }
 
       setDataCache(prev => ({

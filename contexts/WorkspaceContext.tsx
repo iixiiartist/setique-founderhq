@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { DatabaseService } from '../lib/services/database';
 import { BusinessProfile, Workspace, WorkspaceMember } from '../types';
@@ -47,7 +47,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
     const [showOnboarding, setShowOnboarding] = useState(false);
     const [isRetrying, setIsRetrying] = useState(false);
 
-    const refreshWorkspace = async () => {
+    const refreshWorkspace = useCallback(async () => {
         if (!user || isRetrying) return;
 
         try {
@@ -82,9 +82,9 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
         } finally {
             setIsLoadingWorkspace(false);
         }
-    };
+    }, [user, isRetrying]);
 
-    const refreshBusinessProfile = async () => {
+    const refreshBusinessProfile = useCallback(async () => {
         if (!workspace) {
             console.log('[WorkspaceContext] No workspace, skipping profile load');
             return;
@@ -145,9 +145,9 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
         } finally {
             setIsLoadingProfile(false);
         }
-    };
+    }, [workspace, refreshWorkspace]);
 
-    const saveBusinessProfile = async (profileData: Partial<BusinessProfile>) => {
+    const saveBusinessProfile = useCallback(async (profileData: Partial<BusinessProfile>) => {
         if (!workspace) {
             console.error('No workspace available');
             return;
@@ -207,7 +207,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
             console.error('Error saving business profile:', error);
             throw error;
         }
-    };
+    }, [workspace, businessProfile, refreshBusinessProfile, refreshWorkspace]);
 
     const dismissOnboarding = () => {
         setShowOnboarding(false);
@@ -260,7 +260,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
         return user.id === workspaceOwnerId;
     };
 
-    const refreshMembers = async () => {
+    const refreshMembers = useCallback(async () => {
         if (!workspace) {
             console.log('[WorkspaceContext] No workspace, skipping members load');
             return;
@@ -299,7 +299,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
         } finally {
             setIsLoadingMembers(false);
         }
-    };
+    }, [workspace]);
 
     // Load workspace when user changes
     useEffect(() => {
