@@ -65,23 +65,15 @@ export const AuthProvider: React.FC<Props> = ({ children }) => {
   }, [])
 
   const signUp = async (email: string, password: string, fullName?: string) => {
-    setLoading(true)
-    try {
-      const result = await AuthService.signUp(email, password, fullName)
-      return result
-    } finally {
-      setLoading(false)
-    }
+    // Don't set global loading state - let the form handle its own loading UI
+    const result = await AuthService.signUp(email, password, fullName)
+    return result
   }
 
   const signIn = async (email: string, password: string) => {
-    setLoading(true)
-    try {
-      const result = await AuthService.signIn(email, password)
-      return result
-    } finally {
-      setLoading(false)
-    }
+    // Don't set global loading state - let the form handle its own loading UI  
+    const result = await AuthService.signIn(email, password)
+    return result
   }
 
   const signOut = async () => {

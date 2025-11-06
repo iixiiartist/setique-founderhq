@@ -444,8 +444,15 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 return { success: false, message: 'Database not connected' };
             }
 
+            if (!workspace?.id) {
+                console.error('[DashboardApp] Cannot create task: No workspace loaded', { workspace });
+                handleToast('No workspace available. Please refresh the page.', 'info');
+                return { success: false, message: 'No workspace available' };
+            }
+
             try {
-                await DataPersistenceAdapter.createTask(userId, category, text, priority, crmItemId, contactId, dueDate, workspace?.id, assignedTo);
+                console.log('[DashboardApp] Creating task with workspace:', workspace.id);
+                await DataPersistenceAdapter.createTask(userId, category, text, priority, crmItemId, contactId, dueDate, workspace.id, assignedTo);
                 await reload();
                 invalidateCache('tasks');
                 handleToast(`Task "${text}" created.`, 'success');

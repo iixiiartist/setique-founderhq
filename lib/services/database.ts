@@ -102,14 +102,19 @@ export class DatabaseService {
     }
   }
 
-  static async createTask(userId: string, taskData: Omit<Tables['tasks']['Insert'], 'user_id'>, workspaceId?: string) {
+  static async createTask(userId: string, taskData: Omit<Tables['tasks']['Insert'], 'user_id' | 'workspace_id'>, workspaceId: string) {
     try {
-      const insertData: any = { ...taskData, user_id: userId }
-      
-      // If workspaceId provided, include it in the task
-      if (workspaceId) {
-        insertData.workspace_id = workspaceId
+      if (!workspaceId) {
+        throw new Error('workspace_id is required to create a task');
       }
+      
+      const insertData: any = { 
+        ...taskData, 
+        user_id: userId,
+        workspace_id: workspaceId
+      }
+      
+      console.log('[Database] Creating task with data:', insertData);
       
       const { data, error } = await supabase
         .from('tasks')
@@ -117,7 +122,12 @@ export class DatabaseService {
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        console.error('[Database] Task creation error:', error);
+        throw error;
+      }
+      
+      console.log('[Database] Task created successfully:', data);
       return { data, error: null }
     } catch (error) {
       console.error('Error creating task:', error)

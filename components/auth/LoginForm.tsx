@@ -11,11 +11,30 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
   const [isSignUp, setIsSignUp] = useState(false)
   const [fullName, setFullName] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(() => {
+    // Restore error from sessionStorage if component remounts
+    const savedError = sessionStorage.getItem('auth_error')
+    if (savedError) {
+      sessionStorage.removeItem('auth_error')
+      return savedError
+    }
+    return null
+  })
+  const [message, setMessage] = useState<string | null>(() => {
+    // Restore message from sessionStorage if component remounts
+    const savedMessage = sessionStorage.getItem('auth_message')
+    if (savedMessage) {
+      sessionStorage.removeItem('auth_message')
+      return savedMessage
+    }
+    return null
+  })
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false)
 
   const { signIn, signUp, resetPassword } = useAuth()
+
+  // Debug logging
+  console.log('LoginForm render - error:', error, 'message:', message, 'loading:', loading)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,6 +45,8 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
     setLoading(true)
     setError(null)
     setMessage(null)
+    sessionStorage.removeItem('auth_error')
+    sessionStorage.removeItem('auth_message')
 
     try {
       if (isSignUp) {
@@ -33,17 +54,22 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
         console.log('SignUp result:', { data, error })
         if (error) {
           // Provide user-friendly error messages
+          let errorMsg = ''
           if (error.message.includes('already registered')) {
-            setError('This email is already registered. Please sign in instead.')
+            errorMsg = 'This email is already registered. Please sign in instead.'
           } else if (error.message.includes('Password')) {
-            setError('Password must be at least 6 characters long.')
+            errorMsg = 'Password must be at least 6 characters long.'
           } else {
-            setError(error.message || 'An error occurred during sign up.')
+            errorMsg = error.message || 'An error occurred during sign up.'
           }
+          setError(errorMsg)
+          sessionStorage.setItem('auth_error', errorMsg)
           setLoading(false)
         } else {
           setAwaitingConfirmation(true)
-          setMessage('Account created! Check your email and click the confirmation link to complete your signup. The email should arrive within a few minutes.')
+          const successMsg = 'Account created! Check your email and click the confirmation link to complete your signup. The email should arrive within a few minutes.'
+          setMessage(successMsg)
+          sessionStorage.setItem('auth_message', successMsg)
           setLoading(false)
           // Keep them on signup view but disable switching
         }
@@ -52,19 +78,28 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
         console.log('SignIn result:', { data, error })
         if (error) {
           // Provide user-friendly error messages
+          let errorMsg = ''
           if (error.message.includes('Invalid login credentials')) {
-            setError('Invalid email or password. Please check your credentials and try again.')
+            errorMsg = 'Invalid email or password. Please check your credentials and try again.'
           } else if (error.message.includes('Email not confirmed')) {
-            setError('Please confirm your email address first. Check your inbox for the confirmation link we sent you.')
+            errorMsg = 'Please confirm your email address first. Check your inbox for the confirmation link we sent you.'
             setAwaitingConfirmation(true)
           } else if (error.message.includes('User not found')) {
-            setError('No account found with this email. Please sign up first.')
+            errorMsg = 'No account found with this email. Please sign up first.'
           } else {
-            setError(error.message || 'An error occurred during sign in.')
+            errorMsg = error.message || 'An error occurred during sign in.'
           }
+          console.log('Setting error message:', errorMsg)
+          setError(errorMsg)
+          sessionStorage.setItem('auth_error', errorMsg)
+          console.log('Setting loading to false')
           setLoading(false)
+          console.log('Error state should now be set')
         } else {
-          setMessage('Sign in successful! Loading your dashboard...')
+          console.log('Sign in successful, showing success message')
+          const successMsg = 'Sign in successful! Loading your dashboard...'
+          setMessage(successMsg)
+          sessionStorage.setItem('auth_message', successMsg)
           // Small delay to show success message
           await new Promise(resolve => setTimeout(resolve, 800))
           setLoading(false)
@@ -73,7 +108,9 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
       }
     } catch (err: any) {
       console.error('Exception during auth:', err)
-      setError(err?.message || '⚠️ An unexpected error occurred. Please try again.')
+      const errorMsg = err?.message || '⚠️ An unexpected error occurred. Please try again.'
+      setError(errorMsg)
+      sessionStorage.setItem('auth_error', errorMsg)
       setLoading(false)
     }
   }

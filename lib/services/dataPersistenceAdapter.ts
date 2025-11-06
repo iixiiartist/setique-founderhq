@@ -31,10 +31,15 @@ export class DataPersistenceAdapter {
     crmItemId?: string,
     contactId?: string,
     dueDate?: string,
-    workspaceId?: string,
+    workspaceId: string = '',
     assignedTo?: string
   ) {
+    if (!workspaceId) {
+      throw new Error('workspaceId is required to create a task');
+    }
+    
     console.log('[DataPersistenceAdapter] Creating task with assignedTo:', assignedTo);
+    console.log('[DataPersistenceAdapter] workspaceId:', workspaceId);
     
     const taskData = {
       // id: removed - let database generate
@@ -53,6 +58,11 @@ export class DataPersistenceAdapter {
     console.log('[DataPersistenceAdapter] Task data being saved:', taskData);
 
     const { data, error } = await DatabaseService.createTask(userId, taskData, workspaceId)
+    
+    if (error) {
+      console.error('[DataPersistenceAdapter] Error creating task:', error);
+      throw error;
+    }
     
     // Log activity if task creation was successful
     if (data && workspaceId) {
