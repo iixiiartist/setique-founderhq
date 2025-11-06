@@ -638,6 +638,22 @@ export class DatabaseService {
     try {
       console.log('[Database] Fetching workspace for user:', userId);
       
+      // Helper function to map database workspace to TypeScript Workspace type
+      const mapWorkspace = (ws: any) => ({
+        id: ws.id,
+        name: ws.name,
+        planType: ws.plan_type || 'free', // Map snake_case to camelCase
+        ownerId: ws.owner_id,
+        createdAt: new Date(ws.created_at).getTime(),
+        seatCount: ws.seat_count || 1,
+        aiUsageCount: ws.ai_usage_count || 0,
+        aiUsageResetDate: ws.ai_usage_reset_date ? new Date(ws.ai_usage_reset_date).getTime() : Date.now(),
+        storageBytesUsed: ws.storage_bytes_used || 0,
+        fileCount: ws.file_count || 0,
+        teamXp: ws.team_xp || 0,
+        teamLevel: ws.team_level || 1
+      });
+      
       // In single-workspace model:
       // 1. First check if user owns a workspace
       const { data: ownedWorkspace, error: ownedError } = await supabase
@@ -654,7 +670,9 @@ export class DatabaseService {
       // If user owns a workspace, return it
       if (ownedWorkspace) {
         console.log('[Database] Found owned workspace:', ownedWorkspace);
-        return { data: [ownedWorkspace], error: null };
+        const mapped = mapWorkspace(ownedWorkspace);
+        console.log('[Database] Mapped workspace:', mapped);
+        return { data: [mapped], error: null };
       }
 
       // 2. Otherwise, use RPC to get workspace they're a member of (bypasses RLS)
@@ -669,7 +687,9 @@ export class DatabaseService {
       // If user is a member, return that workspace
       if (memberWorkspaces && memberWorkspaces.length > 0) {
         console.log('[Database] Found member workspace:', memberWorkspaces[0]);
-        return { data: [memberWorkspaces[0]], error: null };
+        const mapped = mapWorkspace(memberWorkspaces[0]);
+        console.log('[Database] Mapped member workspace:', mapped);
+        return { data: [mapped], error: null };
       }
 
       // 3. No workspace found - should auto-create on signup
