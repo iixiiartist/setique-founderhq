@@ -13,7 +13,15 @@ import {
   ChevronRight,
   Check,
   ArrowRight,
-  Megaphone
+  Megaphone,
+  Rocket,
+  Briefcase,
+  TrendingUp,
+  Store,
+  Code,
+  DollarSign,
+  Handshake,
+  Sparkles
 } from 'lucide-react';
 
 export function LandingPage() {
@@ -94,22 +102,22 @@ export function LandingPage() {
             <UseCase
               title="Founders"
               description="Track investor relationships, manage product development, and monitor business metrics in one place."
-              emoji="🚀"
+              icon={<Rocket className="w-8 h-8" />}
             />
             <UseCase
               title="Consultants"
               description="Manage multiple client projects, organize deliverables, and keep client communications organized."
-              emoji="💼"
+              icon={<Briefcase className="w-8 h-8" />}
             />
             <UseCase
               title="Sales Professionals"
               description="Track your customer pipeline, manage follow-ups, and never miss a deal opportunity."
-              emoji="📈"
+              icon={<TrendingUp className="w-8 h-8" />}
             />
             <UseCase
               title="Small Business Owners"
               description="Manage day-to-day operations, track expenses, and coordinate your team's tasks."
-              emoji="🏪"
+              icon={<Store className="w-8 h-8" />}
             />
           </div>
         </div>
@@ -119,8 +127,9 @@ export function LandingPage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-black shadow-neo-lg p-8 md:p-12">
           <div className="max-w-3xl mx-auto text-center">
-            <div className="inline-block mb-4 px-4 py-2 bg-purple-300 border-2 border-black shadow-neo font-mono text-sm font-bold">
-              🤖 AI-POWERED INSIGHTS
+            <div className="inline-block mb-4 px-4 py-2 bg-purple-300 border-2 border-black shadow-neo font-mono text-sm font-bold flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              AI-POWERED INSIGHTS
             </div>
             <h2 className="text-3xl md:text-4xl font-bold mb-6">Context-Aware AI Assistants</h2>
             <p className="text-lg text-gray-700 mb-6 leading-relaxed">
@@ -128,27 +137,45 @@ export function LandingPage() {
             </p>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 text-left">
               <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
-                <h3 className="font-bold mb-2">� Platform AI</h3>
+                <div className="flex items-center gap-2 mb-2">
+                  <Code className="w-5 h-5" />
+                  <h3 className="font-bold">Platform AI</h3>
+                </div>
                 <p className="text-sm text-gray-600">Get technical guidance, prioritize features, and manage your product development roadmap.</p>
               </div>
               <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
-                <h3 className="font-bold mb-2">�📊 Fundraising AI</h3>
+                <div className="flex items-center gap-2 mb-2">
+                  <BarChart3 className="w-5 h-5" />
+                  <h3 className="font-bold">Fundraising AI</h3>
+                </div>
                 <p className="text-sm text-gray-600">Research investors, draft outreach emails, and manage your fundraising pipeline.</p>
               </div>
               <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
-                <h3 className="font-bold mb-2">💼 Sales AI</h3>
+                <div className="flex items-center gap-2 mb-2">
+                  <Briefcase className="w-5 h-5" />
+                  <h3 className="font-bold">Sales AI</h3>
+                </div>
                 <p className="text-sm text-gray-600">Generate proposals, track customer conversations, and get deal-closing strategies.</p>
               </div>
               <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
-                <h3 className="font-bold mb-2">🤝 Partnerships AI</h3>
+                <div className="flex items-center gap-2 mb-2">
+                  <Handshake className="w-5 h-5" />
+                  <h3 className="font-bold">Partnerships AI</h3>
+                </div>
                 <p className="text-sm text-gray-600">Identify partnership opportunities, structure deals, and manage strategic relationships.</p>
               </div>
               <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
-                <h3 className="font-bold mb-2">📣 Marketing AI</h3>
+                <div className="flex items-center gap-2 mb-2">
+                  <Megaphone className="w-5 h-5" />
+                  <h3 className="font-bold">Marketing AI</h3>
+                </div>
                 <p className="text-sm text-gray-600">Plan campaigns, generate content ideas, and optimize your marketing strategy.</p>
               </div>
               <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
-                <h3 className="font-bold mb-2">💰 Financials AI</h3>
+                <div className="flex items-center gap-2 mb-2">
+                  <DollarSign className="w-5 h-5" />
+                  <h3 className="font-bold">Financials AI</h3>
+                </div>
                 <p className="text-sm text-gray-600">Analyze expenses, forecast revenue, and get insights on your financial performance.</p>
               </div>
             </div>
@@ -384,10 +411,14 @@ export function LandingPage() {
   );
 }
 
-function UseCase({ title, description, emoji }: { title: string; description: string; emoji: string }) {
+function UseCase({ title, description, icon }: { title: string; description: string; icon: React.ReactNode }) {
   return (
     <div className="p-6 border-2 border-black shadow-neo bg-white text-center">
-      <div className="text-4xl mb-3">{emoji}</div>
+      <div className="flex justify-center mb-3">
+        <div className="w-12 h-12 bg-blue-100 border-2 border-black flex items-center justify-center">
+          {icon}
+        </div>
+      </div>
       <h3 className="text-lg font-bold mb-2">{title}</h3>
       <p className="text-sm text-gray-600">{description}</p>
     </div>
