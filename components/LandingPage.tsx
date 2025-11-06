@@ -69,7 +69,7 @@ export function LandingPage() {
             Your Lightweight, AI-Powered Hub For GTM
           </p>
           <p className="text-xl text-gray-700 mb-8 leading-relaxed">
-            The all-in-one workspace for founders, consultants, sales reps, and small businesses. Manage projects, track finances, engage customers, and get AI-powered insights—all in one place.
+            The focused workspace for founders, consultants, sales reps, and small businesses. Manage projects, track finances, engage customers, and get AI-powered insights—all in one place.
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Link
