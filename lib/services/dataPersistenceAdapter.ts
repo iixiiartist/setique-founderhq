@@ -40,6 +40,8 @@ export class DataPersistenceAdapter {
     
     console.log('[DataPersistenceAdapter] Creating task with assignedTo:', assignedTo);
     console.log('[DataPersistenceAdapter] workspaceId:', workspaceId);
+    console.log('[DataPersistenceAdapter] category input:', category);
+    console.log('[DataPersistenceAdapter] category after conversion:', categoryToDbFormat(category));
     
     const taskData = {
       // id: removed - let database generate
@@ -55,7 +57,7 @@ export class DataPersistenceAdapter {
       assigned_to: assignedTo || null
     }
 
-    console.log('[DataPersistenceAdapter] Task data being saved:', taskData);
+    console.log('[DataPersistenceAdapter] Task data being saved:', JSON.stringify(taskData, null, 2));
 
     const { data, error } = await DatabaseService.createTask(userId, taskData, workspaceId)
     
