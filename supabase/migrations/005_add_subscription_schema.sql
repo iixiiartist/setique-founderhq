@@ -6,9 +6,7 @@
 DO $$ BEGIN
     CREATE TYPE plan_type AS ENUM (
         'free',
-        'pro-individual',
         'power-individual',
-        'team-starter',
         'team-pro'
     );
 EXCEPTION
@@ -139,7 +137,7 @@ CREATE POLICY "System can update subscriptions" ON subscriptions
 -- Add comments for documentation
 COMMENT ON TABLE subscriptions IS 'Subscription and billing information per workspace. Tracks Stripe integration and usage limits.';
 COMMENT ON COLUMN subscriptions.workspace_id IS 'Links to workspace - one subscription per workspace (enforced by UNIQUE constraint)';
-COMMENT ON COLUMN subscriptions.plan_type IS 'Current subscription plan: free, pro-individual, power-individual, team-starter, team-pro';
+COMMENT ON COLUMN subscriptions.plan_type IS 'Current subscription plan: free, power-individual, team-pro';
 COMMENT ON COLUMN subscriptions.stripe_customer_id IS 'Stripe customer ID for billing';
 COMMENT ON COLUMN subscriptions.stripe_subscription_id IS 'Stripe subscription ID for managing subscription';
 COMMENT ON COLUMN subscriptions.status IS 'Stripe subscription status: active, past_due, canceled, unpaid, trialing, incomplete';
@@ -167,24 +165,11 @@ BEGIN
             NEW.file_count_limit := 25;
             NEW.seat_count := 1;
             
-        WHEN 'pro-individual' THEN
-            NEW.ai_requests_limit := 500;
-            NEW.storage_bytes_limit := 1073741824; -- 1 GB
-            NEW.file_count_limit := 250;
-            NEW.seat_count := 1;
-            
         WHEN 'power-individual' THEN
             NEW.ai_requests_limit := NULL; -- Unlimited
             NEW.storage_bytes_limit := 5368709120; -- 5 GB
             NEW.file_count_limit := NULL; -- Unlimited
             NEW.seat_count := 1;
-            
-        WHEN 'team-starter' THEN
-            -- Per-user limits: 500 AI requests, 250 files per user
-            -- Shared storage: 3 GB
-            NEW.ai_requests_limit := 500 * NEW.seat_count;
-            NEW.storage_bytes_limit := 3221225472; -- 3 GB shared
-            NEW.file_count_limit := 250 * NEW.seat_count;
             
         WHEN 'team-pro' THEN
             -- Per-user limits: unlimited AI, unlimited files per user
