@@ -134,24 +134,77 @@ DROP POLICY IF EXISTS "System can update subscriptions" ON subscriptions;
 CREATE POLICY "System can update subscriptions" ON subscriptions 
     FOR UPDATE USING (true); -- Allow service role to update (for webhooks)
 
--- Add comments for documentation
-COMMENT ON TABLE subscriptions IS 'Subscription and billing information per workspace. Tracks Stripe integration and usage limits.';
-COMMENT ON COLUMN subscriptions.workspace_id IS 'Links to workspace - one subscription per workspace (enforced by UNIQUE constraint)';
-COMMENT ON COLUMN subscriptions.plan_type IS 'Current subscription plan: free, power-individual, team-pro';
-COMMENT ON COLUMN subscriptions.stripe_customer_id IS 'Stripe customer ID for billing';
-COMMENT ON COLUMN subscriptions.stripe_subscription_id IS 'Stripe subscription ID for managing subscription';
-COMMENT ON COLUMN subscriptions.status IS 'Stripe subscription status: active, past_due, canceled, unpaid, trialing, incomplete';
-COMMENT ON COLUMN subscriptions.seat_count IS 'Number of seats purchased (for team plans). Minimum 1.';
-COMMENT ON COLUMN subscriptions.used_seats IS 'Number of seats currently occupied by workspace members';
-COMMENT ON COLUMN subscriptions.current_period_end IS 'When the current billing period ends';
-COMMENT ON COLUMN subscriptions.trial_end IS 'When the trial period ends';
-COMMENT ON COLUMN subscriptions.cancel_at_period_end IS 'Whether subscription will cancel at period end';
-COMMENT ON COLUMN subscriptions.ai_requests_used IS 'Number of AI requests used in current period';
-COMMENT ON COLUMN subscriptions.ai_requests_limit IS 'Maximum AI requests allowed. NULL = unlimited.';
-COMMENT ON COLUMN subscriptions.storage_bytes_used IS 'Storage used in bytes';
-COMMENT ON COLUMN subscriptions.storage_bytes_limit IS 'Maximum storage allowed in bytes. NULL = unlimited.';
-COMMENT ON COLUMN subscriptions.file_count_used IS 'Number of files uploaded';
-COMMENT ON COLUMN subscriptions.file_count_limit IS 'Maximum files allowed. NULL = unlimited.';
+-- Add comments for documentation (only if columns exist)
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'subscriptions') THEN
+        COMMENT ON TABLE subscriptions IS 'Subscription and billing information per workspace. Tracks Stripe integration and usage limits.';
+        
+        -- Only add comments for columns that exist
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'subscriptions' AND column_name = 'workspace_id') THEN
+            COMMENT ON COLUMN subscriptions.workspace_id IS 'Links to workspace - one subscription per workspace (enforced by UNIQUE constraint)';
+        END IF;
+        
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'subscriptions' AND column_name = 'plan_type') THEN
+            COMMENT ON COLUMN subscriptions.plan_type IS 'Current subscription plan: free, power-individual, team-pro';
+        END IF;
+        
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'subscriptions' AND column_name = 'stripe_customer_id') THEN
+            COMMENT ON COLUMN subscriptions.stripe_customer_id IS 'Stripe customer ID for billing';
+        END IF;
+        
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'subscriptions' AND column_name = 'stripe_subscription_id') THEN
+            COMMENT ON COLUMN subscriptions.stripe_subscription_id IS 'Stripe subscription ID for managing subscription';
+        END IF;
+        
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'subscriptions' AND column_name = 'status') THEN
+            COMMENT ON COLUMN subscriptions.status IS 'Stripe subscription status: active, past_due, canceled, unpaid, trialing, incomplete';
+        END IF;
+        
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'subscriptions' AND column_name = 'seat_count') THEN
+            COMMENT ON COLUMN subscriptions.seat_count IS 'Number of seats purchased (for team plans). Minimum 1.';
+        END IF;
+        
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'subscriptions' AND column_name = 'used_seats') THEN
+            COMMENT ON COLUMN subscriptions.used_seats IS 'Number of seats currently occupied by workspace members';
+        END IF;
+        
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'subscriptions' AND column_name = 'current_period_end') THEN
+            COMMENT ON COLUMN subscriptions.current_period_end IS 'When the current billing period ends';
+        END IF;
+        
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'subscriptions' AND column_name = 'trial_end') THEN
+            COMMENT ON COLUMN subscriptions.trial_end IS 'When the trial period ends';
+        END IF;
+        
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'subscriptions' AND column_name = 'cancel_at_period_end') THEN
+            COMMENT ON COLUMN subscriptions.cancel_at_period_end IS 'Whether subscription will cancel at period end';
+        END IF;
+        
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'subscriptions' AND column_name = 'ai_requests_used') THEN
+            COMMENT ON COLUMN subscriptions.ai_requests_used IS 'Number of AI requests used in current period';
+        END IF;
+        
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'subscriptions' AND column_name = 'ai_requests_limit') THEN
+            COMMENT ON COLUMN subscriptions.ai_requests_limit IS 'Maximum AI requests allowed. NULL = unlimited.';
+        END IF;
+        
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'subscriptions' AND column_name = 'storage_bytes_used') THEN
+            COMMENT ON COLUMN subscriptions.storage_bytes_used IS 'Storage used in bytes';
+        END IF;
+        
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'subscriptions' AND column_name = 'storage_bytes_limit') THEN
+            COMMENT ON COLUMN subscriptions.storage_bytes_limit IS 'Maximum storage allowed in bytes. NULL = unlimited.';
+        END IF;
+        
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'subscriptions' AND column_name = 'file_count_used') THEN
+            COMMENT ON COLUMN subscriptions.file_count_used IS 'Number of files uploaded';
+        END IF;
+        
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'subscriptions' AND column_name = 'file_count_limit') THEN
+            COMMENT ON COLUMN subscriptions.file_count_limit IS 'Maximum files allowed. NULL = unlimited.';
+        END IF;
+    END IF;
+END $$;
 
 -- Function to initialize subscription limits based on plan
 CREATE OR REPLACE FUNCTION set_subscription_limits()
