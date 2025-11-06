@@ -41,7 +41,7 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
           }
         } else {
           setAwaitingConfirmation(true)
-          setMessage('✅ Account created! Check your email and click the confirmation link to complete your signup. The email should arrive within a few minutes.')
+          setMessage('Account created! Check your email and click the confirmation link to complete your signup. The email should arrive within a few minutes.')
           // Keep them on signup view but disable switching
         }
       } else {
@@ -49,17 +49,19 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
         if (error) {
           // Provide user-friendly error messages
           if (error.message.includes('Invalid login credentials')) {
-            setError('❌ Invalid email or password. Please check your credentials and try again.')
+            setError('Invalid email or password. Please check your credentials and try again.')
           } else if (error.message.includes('Email not confirmed')) {
-            setError('⚠️ Please confirm your email address first. Check your inbox for the confirmation link we sent you.')
+            setError('Please confirm your email address first. Check your inbox for the confirmation link we sent you.')
             setAwaitingConfirmation(true)
           } else if (error.message.includes('User not found')) {
-            setError('❌ No account found with this email. Please sign up first.')
+            setError('No account found with this email. Please sign up first.')
           } else {
             setError(error.message)
           }
         } else {
-          setMessage('✅ Sign in successful! Redirecting to your dashboard...')
+          setMessage('Sign in successful! Loading your dashboard...')
+          // Small delay to show success message
+          await new Promise(resolve => setTimeout(resolve, 800))
           onSuccess?.()
         }
       }
@@ -72,7 +74,7 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
 
   const handleForgotPassword = async () => {
     if (!email) {
-      setError('⚠️ Please enter your email address first')
+      setError('Please enter your email address first')
       return
     }
 
@@ -85,10 +87,10 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
       if (error) {
         setError(error.message)
       } else {
-        setMessage('✅ Password reset email sent! Check your inbox for the reset link.')
+        setMessage('Password reset email sent! Check your inbox for the reset link.')
       }
     } catch (err) {
-      setError('⚠️ An unexpected error occurred. Please try again.')
+      setError('An unexpected error occurred. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -110,10 +112,10 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
       if (error && !error.message.includes('already registered')) {
         setError(error.message)
       } else {
-        setMessage('✅ Confirmation email resent! Check your inbox (and spam folder).')
+        setMessage('Confirmation email resent! Check your inbox (and spam folder).')
       }
     } catch (err) {
-      setError('⚠️ An unexpected error occurred. Please try again.')
+      setError('An unexpected error occurred. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -197,19 +199,19 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
             </div>
 
             {error && (
-              <div className="rounded-none bg-red-50 p-4 border-2 border-red-600 shadow-[4px_4px_0_rgba(220,38,38,1)]">
-                <div className="flex items-start">
-                  <span className="text-red-600 text-xl mr-2">⚠️</span>
-                  <div className="text-sm font-mono text-red-800">{error}</div>
+              <div className="rounded-none bg-red-50 p-4 border-2 border-red-600 shadow-[4px_4px_0_rgba(220,38,38,1)] animate-pulse">
+                <div className="flex items-center">
+                  <span className="text-red-600 text-2xl mr-3">❌</span>
+                  <div className="text-base font-mono font-bold text-red-900">{error}</div>
                 </div>
               </div>
             )}
 
             {message && (
               <div className="rounded-none bg-green-50 p-4 border-2 border-green-600 shadow-[4px_4px_0_rgba(22,163,74,1)]">
-                <div className="flex items-start">
-                  <span className="text-green-600 text-xl mr-2">✓</span>
-                  <div className="text-sm font-mono text-green-800">{message}</div>
+                <div className="flex items-center">
+                  <span className="text-green-600 text-2xl mr-3">✅</span>
+                  <div className="text-base font-mono font-bold text-green-900">{message}</div>
                 </div>
                 {awaitingConfirmation && (
                   <div className="mt-3 pt-3 border-t border-green-300">
@@ -233,9 +235,19 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 px-4 bg-yellow-400 border-2 border-black font-bold font-mono text-black hover:bg-yellow-300 transition-colors shadow-[4px_4px_0_rgba(0,0,0,1)] hover:shadow-[2px_2px_0_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_rgba(0,0,0,1)]"
+                className="w-full py-3 px-4 bg-yellow-400 border-2 border-black font-bold font-mono text-black hover:bg-yellow-300 transition-colors shadow-[4px_4px_0_rgba(0,0,0,1)] hover:shadow-[2px_2px_0_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0_rgba(0,0,0,1)] disabled:bg-gray-300"
               >
-                {loading ? 'PROCESSING...' : (isSignUp ? 'CREATE ACCOUNT →' : 'SIGN IN →')}
+                {loading ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    PROCESSING...
+                  </span>
+                ) : (
+                  isSignUp ? 'CREATE ACCOUNT →' : 'SIGN IN →'
+                )}
               </button>
             )}
 
