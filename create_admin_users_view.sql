@@ -23,16 +23,16 @@ BEGIN
     RETURN QUERY
     SELECT 
         u.id as user_id,
-        u.email,
-        COALESCE(p.full_name, u.raw_user_meta_data->>'full_name', 'N/A') as full_name,
+        u.email::text,
+        COALESCE(p.full_name, u.raw_user_meta_data->>'full_name', 'N/A')::text as full_name,
         u.created_at,
         u.email_confirmed_at,
         u.last_sign_in_at,
         (p.id IS NOT NULL) as has_profile,
         COALESCE(p.is_admin, false) as is_admin,
         w.id as workspace_id,
-        w.name as workspace_name,
-        COALESCE(w.plan_type, 'free') as plan_type
+        w.name::text as workspace_name,
+        COALESCE(w.plan_type, 'free')::text as plan_type
     FROM auth.users u
     LEFT JOIN public.profiles p ON p.id = u.id
     LEFT JOIN public.workspaces w ON w.owner_id = u.id
