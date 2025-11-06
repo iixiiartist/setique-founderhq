@@ -152,7 +152,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
         } finally {
             setIsLoadingProfile(false);
         }
-    }, [workspace, refreshWorkspace]);
+    }, [workspace]); // Remove refreshWorkspace to prevent infinite loop
 
     const saveBusinessProfile = useCallback(async (profileData: Partial<BusinessProfile>) => {
         if (!workspace) {
@@ -318,7 +318,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
             setIsLoadingWorkspace(false);
             setIsLoadingProfile(false);
         }
-    }, [user?.id, refreshWorkspace]); // Use user.id instead of user object to prevent unnecessary re-renders
+    }, [user?.id]); // Only depend on user.id, not refreshWorkspace
 
     // Load business profile when workspace changes
     useEffect(() => {
@@ -341,7 +341,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
             setIsLoadingProfile(false);
             setIsLoadingMembers(false);
         }
-    }, [workspace?.id, refreshBusinessProfile, refreshMembers]); // Use workspace.id to prevent unnecessary re-renders
+    }, [workspace?.id]); // Only depend on workspace.id to prevent infinite loops
 
     const value: WorkspaceContextType = {
         workspace,
