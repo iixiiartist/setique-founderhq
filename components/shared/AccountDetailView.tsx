@@ -63,18 +63,20 @@ const AccountTaskItem: React.FC<{ task: Task; onEdit: (task: Task, triggerRef: R
 };
 
 const ContactForm: React.FC<{ crmItemId: string, collection: CrmCollectionName, actions: AppActions, onDone: () => void }> = ({ crmItemId, collection, actions, onDone }) => {
-    const [form, setForm] = useState({ name: '', email: '', linkedin: '' });
+    const [form, setForm] = useState({ name: '', email: '', phone: '', title: '', linkedin: '' });
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (form.name.trim() === '') return;
         actions.createContact(collection, crmItemId, form);
-        setForm({ name: '', email: '', linkedin: '' });
+        setForm({ name: '', email: '', phone: '', title: '', linkedin: '' });
         onDone();
     }
     return (
         <form onSubmit={handleSubmit} className="space-y-2">
             <input value={form.name} onChange={e => setForm(p=>({...p, name: e.target.value}))} placeholder="Name" required className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
             <input value={form.email} onChange={e => setForm(p=>({...p, email: e.target.value}))} placeholder="Email" type="email" className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
+            <input value={form.phone} onChange={e => setForm(p=>({...p, phone: e.target.value}))} placeholder="Phone" type="tel" className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
+            <input value={form.title} onChange={e => setForm(p=>({...p, title: e.target.value}))} placeholder="Title (e.g., CEO, VP Sales)" className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
             <input value={form.linkedin} onChange={e => setForm(p=>({...p, linkedin: e.target.value}))} placeholder="LinkedIn URL" type="url" className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
             <button type="submit" className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn">Add Contact</button>
         </form>

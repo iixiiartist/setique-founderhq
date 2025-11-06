@@ -152,6 +152,8 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
                         </div>
                         <div className="space-y-4">
                             {valueDisplay('Email', contact.email || 'N/A')}
+                            {valueDisplay('Phone', contact.phone || 'N/A')}
+                            {valueDisplay('Title', contact.title || 'N/A')}
                             {valueDisplay('LinkedIn', contact.linkedin ? <a href={contact.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">View Profile</a> : 'N/A')}
                         </div>
                     </div>
@@ -219,6 +221,14 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
                     <div>
                         <label htmlFor={`edit-contact-email-${editForm.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Email</label>
                         <input id={`edit-contact-email-${editForm.id}`} value={editForm.email || ''} onChange={(e) => setEditForm(p => ({...p!, email: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" type="email"/>
+                    </div>
+                    <div>
+                        <label htmlFor={`edit-contact-phone-${editForm.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Phone</label>
+                        <input id={`edit-contact-phone-${editForm.id}`} value={editForm.phone || ''} onChange={(e) => setEditForm(p => ({...p!, phone: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" type="tel"/>
+                    </div>
+                    <div>
+                        <label htmlFor={`edit-contact-title-${editForm.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Title</label>
+                        <input id={`edit-contact-title-${editForm.id}`} value={editForm.title || ''} onChange={(e) => setEditForm(p => ({...p!, title: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" placeholder="e.g., CEO, VP Sales"/>
                     </div>
                      <div>
                         <label htmlFor={`edit-contact-linkedin-${editForm.id}`} className="block font-mono text-sm font-semibold text-black mb-1">LinkedIn</label>

@@ -42,6 +42,8 @@ export interface Contact {
     crmItemId: string;
     name: string;
     email: string;
+    phone?: string;
+    title?: string;
     linkedin: string;
     notes: Note[];
     meetings: Meeting[];
@@ -93,7 +95,9 @@ export type CalendarEvent = (Task & {
     type: 'task';
     title: string;
 }) | (Omit<MarketingItem, 'type'> & {
-    tag: string;
+    phone?: string | null;
+    title?: string | null;
+    linkedin: string;
     type: 'marketing';
 }) | (Meeting & {
     dueDate: string;

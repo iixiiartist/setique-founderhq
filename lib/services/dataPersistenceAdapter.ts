@@ -353,6 +353,8 @@ export class DataPersistenceAdapter {
     contactData: {
       name: string
       email: string
+      phone?: string
+      title?: string
       linkedin: string
     }
   ) {
@@ -361,6 +363,8 @@ export class DataPersistenceAdapter {
       crm_item_id: crmItemId,
       name: contactData.name,
       email: contactData.email,
+      phone: contactData.phone || '',
+      title: contactData.title || '',
       linkedin: contactData.linkedin,
       notes: []
     }
@@ -374,6 +378,8 @@ export class DataPersistenceAdapter {
     
     if (updates.name) dbUpdates.name = updates.name
     if (updates.email) dbUpdates.email = updates.email
+    if (updates.phone !== undefined) dbUpdates.phone = updates.phone
+    if (updates.title !== undefined) dbUpdates.title = updates.title
     if (updates.linkedin !== undefined) dbUpdates.linkedin = updates.linkedin
     if (updates.notes) dbUpdates.notes = updates.notes
 
