@@ -124,20 +124,32 @@ export function LandingPage() {
             </div>
             <h2 className="text-3xl md:text-4xl font-bold mb-6">Context-Aware AI Assistants</h2>
             <p className="text-lg text-gray-700 mb-6 leading-relaxed">
-              Every module has a dedicated AI assistant tuned to your specific business function—whether it's fundraising, sales, partnerships, marketing, or financials. Each assistant is grounded with your business profile and context, providing relevant insights and suggestions based on your actual data.
+              Every module has a dedicated AI assistant tuned to your specific business function—whether it's product development, fundraising, sales, partnerships, or marketing. Each assistant is grounded with your business profile and context, providing relevant insights and suggestions based on your actual data.
             </p>
-            <div className="grid md:grid-cols-3 gap-4 text-left">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 text-left">
               <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
-                <h3 className="font-bold mb-2">📊 Fundraising AI</h3>
-                <p className="text-sm text-gray-600">Get investor research, draft outreach emails, and manage your fundraising pipeline.</p>
+                <h3 className="font-bold mb-2">� Platform AI</h3>
+                <p className="text-sm text-gray-600">Get technical guidance, prioritize features, and manage your product development roadmap.</p>
+              </div>
+              <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
+                <h3 className="font-bold mb-2">�📊 Fundraising AI</h3>
+                <p className="text-sm text-gray-600">Research investors, draft outreach emails, and manage your fundraising pipeline.</p>
               </div>
               <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
                 <h3 className="font-bold mb-2">💼 Sales AI</h3>
                 <p className="text-sm text-gray-600">Generate proposals, track customer conversations, and get deal-closing strategies.</p>
               </div>
               <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
+                <h3 className="font-bold mb-2">🤝 Partnerships AI</h3>
+                <p className="text-sm text-gray-600">Identify partnership opportunities, structure deals, and manage strategic relationships.</p>
+              </div>
+              <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
                 <h3 className="font-bold mb-2">📣 Marketing AI</h3>
                 <p className="text-sm text-gray-600">Plan campaigns, generate content ideas, and optimize your marketing strategy.</p>
+              </div>
+              <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
+                <h3 className="font-bold mb-2">💰 Financials AI</h3>
+                <p className="text-sm text-gray-600">Analyze expenses, forecast revenue, and get insights on your financial performance.</p>
               </div>
             </div>
           </div>
