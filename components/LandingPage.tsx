@@ -12,7 +12,8 @@ import {
   Target,
   ChevronRight,
   Check,
-  ArrowRight
+  ArrowRight,
+  Megaphone
 } from 'lucide-react';
 
 export function LandingPage() {
@@ -59,7 +60,7 @@ export function LandingPage() {
             <span className="text-blue-600">Faster & Smarter</span>
           </h1>
           <p className="text-xl text-gray-700 mb-8 leading-relaxed">
-            The all-in-one workspace for founders. Manage tasks, track finances, engage customers, and get AI-powered insights—all in one place.
+            The all-in-one workspace for founders, consultants, sales reps, and small businesses. Manage projects, track finances, engage customers, and get AI-powered insights—all in one place.
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Link
@@ -81,11 +82,43 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* Who It's For Section */}
+      <section className="bg-gray-50 py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">Perfect For</h2>
+            <p className="text-lg text-gray-600">Built to support your unique workflow</p>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <UseCase
+              title="Founders & Startups"
+              description="Build your business from idea to scale with comprehensive tools for every stage."
+              emoji="🚀"
+            />
+            <UseCase
+              title="Independent Consultants"
+              description="Manage client projects, track billable hours, and deliver exceptional results."
+              emoji="💼"
+            />
+            <UseCase
+              title="Sales Representatives"
+              description="Track leads, manage your pipeline, and close more deals with powerful CRM tools."
+              emoji="📈"
+            />
+            <UseCase
+              title="Small Businesses"
+              description="Run your entire operation from one dashboard—projects, finances, and team management."
+              emoji="🏪"
+            />
+          </div>
+        </div>
+      </section>
+
       {/* Features Grid */}
       <section id="features" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 bg-white">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold mb-4">Everything You Need</h2>
-          <p className="text-xl text-gray-600">Built specifically for founders and early-stage teams</p>
+          <p className="text-xl text-gray-600">Built for founders, consultants, sales reps, and small business owners</p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -96,28 +129,43 @@ export function LandingPage() {
           />
           <FeatureCard
             icon={<Target className="w-8 h-8" />}
-            title="Task Management"
-            description="Track tasks, set priorities, assign to team members, and never miss a deadline."
+            title="Project & Task Management"
+            description="Track tasks, set priorities, assign to team members, and manage projects with deadlines."
           />
           <FeatureCard
             icon={<Users className="w-8 h-8" />}
-            title="CRM & Contacts"
-            description="Manage investors, customers, and partners. Track deals and nurture relationships."
+            title="CRM & Pipeline"
+            description="Manage investors, customers, and partners. Perfect for sales reps tracking deals and relationships."
+          />
+          <FeatureCard
+            icon={<Megaphone className="w-8 h-8" />}
+            title="Marketing Hub"
+            description="Plan campaigns, track content, manage social media, and organize marketing initiatives."
           />
           <FeatureCard
             icon={<BarChart3 className="w-8 h-8" />}
             title="Financial Tracking"
-            description="Monitor expenses, track revenue, and visualize your financial health with charts."
+            description="Monitor expenses, track revenue, and visualize your financial health with charts and analytics."
           />
           <FeatureCard
             icon={<FileText className="w-8 h-8" />}
             title="Document Library"
-            description="Store pitch decks, contracts, and important files in one organized place."
+            description="Store proposals, contracts, pitch decks, and important files in one organized place."
           />
           <FeatureCard
             icon={<Calendar className="w-8 h-8" />}
             title="Calendar & Meetings"
-            description="Schedule meetings, set reminders, and integrate with your workflow."
+            description="Schedule client meetings, set reminders, and keep track of all your appointments."
+          />
+          <FeatureCard
+            icon={<Shield className="w-8 h-8" />}
+            title="Team Collaboration"
+            description="Share workspaces, assign tasks, and collaborate with your team in real-time."
+          />
+          <FeatureCard
+            icon={<Clock className="w-8 h-8" />}
+            title="Daily Briefings"
+            description="AI-generated daily summaries of your tasks, meetings, and priorities to start each day focused."
           />
         </div>
       </section>
@@ -290,6 +338,16 @@ export function LandingPage() {
           </div>
         </div>
       </footer>
+    </div>
+  );
+}
+
+function UseCase({ title, description, emoji }: { title: string; description: string; emoji: string }) {
+  return (
+    <div className="p-6 border-2 border-black shadow-neo bg-white text-center">
+      <div className="text-4xl mb-3">{emoji}</div>
+      <h3 className="text-lg font-bold mb-2">{title}</h3>
+      <p className="text-sm text-gray-600">{description}</p>
     </div>
   );
 }
