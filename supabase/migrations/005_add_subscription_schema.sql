@@ -213,8 +213,8 @@ BEGIN
     -- Set limits based on plan type
     CASE NEW.plan_type
         WHEN 'free' THEN
-            NEW.ai_requests_limit := 20;
-            NEW.storage_bytes_limit := 104857600; -- 100 MB
+            NEW.ai_requests_limit := 0; -- No AI access
+            NEW.storage_bytes_limit := 1073741824; -- 1 GB
             NEW.file_count_limit := 25;
             NEW.seat_count := 1;
             

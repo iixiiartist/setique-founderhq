@@ -299,32 +299,38 @@ ${businessContext}
 
     const canEditSelectedTask = selectedTask && canEditTask(selectedTask.userId, selectedTask.assignedTo);
 
+    // Check if user has AI access (not on free plan)
+    const hasAiAccess = workspace?.planType !== 'free';
+
     return (
         <div>
-             <div className="bg-white p-6 border-2 border-black shadow-neo mb-8">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-semibold text-black">Daily Briefing</h2>
-                    <button 
-                        onClick={generateBriefing} 
-                        disabled={isBriefingLoading}
-                        className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {isBriefingLoading ? 'Generating...' : 'Regenerate'}
-                    </button>
-                </div>
-                {isBriefingLoading ? (
-                    <div className="space-y-4 animate-pulse">
-                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                        <div className="h-4 bg-gray-200 rounded w-full"></div>
-                        <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                        <div className="h-4 bg-gray-200 rounded w-4/5"></div>
+            {/* Only show Daily Briefing for paid plans */}
+            {hasAiAccess && (
+                <div className="bg-white p-6 border-2 border-black shadow-neo mb-8">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-semibold text-black">Daily Briefing</h2>
+                        <button 
+                            onClick={generateBriefing} 
+                            disabled={isBriefingLoading}
+                            className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isBriefingLoading ? 'Generating...' : 'Regenerate'}
+                        </button>
                     </div>
-                ) : (
-                    <ReactMarkdown className="markdown-content" remarkPlugins={[remarkGfm]}>
-                        {dailyBriefing || ''}
-                    </ReactMarkdown>
-                )}
-            </div>
+                    {isBriefingLoading ? (
+                        <div className="space-y-4 animate-pulse">
+                            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                            <div className="h-4 bg-gray-200 rounded w-full"></div>
+                            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                            <div className="h-4 bg-gray-200 rounded w-4/5"></div>
+                        </div>
+                    ) : (
+                        <ReactMarkdown className="markdown-content" remarkPlugins={[remarkGfm]}>
+                            {dailyBriefing || ''}
+                        </ReactMarkdown>
+                    )}
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <KpiCard title="New Signups" value={latestFinancials.signups.toLocaleString()} description="From latest financial log" />

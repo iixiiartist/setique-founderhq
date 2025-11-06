@@ -34,12 +34,11 @@ export interface PlanLimits {
 export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
   'free': {
     name: 'Free',
-    aiRequestsPerMonth: 20,
-    storageBytes: 104857600, // 100 MB
+    aiRequestsPerMonth: 0, // No AI access
+    storageBytes: 1073741824, // 1 GB
     fileCount: 25,
     maxSeats: 1,
     features: [
-      'Basic AI Assistant',
       'Task Management',
       'CRM (limited)',
       'Document Library (25 files)',

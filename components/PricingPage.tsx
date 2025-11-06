@@ -116,13 +116,15 @@ export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', 
                 )}
 
                 <ul className="space-y-3 mb-6">
-                    <li className="flex items-start gap-2 text-sm text-black">
-                        <span className="text-green-600 font-bold flex-shrink-0 mt-0.5">✓</span>
-                        <span className="font-mono">
-                            {limits.aiRequestsPerMonth === null ? 'Unlimited' : limits.aiRequestsPerMonth} AI requests/month
-                            {isTeamPlan(planType) && ' per user'}
-                        </span>
-                    </li>
+                    {planType !== 'free' && (
+                        <li className="flex items-start gap-2 text-sm text-black">
+                            <span className="text-green-600 font-bold flex-shrink-0 mt-0.5">✓</span>
+                            <span className="font-mono">
+                                {limits.aiRequestsPerMonth === null ? 'Unlimited' : limits.aiRequestsPerMonth} AI requests/month
+                                {isTeamPlan(planType) && ' per user'}
+                            </span>
+                        </li>
+                    )}
                     <li className="flex items-start gap-2 text-sm text-black">
                         <span className="text-green-600 font-bold flex-shrink-0 mt-0.5">✓</span>
                         <span className="font-mono">

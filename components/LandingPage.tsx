@@ -254,13 +254,11 @@ export function LandingPage() {
               period="/month"
               description="Perfect for exploring and getting started"
               features={[
-                "20 AI requests/month",
                 "25 files",
-                "100 MB storage",
-                "Basic AI Assistant",
+                "1 GB storage",
                 "Task Management",
                 "CRM (limited)",
-                "Document Library (25 files)",
+                "Document Library",
                 "Basic Analytics"
               ]}
               cta="Get Started"
