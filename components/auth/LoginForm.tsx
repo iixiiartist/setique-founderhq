@@ -30,6 +30,7 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
     try {
       if (isSignUp) {
         const { data, error } = await signUp(email, password, fullName)
+        console.log('SignUp result:', { data, error })
         if (error) {
           // Provide user-friendly error messages
           if (error.message.includes('already registered')) {
@@ -37,15 +38,18 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
           } else if (error.message.includes('Password')) {
             setError('Password must be at least 6 characters long.')
           } else {
-            setError(error.message)
+            setError(error.message || 'An error occurred during sign up.')
           }
+          setLoading(false)
         } else {
           setAwaitingConfirmation(true)
           setMessage('Account created! Check your email and click the confirmation link to complete your signup. The email should arrive within a few minutes.')
+          setLoading(false)
           // Keep them on signup view but disable switching
         }
       } else {
         const { data, error } = await signIn(email, password)
+        console.log('SignIn result:', { data, error })
         if (error) {
           // Provide user-friendly error messages
           if (error.message.includes('Invalid login credentials')) {
@@ -56,18 +60,20 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
           } else if (error.message.includes('User not found')) {
             setError('No account found with this email. Please sign up first.')
           } else {
-            setError(error.message)
+            setError(error.message || 'An error occurred during sign in.')
           }
+          setLoading(false)
         } else {
           setMessage('Sign in successful! Loading your dashboard...')
           // Small delay to show success message
           await new Promise(resolve => setTimeout(resolve, 800))
+          setLoading(false)
           onSuccess?.()
         }
       }
-    } catch (err) {
-      setError('⚠️ An unexpected error occurred. Please try again.')
-    } finally {
+    } catch (err: any) {
+      console.error('Exception during auth:', err)
+      setError(err?.message || '⚠️ An unexpected error occurred. Please try again.')
       setLoading(false)
     }
   }
