@@ -19,6 +19,10 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Prevent double submissions
+    if (loading) return
+    
     setLoading(true)
     setError(null)
     setMessage(null)
