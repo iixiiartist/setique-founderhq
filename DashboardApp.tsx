@@ -1322,10 +1322,45 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             ),
         ];
 
+        // Generate CRM next actions for calendar
+        const crmNextActions = [
+            ...(data.investors || [])
+                .filter(item => item.nextActionDate && item.nextAction)
+                .map(item => ({
+                    ...item,
+                    type: 'crm-action' as const,
+                    tag: 'Investor',
+                    dueDate: item.nextActionDate!,
+                    title: item.nextAction!,
+                    companyName: item.company,
+                })),
+            ...(data.customers || [])
+                .filter(item => item.nextActionDate && item.nextAction)
+                .map(item => ({
+                    ...item,
+                    type: 'crm-action' as const,
+                    tag: 'Customer',
+                    dueDate: item.nextActionDate!,
+                    title: item.nextAction!,
+                    companyName: item.company,
+                })),
+            ...(data.partners || [])
+                .filter(item => item.nextActionDate && item.nextAction)
+                .map(item => ({
+                    ...item,
+                    type: 'crm-action' as const,
+                    tag: 'Partner',
+                    dueDate: item.nextActionDate!,
+                    title: item.nextAction!,
+                    companyName: item.company,
+                })),
+        ];
+
         const calendarEvents: CalendarEvent[] = [
             ...allTasks.filter(t => t.dueDate).map(t => ({...t, type: 'task' as const, title: t.text})),
             ...data.marketing.filter(m => m.dueDate).map(m => ({...m, type: 'marketing' as const, tag: 'Marketing' })),
             ...allMeetings,
+            ...crmNextActions,
         ];
 
         switch (activeTab) {

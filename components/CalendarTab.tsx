@@ -76,12 +76,17 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
     const [editSummary, setEditSummary] = useState('');
     const [editTime, setEditTime] = useState('');
 
+    // CRM action edit state
+    const [editNextAction, setEditNextAction] = useState('');
+    const [editCompany, setEditCompany] = useState('');
+
     // Shared edit state
     const [editDueDate, setEditDueDate] = useState('');
 
     const isTask = event.type === 'task';
     const isMarketing = event.type === 'marketing';
     const isMeeting = event.type === 'meeting';
+    const isCrmAction = event.type === 'crm-action';
     const task = isTask ? event : null;
 
     const handleEditClick = () => {
@@ -102,6 +107,10 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
             const hours = date.getHours().toString().padStart(2, '0');
             const minutes = date.getMinutes().toString().padStart(2, '0');
             setEditTime(`${hours}:${minutes}`);
+        } else if (isCrmAction) {
+            setEditNextAction(event.nextAction || '');
+            setEditCompany(event.company);
+            setEditDueDate(event.nextActionDate || '');
         }
         setIsEditing(true);
     };
@@ -144,6 +153,17 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
                     timestamp: newTimestamp
                 });
             }
+        } else if (isCrmAction) {
+            const crmCollectionMap: Record<string, CrmCollectionName> = {
+                'Investor': 'investors',
+                'Customer': 'customers',
+                'Partner': 'partners',
+            };
+            const collection = crmCollectionMap[event.tag];
+            actions.updateCrmItem(collection, event.id, {
+                nextAction: editNextAction,
+                nextActionDate: editDueDate,
+            });
         }
         setIsEditing(false);
     };
@@ -228,7 +248,7 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
                             </div>
                         </div>
                     </>
-                ) : ( // Meeting Item
+                ) : isMeeting ? ( // Meeting Item
                     <>
                         <div>
                             <label htmlFor="edit-meet-title" className="block font-mono text-sm font-semibold text-black mb-1">Title</label>
@@ -251,6 +271,35 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
                         <div>
                             <label htmlFor="edit-meet-summary" className="block font-mono text-sm font-semibold text-black mb-1">Summary (Markdown)</label>
                             <textarea id="edit-meet-summary" value={editSummary || ''} onChange={e => setEditSummary(e.target.value)} className="w-full bg-white border-2 border-black text-black p-2 rounded-none min-h-[150px]" />
+                        </div>
+                    </>
+                ) : ( // CRM Action
+                    <>
+                        <div>
+                            <label htmlFor="edit-crm-action" className="block font-mono text-sm font-semibold text-black mb-1">Next Action</label>
+                            <input
+                                id="edit-crm-action"
+                                type="text"
+                                value={editNextAction || ''}
+                                onChange={e => setEditNextAction(e.target.value)}
+                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none"
+                                placeholder="e.g., Send follow-up email"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="edit-crm-date" className="block font-mono text-sm font-semibold text-black mb-1">Next Action Date</label>
+                            <input
+                                id="edit-crm-date"
+                                type="date"
+                                value={editDueDate || ''}
+                                onChange={e => setEditDueDate(e.target.value)}
+                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none"
+                            />
+                        </div>
+                        <div className="p-3 bg-blue-50 border-2 border-blue-300 rounded-none">
+                            <p className="font-mono text-sm text-blue-800">
+                                <strong>Company:</strong> {editCompany}
+                            </p>
                         </div>
                     </>
                 )}
@@ -308,6 +357,28 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
                             </ReactMarkdown>
                         </div>
                     </div>
+                </>
+            )}
+            {isCrmAction && (
+                <>
+                    <div>
+                        <p className="font-mono text-sm uppercase">Company</p>
+                        <p className="font-semibold text-lg">{event.companyName}</p>
+                    </div>
+                    <div>
+                        <p className="font-mono text-sm uppercase">Priority</p>
+                        <p className="font-semibold text-lg">{event.priority}</p>
+                    </div>
+                    <div>
+                        <p className="font-mono text-sm uppercase">Status</p>
+                        <p className="font-semibold text-lg">{event.status}</p>
+                    </div>
+                    {event.assignedToName && (
+                        <div>
+                            <p className="font-mono text-sm uppercase">Assigned To</p>
+                            <p className="font-semibold text-lg">👤 {event.assignedToName}</p>
+                        </div>
+                    )}
                 </>
             )}
             <div className="flex gap-2 mt-4">

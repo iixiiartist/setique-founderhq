@@ -103,6 +103,12 @@ export type CalendarEvent = (Task & {
     contactName: string;
     crmItemId: string;
     contactId: string;
+}) | (BaseCrmItem & {
+    dueDate: string; // Maps from nextActionDate
+    tag: string; // 'Investor' | 'Customer' | 'Partner'
+    type: 'crm-action';
+    title: string; // Maps from nextAction
+    companyName: string; // Maps from company
 });
 
 export interface FinancialLog {
