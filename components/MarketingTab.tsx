@@ -65,6 +65,7 @@ const MarketingTab: React.FC<{
     workspaceId?: string;
     onUpgradeNeeded?: () => void;
 }> = React.memo(({ items, tasks, actions, documents, businessProfile, workspaceId, onUpgradeNeeded }) => {
+    const { workspace } = useWorkspace();
     const [form, setForm] = useState<Omit<MarketingItem, 'id'|'createdAt'|'notes'>>({
         title: '', type: 'Blog Post', status: 'Planned', dueDate: ''
     });
@@ -237,16 +238,18 @@ ${JSON.stringify(documentsMetadata, null, 2)}
                     />
                 </div>
             </div>
-             <div className="lg:col-span-1">
-                <ModuleAssistant 
-                    title="Marketing AI" 
-                    systemPrompt={systemPrompt} 
-                    actions={actions} 
-                    currentTab={Tab.Marketing}
-                    workspaceId={workspaceId}
-                    onUpgradeNeeded={onUpgradeNeeded}
-                />
-            </div>
+            {workspace?.planType !== 'free' && (
+                <div className="lg:col-span-1">
+                    <ModuleAssistant 
+                        title="Marketing AI" 
+                        systemPrompt={systemPrompt} 
+                        actions={actions} 
+                        currentTab={Tab.Marketing}
+                        workspaceId={workspaceId}
+                        onUpgradeNeeded={onUpgradeNeeded}
+                    />
+                </div>
+            )}
 
             <Modal isOpen={!!editingItem} onClose={() => setEditingItem(null)} title="Edit Marketing Item" triggerRef={modalTriggerRef}>
                 {editingItem && (

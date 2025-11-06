@@ -6,6 +6,7 @@ import AccountDetailView from './shared/AccountDetailView';
 import ContactDetailView from './shared/ContactDetailView';
 import TaskManagement from './shared/TaskManagement';
 import { AssignmentDropdown } from './shared/AssignmentDropdown';
+import { useWorkspace } from '../contexts/WorkspaceContext';
 
 
 const CrmItemCard: React.FC<{ item: AnyCrmItem, onView: (item: AnyCrmItem) => void }> = ({ item, onView }) => {
@@ -117,6 +118,7 @@ const CrmTab: React.FC<CrmTabProps> = React.memo(({
     workspaceMembers = [],
     userId
 }) => {
+    const { workspace } = useWorkspace();
     const [selectedItem, setSelectedItem] = useState<AnyCrmItem | null>(null);
     const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
     const [filterAssignment, setFilterAssignment] = useState<string>('all');
@@ -515,16 +517,18 @@ ${JSON.stringify(documentsMetadata, null, 2)}
                     placeholder="e.g., 'Draft outreach templates'"
                 />
             </div>
-             <div className="lg:col-span-1">
-                <ModuleAssistant 
-                    title={expertTitle} 
-                    systemPrompt={systemPrompt} 
-                    actions={actions} 
-                    currentTab={currentTab}
-                    workspaceId={workspaceId}
-                    onUpgradeNeeded={onUpgradeNeeded}
-                />
-            </div>
+            {workspace?.planType !== 'free' && (
+                <div className="lg:col-span-1">
+                    <ModuleAssistant 
+                        title={expertTitle} 
+                        systemPrompt={systemPrompt} 
+                        actions={actions} 
+                        currentTab={currentTab}
+                        workspaceId={workspaceId}
+                        onUpgradeNeeded={onUpgradeNeeded}
+                    />
+                </div>
+            )}
         </div>
     );
 });

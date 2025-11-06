@@ -51,7 +51,8 @@ const FinancialsTab: React.FC<{
     workspaceId?: string;
     onUpgradeNeeded?: () => void;
 }> = React.memo(({ items, expenses, tasks, actions, documents, businessProfile, workspaceId, onUpgradeNeeded }) => {
-     const [form, setForm] = useState<Omit<FinancialLog, 'id'>>({
+    const { workspace } = useWorkspace();
+    const [form, setForm] = useState<Omit<FinancialLog, 'id'>>({
         date: new Date().toISOString().split('T')[0], mrr: 0, gmv: 0, signups: 0
     });
     
@@ -508,16 +509,18 @@ ${JSON.stringify(documentsMetadata, null, 2)}
                     />
                 </div>
             </div>
-            <div className="lg:col-span-1">
-                <ModuleAssistant 
-                    title="Financials AI" 
-                    systemPrompt={systemPrompt} 
-                    actions={actions} 
-                    currentTab={Tab.Financials}
-                    workspaceId={workspaceId}
-                    onUpgradeNeeded={onUpgradeNeeded}
-                />
-            </div>
+            {workspace?.planType !== 'free' && (
+                <div className="lg:col-span-1">
+                    <ModuleAssistant 
+                        title="Financials AI" 
+                        systemPrompt={systemPrompt} 
+                        actions={actions} 
+                        currentTab={Tab.Financials}
+                        workspaceId={workspaceId}
+                        onUpgradeNeeded={onUpgradeNeeded}
+                    />
+                </div>
+            )}
         </div>
     );
 });

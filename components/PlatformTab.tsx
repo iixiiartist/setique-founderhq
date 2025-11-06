@@ -3,6 +3,7 @@ import { Task, AppActions, Document, BusinessProfile, WorkspaceMember } from '..
 import ModuleAssistant from './shared/ModuleAssistant';
 import { Tab } from '../constants';
 import TaskManagement from './shared/TaskManagement';
+import { useWorkspace } from '../contexts/WorkspaceContext';
 
 export function PlatformTab({ 
     tasks, 
@@ -21,6 +22,7 @@ export function PlatformTab({
     workspaceMembers?: WorkspaceMember[];
     onUpgradeNeeded?: () => void;
 }) {
+    const { workspace } = useWorkspace();
     const documentsMetadata = useMemo(() => documents.map(({ id, name, mimeType, module, uploadedAt, companyId, contactId }) => ({ id, name, mimeType, module, uploadedAt, companyId, contactId })), [documents]);
 
     // Build business context from profile (handle snake_case from database)
@@ -116,16 +118,18 @@ ${JSON.stringify(documentsMetadata, null, 2)}
                     placeholder="e.g., 'Implement user authentication'"
                 />
             </div>
-            <div className="lg:col-span-1">
-                <ModuleAssistant 
-                    title="Platform AI" 
-                    systemPrompt={systemPrompt} 
-                    actions={actions} 
-                    currentTab={Tab.Platform}
-                    workspaceId={workspaceId}
-                    onUpgradeNeeded={onUpgradeNeeded}
-                />
-            </div>
+            {workspace?.planType !== 'free' && (
+                <div className="lg:col-span-1">
+                    <ModuleAssistant 
+                        title="Platform AI" 
+                        systemPrompt={systemPrompt} 
+                        actions={actions} 
+                        currentTab={Tab.Platform}
+                        workspaceId={workspaceId}
+                        onUpgradeNeeded={onUpgradeNeeded}
+                    />
+                </div>
+            )}
         </div>
     );
 }
