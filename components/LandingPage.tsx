@@ -66,7 +66,7 @@ export function LandingPage() {
             <span className="text-blue-600">Plan. Track. Scale.</span>
           </h1>
           <p className="text-2xl md:text-3xl font-semibold text-gray-800 mb-6">
-            Your AI-Powered Command Center for Business Growth
+            Your Lightweight, AI-Powered Hub For GTM
           </p>
           <p className="text-xl text-gray-700 mb-8 leading-relaxed">
             The all-in-one workspace for founders, consultants, sales reps, and small businesses. Manage projects, track finances, engage customers, and get AI-powered insights—all in one place.
@@ -376,7 +376,7 @@ export function LandingPage() {
                 <span className="font-bold font-mono">FounderHQ</span>
               </div>
               <p className="text-sm text-gray-600">
-                Your AI-powered command center for business growth
+                Your lightweight, AI-powered hub for GTM
               </p>
             </div>
             <div>
