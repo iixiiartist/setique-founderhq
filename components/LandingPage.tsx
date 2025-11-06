@@ -165,8 +165,7 @@ export function LandingPage() {
                 "Advanced Analytics",
                 "Priority Support",
                 "Export Data",
-                "API Access",
-                "Custom Integrations"
+                "API Access"
               ]}
               cta="Subscribe Now"
               highlighted={true}
@@ -189,8 +188,7 @@ export function LandingPage() {
                 "Team Analytics",
                 "Role-Based Access",
                 "Advanced Permissions",
-                "Priority Team Support",
-                "Custom Onboarding"
+                "Priority Team Support"
               ]}
               cta="Subscribe Now"
               highlighted={false}
