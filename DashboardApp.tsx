@@ -1146,32 +1146,17 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     await DataPersistenceAdapter.deleteDocument(itemId);
                 }
                 
-                // Invalidate appropriate cache and clear loaded tabs
+                // Just invalidate cache - don't reload (optimistic update already removed from UI)
                 if (collection === 'financials' || collection === 'expenses') {
                     invalidateCache('financials');
-                    // Reload financial data immediately
-                    const freshFinancials = await loadFinancials();
-                    setData(prev => ({ ...prev, ...freshFinancials }));
                 } else if (collection === 'marketing') {
                     invalidateCache('marketing');
-                    // Reload marketing data immediately
-                    const freshMarketing = await loadMarketing();
-                    setData(prev => ({ ...prev, marketing: freshMarketing }));
                 } else if (['investors', 'customers', 'partners'].includes(collection) || collection === 'contacts') {
                     invalidateCache('crm');
-                    // Reload CRM data immediately
-                    const freshCrm = await loadCrmItems();
-                    setData(prev => ({ ...prev, ...freshCrm }));
                 } else if (['platformTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketingTasks', 'financialTasks'].includes(collection)) {
                     invalidateCache('tasks');
-                    // Reload tasks immediately
-                    const freshTasks = await loadTasks();
-                    setData(prev => ({ ...prev, ...freshTasks }));
                 } else if (collection === 'documents') {
                     invalidateCache('documents');
-                    // Reload documents immediately
-                    const freshDocuments = await loadDocuments();
-                    setData(prev => ({ ...prev, documents: freshDocuments }));
                 }
                 
                 handleToast(`Item deleted successfully.`, 'success');
