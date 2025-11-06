@@ -451,11 +451,35 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 return { success: false, message: 'No workspace available' };
             }
 
+            // Create optimistic task with temporary ID
+            const optimisticTask: Task = {
+                id: `temp-${Date.now()}`,
+                text,
+                status: 'Todo',
+                priority,
+                createdAt: Date.now(),
+                userId,
+                dueDate: dueDate || undefined,
+                crmItemId: crmItemId || undefined,
+                contactId: contactId || undefined,
+                assignedTo: assignedTo || undefined,
+                assignedToName: assignedTo ? workspaceMembers.find(m => m.userId === assignedTo)?.fullName : undefined,
+                notes: []
+            };
+
+            // Optimistically update UI
+            setData(prev => ({
+                ...prev,
+                [category]: [...(prev[category] as Task[]), optimisticTask]
+            }));
+
+            handleToast(`Creating task...`, 'info');
+
             try {
                 console.log('[DashboardApp] Creating task with workspace:', workspace.id);
                 await DataPersistenceAdapter.createTask(userId, category, text, priority, crmItemId, contactId, dueDate, workspace.id, assignedTo);
                 
-                // Only reload tasks, not everything (prevents glitch)
+                // Reload tasks to get the real data with correct ID
                 invalidateCache('tasks');
                 const updatedTasks = await loadTasks();
                 setData(prev => ({ ...prev, ...updatedTasks }));
@@ -464,6 +488,13 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 return { success: true, message: `Task "${text}" created.` };
             } catch (error) {
                 console.error('Error creating task:', error);
+                
+                // Rollback optimistic update on error
+                setData(prev => ({
+                    ...prev,
+                    [category]: (prev[category] as Task[]).filter(t => t.id !== optimisticTask.id)
+                }));
+                
                 handleToast('Failed to create task', 'info');
                 return { success: false, message: 'Failed to create task' };
             }
@@ -481,6 +512,8 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 // Get the task before update to check its previous status and permissions
                 let previousStatus: TaskStatus | undefined;
                 let task: Task | undefined;
+                let taskCategory: TaskCollectionName | undefined;
+                
                 const allTasksFlat = [
                     ...data.platformTasks,
                     ...data.investorTasks,
@@ -490,6 +523,14 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     ...data.financialTasks,
                 ];
                 task = allTasksFlat.find(t => t.id === taskId);
+                
+                // Find which category this task belongs to
+                if (data.platformTasks.some(t => t.id === taskId)) taskCategory = 'platformTasks';
+                else if (data.investorTasks.some(t => t.id === taskId)) taskCategory = 'investorTasks';
+                else if (data.customerTasks.some(t => t.id === taskId)) taskCategory = 'customerTasks';
+                else if (data.partnerTasks.some(t => t.id === taskId)) taskCategory = 'partnerTasks';
+                else if (data.marketingTasks.some(t => t.id === taskId)) taskCategory = 'marketingTasks';
+                else if (data.financialTasks.some(t => t.id === taskId)) taskCategory = 'financialTasks';
                 
                 // Check permissions - user can edit their own tasks, assigned tasks, or if they're the workspace owner
                 if (task?.userId && !canEditTask(task.userId, task.assignedTo)) {
@@ -501,9 +542,19 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     previousStatus = task.status;
                 }
 
+                // Optimistically update the task in the UI
+                if (task && taskCategory) {
+                    setData(prev => ({
+                        ...prev,
+                        [taskCategory!]: (prev[taskCategory!] as Task[]).map(t => 
+                            t.id === taskId ? { ...t, ...updates } : t
+                        )
+                    }));
+                }
+
                 await DataPersistenceAdapter.updateTask(taskId, updates, user?.id, workspace?.id);
                 
-                // Only reload tasks, not everything (prevents glitch)
+                // Reload tasks to get fresh data
                 invalidateCache('tasks');
                 const updatedTasks = await loadTasks();
                 setData(prev => ({ ...prev, ...updatedTasks }));
@@ -740,6 +791,8 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
             try {
                 const newCompanyName = itemData.company || 'New Item';
+                handleToast(`Creating ${collection.slice(0, -1)}...`, 'info');
+                
                 await DataPersistenceAdapter.createCrmItem(userId, workspace.id, collection, itemData as any);
                 invalidateCache('crm');
                 
@@ -760,7 +813,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     const achievement = ACHIEVEMENTS[result.newAchievements[0]];
                     handleToast(`🏆 ${achievement.title}: ${achievement.description}`, 'success');
                 } else {
-                    handleToast(`${titleCase(collection.slice(0, -1))} "${newCompanyName}" created.`, 'success');
+                    handleToast(`${titleCase(collection.slice(0, -1))} "${newCompanyName}" created successfully.`, 'success');
                 }
                 
                 // Reload data once after all operations
@@ -768,6 +821,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 return { success: true, message: `${collection} item created.` };
             } catch (error) {
                 console.error('Error creating CRM item:', error);
+                handleToast('Failed to create CRM item', 'info');
                 return { success: false, message: 'Failed to create CRM item' };
             }
         },
@@ -1046,6 +1100,35 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             }
 
             try {
+                // Optimistic UI update - remove item immediately
+                if (['platformTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketingTasks', 'financialTasks'].includes(collection)) {
+                    setData(prev => ({
+                        ...prev,
+                        [collection]: (prev[collection as TaskCollectionName] as Task[]).filter(t => t.id !== itemId)
+                    }));
+                    handleToast('Deleting task...', 'info');
+                } else if (collection === 'marketing') {
+                    setData(prev => ({
+                        ...prev,
+                        marketing: prev.marketing.filter(m => m.id !== itemId)
+                    }));
+                    handleToast('Deleting marketing item...', 'info');
+                } else if (collection === 'financials') {
+                    setData(prev => ({
+                        ...prev,
+                        financials: prev.financials.filter(f => f.id !== itemId)
+                    }));
+                    handleToast('Deleting financial log...', 'info');
+                } else if (collection === 'expenses') {
+                    setData(prev => ({
+                        ...prev,
+                        expenses: prev.expenses.filter(e => e.id !== itemId)
+                    }));
+                    handleToast('Deleting expense...', 'info');
+                } else {
+                    handleToast(`Deleting ${collection}...`, 'info');
+                }
+
                 // Determine which delete method to use based on collection
                 if (collection === 'financials') {
                     await DataPersistenceAdapter.deleteFinancialLog(itemId);
@@ -1091,10 +1174,29 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     setData(prev => ({ ...prev, documents: freshDocuments }));
                 }
                 
-                handleToast(`Item deleted from ${collection}.`, 'info');
+                handleToast(`Item deleted successfully.`, 'success');
                 return { success: true, message: `Item deleted from ${collection}.` };
             } catch (error) {
                 console.error('Error deleting item:', error);
+                
+                // Rollback on error - reload the data
+                if (collection === 'financials' || collection === 'expenses') {
+                    const freshFinancials = await loadFinancials();
+                    setData(prev => ({ ...prev, ...freshFinancials }));
+                } else if (collection === 'marketing') {
+                    const freshMarketing = await loadMarketing();
+                    setData(prev => ({ ...prev, marketing: freshMarketing }));
+                } else if (['investors', 'customers', 'partners'].includes(collection) || collection === 'contacts') {
+                    const freshCrm = await loadCrmItems();
+                    setData(prev => ({ ...prev, ...freshCrm }));
+                } else if (['platformTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketingTasks', 'financialTasks'].includes(collection)) {
+                    const freshTasks = await loadTasks();
+                    setData(prev => ({ ...prev, ...freshTasks }));
+                } else if (collection === 'documents') {
+                    const freshDocuments = await loadDocuments();
+                    setData(prev => ({ ...prev, documents: freshDocuments }));
+                }
+                
                 handleToast('Failed to delete item', 'info');
                 return { success: false, message: 'Failed to delete item' };
             }
@@ -1213,12 +1315,15 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             }
 
             try {
+                handleToast(`Uploading "${name}"...`, 'info');
+                
                 // Calculate file size (content is base64)
                 const fileSizeBytes = content ? Math.ceil((content.length * 3) / 4) : 0;
 
                 // Check storage limit before uploading
                 const { data: limitCheck } = await DatabaseService.checkStorageLimit(workspace.id, fileSizeBytes);
                 if (limitCheck === false) {
+                    handleToast('Storage limit exceeded. Please upgrade your plan.', 'info');
                     return { success: false, message: 'Storage limit exceeded. Please upgrade your plan or delete some files.' };
                 }
 
@@ -1228,9 +1333,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     content,
                     module,
                     companyId,
-                    contactId,
-                    uploadedBy: user?.id,
-                    uploadedByName: user?.user_metadata?.full_name || user?.email
+                    contactId
                 });
 
                 // Increment file count and storage usage
@@ -1238,10 +1341,11 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
                 await reload();
                 invalidateCache('documents');
-                handleToast(`Document "${name}" saved to library.`, 'success');
+                handleToast(`"${name}" uploaded successfully.`, 'success');
                 return { success: true, message: `Document "${name}" uploaded to the library.` };
             } catch (error) {
                 console.error('Error uploading document:', error);
+                handleToast('Failed to upload document', 'info');
                 return { success: false, message: 'Failed to upload document' };
             }
         },
@@ -1273,8 +1377,19 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             }
 
             try {
-                // Get document info before deleting to calculate size
+                // Get document info before deleting
                 const doc = data.documents.find(d => d.id === docId);
+                const docName = doc?.name || 'Document';
+                
+                // Optimistically remove from UI
+                setData(prev => ({
+                    ...prev,
+                    documents: prev.documents.filter(d => d.id !== docId)
+                }));
+                
+                handleToast(`Deleting "${docName}"...`, 'info');
+                
+                // Calculate file size
                 const fileSizeBytes = doc?.content ? Math.ceil((doc.content.length * 3) / 4) : 0;
 
                 await DataPersistenceAdapter.deleteDocument(docId);
@@ -1284,12 +1399,19 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     await DatabaseService.decrementFileCount(workspace.id, fileSizeBytes);
                 }
 
+                // Reload to ensure consistency
                 await reload();
                 invalidateCache('documents');
-                handleToast("Document deleted.", 'info');
+                handleToast(`"${docName}" deleted successfully.`, 'success');
                 return { success: true, message: 'Document deleted.' };
             } catch (error) {
                 console.error('Error deleting document:', error);
+                
+                // Rollback on error
+                await reload();
+                invalidateCache('documents');
+                
+                handleToast('Failed to delete document', 'info');
                 return { success: false, message: 'Failed to delete document' };
             }
         },
