@@ -201,6 +201,13 @@ ${businessContext}
     };
 
     useEffect(() => {
+        // Skip briefing generation for free users
+        if (workspace?.planType === 'free') {
+            setIsBriefingLoading(false);
+            setDailyBriefing(null);
+            return;
+        }
+
         const today = new Date().toISOString().split('T')[0];
         const lastBriefingDate = localStorage.getItem(LS_BRIEFING_DATE_KEY);
         const cachedBriefing = localStorage.getItem(LS_BRIEFING_CONTENT_KEY);
@@ -212,7 +219,7 @@ ${businessContext}
             generateBriefing();
             localStorage.setItem(LS_BRIEFING_DATE_KEY, today);
         }
-    }, []); // Run only on initial mount.
+    }, [workspace?.planType]); // Re-run if plan changes
 
     const allTasks = useMemo(() => [
         ...data.platformTasks.map(t => ({ ...t, tag: 'Platform', collection: 'platformTasks' as const })),
