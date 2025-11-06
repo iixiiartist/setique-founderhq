@@ -82,9 +82,9 @@ serve(async (req) => {
                 </p>
                 <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.6; color: #374151;">
                   <li>Complete your business profile</li>
-                  <li>Try the AI assistant (20 free requests)</li>
                   <li>Set up your CRM pipeline</li>
-                  <li>Upload documents to your library</li>
+                  <li>Explore task management</li>
+                  <li>Upgrade to unlock AI & document storage</li>
                 </ul>
               </div>
               
@@ -123,9 +123,9 @@ ${confirmationUrl}
 
 What's Next?
 • Complete your business profile
-• Try the AI assistant (20 free requests)
 • Set up your CRM pipeline
-• Upload documents to your library
+• Explore task management
+• Upgrade to unlock AI & document storage
 
 If you didn't create an account with FounderHQ, you can safely ignore this email.
 
