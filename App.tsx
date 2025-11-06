@@ -35,13 +35,22 @@ const App: React.FC = () => {
 function AppRoutes() {
   const { user, loading } = useAuth()
   const [inviteToken, setInviteToken] = useState<string | null>(null)
+  const [subscribePlan, setSubscribePlan] = useState<string | null>(null)
 
   useEffect(() => {
-    // Check for invitation token in URL
+    // Check for invitation token or subscribe plan in URL
     const urlParams = new URLSearchParams(window.location.search)
     const token = urlParams.get('token')
+    const plan = urlParams.get('subscribe')
+    
     if (token) {
       setInviteToken(token)
+    }
+    
+    if (plan) {
+      setSubscribePlan(plan)
+      // Store in sessionStorage so it persists during auth
+      sessionStorage.setItem('pending_subscription', plan)
     }
   }, [])
 
@@ -68,7 +77,7 @@ function AppRoutes() {
 
   return (
     <WorkspaceProvider>
-      <DashboardApp />
+      <DashboardApp subscribePlan={subscribePlan || sessionStorage.getItem('pending_subscription')} />
     </WorkspaceProvider>
   )
 }

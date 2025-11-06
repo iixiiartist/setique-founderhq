@@ -286,6 +286,7 @@ export function LandingPage() {
               ]}
               cta="Subscribe Now"
               highlighted={true}
+              planType="power-individual"
             />
             <PricingCard
               name="Team Pro"
@@ -309,6 +310,7 @@ export function LandingPage() {
               ]}
               cta="Subscribe Now"
               highlighted={false}
+              planType="team-pro"
             />
           </div>
         </div>
@@ -445,7 +447,8 @@ function PricingCard({
   additionalPricing,
   features, 
   cta, 
-  highlighted 
+  highlighted,
+  planType
 }: { 
   name: string; 
   price: string; 
@@ -455,7 +458,15 @@ function PricingCard({
   features: string[]; 
   cta: string; 
   highlighted: boolean;
+  planType?: string;
 }) {
+  const getSubscribeLink = () => {
+    if (planType) {
+      return `/app?subscribe=${planType}`;
+    }
+    return '/app';
+  };
+
   return (
     <div className={`p-8 border-2 border-black ${highlighted ? 'bg-yellow-50 shadow-neo-lg' : 'bg-white shadow-neo'} relative`}>
       {highlighted && (
@@ -485,7 +496,7 @@ function PricingCard({
         ))}
       </ul>
       <Link
-        to="/app"
+        to={getSubscribeLink()}
         className={`block w-full py-3 text-center border-2 border-black font-medium transition-all ${
           highlighted 
             ? 'bg-black text-white shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none' 

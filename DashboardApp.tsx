@@ -24,7 +24,7 @@ import { DataPersistenceAdapter } from './lib/services/dataPersistenceAdapter';
 import { GamificationService, TeamAchievementService } from './lib/services/gamificationService';
 import { supabase } from './lib/supabase';
 
-const DashboardApp: React.FC = () => {
+const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePlan }) => {
     const { user, signOut } = useAuth();
     const { workspace, businessProfile, showOnboarding, saveBusinessProfile, dismissOnboarding, isLoadingWorkspace, refreshWorkspace, canEditTask, workspaceMembers } = useWorkspace();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -65,6 +65,22 @@ const DashboardApp: React.FC = () => {
     useEffect(() => {
         localStorage.setItem('activeTab', activeTab);
     }, [activeTab]);
+
+    // Handle pending subscription redirect
+    useEffect(() => {
+        if (subscribePlan && workspace && !isLoadingWorkspace) {
+            // Clear the pending subscription
+            sessionStorage.removeItem('pending_subscription');
+            
+            // Redirect to settings tab to trigger checkout
+            setActiveTab(Tab.Settings);
+            
+            // Store the plan to subscribe to
+            sessionStorage.setItem('checkout_plan', subscribePlan);
+            
+            console.log('Redirecting to checkout for plan:', subscribePlan);
+        }
+    }, [subscribePlan, workspace, isLoadingWorkspace]);
 
     // Initialize app - load only core data (gamification & settings)
     useEffect(() => {
