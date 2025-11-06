@@ -376,7 +376,7 @@ export function LandingPage() {
                 <span className="font-bold font-mono">FounderHQ</span>
               </div>
               <p className="text-sm text-gray-600">
-                A Setique Tool for ambitious founders
+                Your AI-powered command center for business growth
               </p>
             </div>
             <div>
