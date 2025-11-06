@@ -1404,7 +1404,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 return <AchievementsTab 
                     gamification={data.gamification} 
                     workspaceId={workspace?.id}
-                    currentPlan={(workspace as any)?.plan_type || workspace?.planType || 'free'}
+                    currentPlan={workspace?.planType || 'free'}
                     onUpgrade={() => setActiveTab(Tab.Settings)}
                 />;
             case Tab.Settings:
