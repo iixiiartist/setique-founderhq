@@ -76,7 +76,7 @@ export function LandingPage() {
               to="/app"
               className="px-8 py-4 bg-black text-white border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all font-medium text-lg flex items-center gap-2"
             >
-              Start Free Trial <ArrowRight size={20} />
+              Start Free <ArrowRight size={20} />
             </Link>
             <a
               href="#features"
@@ -86,7 +86,7 @@ export function LandingPage() {
             </a>
           </div>
           <p className="mt-4 text-sm text-gray-600">
-            No credit card required • 20 AI requests free • Cancel anytime
+            Free forever • Upgrade anytime • No credit card required
           </p>
         </div>
       </section>
@@ -263,8 +263,9 @@ export function LandingPage() {
                 "Document Library (25 files)",
                 "Basic Analytics"
               ]}
-              cta="Start Free"
+              cta="Get Started Free"
               highlighted={false}
+              planType="free"
             />
             <PricingCard
               name="Power"
@@ -284,9 +285,9 @@ export function LandingPage() {
                 "Export Data",
                 "API Access"
               ]}
-              cta="Subscribe Now"
+              cta="Start Free, Upgrade Anytime"
               highlighted={true}
-              planType="power-individual"
+              planType="free"
             />
             <PricingCard
               name="Team Pro"
@@ -308,9 +309,9 @@ export function LandingPage() {
                 "Advanced Permissions",
                 "Priority Team Support"
               ]}
-              cta="Subscribe Now"
+              cta="Start Free, Upgrade Anytime"
               highlighted={false}
-              planType="team-pro"
+              planType="free"
             />
           </div>
         </div>
@@ -352,16 +353,16 @@ export function LandingPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl font-bold mb-6">Ready to Build Smarter?</h2>
           <p className="text-xl mb-8 text-gray-300">
-            Join founders who are using FounderHQ to grow their businesses faster.
+            Start free and upgrade when you're ready to scale.
           </p>
           <Link
             to="/app"
             className="inline-block px-8 py-4 bg-white text-black border-2 border-white shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all font-medium text-lg"
           >
-            Start Your Free Trial
+            Get Started Free
           </Link>
           <p className="mt-4 text-sm text-gray-400">
-            No credit card required • 14-day free trial
+            No credit card required • Upgrade anytime
           </p>
         </div>
       </section>
