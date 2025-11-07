@@ -13,10 +13,11 @@ ADD COLUMN IF NOT EXISTS next_action_time TEXT;
 
 COMMENT ON COLUMN crm_items.next_action_time IS 'Time in HH:MM format (24-hour) for next action';
 
--- Add due_time column to marketing_items table (if you have one)
--- Uncomment if you have a marketing_items table
--- ALTER TABLE marketing_items 
--- ADD COLUMN IF NOT EXISTS due_time TEXT;
+-- Add due_time column to marketing_items table
+ALTER TABLE marketing_items 
+ADD COLUMN IF NOT EXISTS due_time TEXT;
+
+COMMENT ON COLUMN marketing_items.due_time IS 'Time in HH:MM format (24-hour) for marketing item due date';
 
 -- COMMENT ON COLUMN marketing_items.due_time IS 'Time in HH:MM format (24-hour) for marketing item due date';
 
