@@ -79,7 +79,27 @@ export class DatabaseService {
       const { data, error } = await query.order('created_at', { ascending: false })
 
       if (error) throw error
-      return { data, error: null }
+      
+      // Transform tasks from database format (snake_case) to app format (camelCase)
+      const transformedData = data?.map(dbTask => ({
+        id: dbTask.id,
+        text: dbTask.text,
+        status: dbTask.status,
+        priority: dbTask.priority,
+        createdAt: new Date(dbTask.created_at).getTime(),
+        completedAt: dbTask.completed_at ? new Date(dbTask.completed_at).getTime() : undefined,
+        dueDate: dbTask.due_date || undefined,
+        dueTime: dbTask.due_time || undefined,
+        notes: dbTask.notes || [],
+        crmItemId: dbTask.crm_item_id || undefined,
+        contactId: dbTask.contact_id || undefined,
+        userId: dbTask.user_id,
+        assignedTo: dbTask.assigned_to || undefined,
+        assignedToName: dbTask.assigned_to_profile?.full_name || undefined,
+        category: dbTask.category,
+      })) || []
+      
+      return { data: transformedData, error: null }
     } catch (error) {
       console.error('Error fetching tasks:', error)
       return { data: [], error }
