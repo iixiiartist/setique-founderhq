@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
 import { WorkspaceProvider } from './contexts/WorkspaceContext'
+import { QueryProvider } from './lib/providers/QueryProvider'
+import { Toaster } from './lib/utils/toast'
 import { LoginForm } from './components/auth/LoginForm'
 import { FullPageLoading } from './components/shared/Loading'
 import { InviteAcceptPage } from './components/shared/InviteAcceptPage'
@@ -12,8 +14,10 @@ import DashboardApp from './DashboardApp'
 
 const App: React.FC = () => {
   return (
-    <Router>
-      <Routes>
+    <QueryProvider>
+      <Router>
+        <Toaster />
+        <Routes>
         {/* Public landing page */}
         <Route path="/" element={<LandingPage />} />
         
@@ -28,6 +32,7 @@ const App: React.FC = () => {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
+    </QueryProvider>
   )
 }
 

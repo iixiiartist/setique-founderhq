@@ -11,6 +11,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DataPersistenceAdapter } from '../lib/services/dataPersistenceAdapter';
 import type { Task, Priority, TaskCollectionName } from '../types';
+import { showSuccess, showError } from '../lib/utils/toast';
 
 // Query key factory for tasks
 export const taskKeys = {
@@ -84,6 +85,10 @@ export function useCreateTask() {
     onSuccess: (data, variables) => {
       // Invalidate workspace data to trigger refetch
       queryClient.invalidateQueries({ queryKey: ['workspace', variables.workspaceId] });
+      showSuccess('Task created successfully');
+    },
+    onError: (error: Error) => {
+      showError(error.message || 'Failed to create task');
     },
   });
 }
@@ -116,11 +121,45 @@ export function useUpdateTask() {
 
       return result.data;
     },
+    onMutate: async (params) => {
+      // Cancel outgoing refetches
+      if (params.workspaceId) {
+        await queryClient.cancelQueries({ queryKey: ['workspace', params.workspaceId] });
+      }
+
+      // Snapshot previous value for rollback
+      const previousData = params.workspaceId 
+        ? queryClient.getQueryData(['workspace', params.workspaceId, 'data'])
+        : null;
+
+      // Optimistically update the cache
+      if (params.workspaceId && previousData) {
+        queryClient.setQueryData(['workspace', params.workspaceId, 'data'], (old: any) => {
+          if (!old?.tasks) return old;
+          return {
+            ...old,
+            tasks: old.tasks.map((task: Task) =>
+              task.id === params.taskId ? { ...task, ...params.updates } : task
+            ),
+          };
+        });
+      }
+
+      return { previousData };
+    },
     onSuccess: (data, variables) => {
-      // Invalidate workspace data to trigger refetch
+      // Invalidate to ensure fresh data
       if (variables.workspaceId) {
         queryClient.invalidateQueries({ queryKey: ['workspace', variables.workspaceId] });
       }
+      showSuccess('Task updated successfully');
+    },
+    onError: (error: Error, variables, context) => {
+      // Rollback on error
+      if (variables.workspaceId && context?.previousData) {
+        queryClient.setQueryData(['workspace', variables.workspaceId, 'data'], context.previousData);
+      }
+      showError(error.message || 'Failed to update task');
     },
   });
 }
@@ -146,11 +185,43 @@ export function useDeleteTask() {
 
       return params.taskId;
     },
+    onMutate: async (params) => {
+      // Cancel outgoing refetches
+      if (params.workspaceId) {
+        await queryClient.cancelQueries({ queryKey: ['workspace', params.workspaceId] });
+      }
+
+      // Snapshot previous value for rollback
+      const previousData = params.workspaceId 
+        ? queryClient.getQueryData(['workspace', params.workspaceId, 'data'])
+        : null;
+
+      // Optimistically remove from cache
+      if (params.workspaceId && previousData) {
+        queryClient.setQueryData(['workspace', params.workspaceId, 'data'], (old: any) => {
+          if (!old?.tasks) return old;
+          return {
+            ...old,
+            tasks: old.tasks.filter((task: Task) => task.id !== params.taskId),
+          };
+        });
+      }
+
+      return { previousData };
+    },
     onSuccess: (taskId, variables) => {
-      // Invalidate workspace data to trigger refetch
+      // Invalidate to ensure consistency
       if (variables.workspaceId) {
         queryClient.invalidateQueries({ queryKey: ['workspace', variables.workspaceId] });
       }
+      showSuccess('Task deleted successfully');
+    },
+    onError: (error: Error, variables, context) => {
+      // Rollback on error
+      if (variables.workspaceId && context?.previousData) {
+        queryClient.setQueryData(['workspace', variables.workspaceId, 'data'], context.previousData);
+      }
+      showError(error.message || 'Failed to delete task');
     },
   });
 }

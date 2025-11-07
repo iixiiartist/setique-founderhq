@@ -11,6 +11,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DataPersistenceAdapter } from '../lib/services/dataPersistenceAdapter';
 import type { AnyCrmItem, CrmCollectionName, Priority } from '../types';
+import { showSuccess, showError } from '../lib/utils/toast';
 
 // Query key factory for CRM items
 export const crmKeys = {
@@ -93,6 +94,10 @@ export function useCreateCrmItem() {
     onSuccess: (data, variables) => {
       // Invalidate workspace data to trigger refetch
       queryClient.invalidateQueries({ queryKey: ['workspace', variables.workspaceId] });
+      showSuccess('CRM item created successfully');
+    },
+    onError: (error: Error) => {
+      showError(error.message || 'Failed to create CRM item');
     },
   });
 }
@@ -122,11 +127,42 @@ export function useUpdateCrmItem() {
 
       return result.data;
     },
+    onMutate: async (params) => {
+      // Optimistic update
+      if (params.workspaceId) {
+        await queryClient.cancelQueries({ queryKey: ['workspace', params.workspaceId] });
+        const previousData = queryClient.getQueryData(['workspace', params.workspaceId, 'data']);
+
+        queryClient.setQueryData(['workspace', params.workspaceId, 'data'], (old: any) => {
+          if (!old?.investors && !old?.customers && !old?.partners) return old;
+          return {
+            ...old,
+            investors: old.investors?.map((item: AnyCrmItem) =>
+              item.id === params.itemId ? { ...item, ...params.updates } : item
+            ),
+            customers: old.customers?.map((item: AnyCrmItem) =>
+              item.id === params.itemId ? { ...item, ...params.updates } : item
+            ),
+            partners: old.partners?.map((item: AnyCrmItem) =>
+              item.id === params.itemId ? { ...item, ...params.updates } : item
+            ),
+          };
+        });
+
+        return { previousData };
+      }
+    },
     onSuccess: (data, variables) => {
-      // Invalidate workspace data to trigger refetch
       if (variables.workspaceId) {
         queryClient.invalidateQueries({ queryKey: ['workspace', variables.workspaceId] });
       }
+      showSuccess('CRM item updated successfully');
+    },
+    onError: (error: Error, variables, context) => {
+      if (variables.workspaceId && context?.previousData) {
+        queryClient.setQueryData(['workspace', variables.workspaceId, 'data'], context.previousData);
+      }
+      showError(error.message || 'Failed to update CRM item');
     },
   });
 }
@@ -152,11 +188,36 @@ export function useDeleteCrmItem() {
 
       return params.itemId;
     },
+    onMutate: async (params) => {
+      // Optimistic delete
+      if (params.workspaceId) {
+        await queryClient.cancelQueries({ queryKey: ['workspace', params.workspaceId] });
+        const previousData = queryClient.getQueryData(['workspace', params.workspaceId, 'data']);
+
+        queryClient.setQueryData(['workspace', params.workspaceId, 'data'], (old: any) => {
+          if (!old?.investors && !old?.customers && !old?.partners) return old;
+          return {
+            ...old,
+            investors: old.investors?.filter((item: AnyCrmItem) => item.id !== params.itemId),
+            customers: old.customers?.filter((item: AnyCrmItem) => item.id !== params.itemId),
+            partners: old.partners?.filter((item: AnyCrmItem) => item.id !== params.itemId),
+          };
+        });
+
+        return { previousData };
+      }
+    },
     onSuccess: (itemId, variables) => {
-      // Invalidate workspace data to trigger refetch
       if (variables.workspaceId) {
         queryClient.invalidateQueries({ queryKey: ['workspace', variables.workspaceId] });
       }
+      showSuccess('CRM item deleted successfully');
+    },
+    onError: (error: Error, variables, context) => {
+      if (variables.workspaceId && context?.previousData) {
+        queryClient.setQueryData(['workspace', variables.workspaceId, 'data'], context.previousData);
+      }
+      showError(error.message || 'Failed to delete CRM item');
     },
   });
 }

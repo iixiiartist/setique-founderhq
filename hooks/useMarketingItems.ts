@@ -11,6 +11,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DataPersistenceAdapter } from '../lib/services/dataPersistenceAdapter';
 import type { MarketingItem } from '../types';
+import { showSuccess, showError } from '../lib/utils/toast';
 
 // Query key factory for marketing items
 export const marketingKeys = {
@@ -82,6 +83,10 @@ export function useCreateMarketingItem() {
     onSuccess: (data, variables) => {
       // Invalidate workspace data to trigger refetch
       queryClient.invalidateQueries({ queryKey: ['workspace', variables.workspaceId] });
+      showSuccess('Marketing item created successfully');
+    },
+    onError: (error: Error) => {
+      showError(error.message || 'Failed to create marketing item');
     },
   });
 }
@@ -111,11 +116,36 @@ export function useUpdateMarketingItem() {
 
       return result.data;
     },
+    onMutate: async (params) => {
+      // Optimistic update
+      if (params.workspaceId) {
+        await queryClient.cancelQueries({ queryKey: ['workspace', params.workspaceId] });
+        const previousData = queryClient.getQueryData(['workspace', params.workspaceId, 'data']);
+
+        queryClient.setQueryData(['workspace', params.workspaceId, 'data'], (old: any) => {
+          if (!old?.marketingItems) return old;
+          return {
+            ...old,
+            marketingItems: old.marketingItems.map((item: MarketingItem) =>
+              item.id === params.itemId ? { ...item, ...params.updates } : item
+            ),
+          };
+        });
+
+        return { previousData };
+      }
+    },
     onSuccess: (data, variables) => {
-      // Invalidate workspace data to trigger refetch
       if (variables.workspaceId) {
         queryClient.invalidateQueries({ queryKey: ['workspace', variables.workspaceId] });
       }
+      showSuccess('Marketing item updated successfully');
+    },
+    onError: (error: Error, variables, context) => {
+      if (variables.workspaceId && context?.previousData) {
+        queryClient.setQueryData(['workspace', variables.workspaceId, 'data'], context.previousData);
+      }
+      showError(error.message || 'Failed to update marketing item');
     },
   });
 }
@@ -141,11 +171,34 @@ export function useDeleteMarketingItem() {
 
       return params.itemId;
     },
+    onMutate: async (params) => {
+      // Optimistic delete
+      if (params.workspaceId) {
+        await queryClient.cancelQueries({ queryKey: ['workspace', params.workspaceId] });
+        const previousData = queryClient.getQueryData(['workspace', params.workspaceId, 'data']);
+
+        queryClient.setQueryData(['workspace', params.workspaceId, 'data'], (old: any) => {
+          if (!old?.marketingItems) return old;
+          return {
+            ...old,
+            marketingItems: old.marketingItems.filter((item: MarketingItem) => item.id !== params.itemId),
+          };
+        });
+
+        return { previousData };
+      }
+    },
     onSuccess: (itemId, variables) => {
-      // Invalidate workspace data to trigger refetch
       if (variables.workspaceId) {
         queryClient.invalidateQueries({ queryKey: ['workspace', variables.workspaceId] });
       }
+      showSuccess('Marketing item deleted successfully');
+    },
+    onError: (error: Error, variables, context) => {
+      if (variables.workspaceId && context?.previousData) {
+        queryClient.setQueryData(['workspace', variables.workspaceId, 'data'], context.previousData);
+      }
+      showError(error.message || 'Failed to delete marketing item');
     },
   });
 }
