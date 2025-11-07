@@ -6,7 +6,6 @@ import { Trophy, Lock, TrendingUp, Users, DollarSign, Zap, Target } from 'lucide
 interface TeamAchievementsProps {
     unlockedAchievements: WorkspaceAchievement[];
     currentPlan: string;
-    onUpgrade?: () => void;
 }
 
 const getCategoryIcon = (category: string) => {
@@ -142,8 +141,7 @@ const ProgressAchievementCard: React.FC<{
 
 const LockedAchievementCard: React.FC<{ 
     achievementId: TeamAchievementId;
-    onUpgrade?: () => void;
-}> = ({ achievementId, onUpgrade }) => {
+}> = ({ achievementId }) => {
     const details = TEAM_ACHIEVEMENTS[achievementId];
     
     return (
@@ -160,20 +158,11 @@ const LockedAchievementCard: React.FC<{
                     </div>
                     <p className="text-sm text-gray-500 mb-2">{details.description}</p>
                     
-                    <div className="bg-yellow-100 border-2 border-yellow-400 p-2 mb-2">
-                        <p className="text-xs font-mono text-yellow-800">
-                            🔒 <strong>Team Plan Required</strong> - Upgrade to unlock team achievements
+                    <div className="bg-gray-100 border-2 border-gray-300 p-2">
+                        <p className="text-xs font-mono text-gray-600">
+                            🔒 Complete the requirements to unlock this achievement
                         </p>
                     </div>
-                    
-                    {onUpgrade && (
-                        <button
-                            onClick={onUpgrade}
-                            className="px-3 py-1 border-2 border-black bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors"
-                        >
-                            Upgrade to Team Plan →
-                        </button>
-                    )}
                 </div>
             </div>
         </div>
@@ -182,8 +171,7 @@ const LockedAchievementCard: React.FC<{
 
 export const TeamAchievements: React.FC<TeamAchievementsProps> = ({ 
     unlockedAchievements, 
-    currentPlan,
-    onUpgrade 
+    currentPlan
 }) => {
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     
@@ -235,29 +223,6 @@ export const TeamAchievements: React.FC<TeamAchievementsProps> = ({
                     </div>
                 </div>
             </div>
-
-            {/* Not on team plan warning */}
-            {!isTeamPlan && (
-                <div className="bg-yellow-100 border-2 border-yellow-400 p-4">
-                    <div className="flex items-start gap-3">
-                        <Lock className="w-6 h-6 text-yellow-700 flex-shrink-0 mt-1" />
-                        <div className="flex-1">
-                            <h3 className="font-bold text-yellow-800 mb-1">Team Achievements Locked</h3>
-                            <p className="text-sm text-yellow-700 mb-3">
-                                Upgrade to a Team plan to unlock team achievements, collaborate with your team, and earn bonus XP together!
-                            </p>
-                            {onUpgrade && (
-                                <button
-                                    onClick={onUpgrade}
-                                    className="px-4 py-2 border-2 border-black bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-neo"
-                                >
-                                    View Team Plans →
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Category Filter */}
             <div className="flex gap-2 flex-wrap">
@@ -318,7 +283,6 @@ export const TeamAchievements: React.FC<TeamAchievementsProps> = ({
                                 <LockedAchievementCard
                                     key={id}
                                     achievementId={id}
-                                    onUpgrade={onUpgrade}
                                 />
                             )
                         ))}

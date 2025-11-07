@@ -40,6 +40,9 @@ const AchievementsTab: React.FC<AchievementsTabProps> = ({
     const [loading, setLoading] = useState(false);
     
     const achievementIds = Object.keys(ACHIEVEMENTS) as AchievementId[];
+    
+    // Check if user has access to team features
+    const hasTeamAccess = currentPlan.includes('team');
 
     // Load team achievements when workspace ID is available
     useEffect(() => {
@@ -57,7 +60,7 @@ const AchievementsTab: React.FC<AchievementsTabProps> = ({
 
     return (
         <div className="space-y-6">
-            {/* Tab Switcher */}
+            {/* Tab Switcher - Only show Team tab if user has team access */}
             <div className="flex gap-2 border-2 border-black p-1 bg-gray-100 w-fit">
                 <button
                     onClick={() => setActiveTab('personal')}
@@ -70,17 +73,19 @@ const AchievementsTab: React.FC<AchievementsTabProps> = ({
                     <User className="w-5 h-5" />
                     My Achievements
                 </button>
-                <button
-                    onClick={() => setActiveTab('team')}
-                    className={`px-6 py-3 font-mono font-bold transition-all flex items-center gap-2 ${
-                        activeTab === 'team'
-                            ? 'bg-white border-2 border-black shadow-neo'
-                            : 'bg-transparent hover:bg-white/50'
-                    }`}
-                >
-                    <Users className="w-5 h-5" />
-                    Team Achievements
-                </button>
+                {hasTeamAccess && (
+                    <button
+                        onClick={() => setActiveTab('team')}
+                        className={`px-6 py-3 font-mono font-bold transition-all flex items-center gap-2 ${
+                            activeTab === 'team'
+                                ? 'bg-white border-2 border-black shadow-neo'
+                                : 'bg-transparent hover:bg-white/50'
+                        }`}
+                    >
+                        <Users className="w-5 h-5" />
+                        Team Achievements
+                    </button>
+                )}
             </div>
 
             {/* Personal Achievements */}
@@ -100,7 +105,7 @@ const AchievementsTab: React.FC<AchievementsTabProps> = ({
             )}
 
             {/* Team Achievements */}
-            {activeTab === 'team' && (
+            {activeTab === 'team' && hasTeamAccess && (
                 loading ? (
                     <div className="bg-white p-12 border-2 border-black shadow-neo text-center">
                         <div className="animate-spin w-8 h-8 border-4 border-black border-t-transparent rounded-full mx-auto mb-4" />
@@ -110,7 +115,6 @@ const AchievementsTab: React.FC<AchievementsTabProps> = ({
                     <TeamAchievements
                         unlockedAchievements={teamAchievements}
                         currentPlan={currentPlan}
-                        onUpgrade={onUpgrade}
                     />
                 )
             )}
