@@ -322,9 +322,12 @@ export class DataPersistenceAdapter {
     if (updates.company) dbUpdates.company = updates.company
     if (updates.priority) dbUpdates.priority = updates.priority
     if (updates.status) dbUpdates.status = updates.status
-    if (updates.nextAction !== undefined) dbUpdates.next_action = updates.nextAction
-    if (updates.nextActionDate !== undefined) dbUpdates.next_action_date = updates.nextActionDate
-    if (updates.nextActionTime !== undefined) dbUpdates.next_action_time = updates.nextActionTime
+    
+    // Handle next action fields - allow setting to null
+    if ('nextAction' in updates) dbUpdates.next_action = updates.nextAction || null
+    if ('nextActionDate' in updates) dbUpdates.next_action_date = updates.nextActionDate || null
+    if ('nextActionTime' in updates) dbUpdates.next_action_time = updates.nextActionTime || null
+    
     if ('checkSize' in updates) dbUpdates.check_size = updates.checkSize
     if ('dealValue' in updates) dbUpdates.deal_value = updates.dealValue
     if ('opportunity' in updates) dbUpdates.opportunity = updates.opportunity
