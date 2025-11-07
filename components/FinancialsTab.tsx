@@ -8,6 +8,7 @@ import { Tab } from '../constants';
 import TaskManagement from './shared/TaskManagement';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '../contexts/WorkspaceContext';
+import KpiCard from './shared/KpiCard';
 
 const FinancialLogItem: React.FC<{ item: FinancialLog; onDelete: () => void; }> = ({ item, onDelete }) => (
     <li className="flex items-center justify-between p-3 bg-white border-2 border-black shadow-neo">
@@ -197,6 +198,11 @@ ${JSON.stringify(documentsMetadata, null, 2)}
 
     const sortedLogs = [...items].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+    // Get latest signups data
+    const latestFinancials = items.length > 0 
+        ? [...items].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0] 
+        : { signups: 0 };
+
     const calculatedXp = useMemo(() => {
         const BASE_XP = 10;
         const XP_PER_SIGNUP = 2;
@@ -205,8 +211,17 @@ ${JSON.stringify(documentsMetadata, null, 2)}
     }, [form.signups]);
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-8">
+        <div className="space-y-8">
+            <div className="mb-6">
+                <KpiCard 
+                    title="New Signups" 
+                    value={latestFinancials.signups.toLocaleString()} 
+                    description="From latest financial log" 
+                />
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 space-y-8">
                 <div className="bg-white p-6 border-2 border-black shadow-neo h-fit">
                     <h2 className="text-xl font-semibold text-black mb-4">Financials Over Time</h2>
                     <div className="h-80">
@@ -521,6 +536,7 @@ ${JSON.stringify(documentsMetadata, null, 2)}
                     />
                 </div>
             )}
+            </div>
         </div>
     );
 });

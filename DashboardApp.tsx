@@ -1522,7 +1522,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     businessProfile={businessProfile} 
                     workspaceId={workspace?.id}
                     workspaceMembers={workspaceMembers}
-                    financials={data.financials}
                     onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
                 />;
             case Tab.Investors:
