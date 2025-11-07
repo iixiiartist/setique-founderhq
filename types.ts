@@ -461,7 +461,7 @@ export type NoteableCollectionName = CrmCollectionName | TaskCollectionName | 'm
 export type DeletableCollectionName = NoteableCollectionName | 'financials';
 
 export interface AppActions {
-    createTask: (category: TaskCollectionName, text: string, priority: Priority, crmItemId?: string, contactId?: string, dueDate?: string, assignedTo?: string) => Promise<{ success: boolean; message: string; }>;
+    createTask: (category: TaskCollectionName, text: string, priority: Priority, crmItemId?: string, contactId?: string, dueDate?: string, assignedTo?: string, dueTime?: string) => Promise<{ success: boolean; message: string; }>;
     updateTask: (taskId: string, updates: Partial<Pick<Task, 'text' | 'status' | 'priority' | 'dueDate' | 'dueTime' | 'assignedTo'>>) => Promise<{ success: boolean; message: string; }>;
     addNote: (collection: NoteableCollectionName, itemId: string, noteText: string, crmItemId?: string) => Promise<{ success: boolean; message: string; }>;
     updateNote: (collection: NoteableCollectionName, itemId: string, noteTimestamp: number, newText: string, crmItemId?: string) => Promise<{ success: boolean; message: string; }>;

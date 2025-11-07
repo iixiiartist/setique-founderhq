@@ -113,6 +113,7 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
     const [newTaskText, setNewTaskText] = useState('');
     const [newTaskPriority, setNewTaskPriority] = useState<Priority>('Medium');
     const [newTaskDueDate, setNewTaskDueDate] = useState('');
+    const [newTaskDueTime, setNewTaskDueTime] = useState('');
     const [newTaskAssignedTo, setNewTaskAssignedTo] = useState('');
     const [sortOption, setSortOption] = useState<'newest' | 'oldest'>('newest');
     const [filterStatus, setFilterStatus] = useState<'all' | 'incomplete' | 'completed'>('all');
@@ -149,10 +150,11 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
     const handleAddTask = (e: React.FormEvent) => {
         e.preventDefault();
         if (newTaskText.trim() === '') return;
-        actions.createTask(taskCollectionName, newTaskText, newTaskPriority, undefined, undefined, newTaskDueDate, newTaskAssignedTo || undefined);
+        actions.createTask(taskCollectionName, newTaskText, newTaskPriority, undefined, undefined, newTaskDueDate, newTaskAssignedTo || undefined, newTaskDueTime);
         setNewTaskText('');
         setNewTaskPriority('Medium');
         setNewTaskDueDate('');
+        setNewTaskDueTime('');
         setNewTaskAssignedTo('');
     };
 
@@ -262,6 +264,16 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
                                 type="date"
                                 value={newTaskDueDate}
                                 onChange={(e) => setNewTaskDueDate(e.target.value)}
+                                className="w-full bg-white border-2 border-black text-black p-3 rounded-none focus:outline-none focus:border-blue-500"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor={`new-${taskCollectionName}-duetime`} className="block font-mono text-sm font-semibold text-black mb-1">Due Time</label>
+                            <input
+                                id={`new-${taskCollectionName}-duetime`}
+                                type="time"
+                                value={newTaskDueTime}
+                                onChange={(e) => setNewTaskDueTime(e.target.value)}
                                 className="w-full bg-white border-2 border-black text-black p-3 rounded-none focus:outline-none focus:border-blue-500"
                             />
                         </div>

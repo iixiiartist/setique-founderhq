@@ -32,7 +32,8 @@ export class DataPersistenceAdapter {
     contactId?: string,
     dueDate?: string,
     workspaceId: string = '',
-    assignedTo?: string
+    assignedTo?: string,
+    dueTime?: string
   ) {
     if (!workspaceId) {
       throw new Error('workspaceId is required to create a task');
@@ -51,6 +52,7 @@ export class DataPersistenceAdapter {
       category: categoryToDbFormat(category),
       // created_at: removed - database sets this
       due_date: dueDate || null,
+      due_time: dueTime || null,
       crm_item_id: crmItemId || null,
       contact_id: contactId || null,
       notes: [],

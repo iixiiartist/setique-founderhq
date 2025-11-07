@@ -439,7 +439,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
     }, [allCompanies]);
 
     const actions: AppActions = useMemo(() => ({
-        createTask: async (category, text, priority, crmItemId, contactId, dueDate, assignedTo) => {
+        createTask: async (category, text, priority, crmItemId, contactId, dueDate, assignedTo, dueTime) => {
             if (!userId || !supabase) {
                 handleToast('Database not available', 'info');
                 return { success: false, message: 'Database not connected' };
@@ -460,6 +460,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 createdAt: Date.now(),
                 userId,
                 dueDate: dueDate || undefined,
+                dueTime: dueTime || undefined,
                 crmItemId: crmItemId || undefined,
                 contactId: contactId || undefined,
                 assignedTo: assignedTo || undefined,
@@ -477,7 +478,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
             try {
                 console.log('[DashboardApp] Creating task with workspace:', workspace.id);
-                await DataPersistenceAdapter.createTask(userId, category, text, priority, crmItemId, contactId, dueDate, workspace.id, assignedTo);
+                await DataPersistenceAdapter.createTask(userId, category, text, priority, crmItemId, contactId, dueDate, workspace.id, assignedTo, dueTime);
                 
                 // Invalidate cache so next load gets fresh data
                 // Don't reload immediately - keep optimistic update
