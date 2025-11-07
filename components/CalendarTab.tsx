@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Task, AppActions, Priority, CalendarEvent, MarketingItem, BaseCrmItem, CrmCollectionName } from '../types';
+import { Task, AppActions, Priority, CalendarEvent, MarketingItem, BaseCrmItem, CrmCollectionName, TaskCollectionName } from '../types';
 import { TASK_TAG_BG_COLORS } from '../constants';
 import Modal from './shared/Modal';
 import ReactMarkdown from 'react-markdown';
@@ -19,7 +19,8 @@ const CalendarHeader: React.FC<{
     onNext: () => void;
     onToday: () => void;
     onViewChange: (view: ViewMode) => void;
-}> = ({ currentDate, viewMode, onPrev, onNext, onToday, onViewChange }) => {
+    onNewEvent: () => void;
+}> = ({ currentDate, viewMode, onPrev, onNext, onToday, onViewChange, onNewEvent }) => {
     const formatHeaderDate = () => {
         switch (viewMode) {
             case 'month':
@@ -45,16 +46,24 @@ const CalendarHeader: React.FC<{
                 </div>
                 <h2 className="text-2xl font-semibold text-black">{formatHeaderDate()}</h2>
             </div>
-            <div className="flex border-2 border-black">
-                {(['month', 'week', 'day'] as ViewMode[]).map(view => (
-                    <button
-                        key={view}
-                        onClick={() => onViewChange(view)}
-                        className={`py-2 px-4 font-mono font-semibold capitalize ${viewMode === view ? 'bg-black text-white' : 'bg-white text-black'} ${view !== 'month' ? 'border-l-2 border-black' : ''}`}
-                    >
-                        {view}
-                    </button>
-                ))}
+            <div className="flex items-center gap-4">
+                <button
+                    onClick={onNewEvent}
+                    className="py-2 px-4 font-mono font-semibold bg-blue-600 text-white border-2 border-black shadow-neo-btn hover:bg-blue-700"
+                >
+                    + New Event
+                </button>
+                <div className="flex border-2 border-black">
+                    {(['month', 'week', 'day'] as ViewMode[]).map(view => (
+                        <button
+                            key={view}
+                            onClick={() => onViewChange(view)}
+                            className={`py-2 px-4 font-mono font-semibold capitalize ${viewMode === view ? 'bg-black text-white' : 'bg-white text-black'} ${view !== 'month' ? 'border-l-2 border-black' : ''}`}
+                        >
+                            {view}
+                        </button>
+                    ))}
+                </div>
             </div>
         </div>
     );
@@ -449,6 +458,13 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ events, actions }) => {
     const [viewMode, setViewMode] = useState<ViewMode>('month');
     const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
     const modalTriggerRef = useRef<HTMLButtonElement | null>(null);
+    
+    // New event modal state
+    const [showNewEventModal, setShowNewEventModal] = useState(false);
+    const [newEventType, setNewEventType] = useState<'task' | 'meeting' | 'crm-action'>('task');
+    const [newEventDate, setNewEventDate] = useState('');
+    const [newEventTime, setNewEventTime] = useState('');
+    const newEventModalTriggerRef = useRef<HTMLButtonElement | null>(null);
 
     const handlePrev = () => {
         setCurrentDate(prev => {
@@ -475,6 +491,12 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ events, actions }) => {
     const openEventModal = (event: CalendarEvent, triggerRef: React.RefObject<HTMLButtonElement>) => {
         setSelectedEvent(event);
         modalTriggerRef.current = triggerRef.current;
+    }
+    
+    const handleOpenNewEventModal = () => {
+        setNewEventDate(currentDate.toISOString().split('T')[0]);
+        setNewEventTime('');
+        setShowNewEventModal(true);
     }
 
     const renderMonthView = () => {
@@ -646,7 +668,7 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ events, actions }) => {
                             >
                                 {/* Time label */}
                                 <div className={`w-20 flex-shrink-0 p-2 border-r-2 border-black text-center font-mono text-sm font-semibold ${isCurrentHour ? 'bg-blue-100' : 'bg-gray-100'}`}>
-                                    {hour.toString().padStart(2, '0')}:00
+                                    {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
                                 </div>
                                 
                                 {/* Events column */}
@@ -709,6 +731,7 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ events, actions }) => {
                 onNext={handleNext}
                 onToday={handleToday}
                 onViewChange={setViewMode}
+                onNewEvent={handleOpenNewEventModal}
             />
             
             {viewMode === 'month' && renderMonthView()}
@@ -723,6 +746,120 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ events, actions }) => {
                         onClose={() => setSelectedEvent(null)}
                     />
                 )}
+            </Modal>
+
+            <Modal isOpen={showNewEventModal} onClose={() => setShowNewEventModal(false)} title="Create New Event" triggerRef={newEventModalTriggerRef}>
+                <div className="space-y-4">
+                    {/* Event Type Selection */}
+                    <div>
+                        <label className="block font-mono text-sm font-semibold text-black mb-2">Event Type</label>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setNewEventType('task')}
+                                className={`flex-1 py-2 px-4 font-mono font-semibold border-2 border-black ${newEventType === 'task' ? 'bg-black text-white' : 'bg-white text-black'}`}
+                            >
+                                Task
+                            </button>
+                            <button
+                                onClick={() => setNewEventType('meeting')}
+                                className={`flex-1 py-2 px-4 font-mono font-semibold border-2 border-black ${newEventType === 'meeting' ? 'bg-black text-white' : 'bg-white text-black'}`}
+                            >
+                                Meeting
+                            </button>
+                            <button
+                                onClick={() => setNewEventType('crm-action')}
+                                className={`flex-1 py-2 px-4 font-mono font-semibold border-2 border-black ${newEventType === 'crm-action' ? 'bg-black text-white' : 'bg-white text-black'}`}
+                            >
+                                CRM Action
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Date and Time */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="new-event-date" className="block font-mono text-sm font-semibold text-black mb-1">Date</label>
+                            <input
+                                id="new-event-date"
+                                type="date"
+                                value={newEventDate}
+                                onChange={(e) => setNewEventDate(e.target.value)}
+                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="new-event-time" className="block font-mono text-sm font-semibold text-black mb-1">Time</label>
+                            <input
+                                id="new-event-time"
+                                type="time"
+                                value={newEventTime}
+                                onChange={(e) => setNewEventTime(e.target.value)}
+                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Task-specific fields */}
+                    {newEventType === 'task' && (
+                        <div>
+                            <label className="block font-mono text-sm font-semibold text-black mb-2">Task Category</label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {(['platformTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketingTasks', 'financialTasks'] as TaskCollectionName[]).map(category => (
+                                    <button
+                                        key={category}
+                                        onClick={() => {
+                                            const taskText = prompt('Enter task description:');
+                                            if (taskText && taskText.trim()) {
+                                                actions.createTask(category, taskText, 'Medium', undefined, undefined, newEventDate, undefined, newEventTime);
+                                                setShowNewEventModal(false);
+                                            }
+                                        }}
+                                        className="py-2 px-3 text-sm font-mono font-semibold bg-white text-black border-2 border-black hover:bg-gray-100"
+                                    >
+                                        {category.replace('Tasks', '').replace(/([A-Z])/g, ' $1').trim()}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Meeting-specific message */}
+                    {newEventType === 'meeting' && (
+                        <div className="p-4 bg-blue-50 border-2 border-blue-300">
+                            <p className="font-mono text-sm text-blue-900">
+                                To create a meeting, please go to the CRM tab and add it to a contact under Investors, Customers, or Partners.
+                            </p>
+                        </div>
+                    )}
+
+                    {/* CRM Action-specific message */}
+                    {newEventType === 'crm-action' && (
+                        <div className="p-4 bg-purple-50 border-2 border-purple-300">
+                            <p className="font-mono text-sm text-purple-900">
+                                To create a CRM action item, please go to the CRM tab and add a Next Action to an Investor, Customer, or Partner.
+                            </p>
+                        </div>
+                    )}
+
+                    <div className="flex gap-2 mt-4">
+                        {newEventType !== 'task' && (
+                            <button
+                                onClick={() => setShowNewEventModal(false)}
+                                className="w-full font-mono font-semibold bg-gray-200 text-black py-2 px-4 rounded-none border-2 border-black shadow-neo-btn"
+                            >
+                                Close
+                            </button>
+                        )}
+                        {newEventType === 'task' && (
+                            <button
+                                onClick={() => setShowNewEventModal(false)}
+                                className="w-full font-mono font-semibold bg-gray-200 text-black py-2 px-4 rounded-none border-2 border-black shadow-neo-btn"
+                            >
+                                Cancel
+                            </button>
+                        )}
+                    </div>
+                </div>
             </Modal>
         </div>
     );
