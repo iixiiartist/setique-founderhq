@@ -15,43 +15,75 @@ const CrmItemCard: React.FC<{ item: AnyCrmItem, onView: (item: AnyCrmItem) => vo
     const lastNote = item.notes.length > 0 ? [...item.notes].sort((a,b) => b.timestamp - a.timestamp)[0] : null;
 
     const valueDisplay = () => {
-        if ('checkSize' in item && item.checkSize != null) return <span className="font-bold text-lg text-black">${(item as Investor).checkSize.toLocaleString()}</span>;
-        if ('dealValue' in item && item.dealValue != null) return <span className="font-bold text-lg text-black">${(item as Customer).dealValue.toLocaleString()}</span>;
-        if ('opportunity' in item) return <span className="font-bold text-lg text-black truncate" title={(item as Partner).opportunity}>{(item as Partner).opportunity || 'N/A'}</span>;
+        if ('checkSize' in item && item.checkSize != null) return <span className="font-bold text-xl text-green-600">${(item as Investor).checkSize.toLocaleString()}</span>;
+        if ('dealValue' in item && item.dealValue != null) return <span className="font-bold text-xl text-blue-600">${(item as Customer).dealValue.toLocaleString()}</span>;
+        if ('opportunity' in item) return <span className="font-semibold text-lg text-purple-600 truncate" title={(item as Partner).opportunity}>{(item as Partner).opportunity || 'N/A'}</span>;
         return null;
     };
 
     return (
-         <li className={`flex items-start justify-between p-4 bg-white border-2 shadow-neo transition-colors ${isOverdue ? 'border-red-500' : 'border-black'}`}>
-            <div className="flex-grow overflow-hidden pr-4">
-                <div className="flex items-center justify-between">
-                    <span className="font-semibold truncate pr-2 text-lg">{item.company}</span>
-                    {valueDisplay()}
+        <li className={`group bg-white border-2 shadow-neo hover:shadow-neo-lg transition-all ${isOverdue ? 'border-red-500' : 'border-black'}`}>
+            <div className="p-5">
+                {/* Header */}
+                <div className="flex items-start justify-between gap-4 mb-3">
+                    <div className="flex-grow min-w-0">
+                        <h3 className="font-bold text-xl text-black truncate mb-1">{item.company}</h3>
+                        <p className="text-sm text-gray-600">{(item.contacts && item.contacts[0]?.name) || 'No contacts'}</p>
+                    </div>
+                    <div className="flex-shrink-0 text-right">
+                        {valueDisplay()}
+                    </div>
                 </div>
-                <p className="text-sm text-gray-700">{(item.contacts && item.contacts[0]?.name) || 'No contacts'}</p>
-                 <div className="flex items-center gap-2 mt-2">
+
+                {/* Status Row */}
+                <div className="flex flex-wrap items-center gap-2 mb-3 pb-3 border-b border-gray-200">
                     <span className={`priority-badge priority-${item.priority.toLowerCase()}`}>{item.priority}</span>
-                    <span className="text-sm text-gray-600">|</span>
-                    <span className="text-sm text-gray-600">Status: {item.status}</span>
+                    <span className="px-3 py-1 bg-gray-100 border border-black text-xs font-mono font-semibold">
+                        {item.status}
+                    </span>
                     {item.assignedToName && (
-                        <>
-                            <span className="text-sm text-gray-600">|</span>
-                            <span className="text-sm font-mono text-blue-600">→ {item.assignedToName}</span>
-                        </>
+                        <span className="px-3 py-1 bg-blue-50 border border-blue-300 text-xs font-mono text-blue-700 font-semibold">
+                            → {item.assignedToName}
+                        </span>
                     )}
                 </div>
-                <div className="mt-2 pt-2 border-t border-black">
-                    <span className="text-sm text-gray-600 block">Last Contact: {lastNote ? new Date(lastNote.timestamp).toLocaleDateString() : 'N/A'}</span>
-                    <p className="text-sm font-medium text-black truncate">
-                        Next: {item.nextAction || 'None'} 
-                        {item.nextActionDate && ` (${new Date(item.nextActionDate + 'T00:00:00').toLocaleDateString(undefined, { timeZone: 'UTC' })})`}
-                        {isOverdue && <span className="ml-2 font-mono text-xs font-bold text-red-600">OVERDUE</span>}
-                    </p>
+
+                {/* Next Action */}
+                <div className="space-y-2 mb-3">
+                    <div className="flex items-start gap-2">
+                        <span className="text-xs font-mono text-gray-500 uppercase shrink-0">Last Contact:</span>
+                        <span className="text-sm text-gray-700">{lastNote ? new Date(lastNote.timestamp).toLocaleDateString() : 'N/A'}</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                        <span className="text-xs font-mono text-gray-500 uppercase shrink-0">Next Action:</span>
+                        <div className="flex-grow min-w-0">
+                            <span className="text-sm font-medium text-black">{item.nextAction || 'None'}</span>
+                            {item.nextActionDate && (
+                                <span className="text-sm text-gray-600 ml-2">
+                                    ({new Date(item.nextActionDate + 'T00:00:00').toLocaleDateString(undefined, { timeZone: 'UTC' })})
+                                </span>
+                            )}
+                            {isOverdue && <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs font-mono font-bold">OVERDUE</span>}
+                        </div>
+                    </div>
                 </div>
-                <p className="text-sm mt-1 italic opacity-80 block truncate" title={lastNote?.text}>{lastNote ? lastNote.text : 'No notes yet'}</p>
-            </div>
-             <div className="flex flex-col gap-2 shrink-0">
-                <button onClick={() => onView(item)} className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all whitespace-nowrap">View Account</button>
+
+                {/* Last Note Preview */}
+                {lastNote && (
+                    <div className="bg-gray-50 border-l-4 border-black p-3 mb-3">
+                        <p className="text-sm text-gray-700 italic line-clamp-2" title={lastNote.text}>
+                            "{lastNote.text}"
+                        </p>
+                    </div>
+                )}
+
+                {/* Action Button */}
+                <button 
+                    onClick={() => onView(item)} 
+                    className="w-full font-mono bg-black text-white border-2 border-black py-2 px-4 rounded-none font-semibold shadow-neo-btn hover:bg-white hover:text-black transition-all"
+                >
+                    View Account →
+                </button>
             </div>
         </li>
     );
@@ -355,125 +387,128 @@ ${JSON.stringify(documentsMetadata, null, 2)}
     }
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                     <div className="bg-white p-6 border-2 border-black shadow-neo h-fit">
-                        <h2 className="text-xl font-semibold text-black mb-4">Add {title}</h2>
-                        <AddCrmForm title={title} collection={crmCollection} actions={actions} />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+                {/* Pipeline Section - Full Width */}
+                <div className="bg-white p-6 border-2 border-black shadow-neo">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                        <h2 className="text-2xl font-bold text-black">{title} Pipeline</h2>
+                        {workspaceMembers.length > 0 && (
+                            <select 
+                                value={filterAssignment} 
+                                onChange={(e) => setFilterAssignment(e.target.value)}
+                                className="text-sm bg-white border-2 border-black text-black py-2 px-3 rounded-none font-mono cursor-pointer shadow-neo-sm hover:bg-gray-50 transition-colors"
+                            >
+                                <option value="all">All {title}s</option>
+                                <option value="my">My {title}s</option>
+                                <option value="unassigned">Unassigned</option>
+                            </select>
+                        )}
                     </div>
-                    <div className="md:col-span-1 bg-white p-6 border-2 border-black shadow-neo">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl font-semibold text-black">{title} Pipeline</h2>
-                            {workspaceMembers.length > 0 && (
-                                <select 
-                                    value={filterAssignment} 
-                                    onChange={(e) => setFilterAssignment(e.target.value)}
-                                    className="text-sm bg-white border-2 border-black text-black p-1 rounded-none font-mono cursor-pointer shadow-neo-sm"
-                                >
-                                    <option value="all">All</option>
-                                    <option value="my">My {title}s</option>
-                                    <option value="unassigned">Unassigned</option>
-                                </select>
-                            )}
-                        </div>
-                        <ul className="max-h-[60vh] overflow-y-auto custom-scrollbar pr-2 space-y-4">
-                            {filteredCrmItems.length > 0 ? (
-                                filteredCrmItems.map(item => <CrmItemCard key={item.id} item={item} onView={setSelectedItem} />)
-                            ) : (
-                                <p className="text-gray-500 italic">No {filterAssignment === 'my' ? 'assigned' : filterAssignment === 'unassigned' ? 'unassigned' : ''} {title.toLowerCase()} items{filterAssignment !== 'all' ? ' found' : ' yet'}.</p>
-                            )}
-                        </ul>
-                    </div>
+                    <ul className="max-h-[70vh] overflow-y-auto custom-scrollbar pr-2 space-y-3">
+                        {filteredCrmItems.length > 0 ? (
+                            filteredCrmItems.map(item => <CrmItemCard key={item.id} item={item} onView={setSelectedItem} />)
+                        ) : (
+                            <div className="text-center py-12">
+                                <p className="text-gray-400 text-lg italic">
+                                    No {filterAssignment === 'my' ? 'assigned' : filterAssignment === 'unassigned' ? 'unassigned' : ''} {title.toLowerCase()} items{filterAssignment !== 'all' ? ' found' : ' yet'}.
+                                </p>
+                                {filterAssignment !== 'all' && (
+                                    <button 
+                                        onClick={() => setFilterAssignment('all')}
+                                        className="mt-4 text-sm text-blue-600 hover:underline"
+                                    >
+                                        View all {title.toLowerCase()}s
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                    </ul>
+                </div>
+
+                {/* Add New Form */}
+                <div className="bg-white p-6 border-2 border-black shadow-neo">
+                    <h2 className="text-xl font-bold text-black mb-4">Add New {title}</h2>
+                    <AddCrmForm title={title} collection={crmCollection} actions={actions} />
                 </div>
 
                 {/* Quick Access Sections */}
                 {workspaceMembers.length > 0 && userId && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {/* My Accounts */}
-                        <div className="bg-blue-50 p-4 border-2 border-black shadow-neo">
-                            <h3 className="text-sm font-mono font-bold text-black mb-2 flex items-center gap-2">
-                                <span>📋</span> MY ACCOUNTS
-                            </h3>
-                            <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
-                                {crmItems.filter(item => item.assignedTo === userId).length > 0 ? (
-                                    crmItems
-                                        .filter(item => item.assignedTo === userId)
-                                        .slice(0, 5)
-                                        .map(item => (
-                                            <button
-                                                key={item.id}
-                                                onClick={() => setSelectedItem(item)}
-                                                className="w-full text-left p-2 bg-white border border-black hover:bg-blue-100 transition-colors text-sm"
-                                            >
-                                                <div className="font-semibold truncate">{item.company}</div>
-                                                <div className="text-xs text-gray-600">{item.status}</div>
-                                            </button>
-                                        ))
-                                ) : (
-                                    <p className="text-xs text-gray-500 italic">No accounts assigned to you</p>
-                                )}
+                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-6 border-2 border-black shadow-neo">
+                        <h2 className="text-xl font-bold text-black mb-4 flex items-center gap-2">
+                            <span>⚡</span> Quick Access
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {/* My Accounts */}
+                            <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
+                                <h3 className="text-sm font-mono font-bold text-black mb-3 flex items-center gap-2 pb-2 border-b-2 border-black">
+                                    <span>📋</span> MY ACCOUNTS
+                                </h3>
+                                <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
+                                    {crmItems.filter(item => item.assignedTo === userId).length > 0 ? (
+                                        crmItems
+                                            .filter(item => item.assignedTo === userId)
+                                            .slice(0, 5)
+                                            .map(item => (
+                                                <button
+                                                    key={item.id}
+                                                    onClick={() => setSelectedItem(item)}
+                                                    className="w-full text-left p-3 bg-blue-50 border-2 border-black hover:bg-blue-100 hover:shadow-neo-sm transition-all text-sm group"
+                                                >
+                                                    <div className="font-semibold truncate group-hover:text-blue-600">{item.company}</div>
+                                                    <div className="text-xs text-gray-600 mt-1">{item.status}</div>
+                                                </button>
+                                            ))
+                                    ) : (
+                                        <p className="text-xs text-gray-400 italic text-center py-4">No accounts assigned to you</p>
+                                    )}
+                                </div>
                             </div>
-                        </div>
 
-                        {/* My Contacts */}
-                        <div className="bg-green-50 p-4 border-2 border-black shadow-neo">
-                            <h3 className="text-sm font-mono font-bold text-black mb-2 flex items-center gap-2">
-                                <span>👤</span> MY CONTACTS
-                            </h3>
-                            <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
-                                {crmItems.flatMap(item => 
-                                    (item.contacts || [])
-                                        .filter(contact => contact.assignedTo === userId)
-                                        .map(contact => ({ ...contact, companyName: item.company, companyId: item.id }))
-                                ).length > 0 ? (
-                                    crmItems
-                                        .flatMap(item => 
-                                            (item.contacts || [])
-                                                .filter(contact => contact.assignedTo === userId)
-                                                .map(contact => ({ ...contact, companyName: item.company, companyId: item.id, parentItem: item }))
-                                        )
-                                        .slice(0, 5)
-                                        .map(contact => (
-                                            <button
-                                                key={contact.id}
-                                                onClick={() => {
-                                                    setSelectedItem(contact.parentItem);
-                                                    setTimeout(() => setSelectedContact(contact), 100);
-                                                }}
-                                                className="w-full text-left p-2 bg-white border border-black hover:bg-green-100 transition-colors text-sm"
-                                            >
-                                                <div className="font-semibold truncate">{contact.name}</div>
-                                                <div className="text-xs text-gray-600">{contact.companyName}</div>
-                                            </button>
-                                        ))
-                                ) : (
-                                    <p className="text-xs text-gray-500 italic">No contacts assigned to you</p>
-                                )}
+                            {/* My Contacts */}
+                            <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
+                                <h3 className="text-sm font-mono font-bold text-black mb-3 flex items-center gap-2 pb-2 border-b-2 border-black">
+                                    <span>👤</span> MY CONTACTS
+                                </h3>
+                                <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
+                                    {crmItems.flatMap(item => 
+                                        (item.contacts || [])
+                                            .filter(contact => contact.assignedTo === userId)
+                                            .map(contact => ({ ...contact, companyName: item.company, companyId: item.id }))
+                                    ).length > 0 ? (
+                                        crmItems
+                                            .flatMap(item => 
+                                                (item.contacts || [])
+                                                    .filter(contact => contact.assignedTo === userId)
+                                                    .map(contact => ({ ...contact, companyName: item.company, companyId: item.id, parentItem: item }))
+                                            )
+                                            .slice(0, 5)
+                                            .map(contact => (
+                                                <button
+                                                    key={contact.id}
+                                                    onClick={() => {
+                                                        setSelectedItem(contact.parentItem);
+                                                        setTimeout(() => setSelectedContact(contact), 100);
+                                                    }}
+                                                    className="w-full text-left p-3 bg-green-50 border-2 border-black hover:bg-green-100 hover:shadow-neo-sm transition-all text-sm group"
+                                                >
+                                                    <div className="font-semibold truncate group-hover:text-green-600">{contact.name}</div>
+                                                    <div className="text-xs text-gray-600 mt-1">{contact.companyName}</div>
+                                                </button>
+                                            ))
+                                    ) : (
+                                        <p className="text-xs text-gray-400 italic text-center py-4">No contacts assigned to you</p>
+                                    )}
+                                </div>
                             </div>
-                        </div>
 
-                        {/* My Meetings */}
-                        <div className="bg-yellow-50 p-4 border-2 border-black shadow-neo">
-                            <h3 className="text-sm font-mono font-bold text-black mb-2 flex items-center gap-2">
-                                <span>📅</span> RECENT MEETINGS
-                            </h3>
-                            <div className="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
-                                {crmItems
-                                    .flatMap(item => 
-                                        (item.contacts || []).flatMap(contact => 
-                                            (contact.meetings || []).map(meeting => ({
-                                                ...meeting,
-                                                contactName: contact.name,
-                                                companyName: item.company,
-                                                parentItem: item,
-                                                parentContact: contact
-                                            }))
-                                        )
-                                    )
-                                    .sort((a, b) => b.timestamp - a.timestamp)
-                                    .slice(0, 5).length > 0 ? (
-                                    crmItems
+                            {/* My Meetings */}
+                            <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
+                                <h3 className="text-sm font-mono font-bold text-black mb-3 flex items-center gap-2 pb-2 border-b-2 border-black">
+                                    <span>📅</span> RECENT MEETINGS
+                                </h3>
+                                <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
+                                    {crmItems
                                         .flatMap(item => 
                                             (item.contacts || []).flatMap(contact => 
                                                 (contact.meetings || []).map(meeting => ({
@@ -486,23 +521,38 @@ ${JSON.stringify(documentsMetadata, null, 2)}
                                             )
                                         )
                                         .sort((a, b) => b.timestamp - a.timestamp)
-                                        .slice(0, 5)
-                                        .map(meeting => (
-                                            <button
-                                                key={meeting.id}
-                                                onClick={() => {
-                                                    setSelectedItem(meeting.parentItem);
-                                                    setTimeout(() => setSelectedContact(meeting.parentContact), 100);
-                                                }}
-                                                className="w-full text-left p-2 bg-white border border-black hover:bg-yellow-100 transition-colors text-sm"
-                                            >
-                                                <div className="font-semibold truncate">{meeting.title}</div>
-                                                <div className="text-xs text-gray-600">{meeting.contactName} - {new Date(meeting.timestamp).toLocaleDateString()}</div>
-                                            </button>
-                                        ))
-                                ) : (
-                                    <p className="text-xs text-gray-500 italic">No meetings logged yet</p>
-                                )}
+                                        .slice(0, 5).length > 0 ? (
+                                        crmItems
+                                            .flatMap(item => 
+                                                (item.contacts || []).flatMap(contact => 
+                                                    (contact.meetings || []).map(meeting => ({
+                                                        ...meeting,
+                                                        contactName: contact.name,
+                                                        companyName: item.company,
+                                                        parentItem: item,
+                                                        parentContact: contact
+                                                    }))
+                                                )
+                                            )
+                                            .sort((a, b) => b.timestamp - a.timestamp)
+                                            .slice(0, 5)
+                                            .map(meeting => (
+                                                <button
+                                                    key={meeting.id}
+                                                    onClick={() => {
+                                                        setSelectedItem(meeting.parentItem);
+                                                        setTimeout(() => setSelectedContact(meeting.parentContact), 100);
+                                                    }}
+                                                    className="w-full text-left p-3 bg-yellow-50 border-2 border-black hover:bg-yellow-100 hover:shadow-neo-sm transition-all text-sm group"
+                                                >
+                                                    <div className="font-semibold truncate group-hover:text-yellow-700">{meeting.title}</div>
+                                                    <div className="text-xs text-gray-600 mt-1">{meeting.contactName} - {new Date(meeting.timestamp).toLocaleDateString()}</div>
+                                                </button>
+                                            ))
+                                    ) : (
+                                        <p className="text-xs text-gray-400 italic text-center py-4">No meetings logged yet</p>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
