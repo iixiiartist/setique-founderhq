@@ -573,35 +573,131 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ events, actions }) => {
     }
 
     const renderDayView = () => {
-         const dayEvents = events.filter(e => e.dueDate === currentDate.toISOString().split('T')[0]);
-         return (
-             <div className="border-2 border-black p-4">
-                 <ul className="space-y-3">
-                     {dayEvents.length > 0 ? dayEvents.map(event => (
-                          <li key={event.id}>
-                             <button
-                                onClick={(e) => openEventModal(event, { current: e.currentTarget })}
-                                className={`w-full text-left p-4 shadow-neo-sm border-2 border-black flex items-center justify-between ${TASK_TAG_BG_COLORS[event.tag] || 'bg-gray-300'}`}
-                             >
-                                <div>
-                                    <p className="font-bold text-lg">{event.title}</p>
-                                    {event.type === 'meeting' ? (
-                                        <p className="font-mono">{event.tag} / with {event.contactName}</p>
-                                    ) : (
-                                        <p className="font-mono">{event.tag} / {event.status}</p>
-                                    )}
+        const dayEvents = events.filter(e => e.dueDate === currentDate.toISOString().split('T')[0]);
+        const hours = Array.from({ length: 24 }, (_, i) => i); // 0-23 hours
+        const now = new Date();
+        const isToday = currentDate.toDateString() === now.toDateString();
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+
+        // Helper to get events for a specific hour
+        const getEventsForHour = (hour: number) => {
+            return dayEvents.filter(event => {
+                if (event.type === 'meeting') {
+                    const eventDate = new Date(event.timestamp);
+                    return eventDate.getHours() === hour;
+                } else {
+                    const timeStr = event.type === 'task' ? (event as Task).dueTime :
+                                   event.type === 'marketing' ? ('dueTime' in event ? event.dueTime : undefined) :
+                                   event.type === 'crm-action' ? ('nextActionTime' in event ? event.nextActionTime : undefined) :
+                                   undefined;
+                    if (timeStr) {
+                        const eventHour = parseInt(timeStr.split(':')[0]);
+                        return eventHour === hour;
+                    }
+                }
+                return false;
+            });
+        };
+
+        // Events without time
+        const eventsWithoutTime = dayEvents.filter(event => {
+            if (event.type === 'meeting') return false;
+            const timeStr = event.type === 'task' ? (event as Task).dueTime :
+                           event.type === 'marketing' ? ('dueTime' in event ? event.dueTime : undefined) :
+                           event.type === 'crm-action' ? ('nextActionTime' in event ? event.nextActionTime : undefined) :
+                           undefined;
+            return !timeStr;
+        });
+
+        return (
+            <div className="border-2 border-black">
+                {/* Events without time section */}
+                {eventsWithoutTime.length > 0 && (
+                    <div className="p-4 bg-gray-50 border-b-2 border-black">
+                        <h3 className="font-mono font-bold text-sm uppercase mb-2">No Specific Time</h3>
+                        <div className="space-y-2">
+                            {eventsWithoutTime.map(event => (
+                                <button
+                                    key={event.id}
+                                    onClick={(e) => openEventModal(event, { current: e.currentTarget })}
+                                    className={`w-full text-left p-2 text-sm shadow-neo-sm border-2 border-black ${TASK_TAG_BG_COLORS[event.tag] || 'bg-gray-300'}`}
+                                >
+                                    <span className="font-bold">{event.title}</span>
                                     {event.type === 'task' && (event as Task).assignedToName && (
-                                        <p className="font-mono text-sm mt-1">👤 Assigned to: {(event as Task).assignedToName}</p>
+                                        <span className="ml-2 text-xs">👤 {(event as Task).assignedToName}</span>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Time slots */}
+                <div className="max-h-[600px] overflow-y-auto custom-scrollbar">
+                    {hours.map(hour => {
+                        const hourEvents = getEventsForHour(hour);
+                        const isCurrentHour = isToday && hour === currentHour;
+                        
+                        return (
+                            <div 
+                                key={hour} 
+                                className={`flex border-b border-gray-300 ${isCurrentHour ? 'bg-blue-50' : ''}`}
+                            >
+                                {/* Time label */}
+                                <div className={`w-20 flex-shrink-0 p-2 border-r-2 border-black text-center font-mono text-sm font-semibold ${isCurrentHour ? 'bg-blue-100' : 'bg-gray-100'}`}>
+                                    {hour.toString().padStart(2, '0')}:00
+                                </div>
+                                
+                                {/* Events column */}
+                                <div className="flex-grow p-2 min-h-[60px] relative">
+                                    {isCurrentHour && (
+                                        <div 
+                                            className="absolute left-0 right-0 h-0.5 bg-blue-500 z-10"
+                                            style={{ top: `${(currentMinute / 60) * 60}px` }}
+                                        >
+                                            <div className="absolute -left-1 -top-1 w-2 h-2 bg-blue-500 rounded-full"></div>
+                                        </div>
+                                    )}
+                                    
+                                    {hourEvents.length > 0 ? (
+                                        <div className="space-y-1">
+                                            {hourEvents.map(event => (
+                                                <button
+                                                    key={event.id}
+                                                    onClick={(e) => openEventModal(event, { current: e.currentTarget })}
+                                                    className={`w-full text-left p-2 text-sm shadow-neo-sm border-2 border-black ${TASK_TAG_BG_COLORS[event.tag] || 'bg-gray-300'}`}
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="font-bold">{event.title}</span>
+                                                        {event.type === 'meeting' && '🤝'}
+                                                        {event.type === 'task' && (event as Task).status === 'Done' && '✅'}
+                                                    </div>
+                                                    <div className="text-xs opacity-75 mt-1">
+                                                        {event.type === 'meeting' ? (
+                                                            <>with {event.contactName}</>
+                                                        ) : (
+                                                            <>{event.tag}</>
+                                                        )}
+                                                        {event.type === 'task' && (event as Task).assignedToName && (
+                                                            <> · 👤 {(event as Task).assignedToName}</>
+                                                        )}
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="h-full flex items-center justify-center text-gray-400 text-xs italic">
+                                            {/* Empty slot */}
+                                        </div>
                                     )}
                                 </div>
-                                {event.type === 'task' && <span className={`priority-badge priority-${(event as Task).priority.toLowerCase()}`}>{(event as Task).priority}</span>}
-                                {event.type === 'meeting' && <span className="font-mono text-xs font-bold uppercase p-1 border-2 border-black bg-yellow-200">Meeting</span>}
-                             </button>
-                          </li>
-                     )) : <p className="text-gray-500 italic text-center p-8">No events scheduled for today.</p>}
-                 </ul>
-             </div>
-         );
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
     }
 
     return (
