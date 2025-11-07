@@ -157,6 +157,21 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             setData(prev => ({ ...prev, ...tasks }));
                             setLoadedTabs(prev => new Set(prev).add('tasks'));
                         }
+                        
+                        // Calendar also needs marketing items and CRM items for events
+                        if (activeTab === Tab.Calendar) {
+                            if (!loadedTabs.has('marketing')) {
+                                const marketing = await loadMarketing();
+                                setData(prev => ({ ...prev, marketing }));
+                                setLoadedTabs(prev => new Set(prev).add('marketing'));
+                            }
+                            
+                            if (!loadedTabs.has('crm')) {
+                                const crm = await loadCrmItems();
+                                setData(prev => ({ ...prev, ...crm }));
+                                setLoadedTabs(prev => new Set(prev).add('crm'));
+                            }
+                        }
                         break;
 
                     case Tab.Investors:
@@ -1594,6 +1609,8 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
         ];
 
         console.log('[DashboardApp] All tasks for calendar:', allTasks.map(t => ({ id: t.id, text: t.text, dueDate: t.dueDate, dueTime: t.dueTime })));
+        console.log('[DashboardApp] Marketing items:', data.marketing.length, 'total');
+        console.log('[DashboardApp] Marketing with dates:', data.marketing.filter(m => m.dueDate).map(m => ({ id: m.id, title: m.title, dueDate: m.dueDate, dueTime: m.dueTime })));
         
         const calendarEvents: CalendarEvent[] = [
             ...allTasks.filter(t => t.dueDate).map(t => ({...t, type: 'task' as const, title: t.text})),
