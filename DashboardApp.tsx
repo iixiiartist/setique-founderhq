@@ -1433,7 +1433,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         dueDate: new Date(meeting.timestamp).toISOString().split('T')[0],
                         companyName: company.company,
                         contactName: contact.name,
-                        crmItemId: contact.crmItemId,
+                        crmItemId: company.id, // Use company.id instead of contact.crmItemId
                         contactId: contact.id,
                     }))
                 )
@@ -1447,7 +1447,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         dueDate: new Date(meeting.timestamp).toISOString().split('T')[0],
                         companyName: company.company,
                         contactName: contact.name,
-                        crmItemId: contact.crmItemId,
+                        crmItemId: company.id, // Use company.id instead of contact.crmItemId
                         contactId: contact.id,
                     }))
                 )
@@ -1461,7 +1461,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         dueDate: new Date(meeting.timestamp).toISOString().split('T')[0],
                         companyName: company.company,
                         contactName: contact.name,
-                        crmItemId: contact.crmItemId,
+                        crmItemId: company.id, // Use company.id instead of contact.crmItemId
                         contactId: contact.id,
                     }))
                 )

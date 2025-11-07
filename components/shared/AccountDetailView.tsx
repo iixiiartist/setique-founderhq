@@ -185,127 +185,193 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
     }
 
     return (
-        <div>
-            <div className="mb-6 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                    <button 
-                        onClick={onBack} 
-                        className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-2 px-4 rounded-none font-semibold shadow-neo-btn transition-all"
-                    >
-                        &larr; Back to Pipeline
-                    </button>
-                    <h2 className="text-3xl">{item.company}</h2>
-                </div>
-                <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
-                    {workspaceMembers.length > 0 && onAssignCompany && (
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-600 font-mono">ASSIGN TO:</span>
-                            <AssignmentDropdown
-                                workspaceMembers={transformedMembers}
-                                currentAssignee={item.assignedTo || undefined}
-                                onAssign={(userId, userName) => {
-                                    console.log('[AccountDetailView] Assignment requested:', { userId, userName, itemId: item.id });
-                                    onAssignCompany(userId, userName);
-                                }}
-                                placeholder="Assign..."
-                            />
-                        </div>
-                    )}
-                    <button 
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            if (window.confirm(`Are you sure you want to delete ${item.company}? This will also delete all associated contacts, tasks, meetings, and documents.`)) {
-                                actions.deleteItem(crmCollection, item.id);
-                                onBack();
-                            }
-                        }} 
-                        className="font-mono bg-red-600 border-2 border-black text-white cursor-pointer text-sm py-2 px-4 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-red-700"
-                    >
-                        Delete Account
-                    </button>
+        <div className="space-y-6">
+            {/* Header Section */}
+            <div className="bg-white p-6 border-2 border-black shadow-neo">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <button 
+                            onClick={onBack} 
+                            className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-2 px-4 rounded-none font-semibold shadow-neo-btn hover:bg-gray-100 transition-all"
+                        >
+                            ← Back
+                        </button>
+                        <h1 className="text-3xl font-bold">{item.company}</h1>
+                    </div>
+                    <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                        {workspaceMembers.length > 0 && onAssignCompany && (
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-600 font-mono">ASSIGN:</span>
+                                <AssignmentDropdown
+                                    workspaceMembers={transformedMembers}
+                                    currentAssignee={item.assignedTo || undefined}
+                                    onAssign={(userId, userName) => {
+                                        console.log('[AccountDetailView] Assignment requested:', { userId, userName, itemId: item.id });
+                                        onAssignCompany(userId, userName);
+                                    }}
+                                    placeholder="Assign..."
+                                />
+                            </div>
+                        )}
+                        <button 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (window.confirm(`Delete ${item.company}? This will also delete all contacts, tasks, meetings, and documents.`)) {
+                                    actions.deleteItem(crmCollection, item.id);
+                                    onBack();
+                                }
+                            }} 
+                            className="font-mono bg-red-600 border-2 border-black text-white cursor-pointer text-sm py-2 px-4 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-red-700"
+                        >
+                            Delete
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left Column - Account Info */}
                 <div className="lg:col-span-1 space-y-6">
                     <div className="bg-white p-6 border-2 border-black shadow-neo">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl">Account Info</h3>
-                            <button ref={editCrmModalTriggerRef} onClick={() => setIsEditing(true)} className="font-mono bg-white border-2 border-black text-black cursor-pointer text-xs py-1 px-2 rounded-none font-semibold shadow-neo-btn transition-all">Edit</button>
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-2xl font-bold">Account Info</h2>
+                            <button 
+                                ref={editCrmModalTriggerRef} 
+                                onClick={() => setIsEditing(true)} 
+                                className="font-mono bg-black text-white border-2 border-black cursor-pointer text-xs py-2 px-3 rounded-none font-semibold shadow-neo-btn hover:bg-gray-800 transition-all"
+                            >
+                                Edit
+                            </button>
                         </div>
-                        <div className="space-y-4">
+                        <div className="space-y-5">
                             {valueDisplay('Primary Contact', item.contacts[0]?.name || 'N/A')}
-                            {valueDisplay('Status', item.status)}
-                            {valueDisplay('Priority', item.priority)}
-                            {item.assignedToName && valueDisplay('Assigned To', item.assignedToName)}
+                            <div className="border-t border-gray-200 pt-4">
+                                {valueDisplay('Status', item.status)}
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <span className={`priority-badge priority-${item.priority.toLowerCase()} text-sm`}>{item.priority}</span>
+                                {item.assignedToName && (
+                                    <span className="text-sm bg-blue-50 border border-blue-300 px-3 py-1 font-mono text-blue-700">
+                                        → {item.assignedToName}
+                                    </span>
+                                )}
+                            </div>
                             {specificValueDisplay()}
-                            <div>
-                                <p className="text-sm font-mono uppercase text-gray-600">Next Action</p>
+                            <div className="border-t border-gray-200 pt-4">
+                                <p className="text-sm font-mono uppercase text-gray-600 mb-2">Next Action</p>
                                 <p className={`text-lg font-semibold ${item.nextActionDate && new Date(item.nextActionDate + 'T00:00:00').toISOString().split('T')[0] < new Date().toISOString().split('T')[0] ? 'text-red-600' : 'text-black'}`}>
                                     {item.nextAction || 'None'}
                                 </p>
-                                {item.nextActionDate && <p className="text-sm text-gray-600">{new Date(item.nextActionDate + 'T00:00:00').toLocaleDateString(undefined, { timeZone: 'UTC' })}</p>}
+                                {item.nextActionDate && (
+                                    <p className="text-sm text-gray-600 mt-1">
+                                        📅 {new Date(item.nextActionDate + 'T00:00:00').toLocaleDateString(undefined, { timeZone: 'UTC' })}
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </div>
-                     <div className="bg-white p-6 border-2 border-black shadow-neo">
+
+                    {/* Contacts Section */}
+                    <div className="bg-white p-6 border-2 border-black shadow-neo">
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl">Contacts</h3>
-                            <button onClick={() => setShowAddContact(!showAddContact)} className="font-mono bg-white border-2 border-black text-black cursor-pointer text-xs py-1 px-2 rounded-none font-semibold shadow-neo-btn transition-all">{showAddContact ? 'Cancel' : '+ Add'}</button>
+                            <h2 className="text-xl font-bold">Contacts ({item.contacts?.length || 0})</h2>
+                            <button 
+                                onClick={() => setShowAddContact(!showAddContact)} 
+                                className="font-mono bg-black text-white border-2 border-black cursor-pointer text-xs py-2 px-3 rounded-none font-semibold shadow-neo-btn hover:bg-gray-800 transition-all"
+                            >
+                                {showAddContact ? 'Cancel' : '+ Add'}
+                            </button>
                         </div>
-                         {showAddContact && <div className="mb-4"><ContactForm crmItemId={item.id} collection={crmCollection} actions={actions} onDone={() => setShowAddContact(false)} /></div>}
-                        <ul className="max-h-60 overflow-y-auto custom-scrollbar pr-2 space-y-2">
-                            {(item.contacts || []).map(contact => (
-                                <li key={contact.id} className="p-2 border border-black bg-gray-50 flex justify-between items-center">
-                                    <div>
-                                        <p className="font-semibold">{contact.name}</p>
-                                        <p className="text-sm text-gray-600">{contact.email}</p>
-                                    </div>
-                                    <button onClick={() => onViewContact(contact)} className="font-mono bg-white border-2 border-black text-black cursor-pointer text-xs py-1 px-2 rounded-none font-semibold shadow-neo-btn transition-all shrink-0 ml-2">View</button>
-                                </li>
-                            ))}
+                        {showAddContact && (
+                            <div className="mb-4 p-4 bg-gray-50 border-2 border-black">
+                                <ContactForm crmItemId={item.id} collection={crmCollection} actions={actions} onDone={() => setShowAddContact(false)} />
+                            </div>
+                        )}
+                        <ul className="max-h-80 overflow-y-auto custom-scrollbar pr-2 space-y-3">
+                            {(item.contacts || []).length > 0 ? (
+                                (item.contacts || []).map(contact => (
+                                    <li key={contact.id} className="group p-4 border-2 border-black bg-gray-50 hover:bg-blue-50 transition-colors">
+                                        <div className="flex justify-between items-start gap-3">
+                                            <div className="flex-grow min-w-0">
+                                                <p className="font-bold text-lg text-black mb-1">{contact.name}</p>
+                                                {contact.title && <p className="text-sm text-gray-600 mb-1">{contact.title}</p>}
+                                                {contact.email && <p className="text-sm text-blue-600 truncate">{contact.email}</p>}
+                                                {contact.phone && <p className="text-sm text-gray-600">{contact.phone}</p>}
+                                            </div>
+                                            <button 
+                                                onClick={() => onViewContact(contact)} 
+                                                className="font-mono bg-black text-white border-2 border-black cursor-pointer text-xs py-2 px-3 rounded-none font-semibold shadow-neo-btn hover:bg-gray-800 transition-all shrink-0"
+                                            >
+                                                View →
+                                            </button>
+                                        </div>
+                                    </li>
+                                ))
+                            ) : (
+                                <p className="text-gray-400 italic text-center py-6">No contacts yet. Add one to get started!</p>
+                            )}
                         </ul>
                     </div>
+                </div>
 
+                {/* Right Column - Tasks */}
+                <div className="lg:col-span-2">
                     <div className="bg-white p-6 border-2 border-black shadow-neo">
-                        <h3 className="text-xl mb-2">Company Tasks</h3>
-                         <form onSubmit={handleAddTask} className="mb-2 space-y-2">
-                            <label htmlFor="new-account-task" className="sr-only">New task description</label>
+                        <h2 className="text-2xl font-bold mb-6">Company Tasks</h2>
+                        <form onSubmit={handleAddTask} className="mb-6 p-4 bg-gray-50 border-2 border-black space-y-3">
+                            <label htmlFor="new-account-task" className="block font-mono text-sm font-semibold text-black">
+                                Add New Task
+                            </label>
                             <input
                                 id="new-account-task"
                                 value={newTaskText || ''}
                                 onChange={(e) => setNewTaskText(e.target.value)}
-                                placeholder="Add a company-level task..."
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                placeholder="e.g., Prepare Q4 presentation..."
+                                className="w-full bg-white border-2 border-black text-black p-3 rounded-none focus:outline-none focus:border-blue-500"
                                 required
                             />
-                            <div className="flex gap-2">
-                                <select
-                                    value={newTaskPriority || 'Medium'}
-                                    onChange={(e) => setNewTaskPriority(e.target.value as Priority)}
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                                    aria-label="Set priority for new task"
-                                >
-                                    <option value="Medium">Medium</option>
-                                    <option value="Low">Low</option>
-                                    <option value="High">High</option>
-                                </select>
-                                <input
-                                    type="date"
-                                    value={newTaskDueDate || ''}
-                                    onChange={(e) => setNewTaskDueDate(e.target.value)}
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                                    aria-label="Set due date for new task"
-                                />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                    <label htmlFor="new-task-priority" className="block text-xs font-mono text-gray-600 mb-1">PRIORITY</label>
+                                    <select
+                                        id="new-task-priority"
+                                        value={newTaskPriority || 'Medium'}
+                                        onChange={(e) => setNewTaskPriority(e.target.value as Priority)}
+                                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                    >
+                                        <option value="Low">Low</option>
+                                        <option value="Medium">Medium</option>
+                                        <option value="High">High</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label htmlFor="new-task-duedate" className="block text-xs font-mono text-gray-600 mb-1">DUE DATE</label>
+                                    <input
+                                        id="new-task-duedate"
+                                        type="date"
+                                        value={newTaskDueDate || ''}
+                                        onChange={(e) => setNewTaskDueDate(e.target.value)}
+                                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                    />
+                                </div>
                             </div>
-                            <button type="submit" className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn">Add</button>
+                            <button type="submit" className="w-full font-mono font-semibold bg-black text-white py-3 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800">
+                                Add Task
+                            </button>
                         </form>
-                        <ul className="max-h-60 overflow-y-auto custom-scrollbar pr-2 divide-y divide-dashed divide-gray-300">
-                            {companyTasks.length > 0 ? (
-                                companyTasks.map(task => <AccountTaskItem key={task.id} task={task} onEdit={openEditTaskModal} actions={actions} tag={title} taskCollection={taskCollection} />)
-                            ) : (
-                                <p className="text-gray-500 italic py-2">No company-level tasks.</p>
-                            )}
-                        </ul>
+                        <div className="space-y-2">
+                            <h3 className="font-mono text-sm text-gray-600 uppercase mb-3">Task List ({companyTasks.length})</h3>
+                            <ul className="max-h-[60vh] overflow-y-auto custom-scrollbar pr-2 space-y-1">
+                                {companyTasks.length > 0 ? (
+                                    companyTasks.map(task => <AccountTaskItem key={task.id} task={task} onEdit={openEditTaskModal} actions={actions} tag={title} taskCollection={taskCollection} />)
+                                ) : (
+                                    <div className="text-center py-12">
+                                        <p className="text-gray-400 text-lg italic">No company-level tasks yet.</p>
+                                        <p className="text-gray-400 text-sm mt-2">Add a task above to track work for {item.company}</p>
+                                    </div>
+                                )}
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
