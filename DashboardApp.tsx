@@ -505,6 +505,12 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 return { success: false, message: 'Database not connected' };
             }
 
+            // Skip database update for temporary IDs (optimistic updates)
+            if (taskId.startsWith('temp-')) {
+                console.log('[DashboardApp] Skipping update for temporary task ID:', taskId);
+                return { success: false, message: 'Cannot update temporary task - waiting for database sync' };
+            }
+
             try {
                 // Check if task is being marked as completed
                 const wasCompleted = updates.status === 'Done';
