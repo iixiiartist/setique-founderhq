@@ -1510,12 +1510,16 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 })),
         ];
 
+        console.log('[DashboardApp] All tasks for calendar:', allTasks.map(t => ({ id: t.id, text: t.text, dueDate: t.dueDate, dueTime: t.dueTime })));
+        
         const calendarEvents: CalendarEvent[] = [
             ...allTasks.filter(t => t.dueDate).map(t => ({...t, type: 'task' as const, title: t.text})),
             ...data.marketing.filter(m => m.dueDate).map(m => ({...m, type: 'marketing' as const, tag: 'Marketing' })),
             ...allMeetings,
             ...crmNextActions,
         ];
+        
+        console.log('[DashboardApp] Calendar events after filter:', calendarEvents.length, 'events');
 
         switch (activeTab) {
             case Tab.Dashboard:
