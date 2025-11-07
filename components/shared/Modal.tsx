@@ -73,13 +73,14 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, trigger
     
     return (
         <div 
-            className="fixed inset-0 bg-gray-900 bg-opacity-20 backdrop-blur-sm z-[100] flex justify-center items-center p-2 sm:p-4"
+            className="fixed inset-0 z-[100] flex justify-center items-center p-2 sm:p-4"
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.15)' }}
             onClick={handleBackdropClick}
             aria-modal="true"
             role="dialog"
             aria-labelledby={titleId}
         >
-            <div ref={modalRef} className="bg-white p-4 sm:p-6 border-2 border-black shadow-neo-lg w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] flex flex-col">
+            <div ref={modalRef} className="bg-white p-4 sm:p-6 border-2 border-black shadow-neo-lg w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] flex flex-col backdrop-blur-sm">
                 <div className="flex justify-between items-center mb-3 sm:mb-4 shrink-0">
                     <h2 id={titleId} className="text-xl sm:text-2xl font-bold truncate pr-2">{title}</h2>
                     <button onClick={onClose} className="text-3xl font-bold hover:text-red-500 transition-colors flex-shrink-0" aria-label="Close modal">&times;</button>

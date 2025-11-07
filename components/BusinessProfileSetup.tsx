@@ -454,7 +454,8 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
 
     return (
         <div 
-            className="fixed inset-0 bg-gray-900 bg-opacity-20 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
+            className="fixed inset-0 flex items-center justify-center z-[100] p-4"
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.15)' }}
             onClick={(e) => {
                 // Prevent closing when clicking the backdrop
                 e.stopPropagation();

@@ -170,7 +170,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', 
     const teamPlans: PlanType[] = ['team-pro'];
 
     return (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-40 backdrop-blur-sm flex items-center justify-center z-[100] p-4 overflow-y-auto">
+        <div className="fixed inset-0 flex items-center justify-center z-[100] p-4 overflow-y-auto" style={{ backgroundColor: 'rgba(0, 0, 0, 0.25)' }}>
             <div className="bg-white border-2 border-black shadow-neo rounded-none max-w-7xl w-full max-h-[90vh] overflow-y-auto">
                 <div className="sticky top-0 bg-white border-b-2 border-black p-6 flex justify-between items-center z-10">
                     <div>

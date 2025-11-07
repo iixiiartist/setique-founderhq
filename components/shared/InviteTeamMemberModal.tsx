@@ -87,7 +87,7 @@ export const InviteTeamMemberModal: React.FC<InviteTeamMemberModalProps> = ({
     };
 
     return (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-20 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+        <div className="fixed inset-0 flex items-center justify-center z-[100] p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.15)' }}>
             <div className="bg-white border-4 border-black shadow-neo-lg max-w-md w-full">
                 {/* Header */}
                 <div className="bg-blue-500 border-b-4 border-black p-4 flex justify-between items-center">
