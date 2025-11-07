@@ -211,143 +211,46 @@ ${JSON.stringify(documentsMetadata, null, 2)}
     }, [form.signups]);
 
     return (
-        <div className="space-y-8">
-            <div className="mb-6">
-                <KpiCard 
-                    title="New Signups" 
-                    value={latestFinancials.signups.toLocaleString()} 
-                    description="From latest financial log" 
-                />
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-8">
-                <div className="bg-white p-6 border-2 border-black shadow-neo h-fit">
-                    <h2 className="text-xl font-semibold text-black mb-4">Financials Over Time</h2>
-                    <div className="h-80">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={chartData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
-                                <XAxis dataKey="name" tick={{ fontFamily: "'IBM Plex Mono', monospace" }} />
-                                <YAxis tickFormatter={(value) => `$${Number(value).toLocaleString()}`} tick={{ fontFamily: "'IBM Plex Mono', monospace" }} />
-                                <Tooltip contentStyle={{ fontFamily: "'Inter', sans-serif" }}/>
-                                <Legend wrapperStyle={{ fontFamily: "'IBM Plex Mono', monospace" }} />
-                                <Line type="monotone" dataKey="MRR" stroke="#3b82f6" strokeWidth={3} />
-                                <Line type="monotone" dataKey="GMV" stroke="#10b981" strokeWidth={3} />
-                            </LineChart>
-                        </ResponsiveContainer>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+                {/* KPI Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <KpiCard 
+                        title="New Signups" 
+                        value={latestFinancials.signups.toLocaleString()} 
+                        description="From latest financial log" 
+                    />
+                    <div className="bg-white p-4 border-2 border-black shadow-neo">
+                        <p className="text-sm text-gray-600 font-mono mb-1">Total Expenses</p>
+                        <p className="text-2xl font-bold text-red-600">-${totalExpenses.toLocaleString()}</p>
+                        <p className="text-xs text-gray-500 mt-1">All time</p>
+                    </div>
+                    <div className="bg-white p-4 border-2 border-black shadow-neo">
+                        <p className="text-sm text-gray-600 font-mono mb-1">Monthly Expenses</p>
+                        <p className="text-2xl font-bold text-orange-600">-${monthlyExpenses.toLocaleString()}</p>
+                        <p className="text-xs text-gray-500 mt-1">Current month</p>
                     </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="bg-white p-6 border-2 border-black shadow-neo h-fit">
-                        <h2 className="text-xl font-semibold text-black mb-4">Log Financial Snapshot</h2>
-                        <form onSubmit={handleLog} className="space-y-4">
-                            <div>
-                                <label htmlFor="log-date" className="block font-mono text-sm font-semibold text-black mb-1">
-                                    Date
-                                </label>
-                                <input 
-                                    id="log-date"
-                                    type="date" 
-                                    value={form.date || ''} 
-                                    onChange={e => setForm(p=>({...p, date: e.target.value}))} 
-                                    required 
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="log-mrr" className="block font-mono text-sm font-semibold text-black mb-1">
-                                    MRR
-                                </label>
-                                <p className="text-xs text-gray-600 mb-1" id="log-mrr-desc">Monthly Recurring Revenue from subscriptions.</p>
-                                <input 
-                                    id="log-mrr"
-                                    type="number" 
-                                    value={form.mrr || ''} 
-                                    onChange={e => setForm(p=>({...p, mrr: Number(e.target.value)}))} 
-                                    placeholder="$1,000" 
-                                    required 
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                                    aria-describedby="log-mrr-desc"
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="log-gmv" className="block font-mono text-sm font-semibold text-black mb-1">
-                                    GMV
-                                </label>
-                                <p className="text-xs text-gray-600 mb-1" id="log-gmv-desc">Gross Merchandise Value from all transactions.</p>
-                                <input 
-                                    id="log-gmv"
-                                    type="number" 
-                                    value={form.gmv || ''} 
-                                    onChange={e => setForm(p=>({...p, gmv: Number(e.target.value)}))} 
-                                    placeholder="$10,000" 
-                                    required 
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
-                                    aria-describedby="log-gmv-desc"
-                                />
-                            </div>
-                             <div>
-                                <label htmlFor="log-signups" className="block font-mono text-sm font-semibold text-black mb-1">
-                                    New Signups
-                                </label>
-                                <p className="text-xs text-gray-600 mb-1" id="log-signups-desc">Number of new user signups for this period.</p>
-                                <input 
-                                    id="log-signups"
-                                    type="number" 
-                                    value={form.signups || ''} 
-                                    onChange={e => setForm(p=>({...p, signups: Number(e.target.value)}))} 
-                                    placeholder="100" 
-                                    required 
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                                    aria-describedby="log-signups-desc"
-                                />
-                            </div>
-                            <div className="flex justify-end items-center gap-4">
-                                <span className="font-mono text-sm font-semibold text-green-600">+{calculatedXp} XP</span>
-                                <button type="submit" className="font-mono font-semibold bg-black text-white py-2 px-6 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn">Log Snapshot</button>
-                            </div>
-                        </form>
-                    </div>
+
+                {/* Charts Section */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-white p-6 border-2 border-black shadow-neo">
-                        <h2 className="text-xl font-semibold text-black mb-4">Financial Log History</h2>
-                        <ul className="max-h-96 overflow-y-auto custom-scrollbar pr-2 space-y-4">
-                            {sortedLogs.length > 0 ? (
-                                sortedLogs.map(item => <FinancialLogItem key={item.id} item={item} onDelete={() => actions.deleteItem('financials', item.id)} />)
-                            ) : (
-                                <p className="text-gray-500 italic">No financial data logged yet.</p>
-                            )}
-                        </ul>
-                    </div>
-                </div>
-                
-                {/* Expense Tracking Section */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {/* Expense Summary Card */}
-                    <div className="bg-white p-6 border-2 border-black shadow-neo">
-                        <h2 className="text-xl font-semibold text-black mb-4">Expense Summary</h2>
-                        <div className="space-y-4">
-                            <div className="p-4 bg-red-50 border-2 border-red-500">
-                                <p className="text-sm text-gray-600 font-mono">Total Expenses</p>
-                                <p className="text-3xl font-bold text-red-600">-${totalExpenses.toLocaleString()}</p>
-                            </div>
-                            <div className="p-4 bg-orange-50 border-2 border-orange-500">
-                                <p className="text-sm text-gray-600 font-mono">This Month</p>
-                                <p className="text-2xl font-bold text-orange-600">-${monthlyExpenses.toLocaleString()}</p>
-                            </div>
-                            <div className="text-sm text-gray-600">
-                                <p className="font-semibold mb-2">Top Categories:</p>
-                                {expensesByCategory.slice(0, 3).map((cat, idx) => (
-                                    <div key={cat.name} className="flex justify-between py-1">
-                                        <span>{cat.name}</span>
-                                        <span className="font-bold">${cat.value.toLocaleString()}</span>
-                                    </div>
-                                ))}
-                            </div>
+                        <h2 className="text-xl font-semibold text-black mb-4">Revenue Trends</h2>
+                        <div className="h-64">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={chartData}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
+                                    <XAxis dataKey="name" tick={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10 }} />
+                                    <YAxis tickFormatter={(value) => `$${Number(value).toLocaleString()}`} tick={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10 }} />
+                                    <Tooltip contentStyle={{ fontFamily: "'Inter', sans-serif" }}/>
+                                    <Legend wrapperStyle={{ fontFamily: "'IBM Plex Mono', monospace" }} />
+                                    <Line type="monotone" dataKey="MRR" stroke="#3b82f6" strokeWidth={2} />
+                                    <Line type="monotone" dataKey="GMV" stroke="#10b981" strokeWidth={2} />
+                                </LineChart>
+                            </ResponsiveContainer>
                         </div>
                     </div>
-
-                    {/* Expense Chart */}
+                    
                     <div className="bg-white p-6 border-2 border-black shadow-neo">
                         <h2 className="text-xl font-semibold text-black mb-4">Expenses by Category</h2>
                         {expensesByCategory.length > 0 ? (
@@ -361,69 +264,122 @@ ${JSON.stringify(documentsMetadata, null, 2)}
                                             cx="50%"
                                             cy="50%"
                                             outerRadius={80}
-                                            label={(entry) => `${entry.name}: $${entry.value.toLocaleString()}`}
+                                            label={(entry) => `$${entry.value.toLocaleString()}`}
                                         >
                                             {expensesByCategory.map((entry, index) => (
                                                 <Cell key={`cell-${index}`} fill={EXPENSE_COLORS[index % EXPENSE_COLORS.length]} />
                                             ))}
                                         </Pie>
-                                        <Tooltip />
+                                        <Tooltip formatter={(value: number) => `$${value.toLocaleString()}`} />
                                     </PieChart>
                                 </ResponsiveContainer>
+                                <div className="mt-2 text-xs space-y-1">
+                                    {expensesByCategory.slice(0, 3).map((cat, idx) => (
+                                        <div key={cat.name} className="flex justify-between">
+                                            <span className="flex items-center gap-1">
+                                                <div className="w-3 h-3 border border-black" style={{ backgroundColor: EXPENSE_COLORS[idx] }}></div>
+                                                {cat.name}
+                                            </span>
+                                            <span className="font-bold">${cat.value.toLocaleString()}</span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         ) : (
                             <p className="text-gray-500 italic text-center py-8">No expense data yet</p>
                         )}
                     </div>
+                </div>
 
-                    {/* Add Expense Form */}
-                    <div className="bg-white p-6 border-2 border-black shadow-neo h-fit">
-                        <h2 className="text-xl font-semibold text-black mb-4">Log Expense</h2>
-                        <form onSubmit={handleExpense} className="space-y-3">
+                {/* Forms Section */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-white p-6 border-2 border-black shadow-neo">
+                        <h2 className="text-xl font-semibold text-black mb-4">Log Financial Snapshot</h2>
+                        <form onSubmit={handleLog} className="space-y-3">
                             <div>
-                                <label htmlFor="expense-date" className="block font-mono text-sm font-semibold text-black mb-1">Date</label>
+                                <label htmlFor="log-date" className="block font-mono text-sm font-semibold text-black mb-1">Date</label>
                                 <input 
-                                    id="expense-date"
+                                    id="log-date"
                                     type="date" 
-                                    value={expenseForm.date || ''} 
-                                    onChange={e => setExpenseForm(p=>({...p, date: e.target.value}))} 
+                                    value={form.date || ''} 
+                                    onChange={e => setForm(p=>({...p, date: e.target.value}))} 
                                     required 
                                     className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
                                 />
                             </div>
-                            <div>
-                                <label htmlFor="expense-category" className="block font-mono text-sm font-semibold text-black mb-1">Category</label>
-                                <select 
-                                    id="expense-category"
-                                    value={expenseForm.category || 'Other'} 
-                                    onChange={e => setExpenseForm(p=>({...p, category: e.target.value as ExpenseCategory}))} 
-                                    required
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                                >
-                                    <option value="Software/SaaS">Software/SaaS</option>
-                                    <option value="Marketing">Marketing</option>
-                                    <option value="Office">Office</option>
-                                    <option value="Legal">Legal</option>
-                                    <option value="Contractors">Contractors</option>
-                                    <option value="Travel">Travel</option>
-                                    <option value="Meals">Meals</option>
-                                    <option value="Equipment">Equipment</option>
-                                    <option value="Subscriptions">Subscriptions</option>
-                                    <option value="Other">Other</option>
-                                </select>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label htmlFor="log-mrr" className="block font-mono text-xs font-semibold text-black mb-1">MRR ($)</label>
+                                    <input 
+                                        id="log-mrr"
+                                        type="number" 
+                                        value={form.mrr || ''} 
+                                        onChange={e => setForm(p=>({...p, mrr: Number(e.target.value)}))} 
+                                        placeholder="1000" 
+                                        required 
+                                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 text-sm"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="log-gmv" className="block font-mono text-xs font-semibold text-black mb-1">GMV ($)</label>
+                                    <input 
+                                        id="log-gmv"
+                                        type="number" 
+                                        value={form.gmv || ''} 
+                                        onChange={e => setForm(p=>({...p, gmv: Number(e.target.value)}))} 
+                                        placeholder="10000" 
+                                        required 
+                                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 text-sm" 
+                                    />
+                                </div>
                             </div>
                             <div>
-                                <label htmlFor="expense-amount" className="block font-mono text-sm font-semibold text-black mb-1">Amount</label>
+                                <label htmlFor="log-signups" className="block font-mono text-sm font-semibold text-black mb-1">New Signups</label>
                                 <input 
-                                    id="expense-amount"
+                                    id="log-signups"
                                     type="number" 
-                                    step="0.01"
-                                    value={expenseForm.amount || ''} 
-                                    onChange={e => setExpenseForm(p=>({...p, amount: Number(e.target.value)}))} 
-                                    placeholder="0.00" 
+                                    value={form.signups || ''} 
+                                    onChange={e => setForm(p=>({...p, signups: Number(e.target.value)}))} 
+                                    placeholder="100" 
                                     required 
                                     className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
                                 />
+                            </div>
+                            <div className="flex justify-end items-center gap-3 pt-2">
+                                <span className="font-mono text-sm font-semibold text-green-600">+{calculatedXp} XP</span>
+                                <button type="submit" className="font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn text-sm">Log</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div className="bg-white p-6 border-2 border-black shadow-neo">
+                        <h2 className="text-xl font-semibold text-black mb-4">Log Expense</h2>
+                        <form onSubmit={handleExpense} className="space-y-3">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label htmlFor="expense-date" className="block font-mono text-xs font-semibold text-black mb-1">Date</label>
+                                    <input 
+                                        id="expense-date"
+                                        type="date" 
+                                        value={expenseForm.date || ''} 
+                                        onChange={e => setExpenseForm(p=>({...p, date: e.target.value}))} 
+                                        required 
+                                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 text-sm" 
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="expense-amount" className="block font-mono text-xs font-semibold text-black mb-1">Amount ($)</label>
+                                    <input 
+                                        id="expense-amount"
+                                        type="number" 
+                                        step="0.01"
+                                        value={expenseForm.amount || ''} 
+                                        onChange={e => setExpenseForm(p=>({...p, amount: Number(e.target.value)}))} 
+                                        placeholder="0.00" 
+                                        required 
+                                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 text-sm"
+                                    />
+                                </div>
                             </div>
                             <div>
                                 <label htmlFor="expense-description" className="block font-mono text-sm font-semibold text-black mb-1">Description</label>
@@ -432,111 +388,126 @@ ${JSON.stringify(documentsMetadata, null, 2)}
                                     type="text" 
                                     value={expenseForm.description || ''} 
                                     onChange={e => setExpenseForm(p=>({...p, description: e.target.value}))} 
-                                    placeholder="e.g., 'AWS hosting for October'" 
+                                    placeholder="AWS hosting" 
                                     required 
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 text-sm"
                                 />
                             </div>
-                            <div>
-                                <label htmlFor="expense-vendor" className="block font-mono text-sm font-semibold text-black mb-1">Vendor (Optional)</label>
-                                <input 
-                                    id="expense-vendor"
-                                    type="text" 
-                                    value={expenseForm.vendor || ''} 
-                                    onChange={e => setExpenseForm(p=>({...p, vendor: e.target.value}))} 
-                                    placeholder="e.g., 'Amazon Web Services'" 
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="expense-payment" className="block font-mono text-sm font-semibold text-black mb-1">Payment Method (Optional)</label>
-                                <select 
-                                    id="expense-payment"
-                                    value={expenseForm.paymentMethod || ''} 
-                                    onChange={e => setExpenseForm(p=>({...p, paymentMethod: e.target.value as PaymentMethod || undefined}))}
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                                >
-                                    <option value="">Select...</option>
-                                    <option value="Credit Card">Credit Card</option>
-                                    <option value="Debit Card">Debit Card</option>
-                                    <option value="Bank Transfer">Bank Transfer</option>
-                                    <option value="Cash">Cash</option>
-                                    <option value="PayPal">PayPal</option>
-                                    <option value="Other">Other</option>
-                                </select>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label htmlFor="expense-category" className="block font-mono text-xs font-semibold text-black mb-1">Category</label>
+                                    <select 
+                                        id="expense-category"
+                                        value={expenseForm.category || 'Other'} 
+                                        onChange={e => setExpenseForm(p=>({...p, category: e.target.value as ExpenseCategory}))} 
+                                        required
+                                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 text-sm"
+                                    >
+                                        <option value="Software/SaaS">Software/SaaS</option>
+                                        <option value="Marketing">Marketing</option>
+                                        <option value="Office">Office</option>
+                                        <option value="Legal">Legal</option>
+                                        <option value="Contractors">Contractors</option>
+                                        <option value="Travel">Travel</option>
+                                        <option value="Meals">Meals</option>
+                                        <option value="Equipment">Equipment</option>
+                                        <option value="Subscriptions">Subscriptions</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label htmlFor="expense-vendor" className="block font-mono text-xs font-semibold text-black mb-1">Vendor</label>
+                                    <input 
+                                        id="expense-vendor"
+                                        type="text" 
+                                        value={expenseForm.vendor || ''} 
+                                        onChange={e => setExpenseForm(p=>({...p, vendor: e.target.value}))} 
+                                        placeholder="Optional" 
+                                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 text-sm"
+                                    />
+                                </div>
                             </div>
                             <div className="flex justify-end pt-2">
-                                <button type="submit" className="font-mono font-semibold bg-red-600 text-white py-2 px-6 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-red-700">Log Expense</button>
+                                <button type="submit" className="font-mono font-semibold bg-red-600 text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-red-700 text-sm">Log</button>
                             </div>
                         </form>
                     </div>
                 </div>
 
-                {/* Expense List */}
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-xl font-semibold text-black">Expense History</h2>
-                        <div className="flex gap-4">
-                            <select 
-                                value={expenseFilter} 
-                                onChange={e => setExpenseFilter(e.target.value as ExpenseCategory | 'All')}
-                                className="bg-white border-2 border-black text-black px-3 py-1 text-sm font-mono rounded-none focus:outline-none focus:border-blue-500"
-                            >
-                                <option value="All">All Categories</option>
-                                <option value="Software/SaaS">Software/SaaS</option>
-                                <option value="Marketing">Marketing</option>
-                                <option value="Office">Office</option>
-                                <option value="Legal">Legal</option>
-                                <option value="Contractors">Contractors</option>
-                                <option value="Travel">Travel</option>
-                                <option value="Meals">Meals</option>
-                                <option value="Equipment">Equipment</option>
-                                <option value="Subscriptions">Subscriptions</option>
-                                <option value="Other">Other</option>
-                            </select>
-                            <select 
-                                value={expenseSortBy} 
-                                onChange={e => setExpenseSortBy(e.target.value as 'date' | 'amount')}
-                                className="bg-white border-2 border-black text-black px-3 py-1 text-sm font-mono rounded-none focus:outline-none focus:border-blue-500"
-                            >
-                                <option value="date">Sort by Date</option>
-                                <option value="amount">Sort by Amount</option>
-                            </select>
-                        </div>
+                {/* History Lists */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-white p-6 border-2 border-black shadow-neo">
+                        <h2 className="text-xl font-semibold text-black mb-4">Financial Log History</h2>
+                        <ul className="max-h-80 overflow-y-auto custom-scrollbar pr-2 space-y-3">
+                            {sortedLogs.length > 0 ? (
+                                sortedLogs.map(item => <FinancialLogItem key={item.id} item={item} onDelete={() => actions.deleteItem('financials', item.id)} />)
+                            ) : (
+                                <p className="text-gray-500 italic text-sm">No financial data logged yet.</p>
+                            )}
+                        </ul>
                     </div>
-                    <ul className="max-h-96 overflow-y-auto custom-scrollbar pr-2 space-y-3">
-                        {filteredExpenses.length > 0 ? (
-                            filteredExpenses.map(item => <ExpenseItem key={item.id} item={item} onDelete={() => actions.deleteItem('expenses', item.id)} />)
-                        ) : (
-                            <p className="text-gray-500 italic">No expenses logged yet.</p>
-                        )}
-                    </ul>
+
+                    <div className="bg-white p-6 border-2 border-black shadow-neo">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-xl font-semibold text-black">Expense History</h2>
+                            <div className="flex gap-2">
+                                <select 
+                                    value={expenseFilter} 
+                                    onChange={e => setExpenseFilter(e.target.value as ExpenseCategory | 'All')}
+                                    className="bg-white border-2 border-black text-black px-2 py-1 text-xs font-mono rounded-none focus:outline-none focus:border-blue-500"
+                                >
+                                    <option value="All">All</option>
+                                    <option value="Software/SaaS">Software</option>
+                                    <option value="Marketing">Marketing</option>
+                                    <option value="Office">Office</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                <select 
+                                    value={expenseSortBy} 
+                                    onChange={e => setExpenseSortBy(e.target.value as 'date' | 'amount')}
+                                    className="bg-white border-2 border-black text-black px-2 py-1 text-xs font-mono rounded-none focus:outline-none focus:border-blue-500"
+                                >
+                                    <option value="date">Date</option>
+                                    <option value="amount">Amount</option>
+                                </select>
+                            </div>
+                        </div>
+                        <ul className="max-h-80 overflow-y-auto custom-scrollbar pr-2 space-y-3">
+                            {filteredExpenses.length > 0 ? (
+                                filteredExpenses.map(item => <ExpenseItem key={item.id} item={item} onDelete={() => actions.deleteItem('expenses', item.id)} />)
+                            ) : (
+                                <p className="text-gray-500 italic text-sm">No expenses logged yet.</p>
+                            )}
+                        </ul>
+                    </div>
                 </div>
 
-                 <div className="col-span-1 md:col-span-2">
-                    <TaskManagement
-                        tasks={tasks}
-                        actions={actions}
-                        taskCollectionName="financialTasks"
-                        tag="Financials"
-                        title="Financial Tasks"
-                        placeholder="e.g., 'Prepare Q3 board deck'"
-                    />
-                </div>
+                {/* Tasks Section */}
+                <TaskManagement
+                    tasks={tasks}
+                    actions={actions}
+                    taskCollectionName="financialTasks"
+                    tag="Financials"
+                    title="Financial Tasks"
+                    placeholder="e.g., 'Prepare Q3 board deck'"
+                />
             </div>
+
+            {/* AI Assistant Sidebar */}
             {workspace?.planType !== 'free' && (
                 <div className="lg:col-span-1">
-                    <ModuleAssistant 
-                        title="Financials AI" 
-                        systemPrompt={systemPrompt} 
-                        actions={actions} 
-                        currentTab={Tab.Financials}
-                        workspaceId={workspaceId}
-                        onUpgradeNeeded={onUpgradeNeeded}
-                    />
+                    <div className="sticky top-4">
+                        <ModuleAssistant 
+                            title="Financials AI" 
+                            systemPrompt={systemPrompt} 
+                            actions={actions} 
+                            currentTab={Tab.Financials}
+                            workspaceId={workspaceId}
+                            onUpgradeNeeded={onUpgradeNeeded}
+                        />
+                    </div>
                 </div>
             )}
-            </div>
         </div>
     );
 });
