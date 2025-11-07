@@ -615,9 +615,9 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             completedTasksCount // For now, treat all completed tasks as shared
                         );
 
-                        // Show team achievement notifications
-                        if (teamResult.newAchievements.length > 0) {
-                            const firstAchievement = teamResult.newAchievements[0];
+                        // Show team achievement notifications (teamResult can be void if skipped)
+                        if (teamResult?.newAchievements?.length > 0) {
+                            const firstAchievement = teamResult.newAchievements![0];
                             handleToast(
                                 `🏆 Team Achievement Unlocked: ${firstAchievement.achievementName} (+${firstAchievement.xpReward} Team XP)`,
                                 'success'
