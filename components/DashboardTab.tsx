@@ -1,7 +1,4 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import {
-    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
-} from 'recharts';
 import { DashboardData, Task, AppActions, Priority, BusinessProfile, SettingsData } from '../types';
 import type { QuickLink } from '../types';
 import { getAiResponse } from '../services/geminiService';
@@ -260,12 +257,6 @@ ${businessContext}
     }, [allTasks]);
 
     const completedCount = completedTasks.length;
-
-    const chartData = data.financials.map(f => ({
-        name: new Date(f.date + 'T00:00:00').toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' }),
-        MRR: f.mrr,
-        GMV: f.gmv,
-    })).sort((a,b) => new Date(a.name).getTime() - new Date(b.name).getTime());
     
     const tagOptions = ['All', 'Platform', 'Investor', 'Customer', 'Partner', 'Marketing', 'Financials'];
 
@@ -402,23 +393,6 @@ ${businessContext}
                     </div>
                 </div>
                 <div className="lg:col-span-1 space-y-8">
-                    <div className="bg-white p-6 border-2 border-black shadow-neo h-fit">
-                        <h2 className="text-xl font-semibold text-black mb-4">Financials Over Time</h2>
-                        <div className="h-64">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={chartData}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
-                                    <XAxis dataKey="name" tick={{ fontFamily: "'IBM Plex Mono', monospace" }} />
-                                    <YAxis tickFormatter={(value) => `$${Number(value).toLocaleString()}`} tick={{ fontFamily: "'IBM Plex Mono', monospace" }} />
-                                    <Tooltip contentStyle={{ fontFamily: "'Inter', sans-serif" }}/>
-                                    <Legend wrapperStyle={{ fontFamily: "'IBM Plex Mono', monospace" }} />
-                                    <Line type="monotone" dataKey="MRR" stroke="#3b82f6" strokeWidth={3} />
-                                    <Line type="monotone" dataKey="GMV" stroke="#10b981" strokeWidth={3} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </div>
-                    
                     {settings?.quickLinks && settings.quickLinks.length > 0 && (
                         <div className="bg-white p-6 border-2 border-black shadow-neo">
                             <h2 className="text-xl font-semibold text-black mb-4">Quick Links</h2>
