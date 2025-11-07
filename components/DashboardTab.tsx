@@ -13,14 +13,7 @@ import { useWorkspace } from '../contexts/WorkspaceContext';
 import { useAuth } from '../contexts/AuthContext';
 import Modal from './shared/Modal';
 import { TaskComments } from './shared/TaskComments';
-
-const KpiCard: React.FC<{ title: string; value: string; description: string }> = ({ title, value, description }) => (
-    <div className="bg-white p-6 border-2 border-black shadow-neo">
-        <h2 className="text-sm font-medium text-gray-600 uppercase tracking-wider font-mono">{title}</h2>
-        <p className="text-4xl font-bold text-black mt-2">{value}</p>
-        <p className="text-sm text-gray-600 mt-1">{description}</p>
-    </div>
-);
+import KpiCard from './shared/KpiCard';
 
 const TaskItem: React.FC<{ 
     task: Task & { tag: string; collection: string }; 
@@ -267,7 +260,6 @@ ${businessContext}
     }, [allTasks]);
 
     const completedCount = completedTasks.length;
-    const latestFinancials = data.financials.length > 0 ? [...data.financials].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0] : { signups: 0 };
 
     const chartData = data.financials.map(f => ({
         name: new Date(f.date + 'T00:00:00').toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' }),
@@ -339,8 +331,7 @@ ${businessContext}
                 </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <KpiCard title="New Signups" value={latestFinancials.signups.toLocaleString()} description="From latest financial log" />
+            <div className="mb-8">
                 <KpiCard title="Tasks Completed" value={`${completedCount} / ${allTasks.length}`} description="Across all modules" />
             </div>
              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

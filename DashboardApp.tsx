@@ -659,10 +659,14 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     await DataPersistenceAdapter.addDocumentNote(itemId, noteText, userId, userName);
                 }
                 
+                // Reload data to show the new note
+                // The modal will stay open as long as the selected item state is maintained
                 await reload();
+                handleToast('Note added successfully', 'success');
                 return { success: true, message: 'Note added.' };
             } catch (error) {
                 console.error('Error adding note:', error);
+                handleToast('Failed to add note', 'info');
                 return { success: false, message: 'Failed to add note' };
             }
         },
@@ -718,6 +722,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
                 if (updateError) throw updateError;
 
+                // Reload data to show the updated note
                 await reload();
                 handleToast('Note updated', 'success');
                 return { success: true, message: 'Note updated successfully' };
@@ -775,6 +780,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
                 if (updateError) throw updateError;
 
+                // Reload data to show the deletion
                 await reload();
                 handleToast('Note deleted', 'success');
                 return { success: true, message: 'Note deleted successfully' };
@@ -1516,6 +1522,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     businessProfile={businessProfile} 
                     workspaceId={workspace?.id}
                     workspaceMembers={workspaceMembers}
+                    financials={data.financials}
                     onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
                 />;
             case Tab.Investors:

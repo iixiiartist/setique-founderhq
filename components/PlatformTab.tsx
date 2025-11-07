@@ -1,9 +1,10 @@
 import React, { useMemo } from 'react';
-import { Task, AppActions, Document, BusinessProfile, WorkspaceMember } from '../types';
+import { Task, AppActions, Document, BusinessProfile, WorkspaceMember, FinancialLog } from '../types';
 import ModuleAssistant from './shared/ModuleAssistant';
 import { Tab } from '../constants';
 import TaskManagement from './shared/TaskManagement';
 import { useWorkspace } from '../contexts/WorkspaceContext';
+import KpiCard from './shared/KpiCard';
 
 export function PlatformTab({ 
     tasks, 
@@ -12,6 +13,7 @@ export function PlatformTab({
     businessProfile,
     workspaceId,
     workspaceMembers = [],
+    financials = [],
     onUpgradeNeeded 
 }: {
     tasks: Task[];
@@ -20,10 +22,16 @@ export function PlatformTab({
     businessProfile?: BusinessProfile | null;
     workspaceId?: string;
     workspaceMembers?: WorkspaceMember[];
+    financials?: FinancialLog[];
     onUpgradeNeeded?: () => void;
 }) {
     const { workspace } = useWorkspace();
     const documentsMetadata = useMemo(() => documents.map(({ id, name, mimeType, module, uploadedAt, companyId, contactId }) => ({ id, name, mimeType, module, uploadedAt, companyId, contactId })), [documents]);
+
+    // Get latest signups data
+    const latestFinancials = financials.length > 0 
+        ? [...financials].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0] 
+        : { signups: 0 };
 
     // Build business context from profile (handle snake_case from database)
     const profile = businessProfile as any;
@@ -107,29 +115,39 @@ ${JSON.stringify(documentsMetadata, null, 2)}
 `;
     
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
-                <TaskManagement
-                    tasks={tasks}
-                    actions={actions}
-                    taskCollectionName="platformTasks"
-                    tag="Platform"
-                    title="Platform Tasks"
-                    placeholder="e.g., 'Implement user authentication'"
+        <div className="space-y-8">
+            <div className="mb-6">
+                <KpiCard 
+                    title="New Signups" 
+                    value={latestFinancials.signups.toLocaleString()} 
+                    description="From latest financial log" 
                 />
             </div>
-            {workspace?.planType !== 'free' && (
-                <div className="lg:col-span-1">
-                    <ModuleAssistant 
-                        title="Platform AI" 
-                        systemPrompt={systemPrompt} 
-                        actions={actions} 
-                        currentTab={Tab.Platform}
-                        workspaceId={workspaceId}
-                        onUpgradeNeeded={onUpgradeNeeded}
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2">
+                    <TaskManagement
+                        tasks={tasks}
+                        actions={actions}
+                        taskCollectionName="platformTasks"
+                        tag="Platform"
+                        title="Platform Tasks"
+                        placeholder="e.g., 'Implement user authentication'"
                     />
                 </div>
-            )}
+                {workspace?.planType !== 'free' && (
+                    <div className="lg:col-span-1">
+                        <ModuleAssistant 
+                            title="Platform AI" 
+                            systemPrompt={systemPrompt} 
+                            actions={actions} 
+                            currentTab={Tab.Platform}
+                            workspaceId={workspaceId}
+                            onUpgradeNeeded={onUpgradeNeeded}
+                        />
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
