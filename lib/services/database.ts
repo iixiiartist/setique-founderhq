@@ -1905,6 +1905,7 @@ export class DatabaseService {
         createdAt: new Date(dbTask.created_at).getTime(),
         completedAt: dbTask.completed_at ? new Date(dbTask.completed_at).getTime() : undefined,
         dueDate: dbTask.due_date || undefined,
+        dueTime: dbTask.due_time || undefined,
         notes: dbTask.notes || [],
         crmItemId: dbTask.crm_item_id || undefined,
         contactId: dbTask.contact_id || undefined,
@@ -1924,6 +1925,7 @@ export class DatabaseService {
         createdAt: new Date(dbItem.created_at).getTime(),
         notes: dbItem.notes || [],
         dueDate: dbItem.due_date || undefined,
+        dueTime: dbItem.due_time || undefined,
       });
 
       const allMarketingItems = (marketingItemsResult.data || []).map(transformMarketingItem);
@@ -1989,6 +1991,7 @@ export class DatabaseService {
           status: item.status,
           nextAction: item.next_action || undefined,
           nextActionDate: item.next_action_date || undefined,
+          nextActionTime: item.next_action_time || undefined,
           createdAt: new Date(item.created_at).getTime(),
           notes: item.notes || [],
           checkSize: item.check_size || undefined,
