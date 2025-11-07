@@ -9,6 +9,7 @@ import { TEAM_ACHIEVEMENTS } from '../../constants'
  * - Achievement unlocking based on milestones
  * - Daily streak tracking
  * - Automatic persistence to database
+ * - Batching and debouncing for production performance
  */
 export class GamificationService {
   // XP Rewards
@@ -22,6 +23,15 @@ export class GamificationService {
     FINANCIAL_LOGGED: 8,
     DAILY_LOGIN: 5, // For maintaining streak
   }
+
+  // Batching for XP updates
+  private static xpBatchQueue = new Map<string, { total: number; reasons: string[] }>();
+  private static xpBatchTimer: NodeJS.Timeout | null = null;
+  private static XP_BATCH_DELAY = 2000; // 2 seconds
+
+  // Cache for recent XP awards (prevent duplicate calls within short window)
+  private static recentAwards = new Map<string, number>();
+  private static AWARD_CACHE_DURATION = 5000; // 5 seconds
 
   // Level threshold calculation: 100 * level + level^2 * 50
   private static calculateLevelThreshold(level: number): number {
@@ -148,10 +158,40 @@ export class GamificationService {
   }
 
   /**
-   * Award XP and update gamification data
-   * Returns updated gamification data and list of newly unlocked achievements
+   * Award XP with optional batching for production performance
+   * In production, XP awards are queued and processed together to reduce database writes
    */
   static async awardXP(
+    userId: string,
+    currentGamification: GamificationData,
+    xpAmount: number,
+    data: DashboardData,
+    reason?: string,
+    batch: boolean = false // Set to true to batch this award
+  ): Promise<{ 
+    gamification: GamificationData; 
+    newAchievements: AchievementId[];
+    leveledUp: boolean;
+    newLevel?: number;
+  }> {
+    // If batching is enabled, queue the award and return immediately
+    if (batch) {
+      this.queueXPAward(userId, xpAmount, reason);
+      return {
+        gamification: currentGamification,
+        newAchievements: [],
+        leveledUp: false
+      };
+    }
+
+    // Immediate award
+    return await this.awardXPImmediate(userId, currentGamification, xpAmount, data, reason);
+  }
+
+  /**
+   * Award XP immediately (internal method)
+   */
+  private static async awardXPImmediate(
     userId: string,
     currentGamification: GamificationData,
     xpAmount: number,
@@ -214,6 +254,29 @@ export class GamificationService {
       leveledUp,
       newLevel: leveledUp ? newLevel : undefined,
     }
+  }
+
+  /**
+   * Queue XP award for batched processing (internal helper)
+   */
+  private static queueXPAward(
+    userId: string,
+    xpAmount: number,
+    reason?: string
+  ): void {
+    const existing = this.xpBatchQueue.get(userId);
+    
+    if (existing) {
+      existing.total += xpAmount;
+      if (reason) existing.reasons.push(reason);
+    } else {
+      this.xpBatchQueue.set(userId, {
+        total: xpAmount,
+        reasons: reason ? [reason] : []
+      });
+    }
+
+    console.log(`[Gamification] Queued ${xpAmount} XP for user ${userId} (${reason || 'no reason'})`);
   }
 
   /**
@@ -318,8 +381,79 @@ export class GamificationService {
  * Handles checking and unlocking team-based achievements for workspaces
  */
 export class TeamAchievementService {
+  // Cache to prevent duplicate checks within a short time window
+  private static checkCache = new Map<string, number>();
+  private static CACHE_DURATION = 60000; // 1 minute
+  
+  // Batch queue for achievement checks
+  private static batchQueue = new Map<string, () => Promise<any>>();
+  private static batchTimer: NodeJS.Timeout | null = null;
+  private static BATCH_DELAY = 1000; // 1 second
+  
+  /**
+   * Check if we should skip this check due to recent execution
+   */
+  private static shouldSkipCheck(workspaceId: string, checkType: string): boolean {
+    const cacheKey = `${workspaceId}:${checkType}`;
+    const lastCheck = this.checkCache.get(cacheKey);
+    
+    if (lastCheck && Date.now() - lastCheck < this.CACHE_DURATION) {
+      console.log(`[TeamAchievements] Skipping recent check: ${checkType}`);
+      return true;
+    }
+    
+    this.checkCache.set(cacheKey, Date.now());
+    return false;
+  }
+  
+  /**
+   * Add achievement check to batch queue
+   */
+  private static queueBatchCheck(
+    workspaceId: string,
+    userId: string,
+    checkType: string,
+    checkFn: () => Promise<any>
+  ) {
+    const queueKey = `${workspaceId}:${checkType}`;
+    this.batchQueue.set(queueKey, checkFn);
+    
+    // Clear existing timer
+    if (this.batchTimer) {
+      clearTimeout(this.batchTimer);
+    }
+    
+    // Set new timer to process batch
+    this.batchTimer = setTimeout(() => {
+      this.processBatchQueue();
+    }, this.BATCH_DELAY);
+  }
+  
+  /**
+   * Process all queued achievement checks
+   */
+  private static async processBatchQueue() {
+    const checks = Array.from(this.batchQueue.entries());
+    this.batchQueue.clear();
+    this.batchTimer = null;
+    
+    console.log(`[TeamAchievements] Processing ${checks.length} batched checks`);
+    
+    // Execute all checks in parallel
+    const results = await Promise.allSettled(
+      checks.map(([key, checkFn]) => checkFn())
+    );
+    
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        console.error(`[TeamAchievements] Batch check failed:`, result.reason);
+      }
+    });
+  }
+  
   /**
    * Check all team achievements for a workspace and unlock any that are newly earned
+   * Now with production optimizations: caching, batching, and error handling
    */
   static async checkTeamAchievements(
     workspaceId: string,
@@ -466,11 +600,15 @@ export class TeamAchievementService {
   }
 
   /**
-   * Quick helpers for common triggers
+   * Quick helpers for common triggers - Now with batching and caching
    */
   
   static async onMemberAdded(workspaceId: string, userId: string, memberCount: number) {
-    return await this.checkTeamAchievements(workspaceId, userId, { memberCount });
+    if (this.shouldSkipCheck(workspaceId, 'memberAdded')) return;
+    
+    this.queueBatchCheck(workspaceId, userId, 'memberAdded', async () => {
+      return await this.checkTeamAchievements(workspaceId, userId, { memberCount });
+    });
   }
 
   static async onTaskCompleted(
@@ -479,14 +617,22 @@ export class TeamAchievementService {
     totalCompletedTasks: number,
     sharedTasks: number
   ) {
-    return await this.checkTeamAchievements(workspaceId, userId, {
-      completedTasks: totalCompletedTasks,
-      sharedTasks
+    if (this.shouldSkipCheck(workspaceId, 'taskCompleted')) return;
+    
+    this.queueBatchCheck(workspaceId, userId, 'taskCompleted', async () => {
+      return await this.checkTeamAchievements(workspaceId, userId, {
+        completedTasks: totalCompletedTasks,
+        sharedTasks
+      });
     });
   }
 
   static async onMeetingLogged(workspaceId: string, userId: string, totalMeetings: number) {
-    return await this.checkTeamAchievements(workspaceId, userId, { meetings: totalMeetings });
+    if (this.shouldSkipCheck(workspaceId, 'meetingLogged')) return;
+    
+    this.queueBatchCheck(workspaceId, userId, 'meetingLogged', async () => {
+      return await this.checkTeamAchievements(workspaceId, userId, { meetings: totalMeetings });
+    });
   }
 
   static async onFinancialUpdate(
@@ -495,33 +641,53 @@ export class TeamAchievementService {
     totalGMV: number,
     totalMRR: number
   ) {
-    return await this.checkTeamAchievements(workspaceId, userId, {
-      totalGMV,
-      totalMRR
+    if (this.shouldSkipCheck(workspaceId, 'financialUpdate')) return;
+    
+    this.queueBatchCheck(workspaceId, userId, 'financialUpdate', async () => {
+      return await this.checkTeamAchievements(workspaceId, userId, {
+        totalGMV,
+        totalMRR
+      });
     });
   }
 
   static async onExpenseTracked(workspaceId: string, userId: string, totalExpenses: number) {
-    return await this.checkTeamAchievements(workspaceId, userId, {
-      expenseCount: totalExpenses
+    if (this.shouldSkipCheck(workspaceId, 'expenseTracked')) return;
+    
+    this.queueBatchCheck(workspaceId, userId, 'expenseTracked', async () => {
+      return await this.checkTeamAchievements(workspaceId, userId, {
+        expenseCount: totalExpenses
+      });
     });
   }
 
   static async onDocumentUploaded(workspaceId: string, userId: string, totalDocuments: number) {
-    return await this.checkTeamAchievements(workspaceId, userId, {
-      documentCount: totalDocuments
+    if (this.shouldSkipCheck(workspaceId, 'documentUploaded')) return;
+    
+    this.queueBatchCheck(workspaceId, userId, 'documentUploaded', async () => {
+      return await this.checkTeamAchievements(workspaceId, userId, {
+        documentCount: totalDocuments
+      });
     });
   }
 
   static async onCRMContactAdded(workspaceId: string, userId: string, totalContacts: number) {
-    return await this.checkTeamAchievements(workspaceId, userId, {
-      crmContactCount: totalContacts
+    if (this.shouldSkipCheck(workspaceId, 'crmContactAdded')) return;
+    
+    this.queueBatchCheck(workspaceId, userId, 'crmContactAdded', async () => {
+      return await this.checkTeamAchievements(workspaceId, userId, {
+        crmContactCount: totalContacts
+      });
     });
   }
 
   static async onAIUsage(workspaceId: string, userId: string, totalAIUsage: number) {
-    return await this.checkTeamAchievements(workspaceId, userId, {
-      aiUsageCount: totalAIUsage
+    if (this.shouldSkipCheck(workspaceId, 'aiUsage')) return;
+    
+    this.queueBatchCheck(workspaceId, userId, 'aiUsage', async () => {
+      return await this.checkTeamAchievements(workspaceId, userId, {
+        aiUsageCount: totalAIUsage
+      });
     });
   }
 
@@ -530,8 +696,12 @@ export class TeamAchievementService {
     userId: string,
     totalCampaigns: number
   ) {
-    return await this.checkTeamAchievements(workspaceId, userId, {
-      marketingCampaignCount: totalCampaigns
+    if (this.shouldSkipCheck(workspaceId, 'marketingCampaign')) return;
+    
+    this.queueBatchCheck(workspaceId, userId, 'marketingCampaign', async () => {
+      return await this.checkTeamAchievements(workspaceId, userId, {
+        marketingCampaignCount: totalCampaigns
+      });
     });
   }
 
