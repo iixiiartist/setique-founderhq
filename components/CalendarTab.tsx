@@ -810,6 +810,7 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ events, actions }) => {
                                         onClick={() => {
                                             const taskText = prompt('Enter task description:');
                                             if (taskText && taskText.trim()) {
+                                                console.log('[CalendarTab] Creating task with date:', newEventDate, 'time:', newEventTime);
                                                 actions.createTask(category, taskText, 'Medium', undefined, undefined, newEventDate, undefined, newEventTime);
                                                 setShowNewEventModal(false);
                                             }
