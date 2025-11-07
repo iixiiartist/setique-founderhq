@@ -480,9 +480,10 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 console.log('[DashboardApp] Creating task with workspace:', workspace.id);
                 await DataPersistenceAdapter.createTask(userId, category, text, priority, crmItemId, contactId, dueDate, workspace.id, assignedTo, dueTime);
                 
-                // Invalidate cache so next load gets fresh data
-                // Don't reload immediately - keep optimistic update
+                // Reload tasks to replace optimistic task with real one from database
                 invalidateCache('tasks');
+                const updatedTasks = await loadTasks();
+                setData(prev => ({ ...prev, ...updatedTasks }));
                 
                 handleToast(`Task "${text}" created.`, 'success');
                 return { success: true, message: `Task "${text}" created.` };
