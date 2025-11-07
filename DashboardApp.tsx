@@ -1286,7 +1286,15 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     previousStatus = item?.status;
                 }
 
-                await DataPersistenceAdapter.updateMarketingItem(itemId, updates);
+                // Transform camelCase to snake_case for database
+                const dbUpdates: any = {};
+                if (updates.title !== undefined) dbUpdates.title = updates.title;
+                if (updates.type !== undefined) dbUpdates.item_type = updates.type;
+                if (updates.status !== undefined) dbUpdates.status = updates.status;
+                if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate;
+                if (updates.dueTime !== undefined) dbUpdates.due_time = updates.dueTime;
+
+                await DataPersistenceAdapter.updateMarketingItem(itemId, dbUpdates);
 
                 // Award XP if marketing item was just published (not already published)
                 if (wasPublished && previousStatus !== 'Published') {
