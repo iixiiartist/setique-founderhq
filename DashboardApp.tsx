@@ -1287,8 +1287,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 }
 
                 await DataPersistenceAdapter.updateMarketingItem(itemId, updates);
-                await reload();
-                invalidateCache('marketing');
 
                 // Award XP if marketing item was just published (not already published)
                 if (wasPublished && previousStatus !== 'Published') {
@@ -1307,10 +1305,11 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         const achievement = ACHIEVEMENTS[result.newAchievements[0]];
                         handleToast(`🏆 ${achievement.title}`, 'success');
                     }
-                    
-                    await reload();
-                    invalidateCache('marketing');
                 }
+                
+                // Single reload and cache invalidation after all updates
+                await reload();
+                invalidateCache('marketing');
 
                 return { success: true, message: 'Marketing item updated.' };
             } catch (error) {

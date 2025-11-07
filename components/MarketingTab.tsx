@@ -70,7 +70,7 @@ const MarketingTab: React.FC<{
         title: '', type: 'Blog Post', status: 'Planned', dueDate: ''
     });
     const [editingItem, setEditingItem] = useState<MarketingItem | null>(null);
-    const [editForm, setEditForm] = useState<Omit<MarketingItem, 'id'|'createdAt'|'notes'>>({ title: '', type: 'Blog Post', status: 'Planned' });
+    const [editForm, setEditForm] = useState<Omit<MarketingItem, 'id'|'createdAt'|'notes'>>({ title: '', type: 'Blog Post', status: 'Planned', dueDate: '', dueTime: '' });
     const modalTriggerRef = useRef<HTMLButtonElement | null>(null);
     
     const documentsMetadata = useMemo(() => documents.map(({ id, name, mimeType, module, uploadedAt }) => ({ id, name, mimeType, module, uploadedAt })), [documents]);
@@ -152,7 +152,8 @@ ${JSON.stringify(documentsMetadata, null, 2)}
                 title: editingItem.title,
                 type: editingItem.type,
                 status: editingItem.status,
-                dueDate: editingItem.dueDate || ''
+                dueDate: editingItem.dueDate || '',
+                dueTime: editingItem.dueTime || ''
             });
         }
     }, [editingItem]);
@@ -272,9 +273,15 @@ ${JSON.stringify(documentsMetadata, null, 2)}
                                 </select>
                             </div>
                         </div>
-                        <div className="mt-4">
-                            <label htmlFor={`edit-mkt-duedate-${editingItem.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Due Date</label>
-                            <input id={`edit-mkt-duedate-${editingItem.id}`} type="date" value={editForm.dueDate || ''} onChange={e => setEditForm(p=>({...p, dueDate: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
+                        <div className="grid grid-cols-2 gap-4 mt-4">
+                            <div>
+                                <label htmlFor={`edit-mkt-duedate-${editingItem.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Due Date</label>
+                                <input id={`edit-mkt-duedate-${editingItem.id}`} type="date" value={editForm.dueDate || ''} onChange={e => setEditForm(p=>({...p, dueDate: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
+                            </div>
+                            <div>
+                                <label htmlFor={`edit-mkt-duetime-${editingItem.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Due Time</label>
+                                <input id={`edit-mkt-duetime-${editingItem.id}`} type="time" value={editForm.dueTime || ''} onChange={e => setEditForm(p=>({...p, dueTime: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
+                            </div>
                         </div>
                         <NotesManager 
                             notes={editingItem.notes} 
