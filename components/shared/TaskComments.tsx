@@ -35,6 +35,14 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
 
   // Load comments
   useEffect(() => {
+    // Don't try to load comments for temporary tasks (optimistic updates)
+    if (taskId.startsWith('temp-')) {
+      console.log('[TaskComments] Skipping comment load for temporary task:', taskId);
+      setComments([]);
+      setLoading(false);
+      return;
+    }
+    
     loadComments();
   }, [taskId]);
 
@@ -47,6 +55,12 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
 
   const handleSubmitComment = async () => {
     if (!newComment.trim() || submitting) return;
+    
+    // Prevent commenting on temporary tasks
+    if (taskId.startsWith('temp-')) {
+      alert('Please wait for the task to finish creating before adding comments.');
+      return;
+    }
 
     setSubmitting(true);
     const { comment, error } = await createComment({
@@ -161,8 +175,18 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
         </h3>
       </div>
 
+      {/* Temporary task warning */}
+      {taskId.startsWith('temp-') && (
+        <div className="bg-yellow-50 border-2 border-yellow-400 p-3 rounded">
+          <p className="text-sm text-yellow-800">
+            ⏳ Task is being created. Comments will be available once the task is saved.
+          </p>
+        </div>
+      )}
+
       {/* Comments list */}
-      <div className="space-y-4 max-h-96 overflow-y-auto">
+      {!taskId.startsWith('temp-') && (
+        <div className="space-y-4 max-h-96 overflow-y-auto">
         {loading ? (
           <div className="text-center py-8 text-gray-500">
             Loading comments...
@@ -259,30 +283,33 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
             </div>
           ))
         )}
-      </div>
+        </div>
+      )}
 
       {/* Add comment form */}
-      <div className="border-t pt-4">
-        <div className="space-y-2">
-          <MentionInput
-            value={newComment}
-            onChange={setNewComment}
-            workspaceMembers={workspaceMembers}
-            placeholder="Add a comment... (use @ to mention)"
-            disabled={submitting}
-          />
-          <div className="flex justify-end">
-            <button
-              onClick={handleSubmitComment}
-              disabled={submitting || !newComment.trim()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              <Send size={16} />
-              Comment
-            </button>
+      {!taskId.startsWith('temp-') && (
+        <div className="border-t pt-4">
+          <div className="space-y-2">
+            <MentionInput
+              value={newComment}
+              onChange={setNewComment}
+              workspaceMembers={workspaceMembers}
+              placeholder="Add a comment... (use @ to mention)"
+              disabled={submitting}
+            />
+            <div className="flex justify-end">
+              <button
+                onClick={handleSubmitComment}
+                disabled={submitting || !newComment.trim()}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <Send size={16} />
+                Comment
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

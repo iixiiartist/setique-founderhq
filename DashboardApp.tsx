@@ -633,6 +633,12 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 return { success: false, message: 'Database not connected' };
             }
 
+            // Prevent adding notes to temporary items (optimistic updates)
+            if (itemId.startsWith('temp-')) {
+                handleToast('Please wait for the item to finish creating before adding notes.', 'info');
+                return { success: false, message: 'Cannot add note to temporary item' };
+            }
+
             try {
                 // Get current user info
                 const userId = user?.id;
