@@ -29,6 +29,7 @@ export interface Task {
     createdAt: number;
     completedAt?: number;
     dueDate?: string; // YYYY-MM-DD
+    dueTime?: string; // HH:MM (24-hour format)
     notes: Note[];
     crmItemId?: string;
     contactId?: string;
@@ -60,6 +61,7 @@ export interface BaseCrmItem {
     status: string;
     nextAction?: string;
     nextActionDate?: string;
+    nextActionTime?: string; // HH:MM (24-hour format)
     createdAt: number;
     notes: Note[];
     assignedTo?: string | null;
@@ -88,6 +90,7 @@ export interface MarketingItem {
     createdAt: number;
     notes: Note[];
     dueDate?: string; // YYYY-MM-DD
+    dueTime?: string; // HH:MM (24-hour format)
 }
 
 export type CalendarEvent = (Task & {
@@ -459,7 +462,7 @@ export type DeletableCollectionName = NoteableCollectionName | 'financials';
 
 export interface AppActions {
     createTask: (category: TaskCollectionName, text: string, priority: Priority, crmItemId?: string, contactId?: string, dueDate?: string, assignedTo?: string) => Promise<{ success: boolean; message: string; }>;
-    updateTask: (taskId: string, updates: Partial<Pick<Task, 'text' | 'status' | 'priority' | 'dueDate' | 'assignedTo'>>) => Promise<{ success: boolean; message: string; }>;
+    updateTask: (taskId: string, updates: Partial<Pick<Task, 'text' | 'status' | 'priority' | 'dueDate' | 'dueTime' | 'assignedTo'>>) => Promise<{ success: boolean; message: string; }>;
     addNote: (collection: NoteableCollectionName, itemId: string, noteText: string, crmItemId?: string) => Promise<{ success: boolean; message: string; }>;
     updateNote: (collection: NoteableCollectionName, itemId: string, noteTimestamp: number, newText: string, crmItemId?: string) => Promise<{ success: boolean; message: string; }>;
     deleteNote: (collection: NoteableCollectionName, itemId: string, noteTimestamp: number, crmItemId?: string) => Promise<{ success: boolean; message: string; }>;

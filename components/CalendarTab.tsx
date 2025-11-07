@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Task, AppActions, Priority, CalendarEvent, MarketingItem, CrmCollectionName } from '../types';
+import { Task, AppActions, Priority, CalendarEvent, MarketingItem, BaseCrmItem, CrmCollectionName } from '../types';
 import { TASK_TAG_BG_COLORS } from '../constants';
 import Modal from './shared/Modal';
 import ReactMarkdown from 'react-markdown';
@@ -94,10 +94,12 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
             setEditText(event.text);
             setEditPriority(event.priority);
             setEditDueDate(event.dueDate || '');
+            setEditTime(event.dueTime || '');
         } else if (isMarketing) {
             setEditTitle(event.title);
             setEditStatus(event.status as MarketingItem['status']);
             setEditDueDate(event.dueDate || '');
+            setEditTime(event.dueTime || '');
         } else if (isMeeting) {
             setEditTitle(event.title);
             setEditAttendees(event.attendees);
@@ -111,6 +113,7 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
             setEditNextAction(event.nextAction || '');
             setEditCompany(event.company);
             setEditDueDate(event.nextActionDate || '');
+            setEditTime(event.nextActionTime || '');
         }
         setIsEditing(true);
     };
@@ -126,6 +129,7 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
                     text: editText,
                     priority: editPriority,
                     dueDate: editDueDate,
+                    dueTime: editTime,
                 });
             }
         } else if (isMarketing) {
@@ -134,6 +138,7 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
                     title: editTitle,
                     status: editStatus,
                     dueDate: editDueDate,
+                    dueTime: editTime,
                 });
             }
         } else if (isMeeting) {
@@ -163,6 +168,7 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
             actions.updateCrmItem(collection, event.id, {
                 nextAction: editNextAction,
                 nextActionDate: editDueDate,
+                nextActionTime: editTime,
             });
         }
         setIsEditing(false);
@@ -207,6 +213,16 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
                                 />
                             </div>
                         </div>
+                        <div>
+                            <label htmlFor="edit-task-duetime" className="block font-mono text-sm font-semibold text-black mb-1">Due Time (Optional)</label>
+                            <input
+                                id="edit-task-duetime"
+                                type="time"
+                                value={editTime || ''}
+                                onChange={e => setEditTime(e.target.value)}
+                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none"
+                            />
+                        </div>
                     </>
                 ) : isMarketing ? (
                     <>
@@ -246,6 +262,16 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
                                     className="w-full bg-white border-2 border-black text-black p-2 rounded-none"
                                 />
                             </div>
+                        </div>
+                        <div>
+                            <label htmlFor="edit-mkt-duetime" className="block font-mono text-sm font-semibold text-black mb-1">Due Time (Optional)</label>
+                            <input
+                                id="edit-mkt-duetime"
+                                type="time"
+                                value={editTime || ''}
+                                onChange={e => setEditTime(e.target.value)}
+                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none"
+                            />
                         </div>
                     </>
                 ) : isMeeting ? ( // Meeting Item
@@ -296,6 +322,16 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
                                 className="w-full bg-white border-2 border-black text-black p-2 rounded-none"
                             />
                         </div>
+                        <div>
+                            <label htmlFor="edit-crm-time" className="block font-mono text-sm font-semibold text-black mb-1">Next Action Time (Optional)</label>
+                            <input
+                                id="edit-crm-time"
+                                type="time"
+                                value={editTime || ''}
+                                onChange={e => setEditTime(e.target.value)}
+                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none"
+                            />
+                        </div>
                         <div className="p-3 bg-blue-50 border-2 border-blue-300 rounded-none">
                             <p className="font-mono text-sm text-blue-800">
                                 <strong>Company:</strong> {editCompany}
@@ -329,7 +365,26 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
             <div className="grid grid-cols-2 gap-4">
                 <div><p className="font-mono text-sm uppercase">Module</p><p className="font-semibold text-lg">{event.tag}</p></div>
                 <div><p className="font-mono text-sm uppercase">Type</p><p className="font-semibold text-lg capitalize">{event.type}</p></div>
-                <div><p className="font-mono text-sm uppercase">Date</p><p className="font-semibold text-lg">{new Date(event.dueDate + 'T00:00:00').toLocaleDateString(undefined, { timeZone: 'UTC', dateStyle: 'long' })}</p></div>
+                <div>
+                    <p className="font-mono text-sm uppercase">Date & Time</p>
+                    <p className="font-semibold text-lg">
+                        {new Date(event.dueDate + 'T00:00:00').toLocaleDateString(undefined, { timeZone: 'UTC', dateStyle: 'long' })}
+                        {isMeeting && (
+                            <span className="ml-2 text-blue-600">
+                                {new Date(event.timestamp).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                        )}
+                        {(isTask && 'dueTime' in event && event.dueTime) && (
+                            <span className="ml-2 text-blue-600">{event.dueTime}</span>
+                        )}
+                        {(isMarketing && 'dueTime' in event && event.dueTime) && (
+                            <span className="ml-2 text-blue-600">{event.dueTime}</span>
+                        )}
+                        {(isCrmAction && 'nextActionTime' in event && event.nextActionTime) && (
+                            <span className="ml-2 text-blue-600">{event.nextActionTime}</span>
+                        )}
+                    </p>
+                </div>
                 {isTask && <div><p className="font-mono text-sm uppercase">Status</p><p className="font-semibold text-lg">{event.status}</p></div>}
                 {isMarketing && <div><p className="font-mono text-sm uppercase">Status</p><p className="font-semibold text-lg">{event.status}</p></div>}
             </div>

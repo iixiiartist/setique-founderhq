@@ -97,6 +97,7 @@ export class DataPersistenceAdapter {
     if (updates.status) dbUpdates.status = updates.status
     if (updates.priority) dbUpdates.priority = updates.priority
     if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate || null
+    if (updates.dueTime !== undefined) dbUpdates.due_time = updates.dueTime || null
     if (updates.completedAt !== undefined) dbUpdates.completed_at = updates.completedAt ? new Date(updates.completedAt).toISOString() : null
     if (updates.notes) dbUpdates.notes = updates.notes
     if (updates.assignedTo !== undefined) dbUpdates.assigned_to = updates.assignedTo || null
@@ -321,6 +322,7 @@ export class DataPersistenceAdapter {
     if (updates.status) dbUpdates.status = updates.status
     if (updates.nextAction !== undefined) dbUpdates.next_action = updates.nextAction
     if (updates.nextActionDate !== undefined) dbUpdates.next_action_date = updates.nextActionDate
+    if (updates.nextActionTime !== undefined) dbUpdates.next_action_time = updates.nextActionTime
     if ('checkSize' in updates) dbUpdates.check_size = updates.checkSize
     if ('dealValue' in updates) dbUpdates.deal_value = updates.dealValue
     if ('opportunity' in updates) dbUpdates.opportunity = updates.opportunity
@@ -470,6 +472,7 @@ export class DataPersistenceAdapter {
     if (updates.type) dbUpdates.type = updates.type
     if (updates.status) dbUpdates.status = updates.status
     if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate
+    if (updates.dueTime !== undefined) dbUpdates.due_time = updates.dueTime
     if (updates.assignedTo !== undefined) dbUpdates.assigned_to = updates.assignedTo
     if (updates.assignedToName !== undefined) dbUpdates.assigned_to_name = updates.assignedToName
     if (updates.notes) dbUpdates.notes = updates.notes
