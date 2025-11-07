@@ -485,6 +485,9 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 const updatedTasks = await loadTasks();
                 setData(prev => ({ ...prev, ...updatedTasks }));
                 
+                // Mark tasks as loaded so they display
+                setLoadedTabs(prev => new Set(prev).add('tasks'));
+                
                 handleToast(`Task "${text}" created.`, 'success');
                 return { success: true, message: `Task "${text}" created.` };
             } catch (error) {
@@ -1259,9 +1262,16 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             }
 
             try {
+                console.log('[createMarketingItem] Creating:', itemData);
                 await DataPersistenceAdapter.createMarketingItem(userId, workspace.id, itemData);
-                await reload();
+                
+                // Reload marketing data immediately
                 invalidateCache('marketing');
+                const freshMarketing = await loadMarketing();
+                setData(prev => ({ ...prev, marketing: freshMarketing }));
+                setLoadedTabs(prev => new Set(prev).add('marketing'));
+                
+                console.log('[createMarketingItem] Created successfully, reloaded data');
                 handleToast(`Marketing item "${itemData.title}" created.`, 'success');
                 return { success: true, message: `Marketing item "${itemData.title}" created.` };
             } catch (error) {
