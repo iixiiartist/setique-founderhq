@@ -91,13 +91,13 @@ const CrmItemCard: React.FC<{ item: AnyCrmItem, onView: (item: AnyCrmItem) => vo
 
 
 const AddCrmForm: React.FC<{ title: string, collection: CrmCollectionName, actions: AppActions}> = ({ title, collection, actions }) => {
-    const [form, setForm] = useState<Partial<AnyCrmItem>>({ company: '', nextAction: '', nextActionDate: '' });
+    const [form, setForm] = useState<Partial<AnyCrmItem>>({ company: '', nextAction: '', nextActionDate: '', nextActionTime: '' });
     
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!form.company || form.company.trim() === '') return;
         actions.createCrmItem(collection, form);
-        setForm({ company: '', nextAction: '', nextActionDate: '' });
+        setForm({ company: '', nextAction: '', nextActionDate: '', nextActionTime: '' });
     };
 
     return (
@@ -119,6 +119,12 @@ const AddCrmForm: React.FC<{ title: string, collection: CrmCollectionName, actio
                     Next Action Date
                 </label>
                 <input id={`crm-nextActionDate-${collection}`} type="date" value={form.nextActionDate || ''} onChange={(e) => setForm(p => ({...p, nextActionDate: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" />
+            </div>
+            <div>
+                <label htmlFor={`crm-nextActionTime-${collection}`} className="block font-mono text-sm font-semibold text-black mb-1">
+                    Next Action Time
+                </label>
+                <input id={`crm-nextActionTime-${collection}`} type="time" value={form.nextActionTime || ''} onChange={(e) => setForm(p => ({...p, nextActionTime: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" />
             </div>
             <button type="submit" className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn">Add {title}</button>
         </form>
