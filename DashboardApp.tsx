@@ -1276,6 +1276,8 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             }
 
             try {
+                console.log('[updateMarketingItem] Starting update:', { itemId, updates });
+                
                 // Check if marketing item was just published
                 const wasPublished = updates.status === 'Published';
                 
@@ -1294,7 +1296,10 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate;
                 if (updates.dueTime !== undefined) dbUpdates.due_time = updates.dueTime;
 
-                await DataPersistenceAdapter.updateMarketingItem(itemId, dbUpdates);
+                console.log('[updateMarketingItem] Transformed updates:', dbUpdates);
+
+                const result = await DataPersistenceAdapter.updateMarketingItem(itemId, dbUpdates);
+                console.log('[updateMarketingItem] Database result:', result);
 
                 // Award XP if marketing item was just published (not already published)
                 if (wasPublished && previousStatus !== 'Published') {
@@ -1316,12 +1321,16 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 }
                 
                 // Single reload and cache invalidation after all updates
+                console.log('[updateMarketingItem] Reloading data...');
                 await reload();
                 invalidateCache('marketing');
+                console.log('[updateMarketingItem] Update complete');
 
+                handleToast('Marketing item updated successfully', 'success');
                 return { success: true, message: 'Marketing item updated.' };
             } catch (error) {
-                console.error('Error updating marketing item:', error);
+                console.error('[updateMarketingItem] Error:', error);
+                handleToast('Failed to update marketing item', 'info');
                 return { success: false, message: 'Failed to update marketing item' };
             }
         },
