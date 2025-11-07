@@ -636,6 +636,49 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             }
         },
 
+        deleteTask: async (taskId) => {
+            if (!userId || !supabase) {
+                return { success: false, message: 'Database not connected' };
+            }
+
+            try {
+                // Find which category this task belongs to
+                let taskCategory: TaskCollectionName | undefined;
+                const allTasksFlat = [
+                    ...data.platformTasks,
+                    ...data.investorTasks,
+                    ...data.customerTasks,
+                    ...data.partnerTasks,
+                    ...data.marketingTasks,
+                    ...data.financialTasks,
+                ];
+                const task = allTasksFlat.find(t => t.id === taskId);
+                
+                if (data.platformTasks.some(t => t.id === taskId)) taskCategory = 'platformTasks';
+                else if (data.investorTasks.some(t => t.id === taskId)) taskCategory = 'investorTasks';
+                else if (data.customerTasks.some(t => t.id === taskId)) taskCategory = 'customerTasks';
+                else if (data.partnerTasks.some(t => t.id === taskId)) taskCategory = 'partnerTasks';
+                else if (data.marketingTasks.some(t => t.id === taskId)) taskCategory = 'marketingTasks';
+                else if (data.financialTasks.some(t => t.id === taskId)) taskCategory = 'financialTasks';
+
+                if (!taskCategory) {
+                    return { success: false, message: 'Task not found' };
+                }
+
+                // Check permissions
+                if (task?.userId && !canEditTask(task.userId, task.assignedTo)) {
+                    handleToast('You do not have permission to delete this task', 'info');
+                    return { success: false, message: 'Permission denied' };
+                }
+
+                // Use the existing deleteItem method
+                return await actions.deleteItem(taskCategory, taskId);
+            } catch (error) {
+                console.error('Error deleting task:', error);
+                return { success: false, message: 'Failed to delete task' };
+            }
+        },
+
         addNote: async (collection, itemId, noteText, crmItemId) => {
             if (!supabase) {
                 return { success: false, message: 'Database not connected' };
@@ -1273,6 +1316,20 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             } catch (error) {
                 console.error('Error updating marketing item:', error);
                 return { success: false, message: 'Failed to update marketing item' };
+            }
+        },
+
+        deleteMarketingItem: async (itemId) => {
+            if (!supabase) {
+                return { success: false, message: 'Database not connected' };
+            }
+
+            try {
+                // Use the existing deleteItem method
+                return await actions.deleteItem('marketing', itemId);
+            } catch (error) {
+                console.error('Error deleting marketing item:', error);
+                return { success: false, message: 'Failed to delete marketing item' };
             }
         },
         

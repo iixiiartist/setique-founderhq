@@ -183,6 +183,39 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
         setIsEditing(false);
     };
 
+    const handleDelete = () => {
+        const confirmDelete = window.confirm(`Are you sure you want to delete this ${event.type}? This action cannot be undone.`);
+        if (!confirmDelete) return;
+
+        if (isTask) {
+            actions.deleteTask(event.id);
+        } else if (isMarketing) {
+            actions.deleteMarketingItem(event.id);
+        } else if (isMeeting) {
+            const crmCollectionMap: Record<string, CrmCollectionName> = {
+                'Investor': 'investors',
+                'Customer': 'customers',
+                'Partner': 'partners',
+            };
+            const collection = crmCollectionMap[event.tag];
+            actions.deleteMeeting(collection, event.crmItemId, event.contactId, event.id);
+        } else if (isCrmAction) {
+            const crmCollectionMap: Record<string, CrmCollectionName> = {
+                'Investor': 'investors',
+                'Customer': 'customers',
+                'Partner': 'partners',
+            };
+            const collection = crmCollectionMap[event.tag];
+            // Clear the next action (this is how we "delete" a CRM action)
+            actions.updateCrmItem(collection, event.id, {
+                nextAction: undefined,
+                nextActionDate: undefined,
+                nextActionTime: undefined,
+            });
+        }
+        onClose();
+    };
+
     if (isEditing) {
         return (
             <div className="space-y-4">
@@ -446,8 +479,9 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
                 </>
             )}
             <div className="flex gap-2 mt-4">
-                <button onClick={handleEditClick} className="w-full font-mono font-semibold bg-white text-black py-2 px-4 rounded-none border-2 border-black shadow-neo-btn">Edit</button>
-                <button onClick={onClose} className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none border-2 border-black shadow-neo-btn">Close</button>
+                <button onClick={handleEditClick} className="flex-1 font-mono font-semibold bg-white text-black py-2 px-4 rounded-none border-2 border-black shadow-neo-btn hover:bg-gray-100">Edit</button>
+                <button onClick={handleDelete} className="flex-1 font-mono font-semibold bg-red-600 text-white py-2 px-4 rounded-none border-2 border-black shadow-neo-btn hover:bg-red-700">Delete</button>
+                <button onClick={onClose} className="flex-1 font-mono font-semibold bg-black text-white py-2 px-4 rounded-none border-2 border-black shadow-neo-btn">Close</button>
             </div>
         </div>
     );

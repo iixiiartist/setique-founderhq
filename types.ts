@@ -463,6 +463,7 @@ export type DeletableCollectionName = NoteableCollectionName | 'financials';
 export interface AppActions {
     createTask: (category: TaskCollectionName, text: string, priority: Priority, crmItemId?: string, contactId?: string, dueDate?: string, assignedTo?: string, dueTime?: string) => Promise<{ success: boolean; message: string; }>;
     updateTask: (taskId: string, updates: Partial<Pick<Task, 'text' | 'status' | 'priority' | 'dueDate' | 'dueTime' | 'assignedTo'>>) => Promise<{ success: boolean; message: string; }>;
+    deleteTask: (taskId: string) => Promise<{ success: boolean; message: string; }>;
     addNote: (collection: NoteableCollectionName, itemId: string, noteText: string, crmItemId?: string) => Promise<{ success: boolean; message: string; }>;
     updateNote: (collection: NoteableCollectionName, itemId: string, noteTimestamp: number, newText: string, crmItemId?: string) => Promise<{ success: boolean; message: string; }>;
     deleteNote: (collection: NoteableCollectionName, itemId: string, noteTimestamp: number, crmItemId?: string) => Promise<{ success: boolean; message: string; }>;
@@ -480,6 +481,7 @@ export interface AppActions {
     deleteItem: (collection: DeletableCollectionName, itemId: string) => Promise<{ success: boolean; message: string; }>;
     createMarketingItem: (itemData: Omit<MarketingItem, 'id' | 'createdAt' | 'notes'>) => Promise<{ success: boolean; message: string; }>;
     updateMarketingItem: (itemId: string, updates: Partial<Omit<MarketingItem, 'id' | 'createdAt' | 'notes'>>) => Promise<{ success: boolean; message: string; }>;
+    deleteMarketingItem: (itemId: string) => Promise<{ success: boolean; message: string; }>;
     updateSettings: (updates: Partial<SettingsData>) => Promise<{ success: boolean; message: string; }>;
     resetGamification: () => Promise<{ success: boolean; message: string; }>;
     uploadDocument: (name: string, mimeType: string, content: string, module: TabType, companyId?: string, contactId?: string) => Promise<{ success: boolean; message: string; }>;
