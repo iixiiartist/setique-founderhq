@@ -1,6 +1,7 @@
 import { supabase } from '../supabase'
 import { Database } from '../types/database'
 import { DashboardData, Task, AnyCrmItem, Contact, Meeting, MarketingItem, FinancialLog, Document, SettingsData, GamificationData, Priority } from '../../types'
+import { dbToTasks, dbToMarketingItems, dbToFinancialLogs, dbToCrmItem, dbToContacts } from '../utils/fieldTransformers'
 
 type Tables = Database['public']['Tables']
 
@@ -1916,50 +1917,10 @@ export class DatabaseService {
       const allContacts = contactsResult.data || [];
       const allMeetings = meetingsResult.data || [];
 
-      // Transform tasks from database format to app format
-      const transformTask = (dbTask: any): Task => ({
-        id: dbTask.id,
-        text: dbTask.text,
-        status: dbTask.status,
-        priority: dbTask.priority,
-        createdAt: new Date(dbTask.created_at).getTime(),
-        completedAt: dbTask.completed_at ? new Date(dbTask.completed_at).getTime() : undefined,
-        dueDate: dbTask.due_date || undefined,
-        dueTime: dbTask.due_time || undefined,
-        notes: dbTask.notes || [],
-        crmItemId: dbTask.crm_item_id || undefined,
-        contactId: dbTask.contact_id || undefined,
-        userId: dbTask.user_id, // Add userId for permission checks
-        assignedTo: dbTask.assigned_to || undefined,
-        assignedToName: dbTask.assigned_to_profile?.full_name || undefined,
-      });
-
-      const allTasks = (tasksResult.data || []).map(transformTask);
-
-      // Transform marketing items
-      const transformMarketingItem = (dbItem: any): MarketingItem => ({
-        id: dbItem.id,
-        title: dbItem.title,
-        type: dbItem.item_type,
-        status: dbItem.status,
-        createdAt: new Date(dbItem.created_at).getTime(),
-        notes: dbItem.notes || [],
-        dueDate: dbItem.due_date || undefined,
-        dueTime: dbItem.due_time || undefined,
-      });
-
-      const allMarketingItems = (marketingItemsResult.data || []).map(transformMarketingItem);
-
-      // Transform financial logs
-      const transformFinancialLog = (dbLog: any): FinancialLog => ({
-        id: dbLog.id,
-        date: dbLog.date,
-        mrr: dbLog.mrr,
-        gmv: dbLog.gmv,
-        signups: dbLog.signups,
-      });
-
-      const allFinancialLogs = (financialLogsResult.data || []).map(transformFinancialLog);
+      // Use centralized transformers for type-safe conversions
+      const allTasks = dbToTasks(tasksResult.data || []);
+      const allMarketingItems = dbToMarketingItems(marketingItemsResult.data || []);
+      const allFinancialLogs = dbToFinancialLogs(financialLogsResult.data || []);
 
       // Transform documents
       const transformDocument = (dbDoc: any): Document => ({

@@ -5,6 +5,7 @@ import {
   FinancialLog, Document, SettingsData, GamificationData,
   TaskCollectionName, CrmCollectionName, Priority, TaskStatus
 } from '../../types'
+import { taskToDb, marketingItemToDb, crmItemToDb, contactToDb } from '../utils/fieldTransformers'
 
 // Helper to convert task category name to database format
 const categoryToDbFormat = (category: TaskCollectionName): string => {
@@ -44,20 +45,21 @@ export class DataPersistenceAdapter {
     console.log('[DataPersistenceAdapter] category input:', category);
     console.log('[DataPersistenceAdapter] category after conversion:', categoryToDbFormat(category));
     
+    // Use centralized transformer for type-safe conversion
     const taskData = {
-      // id: removed - let database generate
-      text,
-      status: 'Todo' as TaskStatus,
-      priority,
+      ...taskToDb({
+        text,
+        status: 'Todo' as TaskStatus,
+        priority,
+        dueDate,
+        dueTime,
+        crmItemId,
+        contactId,
+        notes: [],
+        assignedTo
+      }),
       category: categoryToDbFormat(category),
-      // created_at: removed - database sets this
-      due_date: dueDate || null,
-      due_time: dueTime || null,
-      crm_item_id: crmItemId || null,
-      contact_id: contactId || null,
-      notes: [],
-      assigned_to: assignedTo || null
-    }
+    } as any; // Type assertion needed due to Record<string, any> return type
 
     console.log('[DataPersistenceAdapter] Task data being saved:', JSON.stringify(taskData, null, 2));
 
@@ -93,16 +95,8 @@ export class DataPersistenceAdapter {
     // Store original data for activity logging
     const { data: originalTask } = await DatabaseService.getTaskById(taskId);
     
-    const dbUpdates: any = {}
-    
-    if (updates.text) dbUpdates.text = updates.text
-    if (updates.status) dbUpdates.status = updates.status
-    if (updates.priority) dbUpdates.priority = updates.priority
-    if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate || null
-    if (updates.dueTime !== undefined) dbUpdates.due_time = updates.dueTime || null
-    if (updates.completedAt !== undefined) dbUpdates.completed_at = updates.completedAt ? new Date(updates.completedAt).toISOString() : null
-    if (updates.notes) dbUpdates.notes = updates.notes
-    if (updates.assignedTo !== undefined) dbUpdates.assigned_to = updates.assignedTo || null
+    // Use centralized transformer for type-safe conversion
+    const dbUpdates = taskToDb(updates);
 
     console.log('[DataPersistenceAdapter] Transformed db updates:', dbUpdates);
 
@@ -317,23 +311,13 @@ export class DataPersistenceAdapter {
   }
 
   static async updateCrmItem(itemId: string, updates: Partial<AnyCrmItem>) {
-    const dbUpdates: any = {}
+    // Use centralized transformer for base CRM fields
+    const dbUpdates: any = crmItemToDb(updates);
     
-    if (updates.company) dbUpdates.company = updates.company
-    if (updates.priority) dbUpdates.priority = updates.priority
-    if (updates.status) dbUpdates.status = updates.status
-    
-    // Handle next action fields - allow setting to null
-    if ('nextAction' in updates) dbUpdates.next_action = updates.nextAction || null
-    if ('nextActionDate' in updates) dbUpdates.next_action_date = updates.nextActionDate || null
-    if ('nextActionTime' in updates) dbUpdates.next_action_time = updates.nextActionTime || null
-    
-    if ('checkSize' in updates) dbUpdates.check_size = updates.checkSize
-    if ('dealValue' in updates) dbUpdates.deal_value = updates.dealValue
-    if ('opportunity' in updates) dbUpdates.opportunity = updates.opportunity
-    if (updates.notes) dbUpdates.notes = updates.notes
-    if (updates.assignedTo !== undefined) dbUpdates.assigned_to = updates.assignedTo
-    if (updates.assignedToName !== undefined) dbUpdates.assigned_to_name = updates.assignedToName
+    // Add type-specific fields (Investor, Customer, Partner)
+    if ('checkSize' in updates) dbUpdates.check_size = updates.checkSize;
+    if ('dealValue' in updates) dbUpdates.deal_value = updates.dealValue;
+    if ('opportunity' in updates) dbUpdates.opportunity = updates.opportunity;
 
     console.log('[DataPersistenceAdapter] updateCrmItem - updates:', updates);
     console.log('[DataPersistenceAdapter] updateCrmItem - dbUpdates:', dbUpdates);
@@ -471,16 +455,8 @@ export class DataPersistenceAdapter {
   }
 
   static async updateMarketingItem(itemId: string, updates: Partial<MarketingItem>) {
-    const dbUpdates: any = {}
-    
-    if (updates.title) dbUpdates.title = updates.title
-    if (updates.type) dbUpdates.type = updates.type
-    if (updates.status) dbUpdates.status = updates.status
-    if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate
-    if (updates.dueTime !== undefined) dbUpdates.due_time = updates.dueTime
-    if (updates.assignedTo !== undefined) dbUpdates.assigned_to = updates.assignedTo
-    if (updates.assignedToName !== undefined) dbUpdates.assigned_to_name = updates.assignedToName
-    if (updates.notes) dbUpdates.notes = updates.notes
+    // Use centralized transformer for type-safe conversion
+    const dbUpdates = marketingItemToDb(updates);
 
     const { data, error } = await DatabaseService.updateMarketingItem(itemId, dbUpdates)
     return { data, error }
