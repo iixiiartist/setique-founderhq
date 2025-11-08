@@ -647,6 +647,13 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
                 await DataPersistenceAdapter.updateTask(taskId, updates, user?.id, workspace?.id);
                 
+                // Track action in Sentry
+                trackAction('task_updated', { 
+                    taskId, 
+                    status: updates.status,
+                    wasCompleted: wasCompleted && previousStatus !== 'Done'
+                });
+                
                 // Reload tasks to get fresh data
                 invalidateCache('tasks');
                 const updatedTasks = await loadTasks();
@@ -757,6 +764,9 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     return { success: false, message: 'Permission denied' };
                 }
 
+                // Track action in Sentry
+                trackAction('task_deleted', { taskId, category: taskCategory });
+                
                 // Use the existing deleteItem method
                 return await actions.deleteItem(taskCategory, taskId);
             } catch (error) {
@@ -942,6 +952,10 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 handleToast(`Creating ${collection.slice(0, -1)}...`, 'info');
                 
                 await DataPersistenceAdapter.createCrmItem(userId, workspace.id, collection, itemData as any);
+                
+                // Track action in Sentry
+                trackAction('crm_item_created', { collection });
+                
                 invalidateCache('crm');
                 
                 // Award XP for creating CRM item
@@ -981,6 +995,10 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
             try {
                 await DataPersistenceAdapter.updateCrmItem(itemId, updates);
+                
+                // Track action in Sentry
+                trackAction('crm_item_updated', { itemId, collection });
+                
                 await reload();
                 invalidateCache('crm');
                 return { success: true, message: 'CRM item updated.' };
@@ -1145,6 +1163,9 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
             try {
                 await DataPersistenceAdapter.logFinancials(userId, workspace.id, logData);
+                
+                // Track action in Sentry
+                trackAction('financial_logged', { date: logData.date });
                 
                 // Clear cache first, then reload
                 invalidateCache('financials');
@@ -1348,6 +1369,9 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 console.log('[createMarketingItem] Creating:', itemData);
                 await DataPersistenceAdapter.createMarketingItem(userId, workspace.id, itemData);
                 
+                // Track action in Sentry
+                trackAction('marketing_item_created', { type: itemData.type, status: itemData.status });
+                
                 // Reload marketing data immediately
                 invalidateCache('marketing');
                 const freshMarketing = await loadMarketing();
@@ -1393,6 +1417,13 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
                 const result = await DataPersistenceAdapter.updateMarketingItem(itemId, dbUpdates);
                 console.log('[updateMarketingItem] Database result:', result);
+
+                // Track action in Sentry
+                trackAction('marketing_item_updated', { 
+                    itemId, 
+                    status: updates.status,
+                    wasPublished: wasPublished && previousStatus !== 'Published'
+                });
 
                 // Award XP if marketing item was just published (not already published)
                 if (wasPublished && previousStatus !== 'Published') {
