@@ -29,7 +29,7 @@ npx supabase secrets set RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxx
 # Set your app URL
 # ⚠️ IMPORTANT: Use your PRODUCTION URL, not localhost!
 # For production:
-npx supabase secrets set APP_URL=https://founderhq.netlify.app
+npx supabase secrets set APP_URL=https://founderhq.setique.com
 
 # For local development only (testing invites):
 # npx supabase secrets set APP_URL=http://localhost:5173

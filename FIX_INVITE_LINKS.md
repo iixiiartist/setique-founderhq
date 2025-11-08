@@ -13,15 +13,10 @@ The Supabase Edge Function `send-invitation` needs the `APP_URL` secret set to y
 
 ### 1. Set the Production APP_URL Secret
 
-Run this command (update with your actual production URL):
+Run this command with your production URL:
 
 ```bash
-npx supabase secrets set APP_URL=https://founderhq.netlify.app
-```
-
-Or if you have a custom domain:
-```bash
-npx supabase secrets set APP_URL=https://your-custom-domain.com
+npx supabase secrets set APP_URL=https://founderhq.setique.com
 ```
 
 ### 2. Verify the Secret is Set
@@ -44,13 +39,13 @@ The function should pick up the new secret automatically, but you can redeploy t
 npx supabase functions deploy send-invitation
 ```
 
-### 4. Test the Fix
+3. Test the Fix
 
 1. Go to your app → Settings → Team Members
 2. Invite someone (use your own email for testing)
 3. Check the email - the link should now be:
    ```
-   https://founderhq.netlify.app?token=xxx
+   https://founderhq.setique.com?token=xxx
    ```
 
 ## Why This Happens
