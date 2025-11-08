@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { NAV_ITEMS, TabType, Tab } from '../constants';
 import { GamificationData, PlanType } from '../types';
+import { usePrefetchTabs } from '../hooks/usePrefetchTabs';
 
 interface SideMenuProps {
     isOpen: boolean;
@@ -11,9 +12,30 @@ interface SideMenuProps {
     onProgressBarClick: () => void;
     workspacePlan?: PlanType;
     isAdmin?: boolean;
+    workspaceId?: string;
+    userId?: string;
 }
 
-const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, activeTab, onSwitchTab, gamification, onProgressBarClick, workspacePlan, isAdmin }) => {
+const SideMenu: React.FC<SideMenuProps> = ({ 
+    isOpen, 
+    onClose, 
+    activeTab, 
+    onSwitchTab, 
+    gamification, 
+    onProgressBarClick, 
+    workspacePlan, 
+    isAdmin,
+    workspaceId,
+    userId
+}) => {
+    const { prefetchTabWithDelay } = usePrefetchTabs({ 
+        workspaceId, 
+        userId, 
+        enabled: isOpen // Only prefetch when menu is open
+    });
+    
+    // Track hover timeouts to clean up on unmount
+    const hoverTimeoutRef = useRef<(() => void) | null>(null);
     const activeClass = "text-blue-500 border-black bg-gray-100";
     const inactiveClass = "text-gray-600 border-transparent";
 
@@ -60,6 +82,21 @@ const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, activeTab, onSwitc
                             onClick={(e) => {
                                 e.preventDefault();
                                 onSwitchTab(item.id);
+                            }}
+                            onMouseEnter={() => {
+                                // Cleanup any existing timeout
+                                if (hoverTimeoutRef.current) {
+                                    hoverTimeoutRef.current();
+                                }
+                                // Start prefetching with 200ms delay
+                                hoverTimeoutRef.current = prefetchTabWithDelay(item.id);
+                            }}
+                            onMouseLeave={() => {
+                                // Cleanup timeout if user moves away before 200ms
+                                if (hoverTimeoutRef.current) {
+                                    hoverTimeoutRef.current();
+                                    hoverTimeoutRef.current = null;
+                                }
                             }}
                         >
                             {item.label}

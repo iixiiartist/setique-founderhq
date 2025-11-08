@@ -1862,6 +1862,8 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 onProgressBarClick={() => setIsTaskFocusModalOpen(true)}
                 workspacePlan={workspace?.planType}
                 isAdmin={isAdmin}
+                workspaceId={workspace?.id}
+                userId={user?.id}
             />
             <div className="min-h-screen p-3 sm:p-4 md:p-8">
                 <header className="mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
