@@ -36,10 +36,10 @@ export default defineConfig(({ mode }) => {
             manualChunks: (id) => {
               // Proper code splitting with careful module grouping
               if (id.includes('node_modules')) {
-                // CRITICAL: lucide-react MUST stay with React to share the same execution context
-                // This prevents ES module initialization race conditions
+                // CRITICAL FIX: lucide-react in dedicated chunk FIRST to prevent split exports
+                // Checking lucide-react BEFORE other libs ensures it's never split
                 if (id.includes('lucide-react')) {
-                  return 'vendor';
+                  return 'icons';
                 }
                 if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler')) {
                   return 'vendor';
