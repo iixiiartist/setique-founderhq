@@ -222,11 +222,9 @@ export function getRecommendedUpgrade(currentPlan: PlanType): PlanType | null {
 }
 
 // Stripe Price IDs (to be set via environment variables)
+// Note: Only active plans are included. Deprecated plans (pro-individual, team-starter) have been removed.
 export const STRIPE_PRICE_IDS = {
-  'pro-individual': import.meta.env.VITE_STRIPE_PRICE_PRO_INDIVIDUAL,
   'power-individual': import.meta.env.VITE_STRIPE_PRICE_POWER_INDIVIDUAL,
-  'team-starter-base': import.meta.env.VITE_STRIPE_PRICE_TEAM_STARTER_BASE,
-  'team-starter-seat': import.meta.env.VITE_STRIPE_PRICE_TEAM_STARTER_SEAT,
   'team-pro-base': import.meta.env.VITE_STRIPE_PRICE_TEAM_PRO_BASE,
   'team-pro-seat': import.meta.env.VITE_STRIPE_PRICE_TEAM_PRO_SEAT,
 } as const;
