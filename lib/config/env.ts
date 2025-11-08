@@ -11,41 +11,43 @@
  */
 
 interface EnvConfig {
-  // Gemini AI
-  VITE_GEMINI_API_KEY: string;
-  
-  // Supabase
+  // Required - Critical for app functionality
   VITE_SUPABASE_URL: string;
   VITE_SUPABASE_ANON_KEY: string;
-  
-  // Stripe
   VITE_STRIPE_PUBLISHABLE_KEY: string;
-  VITE_STRIPE_PRICE_PRO_INDIVIDUAL: string;
-  VITE_STRIPE_PRICE_POWER_INDIVIDUAL: string;
-  VITE_STRIPE_PRICE_TEAM_STARTER_BASE: string;
-  VITE_STRIPE_PRICE_TEAM_PRO_BASE: string;
-  VITE_STRIPE_PRICE_TEAM_STARTER_SEAT: string;
-  VITE_STRIPE_PRICE_TEAM_PRO_SEAT: string;
-  
-  // Application
-  VITE_APP_NAME: string;
-  VITE_APP_VERSION: string;
-  VITE_ENVIRONMENT: 'development' | 'staging' | 'production';
   VITE_APP_URL: string;
   
-  // Optional
+  // Optional - Degrades gracefully if missing
+  VITE_GEMINI_API_KEY?: string;
+  VITE_STRIPE_PRICE_PRO_INDIVIDUAL?: string;
+  VITE_STRIPE_PRICE_POWER_INDIVIDUAL?: string;
+  VITE_STRIPE_PRICE_TEAM_STARTER_BASE?: string;
+  VITE_STRIPE_PRICE_TEAM_PRO_BASE?: string;
+  VITE_STRIPE_PRICE_TEAM_STARTER_SEAT?: string;
+  VITE_STRIPE_PRICE_TEAM_PRO_SEAT?: string;
+  VITE_APP_NAME?: string;
+  VITE_APP_VERSION?: string;
+  VITE_ENVIRONMENT?: 'development' | 'staging' | 'production';
   VITE_SENTRY_DSN?: string;
   VITE_ANALYTICS_ID?: string;
 }
 
 /**
  * Required environment variables for the application to function
+ * These are critical and will block startup if missing
  */
 const REQUIRED_ENV_VARS: (keyof EnvConfig)[] = [
-  'VITE_GEMINI_API_KEY',
   'VITE_SUPABASE_URL',
   'VITE_SUPABASE_ANON_KEY',
   'VITE_STRIPE_PUBLISHABLE_KEY',
+  'VITE_APP_URL',
+];
+
+/**
+ * Optional environment variables (won't block startup)
+ */
+const OPTIONAL_ENV_VARS: (keyof EnvConfig)[] = [
+  'VITE_GEMINI_API_KEY',
   'VITE_STRIPE_PRICE_PRO_INDIVIDUAL',
   'VITE_STRIPE_PRICE_POWER_INDIVIDUAL',
   'VITE_STRIPE_PRICE_TEAM_STARTER_BASE',
@@ -55,13 +57,6 @@ const REQUIRED_ENV_VARS: (keyof EnvConfig)[] = [
   'VITE_APP_NAME',
   'VITE_APP_VERSION',
   'VITE_ENVIRONMENT',
-  'VITE_APP_URL',
-];
-
-/**
- * Optional environment variables (won't block startup)
- */
-const OPTIONAL_ENV_VARS: (keyof EnvConfig)[] = [
   'VITE_SENTRY_DSN',
   'VITE_ANALYTICS_ID',
 ];
@@ -132,10 +127,14 @@ function validateEnvVar(key: string, value: string | undefined, required: boolea
  */
 export function getEnvConfig(): EnvConfig {
   return {
-    VITE_GEMINI_API_KEY: import.meta.env.VITE_GEMINI_API_KEY,
+    // Required
     VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
     VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY,
     VITE_STRIPE_PUBLISHABLE_KEY: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY,
+    VITE_APP_URL: import.meta.env.VITE_APP_URL,
+    
+    // Optional (may be undefined)
+    VITE_GEMINI_API_KEY: import.meta.env.VITE_GEMINI_API_KEY,
     VITE_STRIPE_PRICE_PRO_INDIVIDUAL: import.meta.env.VITE_STRIPE_PRICE_PRO_INDIVIDUAL,
     VITE_STRIPE_PRICE_POWER_INDIVIDUAL: import.meta.env.VITE_STRIPE_PRICE_POWER_INDIVIDUAL,
     VITE_STRIPE_PRICE_TEAM_STARTER_BASE: import.meta.env.VITE_STRIPE_PRICE_TEAM_STARTER_BASE,
@@ -145,7 +144,6 @@ export function getEnvConfig(): EnvConfig {
     VITE_APP_NAME: import.meta.env.VITE_APP_NAME,
     VITE_APP_VERSION: import.meta.env.VITE_APP_VERSION,
     VITE_ENVIRONMENT: import.meta.env.VITE_ENVIRONMENT,
-    VITE_APP_URL: import.meta.env.VITE_APP_URL,
     VITE_SENTRY_DSN: import.meta.env.VITE_SENTRY_DSN,
     VITE_ANALYTICS_ID: import.meta.env.VITE_ANALYTICS_ID,
   };
@@ -204,8 +202,12 @@ export function validateEnvironment(): void {
   }
   
   // Log success
-  const envName = env.VITE_ENVIRONMENT;
+  const envName = env.VITE_ENVIRONMENT || 'unknown';
   console.log(`✅ Environment validated successfully (${envName})`);
+  
+  if (warnings.length > 0) {
+    console.log(`   ⚠️  ${warnings.length} optional variable(s) not configured`);
+  }
 }
 
 /**
