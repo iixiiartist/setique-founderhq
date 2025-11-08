@@ -74,7 +74,7 @@ export default defineConfig(({ mode }) => {
       test: {
         globals: true,
         environment: 'node',
-        setupFiles: ['./tests/rls/setup.ts'],
+        setupFiles: (process.env.TEST_TYPE === 'rls') ? ['./tests/rls/setup.ts'] : [],
         testMatch: ['**/tests/**/*.test.ts'],
         coverage: {
           provider: 'v8',
