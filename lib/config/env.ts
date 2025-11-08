@@ -167,12 +167,10 @@ export function validateEnvironment(): void {
     }
   });
   
-  // Validate optional variables (warnings only)
+  // Validate optional variables (only check validity if set, don't warn if missing)
   OPTIONAL_ENV_VARS.forEach((key) => {
     const value = env[key];
-    if (!value) {
-      warnings.push(`Optional environment variable not set: ${key}`);
-    } else {
+    if (value) {
       const error = validateEnvVar(key, value as string, false);
       if (error) {
         warnings.push(error);
@@ -180,7 +178,7 @@ export function validateEnvironment(): void {
     }
   });
   
-  // Log warnings
+  // Log warnings only for invalid (not missing) optional variables
   if (warnings.length > 0) {
     console.warn('⚠️  Environment Configuration Warnings:');
     warnings.forEach((warning) => console.warn(`   ${warning}`));
@@ -202,11 +200,13 @@ export function validateEnvironment(): void {
   }
   
   // Log success
-  const envName = env.VITE_ENVIRONMENT || 'unknown';
+  const envName = env.VITE_ENVIRONMENT || 'production';
   console.log(`✅ Environment validated successfully (${envName})`);
   
-  if (warnings.length > 0) {
-    console.log(`   ⚠️  ${warnings.length} optional variable(s) not configured`);
+  // Count optional variables that are actually configured
+  const configuredOptional = OPTIONAL_ENV_VARS.filter(key => env[key]).length;
+  if (configuredOptional > 0 || import.meta.env.DEV) {
+    console.log(`   ℹ️  ${configuredOptional}/${OPTIONAL_ENV_VARS.length} optional features configured`);
   }
 }
 
