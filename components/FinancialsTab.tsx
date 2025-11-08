@@ -9,6 +9,47 @@ import TaskManagement from './shared/TaskManagement';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import KpiCard from './shared/KpiCard';
 
+const EXPENSE_CATEGORY_OPTIONS: ExpenseCategory[] = [
+    'Software/SaaS',
+    'Marketing',
+    'Office',
+    'Legal',
+    'Contractors',
+    'Travel',
+    'Meals',
+    'Equipment',
+    'Subscriptions',
+    'Other'
+];
+
+const formatDateLabel = (isoDate: string) =>
+    new Date(`${isoDate}T00:00:00Z`).toLocaleDateString(undefined, {
+        timeZone: 'UTC',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+
+const formatMonthKey = (date: Date) => `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+
+const monthKeyToLabel = (key: string) =>
+    new Date(`${key}-01T00:00:00Z`).toLocaleDateString(undefined, {
+        timeZone: 'UTC',
+        month: 'long',
+        year: 'numeric'
+    });
+
+const formatCurrency = (value?: number | null) => `$${(value ?? 0).toLocaleString()}`;
+const formatNumber = (value?: number | null) => `${(value ?? 0).toLocaleString()}`;
+const formatDelta = (value: number, isCurrency = false) => {
+    if (value === 0) {
+        return isCurrency ? '±$0' : '±0';
+    }
+    const absolute = Math.abs(value);
+    const prefix = value > 0 ? '+' : '-';
+    return `${prefix}${isCurrency ? '$' : ''}${absolute.toLocaleString()}`;
+};
+
 const FinancialLogItem: React.FC<{ item: FinancialLog; onDelete: () => void; }> = ({ item, onDelete }) => (
     <li className="flex items-center justify-between p-3 bg-white border-2 border-black shadow-neo">
         <div className="flex-grow">
@@ -68,6 +109,19 @@ const FinancialsTab: React.FC<{
 
     const [expenseFilter, setExpenseFilter] = useState<ExpenseCategory | 'All'>('All');
     const [expenseSortBy, setExpenseSortBy] = useState<'date' | 'amount'>('date');
+
+    const expenseFilterOptions = useMemo<(ExpenseCategory | 'All')[]>(() => ['All', ...EXPENSE_CATEGORY_OPTIONS], []);
+
+    const currentMonthKey = useMemo(() => formatMonthKey(new Date()), []);
+    const previousMonthKey = useMemo(() => {
+        const base = new Date();
+        base.setUTCDate(1);
+        base.setUTCMonth(base.getUTCMonth() - 1);
+        return formatMonthKey(base);
+    }, []);
+
+    const currentMonthLabel = useMemo(() => monthKeyToLabel(currentMonthKey), [currentMonthKey]);
+    const previousMonthLabel = useMemo(() => monthKeyToLabel(previousMonthKey), [previousMonthKey]);
     
     const documentsMetadata = useMemo(() => documents.map(({ id, name, mimeType, module, uploadedAt }) => ({ id, name, mimeType, module, uploadedAt })), [documents]);
     
@@ -192,27 +246,97 @@ ${JSON.stringify(documentsMetadata, null, 2)}
         expenses.reduce((sum, e) => sum + e.amount, 0),
     [expenses]);
 
-    const monthlyExpenses = useMemo(() => {
-        const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
-        return expenses
-            .filter(e => e.date.startsWith(currentMonth))
-            .reduce((sum, e) => sum + e.amount, 0);
-    }, [expenses]);
+    const monthlyExpenses = useMemo(() =>
+        expenses
+            .filter(e => e.date.startsWith(currentMonthKey))
+            .reduce((sum, e) => sum + e.amount, 0),
+    [expenses, currentMonthKey]);
+
+    const previousMonthExpenses = useMemo(() =>
+        expenses
+            .filter(e => e.date.startsWith(previousMonthKey))
+            .reduce((sum, e) => sum + e.amount, 0),
+    [expenses, previousMonthKey]);
+
+    const monthlyExpenseDelta = monthlyExpenses - previousMonthExpenses;
+
+    const sortedLogs = useMemo(() =>
+        [...items].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [items]);
+
+    const chronologicalLogs = useMemo(() =>
+        [...items].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+    [items]);
+
+    const chartData = useMemo(() =>
+        chronologicalLogs.map(log => ({
+            date: log.date,
+            mrr: log.mrr,
+            gmv: log.gmv
+        })),
+    [chronologicalLogs]);
+
+    const latestFinancials = sortedLogs[0] ?? null;
+    const previousFinancials = sortedLogs[1] ?? null;
+    const latestLogDateLabel = latestFinancials ? formatDateLabel(latestFinancials.date) : '';
+
+    const mrrDelta = latestFinancials && previousFinancials ? latestFinancials.mrr - previousFinancials.mrr : null;
+    const gmvDelta = latestFinancials && previousFinancials ? latestFinancials.gmv - previousFinancials.gmv : null;
+    const signupDelta = latestFinancials && previousFinancials ? latestFinancials.signups - previousFinancials.signups : null;
 
     const EXPENSE_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16'];
 
-     const chartData = items.map(f => ({
-        name: new Date(f.date + 'T00:00:00').toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' }),
-        MRR: f.mrr,
-        GMV: f.gmv,
-    })).sort((a,b) => new Date(a.name).getTime() - new Date(b.name).getTime());
+    const latestSignups = latestFinancials?.signups ?? 0;
+    const latestMrr = latestFinancials?.mrr ?? 0;
+    const latestGmv = latestFinancials?.gmv ?? 0;
 
-    const sortedLogs = [...items].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const formatSpend = (value: number) => (value === 0 ? '$0' : `-$${value.toLocaleString()}`);
 
-    // Get latest signups data
-    const latestFinancials = items.length > 0 
-        ? [...items].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0] 
-        : { signups: 0 };
+    const snapshotDescription = latestFinancials
+        ? `Latest entry: ${latestLogDateLabel}`
+        : 'Log your first financial snapshot to unlock insights';
+
+    const signupsDescription = latestFinancials
+        ? `Latest entry: ${latestLogDateLabel}`
+        : 'Log your first financial snapshot to track signups';
+
+    const totalExpenseDescription = expenses.length > 0
+        ? `${expenses.length} logged expense${expenses.length === 1 ? '' : 's'}`
+        : 'Track your first expense';
+
+    const monthlyExpenseDescription = `Spending in ${currentMonthLabel}`;
+
+    const signupsTrend = signupDelta !== null
+        ? {
+            label: `${formatDelta(signupDelta)} vs prior entry`,
+            tone: signupDelta >= 0 ? 'positive' : 'negative',
+            direction: signupDelta === 0 ? 'flat' : undefined
+        } as const
+        : undefined;
+
+    const mrrTrend = mrrDelta !== null
+        ? {
+            label: `${formatDelta(mrrDelta, true)} vs prior entry`,
+            tone: mrrDelta >= 0 ? 'positive' : 'negative',
+            direction: mrrDelta === 0 ? 'flat' : undefined
+        } as const
+        : undefined;
+
+    const gmvTrend = gmvDelta !== null
+        ? {
+            label: `${formatDelta(gmvDelta, true)} vs prior entry`,
+            tone: gmvDelta >= 0 ? 'positive' : 'negative',
+            direction: gmvDelta === 0 ? 'flat' : undefined
+        } as const
+        : undefined;
+
+    const monthlyExpenseTrend = previousMonthExpenses > 0
+        ? {
+            label: `${formatDelta(monthlyExpenseDelta, true)} vs ${previousMonthLabel}`,
+            tone: monthlyExpenseDelta <= 0 ? 'positive' : 'negative',
+            direction: monthlyExpenseDelta < 0 ? 'down' : monthlyExpenseDelta === 0 ? 'flat' : 'up'
+        } as const
+        : undefined;
 
     const calculatedXp = useMemo(() => {
         const BASE_XP = 10;
@@ -226,21 +350,38 @@ ${JSON.stringify(documentsMetadata, null, 2)}
             <div className="lg:col-span-2 space-y-6">
                 {/* KPI Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <KpiCard 
-                        title="New Signups" 
-                        value={latestFinancials.signups.toLocaleString()} 
-                        description="From latest financial log" 
+                    <KpiCard
+                        title="Monthly Recurring Revenue"
+                        value={formatCurrency(latestMrr)}
+                        description={snapshotDescription}
+                        trend={mrrTrend}
                     />
-                    <div className="bg-white p-4 border-2 border-black shadow-neo">
-                        <p className="text-sm text-gray-600 font-mono mb-1">Total Expenses</p>
-                        <p className="text-2xl font-bold text-red-600">-${totalExpenses.toLocaleString()}</p>
-                        <p className="text-xs text-gray-500 mt-1">All time</p>
-                    </div>
-                    <div className="bg-white p-4 border-2 border-black shadow-neo">
-                        <p className="text-sm text-gray-600 font-mono mb-1">Monthly Expenses</p>
-                        <p className="text-2xl font-bold text-orange-600">-${monthlyExpenses.toLocaleString()}</p>
-                        <p className="text-xs text-gray-500 mt-1">Current month</p>
-                    </div>
+                    <KpiCard
+                        title="Gross Merchandise Volume"
+                        value={formatCurrency(latestGmv)}
+                        description={snapshotDescription}
+                        trend={gmvTrend}
+                    />
+                    <KpiCard
+                        title="New Signups"
+                        value={formatNumber(latestSignups)}
+                        description={signupsDescription}
+                        trend={signupsTrend}
+                    />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <KpiCard
+                        title="Total Expenses"
+                        value={formatSpend(totalExpenses)}
+                        description={totalExpenseDescription}
+                    />
+                    <KpiCard
+                        title="Monthly Expenses"
+                        value={formatSpend(monthlyExpenses)}
+                        description={monthlyExpenseDescription}
+                        trend={monthlyExpenseTrend}
+                    />
                 </div>
 
                 {/* Charts Section */}
@@ -251,12 +392,23 @@ ${JSON.stringify(documentsMetadata, null, 2)}
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={chartData}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
-                                    <XAxis dataKey="name" tick={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10 }} />
-                                    <YAxis tickFormatter={(value) => `$${Number(value).toLocaleString()}`} tick={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10 }} />
-                                    <Tooltip contentStyle={{ fontFamily: "'Inter', sans-serif" }}/>
+                                    <XAxis
+                                        dataKey="date"
+                                        tick={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10 }}
+                                        tickFormatter={(value: string) => new Date(`${value}T00:00:00Z`).toLocaleDateString(undefined, { timeZone: 'UTC', month: 'short', day: 'numeric' })}
+                                    />
+                                    <YAxis
+                                        tickFormatter={(value: number) => `$${Number(value).toLocaleString()}`}
+                                        tick={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10 }}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{ fontFamily: "'Inter', sans-serif" }}
+                                        labelFormatter={(value) => formatDateLabel(String(value))}
+                                        formatter={(value: number, name: string) => [`$${Number(value).toLocaleString()}`, name]}
+                                    />
                                     <Legend wrapperStyle={{ fontFamily: "'IBM Plex Mono', monospace" }} />
-                                    <Line type="monotone" dataKey="MRR" stroke="#3b82f6" strokeWidth={2} />
-                                    <Line type="monotone" dataKey="GMV" stroke="#10b981" strokeWidth={2} />
+                                    <Line type="monotone" dataKey="mrr" name="MRR" stroke="#3b82f6" strokeWidth={2} />
+                                    <Line type="monotone" dataKey="gmv" name="GMV" stroke="#10b981" strokeWidth={2} />
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
@@ -407,23 +559,16 @@ ${JSON.stringify(documentsMetadata, null, 2)}
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label htmlFor="expense-category" className="block font-mono text-xs font-semibold text-black mb-1">Category</label>
-                                    <select 
+                                    <select
                                         id="expense-category"
-                                        value={expenseForm.category || 'Other'} 
-                                        onChange={e => setExpenseForm(p=>({...p, category: e.target.value as ExpenseCategory}))} 
+                                        value={expenseForm.category || 'Other'}
+                                        onChange={e => setExpenseForm(p=>({...p, category: e.target.value as ExpenseCategory}))}
                                         required
                                         className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 text-sm"
                                     >
-                                        <option value="Software/SaaS">Software/SaaS</option>
-                                        <option value="Marketing">Marketing</option>
-                                        <option value="Office">Office</option>
-                                        <option value="Legal">Legal</option>
-                                        <option value="Contractors">Contractors</option>
-                                        <option value="Travel">Travel</option>
-                                        <option value="Meals">Meals</option>
-                                        <option value="Equipment">Equipment</option>
-                                        <option value="Subscriptions">Subscriptions</option>
-                                        <option value="Other">Other</option>
+                                        {EXPENSE_CATEGORY_OPTIONS.map(category => (
+                                            <option key={category} value={category}>{category}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div>
@@ -462,16 +607,14 @@ ${JSON.stringify(documentsMetadata, null, 2)}
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-xl font-semibold text-black">Expense History</h2>
                             <div className="flex gap-2">
-                                <select 
-                                    value={expenseFilter} 
+                                <select
+                                    value={expenseFilter}
                                     onChange={e => setExpenseFilter(e.target.value as ExpenseCategory | 'All')}
                                     className="bg-white border-2 border-black text-black px-2 py-1 text-xs font-mono rounded-none focus:outline-none focus:border-blue-500"
                                 >
-                                    <option value="All">All</option>
-                                    <option value="Software/SaaS">Software</option>
-                                    <option value="Marketing">Marketing</option>
-                                    <option value="Office">Office</option>
-                                    <option value="Other">Other</option>
+                                    {expenseFilterOptions.map(option => (
+                                        <option key={option} value={option}>{option}</option>
+                                    ))}
                                 </select>
                                 <select 
                                     value={expenseSortBy} 
