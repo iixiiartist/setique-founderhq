@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
+import { useDebounce } from '../lib/hooks/usePerformance';
 
 interface UserSignup {
     id: string;
@@ -32,6 +33,9 @@ const AdminTab: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterPlan, setFilterPlan] = useState<string>('all');
     const [filterConfirmed, setFilterConfirmed] = useState<string>('all');
+
+    // Debounce search query to prevent excessive filtering on every keystroke
+    const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
     useEffect(() => {
         loadUserData();
@@ -88,20 +92,23 @@ const AdminTab: React.FC = () => {
         }
     };
 
-    const filteredUsers = users.filter(user => {
-        const matchesSearch = 
-            user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            user.fullName.toLowerCase().includes(searchQuery.toLowerCase());
-        
-        const matchesPlan = filterPlan === 'all' || user.planType === filterPlan;
-        
-        const matchesConfirmed = 
-            filterConfirmed === 'all' || 
-            (filterConfirmed === 'confirmed' && user.emailConfirmed) ||
-            (filterConfirmed === 'unconfirmed' && !user.emailConfirmed);
+    // Memoize filtered users to prevent recalculation on every render
+    const filteredUsers = useMemo(() => {
+        return users.filter(user => {
+            const matchesSearch = 
+                user.email.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+                user.fullName.toLowerCase().includes(debouncedSearchQuery.toLowerCase());
+            
+            const matchesPlan = filterPlan === 'all' || user.planType === filterPlan;
+            
+            const matchesConfirmed = 
+                filterConfirmed === 'all' || 
+                (filterConfirmed === 'confirmed' && user.emailConfirmed) ||
+                (filterConfirmed === 'unconfirmed' && !user.emailConfirmed);
 
-        return matchesSearch && matchesPlan && matchesConfirmed;
-    });
+            return matchesSearch && matchesPlan && matchesConfirmed;
+        });
+    }, [users, debouncedSearchQuery, filterPlan, filterConfirmed]);
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
