@@ -111,6 +111,27 @@ export const AcceptInviteNotification: React.FC<AcceptInviteNotificationProps> =
             if (data?.success) {
                 alert(`✅ Successfully joined ${data.workspace_name || 'workspace'}!`);
                 setPendingInvites(prev => prev.filter(inv => inv.id !== invitation.id));
+                
+                // Trigger team achievement check for new member added
+                if (data.workspace_id && data.user_id) {
+                    // Import dynamically to avoid circular dependencies
+                    import('../../lib/services/gamificationService').then(async ({ TeamAchievementService }) => {
+                        try {
+                            // Get current member count (will include the new member after reload)
+                            const { data: members } = await DatabaseService.getWorkspaceMembers(data.workspace_id);
+                            const memberCount = members?.length || 1;
+                            
+                            await TeamAchievementService.onMemberAdded(
+                                data.workspace_id,
+                                data.user_id,
+                                memberCount
+                            );
+                        } catch (error) {
+                            console.error('[TeamAchievements] Error checking member achievement:', error);
+                        }
+                    });
+                }
+                
                 onAccepted();
             }
         } catch (error: any) {

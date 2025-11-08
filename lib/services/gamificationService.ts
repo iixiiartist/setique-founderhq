@@ -381,6 +381,20 @@ export class GamificationService {
  * Handles checking and unlocking team-based achievements for workspaces
  */
 export class TeamAchievementService {
+  // Team level thresholds (fixed progression system)
+  private static readonly TEAM_LEVEL_THRESHOLDS = [
+    0,      // Level 1
+    500,    // Level 2
+    1500,   // Level 3
+    3500,   // Level 4
+    7000,   // Level 5
+    12000,  // Level 6
+    18500,  // Level 7
+    27000,  // Level 8
+    37500,  // Level 9
+    50000   // Level 10
+  ];
+
   // Cache to prevent duplicate checks within a short time window
   private static checkCache = new Map<string, number>();
   private static CACHE_DURATION = 60000; // 1 minute
@@ -397,6 +411,49 @@ export class TeamAchievementService {
   private static batchTimer: NodeJS.Timeout | null = null;
   private static BATCH_DELAY = 1000; // 1 second
   
+  /**
+   * Calculate team level based on total XP
+   * Uses fixed thresholds for team progression
+   */
+  static calculateTeamLevel(totalXP: number): number {
+    for (let i = this.TEAM_LEVEL_THRESHOLDS.length - 1; i >= 0; i--) {
+      if (totalXP >= this.TEAM_LEVEL_THRESHOLDS[i]) {
+        return i + 1;
+      }
+    }
+    return 1;
+  }
+
+  /**
+   * Update workspace team XP and level in database
+   * Called after unlocking new achievements
+   */
+  static async updateTeamLevel(workspaceId: string, totalXP: number): Promise<{ level: number; leveledUp: boolean; oldLevel?: number }> {
+    try {
+      // Get current workspace data
+      const { data: workspace } = await DatabaseService.getWorkspaceById(workspaceId);
+      const oldXP = workspace?.team_xp || 0;
+      const oldLevel = workspace?.team_level || 1;
+      const newLevel = this.calculateTeamLevel(totalXP);
+      const leveledUp = newLevel > oldLevel;
+
+      // Update workspace with new XP and level
+      await DatabaseService.updateWorkspace(workspaceId, {
+        team_xp: totalXP,
+        team_level: newLevel
+      });
+
+      if (leveledUp) {
+        console.log(`[TeamAchievements] 🎉 Team Level Up! ${oldLevel} → ${newLevel} (${totalXP} XP)`);
+      }
+
+      return { level: newLevel, leveledUp, oldLevel: leveledUp ? oldLevel : undefined };
+    } catch (error) {
+      console.error('[TeamAchievements] Failed to update team level:', error);
+      return { level: 1, leveledUp: false };
+    }
+  }
+
   /**
    * Check if we should skip this check due to recent execution
    */
@@ -610,6 +667,20 @@ export class TeamAchievementService {
           totalXP += achievement.xpReward;
           
           console.log(`[TeamAchievements] 🏆 Unlocked: ${achievement.name} (+${achievement.xpReward} XP)`);
+        }
+      }
+
+      // Update workspace team XP and level if achievements were unlocked
+      if (unlockedAchievements.length > 0) {
+        const { data: workspace } = await DatabaseService.getWorkspaceById(workspaceId);
+        const currentXP = workspace?.team_xp || 0;
+        const newTotalXP = currentXP + totalXP;
+        
+        const levelResult = await this.updateTeamLevel(workspaceId, newTotalXP);
+        
+        // Include level-up info in response for notification purposes
+        if (levelResult.leveledUp) {
+          console.log(`[TeamAchievements] Workspace leveled up to ${levelResult.level}!`);
         }
       }
 

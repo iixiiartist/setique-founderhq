@@ -1100,6 +1100,25 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 
                 // Reload data once after all operations
                 await reload();
+
+                // Check team achievements
+                if (workspace?.id && userId) {
+                    const totalContacts = [...data.investors, ...data.customers, ...data.partners].length + 1;
+                    const teamResult = await TeamAchievementService.onCRMContactAdded(
+                        workspace.id,
+                        userId,
+                        totalContacts
+                    );
+
+                    if (teamResult?.newAchievements?.length > 0) {
+                        const firstAchievement = teamResult.newAchievements[0];
+                        handleToast(
+                            `🏆 Team Achievement: ${firstAchievement.achievementName} (+${firstAchievement.xpReward} Team XP)`,
+                            'success'
+                        );
+                    }
+                }
+
                 return { success: true, message: `${collection} item created.` };
             } catch (error) {
                 console.error('Error creating CRM item:', error);
@@ -1232,6 +1251,32 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 } else {
                     handleToast(`Meeting "${meetingData.title}" logged.`, 'success');
                 }
+
+                // Check team achievements
+                if (workspace?.id && userId) {
+                    // Count all meetings across all CRM contacts
+                    const allCrmItems = [...data.investors, ...data.customers, ...data.partners];
+                    const totalMeetings = allCrmItems.reduce((count, item) => {
+                        const contacts = item.contacts || [];
+                        return count + contacts.reduce((meetingCount, contact) => {
+                            return meetingCount + (contact.meetings?.length || 0);
+                        }, 0);
+                    }, 0) + 1; // +1 for the meeting we just created
+
+                    const teamResult = await TeamAchievementService.onMeetingLogged(
+                        workspace.id,
+                        userId,
+                        totalMeetings
+                    );
+
+                    if (teamResult?.newAchievements?.length > 0) {
+                        const firstAchievement = teamResult.newAchievements[0];
+                        handleToast(
+                            `🏆 Team Achievement: ${firstAchievement.achievementName} (+${firstAchievement.xpReward} Team XP)`,
+                            'success'
+                        );
+                    }
+                }
                 
                 await reload();
                 return { success: true, message: 'Meeting created.' };
@@ -1318,6 +1363,28 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 } else {
                     handleToast(`Financials logged for ${logData.date}.`, 'success');
                 }
+
+                // Check team achievements for financial milestones
+                if (workspace?.id && userId) {
+                    // Calculate total GMV and MRR
+                    const totalGMV = freshFinancials.financials.reduce((sum, log) => sum + (log.gmv || 0), 0);
+                    const totalMRR = freshFinancials.financials.reduce((sum, log) => sum + (log.mrr || 0), 0);
+
+                    const teamResult = await TeamAchievementService.onFinancialUpdate(
+                        workspace.id,
+                        userId,
+                        totalGMV,
+                        totalMRR
+                    );
+
+                    if (teamResult?.newAchievements?.length > 0) {
+                        const firstAchievement = teamResult.newAchievements[0];
+                        handleToast(
+                            `🏆 Team Achievement: ${firstAchievement.achievementName} (+${firstAchievement.xpReward} Team XP)`,
+                            'success'
+                        );
+                    }
+                }
                 
                 await reload();
                 return { success: true, message: `Financials logged for date ${logData.date}.` };
@@ -1349,6 +1416,24 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     expenses: freshFinancials.expenses 
                 }));
                 setLoadedTabs(prev => new Set(prev).add('financials'));
+
+                // Check team achievements
+                if (workspace?.id && userId) {
+                    const totalExpenses = freshFinancials.expenses.length;
+                    const teamResult = await TeamAchievementService.onExpenseTracked(
+                        workspace.id,
+                        userId,
+                        totalExpenses
+                    );
+
+                    if (teamResult?.newAchievements?.length > 0) {
+                        const firstAchievement = teamResult.newAchievements[0];
+                        handleToast(
+                            `🏆 Team Achievement: ${firstAchievement.achievementName} (+${firstAchievement.xpReward} Team XP)`,
+                            'success'
+                        );
+                    }
+                }
                 
                 return { success: true, message: `Expense created: ${expenseData.description}` };
             } catch (error) {
@@ -1562,6 +1647,24 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         const achievement = ACHIEVEMENTS[result.newAchievements[0]];
                         handleToast(`🏆 ${achievement.title}`, 'success');
                     }
+
+                    // Check team achievements for marketing campaign launch
+                    if (workspace?.id && userId) {
+                        const publishedCount = data.marketing.filter(m => m.status === 'Published').length + 1;
+                        const teamResult = await TeamAchievementService.onMarketingCampaignLaunched(
+                            workspace.id,
+                            userId,
+                            publishedCount
+                        );
+
+                        if (teamResult?.newAchievements?.length > 0) {
+                            const firstAchievement = teamResult.newAchievements[0];
+                            handleToast(
+                                `🏆 Team Achievement: ${firstAchievement.achievementName} (+${firstAchievement.xpReward} Team XP)`,
+                                'success'
+                            );
+                        }
+                    }
                 }
                 
                 // Single reload and cache invalidation after all updates
@@ -1663,6 +1766,25 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 await reload();
                 invalidateCache('documents');
                 handleToast(`"${name}" uploaded successfully.`, 'success');
+
+                // Check team achievements
+                if (workspace?.id && userId) {
+                    const totalDocuments = data.documents.length + 1;
+                    const teamResult = await TeamAchievementService.onDocumentUploaded(
+                        workspace.id,
+                        userId,
+                        totalDocuments
+                    );
+
+                    if (teamResult?.newAchievements?.length > 0) {
+                        const firstAchievement = teamResult.newAchievements[0];
+                        handleToast(
+                            `🏆 Team Achievement: ${firstAchievement.achievementName} (+${firstAchievement.xpReward} Team XP)`,
+                            'success'
+                        );
+                    }
+                }
+
                 return { success: true, message: `Document "${name}" uploaded to the library.` };
             } catch (error) {
                 console.error('Error uploading document:', error);

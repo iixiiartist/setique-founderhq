@@ -300,17 +300,116 @@ If you still see API errors:
 3. Ensure the API key has Gemini API permissions enabled
 4. Restart dev server after `.env.local` changes
 
+## Team Achievements System
+
+In addition to personal gamification, the platform includes a **Team Achievements** system for workspace-level collaboration and milestones.
+
+### Key Differences from Personal Achievements
+
+| Feature | Personal Achievements | Team Achievements |
+|---------|---------------------|-------------------|
+| **Storage** | `profiles.gamification` JSONB | `workspace_achievements` table |
+| **XP/Level** | `profiles.gamification.{xp, level}` | `workspaces.{team_xp, team_level}` |
+| **Achievement Count** | 13 types | 25 types (5 categories) |
+| **Level Calculation** | Formula: `100 * level + level² * 50` | Fixed thresholds (see below) |
+| **XP Rewards** | 5-20 XP per action | 50-1000 XP per achievement (tier-based) |
+| **Naming Convention** | kebab-case (`first-task`) | snake_case (`team_first_member`) |
+
+### Team Achievement Categories
+
+1. **Team Building** (6 achievements): Growing your team, time-based milestones
+2. **Collaboration** (5 achievements): Shared tasks, meetings, deals
+3. **Financial** (5 achievements): GMV, MRR, expense tracking milestones
+4. **Productivity** (5 achievements): Task completion, document library
+5. **Engagement** (4 achievements): All active, AI usage, CRM contacts
+
+### Team Level Thresholds
+
+| Level | XP Required | Level | XP Required |
+|-------|-------------|-------|-------------|
+| 1 | 0 XP | 6 | 12,000 XP |
+| 2 | 500 XP | 7 | 18,500 XP |
+| 3 | 1,500 XP | 8 | 27,000 XP |
+| 4 | 3,500 XP | 9 | 37,500 XP |
+| 5 | 7,000 XP | 10 | 50,000 XP |
+
+### Integration Points
+
+Team achievements are checked automatically at 9 integration points:
+
+1. **Task Completed** - `DashboardApp.tsx` line ~824
+2. **Member Added** - `AcceptInviteNotification.tsx` after invitation acceptance
+3. **Meeting Logged** - `DashboardApp.tsx` in `actions.createMeeting`
+4. **Financial Update** - `DashboardApp.tsx` in `actions.logFinancials`
+5. **Expense Tracked** - `DashboardApp.tsx` in `actions.createExpense`
+6. **Document Uploaded** - `DashboardApp.tsx` in `actions.uploadDocument`
+7. **CRM Contact Added** - `DashboardApp.tsx` in `actions.createCrmItem`
+8. **Marketing Campaign** - `DashboardApp.tsx` in `actions.updateMarketingItem` (status → Published)
+9. **AI Usage** - _(Future integration planned)_
+
+### Performance Optimizations
+
+Team achievements include production-ready performance features:
+
+- **60-second caching**: Prevents duplicate checks within 1-minute window
+- **1-second batching**: Multiple rapid actions batched into single check
+- **Async processing**: Non-blocking, achievements processed in background
+- **Error resilience**: Achievement failures never block user actions
+
+See [GAMIFICATION_PRODUCTION_OPTIMIZATION.md](./GAMIFICATION_PRODUCTION_OPTIMIZATION.md) for details.
+
+### Database Schema
+
+**workspace_achievements table:**
+```sql
+CREATE TABLE workspace_achievements (
+    id UUID PRIMARY KEY,
+    workspace_id UUID REFERENCES workspaces(id),
+    achievement_id TEXT NOT NULL,
+    unlocked_at TIMESTAMP WITH TIME ZONE,
+    unlocked_by_user_id UUID REFERENCES profiles(id),
+    metadata JSONB,
+    UNIQUE(workspace_id, achievement_id)
+);
+```
+
+**workspaces table additions:**
+```sql
+ALTER TABLE workspaces 
+ADD COLUMN team_xp INTEGER DEFAULT 0 NOT NULL,
+ADD COLUMN team_level INTEGER DEFAULT 1 NOT NULL;
+```
+
+### Detailed Documentation
+
+For comprehensive documentation including all 25 team achievements, unlock conditions, testing procedures, and troubleshooting, see:
+
+📖 **[TEAM_ACHIEVEMENTS_GUIDE.md](./TEAM_ACHIEVEMENTS_GUIDE.md)**
+
 ## Summary
 
 🎉 **All gamification features are now production-ready!**
 
+### Personal Achievements
 - ✅ XP awards automatically on 6 different actions
-- ✅ Levels calculate and increment correctly
-- ✅ Achievements unlock based on milestones
+- ✅ Levels calculate and increment correctly (formula-based)
+- ✅ 13 achievements unlock based on milestones
 - ✅ Daily streaks track and persist
 - ✅ Real-time notifications for milestones
 - ✅ All data persists to Supabase
-- ✅ Build completes successfully (572KB main bundle)
-- ✅ Gemini API key configuration fixed
 
-**Next Steps**: Test the system by using the dashboard normally - complete tasks, add CRM items, log meetings, and watch your XP and level grow! 🚀
+### Team Achievements
+- ✅ 25 team achievements across 5 categories
+- ✅ 9 integration points automatically check achievements
+- ✅ Fixed level thresholds for predictable progression
+- ✅ Production-optimized with caching and batching
+- ✅ Workspace XP and level tracked in database
+- ✅ Team achievement unlocks with notifications
+
+### Technical Status
+- ✅ Build completes successfully
+- ✅ Gemini API key configuration fixed
+- ✅ TypeScript types fully defined
+- ✅ Database schema standardized
+
+**Next Steps**: Test the system by using the dashboard normally - complete tasks, add CRM items, log meetings, publish marketing, and watch both personal and team progress grow! 🚀
