@@ -10,6 +10,10 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:rls": "vitest run tests/rls",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint . --ext ts,tsx --fix",
     "type-check": "tsc --noEmit",
@@ -80,7 +84,6 @@
   "dependencies": {
     "@google/genai": "^1.27.0",
     "@stripe/stripe-js": "^8.2.0",
-    "@supabase/supabase-js": "^2.77.0",
     "@tanstack/react-query": "^5.90.7",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.552.0",
@@ -95,10 +98,12 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "@supabase/supabase-js": "^2.80.0",
     "@tailwindcss/postcss": "^4.1.16",
     "@types/node": "^22.14.0",
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "@vitest/ui": "^4.0.8",
     "autoprefixer": "^10.4.21",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
@@ -106,12 +111,14 @@
     "electron-builder": "^26.0.12",
     "png-to-ico": "^3.0.1",
     "postcss": "^8.5.6",
+    "supabase": "^2.54.11",
     "tailwindcss": "^4.1.16",
     "terser": "^5.44.0",
     "to-ico": "^1.1.5",
     "typescript": "~5.8.2",
     "vite": "^6.2.0",
     "vite-bundle-analyzer": "^1.2.3",
+    "vitest": "^4.0.8",
     "wait-on": "^9.0.1"
   }
 }
