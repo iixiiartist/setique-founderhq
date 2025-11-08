@@ -31,11 +31,12 @@ export default defineConfig(({ mode }) => {
         rollupOptions: {
           output: {
             manualChunks: (id) => {
-              // Core dependencies
+              // Core dependencies - ORDER MATTERS! Check lucide-react FIRST
               if (id.includes('node_modules')) {
-                // CRITICAL: lucide-react must be in its own chunk to prevent module initialization errors
+                // CRITICAL FIX: lucide-react MUST be checked first and kept with React
+                // to prevent module initialization race conditions
                 if (id.includes('lucide-react')) {
-                  return 'icons';
+                  return 'vendor'; // Keep with React, not separate
                 }
                 if (id.includes('react') || id.includes('react-dom')) {
                   return 'vendor';
