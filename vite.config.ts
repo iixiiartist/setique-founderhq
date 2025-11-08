@@ -33,15 +33,14 @@ export default defineConfig(({ mode }) => {
           output: {
             // Preserve module format to prevent initialization issues
             preserveModules: false,
+            // Ensure proper chunk loading order
+            experimentalMinChunkSize: 1000,
             manualChunks: (id) => {
               // Proper code splitting with careful module grouping
               if (id.includes('node_modules')) {
-                // CRITICAL FIX: lucide-react in dedicated chunk FIRST to prevent split exports
-                // Checking lucide-react BEFORE other libs ensures it's never split
-                if (id.includes('lucide-react')) {
-                  return 'icons';
-                }
-                if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler')) {
+                // Group React ecosystem together (React + lucide-react)
+                // They must share the same chunk to prevent initialization race conditions
+                if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler') || id.includes('lucide-react')) {
                   return 'vendor';
                 }
                 if (id.includes('@supabase')) {
