@@ -8,6 +8,8 @@ import { monitorWebVitals, perfMonitor } from './lib/performance'
 import { disableProductionLogs } from './lib/logger'
 import './index.css'
 
+// Force cache invalidation - build 1762568900
+
 // Disable verbose console logs in production
 disableProductionLogs()
 
