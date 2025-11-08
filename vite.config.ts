@@ -31,38 +31,12 @@ export default defineConfig(({ mode }) => {
         sourcemap: mode === 'production' ? 'hidden' : true, // Enable source maps for debugging
         rollupOptions: {
           output: {
-            // Preserve module format to prevent initialization issues
-            preserveModules: false,
-            // Ensure proper chunk loading order
-            experimentalMinChunkSize: 1000,
+            // SIMPLIFIED: Keep all node_modules in ONE vendor chunk
+            // This prevents ANY cross-chunk dependency issues
             manualChunks: (id) => {
-              // Proper code splitting with careful module grouping
+              // All node_modules go into ONE vendor chunk
               if (id.includes('node_modules')) {
-                // Group React ecosystem together (React + lucide-react)
-                // They must share the same chunk to prevent initialization race conditions
-                if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler') || id.includes('lucide-react')) {
-                  return 'vendor';
-                }
-                if (id.includes('@supabase')) {
-                  return 'supabase';
-                }
-                if (id.includes('@tanstack/react-query')) {
-                  return 'react-query';
-                }
-                if (id.includes('recharts') || id.includes('d3-')) {
-                  return 'charts';
-                }
-                if (id.includes('react-markdown') || id.includes('remark') || id.includes('rehype')) {
-                  return 'markdown';
-                }
-                if (id.includes('react-hot-toast')) {
-                  return 'toast';
-                }
-                if (id.includes('@sentry/react')) {
-                  return 'sentry';
-                }
-                // All other node_modules
-                return 'libs';
+                return 'vendor';
               }
               
               // Component-level code splitting (lazy loaded tabs)
