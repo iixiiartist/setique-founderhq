@@ -28,17 +28,20 @@ export default defineConfig(({ mode }) => {
         target: 'esnext',
         minify: 'terser',
         outDir: 'dist',
+        sourcemap: mode === 'production' ? 'hidden' : true, // Enable source maps for debugging
         rollupOptions: {
           output: {
+            // Preserve module format to prevent initialization issues
+            preserveModules: false,
             manualChunks: (id) => {
-              // Core dependencies - ORDER MATTERS! Check lucide-react FIRST
+              // Proper code splitting with careful module grouping
               if (id.includes('node_modules')) {
-                // CRITICAL FIX: lucide-react MUST be checked first and kept with React
-                // to prevent module initialization race conditions
+                // CRITICAL: lucide-react MUST stay with React to share the same execution context
+                // This prevents ES module initialization race conditions
                 if (id.includes('lucide-react')) {
-                  return 'vendor'; // Keep with React, not separate
+                  return 'vendor';
                 }
-                if (id.includes('react') || id.includes('react-dom')) {
+                if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler')) {
                   return 'vendor';
                 }
                 if (id.includes('@supabase')) {
@@ -56,11 +59,14 @@ export default defineConfig(({ mode }) => {
                 if (id.includes('react-hot-toast')) {
                   return 'toast';
                 }
-                // All other node_modules go into libs chunk
+                if (id.includes('@sentry/react')) {
+                  return 'sentry';
+                }
+                // All other node_modules
                 return 'libs';
               }
               
-              // Component chunking for code splitting
+              // Component-level code splitting (lazy loaded tabs)
               if (id.includes('/components/CrmTab')) {
                 return 'crm-tab';
               }
