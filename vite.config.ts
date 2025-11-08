@@ -33,6 +33,10 @@ export default defineConfig(({ mode }) => {
             manualChunks: (id) => {
               // Core dependencies
               if (id.includes('node_modules')) {
+                // CRITICAL: lucide-react must be in its own chunk to prevent module initialization errors
+                if (id.includes('lucide-react')) {
+                  return 'icons';
+                }
                 if (id.includes('react') || id.includes('react-dom')) {
                   return 'vendor';
                 }
