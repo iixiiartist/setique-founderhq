@@ -6,9 +6,30 @@ import App from './App'
 import { healthCheck } from './lib/config'
 import { monitorWebVitals, perfMonitor } from './lib/performance'
 import { disableProductionLogs } from './lib/logger'
+import { validateEnvironment } from './lib/config/env'
 import './index.css'
 
 // Force cache invalidation - build 1762568900
+
+// Validate environment variables before app starts
+try {
+  validateEnvironment()
+} catch (error) {
+  console.error(error)
+  // In production, show user-friendly error instead of blank screen
+  if (import.meta.env.VITE_ENVIRONMENT === 'production') {
+    document.getElementById('root')!.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; padding: 20px; text-align: center;">
+        <div>
+          <h1 style="color: #e53e3e; margin-bottom: 16px;">Configuration Error</h1>
+          <p style="color: #4a5568; margin-bottom: 24px;">The application is not properly configured. Please contact support.</p>
+          <p style="color: #718096; font-size: 14px;">Error details have been logged to the console.</p>
+        </div>
+      </div>
+    `
+  }
+  throw error
+}
 
 // Disable verbose console logs in production
 disableProductionLogs()
