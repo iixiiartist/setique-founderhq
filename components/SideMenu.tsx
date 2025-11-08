@@ -73,7 +73,7 @@ const SideMenu: React.FC<SideMenuProps> = ({
                     <h2 className="text-xl sm:text-2xl font-bold">Menu</h2>
                     <button onClick={onClose} className="text-3xl hover:text-gray-600 transition-colors" aria-label="Close menu">&times;</button>
                 </div>
-                <nav className="flex-grow overflow-y-auto custom-scrollbar pr-2 -mr-2">
+                <nav className="flex-grow overflow-y-auto custom-scrollbar pr-2 -mr-2" role="navigation" aria-label="Main navigation">
                     {filteredNavItems.map(item => (
                         <a 
                             key={item.id} 
@@ -98,6 +98,8 @@ const SideMenu: React.FC<SideMenuProps> = ({
                                     hoverTimeoutRef.current = null;
                                 }
                             }}
+                            aria-label={`Navigate to ${item.label}`}
+                            aria-current={activeTab === item.id ? 'page' : undefined}
                         >
                             {item.label}
                         </a>

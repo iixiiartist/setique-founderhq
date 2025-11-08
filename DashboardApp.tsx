@@ -1808,6 +1808,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                                 <button
                                     onClick={() => setActiveTab(Tab.Settings)}
                                     className="px-6 py-3 bg-yellow-400 text-black font-bold border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+                                    aria-label="Upgrade to Power or Team Pro plan to access File Library"
                                 >
                                     Upgrade to Access File Library
                                 </button>
@@ -1887,12 +1888,14 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                                 }
                             }}
                             className="w-full bg-black text-white py-3 px-6 rounded-lg font-semibold hover:bg-gray-800 transition-colors"
+                            aria-label="Create your first workspace to get started"
                         >
                             Create My Workspace
                         </button>
                         <button
                             onClick={() => signOut()}
                             className="w-full mt-4 text-gray-600 hover:text-gray-800 transition-colors"
+                            aria-label="Sign out and return to login"
                         >
                             Sign Out
                         </button>
