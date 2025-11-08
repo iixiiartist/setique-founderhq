@@ -285,6 +285,7 @@ export interface Database {
         Row: {
           id: string
           user_id: string
+          workspace_id: string | null
           created_at: string
           updated_at: string
           name: string
@@ -294,10 +295,14 @@ export interface Database {
           company_id: string | null
           contact_id: string | null
           notes: Json | null
+          uploaded_by: string | null
+          uploaded_by_name: string | null
+          uploaded_at: string | null
         }
         Insert: {
           id?: string
           user_id: string
+          workspace_id?: string | null
           created_at?: string
           updated_at?: string
           name: string
@@ -307,10 +312,14 @@ export interface Database {
           company_id?: string | null
           contact_id?: string | null
           notes?: Json | null
+          uploaded_by?: string | null
+          uploaded_by_name?: string | null
+          uploaded_at?: string | null
         }
         Update: {
           id?: string
           user_id?: string
+          workspace_id?: string | null
           created_at?: string
           updated_at?: string
           name?: string
@@ -320,6 +329,9 @@ export interface Database {
           company_id?: string | null
           contact_id?: string | null
           notes?: Json | null
+          uploaded_by?: string | null
+          uploaded_by_name?: string | null
+          uploaded_at?: string | null
         }
       }
       expenses: {

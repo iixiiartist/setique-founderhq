@@ -230,7 +230,15 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
 
                 const functionResponseParts = await Promise.all(
                     functionCalls.map(async (call) => {
-                        const result = await executeAction(call);
+                        if (!call.name) {
+                            throw new Error('Function call missing name.');
+                        }
+
+                        const result = await executeAction({
+                            name: call.name,
+                            args: call.args ?? {},
+                        });
+
                         return {
                             functionResponse: { name: call.name, response: result },
                         };

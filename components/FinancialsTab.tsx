@@ -2,11 +2,10 @@ import React, { useState, useMemo } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
-import { FinancialLog, Expense, ExpenseCategory, PaymentMethod, AppActions, Task, Document, BusinessProfile } from '../types';
+import { FinancialLog, Expense, ExpenseCategory, PaymentMethod, AppActions, Task, Document, BusinessProfile, WorkspaceMember } from '../types';
 import ModuleAssistant from './shared/ModuleAssistant';
 import { Tab } from '../constants';
 import TaskManagement from './shared/TaskManagement';
-import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import KpiCard from './shared/KpiCard';
 
@@ -42,16 +41,17 @@ const ExpenseItem: React.FC<{ item: Expense; onDelete: () => void; }> = ({ item,
     </li>
 );
 
-const FinancialsTab: React.FC<{ 
-    items: FinancialLog[]; 
-    expenses: Expense[]; 
-    tasks: Task[]; 
-    actions: AppActions; 
-    documents: Document[]; 
+const FinancialsTab: React.FC<{
+    items: FinancialLog[];
+    expenses: Expense[];
+    tasks: Task[];
+    actions: AppActions;
+    documents: Document[];
     businessProfile?: BusinessProfile | null;
     workspaceId?: string;
     onUpgradeNeeded?: () => void;
-}> = React.memo(({ items, expenses, tasks, actions, documents, businessProfile, workspaceId, onUpgradeNeeded }) => {
+    workspaceMembers?: WorkspaceMember[];
+}> = React.memo(({ items, expenses, tasks, actions, documents, businessProfile, workspaceId, onUpgradeNeeded, workspaceMembers = [] }) => {
     const { workspace } = useWorkspace();
     const [form, setForm] = useState<Omit<FinancialLog, 'id'>>({
         date: new Date().toISOString().split('T')[0], mrr: 0, gmv: 0, signups: 0
@@ -86,9 +86,20 @@ const FinancialsTab: React.FC<{
 - **Primary Goal:** ${primaryGoal}
 ` : `**Business Context:** Not yet configured.`;
     
+    const teamContext = workspaceMembers.length > 0 ? `
+**Team Members (${workspaceMembers.length}):**
+${workspaceMembers.map(member => `- ${member.fullName || member.email || 'Unknown Member'} (${member.email || 'no email'}) - Role: ${member.role}`).join('\n')}
+
+**Collaboration Notes:**
+- Highlight which teammates own revenue, finance, or operations tasks when suggesting follow-ups.
+- Surface potential owners for approvals or reviews using the listed roles.
+` : `**Team:** Working solo (no additional team members in workspace).`;
+
     const systemPrompt = `You are an expert CFO and financial analyst assistant for ${companyName}.
 
 ${businessContext}
+
+${teamContext}
 
 **Reporting Guidelines:**
 When asked for a report, analyze the provided financial logs.

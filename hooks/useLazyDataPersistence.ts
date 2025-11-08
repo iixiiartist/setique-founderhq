@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useWorkspace } from '../contexts/WorkspaceContext'
 import { DatabaseService } from '../lib/services/database'
+import { dbToDocument, dbToMarketingItem, dbToCrmItem, dbToFinancialLogs, dbToExpenses } from '../lib/utils/fieldTransformers'
 import { DashboardData, Task, MarketingItem, FinancialLog, Expense, Document, Investor, Customer, Partner } from '../types'
 import { EMPTY_DASHBOARD_DATA } from '../constants'
 import { supabase } from '../lib/supabase'
@@ -157,8 +158,13 @@ export const useLazyDataPersistence = () => {
       const allContacts = contactsResult.data || []
       const allMeetings = meetingsResult.data || []
 
-      // Transform CRM items with contacts and meetings
-      const transformedCrmItems = crmItems.map(item => {
+      const investors: Investor[] = []
+      const customers: Customer[] = []
+      const partners: Partner[] = []
+
+      crmItems.forEach(item => {
+        const baseItem = dbToCrmItem(item as any)
+
         const itemContacts = allContacts
           .filter(c => c.crm_item_id === item.id)
           .map(contact => {
@@ -183,29 +189,39 @@ export const useLazyDataPersistence = () => {
             }
           })
 
-        return {
-          id: item.id,
-          company: item.company,
-          contacts: itemContacts, // Always an array, even if empty
-          priority: item.priority,
-          status: item.status,
-          nextAction: item.next_action || undefined,
-          nextActionDate: item.next_action_date || undefined,
-          createdAt: new Date(item.created_at).getTime(),
-          notes: item.notes || [],
-          checkSize: item.check_size || undefined,
-          dealValue: item.deal_value || undefined,
-          opportunity: item.opportunity || undefined,
-          assignedTo: item.assigned_to || undefined,
-          assignedToName: item.assigned_to_name || undefined,
-          type: item.type // Keep type for filtering
+        const normalizedItem = {
+          ...baseItem,
+          contacts: itemContacts
+        }
+
+        switch (item.type) {
+          case 'investor':
+            investors.push({
+              ...normalizedItem,
+              checkSize: Number(item.check_size ?? 0)
+            })
+            break
+          case 'customer':
+            customers.push({
+              ...normalizedItem,
+              dealValue: Number(item.deal_value ?? 0)
+            })
+            break
+          case 'partner':
+            partners.push({
+              ...normalizedItem,
+              opportunity: item.opportunity || ''
+            })
+            break
+          default:
+            break
         }
       })
 
       const result = {
-        investors: transformedCrmItems.filter(item => item.type === 'investor'),
-        customers: transformedCrmItems.filter(item => item.type === 'customer'),
-        partners: transformedCrmItems.filter(item => item.type === 'partner')
+        investors,
+        customers,
+        partners
       }
 
       setDataCache(prev => ({
@@ -242,12 +258,16 @@ export const useLazyDataPersistence = () => {
 
       const { data: marketing } = await DatabaseService.getMarketingItems(workspace.id)
 
+      const normalizedMarketing = ((marketing || []) as any[]).map(item =>
+        'item_type' in item ? dbToMarketingItem(item as any) : item
+      ) as MarketingItem[]
+
       setDataCache(prev => ({
         ...prev,
-        [cacheKey]: { data: marketing || [], timestamp: Date.now(), isLoading: false }
+        [cacheKey]: { data: normalizedMarketing, timestamp: Date.now(), isLoading: false }
       }))
 
-      return marketing || []
+      return normalizedMarketing
     } catch (err) {
       console.error('Error loading marketing:', err)
       setError(err as Error)
@@ -279,9 +299,12 @@ export const useLazyDataPersistence = () => {
         DatabaseService.getExpenses(workspace.id)
       ])
 
+      const normalizedFinancials = dbToFinancialLogs((financialsRes.data || []) as any)
+      const normalizedExpenses = dbToExpenses((expensesRes.data || []) as any)
+
       const result = {
-        financials: financialsRes.data || [],
-        expenses: expensesRes.data || []
+        financials: normalizedFinancials,
+        expenses: normalizedExpenses
       }
 
       setDataCache(prev => ({
@@ -328,12 +351,16 @@ export const useLazyDataPersistence = () => {
         return []
       }
 
+      const normalizedDocuments = ((documents || []) as any[]).map(doc =>
+        'mime_type' in doc || 'created_at' in doc ? dbToDocument(doc as any) : doc
+      ) as Document[]
+
       setDataCache(prev => ({
         ...prev,
-        [cacheKey]: { data: documents || [], timestamp: Date.now(), isLoading: false }
+        [cacheKey]: { data: normalizedDocuments, timestamp: Date.now(), isLoading: false }
       }))
 
-      return documents || []
+      return normalizedDocuments
     } catch (err) {
       console.error('Error loading documents:', err)
       setError(err as Error)

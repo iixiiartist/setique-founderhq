@@ -5,6 +5,13 @@ export type { TabType };
 
 export type Priority = 'Low' | 'Medium' | 'High';
 export type TaskStatus = 'Todo' | 'InProgress' | 'Done';
+export type TaskCollectionName =
+    'platformTasks' |
+    'investorTasks' |
+    'customerTasks' |
+    'partnerTasks' |
+    'marketingTasks' |
+    'financialTasks';
 
 export interface Note {
     text: string;
@@ -26,6 +33,7 @@ export interface Task {
     text: string;
     status: TaskStatus;
     priority: Priority;
+    category: TaskCollectionName;
     createdAt: number;
     completedAt?: number;
     dueDate?: string; // YYYY-MM-DD
@@ -93,16 +101,19 @@ export interface MarketingItem {
     dueTime?: string; // HH:MM (24-hour format)
 }
 
-export type CalendarEvent = (Task & {
+export type CalendarTaskEvent = Task & {
     tag: string;
     type: 'task';
     title: string;
-}) | (Omit<MarketingItem, 'type'> & {
-    phone?: string | null;
-    title?: string | null;
-    linkedin: string;
+};
+
+export type CalendarMarketingEvent = Omit<MarketingItem, 'type'> & {
     type: 'marketing';
-}) | (Meeting & {
+    tag: string;
+    contentType: MarketingItem['type'];
+};
+
+export type CalendarMeetingEvent = Meeting & {
     dueDate: string;
     tag: string;
     type: 'meeting';
@@ -110,13 +121,21 @@ export type CalendarEvent = (Task & {
     contactName: string;
     crmItemId: string;
     contactId: string;
-}) | (BaseCrmItem & {
+};
+
+export type CalendarCrmEvent = BaseCrmItem & {
     dueDate: string; // Maps from nextActionDate
     tag: string; // 'Investor' | 'Customer' | 'Partner'
     type: 'crm-action';
     title: string; // Maps from nextAction
     companyName: string; // Maps from company
-});
+};
+
+export type CalendarEvent =
+    | CalendarTaskEvent
+    | CalendarMarketingEvent
+    | CalendarMeetingEvent
+    | CalendarCrmEvent;
 
 export interface FinancialLog {
     id: string;
@@ -418,6 +437,8 @@ export interface Document {
     module: TabType;
     companyId?: string;
     contactId?: string;
+    uploadedBy?: string;
+    uploadedByName?: string;
     notes: Note[];
 }
 
@@ -456,13 +477,12 @@ export interface DashboardData {
 
 // Types for AI Function Calling
 export type CrmCollectionName = 'investors' | 'customers' | 'partners';
-export type TaskCollectionName = 'platformTasks' | 'investorTasks' | 'customerTasks' | 'partnerTasks' | 'marketingTasks' | 'financialTasks';
 export type NoteableCollectionName = CrmCollectionName | TaskCollectionName | 'marketing' | 'contacts' | 'documents' | 'expenses';
 export type DeletableCollectionName = NoteableCollectionName | 'financials';
 
 export interface AppActions {
     createTask: (category: TaskCollectionName, text: string, priority: Priority, crmItemId?: string, contactId?: string, dueDate?: string, assignedTo?: string, dueTime?: string) => Promise<{ success: boolean; message: string; }>;
-    updateTask: (taskId: string, updates: Partial<Pick<Task, 'text' | 'status' | 'priority' | 'dueDate' | 'dueTime' | 'assignedTo'>>) => Promise<{ success: boolean; message: string; }>;
+    updateTask: (taskId: string, updates: Partial<Pick<Task, 'text' | 'status' | 'priority' | 'dueDate' | 'dueTime' | 'assignedTo' | 'category'>>) => Promise<{ success: boolean; message: string; }>;
     deleteTask: (taskId: string) => Promise<{ success: boolean; message: string; }>;
     addNote: (collection: NoteableCollectionName, itemId: string, noteText: string, crmItemId?: string) => Promise<{ success: boolean; message: string; }>;
     updateNote: (collection: NoteableCollectionName, itemId: string, noteTimestamp: number, newText: string, crmItemId?: string) => Promise<{ success: boolean; message: string; }>;

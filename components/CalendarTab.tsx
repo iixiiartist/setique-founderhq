@@ -406,7 +406,12 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
             )}
             <div className="grid grid-cols-2 gap-4">
                 <div><p className="font-mono text-sm uppercase">Module</p><p className="font-semibold text-lg">{event.tag}</p></div>
-                <div><p className="font-mono text-sm uppercase">Type</p><p className="font-semibold text-lg capitalize">{event.type}</p></div>
+                <div>
+                    <p className="font-mono text-sm uppercase">Type</p>
+                    <p className="font-semibold text-lg capitalize">
+                        {isMarketing ? event.contentType : event.type}
+                    </p>
+                </div>
                 <div>
                     <p className="font-mono text-sm uppercase">Date & Time</p>
                     <p className="font-semibold text-lg">

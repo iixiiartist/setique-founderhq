@@ -1,7 +1,7 @@
 import { supabase } from '../supabase'
 import { Database } from '../types/database'
-import { DashboardData, Task, AnyCrmItem, Contact, Meeting, MarketingItem, FinancialLog, Document, SettingsData, GamificationData, Priority } from '../../types'
-import { dbToTasks, dbToMarketingItems, dbToFinancialLogs, dbToCrmItem, dbToContacts } from '../utils/fieldTransformers'
+import { DashboardData, Task, MarketingItem, FinancialLog, Document, SettingsData, GamificationData } from '../../types'
+import { dbToTask, dbToTasks, dbToFinancialLogs, dbToDocument, dbToMarketingItem, dbToCrmItem, dbToExpenses } from '../utils/fieldTransformers'
 
 type Tables = Database['public']['Tables']
 
@@ -82,24 +82,8 @@ export class DatabaseService {
       if (error) throw error
       
       // Transform tasks from database format (snake_case) to app format (camelCase)
-      const transformedData = data?.map(dbTask => ({
-        id: dbTask.id,
-        text: dbTask.text,
-        status: dbTask.status,
-        priority: dbTask.priority,
-        createdAt: new Date(dbTask.created_at).getTime(),
-        completedAt: dbTask.completed_at ? new Date(dbTask.completed_at).getTime() : undefined,
-        dueDate: dbTask.due_date || undefined,
-        dueTime: dbTask.due_time || undefined,
-        notes: dbTask.notes || [],
-        crmItemId: dbTask.crm_item_id || undefined,
-        contactId: dbTask.contact_id || undefined,
-        userId: dbTask.user_id,
-        assignedTo: dbTask.assigned_to || undefined,
-        assignedToName: dbTask.assigned_to_profile?.full_name || undefined,
-        category: dbTask.category,
-      })) || []
-      
+      const transformedData = dbToTasks((data || []) as any)
+
       return { data: transformedData, error: null }
     } catch (error) {
       console.error('Error fetching tasks:', error)
@@ -367,14 +351,18 @@ export class DatabaseService {
   // Marketing Items operations
   static async getMarketingItems(workspaceId: string) {
     try {
-      const { data, error} = await supabase
+      const { data, error } = await supabase
         .from('marketing_items')
         .select('*')
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      return { data, error: null }
+      const transformed = ((data || []) as any[]).map(item =>
+        'item_type' in item ? dbToMarketingItem(item as any) : item
+      ) as MarketingItem[]
+
+      return { data: transformed, error: null }
     } catch (error) {
       console.error('Error fetching marketing items:', error)
       return { data: [], error }
@@ -515,14 +503,31 @@ export class DatabaseService {
     try {
       const { data, error } = await supabase
         .from('documents')
-        .select('id, name, mime_type, module, company_id, contact_id, workspace_id, created_at, updated_at')
-        // Note: uploaded_by and uploaded_by_name columns don't exist yet (need migration)
+        .select(`
+          id,
+          name,
+          mime_type,
+          content,
+          module,
+          company_id,
+          contact_id,
+          workspace_id,
+          created_at,
+          updated_at,
+          uploaded_by,
+          uploaded_by_name,
+          notes
+        `)
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false })
         .limit(100) // Limit to 100 most recent documents
 
       if (error) throw error
-      return { data, error: null }
+      const transformed = ((data || []) as any[]).map(doc =>
+        'mime_type' in doc || 'created_at' in doc ? dbToDocument(doc as any) : doc
+      ) as Document[]
+
+      return { data: transformed, error: null }
     } catch (error) {
       console.error('Error fetching documents:', error)
       return { data: [], error }
@@ -1918,27 +1923,25 @@ export class DatabaseService {
       const allMeetings = meetingsResult.data || [];
 
       // Use centralized transformers for type-safe conversions
-      const allTasks = dbToTasks(tasksResult.data || []);
-      const allMarketingItems = dbToMarketingItems(marketingItemsResult.data || []);
+      const allTasks = ((tasksResult.data || []) as any[]).map(task =>
+        'created_at' in task ? dbToTask(task as any) : (task as Task)
+      ) as Task[];
+      const allMarketingItems = ((marketingItemsResult.data || []) as any[]).map(item =>
+        'item_type' in item ? dbToMarketingItem(item as any) : item
+      ) as MarketingItem[];
       const allFinancialLogs = dbToFinancialLogs(financialLogsResult.data || []);
 
-      // Transform documents
-      const transformDocument = (dbDoc: any): Document => ({
-        id: dbDoc.id,
-        name: dbDoc.name,
-        mimeType: dbDoc.mime_type,
-        content: dbDoc.content,
-        uploadedAt: new Date(dbDoc.uploaded_at).getTime(),
-        module: dbDoc.module,
-        companyId: dbDoc.company_id || undefined,
-        contactId: dbDoc.contact_id || undefined,
-        notes: dbDoc.notes || [],
-      });
+      const allDocuments = ((documentsResult.data || []) as any[]).map(doc =>
+        'mime_type' in doc || 'created_at' in doc ? dbToDocument(doc as any) : doc
+      ) as Document[];
 
-      const allDocuments = (documentsResult.data || []).map(transformDocument);
+      const investors: DashboardData['investors'] = [];
+      const customers: DashboardData['customers'] = [];
+      const partners: DashboardData['partners'] = [];
 
-      // Attach contacts to CRM items and transform to app format
-      const crmItemsWithContacts = crmItems.map(item => {
+      crmItems.forEach(item => {
+        const baseItem = dbToCrmItem(item as any);
+
         const itemContacts = allContacts
           .filter(c => c.crm_item_id === item.id)
           .map(contact => {
@@ -1963,50 +1966,49 @@ export class DatabaseService {
             };
           });
 
-        return {
-          id: item.id,
-          company: item.company,
-          type: item.type, // Preserve the type for filtering
-          contacts: itemContacts,
-          priority: item.priority as Priority,
-          status: item.status,
-          nextAction: item.next_action || undefined,
-          nextActionDate: item.next_action_date || undefined,
-          nextActionTime: item.next_action_time || undefined,
-          createdAt: new Date(item.created_at).getTime(),
-          notes: item.notes || [],
-          checkSize: item.check_size || undefined,
-          dealValue: item.deal_value || undefined,
-          opportunity: item.opportunity || undefined,
-          assignedTo: item.assigned_to || undefined,
-          assignedToName: item.assigned_to_name || undefined
+        const normalizedItem = {
+          ...baseItem,
+          contacts: itemContacts
         };
+
+        switch (item.type) {
+          case 'investor':
+            investors.push({
+              ...normalizedItem,
+              checkSize: Number(item.check_size ?? 0)
+            });
+            break;
+          case 'customer':
+            customers.push({
+              ...normalizedItem,
+              dealValue: Number(item.deal_value ?? 0)
+            });
+            break;
+          case 'partner':
+            partners.push({
+              ...normalizedItem,
+              opportunity: item.opportunity || ''
+            });
+            break;
+          default:
+            break;
+        }
       });
 
       // Transform expenses from database format to app format
-      const allExpenses = (expensesResult.data || []).map(dbExpense => ({
-        id: dbExpense.id,
-        date: dbExpense.date,
-        category: dbExpense.category as any,
-        amount: Number(dbExpense.amount),
-        description: dbExpense.description,
-        vendor: dbExpense.vendor || undefined,
-        paymentMethod: dbExpense.payment_method as any || undefined,
-        receiptDocumentId: dbExpense.receipt_document_id || undefined,
-        notes: dbExpense.notes || []
-      }));
+      const allExpenses = dbToExpenses((expensesResult.data || []) as any);
 
       const dashboardData: Partial<DashboardData> = {
-        platformTasks: allTasks.filter(t => (t as any).category === 'platformTasks' || tasksResult.data?.find(dt => dt.id === t.id)?.category === 'platformTasks'),
-        investorTasks: allTasks.filter(t => tasksResult.data?.find(dt => dt.id === t.id)?.category === 'investorTasks'),
-        customerTasks: allTasks.filter(t => tasksResult.data?.find(dt => dt.id === t.id)?.category === 'customerTasks'),
-        partnerTasks: allTasks.filter(t => tasksResult.data?.find(dt => dt.id === t.id)?.category === 'partnerTasks'),
-        marketingTasks: allTasks.filter(t => tasksResult.data?.find(dt => dt.id === t.id)?.category === 'marketingTasks'),
-        financialTasks: allTasks.filter(t => tasksResult.data?.find(dt => dt.id === t.id)?.category === 'financialTasks'),
+        platformTasks: allTasks.filter(t => t.category === 'platformTasks'),
+        investorTasks: allTasks.filter(t => t.category === 'investorTasks'),
+        customerTasks: allTasks.filter(t => t.category === 'customerTasks'),
+        partnerTasks: allTasks.filter(t => t.category === 'partnerTasks'),
+        marketingTasks: allTasks.filter(t => t.category === 'marketingTasks'),
+        financialTasks: allTasks.filter(t => t.category === 'financialTasks'),
         
-        investors: crmItemsWithContacts.filter(item => (item as any).type === 'investor') as any[],
-        customers: crmItemsWithContacts.filter(item => (item as any).type === 'customer') as any[],
-        partners: crmItemsWithContacts.filter(item => (item as any).type === 'partner') as any[],
+        investors,
+        customers,
+        partners,
         
         marketing: allMarketingItems,
         financials: allFinancialLogs,
