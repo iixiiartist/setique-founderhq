@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { useAuth } from './AuthContext';
 import { DatabaseService } from '../lib/services/database';
 import { BusinessProfile, Workspace, WorkspaceMember } from '../types';
-import { supabase } from '../lib/supabase';
+import { withTimeout } from '../lib/utils/promiseHelpers';
 
 interface WorkspaceContextType {
     workspace: Workspace | null;
@@ -54,13 +54,12 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
             setIsLoadingWorkspace(true);
             console.log('[WorkspaceContext] Loading workspace for user:', user.id);
             
-            // Add timeout to prevent infinite loading
-            const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Workspace loading timeout')), 10000)
+            // Add timeout to prevent infinite loading with automatic cleanup
+            const { data: workspaces, error } = await withTimeout(
+                DatabaseService.getWorkspaces(user.id),
+                10000,
+                'Workspace loading timeout'
             );
-            
-            const loadPromise = DatabaseService.getWorkspaces(user.id);
-            const { data: workspaces, error } = await Promise.race([loadPromise, timeoutPromise]) as any;
             
             console.log('[WorkspaceContext] Workspace loaded:', { workspaces, error });
             
@@ -92,8 +91,8 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
     }, [user, isRetrying]);
 
     const refreshBusinessProfile = useCallback(async () => {
-        if (!workspace) {
-            console.log('[WorkspaceContext] No workspace, skipping profile load');
+        if (!workspace || !user) {
+            console.log('[WorkspaceContext] No workspace or user, skipping profile load');
             return;
         }
 
@@ -101,12 +100,11 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
             setIsLoadingProfile(true);
             console.log('[WorkspaceContext] Loading business profile for workspace:', workspace.id);
             
-            // Check if current user is the workspace owner
-            const { data: { user } } = await supabase.auth.getUser();
+            // Check if current user is the workspace owner (reuse user from AuthContext)
             // Handle both snake_case (from DB) and camelCase (from types)
             const workspaceOwnerId = (workspace as any).owner_id || workspace.ownerId;
-            const isOwner = user?.id === workspaceOwnerId;
-            console.log('[WorkspaceContext] User is owner?', isOwner, { userId: user?.id, workspaceOwnerId });
+            const isOwner = user.id === workspaceOwnerId;
+            console.log('[WorkspaceContext] User is owner?', isOwner, { userId: user.id, workspaceOwnerId });
             
             const { data: profile, error } = await DatabaseService.getBusinessProfile(workspace.id);
             
@@ -120,7 +118,8 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
                 if (companyName && workspace.name !== companyName) {
                     console.log('[WorkspaceContext] Syncing workspace name:', workspace.name, '->', companyName);
                     await DatabaseService.updateWorkspaceName(workspace.id, companyName);
-                    await refreshWorkspace(); // Reload workspace to get updated name
+                    // Update local state instead of reloading - prevents unnecessary database call
+                    setWorkspace({ ...workspace, name: companyName });
                 }
                 
                 // Only show onboarding to owners if profile is incomplete
@@ -143,16 +142,18 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
             }
         } catch (error) {
             console.error('Error loading business profile:', error);
-            // Only show onboarding to owners on error
-            const { data: { user } } = await supabase.auth.getUser();
-            const isOwner = user?.id === workspace.ownerId;
-            if (isOwner) {
-                setShowOnboarding(true);
+            // Only show onboarding to owners on error (reuse user from AuthContext)
+            if (user) {
+                const workspaceOwnerId = (workspace as any).owner_id || workspace.ownerId;
+                const isOwner = user.id === workspaceOwnerId;
+                if (isOwner) {
+                    setShowOnboarding(true);
+                }
             }
         } finally {
             setIsLoadingProfile(false);
         }
-    }, [workspace]); // Remove refreshWorkspace to prevent infinite loop
+    }, [workspace, user]); // Add user to dependency array
 
     const saveBusinessProfile = useCallback(async (profileData: Partial<BusinessProfile>) => {
         if (!workspace) {
