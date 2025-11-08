@@ -7,15 +7,37 @@ interface InviteAcceptPageProps {
     onComplete: () => void;
 }
 
+interface InviteAcceptResult {
+    success: boolean;
+    message?: string;
+    error?: string;
+    workspace_name?: string;
+    workspace_id?: string;
+    isNewUser?: boolean;
+    needsAuth?: boolean;
+    email?: string;
+    tempPassword?: string;
+    session?: any;
+}
+
 export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onComplete }) => {
     const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'needs_login' | 'password_setup'>('loading');
     const [message, setMessage] = useState('');
-    const [inviteData, setInviteData] = useState<any>(null);
+    const [inviteData, setInviteData] = useState<InviteAcceptResult | null>(null);
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [name, setName] = useState('');
+    const [formError, setFormError] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const hasAttemptedRef = useRef(false);
+
+    // Auto-fill name from email when invite data is available
+    useEffect(() => {
+        if (inviteData?.email && !name) {
+            const emailPrefix = inviteData.email.split('@')[0] || '';
+            setName(emailPrefix);
+        }
+    }, [inviteData?.email, name]);
 
     useEffect(() => {
         // Prevent double-call in React Strict Mode using ref
@@ -41,7 +63,7 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
 
             console.log('Accept invitation response status:', response.status);
             
-            const result = await response.json();
+            const result: InviteAcceptResult = await response.json();
             console.log('Accept invitation response body:', result);
             console.log('Error details:', result.error, result.success);
 
@@ -79,9 +101,15 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
                     }
                 }
             } else if (result.needsAuth) {
-                // Existing user needs to log in
+                // Existing user needs to log in - prefill their email
                 setStatus('needs_login');
                 setMessage(`You already have an account! Please log in with ${result.email} to access the workspace.`);
+                
+                // Store email for prefilling login form
+                if (result.email) {
+                    sessionStorage.setItem('auth_prefill_email', result.email);
+                    sessionStorage.setItem('auth_message', `Logging in to join ${result.workspace_name || 'workspace'}`);
+                }
             } else {
                 // Success - already logged in
                 setStatus('success');
@@ -116,24 +144,57 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
     };
 
     const handleSetPassword = async () => {
-        if (!password || password !== confirmPassword) {
-            alert('Passwords do not match');
+        // Validate inputs
+        setFormError(null);
+        const trimmedName = name.trim();
+        
+        if (!trimmedName) {
+            setFormError('Please enter your name');
+            return;
+        }
+
+        if (!password) {
+            setFormError('Please enter a password');
             return;
         }
 
         if (password.length < 8) {
-            alert('Password must be at least 8 characters');
+            setFormError('Password must be at least 8 characters');
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            setFormError('Passwords do not match');
             return;
         }
 
         setIsProcessing(true);
 
         try {
-            const { error } = await supabase.auth.updateUser({
-                password: password
-            });
+            // Update both auth metadata and profiles table in parallel
+            const [{ data: userData, error: getUserError }, { error: updateError }] = await Promise.all([
+                supabase.auth.getUser(),
+                supabase.auth.updateUser({
+                    password: password,
+                    data: { full_name: trimmedName }
+                })
+            ]);
 
-            if (error) throw error;
+            if (getUserError) throw getUserError;
+            if (updateError) throw updateError;
+
+            // Also update profiles table
+            if (userData?.user?.id) {
+                const { error: profileError } = await supabase
+                    .from('profiles')
+                    .update({ full_name: trimmedName })
+                    .eq('id', userData.user.id);
+
+                if (profileError) {
+                    console.error('Error updating profile:', profileError);
+                    // Don't fail the whole process if profile update fails
+                }
+            }
 
             setStatus('success');
             setMessage('Password set successfully! Redirecting...');
@@ -143,7 +204,7 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
 
         } catch (error: any) {
             console.error('Error setting password:', error);
-            alert(`Failed to set password: ${error.message}`);
+            setFormError(error.message || 'Failed to set password. Please try again.');
         } finally {
             setIsProcessing(false);
         }
@@ -177,13 +238,24 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
                     </div>
 
                     <div className="space-y-4">
+                        {formError && (
+                            <div className="bg-red-100 border-2 border-red-600 p-3 text-red-700 font-bold">
+                                ⚠️ {formError}
+                            </div>
+                        )}
+
                         <div>
                             <label className="block font-bold mb-2">Your Name</label>
                             <input
                                 type="text"
                                 value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                className="w-full border-2 border-black p-3 font-mono"
+                                onChange={(e) => {
+                                    setName(e.target.value);
+                                    setFormError(null);
+                                }}
+                                className={`w-full border-2 p-3 font-mono ${
+                                    formError && !name.trim() ? 'border-red-600' : 'border-black'
+                                }`}
                                 placeholder="Enter your name"
                             />
                         </div>
@@ -193,8 +265,13 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
                             <input
                                 type="password"
                                 value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="w-full border-2 border-black p-3 font-mono"
+                                onChange={(e) => {
+                                    setPassword(e.target.value);
+                                    setFormError(null);
+                                }}
+                                className={`w-full border-2 p-3 font-mono ${
+                                    formError && (!password || password.length < 8) ? 'border-red-600' : 'border-black'
+                                }`}
                                 placeholder="Min 8 characters"
                             />
                         </div>
@@ -204,8 +281,13 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
                             <input
                                 type="password"
                                 value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                className="w-full border-2 border-black p-3 font-mono"
+                                onChange={(e) => {
+                                    setConfirmPassword(e.target.value);
+                                    setFormError(null);
+                                }}
+                                className={`w-full border-2 p-3 font-mono ${
+                                    formError && password !== confirmPassword ? 'border-red-600' : 'border-black'
+                                }`}
                                 placeholder="Re-enter password"
                             />
                         </div>
@@ -242,9 +324,7 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
                     <p className="text-gray-600 mb-6">{message}</p>
                     <button
                         onClick={() => {
-                            // Clear token and go to login
-                            window.history.replaceState({}, document.title, window.location.pathname);
-                            window.location.reload();
+                            window.location.href = '/app';
                         }}
                         className="w-full bg-blue-600 text-white border-4 border-black p-4 font-bold text-lg shadow-neo-btn hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-none transition-all"
                     >
@@ -275,10 +355,20 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
                 <h2 className="text-2xl font-bold mb-4">Oops!</h2>
                 <p className="text-gray-600 mb-6">{message}</p>
                 <button
+                    onClick={() => {
+                        // Reset state and try again
+                        hasAttemptedRef.current = false;
+                        acceptInvitation();
+                    }}
+                    className="w-full bg-blue-600 text-white border-4 border-black p-4 font-bold text-lg shadow-neo-btn hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-none transition-all mb-3"
+                >
+                    Try Again →
+                </button>
+                <button
                     onClick={() => window.location.href = '/'}
                     className="w-full bg-gray-600 text-white border-4 border-black p-4 font-bold text-lg shadow-neo-btn hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-none transition-all"
                 >
-                    Go to Home →
+                    Go to Home
                 </button>
             </div>
         </div>

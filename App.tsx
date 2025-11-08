@@ -16,6 +16,27 @@ import { initializeSentry, ErrorBoundary, ErrorFallback } from './lib/sentry.tsx
 // Initialize Sentry as early as possible
 initializeSentry();
 
+// Component to handle both landing page and invite acceptance from root URL
+function LandingOrInvite() {
+  const [inviteToken] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('token')
+  })
+
+  if (inviteToken) {
+    return (
+      <InviteAcceptPage 
+        token={inviteToken} 
+        onComplete={() => {
+          window.location.href = '/app'
+        }}
+      />
+    )
+  }
+
+  return <LandingPage />
+}
+
 const App: React.FC = () => {
   return (
     <ErrorBoundary fallback={ErrorFallback} showDialog>
@@ -23,8 +44,8 @@ const App: React.FC = () => {
         <Router>
           <Toaster />
           <Routes>
-          {/* Public landing page */}
-          <Route path="/" element={<LandingPage />} />
+          {/* Public landing page (also handles invite tokens) */}
+          <Route path="/" element={<LandingOrInvite />} />
           
           {/* Legal pages */}
           <Route path="/privacy" element={<PrivacyPolicyPage />} />

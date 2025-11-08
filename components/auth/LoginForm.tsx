@@ -1,12 +1,21 @@
 import React, { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
+import { normalizeEmail } from '../../lib/utils/emailHelpers'
 
 interface Props {
   onSuccess?: () => void
 }
 
 export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(() => {
+    // Check for prefilled email from invite acceptance flow
+    const storedEmail = sessionStorage.getItem('auth_prefill_email')
+    if (storedEmail) {
+      sessionStorage.removeItem('auth_prefill_email')
+      return storedEmail
+    }
+    return ''
+  })
   const [password, setPassword] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
   const [fullName, setFullName] = useState('')
@@ -49,8 +58,12 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
     sessionStorage.removeItem('auth_message')
 
     try {
+      // Normalize email and trim name for consistency
+      const normalizedEmail = normalizeEmail(email)
+      const trimmedName = fullName.trim()
+      
       if (isSignUp) {
-        const { data, error } = await signUp(email, password, fullName)
+        const { data, error } = await signUp(normalizedEmail, password, trimmedName)
         console.log('SignUp result:', { data, error })
         if (error) {
           // Provide user-friendly error messages
@@ -74,7 +87,7 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
           // Keep them on signup view but disable switching
         }
       } else {
-        const { data, error } = await signIn(email, password)
+        const { data, error } = await signIn(normalizedEmail, password)
         console.log('SignIn result:', { data, error })
         if (error) {
           // Provide user-friendly error messages
@@ -126,7 +139,8 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
     setMessage(null)
 
     try {
-      const { error } = await resetPassword(email)
+      const normalizedEmail = normalizeEmail(email)
+      const { error } = await resetPassword(normalizedEmail)
       if (error) {
         setError(error.message)
       } else {

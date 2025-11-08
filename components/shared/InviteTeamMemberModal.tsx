@@ -49,7 +49,9 @@ export const InviteTeamMemberModal: React.FC<InviteTeamMemberModalProps> = ({
             
             // Generate invitation link using configured app URL (fallback to window.location.origin for development)
             const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
-            const inviteLink = `${appUrl}?token=${data.token}`;
+            const inviteUrl = new URL('/app', appUrl);
+            inviteUrl.searchParams.set('token', data.token);
+            const inviteLink = inviteUrl.toString();
             
             // Show success message based on whether email was sent
             if (data.emailSent) {
