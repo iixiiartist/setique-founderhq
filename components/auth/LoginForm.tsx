@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { normalizeEmail } from '../../lib/utils/emailHelpers'
+import { supabase } from '../../lib/supabase'
 
 interface Props {
   onSuccess?: () => void
@@ -164,10 +165,16 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
     setMessage(null)
 
     try {
-      // Try to sign up again with the same email - Supabase will resend the confirmation
-      const { error } = await signUp(email, password, fullName)
-      if (error && !error.message.includes('already registered')) {
-        setError(error.message)
+      const normalizedEmail = normalizeEmail(email)
+      
+      // Use Supabase's resend method to actually resend the confirmation email
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: normalizedEmail,
+      })
+
+      if (error) {
+        setError(`Failed to resend confirmation: ${error.message}`)
       } else {
         setMessage('Confirmation email resent! Check your inbox (and spam folder).')
       }

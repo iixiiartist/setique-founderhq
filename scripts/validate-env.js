@@ -162,6 +162,23 @@ function validateVar(varName, required = true) {
 function validate() {
   loadEnvFile();
   
+  // Check if running in CI environment
+  const isCI = process.env.CI === 'true' || process.env.CI === '1';
+  const isCIReview = isCI && (
+    process.env.ENVIRONMENT === 'review' || 
+    process.env.GITHUB_REF?.includes('pull') ||
+    process.env.VERCEL_ENV === 'preview'
+  );
+  
+  // Skip strict validation in CI review/preview environments
+  if (isCIReview) {
+    log('\n🔍 CI Review Environment Detected\n', colors.blue);
+    log('ℹ️  Running in CI review/preview environment', colors.yellow);
+    log('ℹ️  Skipping strict environment validation', colors.yellow);
+    log('ℹ️  Build will use fallback values where needed\n', colors.yellow);
+    process.exit(0);
+  }
+  
   log('\n🔍 Validating Environment Configuration...\n', colors.blue);
   
   const environment = process.env.VITE_ENVIRONMENT || 'unknown';

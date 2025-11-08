@@ -61,7 +61,7 @@ export async function createNotification(params: CreateNotificationParams): Prom
   try {
     console.log('[NotificationService] Creating notification:', params);
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('notifications')
       .insert({
         user_id: params.userId,
@@ -72,27 +72,29 @@ export async function createNotification(params: CreateNotificationParams): Prom
         entity_type: params.entityType,
         entity_id: params.entityId,
         read: false,
-      });
+      })
+      .select()
+      .single();
 
     if (error) {
       console.error('[NotificationService] Failed to create notification:', error);
       return { notification: null, error: error.message };
     }
 
-    console.log('[NotificationService] Notification created successfully');
+    console.log('[NotificationService] Notification created successfully with ID:', data.id);
 
-    // Return a minimal notification object (we don't need the full data)
+    // Return the actual notification with real UUID and timestamps from database
     const notification: Notification = {
-      id: 'created',
-      userId: params.userId,
-      workspaceId: params.workspaceId,
-      type: params.type,
-      title: params.title,
-      message: params.message,
-      entityType: params.entityType,
-      entityId: params.entityId,
-      read: false,
-      createdAt: new Date().toISOString(),
+      id: data.id,
+      userId: data.user_id,
+      workspaceId: data.workspace_id,
+      type: data.type,
+      title: data.title,
+      message: data.message,
+      entityType: data.entity_type,
+      entityId: data.entity_id,
+      read: data.read,
+      createdAt: data.created_at,
     };
 
     console.log('[NotificationService] Created notification:', notification.id);
