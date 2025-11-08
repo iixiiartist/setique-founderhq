@@ -30,10 +30,15 @@ const colors = {
 
 // Required environment variables
 const REQUIRED_VARS = [
-  'VITE_GEMINI_API_KEY',
   'VITE_SUPABASE_URL',
   'VITE_SUPABASE_ANON_KEY',
   'VITE_STRIPE_PUBLISHABLE_KEY',
+  'VITE_APP_URL',
+];
+
+// Optional but important variables (will warn if missing)
+const IMPORTANT_VARS = [
+  'VITE_GEMINI_API_KEY',
   'VITE_STRIPE_PRICE_PRO_INDIVIDUAL',
   'VITE_STRIPE_PRICE_POWER_INDIVIDUAL',
   'VITE_STRIPE_PRICE_TEAM_STARTER_BASE',
@@ -43,7 +48,6 @@ const REQUIRED_VARS = [
   'VITE_APP_NAME',
   'VITE_APP_VERSION',
   'VITE_ENVIRONMENT',
-  'VITE_APP_URL',
 ];
 
 // Optional but recommended
@@ -189,6 +193,26 @@ function validate() {
     allWarnings.push(...warnings);
   });
   
+  // Validate important variables
+  log('\nImportant Variables:', colors.bright);
+  IMPORTANT_VARS.forEach((varName) => {
+    const { errors, warnings } = validateVar(varName, false);
+    
+    if (errors.length > 0) {
+      log(`  ❌ ${varName}`, colors.red);
+      errors.forEach((err) => log(`     ${err}`, colors.red));
+      allErrors.push(...errors);
+    } else if (!process.env[varName]) {
+      log(`  ⚠️  ${varName}: Not set`, colors.yellow);
+      allWarnings.push(`${varName} is not set (important)`);
+    } else {
+      const value = process.env[varName];
+      const displayValue = value.length > 20 ? `${value.substring(0, 20)}...` : value;
+      log(`  ✅ ${varName}: ${displayValue}`, colors.green);
+      allWarnings.push(...warnings);
+    }
+  });
+  
   // Validate recommended variables
   log('\nRecommended Variables:', colors.bright);
   RECOMMENDED_VARS.forEach((varName) => {
@@ -200,11 +224,11 @@ function validate() {
       allErrors.push(...errors);
     } else if (!process.env[varName]) {
       log(`  ⚠️  ${varName}: Not set`, colors.yellow);
+      allWarnings.push(`${varName} is not set (recommended)`);
     } else {
       log(`  ✅ ${varName}: Set`, colors.green);
+      allWarnings.push(...warnings);
     }
-    
-    allWarnings.push(...warnings);
   });
   
   // Print summary
