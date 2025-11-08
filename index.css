@@ -44,6 +44,77 @@
     [disabled] {
         cursor: not-allowed !important;
     }
+
+    /* Accessibility: Focus Indicators (WCAG 2.1 AA compliant) */
+    *:focus {
+        outline: none; /* Remove default outline */
+    }
+
+    *:focus-visible {
+        outline: 3px solid #0066ff;
+        outline-offset: 2px;
+        border-radius: 2px;
+    }
+
+    /* High contrast focus for dark backgrounds */
+    .bg-black *:focus-visible,
+    [class*="bg-gray-"] *:focus-visible {
+        outline-color: #ffcc00;
+    }
+
+    /* Skip to content link (accessibility) */
+    .skip-to-content {
+        position: absolute;
+        top: -40px;
+        left: 0;
+        background: #0066ff;
+        color: white;
+        padding: 8px 16px;
+        text-decoration: none;
+        font-weight: bold;
+        border: 2px solid #000;
+        z-index: 1000;
+        transition: top 0.2s;
+    }
+
+    .skip-to-content:focus {
+        top: 0;
+    }
+
+    /* Screen reader only text */
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border-width: 0;
+    }
+
+    .sr-only:focus,
+    .sr-only:active {
+        position: static;
+        width: auto;
+        height: auto;
+        overflow: visible;
+        clip: auto;
+        white-space: normal;
+    }
+
+    /* Keyboard shortcut key styling */
+    kbd {
+        font-family: 'IBM Plex Mono', monospace;
+        font-size: 0.875rem;
+        font-weight: bold;
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border: 2px solid #000;
+        background-color: #fff;
+        box-shadow: 2px 2px 0 #000;
+    }
 }
 
 @layer components {

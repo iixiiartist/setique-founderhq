@@ -6,6 +6,8 @@ import DashboardTab from './components/DashboardTab';
 import Toast from './components/shared/Toast';
 import TaskFocusModal from './components/shared/TaskFocusModal';
 import { TabLoadingFallback } from './components/shared/TabLoadingFallback';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import KeyboardShortcutsHelp from './components/shared/KeyboardShortcutsHelp';
 
 // Lazy load heavy tab components for code splitting
 // This reduces initial bundle size and improves first load performance
@@ -36,6 +38,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showBusinessProfileModal, setShowBusinessProfileModal] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
+    const [showKeyboardShortcutsHelp, setShowKeyboardShortcutsHelp] = useState(false);
     
     // Persist active tab in localStorage so it survives page refresh
     const [activeTab, setActiveTab] = useState<TabType>(() => {
@@ -95,6 +98,38 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
         checkAdminStatus();
     }, [user]);
+
+    // Keyboard shortcuts for accessibility and power users
+    useKeyboardShortcuts({
+        enabled: !!workspace && !isLoading && !isLoadingWorkspace,
+        onNewTask: () => {
+            // Context-aware new task based on current tab
+            const taskCategory = activeTab === Tab.Platform ? 'platformTasks' :
+                                activeTab === Tab.Investors ? 'investorTasks' :
+                                activeTab === Tab.Customers ? 'customerTasks' :
+                                activeTab === Tab.Partners ? 'partnerTasks' :
+                                activeTab === Tab.Marketing ? 'marketingTasks' :
+                                activeTab === Tab.Financials ? 'financialTasks' : 'platformTasks';
+            
+            // For now, just focus on "Add Task" button (proper modal integration would go here)
+            handleToast('New task shortcut (Ctrl+N or N) pressed', 'info');
+        },
+        onSearch: () => {
+            // Focus search input if it exists (placeholder for now)
+            handleToast('Search shortcut (Ctrl+K or /) pressed', 'info');
+        },
+        onHelp: () => {
+            setShowKeyboardShortcutsHelp(true);
+        },
+        onTabChange: (tab) => {
+            setActiveTab(tab);
+            setIsMenuOpen(false);
+        },
+        onEscape: () => {
+            if (isMenuOpen) setIsMenuOpen(false);
+            if (showKeyboardShortcutsHelp) setShowKeyboardShortcutsHelp(false);
+        }
+    });
 
     // Handle pending subscription redirect
     useEffect(() => {
@@ -1846,7 +1881,19 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             {/* Show dashboard only when workspace exists */}
             {!isLoadingWorkspace && workspace && (
                 <>
+            {/* Skip to content link for accessibility */}
+            <a href="#main-content" className="skip-to-content">
+                Skip to main content
+            </a>
+
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+            
+            {/* Keyboard Shortcuts Help Modal */}
+            <KeyboardShortcutsHelp 
+                isOpen={showKeyboardShortcutsHelp}
+                onClose={() => setShowKeyboardShortcutsHelp(false)}
+            />
+            
             <TaskFocusModal
                 isOpen={isTaskFocusModalOpen}
                 onClose={() => setIsTaskFocusModalOpen(false)}
@@ -1866,10 +1913,10 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 userId={user?.id}
             />
             <div className="min-h-screen p-3 sm:p-4 md:p-8">
-                <header className="mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+                <header role="banner" className="mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
                     <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
-                        <button onClick={() => setIsMenuOpen(true)} aria-label="Open menu" className="shrink-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-6 h-6">
+                        <button onClick={() => setIsMenuOpen(true)} aria-label="Open navigation menu" aria-expanded={isMenuOpen} className="shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-6 h-6" aria-hidden="true">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                             </svg>
                         </button>
@@ -1879,14 +1926,14 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         
                         {/* Workspace name display (no switching in single-workspace model) */}
                         {workspace && (
-                            <div className="px-2 sm:px-3 py-1 text-xs sm:text-sm border-2 border-black bg-gray-50 truncate max-w-[100px] sm:max-w-none">
+                            <div className="px-2 sm:px-3 py-1 text-xs sm:text-sm border-2 border-black bg-gray-50 truncate max-w-[100px] sm:max-w-none" role="status" aria-label={`Current workspace: ${workspace.name}`}>
                                 {workspace.name}
                             </div>
                         )}
                     </div>
                     <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-end">
-                        <div className="flex items-center gap-1 sm:gap-2 font-mono font-semibold" title={`Daily Streak: ${data.gamification.streak} days`}>
-                            <span className="text-xl sm:text-2xl">{data.gamification.streak > 0 ? '🔥' : '🧊'}</span>
+                        <div className="flex items-center gap-1 sm:gap-2 font-mono font-semibold" role="status" aria-label={`Daily Streak: ${data.gamification.streak} days`} title={`Daily Streak: ${data.gamification.streak} days`}>
+                            <span className="text-xl sm:text-2xl" aria-hidden="true">{data.gamification.streak > 0 ? '🔥' : '🧊'}</span>
                             <span className="text-lg sm:text-xl">{data.gamification.streak}</span>
                         </div>
                         {/* Notification Bell */}
@@ -1901,24 +1948,32 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             <button
                                 onClick={() => signOut()}
                                 className="px-2 sm:px-3 py-1 text-xs sm:text-sm border-2 border-black bg-white hover:bg-gray-100 transition-colors whitespace-nowrap"
-                                title="Sign out"
+                                aria-label="Sign out of your account"
                             >
                                 Sign Out
+                            </button>
+                            <button
+                                onClick={() => setShowKeyboardShortcutsHelp(true)}
+                                className="px-2 sm:px-3 py-1 text-xs sm:text-sm border-2 border-black bg-white hover:bg-gray-100 transition-colors"
+                                aria-label="Show keyboard shortcuts (press ? anywhere)"
+                                title="Keyboard shortcuts (press ?)"
+                            >
+                                ?
                             </button>
                         </div>
                     </div>
                 </header>
 
                 {isLoading ? (
-                     <div className="flex justify-center items-center h-64">
-                        <svg className="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                     <div className="flex justify-center items-center h-64" role="status" aria-live="polite" aria-label="Loading dashboard">
+                        <svg className="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
                         <span className="ml-3 text-gray-500">Connecting to dashboard...</span>
                     </div>
                 ) : (
-                    <main>
+                    <main id="main-content" role="main" aria-label={`${activeTab} tab`}>
                        {renderTabContent()}
                     </main>
                 )}
