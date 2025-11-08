@@ -26,9 +26,16 @@ Run these commands to configure the email service:
 # Set your Resend API key
 npx supabase secrets set RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxx
 
-# Set your app URL (change this to your production URL later)
-npx supabase secrets set APP_URL=http://localhost:3001
+# Set your app URL
+# ⚠️ IMPORTANT: Use your PRODUCTION URL, not localhost!
+# For production:
+npx supabase secrets set APP_URL=https://founderhq.netlify.app
+
+# For local development only (testing invites):
+# npx supabase secrets set APP_URL=http://localhost:5173
 ```
+
+**Why this matters**: This URL is used in invitation emails. If set to localhost, invitations won't work for users! Always use your production URL here.
 
 ## 3. Deploy the Email Function
 

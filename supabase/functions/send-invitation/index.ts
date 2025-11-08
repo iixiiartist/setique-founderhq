@@ -66,7 +66,16 @@ serve(async (req) => {
     }
 
     // Create invitation link
-    const inviteUrl = `${Deno.env.get('APP_URL') || 'http://localhost:3000'}?token=${invitation.token}`
+    const appUrl = Deno.env.get('APP_URL')
+    
+    // Warn if APP_URL not set (will use localhost fallback)
+    if (!appUrl) {
+      console.warn('⚠️ APP_URL secret not set! Falling back to localhost. Set it with: npx supabase secrets set APP_URL=https://your-domain.com')
+    }
+    
+    const inviteUrl = `${appUrl || 'http://localhost:5173'}?token=${invitation.token}`
+    
+    console.log(`Sending invitation to ${invitation.email} with URL: ${inviteUrl}`)
 
     // Send email via Resend
     const emailResponse = await fetch('https://api.resend.com/emails', {
