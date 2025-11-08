@@ -1,19 +1,23 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { Tab, EMPTY_DASHBOARD_DATA, NAV_ITEMS, ACHIEVEMENTS } from './constants';
 import { DashboardData, AppActions, Task, TaskCollectionName, CrmCollectionName, NoteableCollectionName, AnyCrmItem, FinancialLog, Note, BaseCrmItem, MarketingItem, SettingsData, Document, Contact, TabType, GamificationData, AchievementId, Priority, CalendarEvent, Meeting, TaskStatus } from './types';
 import SideMenu from './components/SideMenu';
 import DashboardTab from './components/DashboardTab';
-import PlatformTab from './components/PlatformTab';
-import CrmTab from './components/CrmTab';
-import MarketingTab from './components/MarketingTab';
-import FinancialsTab from './components/FinancialsTab';
-import SettingsTab from './components/SettingsTab';
 import Toast from './components/shared/Toast';
-import FileLibraryTab from './components/FileLibraryTab';
-import AdminTab from './components/AdminTab';
-import AchievementsTab from './components/AchievementsTab';
 import TaskFocusModal from './components/shared/TaskFocusModal';
-import CalendarTab from './components/CalendarTab';
+import { TabLoadingFallback } from './components/shared/TabLoadingFallback';
+
+// Lazy load heavy tab components for code splitting
+// This reduces initial bundle size and improves first load performance
+const PlatformTab = lazy(() => import('./components/PlatformTab'));
+const CrmTab = lazy(() => import('./components/CrmTab'));
+const MarketingTab = lazy(() => import('./components/MarketingTab'));
+const FinancialsTab = lazy(() => import('./components/FinancialsTab'));
+const SettingsTab = lazy(() => import('./components/SettingsTab'));
+const FileLibraryTab = lazy(() => import('./components/FileLibraryTab'));
+const AdminTab = lazy(() => import('./components/AdminTab'));
+const AchievementsTab = lazy(() => import('./components/AchievementsTab'));
+const CalendarTab = lazy(() => import('./components/CalendarTab'));
 import { BusinessProfileSetup } from './components/BusinessProfileSetup';
 import { AcceptInviteNotification } from './components/shared/AcceptInviteNotification';
 import { NotificationBell } from './components/shared/NotificationBell';
@@ -1625,79 +1629,107 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             case Tab.Dashboard:
                 return <DashboardTab data={data} actions={actions} businessProfile={businessProfile} settings={data.settings} />;
             case Tab.Calendar:
-                return <CalendarTab events={calendarEvents} actions={actions} />;
+                return (
+                    <Suspense fallback={<TabLoadingFallback />}>
+                        <CalendarTab events={calendarEvents} actions={actions} />
+                    </Suspense>
+                );
             case Tab.Platform:
-                return <PlatformTab 
-                    tasks={data.platformTasks} 
-                    actions={actions} 
-                    documents={data.documents} 
-                    businessProfile={businessProfile} 
-                    workspaceId={workspace?.id}
-                    workspaceMembers={workspaceMembers}
-                    onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
-                />;
+                return (
+                    <Suspense fallback={<TabLoadingFallback />}>
+                        <PlatformTab 
+                            tasks={data.platformTasks} 
+                            actions={actions} 
+                            documents={data.documents} 
+                            businessProfile={businessProfile} 
+                            workspaceId={workspace?.id}
+                            workspaceMembers={workspaceMembers}
+                            onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
+                        />
+                    </Suspense>
+                );
             case Tab.Investors:
-                return <CrmTab 
-                    title="Investor" 
-                    crmItems={data.investors} 
-                    tasks={data.investorTasks} 
-                    actions={actions} 
-                    documents={data.documents} 
-                    businessProfile={businessProfile}
-                    workspaceId={workspace?.id}
-                    onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
-                    workspaceMembers={workspaceMembers}
-                    userId={user?.id}
-                />;
+                return (
+                    <Suspense fallback={<TabLoadingFallback />}>
+                        <CrmTab 
+                            title="Investor" 
+                            crmItems={data.investors} 
+                            tasks={data.investorTasks} 
+                            actions={actions} 
+                            documents={data.documents} 
+                            businessProfile={businessProfile}
+                            workspaceId={workspace?.id}
+                            onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
+                            workspaceMembers={workspaceMembers}
+                            userId={user?.id}
+                        />
+                    </Suspense>
+                );
             case Tab.Customers:
-                return <CrmTab 
-                    title="Customer" 
-                    crmItems={data.customers} 
-                    tasks={data.customerTasks} 
-                    actions={actions} 
-                    documents={data.documents} 
-                    businessProfile={businessProfile}
-                    workspaceId={workspace?.id}
-                    onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
-                    workspaceMembers={workspaceMembers}
-                    userId={user?.id}
-                />;
+                return (
+                    <Suspense fallback={<TabLoadingFallback />}>
+                        <CrmTab 
+                            title="Customer" 
+                            crmItems={data.customers} 
+                            tasks={data.customerTasks} 
+                            actions={actions} 
+                            documents={data.documents} 
+                            businessProfile={businessProfile}
+                            workspaceId={workspace?.id}
+                            onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
+                            workspaceMembers={workspaceMembers}
+                            userId={user?.id}
+                        />
+                    </Suspense>
+                );
             case Tab.Partners:
-                return <CrmTab 
-                    title="Partner" 
-                    crmItems={data.partners} 
-                    tasks={data.partnerTasks} 
-                    actions={actions} 
-                    documents={data.documents} 
-                    businessProfile={businessProfile}
-                    workspaceId={workspace?.id}
-                    onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
-                    workspaceMembers={workspaceMembers}
-                    userId={user?.id}
-                />;
+                return (
+                    <Suspense fallback={<TabLoadingFallback />}>
+                        <CrmTab 
+                            title="Partner" 
+                            crmItems={data.partners} 
+                            tasks={data.partnerTasks} 
+                            actions={actions} 
+                            documents={data.documents} 
+                            businessProfile={businessProfile}
+                            workspaceId={workspace?.id}
+                            onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
+                            workspaceMembers={workspaceMembers}
+                            userId={user?.id}
+                        />
+                    </Suspense>
+                );
             case Tab.Marketing:
-                return <MarketingTab 
-                    items={data.marketing} 
-                    tasks={data.marketingTasks} 
-                    actions={actions} 
-                    documents={data.documents} 
-                    businessProfile={businessProfile}
-                    workspaceId={workspace?.id}
-                    workspaceMembers={workspaceMembers}
-                    onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
-                />;
+                return (
+                    <Suspense fallback={<TabLoadingFallback />}>
+                        <MarketingTab 
+                            items={data.marketing} 
+                            tasks={data.marketingTasks} 
+                            actions={actions} 
+                            documents={data.documents} 
+                            businessProfile={businessProfile}
+                            workspaceId={workspace?.id}
+                            workspaceMembers={workspaceMembers}
+                            onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
+                        />
+                    </Suspense>
+                );
             case Tab.Financials:
-                return <FinancialsTab 
-                    items={data.financials} 
-                    expenses={data.expenses} 
-                    tasks={data.financialTasks} 
-                    actions={actions} 
-                    documents={data.documents} 
-                    businessProfile={businessProfile}
-                    workspaceId={workspace?.id}
-                    workspaceMembers={workspaceMembers}
-                    onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
-                />;
+                return (
+                    <Suspense fallback={<TabLoadingFallback />}>
+                        <FinancialsTab 
+                            items={data.financials} 
+                            expenses={data.expenses} 
+                            tasks={data.financialTasks} 
+                            actions={actions} 
+                            documents={data.documents} 
+                            businessProfile={businessProfile}
+                            workspaceId={workspace?.id}
+                            workspaceMembers={workspaceMembers}
+                            onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
+                        />
+                    </Suspense>
+                );
             case Tab.Documents:
                 // Hide file library for free users
                 if (workspace?.planType === 'free') {
@@ -1719,18 +1751,36 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         </div>
                     );
                 }
-                return <FileLibraryTab documents={data.documents} actions={actions} companies={allCompanies} contacts={allContacts} />;
+                return (
+                    <Suspense fallback={<TabLoadingFallback />}>
+                        <FileLibraryTab documents={data.documents} actions={actions} companies={allCompanies} contacts={allContacts} />
+                    </Suspense>
+                );
             case Tab.Achievements:
-                return <AchievementsTab 
-                    gamification={data.gamification} 
-                    workspaceId={workspace?.id}
-                    currentPlan={workspace?.planType || 'free'}
-                    onUpgrade={() => setActiveTab(Tab.Settings)}
-                />;
+                return (
+                    <Suspense fallback={<TabLoadingFallback />}>
+                        <AchievementsTab 
+                            gamification={data.gamification} 
+                            workspaceId={workspace?.id}
+                            currentPlan={workspace?.planType || 'free'}
+                            onUpgrade={() => setActiveTab(Tab.Settings)}
+                        />
+                    </Suspense>
+                );
             case Tab.Settings:
-                return <SettingsTab settings={data.settings} onUpdateSettings={actions.updateSettings} actions={actions} workspaceId={workspace?.id} />;
+                return (
+                    <Suspense fallback={<TabLoadingFallback />}>
+                        <SettingsTab settings={data.settings} onUpdateSettings={actions.updateSettings} actions={actions} workspaceId={workspace?.id} />
+                    </Suspense>
+                );
             case Tab.Admin:
-                return isAdmin ? <AdminTab /> : <div className="p-8 text-center text-red-600 font-mono">Access Denied: Admin Only</div>;
+                return isAdmin ? (
+                    <Suspense fallback={<TabLoadingFallback />}>
+                        <AdminTab />
+                    </Suspense>
+                ) : (
+                    <div className="p-8 text-center text-red-600 font-mono">Access Denied: Admin Only</div>
+                );
             default:
                 return <DashboardTab data={data} actions={actions} businessProfile={businessProfile} />;
         }

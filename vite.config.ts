@@ -30,11 +30,59 @@ export default defineConfig(({ mode }) => {
         outDir: 'dist',
         rollupOptions: {
           output: {
-            manualChunks: {
-              vendor: ['react', 'react-dom'],
-              supabase: ['@supabase/supabase-js'],
-              charts: ['recharts'],
-              markdown: ['react-markdown', 'remark-gfm']
+            manualChunks: (id) => {
+              // Core dependencies
+              if (id.includes('node_modules')) {
+                if (id.includes('react') || id.includes('react-dom')) {
+                  return 'vendor';
+                }
+                if (id.includes('@supabase')) {
+                  return 'supabase';
+                }
+                if (id.includes('@tanstack/react-query')) {
+                  return 'react-query';
+                }
+                if (id.includes('recharts') || id.includes('d3-')) {
+                  return 'charts';
+                }
+                if (id.includes('react-markdown') || id.includes('remark') || id.includes('rehype')) {
+                  return 'markdown';
+                }
+                if (id.includes('react-hot-toast')) {
+                  return 'toast';
+                }
+                // All other node_modules go into libs chunk
+                return 'libs';
+              }
+              
+              // Component chunking for code splitting
+              if (id.includes('/components/CrmTab')) {
+                return 'crm-tab';
+              }
+              if (id.includes('/components/MarketingTab')) {
+                return 'marketing-tab';
+              }
+              if (id.includes('/components/FinancialsTab')) {
+                return 'financials-tab';
+              }
+              if (id.includes('/components/CalendarTab')) {
+                return 'calendar-tab';
+              }
+              if (id.includes('/components/FileLibraryTab')) {
+                return 'file-library-tab';
+              }
+              if (id.includes('/components/AdminTab')) {
+                return 'admin-tab';
+              }
+              if (id.includes('/components/AchievementsTab')) {
+                return 'achievements-tab';
+              }
+              if (id.includes('/components/PlatformTab')) {
+                return 'platform-tab';
+              }
+              if (id.includes('/components/SettingsTab')) {
+                return 'settings-tab';
+              }
             }
           }
         }
