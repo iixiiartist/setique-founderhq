@@ -16,6 +16,10 @@ type TabDataCache = {
 
 const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 
+type LoadOptions = {
+  force?: boolean
+}
+
 /**
  * Lazy loading hook for dashboard data
  * Only loads data when requested, caches results
@@ -52,13 +56,17 @@ export const useLazyDataPersistence = () => {
     }
   }, [user, workspace?.id])
 
-  // Load tasks (all categories)
-  const loadTasks = useCallback(async () => {
+  /**
+   * Load tasks (all categories)
+   * @param options.force - If true, bypasses cache and fetches fresh data from server
+   * @returns Object containing all task collections by category
+   */
+  const loadTasks = useCallback(async (options: LoadOptions = {}) => {
     const cacheKey = 'tasks'
     const cached = dataCache[cacheKey]
     
-    // Return cached data if still fresh
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    // Return cached data if still fresh (unless force reload)
+    if (!options.force && cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       return cached.data
     }
 
@@ -127,12 +135,17 @@ export const useLazyDataPersistence = () => {
     }
   }, [user, workspace?.id, dataCache])
 
-  // Load CRM items (investors, customers, partners)
-  const loadCrmItems = useCallback(async () => {
+  /**
+   * Load CRM items (investors, customers, partners)
+   * @param options.force - If true, bypasses cache and fetches fresh data from server
+   * @returns Object containing investors, customers, and partners arrays
+   */
+  const loadCrmItems = useCallback(async (options: LoadOptions = {}) => {
     const cacheKey = 'crm'
     const cached = dataCache[cacheKey]
     
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    // Return cached data if still fresh (unless force reload)
+    if (!options.force && cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       return cached.data
     }
 
@@ -221,12 +234,17 @@ export const useLazyDataPersistence = () => {
     }
   }, [user, workspace?.id, dataCache])
 
-  // Load marketing items
-  const loadMarketing = useCallback(async () => {
+  /**
+   * Load marketing items
+   * @param options.force - If true, bypasses cache and fetches fresh data from server
+   * @returns Array of marketing items
+   */
+  const loadMarketing = useCallback(async (options: LoadOptions = {}) => {
     const cacheKey = 'marketing'
     const cached = dataCache[cacheKey]
     
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    // Return cached data if still fresh (unless force reload)
+    if (!options.force && cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       return cached.data
     }
 
@@ -255,12 +273,17 @@ export const useLazyDataPersistence = () => {
     }
   }, [user, workspace?.id, dataCache])
 
-  // Load financials
-  const loadFinancials = useCallback(async () => {
+  /**
+   * Load financials (logs and expenses)
+   * @param options.force - If true, bypasses cache and fetches fresh data from server
+   * @returns Object containing financials array and expenses array
+   */
+  const loadFinancials = useCallback(async (options: LoadOptions = {}) => {
     const cacheKey = 'financials'
     const cached = dataCache[cacheKey]
     
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    // Return cached data if still fresh (unless force reload)
+    if (!options.force && cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       return cached.data
     }
 
@@ -297,12 +320,17 @@ export const useLazyDataPersistence = () => {
     }
   }, [user, workspace?.id, dataCache])
 
-  // Load documents
-  const loadDocuments = useCallback(async () => {
+  /**
+   * Load documents
+   * @param options.force - If true, bypasses cache and fetches fresh data from server
+   * @returns Array of documents
+   */
+  const loadDocuments = useCallback(async (options: LoadOptions = {}) => {
     const cacheKey = 'documents'
     const cached = dataCache[cacheKey]
     
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    // Return cached data if still fresh (unless force reload)
+    if (!options.force && cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       return cached.data
     }
 

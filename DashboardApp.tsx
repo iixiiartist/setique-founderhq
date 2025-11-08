@@ -538,12 +538,12 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 case Tab.Dashboard:
                 case Tab.Calendar:
                 case Tab.Platform:
-                    const tasks = await loadTasks();
+                    const tasks = await loadTasks({ force: true });
                     setData(prev => ({ ...prev, ...tasks }));
                     setLoadedTabs(prev => new Set(prev).add('tasks'));
                     
                     if (activeTab === Tab.Platform) {
-                        const documents = await loadDocuments();
+                        const documents = await loadDocuments({ force: true });
                         setData(prev => ({ ...prev, documents }));
                         setLoadedTabs(prev => new Set(prev).add('documents'));
                     }
@@ -552,37 +552,37 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 case Tab.Investors:
                 case Tab.Customers:
                 case Tab.Partners:
-                    const crm = await loadCrmItems();
+                    const crm = await loadCrmItems({ force: true });
                     setData(prev => ({ ...prev, ...crm }));
                     setLoadedTabs(prev => new Set(prev).add('crm'));
                     
-                    const crmTasks = await loadTasks();
+                    const crmTasks = await loadTasks({ force: true });
                     setData(prev => ({ ...prev, ...crmTasks }));
                     setLoadedTabs(prev => new Set(prev).add('tasks'));
                     break;
 
                 case Tab.Marketing:
-                    const marketing = await loadMarketing();
+                    const marketing = await loadMarketing({ force: true });
                     setData(prev => ({ ...prev, marketing }));
                     setLoadedTabs(prev => new Set(prev).add('marketing'));
                     
-                    const marketingTasks = await loadTasks();
+                    const marketingTasks = await loadTasks({ force: true });
                     setData(prev => ({ ...prev, ...marketingTasks }));
                     setLoadedTabs(prev => new Set(prev).add('tasks'));
                     break;
 
                 case Tab.Financials:
-                    const financials = await loadFinancials();
+                    const financials = await loadFinancials({ force: true });
                     setData(prev => ({ ...prev, ...financials }));
                     setLoadedTabs(prev => new Set(prev).add('financials'));
                     
-                    const financialTasks = await loadTasks();
+                    const financialTasks = await loadTasks({ force: true });
                     setData(prev => ({ ...prev, ...financialTasks }));
                     setLoadedTabs(prev => new Set(prev).add('tasks'));
                     break;
 
                 case Tab.Documents:
-                    const docs = await loadDocuments();
+                    const docs = await loadDocuments({ force: true });
                     setData(prev => ({ ...prev, documents: docs }));
                     setLoadedTabs(prev => new Set(prev).add('documents'));
                     break;
@@ -683,9 +683,10 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 // Track action in Sentry
                 trackAction('task_created', { category, priority, hasDate: !!dueDate });
                 
-                // Reload tasks to replace optimistic task with real one from database
+                // Force reload to bypass cache and get fresh server data
+                // This ensures optimistic task is replaced with real task (including server-generated ID)
                 invalidateCache('tasks');
-                const updatedTasks = await loadTasks();
+                const updatedTasks = await loadTasks({ force: true });
                 setData(prev => ({ ...prev, ...updatedTasks }));
                 
                 // Mark tasks as loaded so they display
@@ -776,7 +777,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 
                 // Reload tasks to get fresh data
                 invalidateCache('tasks');
-                const updatedTasks = await loadTasks();
+                const updatedTasks = await loadTasks({ force: true });
                 setData(prev => ({ ...prev, ...updatedTasks }));
 
                 // Award XP if task was just completed (not already done)
@@ -1336,7 +1337,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 invalidateCache('financials');
                 
                 // Reload financial data immediately (this will fetch fresh data since cache is invalidated)
-                const freshFinancials = await loadFinancials();
+                const freshFinancials = await loadFinancials({ force: true });
                 setData(prev => ({ 
                     ...prev, 
                     financials: freshFinancials.financials,
@@ -1409,7 +1410,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 
                 // Invalidate cache and reload
                 invalidateCache('financials');
-                const freshFinancials = await loadFinancials();
+                const freshFinancials = await loadFinancials({ force: true });
                 setData(prev => ({ 
                     ...prev, 
                     financials: freshFinancials.financials,
@@ -1453,7 +1454,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 
                 // Invalidate cache and reload
                 invalidateCache('financials');
-                const freshFinancials = await loadFinancials();
+                const freshFinancials = await loadFinancials({ force: true });
                 setData(prev => ({ 
                     ...prev, 
                     financials: freshFinancials.financials,
@@ -1540,19 +1541,19 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 
                 // Rollback on error - reload the data
                 if (collection === 'financials' || collection === 'expenses') {
-                    const freshFinancials = await loadFinancials();
+                    const freshFinancials = await loadFinancials({ force: true });
                     setData(prev => ({ ...prev, ...freshFinancials }));
                 } else if (collection === 'marketing') {
-                    const freshMarketing = await loadMarketing();
+                    const freshMarketing = await loadMarketing({ force: true });
                     setData(prev => ({ ...prev, marketing: freshMarketing }));
                 } else if (['investors', 'customers', 'partners'].includes(collection) || collection === 'contacts') {
-                    const freshCrm = await loadCrmItems();
+                    const freshCrm = await loadCrmItems({ force: true });
                     setData(prev => ({ ...prev, ...freshCrm }));
                 } else if (['platformTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketingTasks', 'financialTasks'].includes(collection)) {
-                    const freshTasks = await loadTasks();
+                    const freshTasks = await loadTasks({ force: true });
                     setData(prev => ({ ...prev, ...freshTasks }));
                 } else if (collection === 'documents') {
-                    const freshDocuments = await loadDocuments();
+                    const freshDocuments = await loadDocuments({ force: true });
                     setData(prev => ({ ...prev, documents: freshDocuments }));
                 }
                 
@@ -1579,7 +1580,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 
                 // Reload marketing data immediately
                 invalidateCache('marketing');
-                const freshMarketing = await loadMarketing();
+                const freshMarketing = await loadMarketing({ force: true });
                 setData(prev => ({ ...prev, marketing: freshMarketing }));
                 setLoadedTabs(prev => new Set(prev).add('marketing'));
                 
