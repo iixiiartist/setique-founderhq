@@ -86,40 +86,75 @@ Context-aware AI assistants trained on your business profile and data:
 - **🐳 Docker Support**: Containerized deployment ready
 - **📝 Type Safety**: Full TypeScript support with strict types
 
-## 🏗️ Tech Stack
+## 🏗️ Tech Stack & Architecture
 
 ### Frontend
-- **React 19** with TypeScript
-- **Vite** for build tooling and development
+- **React 18.3** with TypeScript (strict mode)
+- **Vite** for fast builds and HMR
 - **Tailwind CSS** with neo-brutalist design system
+- **Lucide React** for icons
 - **Recharts** for data visualization
-- **React Markdown** with GitHub Flavored Markdown support
+- **React Router** for navigation
+- **React Hook Form** for form management
 
 ### Backend & Database
-- **Supabase** for authentication, database, and real-time features
-- **PostgreSQL** with Row Level Security (RLS)
-- **Google Gemini API** for AI-powered insights
+- **Supabase** (PostgreSQL + Auth + Storage + Realtime)
+- **Row-Level Security (RLS)** for multi-tenant data isolation
+- **Database Triggers** for automated workflows
+- **Audit Logging** for compliance and security
 
-### DevOps & Deployment
-- **Docker** containerization
-- **Nginx** for production serving
-- **Vercel/Netlify** deployment ready
-- **Environment-based configuration**
+### Architecture Highlights
+
+#### Single Workspace Model
+- Each user/team has ONE focused workspace (no workspace switching)
+- Workspace owner + invited members collaboration
+- All data workspace-scoped with RLS enforcement
+
+#### Multi-Tenant Security
+- Database-level RLS policies on all tables
+- Helper function pattern: `is_workspace_member(workspace_id)`
+- Automated audit logging for critical operations
+- See [RLS Architecture](docs/RLS_ARCHITECTURE.md) for details
+
+#### AI Integration
+- **Google Gemini AI** (gemini-1.5-flash) for 6 specialized assistants
+- Context-aware prompts with business profile integration
+- Conversation history stored per workspace
+- Streaming responses for real-time feedback
+
+#### Subscription System
+- **Stripe** integration for payments
+- 3 tiers: Free, Power Individual ($10/mo), Team Pro ($25/mo base + $15/seat)
+- Usage limits enforced at database and application level
+- Webhook handling for subscription lifecycle
+
+### DevOps & Monitoring
+- **Netlify** for hosting and CI/CD
+- **Sentry** for error tracking and performance monitoring
+- **GitHub Actions** for automated daily database backups
+- **Automated source maps** upload for debugging
+- See [Sentry Setup Guide](docs/SENTRY_SETUP_GUIDE.md)
+
+### Testing
+- **Vitest** for unit tests (57 tests passing)
+- **RLS policy tests** for security validation
+- Environment validation at build time and runtime
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+ 
-- npm or yarn
-- Supabase account
-- Google Gemini API key
+- Node.js 18+ and npm
+- Supabase account (free tier works)
+- Stripe account (test mode)
+- Google Gemini API key (optional, for AI features)
+- Sentry account (optional, for error tracking)
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
-   cd setique-founder-dashboard
+   git clone https://github.com/iixiiartist/setique-founderhq.git
+   cd setique-founderhq
    ```
 
 2. **Install dependencies**
@@ -129,27 +164,36 @@ Context-aware AI assistants trained on your business profile and data:
 
 3. **Set up environment variables**
    ```bash
-   cp .env.example .env
+   cp .env.example .env.local
    ```
    
    Fill in your environment variables:
    ```env
-   VITE_GEMINI_API_KEY=your_gemini_api_key
-   VITE_SUPABASE_URL=your_supabase_url
-   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   # Required
+   VITE_SUPABASE_URL=https://your-project.supabase.co
+   VITE_SUPABASE_ANON_KEY=your-anon-key
+   VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
+   VITE_APP_URL=http://localhost:5173
+
+   # Optional but recommended
+   VITE_GEMINI_API_KEY=your-gemini-key
+   VITE_SENTRY_DSN=https://...
    ```
 
 4. **Set up the database**
-   - Create a new Supabase project
-   - Run the SQL schema from `supabase/schema.sql` in your Supabase SQL editor
-   - Configure Row Level Security policies (included in schema)
+   - Create a Supabase project at [supabase.com](https://supabase.com)
+   - Navigate to SQL Editor
+   - Run migrations from `supabase/migrations/` in order (001, 002, etc.)
+   - Migrations include tables, RLS policies, triggers, and functions
 
 5. **Start development server**
    ```bash
    npm run dev
    ```
 
-Visit `http://localhost:3000` to see the application.
+Visit `http://localhost:5173` to see the application.
+
+**New Developer?** See [Developer Onboarding Guide](docs/ONBOARDING.md) for comprehensive setup instructions.
 
 ### Desktop Application
 
@@ -163,68 +207,137 @@ npm run electron:dev
 npm run electron:build:win  # or :mac or :linux
 ```
 
-## 📖 Database Setup
+## 📖 Documentation
 
-The application requires a PostgreSQL database with specific tables and security policies. 
+### For Developers
+- **[Developer Onboarding](docs/ONBOARDING.md)** - Complete guide for new team members
+- **[RLS Architecture](docs/RLS_ARCHITECTURE.md)** - Multi-tenant security patterns
+- **[Sentry Setup](docs/SENTRY_SETUP_GUIDE.md)** - Error tracking configuration
+- **[Audit Logging](docs/SUPABASE_AUDIT_LOGGING.md)** - Compliance and backup strategies
 
-1. **Create a Supabase project** at [supabase.com](https://supabase.com)
-2. **Run the schema**: Copy the contents of `supabase/schema.sql` and execute it in your Supabase SQL editor
-3. **Verify setup**: The schema creates all necessary tables with Row Level Security enabled
+### Database
+- **Schema**: All tables defined in `supabase/migrations/`
+- **Security**: Row-Level Security (RLS) enabled on all tables
+- **Migrations**: Version-controlled database changes
 
-### Database Tables
-- `profiles` - User profiles and settings
-- `tasks` - Task management across categories
-- `crm_items` - Companies (investors, customers, partners)
-- `contacts` - Individual contacts within companies
-- `meetings` - Meeting records with contacts
-- `marketing_items` - Marketing campaigns and initiatives  
-- `financial_logs` - Financial metrics over time
-- `documents` - File storage with metadata
+#### Key Tables
+- `workspaces` - User workspaces (one per user)
+- `workspace_members` - Team collaboration
+- `profiles` - User profile data
+- `tasks` - Task management
+- `crm_items` - CRM pipeline (investors, customers, partners)
+- `contacts` - Contact information
+- `meetings` - Meeting records
+- `marketing_items` - Marketing campaigns
+- `financial_logs` - Financial metrics tracking
+- `documents` - Document storage metadata
+- `subscriptions` - Stripe subscription data
+- `audit.operation_log` - Audit trail for compliance
 
 ## 🚀 Deployment
 
-### Option 1: Vercel (Recommended)
-1. Connect your GitHub repository to Vercel
-2. Set environment variables in Vercel dashboard
-3. Deploy automatically on push
+### Production (Netlify)
+The application is automatically deployed to Netlify on push to `main`:
 
-### Option 2: Docker
+**Build Configuration:**
+- Build command: `npm run build`
+- Publish directory: `dist`
+- Node version: 18+
+
+**Environment Variables (Required):**
+```env
+VITE_SUPABASE_URL=https://jffnzpdcmdalxqhkfymx.supabase.co
+VITE_SUPABASE_ANON_KEY=<your-anon-key>
+VITE_STRIPE_PUBLISHABLE_KEY=<your-live-key>
+VITE_APP_URL=https://founderhq.netlify.app
+VITE_GEMINI_API_KEY=<your-gemini-key>
+VITE_SENTRY_DSN=<your-sentry-dsn>
+SENTRY_AUTH_TOKEN=<your-token>  # For source maps
+SENTRY_ORG=setique
+SENTRY_PROJECT=founderhq
+```
+
+**Automated Features:**
+- ✅ Build validation (environment + TypeScript + ESLint)
+- ✅ Sentry source maps upload
+- ✅ Deploy previews for PRs
+- ✅ Production deploys on merge to main
+
+See [Production Deployment Guide](docs/PRODUCTION_DEPLOYMENT.md) for detailed instructions.
+
+### Alternative: Docker
 ```bash
 # Build image
-docker build -t setique-dashboard .
+docker build -t founderhq .
 
 # Run container
-docker run -p 3000:80 setique-dashboard
+docker run -p 5173:80 \
+  -e VITE_SUPABASE_URL=... \
+  -e VITE_SUPABASE_ANON_KEY=... \
+  founderhq
 ```
-
-### Option 3: Traditional VPS
-```bash
-# Build for production
-npm run build
-
-# Upload dist/ folder to your server
-# Configure nginx/apache to serve static files
-```
-
-See `DEPLOYMENT.md` for detailed deployment instructions.
 
 ## 🧪 Development
 
 ### Available Scripts
-- `npm run dev` - Start development server
+- `npm run dev` - Start development server (port 5173)
 - `npm run build` - Build for production
 - `npm run preview` - Preview production build
 - `npm run lint` - Run ESLint
-- `npm run type-check` - Run TypeScript compiler
-- `npm run docker:build` - Build Docker image
-- `npm run docker:run` - Run Docker container
+- `npm run test` - Run unit tests (Vitest)
+- `npm run test:watch` - Run tests in watch mode
+- `npm run test:coverage` - Generate coverage report
+- `npm run validate-env` - Validate environment variables
+
+### Testing
+```bash
+# Run all tests
+npm run test
+
+# Watch mode for development
+npm run test:watch
+
+# RLS policy tests (requires Supabase connection)
+npm run test:rls
+
+# Coverage report
+npm run test:coverage
+```
+
+**Test Coverage:**
+- ✅ 57 unit tests passing
+- ✅ RLS policy validation tests
+- ✅ Environment validation tests
+
+### Code Quality
+- **TypeScript**: Strict mode enabled
+- **ESLint**: Enforced on build
+- **Prettier**: Consistent formatting
+- **Vitest**: Unit testing framework
 
 ### Environment Variables
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `VITE_GEMINI_API_KEY` | Google Gemini API key | Yes |
-| `VITE_SUPABASE_URL` | Supabase project URL | Yes |
-| `VITE_SUPABASE_ANON_KEY` | Supabase anonymous key | Yes |
+
+See `.env.example` for all available variables.
+
+**Required (4):**
+- `VITE_SUPABASE_URL` - Supabase project URL
+- `VITE_SUPABASE_ANON_KEY` - Supabase anonymous key
+- `VITE_STRIPE_PUBLISHABLE_KEY` - Stripe publishable key (test or live)
+- `VITE_APP_URL` - Application URL
+
+**Important (7):**
+- `VITE_GEMINI_API_KEY` - Google Gemini AI API key (for AI assistants)
+- `VITE_STRIPE_PRICE_POWER_INDIVIDUAL` - Stripe price ID
+- `VITE_STRIPE_PRICE_TEAM_PRO_BASE` - Stripe price ID
+- `VITE_STRIPE_PRICE_TEAM_PRO_SEAT` - Stripe price ID
+- `VITE_APP_NAME` - Application display name
+- `VITE_APP_VERSION` - Version number
+- `VITE_SENTRY_DSN` - Sentry error tracking DSN
+
+**Build-time only:**
+- `SENTRY_AUTH_TOKEN` - Sentry auth token (for source map uploads)
+- `SENTRY_ORG` - Sentry organization slug
+- `SENTRY_PROJECT` - Sentry project name
 | `VITE_ENVIRONMENT` | Environment (dev/prod) | No |
 
 ## 🔒 Security
