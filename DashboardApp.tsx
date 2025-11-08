@@ -8,6 +8,7 @@ import TaskFocusModal from './components/shared/TaskFocusModal';
 import { TabLoadingFallback } from './components/shared/TabLoadingFallback';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import KeyboardShortcutsHelp from './components/shared/KeyboardShortcutsHelp';
+import { setUser as setSentryUser, setWorkspaceContext, trackAction } from './lib/sentry.tsx';
 
 // Lazy load heavy tab components for code splitting
 // This reduces initial bundle size and improves first load performance
@@ -75,6 +76,31 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
     useEffect(() => {
         localStorage.setItem('activeTab', activeTab);
     }, [activeTab]);
+
+    // Set Sentry user context for error tracking
+    useEffect(() => {
+        if (user) {
+            setSentryUser({
+                id: user.id,
+                email: user.email || 'unknown'
+            });
+        } else {
+            setSentryUser(null);
+        }
+    }, [user]);
+
+    // Set Sentry workspace context for error tracking
+    useEffect(() => {
+        if (workspace) {
+            setWorkspaceContext({
+                id: workspace.id,
+                name: workspace.name,
+                planType: workspace.planType || 'free'
+            });
+        } else {
+            setWorkspaceContext(null);
+        }
+    }, [workspace]);
 
     // Check if current user is admin
     useEffect(() => {
@@ -533,6 +559,9 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             try {
                 console.log('[DashboardApp] Creating task with workspace:', workspace.id);
                 await DataPersistenceAdapter.createTask(userId, category, text, priority, crmItemId, contactId, dueDate, workspace.id, assignedTo, dueTime);
+                
+                // Track action in Sentry
+                trackAction('task_created', { category, priority, hasDate: !!dueDate });
                 
                 // Reload tasks to replace optimistic task with real one from database
                 invalidateCache('tasks');

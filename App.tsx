@@ -11,28 +11,34 @@ import { LandingPage } from './components/LandingPage'
 import { PrivacyPolicyPage } from './components/PrivacyPolicyPage'
 import { TermsOfServicePage } from './components/TermsOfServicePage'
 import DashboardApp from './DashboardApp'
+import { initializeSentry, ErrorBoundary, ErrorFallback } from './lib/sentry.tsx'
+
+// Initialize Sentry as early as possible
+initializeSentry();
 
 const App: React.FC = () => {
   return (
-    <QueryProvider>
-      <Router>
-        <Toaster />
-        <Routes>
-        {/* Public landing page */}
-        <Route path="/" element={<LandingPage />} />
-        
-        {/* Legal pages */}
-        <Route path="/privacy" element={<PrivacyPolicyPage />} />
-        <Route path="/terms" element={<TermsOfServicePage />} />
-        
-        {/* App routes (requires auth) */}
-        <Route path="/app/*" element={<AppRoutes />} />
-        
-        {/* Redirect old root to landing */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Router>
-    </QueryProvider>
+    <ErrorBoundary fallback={ErrorFallback} showDialog>
+      <QueryProvider>
+        <Router>
+          <Toaster />
+          <Routes>
+          {/* Public landing page */}
+          <Route path="/" element={<LandingPage />} />
+          
+          {/* Legal pages */}
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms" element={<TermsOfServicePage />} />
+          
+          {/* App routes (requires auth) */}
+          <Route path="/app/*" element={<AppRoutes />} />
+          
+          {/* Redirect old root to landing */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+      </QueryProvider>
+    </ErrorBoundary>
   )
 }
 
