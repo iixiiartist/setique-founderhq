@@ -19,6 +19,10 @@ dist-ssr
 .env.test.local
 .env.production.local
 
+# Sentry
+.sentryclirc
+.sentry-*/
+
 # Supabase local development files
 supabase/.temp/
 .supabase/

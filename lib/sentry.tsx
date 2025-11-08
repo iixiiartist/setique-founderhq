@@ -13,9 +13,10 @@ import React from 'react';
  */
 export const initializeSentry = () => {
   const dsn = import.meta.env.VITE_SENTRY_DSN;
-  const environment = import.meta.env.MODE || 'development';
+  const environment = import.meta.env.VITE_ENVIRONMENT || import.meta.env.MODE || 'development';
+  const appVersion = import.meta.env.VITE_APP_VERSION || '1.0.0';
   
-  // Only initialize if DSN is provided and not in development
+  // Only initialize if DSN is provided
   if (!dsn || dsn === 'your_sentry_dsn_here') {
     console.log('[Sentry] Skipping initialization - no DSN configured');
     return;
@@ -25,11 +26,18 @@ export const initializeSentry = () => {
     dsn,
     environment,
     
-    // Capture 100% of errors in development, 100% in production (adjust as needed)
+    // Capture 100% of errors (adjust if needed for high-traffic apps)
     sampleRate: 1.0,
     
-    // Release tracking for source maps (set via build process)
-    release: import.meta.env.VITE_SENTRY_RELEASE || undefined,
+    // Release tracking for source maps and version tracking
+    release: `founderhq@${appVersion}`,
+    
+    // Enable performance monitoring
+    tracesSampleRate: environment === 'production' ? 0.1 : 1.0, // 10% in prod, 100% in dev
+    
+    // Enable session replay (optional - captures user interactions)
+    replaysSessionSampleRate: 0.0, // Disabled by default - set to 0.1 for 10% of sessions
+    replaysOnErrorSampleRate: 1.0, // Always replay sessions with errors
     
     // Ignore common errors that don't require tracking
     ignoreErrors: [
@@ -40,9 +48,21 @@ export const initializeSentry = () => {
       'Network request failed',
       'NetworkError',
       'Failed to fetch',
+      'Load failed',
       // Supabase session errors (handled gracefully)
       'Invalid Refresh Token',
       'Auth session missing',
+      'Invalid JWT',
+      // ResizeObserver loop errors (harmless)
+      'ResizeObserver loop limit exceeded',
+      'ResizeObserver loop completed with undelivered notifications',
+    ],
+    
+    // Ignore errors from browser extensions
+    denyUrls: [
+      /extensions\//i,
+      /^chrome:\/\//i,
+      /^moz-extension:\/\//i,
     ],
     
     // Don't send personally identifiable information
