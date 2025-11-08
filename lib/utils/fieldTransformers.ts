@@ -12,7 +12,18 @@
  * - Easy to maintain and test
  */
 
-import type { Task, MarketingItem, Contact, BaseCrmItem, Note, Meeting, FinancialLog } from '../../types';
+import type {
+  Task,
+  MarketingItem,
+  Contact,
+  BaseCrmItem,
+  Note,
+  Meeting,
+  FinancialLog,
+  Document,
+  TaskCollectionName,
+  Expense,
+} from '../../types';
 
 // ============================================================================
 // Database Types (snake_case)
@@ -33,6 +44,7 @@ interface DbTask {
   user_id?: string;
   assigned_to?: string | null;
   assigned_to_profile?: { full_name?: string } | null;
+  category?: string | null;
 }
 
 interface DbMarketingItem {
@@ -58,6 +70,10 @@ interface DbCrmItem {
   notes: any[];
   assigned_to?: string | null;
   assigned_to_name?: string | null;
+  type: 'investor' | 'customer' | 'partner';
+  check_size?: number | null;
+  deal_value?: number | null;
+  opportunity?: string | null;
 }
 
 interface DbContact {
@@ -83,6 +99,68 @@ interface DbFinancialLog {
   signups: number;
 }
 
+interface DbDocument {
+  id: string;
+  name: string;
+  mime_type: string;
+  content: string | null;
+  module: string;
+  company_id?: string | null;
+  contact_id?: string | null;
+  notes?: Note[] | null;
+  created_at: string;
+  uploaded_at?: string | null;
+  uploaded_by?: string | null;
+  uploaded_by_name?: string | null;
+}
+
+interface DbExpense {
+  id: string;
+  date: string;
+  category: string;
+  amount: number | string;
+  description: string;
+  vendor?: string | null;
+  payment_method?: string | null;
+  receipt_document_id?: string | null;
+  notes?: Note[] | null;
+}
+
+// ============================================================================
+// Task Category Mapping
+// ============================================================================
+
+const TASK_CATEGORY_MAP: Record<string, TaskCollectionName> = {
+  platformTasks: 'platformTasks',
+  investorTasks: 'investorTasks',
+  customerTasks: 'customerTasks',
+  partnerTasks: 'partnerTasks',
+  marketingTasks: 'marketingTasks',
+  financialTasks: 'financialTasks',
+  // Legacy/alternate spellings mapped to current categories
+  platform: 'platformTasks',
+  investor: 'investorTasks',
+  customer: 'customerTasks',
+  partner: 'partnerTasks',
+  marketing: 'marketingTasks',
+  financial: 'financialTasks',
+};
+
+const DEFAULT_TASK_CATEGORY: TaskCollectionName = 'platformTasks';
+
+/**
+ * Normalize task category with fallback to default
+ * Handles legacy category names and null/undefined values
+ */
+function normalizeTaskCategory(category?: string | null): TaskCollectionName {
+  if (!category) {
+    return DEFAULT_TASK_CATEGORY;
+  }
+
+  const normalized = TASK_CATEGORY_MAP[category];
+  return normalized ?? DEFAULT_TASK_CATEGORY;
+}
+
 // ============================================================================
 // Database → Application (Read Transformers)
 // ============================================================================
@@ -96,6 +174,7 @@ export function dbToTask(dbTask: DbTask): Task {
     text: dbTask.text,
     status: dbTask.status as Task['status'],
     priority: dbTask.priority as Task['priority'],
+    category: normalizeTaskCategory(dbTask.category),
     createdAt: new Date(dbTask.created_at).getTime(),
     completedAt: dbTask.completed_at ? new Date(dbTask.completed_at).getTime() : undefined,
     dueDate: dbTask.due_date || undefined,
@@ -178,6 +257,44 @@ export function dbToFinancialLog(dbLog: DbFinancialLog): FinancialLog {
   };
 }
 
+/**
+ * Transform database document record to application Document model
+ */
+export function dbToDocument(dbDocument: DbDocument): Document {
+  const timestampSource = dbDocument.uploaded_at || dbDocument.created_at;
+
+  return {
+    id: dbDocument.id,
+    name: dbDocument.name,
+    mimeType: dbDocument.mime_type,
+    content: dbDocument.content || '',
+    uploadedAt: timestampSource ? new Date(timestampSource).getTime() : Date.now(),
+    module: dbDocument.module as Document['module'],
+    companyId: dbDocument.company_id || undefined,
+    contactId: dbDocument.contact_id || undefined,
+    uploadedBy: dbDocument.uploaded_by || undefined,
+    uploadedByName: dbDocument.uploaded_by_name || undefined,
+    notes: (dbDocument.notes as Note[] | undefined) || [],
+  };
+}
+
+/**
+ * Transform database expense record to application Expense model
+ */
+export function dbToExpense(dbExpense: DbExpense): Expense {
+  return {
+    id: dbExpense.id,
+    date: dbExpense.date,
+    category: dbExpense.category as Expense['category'],
+    amount: Number(dbExpense.amount),
+    description: dbExpense.description,
+    vendor: dbExpense.vendor || undefined,
+    paymentMethod: (dbExpense.payment_method as Expense['paymentMethod']) || undefined,
+    receiptDocumentId: dbExpense.receipt_document_id || undefined,
+    notes: (dbExpense.notes as Note[] | undefined) || [],
+  };
+}
+
 // ============================================================================
 // Application → Database (Write Transformers)
 // ============================================================================
@@ -191,6 +308,7 @@ export function taskToDb(task: Partial<Task>): Record<string, any> {
   if (task.text !== undefined) dbObject.text = task.text;
   if (task.status !== undefined) dbObject.status = task.status;
   if (task.priority !== undefined) dbObject.priority = task.priority;
+  if (task.category !== undefined) dbObject.category = task.category;
   if (task.completedAt !== undefined) {
     dbObject.completed_at = task.completedAt ? new Date(task.completedAt).toISOString() : null;
   }
@@ -296,4 +414,18 @@ export function dbToContacts(dbContacts: DbContact[]): Contact[] {
  */
 export function dbToFinancialLogs(dbLogs: DbFinancialLog[]): FinancialLog[] {
   return dbLogs.map(dbToFinancialLog);
+}
+
+/**
+ * Transform array of database expense records to application Expense models
+ */
+export function dbToExpenses(dbExpenses: DbExpense[]): Expense[] {
+  return dbExpenses.map(dbToExpense);
+}
+
+/**
+ * Transform array of database document records to application Document models
+ */
+export function dbToDocuments(dbDocuments: DbDocument[]): Document[] {
+  return dbDocuments.map(dbToDocument);
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import { Tab, EMPTY_DASHBOARD_DATA, NAV_ITEMS, ACHIEVEMENTS } from './constants';
 import { DashboardData, AppActions, Task, TaskCollectionName, CrmCollectionName, NoteableCollectionName, AnyCrmItem, FinancialLog, Note, BaseCrmItem, MarketingItem, SettingsData, Document, Contact, TabType, GamificationData, AchievementId, Priority, CalendarEvent, Meeting, TaskStatus } from './types';
 import SideMenu from './components/SideMenu';
@@ -71,6 +71,18 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
     const [sentNotifications, setSentNotifications] = useState<Set<string>>(new Set());
     const [lastNotificationCheckDate, setLastNotificationCheckDate] = useState<string | null>(null);
     const [isTaskFocusModalOpen, setIsTaskFocusModalOpen] = useState(false);
+
+    // Refs for notification permission tracking (prevents duplicate warnings)
+    const notificationPermissionRequestRef = useRef(false);
+    const notificationSupportWarnedRef = useRef(false);
+    const notificationPermissionWarnedRef = useRef(false);
+    const notificationErrorWarnedRef = useRef(false);
+
+    // Toast handler - defined early so it can be used in notification logic
+    const handleToast = useCallback((message: string, type: 'info' | 'success' = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3000);
+    }, []);
 
     // Save active tab to localStorage whenever it changes
     useEffect(() => {
@@ -337,20 +349,102 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             handleToast('Failed to load data from database', 'info');
             console.error('Data loading error:', dataError);
         }
-    }, [dataError]);
+    }, [dataError, handleToast]);
+
+    // Disable desktop notifications when browser doesn't support or permission denied
+    const disableDesktopNotifications = useCallback(async () => {
+        let updatedSettings: SettingsData | null = null;
+
+        setData(prev => {
+            if (!prev.settings.desktopNotifications) {
+                return prev;
+            }
+
+            updatedSettings = { ...prev.settings, desktopNotifications: false };
+
+            return {
+                ...prev,
+                settings: updatedSettings
+            };
+        });
+
+        if (userId && updatedSettings) {
+            try {
+                await DataPersistenceAdapter.updateSettings(userId, updatedSettings);
+            } catch (error) {
+                console.error('Error persisting desktop notification preference:', error);
+            }
+        }
+    }, [userId]);
     
-    // Effect for checking and sending notifications
+    // Effect for checking and sending notifications with robust permission handling
     useEffect(() => {
-        const checkNotifications = () => {
+        const canUseNotifications = typeof window !== 'undefined' && 'Notification' in window;
+
+        if (!data.settings.desktopNotifications) {
+            return;
+        }
+
+        if (!canUseNotifications) {
+            if (!notificationSupportWarnedRef.current) {
+                notificationSupportWarnedRef.current = true;
+                handleToast('Desktop notifications are not supported in this browser. We disabled the setting for you.', 'info');
+            }
+            void disableDesktopNotifications();
+            return;
+        }
+
+        let isMounted = true;
+
+        const ensurePermission = async (): Promise<NotificationPermission> => {
+            const permission = Notification.permission;
+
+            if (permission === 'granted') {
+                return permission;
+            }
+
+            if (permission === 'default') {
+                if (notificationPermissionRequestRef.current) {
+                    return permission;
+                }
+
+                notificationPermissionRequestRef.current = true;
+                try {
+                    const result = await Notification.requestPermission();
+                    if (result !== 'granted') {
+                        if (!notificationPermissionWarnedRef.current) {
+                            notificationPermissionWarnedRef.current = true;
+                            handleToast('Desktop notifications were disabled because permission was not granted.', 'info');
+                        }
+                        await disableDesktopNotifications();
+                    }
+                    return result;
+                } finally {
+                    notificationPermissionRequestRef.current = false;
+                }
+            }
+
+            if (permission === 'denied') {
+                if (!notificationPermissionWarnedRef.current) {
+                    notificationPermissionWarnedRef.current = true;
+                    handleToast('Desktop notifications were disabled because permission was revoked.', 'info');
+                }
+                await disableDesktopNotifications();
+            }
+
+            return permission;
+        };
+
+        const checkNotifications = async () => {
             const todayStr = new Date().toISOString().split('T')[0];
 
             if (todayStr !== lastNotificationCheckDate) {
                 setLastNotificationCheckDate(todayStr);
                 setSentNotifications(new Set());
             }
-            
-            const settings = data.settings;
-            if (!settings.desktopNotifications) {
+
+            const permission = await ensurePermission();
+            if (!isMounted || permission !== 'granted') {
                 return;
             }
 
@@ -358,25 +452,55 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             const crmItemsWithActions = allCrmItems.filter(item => item.nextAction && item.nextActionDate);
 
             crmItemsWithActions.forEach(item => {
-                const isOverdue = item.nextActionDate! < todayStr;
-                
+                if (!item.nextActionDate) {
+                    return;
+                }
+
+                const isOverdue = item.nextActionDate < todayStr;
                 const notificationId = `notif-${item.id}`;
 
-                if (settings.desktopNotifications && isOverdue && !sentNotifications.has(notificationId)) {
-                    new Notification('Setique: Overdue Action', {
-                        body: `Your next action with ${item.company} ("${item.nextAction}") was due on ${item.nextActionDate}.`,
-                        tag: notificationId
-                    });
-                    setSentNotifications(prev => new Set(prev).add(notificationId));
+                if (isOverdue && !sentNotifications.has(notificationId)) {
+                    try {
+                        new Notification('Setique: Overdue Action', {
+                            body: `Your next action with ${item.company} ("${item.nextAction}") was due on ${item.nextActionDate}.`,
+                            tag: notificationId
+                        });
+                        setSentNotifications(prev => {
+                            const next = new Set(prev);
+                            next.add(notificationId);
+                            return next;
+                        });
+                    } catch (error) {
+                        console.error('Error dispatching desktop notification:', error);
+                        if (!notificationErrorWarnedRef.current) {
+                            notificationErrorWarnedRef.current = true;
+                            handleToast('We could not display desktop notifications. Please review your browser permissions.', 'info');
+                        }
+                    }
                 }
             });
         };
-        
-        const intervalId = setInterval(checkNotifications, 60000); // Check every minute
-        checkNotifications(); // Also check on initial load
 
-        return () => clearInterval(intervalId);
-    }, [data, lastNotificationCheckDate, sentNotifications]);
+        const intervalId = window.setInterval(() => {
+            void checkNotifications();
+        }, 60000); // Check every minute
+
+        void checkNotifications(); // Also check on initial load
+
+        return () => {
+            isMounted = false;
+            clearInterval(intervalId);
+        };
+    }, [
+        data.customers,
+        data.investors,
+        data.partners,
+        data.settings.desktopNotifications,
+        disableDesktopNotifications,
+        handleToast,
+        lastNotificationCheckDate,
+        sentNotifications
+    ]);
 
     // Event listener for opening business profile modal from settings
     useEffect(() => {
@@ -393,11 +517,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
         setActiveTab(tab);
         setIsMenuOpen(false);
     };
-
-    const handleToast = useCallback((message: string, type: 'info' | 'success' = 'success') => {
-        setToast({ message, type });
-        setTimeout(() => setToast(null), 3000);
-    }, []);
 
     // Reload function for lazy loading - invalidates cache and reloads current tab data
     const reload = useCallback(async () => {
@@ -537,6 +656,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 text,
                 status: 'Todo',
                 priority,
+                category,
                 createdAt: Date.now(),
                 userId,
                 dueDate: dueDate || undefined,
@@ -1712,8 +1832,17 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
         console.log('[DashboardApp] Marketing with dates:', data.marketing.filter(m => m.dueDate).map(m => ({ id: m.id, title: m.title, dueDate: m.dueDate, dueTime: m.dueTime })));
         
         const calendarEvents: CalendarEvent[] = [
-            ...allTasks.filter(t => t.dueDate).map(t => ({...t, type: 'task' as const, title: t.text})),
-            ...data.marketing.filter(m => m.dueDate).map(m => ({...m, type: 'marketing' as const, tag: 'Marketing' })),
+            ...allTasks
+                .filter(t => t.dueDate)
+                .map(t => ({ ...t, type: 'task' as const, title: t.text })),
+            ...data.marketing
+                .filter(m => m.dueDate)
+                .map(({ type: marketingCategory, ...marketing }) => ({
+                    ...marketing,
+                    type: 'marketing' as const,
+                    tag: 'Marketing',
+                    contentType: marketingCategory,
+                })),
             ...allMeetings,
             ...crmNextActions,
         ];

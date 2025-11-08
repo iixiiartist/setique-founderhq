@@ -21,11 +21,13 @@ export interface Meeting {
     summary: string; // Markdown
 }
 
+// TaskCollectionName is defined later in this file for AI Function Calling types
 export interface Task {
     id: string;
     text: string;
     status: TaskStatus;
     priority: Priority;
+    category: 'platformTasks' | 'investorTasks' | 'customerTasks' | 'partnerTasks' | 'marketingTasks' | 'financialTasks'; // Required category for organizing tasks
     createdAt: number;
     completedAt?: number;
     dueDate?: string; // YYYY-MM-DD
@@ -93,16 +95,19 @@ export interface MarketingItem {
     dueTime?: string; // HH:MM (24-hour format)
 }
 
-export type CalendarEvent = (Task & {
+export type CalendarTaskEvent = Task & {
     tag: string;
     type: 'task';
     title: string;
-}) | (Omit<MarketingItem, 'type'> & {
-    phone?: string | null;
-    title?: string | null;
-    linkedin: string;
+};
+
+export type CalendarMarketingEvent = Omit<MarketingItem, 'type'> & {
     type: 'marketing';
-}) | (Meeting & {
+    tag: string;
+    contentType: MarketingItem['type']; // Stores the original marketing type (Blog Post, Newsletter, etc.)
+};
+
+export type CalendarMeetingEvent = Meeting & {
     dueDate: string;
     tag: string;
     type: 'meeting';
@@ -110,13 +115,21 @@ export type CalendarEvent = (Task & {
     contactName: string;
     crmItemId: string;
     contactId: string;
-}) | (BaseCrmItem & {
+};
+
+export type CalendarCrmEvent = BaseCrmItem & {
     dueDate: string; // Maps from nextActionDate
     tag: string; // 'Investor' | 'Customer' | 'Partner'
     type: 'crm-action';
     title: string; // Maps from nextAction
     companyName: string; // Maps from company
-});
+};
+
+export type CalendarEvent =
+    | CalendarTaskEvent
+    | CalendarMarketingEvent
+    | CalendarMeetingEvent
+    | CalendarCrmEvent;
 
 export interface FinancialLog {
     id: string;
@@ -418,6 +431,8 @@ export interface Document {
     module: TabType;
     companyId?: string;
     contactId?: string;
+    uploadedBy?: string; // User ID who uploaded the document
+    uploadedByName?: string; // Display name of uploader
     notes: Note[];
 }
 
@@ -462,7 +477,7 @@ export type DeletableCollectionName = NoteableCollectionName | 'financials';
 
 export interface AppActions {
     createTask: (category: TaskCollectionName, text: string, priority: Priority, crmItemId?: string, contactId?: string, dueDate?: string, assignedTo?: string, dueTime?: string) => Promise<{ success: boolean; message: string; }>;
-    updateTask: (taskId: string, updates: Partial<Pick<Task, 'text' | 'status' | 'priority' | 'dueDate' | 'dueTime' | 'assignedTo'>>) => Promise<{ success: boolean; message: string; }>;
+    updateTask: (taskId: string, updates: Partial<Pick<Task, 'text' | 'status' | 'priority' | 'dueDate' | 'dueTime' | 'assignedTo' | 'category'>>) => Promise<{ success: boolean; message: string; }>;
     deleteTask: (taskId: string) => Promise<{ success: boolean; message: string; }>;
     addNote: (collection: NoteableCollectionName, itemId: string, noteText: string, crmItemId?: string) => Promise<{ success: boolean; message: string; }>;
     updateNote: (collection: NoteableCollectionName, itemId: string, noteTimestamp: number, newText: string, crmItemId?: string) => Promise<{ success: boolean; message: string; }>;

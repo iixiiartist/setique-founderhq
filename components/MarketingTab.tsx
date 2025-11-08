@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { MarketingItem, AppActions, Task, Priority, Document, BusinessProfile } from '../types';
+import { MarketingItem, AppActions, Task, Priority, Document, BusinessProfile, WorkspaceMember } from '../types';
 import Modal from './shared/Modal';
 import NotesManager from './shared/NotesManager';
 import ModuleAssistant from './shared/ModuleAssistant';
 import { Tab } from '../constants';
 import TaskManagement from './shared/TaskManagement';
-import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '../contexts/WorkspaceContext';
-import { AssignmentDropdown } from './shared/AssignmentDropdown';
 
 const MarketingItemCard: React.FC<{ item: MarketingItem; actions: AppActions; onEdit: (item: MarketingItem, triggerRef: React.RefObject<HTMLButtonElement>) => void; }> = ({ item, actions, onEdit }) => {
     const lastNote = item.notes?.length > 0 ? [...item.notes].sort((a,b) => b.timestamp - a.timestamp)[0] : null;
@@ -56,15 +54,16 @@ const MarketingItemCard: React.FC<{ item: MarketingItem; actions: AppActions; on
     );
 };
 
-const MarketingTab: React.FC<{ 
-    items: MarketingItem[]; 
-    tasks: Task[]; 
-    actions: AppActions; 
-    documents: Document[]; 
+const MarketingTab: React.FC<{
+    items: MarketingItem[];
+    tasks: Task[];
+    actions: AppActions;
+    documents: Document[];
     businessProfile?: BusinessProfile | null;
     workspaceId?: string;
     onUpgradeNeeded?: () => void;
-}> = React.memo(({ items, tasks, actions, documents, businessProfile, workspaceId, onUpgradeNeeded }) => {
+    workspaceMembers?: WorkspaceMember[];
+}> = React.memo(({ items, tasks, actions, documents, businessProfile, workspaceId, onUpgradeNeeded, workspaceMembers = [] }) => {
     const { workspace } = useWorkspace();
     const [form, setForm] = useState<Omit<MarketingItem, 'id'|'createdAt'|'notes'>>({
         title: '', type: 'Blog Post', status: 'Planned', dueDate: ''
@@ -94,9 +93,20 @@ const MarketingTab: React.FC<{
 - **Primary Goal:** ${primaryGoal}
 ` : `**Business Context:** Not yet configured.`;
 
+    const teamContext = workspaceMembers.length > 0 ? `
+**Team Members (${workspaceMembers.length}):**
+${workspaceMembers.map(member => `- ${member.fullName || member.email || 'Unknown Member'} (${member.email || 'no email'}) - Role: ${member.role}`).join('\n')}
+
+**Collaboration Notes:**
+- Coordinate campaign ownership with the listed teammates when suggesting follow-up actions.
+- Reference teammates by name when proposing assignments or requesting approvals.
+` : `**Team:** Working solo (no additional team members in workspace).`;
+
     const systemPrompt = `You are an expert marketing and growth hacking assistant for ${companyName}.
 
 ${businessContext}
+
+${teamContext}
 
 **Reporting Guidelines:**
 When asked for a report, analyze the provided marketing data.

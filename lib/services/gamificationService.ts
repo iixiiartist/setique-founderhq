@@ -384,9 +384,16 @@ export class TeamAchievementService {
   // Cache to prevent duplicate checks within a short time window
   private static checkCache = new Map<string, number>();
   private static CACHE_DURATION = 60000; // 1 minute
-  
+
   // Batch queue for achievement checks
-  private static batchQueue = new Map<string, () => Promise<any>>();
+  private static batchQueue = new Map<
+    string,
+    {
+      checkFn: () => Promise<{ newAchievements: WorkspaceAchievement[]; totalXP: number }>;
+      resolvers: Array<(value: { newAchievements: WorkspaceAchievement[]; totalXP: number }) => void>;
+      rejecters: Array<(reason: unknown) => void>;
+    }
+  >();
   private static batchTimer: NodeJS.Timeout | null = null;
   private static BATCH_DELAY = 1000; // 1 second
   
@@ -413,20 +420,33 @@ export class TeamAchievementService {
     workspaceId: string,
     userId: string,
     checkType: string,
-    checkFn: () => Promise<any>
-  ) {
+    checkFn: () => Promise<{ newAchievements: WorkspaceAchievement[]; totalXP: number }>
+  ): Promise<{ newAchievements: WorkspaceAchievement[]; totalXP: number }> {
     const queueKey = `${workspaceId}:${checkType}`;
-    this.batchQueue.set(queueKey, checkFn);
-    
-    // Clear existing timer
-    if (this.batchTimer) {
-      clearTimeout(this.batchTimer);
-    }
-    
-    // Set new timer to process batch
-    this.batchTimer = setTimeout(() => {
-      this.processBatchQueue();
-    }, this.BATCH_DELAY);
+    return new Promise((resolve, reject) => {
+      const existing = this.batchQueue.get(queueKey);
+      if (existing) {
+        existing.checkFn = checkFn;
+        existing.resolvers.push(resolve);
+        existing.rejecters.push(reject);
+      } else {
+        this.batchQueue.set(queueKey, {
+          checkFn,
+          resolvers: [resolve],
+          rejecters: [reject]
+        });
+      }
+
+      // Clear existing timer
+      if (this.batchTimer) {
+        clearTimeout(this.batchTimer);
+      }
+
+      // Set new timer to process batch
+      this.batchTimer = setTimeout(() => {
+        void this.processBatchQueue();
+      }, this.BATCH_DELAY);
+    });
   }
   
   /**
@@ -436,19 +456,20 @@ export class TeamAchievementService {
     const checks = Array.from(this.batchQueue.entries());
     this.batchQueue.clear();
     this.batchTimer = null;
-    
+
     console.log(`[TeamAchievements] Processing ${checks.length} batched checks`);
-    
-    // Execute all checks in parallel
-    const results = await Promise.allSettled(
-      checks.map(([key, checkFn]) => checkFn())
+
+    await Promise.all(
+      checks.map(async ([key, { checkFn, resolvers, rejecters }]) => {
+        try {
+          const result = await checkFn();
+          resolvers.forEach(resolve => resolve(result));
+        } catch (error) {
+          console.error(`[TeamAchievements] Batch check failed:`, error);
+          rejecters.forEach(reject => reject(error));
+        }
+      })
     );
-    
-    results.forEach((result, index) => {
-      if (result.status === 'rejected') {
-        console.error(`[TeamAchievements] Batch check failed:`, result.reason);
-      }
-    });
   }
   
   /**
@@ -602,24 +623,24 @@ export class TeamAchievementService {
   /**
    * Quick helpers for common triggers - Now with batching and caching
    */
-  
-  static async onMemberAdded(workspaceId: string, userId: string, memberCount: number) {
-    if (this.shouldSkipCheck(workspaceId, 'memberAdded')) return;
-    
-    this.queueBatchCheck(workspaceId, userId, 'memberAdded', async () => {
+
+  static async onMemberAdded(workspaceId: string, userId: string, memberCount: number): Promise<{ newAchievements: WorkspaceAchievement[]; totalXP: number } | undefined> {
+    if (this.shouldSkipCheck(workspaceId, 'memberAdded')) return undefined;
+
+    return await this.queueBatchCheck(workspaceId, userId, 'memberAdded', async () => {
       return await this.checkTeamAchievements(workspaceId, userId, { memberCount });
     });
   }
 
   static async onTaskCompleted(
-    workspaceId: string, 
-    userId: string, 
+    workspaceId: string,
+    userId: string,
     totalCompletedTasks: number,
     sharedTasks: number
-  ) {
-    if (this.shouldSkipCheck(workspaceId, 'taskCompleted')) return;
-    
-    this.queueBatchCheck(workspaceId, userId, 'taskCompleted', async () => {
+  ): Promise<{ newAchievements: WorkspaceAchievement[]; totalXP: number } | undefined> {
+    if (this.shouldSkipCheck(workspaceId, 'taskCompleted')) return undefined;
+
+    return await this.queueBatchCheck(workspaceId, userId, 'taskCompleted', async () => {
       return await this.checkTeamAchievements(workspaceId, userId, {
         completedTasks: totalCompletedTasks,
         sharedTasks
@@ -627,10 +648,10 @@ export class TeamAchievementService {
     });
   }
 
-  static async onMeetingLogged(workspaceId: string, userId: string, totalMeetings: number) {
-    if (this.shouldSkipCheck(workspaceId, 'meetingLogged')) return;
-    
-    this.queueBatchCheck(workspaceId, userId, 'meetingLogged', async () => {
+  static async onMeetingLogged(workspaceId: string, userId: string, totalMeetings: number): Promise<{ newAchievements: WorkspaceAchievement[]; totalXP: number } | undefined> {
+    if (this.shouldSkipCheck(workspaceId, 'meetingLogged')) return undefined;
+
+    return await this.queueBatchCheck(workspaceId, userId, 'meetingLogged', async () => {
       return await this.checkTeamAchievements(workspaceId, userId, { meetings: totalMeetings });
     });
   }
@@ -640,10 +661,10 @@ export class TeamAchievementService {
     userId: string,
     totalGMV: number,
     totalMRR: number
-  ) {
-    if (this.shouldSkipCheck(workspaceId, 'financialUpdate')) return;
-    
-    this.queueBatchCheck(workspaceId, userId, 'financialUpdate', async () => {
+  ): Promise<{ newAchievements: WorkspaceAchievement[]; totalXP: number } | undefined> {
+    if (this.shouldSkipCheck(workspaceId, 'financialUpdate')) return undefined;
+
+    return await this.queueBatchCheck(workspaceId, userId, 'financialUpdate', async () => {
       return await this.checkTeamAchievements(workspaceId, userId, {
         totalGMV,
         totalMRR
@@ -651,40 +672,40 @@ export class TeamAchievementService {
     });
   }
 
-  static async onExpenseTracked(workspaceId: string, userId: string, totalExpenses: number) {
-    if (this.shouldSkipCheck(workspaceId, 'expenseTracked')) return;
-    
-    this.queueBatchCheck(workspaceId, userId, 'expenseTracked', async () => {
+  static async onExpenseTracked(workspaceId: string, userId: string, totalExpenses: number): Promise<{ newAchievements: WorkspaceAchievement[]; totalXP: number } | undefined> {
+    if (this.shouldSkipCheck(workspaceId, 'expenseTracked')) return undefined;
+
+    return await this.queueBatchCheck(workspaceId, userId, 'expenseTracked', async () => {
       return await this.checkTeamAchievements(workspaceId, userId, {
         expenseCount: totalExpenses
       });
     });
   }
 
-  static async onDocumentUploaded(workspaceId: string, userId: string, totalDocuments: number) {
-    if (this.shouldSkipCheck(workspaceId, 'documentUploaded')) return;
-    
-    this.queueBatchCheck(workspaceId, userId, 'documentUploaded', async () => {
+  static async onDocumentUploaded(workspaceId: string, userId: string, totalDocuments: number): Promise<{ newAchievements: WorkspaceAchievement[]; totalXP: number } | undefined> {
+    if (this.shouldSkipCheck(workspaceId, 'documentUploaded')) return undefined;
+
+    return await this.queueBatchCheck(workspaceId, userId, 'documentUploaded', async () => {
       return await this.checkTeamAchievements(workspaceId, userId, {
         documentCount: totalDocuments
       });
     });
   }
 
-  static async onCRMContactAdded(workspaceId: string, userId: string, totalContacts: number) {
-    if (this.shouldSkipCheck(workspaceId, 'crmContactAdded')) return;
-    
-    this.queueBatchCheck(workspaceId, userId, 'crmContactAdded', async () => {
+  static async onCRMContactAdded(workspaceId: string, userId: string, totalContacts: number): Promise<{ newAchievements: WorkspaceAchievement[]; totalXP: number } | undefined> {
+    if (this.shouldSkipCheck(workspaceId, 'crmContactAdded')) return undefined;
+
+    return await this.queueBatchCheck(workspaceId, userId, 'crmContactAdded', async () => {
       return await this.checkTeamAchievements(workspaceId, userId, {
         crmContactCount: totalContacts
       });
     });
   }
 
-  static async onAIUsage(workspaceId: string, userId: string, totalAIUsage: number) {
-    if (this.shouldSkipCheck(workspaceId, 'aiUsage')) return;
-    
-    this.queueBatchCheck(workspaceId, userId, 'aiUsage', async () => {
+  static async onAIUsage(workspaceId: string, userId: string, totalAIUsage: number): Promise<{ newAchievements: WorkspaceAchievement[]; totalXP: number } | undefined> {
+    if (this.shouldSkipCheck(workspaceId, 'aiUsage')) return undefined;
+
+    return await this.queueBatchCheck(workspaceId, userId, 'aiUsage', async () => {
       return await this.checkTeamAchievements(workspaceId, userId, {
         aiUsageCount: totalAIUsage
       });
@@ -695,10 +716,10 @@ export class TeamAchievementService {
     workspaceId: string,
     userId: string,
     totalCampaigns: number
-  ) {
-    if (this.shouldSkipCheck(workspaceId, 'marketingCampaign')) return;
-    
-    this.queueBatchCheck(workspaceId, userId, 'marketingCampaign', async () => {
+  ): Promise<{ newAchievements: WorkspaceAchievement[]; totalXP: number } | undefined> {
+    if (this.shouldSkipCheck(workspaceId, 'marketingCampaign')) return undefined;
+
+    return await this.queueBatchCheck(workspaceId, userId, 'marketingCampaign', async () => {
       return await this.checkTeamAchievements(workspaceId, userId, {
         marketingCampaignCount: totalCampaigns
       });
