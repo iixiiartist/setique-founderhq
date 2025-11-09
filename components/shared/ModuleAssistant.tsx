@@ -176,7 +176,7 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
                 case 'deleteMeeting':
                     return await actions.deleteMeeting(args.collection as CrmCollectionName, args.crmItemId, args.contactId, args.meetingId);
                 case 'logFinancials':
-                    return await actions.logFinancials(args.data);
+                    return await actions.logFinancials({ date: args.date, mrr: args.mrr, gmv: args.gmv, signups: args.signups });
                 case 'deleteItem':
                     return await actions.deleteItem(args.collection as DeletableCollectionName, args.itemId);
                 case 'createMarketingItem':
@@ -521,7 +521,7 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
                                         </ReactMarkdown>
                                         <button 
                                             onClick={() => handleCopyMessage(textPart || '', index)} 
-                                            className="absolute top-1 right-1 bg-white border border-black p-1 rounded-none shadow-neo-btn text-xs font-mono opacity-0 group-hover:opacity-100 transition-opacity"
+                                            className="absolute top-1 right-1 bg-white border border-black p-1 rounded-none shadow-neo-btn text-xs font-mono hover:bg-gray-50 transition-colors"
                                             title="Copy response"
                                             aria-label="Copy response"
                                         >

@@ -351,17 +351,16 @@ const logFinancialsTool: GroqTool = {
     type: 'function',
     function: {
         name: 'logFinancials',
-        description: 'Logs financial data (revenue, expenses, etc.).',
+        description: 'Logs financial metrics (MRR, GMV, signups) for a specific date.',
         parameters: {
             type: 'object',
             properties: {
                 date: { type: 'string', description: 'Date in YYYY-MM-DD format.' },
-                revenue: { type: 'number', description: 'Revenue amount.' },
-                expenses: { type: 'number', description: 'Expenses amount.' },
-                category: { type: 'string', description: 'Financial category.' },
-                notes: { type: 'string', description: 'Additional notes.' }
+                mrr: { type: 'number', description: 'Monthly Recurring Revenue.' },
+                gmv: { type: 'number', description: 'Gross Merchandise Value.' },
+                signups: { type: 'number', description: 'Number of signups.' }
             },
-            required: ['date', 'revenue', 'expenses']
+            required: ['date', 'mrr', 'gmv', 'signups']
         }
     }
 };
