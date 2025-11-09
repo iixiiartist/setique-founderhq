@@ -22,7 +22,7 @@ Welcome to FounderHQ, a Setique tool ("we," "our," or "us"). This Privacy Policy
 
 ### 2.3 Third-Party Data
 - **Authentication:** We use Supabase for authentication services
-- **AI Services:** We use Groq AI (Llama 3.1 70B) for assistant features
+- **AI Services:** We use Groq AI (Llama 3.3 70B) for assistant features
 - **Payment Processing:** We use Stripe for subscription payments (when applicable)
 
 ## 3. How We Use Your Information

@@ -14,7 +14,7 @@ Your Groq API key is **secured on the server-side** using a Supabase Edge Functi
 - **Ultra-fast inference**: 10-100x faster than traditional models
 - **Better rate limits**: 30 RPM vs 10 RPM (3x improvement)
 - **Generous daily limits**: 14,400 RPD vs 250 RPD (57x improvement)
-- **Advanced model**: Llama 3.1 70B with excellent function calling
+- **Advanced model**: Llama 3.3 70B with excellent function calling
 - **Free tier**: Powerful enough for production use
 - **LPU Technology**: Purpose-built Language Processing Units
 

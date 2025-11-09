@@ -73,7 +73,7 @@ Context-aware AI assistants trained on your business profile and data:
 - **📈 Marketing Management**: Track campaigns and content creation
 - **💰 Financial Tracking**: Monitor MRR, GMV, and other key metrics
 - **📁 Document Library**: Store and manage important files
-- **🤖 AI Assistant**: Powered by Groq (Llama 3.1 70B) for strategic insights
+- **🤖 AI Assistant**: Powered by Groq (Llama 3.3 70B) for strategic insights
 - **🏆 Achievements & Gamification**: Track progress and maintain motivation
 - **📅 Calendar Integration**: View all tasks, meetings, and deadlines
 
@@ -117,7 +117,7 @@ Context-aware AI assistants trained on your business profile and data:
 - See [RLS Architecture](docs/RLS_ARCHITECTURE.md) for details
 
 #### AI Integration
-- **Groq AI** (Llama 3.1 70B) for 6 specialized assistants
+- **Groq AI** (Llama 3.3 70B) for 6 specialized assistants
 - Ultra-fast inference with Groq's LPU technology
 - Context-aware prompts with business profile integration
 - Function calling for task automation and data management

@@ -284,7 +284,7 @@ ORDER BY (gamification->>'xp')::int DESC;
 This system was originally built with Gemini API requiring frontend API keys.
 
 ### Current Implementation (Migrated to Groq)
-- **Groq API** (Llama 3.1 70B) replaces Gemini
+- **Groq API** (Llama 3.3 70B) replaces Gemini
 - **Server-side key**: Stored in Supabase secrets (not frontend)
 - **Better performance**: 3x RPM (30), 57x RPD (14,400), 10-100x faster inference
 - **Edge Function**: `groq-chat` handles all AI requests securely

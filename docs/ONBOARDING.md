@@ -57,7 +57,7 @@ Welcome to **FounderHQ**! This guide will help you get up to speed with the code
 - **Triggers** for automated workflows
 
 ### AI & Integrations
-- **Groq AI** (Llama 3.1 70B) for AI assistants
+- **Groq AI** (Llama 3.3 70B) for AI assistants
 - **Stripe** for subscription payments
 - **Sentry** for error tracking and performance monitoring
 
@@ -223,7 +223,7 @@ founderhq/
 - 6 specialized assistants with context-aware prompts
 - Business profile integration for personalized responses
 - Conversation history stored per workspace
-- Llama 3.1 70B via Groq for ultra-fast inference (10-100x faster)
+- Llama 3.3 70B via Groq for ultra-fast inference (10-100x faster)
 
 #### **Task Management** (`components/Tasks.tsx`)
 - Category-based organization (Platform, Investor, Customer, Partner, Marketing, Ops)
