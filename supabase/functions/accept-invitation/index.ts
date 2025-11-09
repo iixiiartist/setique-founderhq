@@ -271,7 +271,7 @@ serve(async (req) => {
       })
       .eq('id', invitation.id)
 
-    // If new user, send password reset email instead of exposing temp password
+    // If new user, send password reset email via Resend
     let passwordResetSent = false
     if (isNewUser) {
       try {
@@ -289,10 +289,67 @@ serve(async (req) => {
         if (resetError) {
           console.error('Error generating password reset link:', resetError)
           console.error('Reset error details:', JSON.stringify(resetError, null, 2))
-        } else if (resetData) {
-          passwordResetSent = true
-          console.log('Password reset link generated successfully for:', invitation.email)
-          console.log('Reset data:', { ...resetData, properties: resetData.properties ? 'present' : 'missing' })
+        } else if (resetData && resetData.properties?.action_link) {
+          // Send the password reset email via Resend
+          const resendApiKey = Deno.env.get('RESEND_API_KEY')
+          
+          if (!resendApiKey) {
+            console.warn('RESEND_API_KEY not configured, skipping email send')
+          } else {
+            const emailResponse = await fetch('https://api.resend.com/emails', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${resendApiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                from: 'Joe from Setique <joe@setique.com>',
+                to: [invitation.email],
+                subject: `Set up your password for ${invitation.workspace?.name}`,
+                html: `
+                  <!DOCTYPE html>
+                  <html>
+                    <head>
+                      <style>
+                        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+                        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+                        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+                        .button { display: inline-block; background: #667eea; color: white !important; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 20px 0; }
+                        .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
+                      </style>
+                    </head>
+                    <body>
+                      <div class="container">
+                        <div class="header">
+                          <h1 style="margin: 0;">Welcome to ${invitation.workspace?.name}!</h1>
+                        </div>
+                        <div class="content">
+                          <p>Your account has been created and you've been added to <strong>${invitation.workspace?.name}</strong>.</p>
+                          <p>Click the button below to set up your password and complete your account setup:</p>
+                          <p style="text-align: center;">
+                            <a href="${resetData.properties.action_link}" class="button">Set Up Password</a>
+                          </p>
+                          <p style="color: #666; font-size: 14px;">This link will expire in 24 hours. If you didn't request this, you can safely ignore this email.</p>
+                        </div>
+                        <div class="footer">
+                          <p>© ${new Date().getFullYear()} Setique. All rights reserved.</p>
+                        </div>
+                      </div>
+                    </body>
+                  </html>
+                `
+              })
+            })
+
+            if (emailResponse.ok) {
+              passwordResetSent = true
+              console.log('Password reset email sent successfully via Resend to:', invitation.email)
+            } else {
+              const errorText = await emailResponse.text()
+              console.error('Failed to send email via Resend:', errorText)
+            }
+          }
         } else {
           console.warn('No reset data returned, but no error either')
         }
