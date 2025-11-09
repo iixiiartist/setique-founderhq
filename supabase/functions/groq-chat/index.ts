@@ -61,10 +61,9 @@ serve(async (req) => {
     } = body;
 
     // Use model from request, or fallback to GROQ_MODEL env var, or default
-    // llama-3.1-70b-versatile has better function-calling support than 3.3
-    const resolvedModel = model || Deno.env.get('GROQ_MODEL') || 'llama-3.1-70b-versatile';
-
-    console.log('Received request - messages:', messages.length);
+  // Get model from request or environment variable, with fallback
+  // mixtral-8x7b-32768 has excellent function-calling support and is actively maintained
+  const resolvedModel = model || Deno.env.get('GROQ_MODEL') || 'mixtral-8x7b-32768';    console.log('Received request - messages:', messages.length);
     console.log('Last message role:', messages[messages.length - 1]?.role);
     console.log('Using model:', resolvedModel);
 

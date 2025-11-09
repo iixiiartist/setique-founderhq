@@ -20,7 +20,12 @@ export const APP_CONFIG = {
       // Groq API key remains server-side only (Supabase secret)
       edgeFunction: 'groq-chat',
       // llama-3.1-70b-versatile has better function-calling support than 3.3
-      defaultModel: import.meta.env.VITE_GROQ_MODEL || 'llama-3.1-70b-versatile',
+      export const groqConfig = {
+  apiKey: import.meta.env.VITE_GROQ_API_KEY || '',
+  enabled: import.meta.env.VITE_GROQ_ENABLED === 'true' || false,
+  // mixtral-8x7b-32768 has excellent function-calling support and is actively maintained
+  defaultModel: import.meta.env.VITE_GROQ_MODEL || 'mixtral-8x7b-32768',
+};
     },
   },
 
