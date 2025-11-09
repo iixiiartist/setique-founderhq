@@ -2217,6 +2217,43 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 </div>
             )}
 
+            {/* Show "No Workspace Found" screen */}
+            {!isLoadingWorkspace && !workspace && (
+                <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                    <div className="max-w-md w-full bg-white p-8 border-2 border-black shadow-neo m-4">
+                        <div className="text-center mb-6">
+                            <div className="text-6xl mb-4">🔒</div>
+                            <h2 className="text-2xl font-bold text-black mb-2">No Workspace Found</h2>
+                        </div>
+                        
+                        <div className="space-y-4 text-gray-700 mb-6">
+                            <p>
+                                You don't currently have access to any workspace. This usually means:
+                            </p>
+                            <ul className="list-disc list-inside space-y-2 ml-2">
+                                <li>You were removed from a team workspace</li>
+                                <li>Your workspace access was revoked</li>
+                                <li>Your workspace is still being set up</li>
+                            </ul>
+                        </div>
+
+                        <div className="bg-blue-50 border-2 border-blue-200 p-4 mb-6">
+                            <p className="text-sm text-blue-900">
+                                <strong>Want to use the app independently?</strong><br />
+                                Sign up with a different email address to create your own workspace.
+                            </p>
+                        </div>
+                        
+                        <button
+                            onClick={signOut}
+                            className="w-full bg-blue-600 text-white py-3 px-4 border-2 border-black font-bold shadow-neo hover:bg-blue-700 transition-colors"
+                        >
+                            Sign Out
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Show dashboard only when workspace exists */}
             {!isLoadingWorkspace && workspace && (
                 <>
