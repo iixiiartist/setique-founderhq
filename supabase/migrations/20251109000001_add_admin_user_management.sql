@@ -63,44 +63,92 @@ BEGIN
     
     -- Delete user data in correct order (respecting foreign keys)
     -- This prepares the user for safe deletion from auth.users
+    -- Each delete is wrapped to handle missing tables gracefully
     
     -- 1. Delete meetings (references contacts)
-    DELETE FROM meetings WHERE user_id = target_user_id;
+    BEGIN
+        DELETE FROM meetings WHERE user_id = target_user_id;
+    EXCEPTION WHEN undefined_table THEN NULL;
+    END;
     
     -- 2. Delete contacts (references crm items)
-    DELETE FROM contacts WHERE user_id = target_user_id;
+    BEGIN
+        DELETE FROM contacts WHERE user_id = target_user_id;
+    EXCEPTION WHEN undefined_table THEN NULL;
+    END;
     
     -- 3. Delete CRM items
-    DELETE FROM investors WHERE user_id = target_user_id;
-    DELETE FROM customers WHERE user_id = target_user_id;
-    DELETE FROM partners WHERE user_id = target_user_id;
+    BEGIN
+        DELETE FROM investors WHERE user_id = target_user_id;
+    EXCEPTION WHEN undefined_table THEN NULL;
+    END;
+    
+    BEGIN
+        DELETE FROM customers WHERE user_id = target_user_id;
+    EXCEPTION WHEN undefined_table THEN NULL;
+    END;
+    
+    BEGIN
+        DELETE FROM partners WHERE user_id = target_user_id;
+    EXCEPTION WHEN undefined_table THEN NULL;
+    END;
     
     -- 4. Delete other user data
-    DELETE FROM tasks WHERE user_id = target_user_id;
-    DELETE FROM marketing WHERE user_id = target_user_id;
-    DELETE FROM expenses WHERE user_id = target_user_id;
-    DELETE FROM revenue WHERE user_id = target_user_id;
-    DELETE FROM documents WHERE user_id = target_user_id;
-    DELETE FROM activity_log WHERE user_id = target_user_id;
+    BEGIN
+        DELETE FROM tasks WHERE user_id = target_user_id;
+    EXCEPTION WHEN undefined_table THEN NULL;
+    END;
+    
+    BEGIN
+        DELETE FROM marketing WHERE user_id = target_user_id;
+    EXCEPTION WHEN undefined_table THEN NULL;
+    END;
+    
+    BEGIN
+        DELETE FROM expenses WHERE user_id = target_user_id;
+    EXCEPTION WHEN undefined_table THEN NULL;
+    END;
+    
+    BEGIN
+        DELETE FROM revenue WHERE user_id = target_user_id;
+    EXCEPTION WHEN undefined_table THEN NULL;
+    END;
+    
+    BEGIN
+        DELETE FROM documents WHERE user_id = target_user_id;
+    EXCEPTION WHEN undefined_table THEN NULL;
+    END;
+    
+    BEGIN
+        DELETE FROM activity_log WHERE user_id = target_user_id;
+    EXCEPTION WHEN undefined_table THEN NULL;
+    END;
     
     -- 5. Remove from workspace memberships
-    DELETE FROM workspace_members WHERE user_id = target_user_id;
+    BEGIN
+        DELETE FROM workspace_members WHERE user_id = target_user_id;
+    EXCEPTION WHEN undefined_table THEN NULL;
+    END;
     
     -- 6. Delete subscriptions for owned workspaces (if table exists)
     BEGIN
         DELETE FROM subscriptions WHERE workspace_id IN (
             SELECT id FROM workspaces WHERE owner_id = target_user_id
         );
-    EXCEPTION WHEN undefined_table THEN
-        -- subscriptions table doesn't exist, skip
-        NULL;
+    EXCEPTION WHEN undefined_table THEN NULL;
     END;
     
     -- 7. Delete owned workspaces
-    DELETE FROM workspaces WHERE owner_id = target_user_id;
+    BEGIN
+        DELETE FROM workspaces WHERE owner_id = target_user_id;
+    EXCEPTION WHEN undefined_table THEN NULL;
+    END;
     
     -- 8. Delete profile
-    DELETE FROM profiles WHERE id = target_user_id;
+    BEGIN
+        DELETE FROM profiles WHERE id = target_user_id;
+    EXCEPTION WHEN undefined_table THEN NULL;
+    END;
     
     -- Note: auth.users deletion will be handled by the frontend using Supabase Admin API
     
