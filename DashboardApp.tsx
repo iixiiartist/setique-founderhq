@@ -651,61 +651,65 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 return { success: false, message: 'No workspace available' };
             }
 
-            // Create optimistic task with temporary ID
-            const optimisticTask: Task = {
-                id: `temp-${Date.now()}`,
-                text,
-                status: 'Todo',
-                priority,
-                category,
-                createdAt: Date.now(),
-                userId,
-                dueDate: dueDate || undefined,
-                dueTime: dueTime || undefined,
-                crmItemId: crmItemId || undefined,
-                contactId: contactId || undefined,
-                assignedTo: assignedTo || undefined,
-                assignedToName: assignedTo ? workspaceMembers.find(m => m.userId === assignedTo)?.fullName : undefined,
-                notes: []
-            };
-
-            // Optimistically update UI
-            setData(prev => ({
-                ...prev,
-                [category]: [...(prev[category] as Task[]), optimisticTask]
-            }));
-
             handleToast(`Creating task...`, 'info');
 
             try {
                 logger.info('[DashboardApp] Creating task with workspace:', workspace.id);
-                await DataPersistenceAdapter.createTask(userId, category, text, priority, crmItemId, contactId, dueDate, workspace.id, assignedTo, dueTime);
+                
+                // Await the server response instead of optimistic update
+                const result = await DataPersistenceAdapter.createTask(
+                    userId, 
+                    category, 
+                    text, 
+                    priority, 
+                    crmItemId, 
+                    contactId, 
+                    dueDate, 
+                    workspace.id, 
+                    assignedTo, 
+                    dueTime
+                );
+
+                if (result.error) {
+                    throw new Error(result.error.message || 'Failed to create task');
+                }
+
+                if (result.data) {
+                    // Map database task to Task type with proper fields
+                    const newTask: Task = {
+                        id: result.data.id,
+                        text: result.data.text,
+                        status: result.data.status as 'Todo' | 'InProgress' | 'Done',
+                        priority: result.data.priority as Priority,
+                        category: result.data.category as TaskCollectionName,
+                        createdAt: new Date(result.data.created_at).getTime(),
+                        userId: result.data.user_id,
+                        dueDate: result.data.due_date || undefined,
+                        dueTime: result.data.due_time || undefined,
+                        crmItemId: result.data.crm_item_id || undefined,
+                        contactId: result.data.contact_id || undefined,
+                        assignedTo: result.data.assigned_to || undefined,
+                        assignedToName: result.data.assigned_to_profile?.full_name || undefined,
+                        notes: []
+                    };
+
+                    // Add the server task directly to state (no cache invalidation)
+                    setData(prev => ({
+                        ...prev,
+                        [category]: [...(prev[category] as Task[]), newTask]
+                    }));
+                }
                 
                 // Track action in Sentry
                 trackAction('task_created', { category, priority, hasDate: !!dueDate });
-                
-                // Force reload to bypass cache and get fresh server data
-                // This ensures optimistic task is replaced with real task (including server-generated ID)
-                invalidateCache('tasks');
-                const updatedTasks = await loadTasks({ force: true });
-                setData(prev => ({ ...prev, ...updatedTasks }));
-                
-                // Mark tasks as loaded so they display
-                setLoadedTabs(prev => new Set(prev).add('tasks'));
                 
                 handleToast(`Task "${text}" created.`, 'success');
                 return { success: true, message: `Task "${text}" created.` };
             } catch (error) {
                 logger.error('Error creating task:', error);
-                
-                // Rollback optimistic update on error
-                setData(prev => ({
-                    ...prev,
-                    [category]: (prev[category] as Task[]).filter(t => t.id !== optimisticTask.id)
-                }));
-                
-                handleToast('Failed to create task', 'info');
-                return { success: false, message: 'Failed to create task' };
+                const errorMessage = error instanceof Error ? error.message : 'Failed to create task';
+                handleToast(errorMessage, 'info');
+                return { success: false, message: errorMessage };
             }
         },
 
@@ -1979,7 +1983,17 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             case Tab.Calendar:
                 return (
                     <Suspense fallback={<TabLoadingFallback />}>
-                        <CalendarTab events={calendarEvents} actions={actions} />
+                        <CalendarTab 
+                            events={calendarEvents} 
+                            actions={actions}
+                            workspace={workspace}
+                            workspaceMembers={workspaceMembers}
+                            crmItems={{
+                                investors: data.investors || [],
+                                customers: data.customers || [],
+                                partners: data.partners || []
+                            }}
+                        />
                     </Suspense>
                 );
             case Tab.Platform:

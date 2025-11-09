@@ -327,7 +327,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                             <option value="">-- Select --</option>
                             {crmItems[crmCollection]?.map(item => (
                                 <option key={item.id} value={item.id}>
-                                    {item.company || item.name || 'Unnamed'}
+                                    {item.company || 'Unnamed'}
                                 </option>
                             ))}
                         </select>
@@ -400,7 +400,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                             <option value="">-- Select --</option>
                             {crmItems[crmActionCollection]?.map(item => (
                                 <option key={item.id} value={item.id}>
-                                    {item.company || item.name || 'Unnamed'}
+                                    {item.company || 'Unnamed'}
                                 </option>
                             ))}
                         </select>

@@ -1,13 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Task, AppActions, Priority, CalendarEvent, MarketingItem, BaseCrmItem, CrmCollectionName, TaskCollectionName } from '../types';
+import { Task, AppActions, Priority, CalendarEvent, MarketingItem, BaseCrmItem, CrmCollectionName, TaskCollectionName, Workspace, WorkspaceMember } from '../types';
 import { TASK_TAG_BG_COLORS } from '../constants';
 import Modal from './shared/Modal';
+import CalendarEventForm, { CalendarEventFormData } from './calendar/CalendarEventForm';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 interface CalendarTabProps {
     events: CalendarEvent[];
     actions: AppActions;
+    workspace?: Workspace;
+    workspaceMembers?: WorkspaceMember[];
+    crmItems?: {
+        investors: BaseCrmItem[];
+        customers: BaseCrmItem[];
+        partners: BaseCrmItem[];
+    };
 }
 
 type ViewMode = 'month' | 'week' | 'day';
@@ -492,7 +500,13 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
     );
 };
 
-const CalendarTab: React.FC<CalendarTabProps> = ({ events, actions }) => {
+const CalendarTab: React.FC<CalendarTabProps> = ({ 
+    events, 
+    actions,
+    workspace,
+    workspaceMembers = [],
+    crmItems
+}) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [viewMode, setViewMode] = useState<ViewMode>('month');
     const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
@@ -536,6 +550,58 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ events, actions }) => {
         setNewEventDate(currentDate.toISOString().split('T')[0]);
         setNewEventTime('');
         setShowNewEventModal(true);
+    }
+
+    const handleEventFormSubmit = async (formData: CalendarEventFormData) => {
+        try {
+            if (formData.type === 'task') {
+                // Create task with proper await
+                await actions.createTask(
+                    formData.category!,
+                    formData.title!,
+                    formData.priority!,
+                    undefined, // crmItemId
+                    undefined, // contactId
+                    formData.dueDate,
+                    formData.assignedTo,
+                    formData.dueTime
+                );
+            } else if (formData.type === 'meeting' && formData.crmItemId) {
+                // Create meeting - convert date/time to Unix timestamp
+                const meetingDateTime = formData.dueTime 
+                    ? new Date(`${formData.dueDate}T${formData.dueTime}`)
+                    : new Date(formData.dueDate);
+                
+                await actions.createMeeting(
+                    formData.crmCollection!,
+                    formData.crmItemId,
+                    formData.contactId,
+                    {
+                        title: formData.attendees || 'Meeting', // Use attendees as title for now
+                        attendees: formData.attendees!,
+                        summary: formData.meetingSummary || '',
+                        timestamp: meetingDateTime.getTime()
+                    }
+                );
+            } else if (formData.type === 'crm-action' && formData.crmItemId) {
+                // Update CRM item with next action
+                await actions.updateCrmItem(
+                    formData.crmCollection!,
+                    formData.crmItemId,
+                    {
+                        nextAction: formData.nextAction!,
+                        nextActionDate: formData.dueDate
+                    }
+                );
+            }
+            
+            // Close modal on success
+            setShowNewEventModal(false);
+        } catch (error) {
+            console.error('[CalendarTab] Failed to create event:', error);
+            // Error is already handled and displayed in the form
+            throw error;
+        }
     }
 
     const renderMonthView = () => {
@@ -794,18 +860,21 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ events, actions }) => {
                         <label className="block font-mono text-sm font-semibold text-black mb-2">Event Type</label>
                         <div className="flex gap-2">
                             <button
+                                type="button"
                                 onClick={() => setNewEventType('task')}
                                 className={`flex-1 py-2 px-4 font-mono font-semibold border-2 border-black ${newEventType === 'task' ? 'bg-black text-white' : 'bg-white text-black'}`}
                             >
                                 Task
                             </button>
                             <button
+                                type="button"
                                 onClick={() => setNewEventType('meeting')}
                                 className={`flex-1 py-2 px-4 font-mono font-semibold border-2 border-black ${newEventType === 'meeting' ? 'bg-black text-white' : 'bg-white text-black'}`}
                             >
                                 Meeting
                             </button>
                             <button
+                                type="button"
                                 onClick={() => setNewEventType('crm-action')}
                                 className={`flex-1 py-2 px-4 font-mono font-semibold border-2 border-black ${newEventType === 'crm-action' ? 'bg-black text-white' : 'bg-white text-black'}`}
                             >
@@ -814,91 +883,17 @@ const CalendarTab: React.FC<CalendarTabProps> = ({ events, actions }) => {
                         </div>
                     </div>
 
-                    {/* Date and Time */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label htmlFor="new-event-date" className="block font-mono text-sm font-semibold text-black mb-1">Date</label>
-                            <input
-                                id="new-event-date"
-                                type="date"
-                                value={newEventDate}
-                                onChange={(e) => setNewEventDate(e.target.value)}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none"
-                            />
-                        </div>
-                        <div>
-                            <label htmlFor="new-event-time" className="block font-mono text-sm font-semibold text-black mb-1">Time</label>
-                            <input
-                                id="new-event-time"
-                                type="time"
-                                value={newEventTime}
-                                onChange={(e) => setNewEventTime(e.target.value)}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Task-specific fields */}
-                    {newEventType === 'task' && (
-                        <div>
-                            <label className="block font-mono text-sm font-semibold text-black mb-2">Task Category</label>
-                            <div className="grid grid-cols-3 gap-2">
-                                {(['platformTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketingTasks', 'financialTasks'] as TaskCollectionName[]).map(category => (
-                                    <button
-                                        key={category}
-                                        onClick={() => {
-                                            const taskText = prompt('Enter task description:');
-                                            if (taskText && taskText.trim()) {
-                                                console.log('[CalendarTab] Creating task with date:', newEventDate, 'time:', newEventTime);
-                                                actions.createTask(category, taskText, 'Medium', undefined, undefined, newEventDate, undefined, newEventTime);
-                                                setShowNewEventModal(false);
-                                            }
-                                        }}
-                                        className="py-2 px-3 text-sm font-mono font-semibold bg-white text-black border-2 border-black hover:bg-gray-100"
-                                    >
-                                        {category.replace('Tasks', '').replace(/([A-Z])/g, ' $1').trim()}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Meeting-specific message */}
-                    {newEventType === 'meeting' && (
-                        <div className="p-4 bg-blue-50 border-2 border-blue-300">
-                            <p className="font-mono text-sm text-blue-900">
-                                To create a meeting, please go to the CRM tab and add it to a contact under Investors, Customers, or Partners.
-                            </p>
-                        </div>
-                    )}
-
-                    {/* CRM Action-specific message */}
-                    {newEventType === 'crm-action' && (
-                        <div className="p-4 bg-purple-50 border-2 border-purple-300">
-                            <p className="font-mono text-sm text-purple-900">
-                                To create a CRM action item, please go to the CRM tab and add a Next Action to an Investor, Customer, or Partner.
-                            </p>
-                        </div>
-                    )}
-
-                    <div className="flex gap-2 mt-4">
-                        {newEventType !== 'task' && (
-                            <button
-                                onClick={() => setShowNewEventModal(false)}
-                                className="w-full font-mono font-semibold bg-gray-200 text-black py-2 px-4 rounded-none border-2 border-black shadow-neo-btn"
-                            >
-                                Close
-                            </button>
-                        )}
-                        {newEventType === 'task' && (
-                            <button
-                                onClick={() => setShowNewEventModal(false)}
-                                className="w-full font-mono font-semibold bg-gray-200 text-black py-2 px-4 rounded-none border-2 border-black shadow-neo-btn"
-                            >
-                                Cancel
-                            </button>
-                        )}
-                    </div>
+                    {/* Calendar Event Form */}
+                    <CalendarEventForm
+                        eventType={newEventType}
+                        initialDate={newEventDate}
+                        initialTime={newEventTime}
+                        workspaceMembers={workspaceMembers}
+                        crmItems={crmItems}
+                        onSubmit={handleEventFormSubmit}
+                        onCancel={() => setShowNewEventModal(false)}
+                        planType={workspace?.planType}
+                    />
                 </div>
             </Modal>
         </div>
