@@ -566,7 +566,7 @@ const CalendarTab: React.FC<CalendarTabProps> = ({
                     formData.assignedTo,
                     formData.dueTime
                 );
-            } else if (formData.type === 'meeting' && formData.crmItemId) {
+            } else if (formData.type === 'meeting' && formData.crmItemId && formData.contactId) {
                 // Create meeting - convert date/time to Unix timestamp
                 const meetingDateTime = formData.dueTime 
                     ? new Date(`${formData.dueDate}T${formData.dueTime}`)
@@ -577,7 +577,7 @@ const CalendarTab: React.FC<CalendarTabProps> = ({
                     formData.crmItemId,
                     formData.contactId,
                     {
-                        title: formData.attendees || 'Meeting', // Use attendees as title for now
+                        title: formData.meetingTitle!,
                         attendees: formData.attendees!,
                         summary: formData.meetingSummary || '',
                         timestamp: meetingDateTime.getTime()

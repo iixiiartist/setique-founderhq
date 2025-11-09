@@ -24,6 +24,7 @@ export interface CalendarEventFormData {
     crmCollection?: CrmCollectionName;
     crmItemId?: string;
     contactId?: string;
+    meetingTitle?: string;
     attendees?: string;
     meetingSummary?: string;
     // CRM action fields
@@ -61,6 +62,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
     const [crmCollection, setCrmCollection] = useState<CrmCollectionName>('investors');
     const [crmItemId, setCrmItemId] = useState('');
     const [contactId, setContactId] = useState('');
+    const [meetingTitle, setMeetingTitle] = useState('');
     const [attendees, setAttendees] = useState('');
     const [meetingSummary, setMeetingSummary] = useState('');
 
@@ -71,6 +73,10 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
 
     const isTeamPlan = planType?.startsWith('team');
     const canAssignTasks = isTeamPlan && workspaceMembers.length > 1;
+
+    // Get contacts for selected CRM item
+    const selectedCrmItem = crmItems?.[crmCollection]?.find(item => item.id === crmItemId);
+    const availableContacts = selectedCrmItem?.contacts || [];
 
     const validateForm = (): string | null => {
         if (!dueDate) {
@@ -89,6 +95,12 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
         if (eventType === 'meeting') {
             if (!crmItemId) {
                 return 'Please select a CRM item for the meeting';
+            }
+            if (!contactId) {
+                return 'Please select a contact for the meeting';
+            }
+            if (!meetingTitle.trim()) {
+                return 'Please enter a meeting title';
             }
             if (!attendees.trim()) {
                 return 'Please enter meeting attendees';
@@ -136,6 +148,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                 formData.crmCollection = crmCollection;
                 formData.crmItemId = crmItemId;
                 formData.contactId = contactId || undefined;
+                formData.meetingTitle = meetingTitle;
                 formData.attendees = attendees;
                 formData.meetingSummary = meetingSummary || undefined;
             } else if (eventType === 'crm-action') {
@@ -320,7 +333,10 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                         <select
                             id="meeting-crm-item"
                             value={crmItemId}
-                            onChange={(e) => setCrmItemId(e.target.value)}
+                            onChange={(e) => {
+                                setCrmItemId(e.target.value);
+                                setContactId(''); // Reset contact when CRM item changes
+                            }}
                             className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
                             required
                         >
@@ -331,6 +347,47 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                                 </option>
                             ))}
                         </select>
+                    </div>
+
+                    <div>
+                        <label htmlFor="meeting-contact" className="block font-mono text-sm font-semibold text-black mb-1">
+                            Contact <span className="text-red-600">*</span>
+                        </label>
+                        <select
+                            id="meeting-contact"
+                            value={contactId}
+                            onChange={(e) => setContactId(e.target.value)}
+                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required
+                            disabled={!crmItemId}
+                        >
+                            <option value="">-- Select Contact --</option>
+                            {availableContacts.map(contact => (
+                                <option key={contact.id} value={contact.id}>
+                                    {contact.name}
+                                </option>
+                            ))}
+                        </select>
+                        {crmItemId && availableContacts.length === 0 && (
+                            <p className="text-xs text-gray-600 mt-1">
+                                No contacts found. Add a contact to this {crmCollection.slice(0, -1)} first.
+                            </p>
+                        )}
+                    </div>
+
+                    <div>
+                        <label htmlFor="meeting-title" className="block font-mono text-sm font-semibold text-black mb-1">
+                            Meeting Title <span className="text-red-600">*</span>
+                        </label>
+                        <input
+                            id="meeting-title"
+                            type="text"
+                            value={meetingTitle}
+                            onChange={(e) => setMeetingTitle(e.target.value)}
+                            placeholder="e.g., Q4 Planning Session"
+                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required
+                        />
                     </div>
 
                     <div>

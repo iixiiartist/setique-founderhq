@@ -15,6 +15,8 @@ interface UserSignup {
     isAdmin: boolean;
 }
 
+type PlanType = 'free' | 'power-individual' | 'team-pro';
+
 interface SignupStats {
     total: number;
     today: number;
@@ -33,6 +35,9 @@ const AdminTab: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterPlan, setFilterPlan] = useState<string>('all');
     const [filterConfirmed, setFilterConfirmed] = useState<string>('all');
+    const [editingPlanFor, setEditingPlanFor] = useState<string | null>(null);
+    const [selectedPlan, setSelectedPlan] = useState<PlanType>('free');
+    const [isUpdatingPlan, setIsUpdatingPlan] = useState(false);
 
     // Debounce search query to prevent excessive filtering on every keystroke
     const debouncedSearchQuery = useDebounce(searchQuery, 300);
@@ -40,6 +45,39 @@ const AdminTab: React.FC = () => {
     useEffect(() => {
         loadUserData();
     }, []);
+
+    const updateUserPlan = async (userId: string, newPlan: PlanType) => {
+        try {
+            setIsUpdatingPlan(true);
+            
+            const { data, error } = await supabase
+                .rpc('admin_update_user_plan', {
+                    target_user_id: userId,
+                    new_plan_type: newPlan
+                });
+
+            if (error) throw error;
+
+            const result = data as { success: boolean; message: string };
+            
+            if (!result.success) {
+                alert(`Error: ${result.message}`);
+                return;
+            }
+
+            alert(`Plan updated successfully to ${newPlan}!`);
+            setEditingPlanFor(null);
+            
+            // Reload user data to reflect changes
+            await loadUserData();
+            
+        } catch (error) {
+            console.error('Error updating user plan:', error);
+            alert('Failed to update plan. Check console for details.');
+        } finally {
+            setIsUpdatingPlan(false);
+        }
+    };
 
     const loadUserData = async () => {
         try {
@@ -251,6 +289,7 @@ const AdminTab: React.FC = () => {
                                 <th className="px-4 py-3 text-left text-sm font-mono">Status</th>
                                 <th className="px-4 py-3 text-left text-sm font-mono">Plan</th>
                                 <th className="px-4 py-3 text-left text-sm font-mono">Last Sign In</th>
+                                <th className="px-4 py-3 text-left text-sm font-mono">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y-2 divide-black">
@@ -299,6 +338,46 @@ const AdminTab: React.FC = () => {
                                     </td>
                                     <td className="px-4 py-3 font-mono text-xs text-gray-600">
                                         {user.lastSignIn ? getTimeSince(user.lastSignIn) : 'Never'}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        {editingPlanFor === user.id ? (
+                                            <div className="flex items-center gap-2">
+                                                <select
+                                                    value={selectedPlan}
+                                                    onChange={(e) => setSelectedPlan(e.target.value as PlanType)}
+                                                    disabled={isUpdatingPlan}
+                                                    className="px-2 py-1 border-2 border-black focus:outline-none focus:border-yellow-400 font-mono text-xs"
+                                                >
+                                                    <option value="free">Free</option>
+                                                    <option value="power-individual">Power</option>
+                                                    <option value="team-pro">Team Pro</option>
+                                                </select>
+                                                <button
+                                                    onClick={() => updateUserPlan(user.id, selectedPlan)}
+                                                    disabled={isUpdatingPlan}
+                                                    className="px-2 py-1 bg-green-500 text-white text-xs font-mono border-2 border-black hover:bg-green-600 disabled:opacity-50"
+                                                >
+                                                    {isUpdatingPlan ? '...' : '✓'}
+                                                </button>
+                                                <button
+                                                    onClick={() => setEditingPlanFor(null)}
+                                                    disabled={isUpdatingPlan}
+                                                    className="px-2 py-1 bg-gray-300 text-black text-xs font-mono border-2 border-black hover:bg-gray-400 disabled:opacity-50"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                onClick={() => {
+                                                    setEditingPlanFor(user.id);
+                                                    setSelectedPlan(user.planType as PlanType);
+                                                }}
+                                                className="px-3 py-1 bg-yellow-400 text-black text-xs font-mono border-2 border-black hover:bg-yellow-500"
+                                            >
+                                                Change Plan
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             ))}
