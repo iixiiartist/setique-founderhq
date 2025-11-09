@@ -100,6 +100,10 @@ export const getAiResponse = async (
             parts: content.parts.map(part => serializePart(part))
         }));
 
+        console.log('[Gemini] Sending history with', serializedHistory.length, 'entries');
+        console.log('[Gemini] Last entry role:', serializedHistory[serializedHistory.length - 1]?.role);
+        console.log('[Gemini] Last entry parts:', JSON.stringify(serializedHistory[serializedHistory.length - 1]?.parts, null, 2));
+
         // Prepare request body using new contents format
         const requestBody: any = {
             contents: serializedHistory,

@@ -65,6 +65,9 @@ serve(async (req) => {
       maxTokens = 4096,
     } = body;
 
+    console.log('Received request format:', contents ? 'contents' : 'messages');
+    console.log('Contents length:', contents?.length, 'Messages length:', messages?.length);
+
     // Validate input - support both old and new formats
     if ((!messages || !Array.isArray(messages) || messages.length === 0) && 
         (!contents || !Array.isArray(contents) || contents.length === 0)) {
@@ -102,8 +105,9 @@ serve(async (req) => {
     
     if (contents) {
       // New format: use contents directly with normalization
+      // Note: 'tool' role should be mapped to 'user' for Gemini API
       geminiContents = contents.map(content => ({
-        role: content.role === 'tool' ? 'function' as any : content.role,
+        role: content.role === 'tool' ? 'user' : content.role,
         parts: content.parts.map(part => normalizePart(part))
       }));
     } else if (messages) {
@@ -142,6 +146,9 @@ serve(async (req) => {
       geminiRequest.toolConfig = toolConfig;
     }
 
+    console.log('Sending to Gemini - contents count:', geminiRequest.contents.length);
+    console.log('Last content role:', geminiRequest.contents[geminiRequest.contents.length - 1]?.role);
+
     // Call Gemini API
     const geminiResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
@@ -167,6 +174,8 @@ serve(async (req) => {
     }
 
     const geminiData = await geminiResponse.json();
+    console.log('Gemini response candidates:', geminiData.candidates?.length);
+    console.log('First candidate finish reason:', geminiData.candidates?.[0]?.finishReason);
 
     // Check for function calls
     const candidates = geminiData.candidates || [];
@@ -179,6 +188,7 @@ serve(async (req) => {
         .map((part: any) => part.functionCall);
 
       if (functionCalls.length > 0) {
+        console.log('Returning function calls:', functionCalls.length);
         return new Response(
           JSON.stringify({
             functionCalls,
