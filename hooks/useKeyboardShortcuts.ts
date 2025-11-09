@@ -34,35 +34,41 @@ export const useKeyboardShortcuts = (config: KeyboardShortcutsConfig) => {
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     if (!enabled) return;
 
-    // Don't trigger shortcuts when typing in inputs/textareas
+    // Don't trigger shortcuts when typing in inputs/textareas or content-editable elements
     const target = event.target as HTMLElement;
     const isInput = target.tagName === 'INPUT' || 
                    target.tagName === 'TEXTAREA' || 
-                   target.isContentEditable;
+                   target.tagName === 'SELECT' ||
+                   target.isContentEditable ||
+                   target.closest('[role="textbox"]') !== null ||
+                   target.closest('[contenteditable="true"]') !== null;
 
-    // Ctrl+N: New task (works anywhere)
+    // Don't trigger shortcuts when inside a modal dialog (except Escape)
+    const isInModal = target.closest('[role="dialog"]') !== null || 
+                      target.closest('.modal') !== null;
+
+    // Escape: Close modals/dropdowns (works anywhere)
+    if (event.key === 'Escape') {
+      onEscape?.();
+      return;
+    }
+
+    // Don't process any other shortcuts when in input fields or modals
+    if (isInput || isInModal) return;
+
+    // Ctrl+N: New task (only when not in input/modal)
     if ((event.ctrlKey || event.metaKey) && event.key === 'n') {
       event.preventDefault();
       onNewTask?.();
       return;
     }
 
-    // Ctrl+K or /: Focus search (works anywhere except inputs)
-    if (((event.ctrlKey || event.metaKey) && event.key === 'k') || 
-        (!isInput && event.key === '/')) {
+    // Ctrl+K or /: Focus search (only when not in input/modal)
+    if (((event.ctrlKey || event.metaKey) && event.key === 'k') || event.key === '/') {
       event.preventDefault();
       onSearch?.();
       return;
     }
-
-    // Escape: Close modals/dropdowns
-    if (event.key === 'Escape') {
-      onEscape?.();
-      return;
-    }
-
-    // Don't process remaining shortcuts when in input fields
-    if (isInput) return;
 
     // ?: Show keyboard shortcuts help
     if (event.shiftKey && event.key === '?') {
