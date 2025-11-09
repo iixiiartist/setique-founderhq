@@ -217,9 +217,10 @@ const createContactTool: GroqTool = {
                 },
                 crmItemId: { type: 'string', description: 'The ID of the parent CRM item.' },
                 name: { type: 'string', description: 'Contact name.' },
-                role: { type: 'string', description: 'Contact role/title.' },
+                title: { type: 'string', description: 'Contact title/role.' },
                 email: { type: 'string', description: 'Email address.' },
-                phone: { type: 'string', description: 'Phone number.' }
+                phone: { type: 'string', description: 'Phone number.' },
+                linkedin: { type: 'string', description: 'LinkedIn profile URL.' }
             },
             required: ['collection', 'crmItemId', 'name', 'email']
         }
@@ -279,21 +280,23 @@ const createMeetingTool: GroqTool = {
     type: 'function',
     function: {
         name: 'createMeeting',
-        description: 'Creates a new meeting for a CRM item.',
+        description: 'Creates a new meeting for a contact in a CRM item.',
         parameters: {
             type: 'object',
             properties: {
                 collection: {
                     type: 'string',
+                    description: 'The parent collection.',
                     enum: ['investors', 'customers', 'partners']
                 },
-                crmItemId: { type: 'string' },
-                title: { type: 'string' },
+                crmItemId: { type: 'string', description: 'The ID of the parent CRM item.' },
+                contactId: { type: 'string', description: 'The ID of the contact.' },
+                title: { type: 'string', description: 'Meeting title.' },
                 date: { type: 'string', description: 'Meeting date in YYYY-MM-DD format.' },
                 attendees: { type: 'string', description: 'Comma-separated list of attendees.' },
-                agenda: { type: 'string' }
+                summary: { type: 'string', description: 'Meeting summary/agenda (markdown supported).' }
             },
-            required: ['collection', 'crmItemId', 'title', 'date']
+            required: ['collection', 'crmItemId', 'contactId', 'title', 'date']
         }
     }
 };
@@ -392,14 +395,13 @@ const createMarketingItemTool: GroqTool = {
         parameters: {
             type: 'object',
             properties: {
-                title: { type: 'string' },
-                description: { type: 'string' },
-                status: { type: 'string', enum: ['Planning', 'Active', 'Completed'] },
-                budget: { type: 'number' },
-                startDate: { type: 'string' },
-                endDate: { type: 'string' }
+                title: { type: 'string', description: 'Title of the marketing item.' },
+                type: { type: 'string', enum: ['Blog Post', 'Newsletter', 'Social Campaign', 'Webinar', 'Other'], description: 'Type of marketing item.' },
+                status: { type: 'string', enum: ['Planned', 'In Progress', 'Completed', 'Published', 'Cancelled'], description: 'Current status.' },
+                dueDate: { type: 'string', description: 'Due date in YYYY-MM-DD format.' },
+                dueTime: { type: 'string', description: 'Due time in HH:MM format (24-hour).' }
             },
-            required: ['title', 'status']
+            required: ['title']
         }
     }
 };
@@ -412,16 +414,15 @@ const updateMarketingItemTool: GroqTool = {
         parameters: {
             type: 'object',
             properties: {
-                itemId: { type: 'string' },
+                itemId: { type: 'string', description: 'ID of the marketing item to update.' },
                 updates: {
                     type: 'object',
                     properties: {
                         title: { type: 'string' },
-                        description: { type: 'string' },
-                        status: { type: 'string' },
-                        budget: { type: 'number' },
-                        startDate: { type: 'string' },
-                        endDate: { type: 'string' }
+                        type: { type: 'string', enum: ['Blog Post', 'Newsletter', 'Social Campaign', 'Webinar', 'Other'] },
+                        status: { type: 'string', enum: ['Planned', 'In Progress', 'Completed', 'Published', 'Cancelled'] },
+                        dueDate: { type: 'string' },
+                        dueTime: { type: 'string' }
                     }
                 }
             },

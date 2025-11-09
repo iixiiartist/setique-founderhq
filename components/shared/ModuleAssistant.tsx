@@ -160,17 +160,33 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
                 case 'deleteNote':
                     return await actions.deleteNote(args.collection as NoteableCollectionName, args.itemId, args.noteTimestamp);
                 case 'createCrmItem':
-                    return await actions.createCrmItem(args.collection as CrmCollectionName, args.data);
+                    return await actions.createCrmItem(args.collection as CrmCollectionName, {
+                        company: args.name,
+                        priority: 'Medium',
+                        status: args.stage || 'New',
+                        ...(args.amount && (args.collection === 'investors' ? { checkSize: args.amount } : { dealValue: args.amount }))
+                    });
                 case 'updateCrmItem':
                     return await actions.updateCrmItem(args.collection as CrmCollectionName, args.itemId, args.updates);
                 case 'createContact':
-                    return await actions.createContact(args.collection as CrmCollectionName, args.crmItemId, args.contactData);
+                    return await actions.createContact(args.collection as CrmCollectionName, args.crmItemId, {
+                        name: args.name,
+                        title: args.title || '',
+                        email: args.email,
+                        phone: args.phone || '',
+                        linkedin: args.linkedin || ''
+                    });
                 case 'updateContact':
                     return await actions.updateContact(args.collection as CrmCollectionName, args.crmItemId, args.contactId, args.updates);
                 case 'deleteContact':
                     return await actions.deleteContact(args.collection as CrmCollectionName, args.crmItemId, args.contactId);
                 case 'createMeeting':
-                    return await actions.createMeeting(args.collection as CrmCollectionName, args.crmItemId, args.contactId, args.meetingData);
+                    return await actions.createMeeting(args.collection as CrmCollectionName, args.crmItemId, args.contactId, {
+                        title: args.title,
+                        timestamp: new Date(args.date).getTime(),
+                        attendees: args.attendees || '',
+                        summary: args.summary || ''
+                    });
                 case 'updateMeeting':
                     return await actions.updateMeeting(args.collection as CrmCollectionName, args.crmItemId, args.contactId, args.meetingId, args.updates);
                 case 'deleteMeeting':
@@ -180,11 +196,17 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
                 case 'deleteItem':
                     return await actions.deleteItem(args.collection as DeletableCollectionName, args.itemId);
                 case 'createMarketingItem':
-                    return await actions.createMarketingItem(args.itemData);
+                    return await actions.createMarketingItem({
+                        title: args.title,
+                        type: args.type || 'Other',
+                        status: args.status || 'Planned',
+                        dueDate: args.dueDate,
+                        dueTime: args.dueTime
+                    });
                 case 'updateMarketingItem':
                     return await actions.updateMarketingItem(args.itemId, args.updates);
                 case 'updateSettings':
-                    return await actions.updateSettings(args.updates);
+                    return await actions.updateSettings(args.settings);
                 case 'uploadDocument':
                     return await actions.uploadDocument(args.name, args.mimeType, args.content, args.module as TabType, args.companyId, args.contactId);
                 case 'updateDocument':
