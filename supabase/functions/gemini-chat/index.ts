@@ -9,11 +9,36 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Type definitions for Gemini API
+interface GeminiPart {
+  text?: string;
+  inlineData?: {
+    mimeType: string;
+    data: string;
+  };
+  functionCall?: {
+    name: string;
+    args: any;
+  };
+  functionResponse?: {
+    name: string;
+    response: any;
+  };
+}
+
+interface GeminiContent {
+  role: 'user' | 'model' | 'tool';
+  parts: GeminiPart[];
+}
+
 interface ChatRequest {
-  messages: Array<{
+  // Old format (backward compatibility)
+  messages?: Array<{
     role: 'user' | 'assistant' | 'system';
     content: string;
   }>;
+  // New format (with full context preservation)
+  contents?: GeminiContent[];
   systemInstruction?: string;
   tools?: any[];
   toolConfig?: any;
@@ -32,6 +57,7 @@ serve(async (req) => {
     const body = await req.json() as ChatRequest;
     const {
       messages,
+      contents,
       systemInstruction,
       tools,
       toolConfig,
@@ -39,9 +65,11 @@ serve(async (req) => {
       maxTokens = 4096,
     } = body;
 
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+    // Validate input - support both old and new formats
+    if ((!messages || !Array.isArray(messages) || messages.length === 0) && 
+        (!contents || !Array.isArray(contents) || contents.length === 0)) {
       return new Response(
-        JSON.stringify({ error: 'Messages array is required' }),
+        JSON.stringify({ error: 'Either messages or contents array is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -55,17 +83,45 @@ serve(async (req) => {
       );
     }
 
-    // Transform messages to Gemini format
-    const contents = messages
-      .filter(msg => msg.role !== 'system')
-      .map(msg => ({
-        role: msg.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: msg.content }],
+    // Helper function to normalize parts (ensure functionResponse.response is string)
+    const normalizePart = (part: GeminiPart): GeminiPart => {
+      if (part.functionResponse) {
+        const response = part.functionResponse.response;
+        return {
+          functionResponse: {
+            name: part.functionResponse.name,
+            response: typeof response === 'string' ? response : JSON.stringify(response)
+          }
+        };
+      }
+      return part;
+    };
+
+    // Transform to Gemini format - support both old and new formats
+    let geminiContents: GeminiContent[];
+    
+    if (contents) {
+      // New format: use contents directly with normalization
+      geminiContents = contents.map(content => ({
+        role: content.role === 'tool' ? 'function' as any : content.role,
+        parts: content.parts.map(part => normalizePart(part))
       }));
+    } else if (messages) {
+      // Old format: transform messages to contents
+      geminiContents = messages
+        .filter(msg => msg.role !== 'system')
+        .map(msg => ({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: msg.content }],
+        }));
+    } else {
+      // This shouldn't happen due to validation above, but TypeScript needs it
+      throw new Error('No messages or contents provided');
+    }
 
     // Build request body for Gemini
     const geminiRequest: any = {
-      contents,
+      contents: geminiContents,
       generationConfig: {
         temperature,
         maxOutputTokens: maxTokens,

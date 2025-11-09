@@ -1,11 +1,44 @@
 
-import { Content, GenerateContentResponse } from '@google/genai';
+import { Content, GenerateContentResponse, Part } from '@google/genai';
 import { geminiTools } from './gemini/tools';
 import { supabase } from '../lib/supabase';
 import { DatabaseService } from '../lib/services/database';
 
 // Now using Supabase Edge Function to keep API key secure
 // The VITE_GEMINI_API_KEY is no longer needed in .env
+
+// Helper function to serialize parts for transmission to edge function
+// Ensures functionResponse.response is always a string (Gemini API requirement)
+const serializePart = (part: Part): any => {
+    // Handle text parts
+    if ('text' in part) {
+        return part;
+    }
+    
+    // Handle inline data (images, files)
+    if ('inlineData' in part) {
+        return part;
+    }
+    
+    // Handle function calls
+    if ('functionCall' in part) {
+        return part;
+    }
+    
+    // Handle function responses - ensure response is string
+    if ('functionResponse' in part) {
+        const response = part.functionResponse.response;
+        return {
+            functionResponse: {
+                name: part.functionResponse.name,
+                response: typeof response === 'string' ? response : JSON.stringify(response)
+            }
+        };
+    }
+    
+    // Pass through any other part types
+    return part;
+};
 
 interface EdgeFunctionResponse {
     response?: string;
@@ -60,15 +93,16 @@ export const getAiResponse = async (
             console.warn('[Gemini] No workspaceId provided, skipping limit check');
         }
 
-        // Transform Content[] to message format
-        const messages = history.map(content => ({
-            role: content.role === 'model' ? 'assistant' as const : 'user' as const,
-            content: content.parts.map(part => ('text' in part ? part.text : '')).join(''),
+        // Serialize Content[] to preserve full conversation context
+        // This maintains functionCall and functionResponse parts across turns
+        const serializedHistory = history.map(content => ({
+            role: content.role,
+            parts: content.parts.map(part => serializePart(part))
         }));
 
-        // Prepare request body
+        // Prepare request body using new contents format
         const requestBody: any = {
-            messages,
+            contents: serializedHistory,
             systemInstruction: systemPrompt,
             temperature: 0.7,
             maxTokens: 4096,
