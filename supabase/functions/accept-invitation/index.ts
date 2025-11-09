@@ -275,11 +275,12 @@ serve(async (req) => {
     let passwordResetSent = false
     if (isNewUser) {
       try {
-        console.log('Attempting to generate password reset link for:', invitation.email)
+        console.log('Attempting to generate password setup link for new user:', invitation.email)
         
-        // Generate password reset link
+        // Generate invite link for new user (allows them to set password without auto-login)
+        // Using 'invite' type instead of 'recovery' so user can choose their own password
         const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
-          type: 'recovery',
+          type: 'invite',
           email: invitation.email,
           options: {
             redirectTo: `${Deno.env.get('APP_URL') || 'http://localhost:3000'}/app`

@@ -1421,9 +1421,12 @@ export class DatabaseService {
       };
 
       const limit = limits[planType] || 20;
-      const allowed = currentUsage < limit;
+      
+      // IMPORTANT: Team Pro and Power Individual have unlimited AI - always allow
+      const isUnlimitedPlan = planType === 'team-pro' || planType === 'power-individual';
+      const allowed = isUnlimitedPlan || currentUsage < limit;
 
-      logger.info(`[Database] AI Limit Check: ${currentUsage}/${limit} (${planType}), Allowed: ${allowed}`);
+      logger.info(`[Database] AI Limit Check: ${currentUsage}/${limit} (${planType}), IsUnlimited: ${isUnlimitedPlan}, Allowed: ${allowed}`);
 
       return { 
         allowed, 

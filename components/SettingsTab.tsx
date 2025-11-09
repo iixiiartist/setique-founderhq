@@ -235,14 +235,32 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ settings, onUpdateSettings, a
             if (!workspace?.id) return;
             
             const member = workspaceMembers.find(m => m.id === memberId);
-            if (!member) return;
+            if (!member) {
+                alert('Member not found.');
+                return;
+            }
 
-            await DatabaseService.removeWorkspaceMember(workspace.id, member.userId);
+            console.log('Removing member:', {
+                workspaceId: workspace.id,
+                userId: member.userId,
+                memberEmail,
+                currentUserId: user?.id,
+                workspaceOwnerId
+            });
+
+            const result = await DatabaseService.removeWorkspaceMember(workspace.id, member.userId);
+            
+            if (result.error) {
+                console.error('Database error removing member:', result.error);
+                throw result.error;
+            }
+            
             await refreshMembers(); // Refresh cached members
             alert(`✅ ${memberEmail} has been removed from the workspace.`);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error removing member:', error);
-            alert('Failed to remove member. Please try again.');
+            const errorMessage = error?.message || error?.toString() || 'Unknown error';
+            alert(`Failed to remove member: ${errorMessage}\n\nPlease try again or contact support if the issue persists.`);
         }
     };
 
