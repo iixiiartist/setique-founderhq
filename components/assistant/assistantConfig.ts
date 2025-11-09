@@ -45,7 +45,7 @@ export const ASSISTANT_CONFIGS: AssistantConfig[] = [
 
 **Expertise:** Customer relationships, onboarding, retention, support workflows, feedback analysis.
 **Tools:** Manage customers, tasks, notes, files (module: customers).`,
-  },,
+  },
   {
     tab: Tab.Partners,
     title: 'Partnership AI',
@@ -56,7 +56,7 @@ export const ASSISTANT_CONFIGS: AssistantConfig[] = [
 
 **Expertise:** Partnership strategy, vendor management, collaboration workflows, contract insights.
 **Tools:** Manage partners, tasks, notes, files (module: partners).`,
-  },,
+  },
   {
     tab: Tab.Marketing,
     title: 'Marketing AI',
