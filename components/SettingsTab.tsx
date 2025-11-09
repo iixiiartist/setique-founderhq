@@ -109,8 +109,8 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ settings, onUpdateSettings, a
     const { user } = useAuth();
     const { workspace, workspaceMembers, isLoadingMembers, refreshMembers } = useWorkspace();
 
-    // Handle both camelCase (TypeScript) and snake_case (database) property names
-    const workspacePlanType = (workspace as any)?.plan_type || workspace?.planType || 'free';
+    // Get plan type from workspace (already mapped to camelCase by WorkspaceContext)
+    const workspacePlanType = workspace?.planType || 'free';
     const isTeamPlan = workspacePlanType.startsWith('team');
 
     // Fetch real usage data
@@ -207,7 +207,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ settings, onUpdateSettings, a
 
     const handleRemoveMember = async (memberId: string, memberEmail: string, memberRole: string) => {
         // Check if current user is the workspace owner
-        const workspaceOwnerId = (workspace as any)?.owner_id || workspace?.ownerId;
+        const workspaceOwnerId = workspace?.ownerId;
         const isCurrentUserOwner = user?.id === workspaceOwnerId;
         
         if (!isCurrentUserOwner) {
@@ -353,7 +353,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ settings, onUpdateSettings, a
 
                 <div className="space-y-8">
                     {/* Business Profile Section - Only show for workspace owners */}
-                    {workspace && (workspace as any).owner_id === user?.id && (
+                    {workspace && workspace.ownerId === user?.id && (
                         <fieldset className="border-2 border-dashed border-black p-4">
                             <legend className="text-lg font-mono font-semibold px-2">Business Profile</legend>
                             <div className="space-y-4">
@@ -410,7 +410,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ settings, onUpdateSettings, a
                                                             <span className="px-3 py-1 text-xs font-bold border-2 border-black bg-white">
                                                                 {member.role.toUpperCase()}
                                                             </span>
-                                                            {!isCurrentUser && (workspace as any)?.owner_id === user?.id && (
+                                                            {!isCurrentUser && workspace?.ownerId === user?.id && (
                                                                 <button
                                                                     onClick={() => handleRemoveMember(member.id, member.email, member.role)}
                                                                     className="px-3 py-1 text-xs font-bold border-2 border-black bg-red-500 text-white hover:bg-red-600 transition-colors"

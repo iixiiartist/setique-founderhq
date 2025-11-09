@@ -102,8 +102,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
             logger.info('[WorkspaceContext] Loading business profile for workspace:', workspace.id);
             
             // Check if current user is the workspace owner (reuse user from AuthContext)
-            // Handle both snake_case (from DB) and camelCase (from types)
-            const workspaceOwnerId = (workspace as any).owner_id || workspace.ownerId;
+            const workspaceOwnerId = workspace.ownerId;
             const isOwner = user.id === workspaceOwnerId;
             logger.info('[WorkspaceContext] User is owner?', isOwner, { userId: user.id, workspaceOwnerId });
             
@@ -145,7 +144,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
             logger.error('Error loading business profile:', error);
             // Only show onboarding to owners on error (reuse user from AuthContext)
             if (user) {
-                const workspaceOwnerId = (workspace as any).owner_id || workspace.ownerId;
+                const workspaceOwnerId = workspace.ownerId;
                 const isOwner = user.id === workspaceOwnerId;
                 if (isOwner) {
                     setShowOnboarding(true);
@@ -236,7 +235,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
         if (assignedTo === user.id) return true;
         
         // Check if user is workspace owner
-        const workspaceOwnerId = (workspace as any).owner_id || workspace.ownerId;
+        const workspaceOwnerId = workspace.ownerId;
         const isOwner = user.id === workspaceOwnerId;
         
         // Owners can edit all tasks in their workspace
@@ -250,7 +249,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
         if (!user || !workspace) return false;
         
         // Check if user is workspace owner
-        const workspaceOwnerId = (workspace as any).owner_id || workspace.ownerId;
+        const workspaceOwnerId = workspace.ownerId;
         const isOwner = user.id === workspaceOwnerId;
         
         // Owners can complete any task
@@ -265,7 +264,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
 
     const isWorkspaceOwner = (): boolean => {
         if (!user || !workspace) return false;
-        const workspaceOwnerId = (workspace as any).owner_id || workspace.ownerId;
+        const workspaceOwnerId = workspace.ownerId;
         return user.id === workspaceOwnerId;
     };
 
