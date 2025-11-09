@@ -57,7 +57,7 @@ Welcome to **FounderHQ**! This guide will help you get up to speed with the code
 - **Triggers** for automated workflows
 
 ### AI & Integrations
-- **Google Gemini AI** (gemini-1.5-flash) for AI assistants
+- **Groq AI** (Llama 3.1 70B) for AI assistants
 - **Stripe** for subscription payments
 - **Sentry** for error tracking and performance monitoring
 
@@ -106,8 +106,10 @@ Welcome to **FounderHQ**! This guide will help you get up to speed with the code
    VITE_APP_URL=http://localhost:5173
 
    # Optional but recommended
-   VITE_GEMINI_API_KEY=your-gemini-key
    VITE_SENTRY_DSN=https://...
+   
+   # Note: Groq API key is server-side (set via Supabase secrets)
+   # npx supabase secrets set GROQ_API_KEY=your-groq-key
    ```
 
 4. **Set up Supabase database**
@@ -132,7 +134,7 @@ Welcome to **FounderHQ**! This guide will help you get up to speed with the code
 1. ✅ Can create an account and log in
 2. ✅ Can create tasks and see them in the UI
 3. ✅ Can create CRM items (test Investors/Customers/Partners pipelines)
-4. ✅ AI chat works (requires VITE_GEMINI_API_KEY)
+4. ✅ AI chat works (requires GROQ_API_KEY in Supabase secrets)
 5. ✅ No console errors related to environment variables
 
 ---
@@ -221,7 +223,7 @@ founderhq/
 - 6 specialized assistants with context-aware prompts
 - Business profile integration for personalized responses
 - Conversation history stored per workspace
-- Gemini 1.5 Flash model for speed
+- Llama 3.1 70B via Groq for ultra-fast inference (10-100x faster)
 
 #### **Task Management** (`components/Tasks.tsx`)
 - Category-based organization (Platform, Investor, Customer, Partner, Marketing, Ops)
@@ -337,7 +339,7 @@ FOR INSERT WITH CHECK (
 1. User selects an AI assistant (e.g., "Sales AI")
 2. System loads business profile from database
 3. Constructs context prompt with business details
-4. Sends user message + context to Gemini API
+4. Sends user message + context to Groq API (via Supabase Edge Function)
 5. Streams response back to UI
 
 **Context Structure:**
@@ -559,8 +561,10 @@ VITE_SUPABASE_URL=https://jffnzpdcmdalxqhkfymx.supabase.co
 VITE_SUPABASE_ANON_KEY=<your-anon-key>
 VITE_STRIPE_PUBLISHABLE_KEY=<your-publishable-key>
 VITE_APP_URL=https://founderhq.netlify.app
-VITE_GEMINI_API_KEY=<your-gemini-key>
 VITE_SENTRY_DSN=<your-sentry-dsn>
+
+# Groq API key is server-side (set via Supabase secrets)
+# npx supabase secrets set GROQ_API_KEY=<your-groq-key>
 
 # Build-time only (for source maps)
 SENTRY_AUTH_TOKEN=<your-sentry-token>
@@ -797,9 +801,10 @@ SENTRY_PROJECT=founderhq
 - Check network tab for 4xx/5xx errors
 
 **Error: "AI chat not responding"**
-- Verify VITE_GEMINI_API_KEY is set
-- Check API quota in Google AI Studio
-- Check console for Gemini API errors
+- Verify GROQ_API_KEY is set in Supabase secrets
+- Check API quota at console.groq.com
+- Check Supabase Edge Function logs: `npx supabase functions logs groq-chat`
+- Verify groq-chat function is deployed
 
 **Error: "Stripe checkout failed"**
 - Verify Stripe publishable key is correct (test vs. live)
@@ -836,7 +841,7 @@ SENTRY_PROJECT=founderhq
 - [React Docs](https://react.dev/) - React fundamentals
 - [TailwindCSS Docs](https://tailwindcss.com/docs) - Styling utilities
 - [Stripe Docs](https://stripe.com/docs) - Payment integration
-- [Gemini API Docs](https://ai.google.dev/docs) - AI integration
+- [Groq API Docs](https://console.groq.com/docs) - AI integration
 
 ### Code Examples
 - `src/components/Tasks.tsx` - Full-featured CRUD component

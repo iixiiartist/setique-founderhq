@@ -14,7 +14,7 @@
 - ✅ Daily briefing generation disabled (prevents infinite loading)
 - ✅ Documents tab hidden in navigation
 - ✅ Documents tab shows upgrade prompt if accessed directly
-- ✅ AI usage checked at service level (`geminiService.ts`)
+- ✅ AI usage checked at service level (`groqService.ts`)
 - ✅ 100MB storage limit enforced in database
 - ✅ 0 AI requests limit enforced
 
@@ -63,7 +63,7 @@
 | Tasks | ✅ | ✅ | ✅ | Available to all |
 | Financials | ✅ | ✅ | ✅ | Available to all |
 | Marketing | ✅ | ✅ | ✅ | Available to all |
-| **AI Features** | ❌ | ✅ | ✅ | Checked in `geminiService.ts` |
+| **AI Features** | ❌ | ✅ | ✅ | Checked in `groqService.ts` |
 | **Daily Briefing** | ❌ | ✅ | ✅ | Disabled in DashboardTab |
 | **File Library** | ❌ | ✅ | ✅ | Hidden + access control |
 | **Storage** | 100MB | 5GB | 10GB | DB constraint |

@@ -75,8 +75,8 @@ Create/update `.env` file in your project root:
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
-# Gemini AI (you should already have this)
-VITE_GEMINI_API_KEY=your_gemini_key
+# Groq AI key is server-side only (set via Supabase secrets)
+# npx supabase secrets set GROQ_API_KEY=your_groq_key
 
 # Stripe Publishable Key (safe for frontend)
 VITE_STRIPE_PUBLISHABLE_KEY=pk_test_xxxxxxxxxxxxx

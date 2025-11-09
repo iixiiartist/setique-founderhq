@@ -91,7 +91,7 @@ npx supabase functions list
 ```
 
 Should show:
-- ✅ gemini-chat
+- ✅ groq-chat
 - ✅ accept-invitation
 
 ---

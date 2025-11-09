@@ -278,21 +278,27 @@ FROM profiles
 ORDER BY (gamification->>'xp')::int DESC;
 ```
 
-## Gemini API Key Fix ✅
+## Groq AI Integration (Historical Note)
 
-### Issue Resolved
-The `.env.local` file had `GEMINI_API_KEY` instead of `VITE_GEMINI_API_KEY`.
+### Previous Implementation
+This system was originally built with Gemini API requiring frontend API keys.
 
-### Fix Applied
-Changed to: `VITE_GEMINI_API_KEY=your_gemini_api_key_here`
+### Current Implementation (Migrated to Groq)
+- **Groq API** (Llama 3.1 70B) replaces Gemini
+- **Server-side key**: Stored in Supabase secrets (not frontend)
+- **Better performance**: 3x RPM (30), 57x RPD (14,400), 10-100x faster inference
+- **Edge Function**: `groq-chat` handles all AI requests securely
 
-### Why This Matters
-Vite requires the `VITE_` prefix for environment variables accessible in client-side code via `import.meta.env`.
+### Setup
+```bash
+npx supabase secrets set GROQ_API_KEY=your_groq_key
+npx supabase functions deploy groq-chat
+```
 
 ### Testing
-- ✅ Dev server should now load Gemini API key correctly
-- ✅ AI assistant features in Dashboard tab should work
-- ✅ No more "API key not set" console warnings
+- ✅ AI assistant features work in all modules (Dashboard, CRM, Marketing, Tasks)
+- ✅ No API keys exposed to frontend
+- ✅ No console warnings about missing keys
 
 If you still see API errors:
 1. Verify the API key is valid at https://aistudio.google.com/app/apikey

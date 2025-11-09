@@ -624,8 +624,8 @@ VITE_APP_NAME=FounderHQ
 VITE_APP_VERSION=1.0.0
 VITE_ENVIRONMENT=development
 
-# Gemini AI (Optional)
-VITE_GEMINI_API_KEY=your-gemini-key-here
+# Groq AI (Server-side secret - set via Supabase)
+# npx supabase secrets set GROQ_API_KEY=your-groq-key
 
 # Sentry Error Tracking (Optional)
 VITE_SENTRY_DSN=your-sentry-dsn-here

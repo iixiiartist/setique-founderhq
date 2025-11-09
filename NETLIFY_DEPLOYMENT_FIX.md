@@ -117,8 +117,12 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 Optional (for full functionality):
 ```
-VITE_GEMINI_API_KEY=your_gemini_key
 VITE_SENTRY_DSN=your_sentry_dsn
+```
+
+**Note:** Groq API key is server-side only. Set via:
+```bash
+npx supabase secrets set GROQ_API_KEY=your_groq_key
 ```
 
 **Location:** Netlify Dashboard → Site settings → Environment variables

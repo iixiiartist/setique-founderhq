@@ -73,7 +73,7 @@ Context-aware AI assistants trained on your business profile and data:
 - **📈 Marketing Management**: Track campaigns and content creation
 - **💰 Financial Tracking**: Monitor MRR, GMV, and other key metrics
 - **📁 Document Library**: Store and manage important files
-- **🤖 AI Assistant**: Powered by Google Gemini for strategic insights
+- **🤖 AI Assistant**: Powered by Groq (Llama 3.1 70B) for strategic insights
 - **🏆 Achievements & Gamification**: Track progress and maintain motivation
 - **📅 Calendar Integration**: View all tasks, meetings, and deadlines
 
@@ -117,10 +117,11 @@ Context-aware AI assistants trained on your business profile and data:
 - See [RLS Architecture](docs/RLS_ARCHITECTURE.md) for details
 
 #### AI Integration
-- **Google Gemini AI** (gemini-1.5-flash) for 6 specialized assistants
+- **Groq AI** (Llama 3.1 70B) for 6 specialized assistants
+- Ultra-fast inference with Groq's LPU technology
 - Context-aware prompts with business profile integration
-- Conversation history stored per workspace
-- Streaming responses for real-time feedback
+- Function calling for task automation and data management
+- 30 requests/minute free tier (3x better than alternatives)
 
 #### Subscription System
 - **Stripe** integration for payments
@@ -146,7 +147,7 @@ Context-aware AI assistants trained on your business profile and data:
 - Node.js 18+ and npm
 - Supabase account (free tier works)
 - Stripe account (test mode)
-- Google Gemini API key (optional, for AI features)
+- Groq API key (free, for AI features - get at https://console.groq.com)
 - Sentry account (optional, for error tracking)
 
 ### Installation
@@ -175,9 +176,13 @@ Context-aware AI assistants trained on your business profile and data:
    VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
    VITE_APP_URL=http://localhost:5173
 
-   # Optional but recommended
-   VITE_GEMINI_API_KEY=your-gemini-key
+   # Optional
    VITE_SENTRY_DSN=https://...
+   ```
+   
+   **Note**: Groq API key is server-side only. Set it in Supabase:
+   ```bash
+   npx supabase secrets set GROQ_API_KEY=your-groq-key
    ```
 
 4. **Set up the database**
@@ -250,11 +255,17 @@ VITE_SUPABASE_URL=https://jffnzpdcmdalxqhkfymx.supabase.co
 VITE_SUPABASE_ANON_KEY=<your-anon-key>
 VITE_STRIPE_PUBLISHABLE_KEY=<your-live-key>
 VITE_APP_URL=https://founderhq.netlify.app
-VITE_GEMINI_API_KEY=<your-gemini-key>
 VITE_SENTRY_DSN=<your-sentry-dsn>
 SENTRY_AUTH_TOKEN=<your-token>  # For source maps
 SENTRY_ORG=setique
 SENTRY_PROJECT=founderhq
+```
+
+**Supabase Secrets (Server-side):**
+```bash
+npx supabase secrets set GROQ_API_KEY=<your-groq-key>
+npx supabase secrets set STRIPE_SECRET_KEY=<your-stripe-secret>
+# ... other server-side secrets
 ```
 
 **Automated Features:**
@@ -325,14 +336,17 @@ See `.env.example` for all available variables.
 - `VITE_STRIPE_PUBLISHABLE_KEY` - Stripe publishable key (test or live)
 - `VITE_APP_URL` - Application URL
 
-**Important (7):**
-- `VITE_GEMINI_API_KEY` - Google Gemini AI API key (for AI assistants)
+**Important (6):**
 - `VITE_STRIPE_PRICE_POWER_INDIVIDUAL` - Stripe price ID
 - `VITE_STRIPE_PRICE_TEAM_PRO_BASE` - Stripe price ID
 - `VITE_STRIPE_PRICE_TEAM_PRO_SEAT` - Stripe price ID
 - `VITE_APP_NAME` - Application display name
 - `VITE_APP_VERSION` - Version number
 - `VITE_SENTRY_DSN` - Sentry error tracking DSN
+
+**Server-side Secrets (Supabase):**
+- `GROQ_API_KEY` - Groq AI API key (for AI assistants - set via `npx supabase secrets set`)
+- `STRIPE_SECRET_KEY` - Stripe secret key (set via Supabase secrets)
 
 **Build-time only:**
 - `SENTRY_AUTH_TOKEN` - Sentry auth token (for source map uploads)

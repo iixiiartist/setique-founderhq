@@ -16,9 +16,10 @@ This guide covers deploying FounderHQ to production on Netlify with proper envir
 
 Set these in **Netlify Dashboard → Site Settings → Environment Variables**:
 
-#### Gemini AI
+#### Groq AI (Server-side)
 ```bash
-VITE_GEMINI_API_KEY=your_production_gemini_key
+# Set via Supabase secrets (not Netlify)
+npx supabase secrets set GROQ_API_KEY=your_production_groq_key
 ```
 
 #### Supabase (Production Project)

@@ -22,7 +22,7 @@ Welcome to FounderHQ, a Setique tool ("we," "our," or "us"). This Privacy Policy
 
 ### 2.3 Third-Party Data
 - **Authentication:** We use Supabase for authentication services
-- **AI Services:** We use Google Gemini AI for assistant features
+- **AI Services:** We use Groq AI (Llama 3.1 70B) for assistant features
 - **Payment Processing:** We use Stripe for subscription payments (when applicable)
 
 ## 3. How We Use Your Information
@@ -57,7 +57,7 @@ We do NOT sell your personal information. We may share your information only in 
 
 ### 5.1 Service Providers
 - **Supabase:** Database and authentication services
-- **Google Gemini:** AI-powered assistant features
+- **Groq:** AI-powered assistant features
 - **Stripe:** Payment processing (if applicable)
 - **Netlify:** Application hosting and delivery
 
@@ -89,7 +89,7 @@ You can:
 ## 7. AI and Machine Learning
 
 ### 7.1 AI Assistant Usage
-- Your prompts and conversations with the AI assistant are processed by Google Gemini
+- Your prompts and conversations with the AI assistant are processed by Groq AI
 - AI interactions may be used to improve service quality
 - You can opt out of AI features at any time
 

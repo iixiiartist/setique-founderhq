@@ -313,7 +313,7 @@ All tests completed so far have passed without issues.
 ### Key Files
 - `components/shared/ModuleAssistant.tsx` - Rate limiting & usage checking
 - `lib/services/database.ts` - Usage increment/check functions
-- `services/geminiService.ts` - AI limit validation
+- `services/groqService.ts` - AI limit validation
 - `supabase/schema.sql` - Database schema with ai_requests_used
 
 ---

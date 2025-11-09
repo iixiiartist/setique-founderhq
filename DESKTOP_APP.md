@@ -296,7 +296,7 @@ The app respects `.env` files. Create `.env.local` with:
 ```env
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_anon_key
-VITE_GEMINI_API_KEY=your_gemini_key
+# Note: Groq API key is server-side only (Supabase secrets)
 ```
 
 ### Debugging Production Builds
