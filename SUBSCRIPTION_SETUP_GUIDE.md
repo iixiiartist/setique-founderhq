@@ -128,7 +128,7 @@ WHERE workspace_id = 'YOUR_WORKSPACE_ID';
 5. Look for logs:
    ```
    [Database] AI Limit Check: 1/20 (free), Allowed: true
-   [Gemini] Checking AI limit for workspace: ...
+   [Groq] Checking AI limit for workspace: ...
    [Database] Incremented AI usage: 2
    ```
 

@@ -26,7 +26,7 @@ The Setique Founder Dashboard has been successfully transformed into a productio
 #### **Step 2: Configure Environment** (2 minutes)
 1. Copy `.env.example` to `.env`
 2. Fill in your Supabase URL and anon key
-3. Add your Google Gemini API key
+3. Set Groq API key in Supabase secrets: `npx supabase secrets set GROQ_API_KEY=your-key`
 
 #### **Step 3: Deploy** (Choose one)
 

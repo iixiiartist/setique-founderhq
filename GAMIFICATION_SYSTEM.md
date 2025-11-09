@@ -301,10 +301,10 @@ npx supabase functions deploy groq-chat
 - ✅ No console warnings about missing keys
 
 If you still see API errors:
-1. Verify the API key is valid at https://aistudio.google.com/app/apikey
-2. Check that billing is enabled for your Google Cloud project
-3. Ensure the API key has Gemini API permissions enabled
-4. Restart dev server after `.env.local` changes
+1. Verify the API key is valid at https://console.groq.com
+2. Check Supabase Edge Function logs: `npx supabase functions logs groq-chat`
+3. Ensure groq-chat function is deployed
+4. Verify GROQ_API_KEY is set in Supabase secrets
 
 ## Team Achievements System
 
@@ -414,7 +414,7 @@ For comprehensive documentation including all 25 team achievements, unlock condi
 
 ### Technical Status
 - ✅ Build completes successfully
-- ✅ Gemini API key configuration fixed
+- ✅ Groq AI integration complete (migrated from Gemini)
 - ✅ TypeScript types fully defined
 - ✅ Database schema standardized
 
