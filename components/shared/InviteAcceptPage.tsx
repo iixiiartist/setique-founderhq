@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { APP_CONFIG } from '../../lib/config';
+import { clearInvitationToken } from '../../lib/utils/tokenStorage';
 
 interface InviteAcceptPageProps {
     token: string;
@@ -90,14 +91,17 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
                         
                         if (signInError) {
                             console.error('Error signing in with temp password:', signInError);
-                            // Show fallback message
-                            setMessage(`Your temporary password is: ${result.tempPassword}\n\nPlease save it and log in manually to set a new password.`);
+                            // Show error message without exposing password
+                            setStatus('error');
+                            setMessage('There was an error setting up your account. Please contact support or request a new invitation.');
                         } else {
                             // Successfully signed in, can now update password
                             console.log('Successfully signed in with temp password');
                         }
                     } catch (e) {
                         console.error('Error auto-signing in:', e);
+                        setStatus('error');
+                        setMessage('There was an error setting up your account. Please contact support or request a new invitation.');
                     }
                 }
             } else if (result.needsAuth) {
@@ -114,6 +118,10 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
                 // Success - already logged in
                 setStatus('success');
                 setMessage(result.message);
+                
+                // Clear invitation token on successful completion
+                clearInvitationToken();
+                
                 setTimeout(() => {
                     onComplete();
                 }, 2000);
@@ -198,6 +206,10 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
 
             setStatus('success');
             setMessage('Password set successfully! Redirecting...');
+            
+            // Clear invitation token on successful completion
+            clearInvitationToken();
+            
             setTimeout(() => {
                 onComplete();
             }, 1500);
@@ -299,16 +311,6 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
                         >
                             {isProcessing ? 'Setting Password...' : 'Continue →'}
                         </button>
-
-                        {inviteData?.tempPassword && (
-                            <div className="bg-yellow-100 border-2 border-black p-3 mt-4">
-                                <p className="text-xs font-bold mb-1">⚠️ TEMPORARY PASSWORD</p>
-                                <p className="text-xs">If you need to log in manually later:</p>
-                                <code className="block bg-white p-2 mt-2 text-xs break-all">
-                                    {inviteData.tempPassword}
-                                </code>
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>

@@ -119,9 +119,11 @@ const SideMenu: React.FC<SideMenuProps> = ({
                             <div className="bg-blue-500 h-full" style={{ width: `${progressPercentage}%` }}></div>
                         </div>
                     </button>
-                    <div className="text-sm text-gray-500 font-mono">
-                        User ID: solo-founder-001
-                    </div>
+                    {userId && (
+                        <div className="text-sm text-gray-500 font-mono truncate" title={userId}>
+                            User ID: {userId.substring(0, 8)}...
+                        </div>
+                    )}
                 </div>
             </div>
         </>

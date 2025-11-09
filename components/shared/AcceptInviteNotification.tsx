@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { DatabaseService } from '../../lib/services/database';
+import { 
+    getInvitationToken, 
+    setInvitationToken, 
+    clearInvitationToken,
+    migrateFromLocalStorage 
+} from '../../lib/utils/tokenStorage';
 
 interface AcceptInviteNotificationProps {
     onAccepted: () => void;
@@ -11,6 +17,9 @@ export const AcceptInviteNotification: React.FC<AcceptInviteNotificationProps> =
     const [acceptingInviteId, setAcceptingInviteId] = useState<string | null>(null);
 
     useEffect(() => {
+        // Migrate any old tokens from localStorage to sessionStorage
+        migrateFromLocalStorage();
+        
         loadPendingInvites();
         
         // Check if there's a token in the URL
@@ -22,7 +31,7 @@ export const AcceptInviteNotification: React.FC<AcceptInviteNotificationProps> =
         }
         
         // Check if there's a stored token from a previous attempt (user just logged in/signed up)
-        const storedToken = localStorage.getItem('pending_invitation_token');
+        const storedToken = getInvitationToken();
         if (storedToken && !token) {
             // Try to accept the stored invitation
             handleAcceptInviteFromUrl(storedToken);
@@ -56,17 +65,18 @@ export const AcceptInviteNotification: React.FC<AcceptInviteNotificationProps> =
                     error.message?.includes('Already a member')) {
                     console.log('[AcceptInvite] Invitation already processed, cleaning up URL');
                     window.history.replaceState({}, document.title, window.location.pathname);
-                    localStorage.removeItem('pending_invitation_token');
+                    clearInvitationToken();
                     return;
                 }
                 
                 // Check if it's the "different email" error - user might not be logged in yet
                 if (error.message?.includes('different email address')) {
-                    // Store the token in localStorage so it persists after login/signup
-                    localStorage.setItem('pending_invitation_token', token);
+                    // Store the token in sessionStorage (expires after 5 minutes)
+                    setInvitationToken(token);
                     alert(
                         `⚠️ Please sign up or log in with the email address that received this invitation.\n\n` +
-                        `After you log in, the invitation will be automatically accepted.`
+                        `After you log in, the invitation will be automatically accepted.\n\n` +
+                        `Note: This link will expire in 5 minutes for security.`
                     );
                 } else {
                     alert(`Failed to accept invitation: ${error.message || 'Unknown error'}`);
@@ -81,7 +91,7 @@ export const AcceptInviteNotification: React.FC<AcceptInviteNotificationProps> =
                 alert(`✅ Successfully joined ${data.workspace_name || 'workspace'}!`);
                 // Clean up URL and stored token
                 window.history.replaceState({}, document.title, window.location.pathname);
-                localStorage.removeItem('pending_invitation_token');
+                clearInvitationToken();
                 onAccepted();
             } else {
                 console.error('[AcceptInvite] Unexpected response:', data);

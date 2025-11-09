@@ -2,6 +2,7 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { AuthProvider } from './contexts/AuthContext'
 import { ErrorBoundary } from './components/shared/ErrorBoundary'
+import { SupabaseErrorFallback } from './components/shared/SupabaseErrorFallback'
 import App from './App'
 import { healthCheck } from './lib/config'
 import { monitorWebVitals, perfMonitor } from './lib/performance'
@@ -31,6 +32,16 @@ try {
   throw error
 }
 
+// Try to initialize Supabase early to catch configuration errors
+let supabaseInitError: Error | null = null
+try {
+  // Import supabase to trigger initialization and validation
+  await import('./lib/supabase')
+} catch (error) {
+  console.error('Supabase initialization error:', error)
+  supabaseInitError = error as Error
+}
+
 // Disable verbose console logs in production
 disableProductionLogs()
 
@@ -44,15 +55,24 @@ perfMonitor.startTiming('initial-page-load')
 const container = document.getElementById('root')!
 const root = createRoot(container)
 
-root.render(
-  <React.StrictMode>
-    <ErrorBoundary>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </ErrorBoundary>
-  </React.StrictMode>
-)
+// If Supabase failed to initialize, show error fallback
+if (supabaseInitError) {
+  root.render(
+    <React.StrictMode>
+      <SupabaseErrorFallback error={supabaseInitError} />
+    </React.StrictMode>
+  )
+} else {
+  root.render(
+    <React.StrictMode>
+      <ErrorBoundary>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </ErrorBoundary>
+    </React.StrictMode>
+  )
+}
 
 // Track when the app is fully loaded
 window.addEventListener('load', () => {
