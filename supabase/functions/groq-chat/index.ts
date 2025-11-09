@@ -61,7 +61,8 @@ serve(async (req) => {
     } = body;
 
     // Use model from request, or fallback to GROQ_MODEL env var, or default
-    const resolvedModel = model || Deno.env.get('GROQ_MODEL') || 'llama-3.3-70b-versatile';
+    // llama-3.1-70b-versatile has better function-calling support than 3.3
+    const resolvedModel = model || Deno.env.get('GROQ_MODEL') || 'llama-3.1-70b-versatile';
 
     console.log('Received request - messages:', messages.length);
     console.log('Last message role:', messages[messages.length - 1]?.role);

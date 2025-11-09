@@ -228,7 +228,12 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
         clearFile();
 
         try {
-            let modelResponse = await getAiResponse(currentHistory, systemPromptRef.current, true, workspaceId);
+            // Send to AI
+            // Only use tools if the user's message suggests they want to take action
+            const userMessage = textPart.toLowerCase();
+            const wantsAction = /\b(create|add|make|update|change|delete|remove|log|upload|set)\b/i.test(userMessage);
+            
+            let modelResponse = await getAiResponse(currentHistory, systemPromptRef.current, wantsAction, workspaceId);
 
             while (modelResponse.functionCalls && modelResponse.functionCalls.length > 0) {
                 const functionCalls = modelResponse.functionCalls;
@@ -266,19 +271,20 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
                     { role: 'tool', parts: functionResponseParts },
                 ];
                 
+                // Continue with tools enabled since we're in a function-calling loop
                 modelResponse = await getAiResponse(currentHistory, systemPromptRef.current, true, workspaceId);
             }
             
             // Extract text from the response
             const finalResponseText = modelResponse.candidates?.[0]?.content?.parts?.find(p => 'text' in p)?.text ?? "I've completed the action.";
-            const finalHistory = [...currentHistory, { role: 'model', parts: [{ text: finalResponseText }] }];
+            const finalHistory: Content[] = [...currentHistory, { role: 'model', parts: [{ text: finalResponseText }] }];
             setHistory(finalHistory);
 
         } catch (error) {
             // Handle AI limit errors specifically
             if (error instanceof AILimitError) {
                 setAiLimitError(error);
-                const errorHistory = [...currentHistory, { 
+                const errorHistory: Content[] = [...currentHistory, { 
                     role: 'model', 
                     parts: [{ text: `⚠️ ${error.message}\n\nPlease upgrade your plan to continue using the AI assistant.` }] 
                 }];
