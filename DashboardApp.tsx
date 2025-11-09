@@ -25,6 +25,7 @@ const CalendarTab = lazy(() => import('./components/CalendarTab'));
 import { BusinessProfileSetup } from './components/BusinessProfileSetup';
 import { AcceptInviteNotification } from './components/shared/AcceptInviteNotification';
 import { NotificationBell } from './components/shared/NotificationBell';
+import { FloatingAIAssistant } from './components/assistant/FloatingAIAssistant';
 import { useAuth } from './contexts/AuthContext';
 import { useWorkspace } from './contexts/WorkspaceContext';
 import { LoadingSpinner } from './components/shared/Loading';
@@ -78,6 +79,9 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
     const notificationSupportWarnedRef = useRef(false);
     const notificationPermissionWarnedRef = useRef(false);
     const notificationErrorWarnedRef = useRef(false);
+    
+    // Ref for AI assistant toggle function (set by FloatingAIAssistant)
+    const toggleAIAssistantRef = useRef<(() => void) | null>(null);
 
     // Toast handler - defined early so it can be used in notification logic
     const handleToast = useCallback((message: string, type: 'info' | 'success' = 'success') => {
@@ -167,6 +171,11 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
         onEscape: () => {
             if (isMenuOpen) setIsMenuOpen(false);
             if (showKeyboardShortcutsHelp) setShowKeyboardShortcutsHelp(false);
+        },
+        onToggleAI: () => {
+            if (toggleAIAssistantRef.current) {
+                toggleAIAssistantRef.current();
+            }
         }
     });
 
@@ -2364,6 +2373,45 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
             {/* Workspace Invitation Notifications */}
             <AcceptInviteNotification onAccepted={refreshWorkspace} />
+            
+            {/* Floating AI Assistant - Available on all tabs (except free plan) */}
+            {(() => {
+                // Build business context from profile
+                const profile = businessProfile as any;
+                const companyName = profile?.company_name || profile?.companyName || 'your company';
+                const industry = profile?.industry || 'Not specified';
+                const businessModel = profile?.business_model || profile?.businessModel || 'Not specified';
+                const primaryGoal = profile?.primary_goal || profile?.primaryGoal || 'Not specified';
+                
+                const businessContextStr = businessProfile ? `
+**Business Context: ${companyName}**
+- **Company:** ${companyName}
+- **Industry:** ${industry}
+- **Business Model:** ${businessModel}
+- **Primary Goal:** ${primaryGoal}
+` : `**Business Context:** Not yet configured.`;
+                
+                const teamContextStr = workspaceMembers.length > 0 ? `
+**Team Members (${workspaceMembers.length}):**
+${workspaceMembers.map(member => `- ${member.fullName || member.email || 'Unknown Member'} (${member.email || 'no email'}) - Role: ${member.role}`).join('\n')}
+` : `**Team:** Working solo (no additional team members in workspace).`;
+                
+                return (
+                    <FloatingAIAssistant
+                        currentTab={activeTab}
+                        actions={actions}
+                        workspaceId={workspace?.id}
+                        onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
+                        companyName={companyName}
+                        businessContext={businessContextStr}
+                        teamContext={teamContextStr}
+                        planType={workspace?.planType}
+                        onToggleRef={(toggle) => {
+                            toggleAIAssistantRef.current = toggle;
+                        }}
+                    />
+                );
+            })()}
                 </>
             )}
         </>

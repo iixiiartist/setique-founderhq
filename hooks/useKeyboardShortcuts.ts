@@ -8,6 +8,7 @@ interface KeyboardShortcutsConfig {
   onHelp?: () => void;
   onTabChange?: (tab: TabType) => void;
   onEscape?: () => void;
+  onToggleAI?: () => void;
   enabled?: boolean;
 }
 
@@ -17,6 +18,7 @@ interface KeyboardShortcutsConfig {
  * Shortcuts:
  * - Ctrl+N or N: New task (context-aware)
  * - Ctrl+K or /: Focus search
+ * - Ctrl+/: Toggle AI assistant
  * - ?: Show keyboard shortcuts help
  * - 1-9: Switch tabs
  * - Escape: Close modals/dropdowns
@@ -28,6 +30,7 @@ export const useKeyboardShortcuts = (config: KeyboardShortcutsConfig) => {
     onHelp,
     onTabChange,
     onEscape,
+    onToggleAI,
     enabled = true
   } = config;
 
@@ -63,8 +66,22 @@ export const useKeyboardShortcuts = (config: KeyboardShortcutsConfig) => {
       return;
     }
 
-    // Ctrl+K or /: Focus search (only when not in input/modal)
-    if (((event.ctrlKey || event.metaKey) && event.key === 'k') || event.key === '/') {
+    // Ctrl+K: Focus search (only when not in input/modal)
+    if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
+      event.preventDefault();
+      onSearch?.();
+      return;
+    }
+
+    // Ctrl+/: Toggle AI assistant (only when not in input/modal)
+    if ((event.ctrlKey || event.metaKey) && event.key === '/') {
+      event.preventDefault();
+      onToggleAI?.();
+      return;
+    }
+
+    // /: Focus search (only when not in input/modal)
+    if (event.key === '/' && !event.ctrlKey && !event.metaKey) {
       event.preventDefault();
       onSearch?.();
       return;
@@ -103,7 +120,7 @@ export const useKeyboardShortcuts = (config: KeyboardShortcutsConfig) => {
       onTabChange(newTab);
       return;
     }
-  }, [enabled, onNewTask, onSearch, onHelp, onTabChange, onEscape]);
+  }, [enabled, onNewTask, onSearch, onHelp, onTabChange, onEscape, onToggleAI]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -154,6 +171,7 @@ export const useKeyboardShortcutLabels = () => {
         items: [
           { keys: [mod, 'N'], description: 'New task' },
           { keys: ['N'], description: 'New task (when not typing)' },
+          { keys: [mod, '/'], description: 'Toggle AI assistant' },
           { keys: ['?'], description: 'Show this help' }
         ]
       },

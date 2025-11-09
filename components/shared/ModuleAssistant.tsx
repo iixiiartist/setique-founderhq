@@ -4,6 +4,7 @@ import { getAiResponse, AILimitError } from '../../services/groqService';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Tab } from '../../constants';
+import { useConversationHistory } from '../../hooks/useConversationHistory';
 
 // Keep using Content format for compatibility
 interface Part {
@@ -25,6 +26,8 @@ interface ModuleAssistantProps {
     currentTab: TabType;
     workspaceId?: string;
     onUpgradeNeeded?: () => void;
+    compact?: boolean; // For floating modal mode
+    onNewMessage?: () => void; // Callback when AI responds (for notifications)
 }
 
 const ModuleAssistant: React.FC<ModuleAssistantProps> = ({ 
@@ -33,9 +36,20 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
     actions, 
     currentTab,
     workspaceId,
-    onUpgradeNeeded 
+    onUpgradeNeeded,
+    compact = false,
+    onNewMessage
 }) => {
-    const [history, setHistory] = useState<Content[]>([]);
+    // Use conversation history hook for persistence
+    const {
+        history,
+        addMessage,
+        updateHistory,
+        clearHistory: clearPersistedHistory,
+        messageCount,
+        exportAsText
+    } = useConversationHistory(currentTab);
+    
     const [userInput, setUserInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [file, setFile] = useState<File | null>(null);
@@ -182,12 +196,8 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
             setRateLimitError(errorMessage);
             
             // Add error message to history
-            const errorHistory: Content[] = [
-                ...history,
-                { role: 'user', parts: [{ text: prompt }] },
-                { role: 'model', parts: [{ text: `⚠️ ${errorMessage}` }] }
-            ];
-            setHistory(errorHistory);
+            addMessage({ role: 'user', parts: [{ text: prompt }] });
+            addMessage({ role: 'model', parts: [{ text: `⚠️ ${errorMessage}` }] });
             
             // Clear rate limit error after the remaining time
             setTimeout(() => {
@@ -221,8 +231,9 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
 
         userMessageParts.unshift({ text: textPart });
 
+        // Add user message to history
+        addMessage({ role: 'user', parts: userMessageParts });
         let currentHistory: Content[] = [...history, { role: 'user', parts: userMessageParts }];
-        setHistory(currentHistory);
         setAiLimitError(null); // Clear any previous error
         
         clearFile();
@@ -277,23 +288,26 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
             
             // Extract text from the response
             const finalResponseText = modelResponse.candidates?.[0]?.content?.parts?.find(p => 'text' in p)?.text ?? "I've completed the action.";
-            const finalHistory: Content[] = [...currentHistory, { role: 'model', parts: [{ text: finalResponseText }] }];
-            setHistory(finalHistory);
+            addMessage({ role: 'model', parts: [{ text: finalResponseText }] });
+            
+            // Trigger notification callback if provided
+            if (onNewMessage) {
+                onNewMessage();
+            }
 
         } catch (error) {
             // Handle AI limit errors specifically
             if (error instanceof AILimitError) {
                 setAiLimitError(error);
-                const errorHistory: Content[] = [...currentHistory, { 
+                addMessage({ 
                     role: 'model', 
                     parts: [{ text: `⚠️ ${error.message}\n\nPlease upgrade your plan to continue using the AI assistant.` }] 
-                }];
-                setHistory(errorHistory);
+                });
                 return;
             }
             
             const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-            setHistory(prev => [...prev, { role: 'model', parts: [{ text: `Error: ${errorMessage}` }] }]);
+            addMessage({ role: 'model', parts: [{ text: `Error: ${errorMessage}` }] });
         } finally {
             setIsLoading(false);
         }
@@ -362,28 +376,56 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
     };
     
     return (
-        <div className="bg-white p-6 border-2 border-black shadow-neo h-full flex flex-col max-h-[85vh]">
-            <div className="flex justify-between items-center mb-4 shrink-0">
-                <h2 className="text-xl font-semibold text-black">{title}</h2>
-                <div className="flex gap-2">
-                     <button
-                        onClick={handleGenerateReport}
-                        className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all disabled:opacity-50 flex items-center gap-2"
-                        disabled={isLoading}
-                        title="Generate a summary report of this module"
-                    >
-                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M12 20V10H4V20H12ZM14 20V4H22V20H14Z" /></svg>
-                        Report
-                    </button>
-                    <button
-                        onClick={handleCopyConversation}
-                        className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all disabled:opacity-50"
-                        disabled={history.length === 0 || isCopied}
-                    >
-                        {isCopied ? 'Copied!' : 'Copy'}
-                    </button>
+        <div className={`bg-white h-full flex flex-col ${compact ? 'p-4' : 'p-6 border-2 border-black shadow-neo max-h-[85vh]'}`}>
+            {!compact && (
+                <div className="flex justify-between items-center mb-4 shrink-0">
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-xl font-semibold text-black">{title}</h2>
+                        {messageCount > 0 && (
+                            <span className="text-xs text-gray-500" title="Message count">
+                                ({messageCount})
+                            </span>
+                        )}
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={handleGenerateReport}
+                            className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all disabled:opacity-50 flex items-center gap-2"
+                            disabled={isLoading}
+                            title="Generate a summary report of this module"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M12 20V10H4V20H12ZM14 20V4H22V20H14Z" /></svg>
+                            Report
+                        </button>
+                        <button
+                            onClick={() => {
+                                const text = exportAsText();
+                                navigator.clipboard.writeText(text).then(() => {
+                                    setIsCopied(true);
+                                    setTimeout(() => setIsCopied(false), 2000);
+                                });
+                            }}
+                            className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all disabled:opacity-50"
+                            disabled={history.length === 0 || isCopied}
+                            title="Copy conversation to clipboard"
+                        >
+                            {isCopied ? 'Copied!' : 'Copy'}
+                        </button>
+                        <button
+                            onClick={() => {
+                                if (window.confirm('Clear this conversation? This cannot be undone.')) {
+                                    clearPersistedHistory();
+                                }
+                            }}
+                            className="font-mono bg-white border-2 border-black text-red-600 hover:bg-red-50 cursor-pointer text-sm py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all disabled:opacity-50"
+                            disabled={history.length === 0}
+                            title="Clear conversation history"
+                        >
+                            Clear
+                        </button>
+                    </div>
                 </div>
-            </div>
+            )}
             
             <div className="flex-grow overflow-y-auto custom-scrollbar pr-4 mb-4 border-2 border-black bg-gray-50 p-4 min-h-[200px] flex flex-col gap-4">
                 {history.length === 0 && (
