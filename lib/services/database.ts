@@ -688,9 +688,13 @@ export class DatabaseService {
       
       // In single-workspace model:
       // 1. First check if user owns a workspace
+      // Join with subscriptions to get the actual plan_type
       const { data: ownedWorkspace, error: ownedError } = await supabase
         .from('workspaces')
-        .select('*')
+        .select(`
+          *,
+          subscription:subscriptions(plan_type, ai_requests_used, seat_count, status)
+        `)
         .eq('owner_id', userId)
         .maybeSingle() // Use maybeSingle instead of single to avoid errors if none found
 
@@ -699,9 +703,13 @@ export class DatabaseService {
         throw ownedError;
       }
 
-      // If user owns a workspace, return it
+      // If user owns a workspace, return it with subscription plan_type
       if (ownedWorkspace) {
         logger.info('[Database] Found owned workspace:', ownedWorkspace);
+        // Override plan_type with subscription plan_type if available
+        if (ownedWorkspace.subscription && Array.isArray(ownedWorkspace.subscription) && ownedWorkspace.subscription[0]) {
+          ownedWorkspace.plan_type = ownedWorkspace.subscription[0].plan_type;
+        }
         const mapped = mapWorkspace(ownedWorkspace);
         logger.info('[Database] Mapped workspace:', mapped);
         return { data: [mapped], error: null };
