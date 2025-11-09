@@ -39,7 +39,7 @@ const convertContentToMessages = (history: Content[]): Message[] => {
         
         // Extract text from parts
         const textParts = content.parts
-            .filter(p => 'text' in p)
+            .filter(p => 'text' in p && p.text)
             .map(p => p.text)
             .join('\n');
         
@@ -60,9 +60,10 @@ const convertContentToMessages = (history: Content[]): Message[] => {
             };
         }
         
+        // For messages with no text content (like function calls), provide empty string
         return {
             role: role as 'user' | 'assistant' | 'tool',
-            content: textParts || null,
+            content: textParts || '',
         };
     });
 };
@@ -109,7 +110,8 @@ export const getAiResponse = async (
         }, ...convertedMessages];
 
         console.log('[Groq] Sending request with', messages.length, 'messages');
-        console.log('[Groq] Last message role:', messages[messages.length - 1]?.role);
+        console.log('[Groq] Last message:', JSON.stringify(messages[messages.length - 1], null, 2));
+        console.log('[Groq] All messages:', JSON.stringify(messages, null, 2));
 
         // Prepare request body
         const requestBody: any = {
