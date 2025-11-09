@@ -22,6 +22,15 @@ const EXPENSE_CATEGORY_OPTIONS: ExpenseCategory[] = [
     'Other'
 ];
 
+const PAYMENT_METHOD_OPTIONS: PaymentMethod[] = [
+    'Credit Card',
+    'Debit Card',
+    'Bank Transfer',
+    'Cash',
+    'PayPal',
+    'Other'
+];
+
 const formatDateLabel = (isoDate: string) =>
     new Date(`${isoDate}T00:00:00Z`).toLocaleDateString(undefined, {
         timeZone: 'UTC',
@@ -64,23 +73,144 @@ const FinancialLogItem: React.FC<{ item: FinancialLog; onDelete: () => void; }> 
     </li>
 );
 
-const ExpenseItem: React.FC<{ item: Expense; onDelete: () => void; }> = ({ item, onDelete }) => (
-    <li className="flex items-center justify-between p-3 bg-white border-2 border-black shadow-neo">
-        <div className="flex-grow">
-            <div className="flex items-center justify-between mb-1">
-                <p className="font-semibold">{item.description}</p>
-                <span className="font-mono font-bold text-lg text-red-600">-${item.amount.toLocaleString()}</span>
+const ExpenseItem: React.FC<{ 
+    item: Expense; 
+    onDelete: () => void; 
+    onUpdate: (updates: Partial<Omit<Expense, 'id' | 'notes'>>) => void;
+}> = ({ item, onDelete, onUpdate }) => {
+    const [isEditing, setIsEditing] = React.useState(false);
+    const [editForm, setEditForm] = React.useState<Partial<Omit<Expense, 'id' | 'notes'>>>({
+        date: item.date,
+        category: item.category,
+        amount: item.amount,
+        description: item.description,
+        vendor: item.vendor,
+        paymentMethod: item.paymentMethod
+    });
+
+    const handleSave = () => {
+        onUpdate(editForm);
+        setIsEditing(false);
+    };
+
+    const handleCancel = () => {
+        setEditForm({
+            date: item.date,
+            category: item.category,
+            amount: item.amount,
+            description: item.description,
+            vendor: item.vendor,
+            paymentMethod: item.paymentMethod
+        });
+        setIsEditing(false);
+    };
+
+    if (isEditing) {
+        return (
+            <li className="p-3 bg-yellow-50 border-2 border-black shadow-neo">
+                <div className="space-y-2">
+                    <input
+                        type="text"
+                        value={editForm.description || ''}
+                        onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                        className="w-full p-2 border-2 border-black font-semibold"
+                        placeholder="Description"
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                        <input
+                            type="number"
+                            value={editForm.amount || 0}
+                            onChange={(e) => setEditForm({ ...editForm, amount: parseFloat(e.target.value) })}
+                            className="p-2 border-2 border-black font-mono"
+                            placeholder="Amount"
+                        />
+                        <input
+                            type="date"
+                            value={editForm.date || ''}
+                            onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
+                            className="p-2 border-2 border-black"
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        <select
+                            value={editForm.category || 'Other'}
+                            onChange={(e) => setEditForm({ ...editForm, category: e.target.value as ExpenseCategory })}
+                            className="p-2 border-2 border-black"
+                        >
+                            {EXPENSE_CATEGORY_OPTIONS.map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                        </select>
+                        <select
+                            value={editForm.paymentMethod || ''}
+                            onChange={(e) => setEditForm({ ...editForm, paymentMethod: (e.target.value || undefined) as PaymentMethod | undefined })}
+                            className="p-2 border-2 border-black"
+                        >
+                            <option value="">Payment Method</option>
+                            {PAYMENT_METHOD_OPTIONS.map(pm => (
+                                <option key={pm} value={pm}>{pm}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <input
+                        type="text"
+                        value={editForm.vendor || ''}
+                        onChange={(e) => setEditForm({ ...editForm, vendor: e.target.value || undefined })}
+                        className="w-full p-2 border-2 border-black"
+                        placeholder="Vendor (optional)"
+                    />
+                    <div className="flex gap-2">
+                        <button
+                            onClick={handleSave}
+                            className="px-4 py-2 bg-green-500 text-white border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all font-mono font-bold"
+                        >
+                            Save
+                        </button>
+                        <button
+                            onClick={handleCancel}
+                            className="px-4 py-2 bg-gray-300 text-black border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all font-mono font-bold"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </li>
+        );
+    }
+
+    return (
+        <li className="flex items-center justify-between p-3 bg-white border-2 border-black shadow-neo">
+            <div className="flex-grow">
+                <div className="flex items-center justify-between mb-1">
+                    <p className="font-semibold">{item.description}</p>
+                    <span className="font-mono font-bold text-lg text-red-600">-${item.amount.toLocaleString()}</span>
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
+                    <span>{new Date(item.date + 'T00:00:00').toLocaleDateString(undefined, { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    <span className="font-semibold text-blue-600">{item.category}</span>
+                    {item.vendor && <span>Vendor: <strong className="text-black">{item.vendor}</strong></span>}
+                    {item.paymentMethod && <span>{item.paymentMethod}</span>}
+                </div>
             </div>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
-                <span>{new Date(item.date + 'T00:00:00').toLocaleDateString(undefined, { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                <span className="font-semibold text-blue-600">{item.category}</span>
-                {item.vendor && <span>Vendor: <strong className="text-black">{item.vendor}</strong></span>}
-                {item.paymentMethod && <span>{item.paymentMethod}</span>}
+            <div className="flex gap-2 shrink-0 ml-4">
+                <button 
+                    onClick={() => setIsEditing(true)} 
+                    className="text-lg hover:text-blue-600 transition-colors" 
+                    aria-label={`Edit expense: ${item.description}`}
+                >
+                    ✎
+                </button>
+                <button 
+                    onClick={onDelete} 
+                    className="text-xl font-bold hover:text-red-500 transition-colors" 
+                    aria-label={`Delete expense: ${item.description}`}
+                >
+                    &times;
+                </button>
             </div>
-        </div>
-        <button onClick={onDelete} className="text-xl font-bold hover:text-red-500 transition-colors shrink-0 ml-4" aria-label={`Delete expense: ${item.description}`}>&times;</button>
-    </li>
-);
+        </li>
+    );
+};
 
 const FinancialsTab: React.FC<{
     items: FinancialLog[];
@@ -628,7 +758,14 @@ ${JSON.stringify(documentsMetadata, null, 2)}
                         </div>
                         <ul className="max-h-80 overflow-y-auto custom-scrollbar pr-2 space-y-3">
                             {filteredExpenses.length > 0 ? (
-                                filteredExpenses.map(item => <ExpenseItem key={item.id} item={item} onDelete={() => actions.deleteItem('expenses', item.id)} />)
+                                filteredExpenses.map(item => (
+                                    <ExpenseItem 
+                                        key={item.id} 
+                                        item={item} 
+                                        onDelete={() => actions.deleteItem('expenses', item.id)}
+                                        onUpdate={(updates) => actions.updateExpense(item.id, updates)}
+                                    />
+                                ))
                             ) : (
                                 <p className="text-gray-500 italic text-sm">No expenses logged yet.</p>
                             )}
