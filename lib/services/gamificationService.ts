@@ -1,4 +1,5 @@
 import { GamificationData, AchievementId, DashboardData, TeamAchievementId, WorkspaceAchievement } from '../../types'
+import { logger } from './lib/logger'
 import { DataPersistenceAdapter } from './dataPersistenceAdapter'
 import { DatabaseService } from './database'
 import { TEAM_ACHIEVEMENTS } from '../../constants'
@@ -236,16 +237,16 @@ export class GamificationService {
       await DataPersistenceAdapter.updateGamification(userId, updatedGamification)
       
       if (reason) {
-        console.log(`[Gamification] +${xpAmount} XP: ${reason}`)
+        logger.info(`[Gamification] +${xpAmount} XP: ${reason}`)
       }
       if (leveledUp) {
-        console.log(`[Gamification] 🎉 Level Up! ${oldLevel} → ${newLevel}`)
+        logger.info(`[Gamification] 🎉 Level Up! ${oldLevel} → ${newLevel}`)
       }
       if (newAchievements.length > 0) {
-        console.log(`[Gamification] 🏆 New Achievements:`, newAchievements)
+        logger.info(`[Gamification] 🏆 New Achievements:`, newAchievements)
       }
     } catch (error) {
-      console.error('[Gamification] Failed to persist gamification data:', error)
+      logger.error('[Gamification] Failed to persist gamification data:', error)
     }
 
     return {
@@ -276,7 +277,7 @@ export class GamificationService {
       });
     }
 
-    console.log(`[Gamification] Queued ${xpAmount} XP for user ${userId} (${reason || 'no reason'})`);
+    logger.info(`[Gamification] Queued ${xpAmount} XP for user ${userId} (${reason || 'no reason'})`);
   }
 
   /**
@@ -319,7 +320,7 @@ export class GamificationService {
     try {
       await DataPersistenceAdapter.updateGamification(userId, updatedGamification)
     } catch (error) {
-      console.error('[Gamification] Failed to track activity:', error)
+      logger.error('[Gamification] Failed to track activity:', error)
     }
 
     return updatedGamification
@@ -341,9 +342,9 @@ export class GamificationService {
 
     try {
       await DataPersistenceAdapter.updateGamification(userId, updatedGamification)
-      console.log('[Gamification] Recalculated achievements:', updatedGamification.achievements)
+      logger.info('[Gamification] Recalculated achievements:', updatedGamification.achievements)
     } catch (error) {
-      console.error('[Gamification] Failed to recalculate achievements:', error)
+      logger.error('[Gamification] Failed to recalculate achievements:', error)
     }
 
     return updatedGamification
@@ -363,9 +364,9 @@ export class GamificationService {
 
     try {
       await DataPersistenceAdapter.updateGamification(userId, freshGamification)
-      console.log('[Gamification] Progress reset to initial state')
+      logger.info('[Gamification] Progress reset to initial state')
     } catch (error) {
-      console.error('[Gamification] Failed to reset progress:', error)
+      logger.error('[Gamification] Failed to reset progress:', error)
       throw error
     }
 
@@ -444,12 +445,12 @@ export class TeamAchievementService {
       });
 
       if (leveledUp) {
-        console.log(`[TeamAchievements] 🎉 Team Level Up! ${oldLevel} → ${newLevel} (${totalXP} XP)`);
+        logger.info(`[TeamAchievements] 🎉 Team Level Up! ${oldLevel} → ${newLevel} (${totalXP} XP)`);
       }
 
       return { level: newLevel, leveledUp, oldLevel: leveledUp ? oldLevel : undefined };
     } catch (error) {
-      console.error('[TeamAchievements] Failed to update team level:', error);
+      logger.error('[TeamAchievements] Failed to update team level:', error);
       return { level: 1, leveledUp: false };
     }
   }
@@ -462,7 +463,7 @@ export class TeamAchievementService {
     const lastCheck = this.checkCache.get(cacheKey);
     
     if (lastCheck && Date.now() - lastCheck < this.CACHE_DURATION) {
-      console.log(`[TeamAchievements] Skipping recent check: ${checkType}`);
+      logger.info(`[TeamAchievements] Skipping recent check: ${checkType}`);
       return true;
     }
     
@@ -514,7 +515,7 @@ export class TeamAchievementService {
     this.batchQueue.clear();
     this.batchTimer = null;
 
-    console.log(`[TeamAchievements] Processing ${checks.length} batched checks`);
+    logger.info(`[TeamAchievements] Processing ${checks.length} batched checks`);
 
     await Promise.all(
       checks.map(async ([key, { checkFn, resolvers, rejecters }]) => {
@@ -522,7 +523,7 @@ export class TeamAchievementService {
           const result = await checkFn();
           resolvers.forEach(resolve => resolve(result));
         } catch (error) {
-          console.error(`[TeamAchievements] Batch check failed:`, error);
+          logger.error(`[TeamAchievements] Batch check failed:`, error);
           rejecters.forEach(reject => reject(error));
         }
       })
@@ -666,7 +667,7 @@ export class TeamAchievementService {
           
           totalXP += achievement.xpReward;
           
-          console.log(`[TeamAchievements] 🏆 Unlocked: ${achievement.name} (+${achievement.xpReward} XP)`);
+          logger.info(`[TeamAchievements] 🏆 Unlocked: ${achievement.name} (+${achievement.xpReward} XP)`);
         }
       }
 
@@ -680,13 +681,13 @@ export class TeamAchievementService {
         
         // Include level-up info in response for notification purposes
         if (levelResult.leveledUp) {
-          console.log(`[TeamAchievements] Workspace leveled up to ${levelResult.level}!`);
+          logger.info(`[TeamAchievements] Workspace leveled up to ${levelResult.level}!`);
         }
       }
 
       return { newAchievements: unlockedAchievements, totalXP };
     } catch (error) {
-      console.error('[TeamAchievements] Error checking achievements:', error);
+      logger.error('[TeamAchievements] Error checking achievements:', error);
       return { newAchievements: [], totalXP: 0 };
     }
   }
@@ -819,7 +820,7 @@ export class TeamAchievementService {
       workspaceCreatedAt: string;
     }
   ) {
-    console.log('[TeamAchievements] Recalculating all achievements for workspace:', workspaceId);
+    logger.info('[TeamAchievements] Recalculating all achievements for workspace:', workspaceId);
     return await this.checkTeamAchievements(workspaceId, userId, fullContext);
   }
 }

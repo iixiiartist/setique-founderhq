@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { logger } from '../lib/logger'
 import { useAuth } from './AuthContext';
 import { DatabaseService } from '../lib/services/database';
 import { BusinessProfile, Workspace, WorkspaceMember } from '../types';
@@ -52,7 +53,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
 
         try {
             setIsLoadingWorkspace(true);
-            console.log('[WorkspaceContext] Loading workspace for user:', user.id);
+            logger.info('[WorkspaceContext] Loading workspace for user:', user.id);
             
             // Add timeout to prevent infinite loading with automatic cleanup
             const { data: workspaces, error } = await withTimeout(
@@ -61,29 +62,29 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
                 'Workspace loading timeout'
             );
             
-            console.log('[WorkspaceContext] Workspace loaded:', { workspaces, error });
+            logger.info('[WorkspaceContext] Workspace loaded:', { workspaces, error });
             
             if (workspaces && workspaces.length > 0) {
                 // Single workspace model - just use the one workspace
                 setWorkspace(workspaces[0] as any);
-                console.log('[WorkspaceContext] Set workspace:', workspaces[0]);
+                logger.info('[WorkspaceContext] Set workspace:', workspaces[0]);
             } else {
                 // No workspace found - wait and retry once (trigger might have just created it)
-                console.log('[WorkspaceContext] No workspace found - waiting and retrying once');
+                logger.info('[WorkspaceContext] No workspace found - waiting and retrying once');
                 setIsRetrying(true);
                 await new Promise(resolve => setTimeout(resolve, 2000));
                 const { data: retryData } = await DatabaseService.getWorkspaces(user.id);
                 
                 if (retryData && retryData.length > 0) {
-                    console.log('[WorkspaceContext] Found workspace on retry:', retryData[0]);
+                    logger.info('[WorkspaceContext] Found workspace on retry:', retryData[0]);
                     setWorkspace(retryData[0] as any);
                 } else {
-                    console.log('[WorkspaceContext] Still no workspace after retry - workspace should auto-create on signup');
+                    logger.info('[WorkspaceContext] Still no workspace after retry - workspace should auto-create on signup');
                 }
                 setIsRetrying(false);
             }
         } catch (error) {
-            console.error('Error loading workspace:', error);
+            logger.error('Error loading workspace:', error);
             setIsRetrying(false);
         } finally {
             setIsLoadingWorkspace(false);
@@ -92,23 +93,23 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
 
     const refreshBusinessProfile = useCallback(async () => {
         if (!workspace || !user) {
-            console.log('[WorkspaceContext] No workspace or user, skipping profile load');
+            logger.info('[WorkspaceContext] No workspace or user, skipping profile load');
             return;
         }
 
         try {
             setIsLoadingProfile(true);
-            console.log('[WorkspaceContext] Loading business profile for workspace:', workspace.id);
+            logger.info('[WorkspaceContext] Loading business profile for workspace:', workspace.id);
             
             // Check if current user is the workspace owner (reuse user from AuthContext)
             // Handle both snake_case (from DB) and camelCase (from types)
             const workspaceOwnerId = (workspace as any).owner_id || workspace.ownerId;
             const isOwner = user.id === workspaceOwnerId;
-            console.log('[WorkspaceContext] User is owner?', isOwner, { userId: user.id, workspaceOwnerId });
+            logger.info('[WorkspaceContext] User is owner?', isOwner, { userId: user.id, workspaceOwnerId });
             
             const { data: profile, error } = await DatabaseService.getBusinessProfile(workspace.id);
             
-            console.log('[WorkspaceContext] Business profile loaded:', { profile, error });
+            logger.info('[WorkspaceContext] Business profile loaded:', { profile, error });
             
             if (profile) {
                 setBusinessProfile(profile as any);
@@ -116,7 +117,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
                 // Sync workspace name with company name if they don't match
                 const companyName = profile.company_name;
                 if (companyName && workspace.name !== companyName) {
-                    console.log('[WorkspaceContext] Syncing workspace name:', workspace.name, '->', companyName);
+                    logger.info('[WorkspaceContext] Syncing workspace name:', workspace.name, '->', companyName);
                     await DatabaseService.updateWorkspaceName(workspace.id, companyName);
                     // Update local state instead of reloading - prevents unnecessary database call
                     setWorkspace({ ...workspace, name: companyName });
@@ -124,24 +125,24 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
                 
                 // Only show onboarding to owners if profile is incomplete
                 if (!profile.is_complete && isOwner) {
-                    console.log('[WorkspaceContext] Profile incomplete, showing onboarding to owner');
+                    logger.info('[WorkspaceContext] Profile incomplete, showing onboarding to owner');
                     setShowOnboarding(true);
                 } else if (!profile.is_complete && !isOwner) {
-                    console.log('[WorkspaceContext] Profile incomplete but user is member, skipping onboarding');
+                    logger.info('[WorkspaceContext] Profile incomplete but user is member, skipping onboarding');
                     setShowOnboarding(false);
                 }
             } else {
                 // No profile exists - only show onboarding to owners
                 if (isOwner) {
-                    console.log('[WorkspaceContext] No profile found, showing onboarding to owner');
+                    logger.info('[WorkspaceContext] No profile found, showing onboarding to owner');
                     setShowOnboarding(true);
                 } else {
-                    console.log('[WorkspaceContext] No profile found but user is member, skipping onboarding');
+                    logger.info('[WorkspaceContext] No profile found but user is member, skipping onboarding');
                     setShowOnboarding(false);
                 }
             }
         } catch (error) {
-            console.error('Error loading business profile:', error);
+            logger.error('Error loading business profile:', error);
             // Only show onboarding to owners on error (reuse user from AuthContext)
             if (user) {
                 const workspaceOwnerId = (workspace as any).owner_id || workspace.ownerId;
@@ -157,7 +158,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
 
     const saveBusinessProfile = useCallback(async (profileData: Partial<BusinessProfile>) => {
         if (!workspace) {
-            console.error('No workspace available');
+            logger.error('No workspace available');
             return;
         }
 
@@ -212,7 +213,7 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
                 setShowOnboarding(false);
             }
         } catch (error) {
-            console.error('Error saving business profile:', error);
+            logger.error('Error saving business profile:', error);
             throw error;
         }
     }, [workspace, businessProfile, refreshBusinessProfile, refreshWorkspace]);
@@ -270,22 +271,22 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
 
     const refreshMembers = useCallback(async () => {
         if (!workspace) {
-            console.log('[WorkspaceContext] No workspace, skipping members load');
+            logger.info('[WorkspaceContext] No workspace, skipping members load');
             return;
         }
 
         try {
             setIsLoadingMembers(true);
-            console.log('[WorkspaceContext] Loading workspace members for:', workspace.id);
+            logger.info('[WorkspaceContext] Loading workspace members for:', workspace.id);
             
             const { data: members, error } = await DatabaseService.getWorkspaceMembers(workspace.id);
             
             if (error) {
-                console.error('[WorkspaceContext] Error loading members:', error);
+                logger.error('[WorkspaceContext] Error loading members:', error);
                 return;
             }
             
-            console.log('[WorkspaceContext] Loaded members (raw):', members);
+            logger.info('[WorkspaceContext] Loaded members (raw):', members);
             
             // Transform database response to match WorkspaceMember interface
             const transformedMembers: WorkspaceMember[] = (members || []).map((m: any) => ({
@@ -300,10 +301,10 @@ export const WorkspaceProvider: React.FC<WorkspaceProviderProps> = ({ children }
                 avatarUrl: m.profiles?.avatar_url || undefined
             }));
             
-            console.log('[WorkspaceContext] Transformed members:', transformedMembers);
+            logger.info('[WorkspaceContext] Transformed members:', transformedMembers);
             setWorkspaceMembers(transformedMembers);
         } catch (error) {
-            console.error('[WorkspaceContext] Error loading members:', error);
+            logger.error('[WorkspaceContext] Error loading members:', error);
         } finally {
             setIsLoadingMembers(false);
         }

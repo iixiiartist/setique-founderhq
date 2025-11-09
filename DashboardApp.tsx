@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
+import { logger } from './lib/logger'
 import { Tab, EMPTY_DASHBOARD_DATA, NAV_ITEMS, ACHIEVEMENTS } from './constants';
 import { DashboardData, AppActions, Task, TaskCollectionName, CrmCollectionName, NoteableCollectionName, AnyCrmItem, FinancialLog, Note, BaseCrmItem, MarketingItem, SettingsData, Document, Contact, TabType, GamificationData, AchievementId, Priority, CalendarEvent, Meeting, TaskStatus } from './types';
 import SideMenu from './components/SideMenu';
@@ -130,7 +131,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     setIsAdmin(data.is_admin || false);
                 }
             } catch (error) {
-                console.error('Error checking admin status:', error);
+                logger.error('Error checking admin status:', error);
             }
         };
 
@@ -181,7 +182,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             // Store the plan to subscribe to
             sessionStorage.setItem('checkout_plan', subscribePlan);
             
-            console.log('Redirecting to checkout for plan:', subscribePlan);
+            logger.info('Redirecting to checkout for plan:', subscribePlan);
         }
     }, [subscribePlan, workspace, isLoadingWorkspace]);
 
@@ -207,7 +208,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 
                 setIsLoading(false);
             } catch (error) {
-                console.error('Error initializing app:', error);
+                logger.error('Error initializing app:', error);
                 setIsLoading(false);
             }
         };
@@ -335,7 +336,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 setLoadedTabs(prev => new Set(prev).add(activeTab));
                 setIsLoading(false); // Done loading
             } catch (error) {
-                console.error(`Error loading data for tab ${activeTab}:`, error);
+                logger.error(`Error loading data for tab ${activeTab}:`, error);
                 setIsLoading(false); // Stop loading on error
             }
         };
@@ -347,7 +348,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
     useEffect(() => {
         if (dataError) {
             handleToast('Failed to load data from database', 'info');
-            console.error('Data loading error:', dataError);
+            logger.error('Data loading error:', dataError);
         }
     }, [dataError, handleToast]);
 
@@ -372,7 +373,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             try {
                 await DataPersistenceAdapter.updateSettings(userId, updatedSettings);
             } catch (error) {
-                console.error('Error persisting desktop notification preference:', error);
+                logger.error('Error persisting desktop notification preference:', error);
             }
         }
     }, [userId]);
@@ -471,7 +472,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             return next;
                         });
                     } catch (error) {
-                        console.error('Error dispatching desktop notification:', error);
+                        logger.error('Error dispatching desktop notification:', error);
                         if (!notificationErrorWarnedRef.current) {
                             notificationErrorWarnedRef.current = true;
                             handleToast('We could not display desktop notifications. Please review your browser permissions.', 'info');
@@ -595,7 +596,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             
             setLoadedTabs(prev => new Set(prev).add(activeTab));
         } catch (error) {
-            console.error('Error reloading data:', error);
+            logger.error('Error reloading data:', error);
         }
     }, [activeTab, loadCoreData, loadTasks, loadCrmItems, loadMarketing, loadFinancials, loadDocuments, invalidateAllCache]);
 
@@ -645,7 +646,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             }
 
             if (!workspace?.id) {
-                console.error('[DashboardApp] Cannot create task: No workspace loaded', { workspace });
+                logger.error('[DashboardApp] Cannot create task: No workspace loaded', { workspace });
                 handleToast('No workspace available. Please refresh the page.', 'info');
                 return { success: false, message: 'No workspace available' };
             }
@@ -677,7 +678,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             handleToast(`Creating task...`, 'info');
 
             try {
-                console.log('[DashboardApp] Creating task with workspace:', workspace.id);
+                logger.info('[DashboardApp] Creating task with workspace:', workspace.id);
                 await DataPersistenceAdapter.createTask(userId, category, text, priority, crmItemId, contactId, dueDate, workspace.id, assignedTo, dueTime);
                 
                 // Track action in Sentry
@@ -695,7 +696,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 handleToast(`Task "${text}" created.`, 'success');
                 return { success: true, message: `Task "${text}" created.` };
             } catch (error) {
-                console.error('Error creating task:', error);
+                logger.error('Error creating task:', error);
                 
                 // Rollback optimistic update on error
                 setData(prev => ({
@@ -715,7 +716,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
             // Skip database update for temporary IDs (optimistic updates)
             if (taskId.startsWith('temp-')) {
-                console.log('[DashboardApp] Skipping update for temporary task ID:', taskId);
+                logger.info('[DashboardApp] Skipping update for temporary task ID:', taskId);
                 return { success: false, message: 'Cannot update temporary task - waiting for database sync' };
             }
 
@@ -845,7 +846,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
                 return { success: true, message: 'Task updated.' };
             } catch (error) {
-                console.error('Error updating task:', error);
+                logger.error('Error updating task:', error);
                 return { success: false, message: 'Failed to update task' };
             }
         },
@@ -891,7 +892,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 // Use the existing deleteItem method
                 return await actions.deleteItem(taskCategory, taskId);
             } catch (error) {
-                console.error('Error deleting task:', error);
+                logger.error('Error deleting task:', error);
                 return { success: false, message: 'Failed to delete task' };
             }
         },
@@ -933,7 +934,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 handleToast('Note added successfully', 'success');
                 return { success: true, message: 'Note added.' };
             } catch (error) {
-                console.error('Error adding note:', error);
+                logger.error('Error adding note:', error);
                 handleToast('Failed to add note', 'info');
                 return { success: false, message: 'Failed to add note' };
             }
@@ -995,7 +996,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 handleToast('Note updated', 'success');
                 return { success: true, message: 'Note updated successfully' };
             } catch (error) {
-                console.error('Error updating note:', error);
+                logger.error('Error updating note:', error);
                 handleToast('Failed to update note', 'info');
                 return { success: false, message: 'Failed to update note' };
             }
@@ -1053,7 +1054,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 handleToast('Note deleted', 'success');
                 return { success: true, message: 'Note deleted successfully' };
             } catch (error) {
-                console.error('Error deleting note:', error);
+                logger.error('Error deleting note:', error);
                 handleToast('Failed to delete note', 'info');
                 return { success: false, message: 'Failed to delete note' };
             }
@@ -1122,7 +1123,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
                 return { success: true, message: `${collection} item created.` };
             } catch (error) {
-                console.error('Error creating CRM item:', error);
+                logger.error('Error creating CRM item:', error);
                 handleToast('Failed to create CRM item', 'info');
                 return { success: false, message: 'Failed to create CRM item' };
             }
@@ -1143,7 +1144,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 invalidateCache('crm');
                 return { success: true, message: 'CRM item updated.' };
             } catch (error) {
-                console.error('Error updating CRM item:', error);
+                logger.error('Error updating CRM item:', error);
                 return { success: false, message: 'Failed to update CRM item' };
             }
         },
@@ -1182,7 +1183,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 await reload();
                 return { success: true, message: 'Contact created.' };
             } catch (error) {
-                console.error('Error creating contact:', error);
+                logger.error('Error creating contact:', error);
                 return { success: false, message: 'Failed to create contact' };
             }
         },
@@ -1197,7 +1198,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 await reload();
                 return { success: true, message: 'Contact updated.' };
             } catch (error) {
-                console.error('Error updating contact:', error);
+                logger.error('Error updating contact:', error);
                 return { success: false, message: 'Failed to update contact' };
             }
         },
@@ -1217,7 +1218,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 handleToast(`Contact "${contactName}" deleted.`, 'info');
                 return { success: true, message: 'Contact deleted.' };
             } catch (error) {
-                console.error('Error deleting contact:', error);
+                logger.error('Error deleting contact:', error);
                 return { success: false, message: 'Failed to delete contact' };
             }
         },
@@ -1282,7 +1283,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 await reload();
                 return { success: true, message: 'Meeting created.' };
             } catch (error) {
-                console.error('Error creating meeting:', error);
+                logger.error('Error creating meeting:', error);
                 return { success: false, message: 'Failed to create meeting' };
             }
         },
@@ -1297,7 +1298,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 await reload();
                 return { success: true, message: 'Meeting updated.' };
             } catch (error) {
-                console.error('Error updating meeting:', error);
+                logger.error('Error updating meeting:', error);
                 return { success: false, message: 'Failed to update meeting' };
             }
         },
@@ -1313,7 +1314,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 handleToast('Meeting deleted.', 'info');
                 return { success: true, message: 'Meeting deleted.' };
             } catch (error) {
-                console.error('Error deleting meeting:', error);
+                logger.error('Error deleting meeting:', error);
                 return { success: false, message: 'Failed to delete meeting' };
             }
         },
@@ -1390,7 +1391,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 await reload();
                 return { success: true, message: `Financials logged for date ${logData.date}.` };
             } catch (error) {
-                console.error('Error logging financials:', error);
+                logger.error('Error logging financials:', error);
                 return { success: false, message: 'Failed to log financials' };
             }
         },
@@ -1438,7 +1439,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 
                 return { success: true, message: `Expense created: ${expenseData.description}` };
             } catch (error) {
-                console.error('Error creating expense:', error);
+                logger.error('Error creating expense:', error);
                 return { success: false, message: 'Failed to create expense' };
             }
         },
@@ -1464,7 +1465,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 
                 return { success: true, message: 'Expense updated successfully' };
             } catch (error) {
-                console.error('Error updating expense:', error);
+                logger.error('Error updating expense:', error);
                 return { success: false, message: 'Failed to update expense' };
             }
         },
@@ -1537,7 +1538,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 handleToast(`Item deleted successfully.`, 'success');
                 return { success: true, message: `Item deleted from ${collection}.` };
             } catch (error) {
-                console.error('Error deleting item:', error);
+                logger.error('Error deleting item:', error);
                 
                 // Rollback on error - reload the data
                 if (collection === 'financials' || collection === 'expenses') {
@@ -1572,7 +1573,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             }
 
             try {
-                console.log('[createMarketingItem] Creating:', itemData);
+                logger.info('[createMarketingItem] Creating:', itemData);
                 await DataPersistenceAdapter.createMarketingItem(userId, workspace.id, itemData);
                 
                 // Track action in Sentry
@@ -1584,11 +1585,11 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 setData(prev => ({ ...prev, marketing: freshMarketing }));
                 setLoadedTabs(prev => new Set(prev).add('marketing'));
                 
-                console.log('[createMarketingItem] Created successfully, reloaded data');
+                logger.info('[createMarketingItem] Created successfully, reloaded data');
                 handleToast(`Marketing item "${itemData.title}" created.`, 'success');
                 return { success: true, message: `Marketing item "${itemData.title}" created.` };
             } catch (error) {
-                console.error('Error creating marketing item:', error);
+                logger.error('Error creating marketing item:', error);
                 return { success: false, message: 'Failed to create marketing item' };
             }
         },
@@ -1599,7 +1600,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             }
 
             try {
-                console.log('[updateMarketingItem] Starting update:', { itemId, updates });
+                logger.info('[updateMarketingItem] Starting update:', { itemId, updates });
                 
                 // Check if marketing item was just published
                 const wasPublished = updates.status === 'Published';
@@ -1619,10 +1620,10 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate;
                 if (updates.dueTime !== undefined) dbUpdates.due_time = updates.dueTime;
 
-                console.log('[updateMarketingItem] Transformed updates:', dbUpdates);
+                logger.info('[updateMarketingItem] Transformed updates:', dbUpdates);
 
                 const result = await DataPersistenceAdapter.updateMarketingItem(itemId, dbUpdates);
-                console.log('[updateMarketingItem] Database result:', result);
+                logger.info('[updateMarketingItem] Database result:', result);
 
                 // Track action in Sentry
                 trackAction('marketing_item_updated', { 
@@ -1669,15 +1670,15 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 }
                 
                 // Single reload and cache invalidation after all updates
-                console.log('[updateMarketingItem] Reloading data...');
+                logger.info('[updateMarketingItem] Reloading data...');
                 await reload();
                 invalidateCache('marketing');
-                console.log('[updateMarketingItem] Update complete');
+                logger.info('[updateMarketingItem] Update complete');
 
                 handleToast('Marketing item updated successfully', 'success');
                 return { success: true, message: 'Marketing item updated.' };
             } catch (error) {
-                console.error('[updateMarketingItem] Error:', error);
+                logger.error('[updateMarketingItem] Error:', error);
                 handleToast('Failed to update marketing item', 'info');
                 return { success: false, message: 'Failed to update marketing item' };
             }
@@ -1692,7 +1693,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 // Use the existing deleteItem method
                 return await actions.deleteItem('marketing', itemId);
             } catch (error) {
-                console.error('Error deleting marketing item:', error);
+                logger.error('Error deleting marketing item:', error);
                 return { success: false, message: 'Failed to delete marketing item' };
             }
         },
@@ -1709,7 +1710,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 handleToast("Settings updated successfully!", 'success');
                 return { success: true, message: 'Settings updated.' };
             } catch (error) {
-                console.error('Error updating settings:', error);
+                logger.error('Error updating settings:', error);
                 return { success: false, message: 'Failed to update settings' };
             }
         },
@@ -1725,7 +1726,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 handleToast("Gamification progress reset!", 'success');
                 return { success: true, message: 'Progress reset successfully.' };
             } catch (error) {
-                console.error('Error resetting gamification:', error);
+                logger.error('Error resetting gamification:', error);
                 return { success: false, message: 'Failed to reset progress' };
             }
         },
@@ -1788,7 +1789,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
                 return { success: true, message: `Document "${name}" uploaded to the library.` };
             } catch (error) {
-                console.error('Error uploading document:', error);
+                logger.error('Error uploading document:', error);
                 handleToast('Failed to upload document', 'info');
                 return { success: false, message: 'Failed to upload document' };
             }
@@ -1806,7 +1807,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 handleToast(`Document "${name}" updated successfully.`, 'success');
                 return { success: true, message: `Document ${docId} updated.` };
             } catch (error) {
-                console.error('Error updating document:', error);
+                logger.error('Error updating document:', error);
                 return { success: false, message: 'Failed to update document' };
             }
         },
@@ -1849,7 +1850,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 handleToast(`"${docName}" deleted successfully.`, 'success');
                 return { success: true, message: 'Document deleted.' };
             } catch (error) {
-                console.error('Error deleting document:', error);
+                logger.error('Error deleting document:', error);
                 
                 // Rollback on error
                 await reload();
@@ -1950,9 +1951,9 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 })),
         ];
 
-        console.log('[DashboardApp] All tasks for calendar:', allTasks.map(t => ({ id: t.id, text: t.text, dueDate: t.dueDate, dueTime: t.dueTime })));
-        console.log('[DashboardApp] Marketing items:', data.marketing.length, 'total');
-        console.log('[DashboardApp] Marketing with dates:', data.marketing.filter(m => m.dueDate).map(m => ({ id: m.id, title: m.title, dueDate: m.dueDate, dueTime: m.dueTime })));
+        logger.info('[DashboardApp] All tasks for calendar:', allTasks.map(t => ({ id: t.id, text: t.text, dueDate: t.dueDate, dueTime: t.dueTime })));
+        logger.info('[DashboardApp] Marketing items:', data.marketing.length, 'total');
+        logger.info('[DashboardApp] Marketing with dates:', data.marketing.filter(m => m.dueDate).map(m => ({ id: m.id, title: m.title, dueDate: m.dueDate, dueTime: m.dueTime })));
         
         const calendarEvents: CalendarEvent[] = [
             ...allTasks
@@ -1970,7 +1971,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             ...crmNextActions,
         ];
         
-        console.log('[DashboardApp] Calendar events after filter:', calendarEvents.length, 'events');
+        logger.info('[DashboardApp] Calendar events after filter:', calendarEvents.length, 'events');
 
         switch (activeTab) {
             case Tab.Dashboard:
@@ -2150,7 +2151,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                                     const { DatabaseService } = await import('./lib/services/database');
                                     
                                     // First, ensure profile exists
-                                    console.log('[DashboardApp] Creating profile first...');
+                                    logger.info('[DashboardApp] Creating profile first...');
                                     await DatabaseService.createProfile({
                                         id: user!.id,
                                         email: user!.email || '',
@@ -2158,7 +2159,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                                     });
                                     
                                     // Then create workspace
-                                    console.log('[DashboardApp] Creating workspace...');
+                                    logger.info('[DashboardApp] Creating workspace...');
                                     await DatabaseService.createWorkspace(user!.id, {
                                         name: 'My Workspace',
                                         plan_type: 'free'
@@ -2166,7 +2167,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                                     
                                     await refreshWorkspace();
                                 } catch (error) {
-                                    console.error('Failed to create workspace:', error);
+                                    logger.error('Failed to create workspace:', error);
                                     alert('Failed to create workspace. Please refresh and try again.');
                                 }
                             }}
@@ -2323,7 +2324,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     isComplete: (businessProfile as any).is_complete,
                 } : undefined;
                 
-                console.log('[DashboardApp] Business profile data:', { 
+                logger.info('[DashboardApp] Business profile data:', { 
                     raw: businessProfile, 
                     converted: convertedProfile 
                 });

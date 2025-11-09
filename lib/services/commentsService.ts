@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { logger } from './lib/logger'
 import { createNotification } from './notificationService';
 import { logActivity } from './activityService';
 
@@ -44,14 +45,14 @@ interface CreateCommentParams {
  * Returns array of user IDs that were mentioned
  */
 export function extractMentions(content: string, workspaceMembers: Array<{ id: string; name: string }>): string[] {
-  console.log('[CommentsService] Extracting mentions from:', content);
-  console.log('[CommentsService] Available workspace members:', workspaceMembers);
+  logger.info('[CommentsService] Extracting mentions from:', content);
+  logger.info('[CommentsService] Available workspace members:', workspaceMembers);
   
   // Match @username (no spaces, just word characters)
   const mentionPattern = /@(\w+)/g;
   const matches = Array.from(content.matchAll(mentionPattern));
   
-  console.log('[CommentsService] Regex matches:', matches.map(m => m[0]));
+  logger.info('[CommentsService] Regex matches:', matches.map(m => m[0]));
   
   if (matches.length === 0) return [];
 
@@ -59,27 +60,27 @@ export function extractMentions(content: string, workspaceMembers: Array<{ id: s
   
   matches.forEach((match) => {
     const username = match[1]; // Get the captured group
-    console.log('[CommentsService] Looking for username:', username);
+    logger.info('[CommentsService] Looking for username:', username);
     
     // Compare with name that has spaces removed
     const member = workspaceMembers.find((m) => {
       const nameNoSpaces = m.name.replace(/\s+/g, '');
       const nameMatch = nameNoSpaces.toLowerCase() === username.toLowerCase();
-      console.log('[CommentsService] Checking member:', m.name, '| Match:', nameMatch);
+      logger.info('[CommentsService] Checking member:', m.name, '| Match:', nameMatch);
       return nameMatch;
     });
     
     if (member) {
-      console.log('[CommentsService] Found member:', member);
+      logger.info('[CommentsService] Found member:', member);
       if (!mentionedUserIds.includes(member.id)) {
         mentionedUserIds.push(member.id);
       }
     } else {
-      console.log('[CommentsService] No member found for:', username);
+      logger.info('[CommentsService] No member found for:', username);
     }
   });
 
-  console.log('[CommentsService] Final mentioned user IDs:', mentionedUserIds);
+  logger.info('[CommentsService] Final mentioned user IDs:', mentionedUserIds);
   return mentionedUserIds;
 }
 
@@ -88,8 +89,8 @@ export function extractMentions(content: string, workspaceMembers: Array<{ id: s
  */
 export async function createComment(params: CreateCommentParams): Promise<{ comment: TaskComment | null; error: string | null }> {
   try {
-    console.log('[CommentsService] Creating comment on task:', params.taskId);
-    console.log('[CommentsService] Workspace ID:', params.workspaceId);
+    logger.info('[CommentsService] Creating comment on task:', params.taskId);
+    logger.info('[CommentsService] Workspace ID:', params.workspaceId);
 
     // First, get workspace members to resolve mentions
     // Note: We specify the exact foreign key relationship because workspace_members has multiple FKs to profiles
@@ -99,18 +100,18 @@ export async function createComment(params: CreateCommentParams): Promise<{ comm
       .eq('workspace_id', params.workspaceId);
 
     if (membersError) {
-      console.error('[CommentsService] Workspace members query ERROR:', membersError);
-      console.error('[CommentsService] Error details:', JSON.stringify(membersError, null, 2));
+      logger.error('[CommentsService] Workspace members query ERROR:', membersError);
+      logger.error('[CommentsService] Error details:', JSON.stringify(membersError, null, 2));
     }
 
-    console.log('[CommentsService] Workspace members query result:', { membersData, membersError });
+    logger.info('[CommentsService] Workspace members query result:', { membersData, membersError });
 
     const workspaceMembers = (membersData || []).map((m: any) => ({
       id: m.user_id,
       name: m.profiles?.full_name || '',
     }));
 
-    console.log('[CommentsService] Transformed workspace members:', workspaceMembers);
+    logger.info('[CommentsService] Transformed workspace members:', workspaceMembers);
 
     // Extract mentions from content
     const mentions = extractMentions(params.content, workspaceMembers);
@@ -132,7 +133,7 @@ export async function createComment(params: CreateCommentParams): Promise<{ comm
       .single();
 
     if (error) {
-      console.error('[CommentsService] Failed to create comment:', error);
+      logger.error('[CommentsService] Failed to create comment:', error);
       return { comment: null, error: error.message };
     }
 
@@ -152,14 +153,14 @@ export async function createComment(params: CreateCommentParams): Promise<{ comm
 
     // Create notifications for mentioned users
     if (mentions.length > 0) {
-      console.log('[CommentsService] Creating notifications for mentions:', mentions);
+      logger.info('[CommentsService] Creating notifications for mentions:', mentions);
       const commenterName = commentRow.profiles?.full_name || 'Someone';
       const taskName = params.taskName || 'a task';
 
       for (const mentionedUserId of mentions) {
         // Don't notify the commenter themselves
         if (mentionedUserId !== params.userId) {
-          console.log('[CommentsService] Creating notification for user:', mentionedUserId);
+          logger.info('[CommentsService] Creating notification for user:', mentionedUserId);
           const result = await createNotification({
             userId: mentionedUserId,
             workspaceId: params.workspaceId,
@@ -169,13 +170,13 @@ export async function createComment(params: CreateCommentParams): Promise<{ comm
             entityType: 'comment',
             entityId: comment.id,
           });
-          console.log('[CommentsService] Notification creation result:', result);
+          logger.info('[CommentsService] Notification creation result:', result);
         } else {
-          console.log('[CommentsService] Skipping self-notification for:', mentionedUserId);
+          logger.info('[CommentsService] Skipping self-notification for:', mentionedUserId);
         }
       }
     } else {
-      console.log('[CommentsService] No mentions found in comment');
+      logger.info('[CommentsService] No mentions found in comment');
     }
 
     // Log activity
@@ -193,10 +194,10 @@ export async function createComment(params: CreateCommentParams): Promise<{ comm
       });
     }
 
-    console.log('[CommentsService] Created comment:', comment.id);
+    logger.info('[CommentsService] Created comment:', comment.id);
     return { comment, error: null };
   } catch (err) {
-    console.error('[CommentsService] Unexpected error:', err);
+    logger.error('[CommentsService] Unexpected error:', err);
     return { comment: null, error: 'Failed to create comment' };
   }
 }
@@ -206,7 +207,7 @@ export async function createComment(params: CreateCommentParams): Promise<{ comm
  */
 export async function getTaskComments(taskId: string): Promise<{ comments: TaskComment[]; error: string | null }> {
   try {
-    console.log('[CommentsService] Fetching comments for task:', taskId);
+    logger.info('[CommentsService] Fetching comments for task:', taskId);
 
     const { data, error } = await supabase
       .from('task_comments')
@@ -218,7 +219,7 @@ export async function getTaskComments(taskId: string): Promise<{ comments: TaskC
       .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('[CommentsService] Failed to fetch comments:', error);
+      logger.error('[CommentsService] Failed to fetch comments:', error);
       return { comments: [], error: error.message };
     }
 
@@ -235,10 +236,10 @@ export async function getTaskComments(taskId: string): Promise<{ comments: TaskC
       updatedAt: row.updated_at,
     }));
 
-    console.log('[CommentsService] Loaded comments:', comments.length);
+    logger.info('[CommentsService] Loaded comments:', comments.length);
     return { comments, error: null };
   } catch (err) {
-    console.error('[CommentsService] Unexpected error:', err);
+    logger.error('[CommentsService] Unexpected error:', err);
     return { comments: [], error: 'Failed to fetch comments' };
   }
 }
@@ -248,7 +249,7 @@ export async function getTaskComments(taskId: string): Promise<{ comments: TaskC
  */
 export async function updateComment(commentId: string, content: string, workspaceMembers: Array<{ id: string; name: string }>): Promise<{ comment: TaskComment | null; error: string | null }> {
   try {
-    console.log('[CommentsService] Updating comment:', commentId);
+    logger.info('[CommentsService] Updating comment:', commentId);
 
     // Extract mentions from updated content
     const mentions = extractMentions(content, workspaceMembers);
@@ -267,7 +268,7 @@ export async function updateComment(commentId: string, content: string, workspac
       .single();
 
     if (error) {
-      console.error('[CommentsService] Failed to update comment:', error);
+      logger.error('[CommentsService] Failed to update comment:', error);
       return { comment: null, error: error.message };
     }
 
@@ -285,10 +286,10 @@ export async function updateComment(commentId: string, content: string, workspac
       updatedAt: commentRow.updated_at,
     };
 
-    console.log('[CommentsService] Updated comment:', comment.id);
+    logger.info('[CommentsService] Updated comment:', comment.id);
     return { comment, error: null };
   } catch (err) {
-    console.error('[CommentsService] Unexpected error:', err);
+    logger.error('[CommentsService] Unexpected error:', err);
     return { comment: null, error: 'Failed to update comment' };
   }
 }
@@ -298,7 +299,7 @@ export async function updateComment(commentId: string, content: string, workspac
  */
 export async function deleteComment(commentId: string): Promise<{ success: boolean; error: string | null }> {
   try {
-    console.log('[CommentsService] Deleting comment:', commentId);
+    logger.info('[CommentsService] Deleting comment:', commentId);
 
     const { error } = await supabase
       .from('task_comments')
@@ -306,14 +307,14 @@ export async function deleteComment(commentId: string): Promise<{ success: boole
       .eq('id', commentId);
 
     if (error) {
-      console.error('[CommentsService] Failed to delete comment:', error);
+      logger.error('[CommentsService] Failed to delete comment:', error);
       return { success: false, error: error.message };
     }
 
-    console.log('[CommentsService] Deleted comment:', commentId);
+    logger.info('[CommentsService] Deleted comment:', commentId);
     return { success: true, error: null };
   } catch (err) {
-    console.error('[CommentsService] Unexpected error:', err);
+    logger.error('[CommentsService] Unexpected error:', err);
     return { success: false, error: 'Failed to delete comment' };
   }
 }

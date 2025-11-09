@@ -5,6 +5,7 @@
  */
 
 const isDev = import.meta.env.DEV;
+const isProduction = import.meta.env.VITE_ENVIRONMENT === 'production';
 const ENABLE_DEBUG_LOGS = false; // Set to true to enable debug logs in development
 
 // Store original console methods
@@ -18,37 +19,53 @@ const originalConsole = {
 
 /**
  * Logger that respects environment and settings
+ * Usage: logger.info('Message', optionalContext)
  */
 export const logger = {
-  // Always show errors
+  /**
+   * Always show errors - these are logged in all environments
+   * Use for critical issues that need immediate attention
+   */
   error: (...args: any[]) => {
     originalConsole.error(...args);
   },
 
-  // Show warnings in development or when important
+  /**
+   * Show warnings in development only
+   * Use for deprecations, potential issues, or recoverable errors
+   */
   warn: (...args: any[]) => {
-    if (isDev) {
+    if (!isProduction) {
       originalConsole.warn(...args);
     }
   },
 
-  // Show info only in development
+  /**
+   * Show info only in development
+   * Use for general application flow information
+   */
   info: (...args: any[]) => {
-    if (isDev) {
+    if (!isProduction) {
       originalConsole.info(...args);
     }
   },
 
-  // Show debug logs only when explicitly enabled
+  /**
+   * Show debug logs only when explicitly enabled in development
+   * Use for detailed debugging information
+   */
   debug: (...args: any[]) => {
     if (isDev && ENABLE_DEBUG_LOGS) {
       originalConsole.debug(...args);
     }
   },
 
-  // Show regular logs only in development
+  /**
+   * Show regular logs only in development when debug is enabled
+   * Use for general purpose logging during development
+   */
   log: (...args: any[]) => {
-    if (isDev && ENABLE_DEBUG_LOGS) {
+    if (!isProduction) {
       originalConsole.log(...args);
     }
   },

@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { logger } from './lib/logger'
 
 // Notification types
 export type NotificationType = 
@@ -59,7 +60,7 @@ interface GetNotificationsParams {
  */
 export async function createNotification(params: CreateNotificationParams): Promise<{ notification: Notification | null; error: string | null }> {
   try {
-    console.log('[NotificationService] Creating notification:', params);
+    logger.info('[NotificationService] Creating notification:', params);
 
     const { data, error } = await supabase
       .from('notifications')
@@ -77,11 +78,11 @@ export async function createNotification(params: CreateNotificationParams): Prom
       .single();
 
     if (error) {
-      console.error('[NotificationService] Failed to create notification:', error);
+      logger.error('[NotificationService] Failed to create notification:', error);
       return { notification: null, error: error.message };
     }
 
-    console.log('[NotificationService] Notification created successfully with ID:', data.id);
+    logger.info('[NotificationService] Notification created successfully with ID:', data.id);
 
     // Return the actual notification with real UUID and timestamps from database
     const notification: Notification = {
@@ -97,10 +98,10 @@ export async function createNotification(params: CreateNotificationParams): Prom
       createdAt: data.created_at,
     };
 
-    console.log('[NotificationService] Created notification:', notification.id);
+    logger.info('[NotificationService] Created notification:', notification.id);
     return { notification, error: null };
   } catch (err) {
-    console.error('[NotificationService] Unexpected error:', err);
+    logger.error('[NotificationService] Unexpected error:', err);
     return { notification: null, error: 'Failed to create notification' };
   }
 }
@@ -112,7 +113,7 @@ export async function getUserNotifications(params: GetNotificationsParams): Prom
   try {
     const limit = params.limit || 50;
 
-    console.log('[NotificationService] Fetching notifications for user:', params.userId);
+    logger.info('[NotificationService] Fetching notifications for user:', params.userId);
 
     let query = supabase
       .from('notifications')
@@ -132,7 +133,7 @@ export async function getUserNotifications(params: GetNotificationsParams): Prom
     const { data, error } = await query;
 
     if (error) {
-      console.error('[NotificationService] Failed to fetch notifications:', error);
+      logger.error('[NotificationService] Failed to fetch notifications:', error);
       return { notifications: [], error: error.message };
     }
 
@@ -149,10 +150,10 @@ export async function getUserNotifications(params: GetNotificationsParams): Prom
       createdAt: row.created_at,
     }));
 
-    console.log('[NotificationService] Loaded notifications:', notifications.length);
+    logger.info('[NotificationService] Loaded notifications:', notifications.length);
     return { notifications, error: null };
   } catch (err) {
-    console.error('[NotificationService] Unexpected error:', err);
+    logger.error('[NotificationService] Unexpected error:', err);
     return { notifications: [], error: 'Failed to fetch notifications' };
   }
 }
@@ -162,7 +163,7 @@ export async function getUserNotifications(params: GetNotificationsParams): Prom
  */
 export async function markNotificationAsRead(notificationId: string): Promise<{ success: boolean; error: string | null }> {
   try {
-    console.log('[NotificationService] Marking notification as read:', notificationId);
+    logger.info('[NotificationService] Marking notification as read:', notificationId);
 
     const { error } = await supabase
       .from('notifications')
@@ -170,14 +171,14 @@ export async function markNotificationAsRead(notificationId: string): Promise<{ 
       .eq('id', notificationId);
 
     if (error) {
-      console.error('[NotificationService] Failed to mark as read:', error);
+      logger.error('[NotificationService] Failed to mark as read:', error);
       return { success: false, error: error.message };
     }
 
-    console.log('[NotificationService] Marked as read:', notificationId);
+    logger.info('[NotificationService] Marked as read:', notificationId);
     return { success: true, error: null };
   } catch (err) {
-    console.error('[NotificationService] Unexpected error:', err);
+    logger.error('[NotificationService] Unexpected error:', err);
     return { success: false, error: 'Failed to mark notification as read' };
   }
 }
@@ -187,7 +188,7 @@ export async function markNotificationAsRead(notificationId: string): Promise<{ 
  */
 export async function markAllNotificationsAsRead(userId: string, workspaceId?: string): Promise<{ success: boolean; error: string | null }> {
   try {
-    console.log('[NotificationService] Marking all notifications as read for user:', userId);
+    logger.info('[NotificationService] Marking all notifications as read for user:', userId);
 
     let query = supabase
       .from('notifications')
@@ -202,14 +203,14 @@ export async function markAllNotificationsAsRead(userId: string, workspaceId?: s
     const { error } = await query;
 
     if (error) {
-      console.error('[NotificationService] Failed to mark all as read:', error);
+      logger.error('[NotificationService] Failed to mark all as read:', error);
       return { success: false, error: error.message };
     }
 
-    console.log('[NotificationService] Marked all as read for user:', userId);
+    logger.info('[NotificationService] Marked all as read for user:', userId);
     return { success: true, error: null };
   } catch (err) {
-    console.error('[NotificationService] Unexpected error:', err);
+    logger.error('[NotificationService] Unexpected error:', err);
     return { success: false, error: 'Failed to mark all notifications as read' };
   }
 }
@@ -232,13 +233,13 @@ export async function getUnreadCount(userId: string, workspaceId?: string): Prom
     const { count, error } = await query;
 
     if (error) {
-      console.error('[NotificationService] Failed to get unread count:', error);
+      logger.error('[NotificationService] Failed to get unread count:', error);
       return { count: 0, error: error.message };
     }
 
     return { count: count || 0, error: null };
   } catch (err) {
-    console.error('[NotificationService] Unexpected error:', err);
+    logger.error('[NotificationService] Unexpected error:', err);
     return { count: 0, error: 'Failed to get unread count' };
   }
 }
@@ -248,7 +249,7 @@ export async function getUnreadCount(userId: string, workspaceId?: string): Prom
  */
 export async function deleteNotification(notificationId: string): Promise<{ success: boolean; error: string | null }> {
   try {
-    console.log('[NotificationService] Deleting notification:', notificationId);
+    logger.info('[NotificationService] Deleting notification:', notificationId);
 
     const { error } = await supabase
       .from('notifications')
@@ -256,14 +257,14 @@ export async function deleteNotification(notificationId: string): Promise<{ succ
       .eq('id', notificationId);
 
     if (error) {
-      console.error('[NotificationService] Failed to delete notification:', error);
+      logger.error('[NotificationService] Failed to delete notification:', error);
       return { success: false, error: error.message };
     }
 
-    console.log('[NotificationService] Deleted notification:', notificationId);
+    logger.info('[NotificationService] Deleted notification:', notificationId);
     return { success: true, error: null };
   } catch (err) {
-    console.error('[NotificationService] Unexpected error:', err);
+    logger.error('[NotificationService] Unexpected error:', err);
     return { success: false, error: 'Failed to delete notification' };
   }
 }

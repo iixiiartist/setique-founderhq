@@ -2,6 +2,7 @@ import { supabase } from '../supabase'
 import { Database } from '../types/database'
 import { DashboardData, Task, AnyCrmItem, Contact, Meeting, MarketingItem, FinancialLog, Document, SettingsData, GamificationData, Priority } from '../../types'
 import { dbToTasks, dbToMarketingItems, dbToFinancialLogs, dbToCrmItem, dbToContacts } from '../utils/fieldTransformers'
+import { logger } from '../logger'
 
 type Tables = Database['public']['Tables']
 
@@ -18,7 +19,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error fetching user profile:', error)
+      logger.error('Error fetching user profile:', error)
       return { data: null, error }
     }
   }
@@ -37,7 +38,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error creating profile:', error)
+      logger.error('Error creating profile:', error)
       return { data: null, error }
     }
   }
@@ -54,7 +55,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error updating user profile:', error)
+      logger.error('Error updating user profile:', error)
       return { data: null, error }
     }
   }
@@ -102,7 +103,7 @@ export class DatabaseService {
       
       return { data: transformedData, error: null }
     } catch (error) {
-      console.error('Error fetching tasks:', error)
+      logger.error('Error fetching tasks:', error)
       return { data: [], error }
     }
   }
@@ -118,7 +119,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error fetching task by ID:', error)
+      logger.error('Error fetching task by ID:', error)
       return { data: null, error }
     }
   }
@@ -135,7 +136,7 @@ export class DatabaseService {
         workspace_id: workspaceId
       }
       
-      console.log('[Database] Creating task with data:', insertData);
+      logger.info('[Database] Creating task with data:', insertData);
       
       const { data, error } = await supabase
         .from('tasks')
@@ -144,21 +145,21 @@ export class DatabaseService {
         .single()
 
       if (error) {
-        console.error('[Database] Task creation error:', error);
+        logger.error('[Database] Task creation error:', error);
         throw error;
       }
       
-      console.log('[Database] Task created successfully:', data);
+      logger.info('[Database] Task created successfully:', data);
       return { data, error: null }
     } catch (error) {
-      console.error('Error creating task:', error)
+      logger.error('Error creating task:', error)
       return { data: null, error }
     }
   }
 
   static async updateTask(taskId: string, updates: Partial<Tables['tasks']['Update']>) {
     try {
-      console.log('[Database] updateTask called with:', { taskId, updates });
+      logger.info('[Database] updateTask called with:', { taskId, updates });
       
       const { data, error } = await supabase
         .from('tasks')
@@ -168,14 +169,14 @@ export class DatabaseService {
         .single()
 
       if (error) {
-        console.error('[Database] updateTask error:', error);
+        logger.error('[Database] updateTask error:', error);
         throw error;
       }
       
-      console.log('[Database] updateTask success:', data);
+      logger.info('[Database] updateTask success:', data);
       return { data, error: null }
     } catch (error) {
-      console.error('Error updating task:', error)
+      logger.error('Error updating task:', error)
       return { data: null, error }
     }
   }
@@ -190,7 +191,7 @@ export class DatabaseService {
       if (error) throw error
       return { error: null }
     } catch (error) {
-      console.error('Error deleting task:', error)
+      logger.error('Error deleting task:', error)
       return { error }
     }
   }
@@ -207,7 +208,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error fetching CRM items:', error)
+      logger.error('Error fetching CRM items:', error)
       return { data: [], error }
     }
   }
@@ -223,7 +224,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error fetching CRM item by ID:', error)
+      logger.error('Error fetching CRM item by ID:', error)
       return { data: null, error }
     }
   }
@@ -239,7 +240,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error creating CRM item:', error)
+      logger.error('Error creating CRM item:', error)
       return { data: null, error }
     }
   }
@@ -256,7 +257,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error updating CRM item:', error)
+      logger.error('Error updating CRM item:', error)
       return { data: null, error }
     }
   }
@@ -275,7 +276,7 @@ export class DatabaseService {
       if (error) throw error
       return { error: null }
     } catch (error) {
-      console.error('Error deleting CRM item:', error)
+      logger.error('Error deleting CRM item:', error)
       return { error }
     }
   }
@@ -292,7 +293,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error fetching contacts:', error)
+      logger.error('Error fetching contacts:', error)
       return { data: [], error }
     }
   }
@@ -308,7 +309,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error fetching contact by ID:', error)
+      logger.error('Error fetching contact by ID:', error)
       return { data: null, error }
     }
   }
@@ -324,7 +325,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error creating contact:', error)
+      logger.error('Error creating contact:', error)
       return { data: null, error }
     }
   }
@@ -341,7 +342,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error updating contact:', error)
+      logger.error('Error updating contact:', error)
       return { data: null, error }
     }
   }
@@ -359,7 +360,7 @@ export class DatabaseService {
       if (error) throw error
       return { error: null }
     } catch (error) {
-      console.error('Error deleting contact:', error)
+      logger.error('Error deleting contact:', error)
       return { error }
     }
   }
@@ -376,7 +377,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error fetching marketing items:', error)
+      logger.error('Error fetching marketing items:', error)
       return { data: [], error }
     }
   }
@@ -392,7 +393,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error fetching marketing item by ID:', error)
+      logger.error('Error fetching marketing item by ID:', error)
       return { data: null, error }
     }
   }
@@ -408,7 +409,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error creating marketing item:', error)
+      logger.error('Error creating marketing item:', error)
       return { data: null, error }
     }
   }
@@ -425,7 +426,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error updating marketing item:', error)
+      logger.error('Error updating marketing item:', error)
       return { data: null, error }
     }
   }
@@ -440,7 +441,7 @@ export class DatabaseService {
       if (error) throw error
       return { error: null }
     } catch (error) {
-      console.error('Error deleting marketing item:', error)
+      logger.error('Error deleting marketing item:', error)
       return { error }
     }
   }
@@ -457,7 +458,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error fetching financial logs:', error)
+      logger.error('Error fetching financial logs:', error)
       return { data: [], error }
     }
   }
@@ -473,7 +474,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error creating financial log:', error)
+      logger.error('Error creating financial log:', error)
       return { data: null, error }
     }
   }
@@ -490,7 +491,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error updating financial log:', error)
+      logger.error('Error updating financial log:', error)
       return { data: null, error }
     }
   }
@@ -505,7 +506,7 @@ export class DatabaseService {
       if (error) throw error
       return { error: null }
     } catch (error) {
-      console.error('Error deleting financial log:', error)
+      logger.error('Error deleting financial log:', error)
       return { error }
     }
   }
@@ -524,7 +525,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error fetching documents:', error)
+      logger.error('Error fetching documents:', error)
       return { data: [], error }
     }
   }
@@ -540,7 +541,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error fetching document by ID:', error)
+      logger.error('Error fetching document by ID:', error)
       return { data: null, error }
     }
   }
@@ -556,7 +557,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error creating document:', error)
+      logger.error('Error creating document:', error)
       return { data: null, error }
     }
   }
@@ -573,7 +574,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error updating document:', error)
+      logger.error('Error updating document:', error)
       return { data: null, error }
     }
   }
@@ -588,7 +589,7 @@ export class DatabaseService {
       if (error) throw error
       return { error: null }
     } catch (error) {
-      console.error('Error deleting document:', error)
+      logger.error('Error deleting document:', error)
       return { error }
     }
   }
@@ -605,7 +606,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error fetching expenses:', error)
+      logger.error('Error fetching expenses:', error)
       return { data: [], error }
     }
   }
@@ -627,7 +628,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error creating expense:', error)
+      logger.error('Error creating expense:', error)
       return { data: null, error }
     }
   }
@@ -644,7 +645,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error updating expense:', error)
+      logger.error('Error updating expense:', error)
       return { data: null, error }
     }
   }
@@ -659,7 +660,7 @@ export class DatabaseService {
       if (error) throw error
       return { error: null }
     } catch (error) {
-      console.error('Error deleting expense:', error)
+      logger.error('Error deleting expense:', error)
       return { error }
     }
   }
@@ -667,7 +668,7 @@ export class DatabaseService {
   // Workspace operations
   static async getWorkspaces(userId: string) {
     try {
-      console.log('[Database] Fetching workspace for user:', userId);
+      logger.info('[Database] Fetching workspace for user:', userId);
       
       // Helper function to map database workspace to TypeScript Workspace type
       const mapWorkspace = (ws: any) => ({
@@ -694,15 +695,15 @@ export class DatabaseService {
         .maybeSingle() // Use maybeSingle instead of single to avoid errors if none found
 
       if (ownedError) {
-        console.error('[Database] Error fetching owned workspace:', ownedError);
+        logger.error('[Database] Error fetching owned workspace:', ownedError);
         throw ownedError;
       }
 
       // If user owns a workspace, return it
       if (ownedWorkspace) {
-        console.log('[Database] Found owned workspace:', ownedWorkspace);
+        logger.info('[Database] Found owned workspace:', ownedWorkspace);
         const mapped = mapWorkspace(ownedWorkspace);
-        console.log('[Database] Mapped workspace:', mapped);
+        logger.info('[Database] Mapped workspace:', mapped);
         return { data: [mapped], error: null };
       }
 
@@ -711,24 +712,24 @@ export class DatabaseService {
         .rpc('get_member_workspace')
 
       if (memberError) {
-        console.error('[Database] Error fetching member workspace:', memberError);
+        logger.error('[Database] Error fetching member workspace:', memberError);
         throw memberError;
       }
 
       // If user is a member, return that workspace
       if (memberWorkspaces && memberWorkspaces.length > 0) {
-        console.log('[Database] Found member workspace:', memberWorkspaces[0]);
+        logger.info('[Database] Found member workspace:', memberWorkspaces[0]);
         const mapped = mapWorkspace(memberWorkspaces[0]);
-        console.log('[Database] Mapped member workspace:', mapped);
+        logger.info('[Database] Mapped member workspace:', mapped);
         return { data: [mapped], error: null };
       }
 
       // 3. No workspace found - should auto-create on signup
-      console.log('[Database] No workspace found for user');
+      logger.info('[Database] No workspace found for user');
       return { data: [], error: null };
     } catch (error: any) {
-      console.error('Error fetching workspace:', error);
-      console.error('Error details:', {
+      logger.error('Error fetching workspace:', error);
+      logger.error('Error details:', {
         message: error?.message,
         code: error?.code,
         details: error?.details,
@@ -749,7 +750,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error fetching workspace:', error)
+      logger.error('Error fetching workspace:', error)
       return { data: null, error }
     }
   }
@@ -768,7 +769,7 @@ export class DatabaseService {
         .single()
 
       if (error) {
-        console.error('[Database] Error creating workspace - Details:', {
+        logger.error('[Database] Error creating workspace - Details:', {
           code: error.code,
           message: error.message,
           details: error.details,
@@ -778,7 +779,7 @@ export class DatabaseService {
       }
       return { data, error: null }
     } catch (error) {
-      console.error('Error creating workspace:', error)
+      logger.error('Error creating workspace:', error)
       return { data: null, error }
     }
   }
@@ -795,7 +796,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error updating workspace:', error)
+      logger.error('Error updating workspace:', error)
       return { data: null, error }
     }
   }
@@ -814,10 +815,10 @@ export class DatabaseService {
         .single()
 
       if (error) throw error
-      console.log('[Database] Updated workspace name to:', workspaceName);
+      logger.info('[Database] Updated workspace name to:', workspaceName);
       return { data, error: null }
     } catch (error) {
-      console.error('Error updating workspace name:', error)
+      logger.error('Error updating workspace name:', error)
       return { data: null, error }
     }
   }
@@ -832,7 +833,7 @@ export class DatabaseService {
       if (error) throw error
       return { error: null }
     } catch (error) {
-      console.error('Error deleting workspace:', error)
+      logger.error('Error deleting workspace:', error)
       return { error }
     }
   }
@@ -840,14 +841,14 @@ export class DatabaseService {
   // Workspace member operations
   static async getWorkspaceMembers(workspaceId: string) {
     try {
-      console.log('[Database] Fetching workspace members for:', workspaceId);
+      logger.info('[Database] Fetching workspace members for:', workspaceId);
       
       // Use SECURITY DEFINER function to bypass RLS and get members with profiles
       const { data: members, error: membersError } = await supabase
         .rpc('get_workspace_members_with_profiles', { workspace_uuid: workspaceId })
 
       if (membersError) {
-        console.error('[Database] RPC error:', membersError);
+        logger.error('[Database] RPC error:', membersError);
         throw membersError;
       }
       
@@ -867,13 +868,13 @@ export class DatabaseService {
         } : null
       }));
       
-      console.log('[Database] Workspace members result:', transformedMembers);
-      console.log('[Database] Workspace members FULL:', JSON.stringify(transformedMembers, null, 2));
+      logger.info('[Database] Workspace members result:', transformedMembers);
+      logger.info('[Database] Workspace members FULL:', JSON.stringify(transformedMembers, null, 2));
 
       return { data: transformedMembers, error: null }
     } catch (error: any) {
-      console.error('Error fetching workspace members:', error)
-      console.error('Error details:', {
+      logger.error('Error fetching workspace members:', error)
+      logger.error('Error details:', {
         message: error?.message,
         code: error?.code,
         details: error?.details,
@@ -905,7 +906,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error adding workspace member:', error)
+      logger.error('Error adding workspace member:', error)
       return { data: null, error }
     }
   }
@@ -921,7 +922,7 @@ export class DatabaseService {
       if (error) throw error
       return { error: null }
     } catch (error) {
-      console.error('Error removing workspace member:', error)
+      logger.error('Error removing workspace member:', error)
       return { error }
     }
   }
@@ -939,7 +940,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error updating workspace member role:', error)
+      logger.error('Error updating workspace member role:', error)
       return { data: null, error }
     }
   }
@@ -981,7 +982,7 @@ export class DatabaseService {
         .single()
 
       if (error) {
-        console.error('Supabase error creating invitation:', {
+        logger.error('Supabase error creating invitation:', {
           message: error.message,
           details: error.details,
           hint: error.hint,
@@ -1006,15 +1007,15 @@ export class DatabaseService {
           })
 
           if (emailError) {
-            console.warn('Failed to send invitation email:', emailError)
+            logger.warn('Failed to send invitation email:', emailError)
             // Return special flag to indicate email wasn't sent
             return { data: { ...data, emailSent: false }, error: null }
           } else {
-            console.log('Invitation email sent successfully:', emailData)
+            logger.info('Invitation email sent successfully:', emailData)
             return { data: { ...data, emailSent: true }, error: null }
           }
         } catch (emailErr) {
-          console.warn('Error sending invitation email:', emailErr)
+          logger.warn('Error sending invitation email:', emailErr)
           // Return with flag indicating email failed
           return { data: { ...data, emailSent: false }, error: null }
         }
@@ -1022,7 +1023,7 @@ export class DatabaseService {
 
       return { data: { ...data, emailSent: false }, error: null }
     } catch (error: any) {
-      console.error('Error creating workspace invitation:', error)
+      logger.error('Error creating workspace invitation:', error)
       // Handle duplicate invitation error
       if (error.code === '23505') {
         return { 
@@ -1045,7 +1046,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error fetching workspace invitations:', error)
+      logger.error('Error fetching workspace invitations:', error)
       return { data: [], error }
     }
   }
@@ -1074,7 +1075,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error fetching pending invitations:', error)
+      logger.error('Error fetching pending invitations:', error)
       return { data: [], error }
     }
   }
@@ -1091,7 +1092,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error revoking workspace invitation:', error)
+      logger.error('Error revoking workspace invitation:', error)
       return { data: null, error }
     }
   }
@@ -1123,7 +1124,7 @@ export class DatabaseService {
 
       return { data, error: null }
     } catch (error) {
-      console.error('Error accepting workspace invitation:', error)
+      logger.error('Error accepting workspace invitation:', error)
       return { data: null, error }
     }
   }
@@ -1131,7 +1132,7 @@ export class DatabaseService {
   // Business profile operations
   static async getBusinessProfile(workspaceId: string) {
     try {
-      console.log('[DatabaseService] Fetching business profile for workspace:', workspaceId);
+      logger.info('[DatabaseService] Fetching business profile for workspace:', workspaceId);
       
       const { data, error } = await supabase
         .from('business_profile')
@@ -1139,12 +1140,12 @@ export class DatabaseService {
         .eq('workspace_id', workspaceId)
         .maybeSingle()
 
-      console.log('[DatabaseService] Business profile query result:', { data, error });
+      logger.info('[DatabaseService] Business profile query result:', { data, error });
 
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error fetching business profile:', error)
+      logger.error('Error fetching business profile:', error)
       return { data: null, error }
     }
   }
@@ -1164,7 +1165,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error creating business profile:', error)
+      logger.error('Error creating business profile:', error)
       return { data: null, error }
     }
   }
@@ -1181,7 +1182,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error updating business profile:', error)
+      logger.error('Error updating business profile:', error)
       return { data: null, error }
     }
   }
@@ -1196,7 +1197,7 @@ export class DatabaseService {
       if (error) throw error
       return { error: null }
     } catch (error) {
-      console.error('Error deleting business profile:', error)
+      logger.error('Error deleting business profile:', error)
       return { error }
     }
   }
@@ -1204,7 +1205,7 @@ export class DatabaseService {
   // Workspace achievements operations
   static async getWorkspaceAchievements(workspaceId: string) {
     try {
-      console.log('[Database] Fetching workspace achievements for:', workspaceId);
+      logger.info('[Database] Fetching workspace achievements for:', workspaceId);
       const { data, error } = await supabase
         .from('workspace_achievements')
         .select(`
@@ -1227,10 +1228,10 @@ export class DatabaseService {
         unlockedByEmail: achievement.profiles?.email
       })) || [];
       
-      console.log('[Database] Workspace achievements loaded:', achievements.length);
+      logger.info('[Database] Workspace achievements loaded:', achievements.length);
       return { data: achievements, error: null }
     } catch (error) {
-      console.error('Error fetching workspace achievements:', error)
+      logger.error('Error fetching workspace achievements:', error)
       return { data: [], error }
     }
   }
@@ -1247,10 +1248,10 @@ export class DatabaseService {
         .single()
 
       if (error) throw error
-      console.log('[Database] Workspace achievement created:', data);
+      logger.info('[Database] Workspace achievement created:', data);
       return { data, error: null }
     } catch (error) {
-      console.error('Error creating workspace achievement:', error)
+      logger.error('Error creating workspace achievement:', error)
       return { data: null, error }
     }
   }
@@ -1267,7 +1268,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error fetching subscription:', error)
+      logger.error('Error fetching subscription:', error)
       return { data: null, error }
     }
   }
@@ -1287,7 +1288,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error creating subscription:', error)
+      logger.error('Error creating subscription:', error)
       return { data: null, error }
     }
   }
@@ -1304,7 +1305,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error updating subscription:', error)
+      logger.error('Error updating subscription:', error)
       return { data: null, error }
     }
   }
@@ -1319,7 +1320,7 @@ export class DatabaseService {
       if (error) throw error
       return { error: null }
     } catch (error) {
-      console.error('Error deleting subscription:', error)
+      logger.error('Error deleting subscription:', error)
       return { error }
     }
   }
@@ -1335,7 +1336,7 @@ export class DatabaseService {
     try {
       // Validate workspaceId
       if (!workspaceId) {
-        console.warn('[Database] No workspaceId provided to checkAILimit, allowing request');
+        logger.warn('[Database] No workspaceId provided to checkAILimit, allowing request');
         return { 
           allowed: true, 
           usage: 0, 
@@ -1355,7 +1356,7 @@ export class DatabaseService {
           .maybeSingle();
 
         if (profile?.is_admin) {
-          console.log('[Database] Admin user detected - bypassing AI limits');
+          logger.info('[Database] Admin user detected - bypassing AI limits');
           return {
             allowed: true,
             usage: 0,
@@ -1374,13 +1375,13 @@ export class DatabaseService {
         .maybeSingle();
 
       if (subError) {
-        console.error('[Database] Subscription query error:', subError);
+        logger.error('[Database] Subscription query error:', subError);
         throw subError;
       }
 
       // If no subscription exists, create one with default free plan
       if (!subscription) {
-        console.log('[Database] No subscription found, creating free plan subscription for workspace:', workspaceId);
+        logger.info('[Database] No subscription found, creating free plan subscription for workspace:', workspaceId);
         const { error: createError } = await supabase
           .from('subscriptions')
           .insert({
@@ -1391,7 +1392,7 @@ export class DatabaseService {
           });
 
         if (createError) {
-          console.error('[Database] Error creating subscription:', createError);
+          logger.error('[Database] Error creating subscription:', createError);
           // Don't throw - just use defaults
         }
 
@@ -1422,7 +1423,7 @@ export class DatabaseService {
       const limit = limits[planType] || 20;
       const allowed = currentUsage < limit;
 
-      console.log(`[Database] AI Limit Check: ${currentUsage}/${limit} (${planType}), Allowed: ${allowed}`);
+      logger.info(`[Database] AI Limit Check: ${currentUsage}/${limit} (${planType}), Allowed: ${allowed}`);
 
       return { 
         allowed, 
@@ -1432,7 +1433,7 @@ export class DatabaseService {
         error: null 
       };
     } catch (error) {
-      console.error('[Database] Error checking AI limit:', error);
+      logger.error('[Database] Error checking AI limit:', error);
       // On error, allow request but log it - don't block users due to technical issues
       return { 
         allowed: true, 
@@ -1469,7 +1470,7 @@ export class DatabaseService {
           });
 
         if (createError) throw createError;
-        console.log('[Database] Created subscription and incremented AI usage');
+        logger.info('[Database] Created subscription and incremented AI usage');
       } else {
         // Increment usage
         const { error: updateError } = await supabase
@@ -1481,7 +1482,7 @@ export class DatabaseService {
           .eq('workspace_id', workspaceId);
 
         if (updateError) throw updateError;
-        console.log('[Database] Incremented AI usage:', currentCount);
+        logger.info('[Database] Incremented AI usage:', currentCount);
       }
 
       // Log AI usage for analytics (admin only feature)
@@ -1496,13 +1497,13 @@ export class DatabaseService {
             });
         } catch (logError) {
           // Don't fail the whole operation if logging fails
-          console.warn('[Database] Failed to log AI usage:', logError);
+          logger.warn('[Database] Failed to log AI usage:', logError);
         }
       }
 
       return { error: null };
     } catch (error) {
-      console.error('Error incrementing AI usage:', error);
+      logger.error('Error incrementing AI usage:', error);
       return { error };
     }
   }
@@ -1534,7 +1535,7 @@ export class DatabaseService {
       if (error) throw error;
       return { data, error: null };
     } catch (error) {
-      console.error('Error fetching AI usage stats:', error);
+      logger.error('Error fetching AI usage stats:', error);
       return { data: null, error };
     }
   }
@@ -1568,7 +1569,7 @@ export class DatabaseService {
 
       return { data: summary, error: null };
     } catch (error) {
-      console.error('Error fetching AI usage summary:', error);
+      logger.error('Error fetching AI usage summary:', error);
       return { data: null, error };
     }
   }
@@ -1617,7 +1618,7 @@ export class DatabaseService {
         error: null
       };
     } catch (error) {
-      console.error('Error fetching subscription usage:', error);
+      logger.error('Error fetching subscription usage:', error);
       return { data: null, error };
     }
   }
@@ -1662,10 +1663,10 @@ export class DatabaseService {
         if (updateError) throw updateError;
       }
 
-      console.log('[Database] Incremented file count:', newFileCount, 'Storage:', newStorageUsed);
+      logger.info('[Database] Incremented file count:', newFileCount, 'Storage:', newStorageUsed);
       return { error: null };
     } catch (error) {
-      console.error('Error incrementing file count:', error);
+      logger.error('Error incrementing file count:', error);
       return { error };
     }
   }
@@ -1696,10 +1697,10 @@ export class DatabaseService {
 
       if (updateError) throw updateError;
 
-      console.log('[Database] Decremented file count:', newFileCount, 'Storage:', newStorageUsed);
+      logger.info('[Database] Decremented file count:', newFileCount, 'Storage:', newStorageUsed);
       return { error: null };
     } catch (error) {
-      console.error('Error decrementing file count:', error);
+      logger.error('Error decrementing file count:', error);
       return { error };
     }
   }
@@ -1714,7 +1715,7 @@ export class DatabaseService {
       if (error) throw error
       return { data: data as boolean, error: null }
     } catch (error) {
-      console.error('Error checking storage limit:', error)
+      logger.error('Error checking storage limit:', error)
       return { data: false, error }
     }
   }
@@ -1730,7 +1731,7 @@ export class DatabaseService {
       if (error) throw error
       return { error: null }
     } catch (error) {
-      console.error('Error updating storage usage:', error)
+      logger.error('Error updating storage usage:', error)
       return { error }
     }
   }
@@ -1762,7 +1763,7 @@ export class DatabaseService {
       // Get the XP reward for this achievement (will be calculated by caller)
       return { data: achievement, error: null }
     } catch (error) {
-      console.error('Error unlocking workspace achievement:', error)
+      logger.error('Error unlocking workspace achievement:', error)
       return { data: null, error }
     }
   }
@@ -1779,7 +1780,7 @@ export class DatabaseService {
       if (error) throw error
       return { exists: !!data, error: null }
     } catch (error) {
-      console.error('Error checking workspace achievement:', error)
+      logger.error('Error checking workspace achievement:', error)
       return { exists: false, error }
     }
   }
@@ -1811,7 +1812,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error updating workspace XP:', error)
+      logger.error('Error updating workspace XP:', error)
       return { data: null, error }
     }
   }
@@ -1828,7 +1829,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error fetching meetings:', error)
+      logger.error('Error fetching meetings:', error)
       return { data: [], error }
     }
   }
@@ -1844,7 +1845,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error creating meeting:', error)
+      logger.error('Error creating meeting:', error)
       return { data: null, error }
     }
   }
@@ -1861,7 +1862,7 @@ export class DatabaseService {
       if (error) throw error
       return { data, error: null }
     } catch (error) {
-      console.error('Error updating meeting:', error)
+      logger.error('Error updating meeting:', error)
       return { data: null, error }
     }
   }
@@ -1876,7 +1877,7 @@ export class DatabaseService {
       if (error) throw error
       return { error: null }
     } catch (error) {
-      console.error('Error deleting meeting:', error)
+      logger.error('Error deleting meeting:', error)
       return { error }
     }
   }
@@ -1886,7 +1887,7 @@ export class DatabaseService {
     try {
       // If no workspaceId provided, we can't fetch workspace-scoped data
       if (!workspaceId) {
-        console.warn('[getAllDashboardData] No workspaceId provided, returning empty data');
+        logger.warn('[getAllDashboardData] No workspaceId provided, returning empty data');
         return { data: {}, error: null };
       }
 
@@ -2024,7 +2025,7 @@ export class DatabaseService {
       }
 
       // Debug logging for CRM items
-      console.log('[Database] Loaded CRM items:', {
+      logger.info('[Database] Loaded CRM items:', {
         totalCrmItems: crmItems.length,
         investors: dashboardData.investors?.length,
         customers: dashboardData.customers?.length,
@@ -2034,7 +2035,7 @@ export class DatabaseService {
 
       return { data: dashboardData, error: null }
     } catch (error) {
-      console.error('Error fetching dashboard data:', error)
+      logger.error('Error fetching dashboard data:', error)
       return { data: null, error }
     }
   }
