@@ -439,7 +439,7 @@ ${JSON.stringify(documentsMetadata, null, 2)}
                 </div>
 
                 {/* Quick Access Sections */}
-                {workspaceMembers.length > 0 && userId && (
+                {userId && (
                     <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-6 border-2 border-black shadow-neo">
                         <h2 className="text-xl font-bold text-black mb-4 flex items-center gap-2">
                             <span>⚡</span> Quick Access
