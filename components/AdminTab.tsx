@@ -90,7 +90,7 @@ const AdminTab: React.FC = () => {
             `• All financial data\n` +
             `• All documents\n\n` +
             `This action CANNOT be undone!\n\n` +
-            `Type the user's email to confirm deletion.`
+            `Click OK to continue.`
         );
 
         if (!confirmed) return;
@@ -105,17 +105,27 @@ const AdminTab: React.FC = () => {
         try {
             setIsUpdatingPlan(true); // Reuse loading state
             
+            // Step 1: Prepare user for deletion by removing all app data
             const { data, error } = await supabase
-                .rpc('admin_delete_user', {
+                .rpc('admin_prepare_user_deletion', {
                     target_user_id: userId
                 });
 
             if (error) throw error;
 
-            const result = data as { success: boolean; message: string };
+            const result = data as { success: boolean; message: string; user_id?: string };
             
             if (!result.success) {
-                alert(`Error: ${result.message}`);
+                alert(`Error preparing deletion: ${result.message}`);
+                return;
+            }
+
+            // Step 2: Delete the auth user using admin API
+            const { error: deleteError } = await supabase.auth.admin.deleteUser(userId);
+
+            if (deleteError) {
+                console.error('Error deleting auth user:', deleteError);
+                alert(`User data cleaned up, but auth deletion failed: ${deleteError.message}\n\nYou may need to delete this user manually from Supabase Auth dashboard.`);
                 return;
             }
 

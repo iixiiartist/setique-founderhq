@@ -1,9 +1,10 @@
 -- Migration: Add admin user management functions
 -- Created: 2025-11-09
--- Purpose: Allow admins to delete users safely with cascade
+-- Purpose: Allow admins to prepare users for deletion safely
 
--- Function to safely delete a user and all their data (admin only)
-CREATE OR REPLACE FUNCTION admin_delete_user(
+-- Function to prepare a user for deletion by removing all their data (admin only)
+-- Note: Auth user deletion should be done via Supabase Admin API
+CREATE OR REPLACE FUNCTION admin_prepare_user_deletion(
     target_user_id UUID
 )
 RETURNS JSON
@@ -61,6 +62,7 @@ BEGIN
     END IF;
     
     -- Delete user data in correct order (respecting foreign keys)
+    -- This prepares the user for safe deletion from auth.users
     
     -- 1. Delete meetings (references contacts)
     DELETE FROM meetings WHERE user_id = target_user_id;
@@ -84,33 +86,42 @@ BEGIN
     -- 5. Remove from workspace memberships
     DELETE FROM workspace_members WHERE user_id = target_user_id;
     
-    -- 6. Delete owned workspaces
+    -- 6. Delete subscriptions for owned workspaces (if table exists)
+    BEGIN
+        DELETE FROM subscriptions WHERE workspace_id IN (
+            SELECT id FROM workspaces WHERE owner_id = target_user_id
+        );
+    EXCEPTION WHEN undefined_table THEN
+        -- subscriptions table doesn't exist, skip
+        NULL;
+    END;
+    
+    -- 7. Delete owned workspaces
     DELETE FROM workspaces WHERE owner_id = target_user_id;
     
-    -- 7. Delete profile
+    -- 8. Delete profile
     DELETE FROM profiles WHERE id = target_user_id;
     
-    -- 8. Delete from auth.users (this is the critical part)
-    DELETE FROM auth.users WHERE id = target_user_id;
+    -- Note: auth.users deletion will be handled by the frontend using Supabase Admin API
     
-    -- Return success
+    -- Return success with user ID for frontend to delete from auth
     RETURN json_build_object(
         'success', true,
-        'message', 'User deleted successfully',
-        'deleted_user_id', target_user_id,
-        'deleted_user_email', target_email
+        'message', 'User data deleted, ready for auth deletion',
+        'user_id', target_user_id,
+        'user_email', target_email
     );
     
 EXCEPTION WHEN OTHERS THEN
     RETURN json_build_object(
         'success', false,
-        'message', 'Error deleting user: ' || SQLERRM
+        'message', 'Error preparing user deletion: ' || SQLERRM
     );
 END;
 $$;
 
 -- Grant execute permission to authenticated users (function checks admin status internally)
-GRANT EXECUTE ON FUNCTION admin_delete_user(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION admin_prepare_user_deletion(UUID) TO authenticated;
 
 -- Comment on function
-COMMENT ON FUNCTION admin_delete_user IS 'Admin-only function to safely delete users and all their data. Cascades through all foreign key relationships.';
+COMMENT ON FUNCTION admin_prepare_user_deletion IS 'Admin-only function to prepare users for deletion by removing all their app data. Auth user must be deleted separately via Admin API.';
