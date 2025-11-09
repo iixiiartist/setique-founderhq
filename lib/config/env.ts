@@ -18,7 +18,7 @@ interface EnvConfig {
   VITE_APP_URL: string;
   
   // Optional - Degrades gracefully if missing
-  VITE_GEMINI_API_KEY?: string;
+  VITE_GROQ_ENABLED?: string;
   VITE_STRIPE_PRICE_POWER_INDIVIDUAL?: string;
   VITE_STRIPE_PRICE_TEAM_PRO_BASE?: string;
   VITE_STRIPE_PRICE_TEAM_PRO_SEAT?: string;
@@ -44,7 +44,7 @@ const REQUIRED_ENV_VARS: (keyof EnvConfig)[] = [
  * Optional environment variables (won't block startup)
  */
 const OPTIONAL_ENV_VARS: (keyof EnvConfig)[] = [
-  'VITE_GEMINI_API_KEY',
+  'VITE_GROQ_ENABLED',
   'VITE_STRIPE_PRICE_POWER_INDIVIDUAL',
   'VITE_STRIPE_PRICE_TEAM_PRO_BASE',
   'VITE_STRIPE_PRICE_TEAM_PRO_SEAT',
@@ -128,7 +128,7 @@ export function getEnvConfig(): EnvConfig {
     VITE_APP_URL: import.meta.env.VITE_APP_URL,
     
     // Optional (may be undefined)
-    VITE_GEMINI_API_KEY: import.meta.env.VITE_GEMINI_API_KEY,
+    VITE_GROQ_ENABLED: import.meta.env.VITE_GROQ_ENABLED,
     VITE_STRIPE_PRICE_POWER_INDIVIDUAL: import.meta.env.VITE_STRIPE_PRICE_POWER_INDIVIDUAL,
     VITE_STRIPE_PRICE_TEAM_PRO_BASE: import.meta.env.VITE_STRIPE_PRICE_TEAM_PRO_BASE,
     VITE_STRIPE_PRICE_TEAM_PRO_SEAT: import.meta.env.VITE_STRIPE_PRICE_TEAM_PRO_SEAT,

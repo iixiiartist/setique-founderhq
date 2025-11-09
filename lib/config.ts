@@ -6,19 +6,20 @@ export const APP_CONFIG = {
   // Feature flags
   features: {
     supabaseEnabled: !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY),
-    geminiEnabled: !!import.meta.env.VITE_GEMINI_API_KEY,
+    groqEnabled: import.meta.env.VITE_GROQ_ENABLED === 'true',
     analyticsEnabled: !!import.meta.env.VITE_ANALYTICS_ID,
     sentryEnabled: !!import.meta.env.VITE_SENTRY_DSN,
   },
-  
+
   api: {
     supabase: {
       url: import.meta.env.VITE_SUPABASE_URL,
       anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
     },
-    gemini: {
-      apiKey: import.meta.env.VITE_GEMINI_API_KEY,
-    }
+    groq: {
+      // Groq API key remains server-side only (Supabase secret)
+      edgeFunction: 'groq-chat',
+    },
   },
 
   // Development helpers
@@ -34,7 +35,7 @@ export const healthCheck = () => {
     version: APP_CONFIG.version,
     features: {
       supabase: APP_CONFIG.features.supabaseEnabled ? 'enabled' : 'disabled',
-      gemini: APP_CONFIG.features.geminiEnabled ? 'enabled' : 'disabled',
+      groq: APP_CONFIG.features.groqEnabled ? 'enabled' : 'disabled',
       analytics: APP_CONFIG.features.analyticsEnabled ? 'enabled' : 'disabled',
       sentry: APP_CONFIG.features.sentryEnabled ? 'enabled' : 'disabled',
     },
