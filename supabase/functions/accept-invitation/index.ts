@@ -275,6 +275,8 @@ serve(async (req) => {
     let passwordResetSent = false
     if (isNewUser) {
       try {
+        console.log('Attempting to generate password reset link for:', invitation.email)
+        
         // Generate password reset link
         const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
           type: 'recovery',
@@ -286,14 +288,27 @@ serve(async (req) => {
 
         if (resetError) {
           console.error('Error generating password reset link:', resetError)
+          console.error('Reset error details:', JSON.stringify(resetError, null, 2))
         } else if (resetData) {
           passwordResetSent = true
-          console.log('Password reset email sent to:', invitation.email)
+          console.log('Password reset link generated successfully for:', invitation.email)
+          console.log('Reset data:', { ...resetData, properties: resetData.properties ? 'present' : 'missing' })
+        } else {
+          console.warn('No reset data returned, but no error either')
         }
       } catch (error) {
         console.error('Exception sending password reset:', error)
+        console.error('Exception details:', error instanceof Error ? error.stack : error)
       }
     }
+
+    // Log the final result before sending response
+    console.log('Invitation acceptance complete:', {
+      isNewUser,
+      passwordResetSent,
+      workspace: invitation.workspace?.name,
+      email: invitation.email
+    })
 
     return new Response(
       JSON.stringify({ 

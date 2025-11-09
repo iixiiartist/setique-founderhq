@@ -296,13 +296,13 @@ ${businessContext}
         <div>
             {/* Only show Daily Briefing for paid plans */}
             {hasAiAccess && (
-                <div className="bg-white p-6 border-2 border-black shadow-neo mb-8">
-                    <div className="flex justify-between items-center mb-4">
+                <div className="bg-white p-4 sm:p-6 border-2 border-black shadow-neo mb-8">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
                         <h2 className="text-xl font-semibold text-black">Daily Briefing</h2>
                         <button 
                             onClick={generateBriefing} 
                             disabled={isBriefingLoading}
-                            className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-2 px-4 rounded-none font-semibold shadow-neo-btn transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap w-full sm:w-auto"
                         >
                             {isBriefingLoading ? 'Generating...' : 'Regenerate'}
                         </button>
