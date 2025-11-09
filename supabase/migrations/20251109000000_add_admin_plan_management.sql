@@ -67,30 +67,58 @@ BEGIN
     END IF;
     
     -- Update the workspace plan type and seats (cast TEXT to plan_type enum)
+    -- Handle seats column not existing gracefully
     IF new_plan_type = 'free' THEN
         -- Free plan: no seats
-        UPDATE workspaces
-        SET 
-            plan_type = new_plan_type::plan_type,
-            seats = NULL,
-            updated_at = NOW()
-        WHERE owner_id = target_user_id;
+        BEGIN
+            UPDATE workspaces
+            SET 
+                plan_type = new_plan_type::plan_type,
+                seats = NULL,
+                updated_at = NOW()
+            WHERE owner_id = target_user_id;
+        EXCEPTION WHEN undefined_column THEN
+            -- seats column doesn't exist, just update plan_type
+            UPDATE workspaces
+            SET 
+                plan_type = new_plan_type::plan_type,
+                updated_at = NOW()
+            WHERE owner_id = target_user_id;
+        END;
     ELSIF new_plan_type = 'power-individual' THEN
         -- Power individual: 1 seat
-        UPDATE workspaces
-        SET 
-            plan_type = new_plan_type::plan_type,
-            seats = 1,
-            updated_at = NOW()
-        WHERE owner_id = target_user_id;
+        BEGIN
+            UPDATE workspaces
+            SET 
+                plan_type = new_plan_type::plan_type,
+                seats = 1,
+                updated_at = NOW()
+            WHERE owner_id = target_user_id;
+        EXCEPTION WHEN undefined_column THEN
+            -- seats column doesn't exist, just update plan_type
+            UPDATE workspaces
+            SET 
+                plan_type = new_plan_type::plan_type,
+                updated_at = NOW()
+            WHERE owner_id = target_user_id;
+        END;
     ELSIF new_plan_type = 'team-pro' THEN
         -- Team Pro: use provided seats or default to 5
-        UPDATE workspaces
-        SET 
-            plan_type = new_plan_type::plan_type,
-            seats = COALESCE(new_seats, 5),
-            updated_at = NOW()
-        WHERE owner_id = target_user_id;
+        BEGIN
+            UPDATE workspaces
+            SET 
+                plan_type = new_plan_type::plan_type,
+                seats = COALESCE(new_seats, 5),
+                updated_at = NOW()
+            WHERE owner_id = target_user_id;
+        EXCEPTION WHEN undefined_column THEN
+            -- seats column doesn't exist, just update plan_type
+            UPDATE workspaces
+            SET 
+                plan_type = new_plan_type::plan_type,
+                updated_at = NOW()
+            WHERE owner_id = target_user_id;
+        END;
     END IF;
     
     -- Log the change (if activity_log table exists and has required columns)
