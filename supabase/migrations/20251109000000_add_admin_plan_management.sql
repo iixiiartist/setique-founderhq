@@ -62,10 +62,10 @@ BEGIN
         );
     END IF;
     
-    -- Update the workspace plan type
+    -- Update the workspace plan type (cast TEXT to plan_type enum)
     UPDATE workspaces
     SET 
-        plan_type = new_plan_type,
+        plan_type = new_plan_type::plan_type,
         updated_at = NOW()
     WHERE owner_id = target_user_id;
     

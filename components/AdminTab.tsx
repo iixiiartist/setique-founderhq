@@ -79,6 +79,59 @@ const AdminTab: React.FC = () => {
         }
     };
 
+    const deleteUser = async (userId: string, userEmail: string) => {
+        const confirmed = window.confirm(
+            `⚠️ DELETE USER: ${userEmail}\n\n` +
+            `This will permanently delete:\n` +
+            `• User account and profile\n` +
+            `• All CRM data (investors, customers, partners)\n` +
+            `• All contacts and meetings\n` +
+            `• All tasks and marketing items\n` +
+            `• All financial data\n` +
+            `• All documents\n\n` +
+            `This action CANNOT be undone!\n\n` +
+            `Type the user's email to confirm deletion.`
+        );
+
+        if (!confirmed) return;
+
+        const emailConfirm = window.prompt(`Type "${userEmail}" to confirm deletion:`);
+        
+        if (emailConfirm !== userEmail) {
+            alert('Email does not match. Deletion cancelled.');
+            return;
+        }
+
+        try {
+            setIsUpdatingPlan(true); // Reuse loading state
+            
+            const { data, error } = await supabase
+                .rpc('admin_delete_user', {
+                    target_user_id: userId
+                });
+
+            if (error) throw error;
+
+            const result = data as { success: boolean; message: string };
+            
+            if (!result.success) {
+                alert(`Error: ${result.message}`);
+                return;
+            }
+
+            alert('User deleted successfully!');
+            
+            // Reload user data to reflect changes
+            await loadUserData();
+            
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            alert('Failed to delete user. Check console for details.');
+        } finally {
+            setIsUpdatingPlan(false);
+        }
+    };
+
     const loadUserData = async () => {
         try {
             setIsLoading(true);
@@ -368,15 +421,26 @@ const AdminTab: React.FC = () => {
                                                 </button>
                                             </div>
                                         ) : (
-                                            <button
-                                                onClick={() => {
-                                                    setEditingPlanFor(user.id);
-                                                    setSelectedPlan(user.planType as PlanType);
-                                                }}
-                                                className="px-3 py-1 bg-yellow-400 text-black text-xs font-mono border-2 border-black hover:bg-yellow-500"
-                                            >
-                                                Change Plan
-                                            </button>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingPlanFor(user.id);
+                                                        setSelectedPlan(user.planType as PlanType);
+                                                    }}
+                                                    className="px-3 py-1 bg-yellow-400 text-black text-xs font-mono border-2 border-black hover:bg-yellow-500"
+                                                >
+                                                    Change Plan
+                                                </button>
+                                                {!user.isAdmin && (
+                                                    <button
+                                                        onClick={() => deleteUser(user.id, user.email)}
+                                                        className="px-3 py-1 bg-red-500 text-white text-xs font-mono border-2 border-black hover:bg-red-600"
+                                                        title="Delete user"
+                                                    >
+                                                        🗑️
+                                                    </button>
+                                                )}
+                                            </div>
                                         )}
                                     </td>
                                 </tr>
