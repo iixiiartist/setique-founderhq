@@ -6,8 +6,8 @@ import { groqTools } from './groq/tools';
 interface Part {
     text?: string;
     inlineData?: { mimeType: string; data: string };
-    functionCall?: { name: string; args: any };
-    functionResponse?: { name: string; response: any };
+    functionCall?: { id?: string; name: string; args: any };
+    functionResponse?: { id?: string; name: string; response: any };
 }
 
 export interface Content {
@@ -70,12 +70,13 @@ const convertContentToMessages = (history: Content[]): Message[] => {
         const functionResponsePart = content.parts.find(p => 'functionResponse' in p);
         
         if (functionResponsePart && 'functionResponse' in functionResponsePart) {
-            // This is a tool response
+            // This is a tool response - must include tool_call_id
             return {
                 role: 'tool',
                 content: typeof functionResponsePart.functionResponse.response === 'string' 
                     ? functionResponsePart.functionResponse.response 
                     : JSON.stringify(functionResponsePart.functionResponse.response),
+                tool_call_id: functionResponsePart.functionResponse.id || 'unknown',
                 name: functionResponsePart.functionResponse.name,
             };
         }

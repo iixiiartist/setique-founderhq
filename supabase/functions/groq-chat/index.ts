@@ -137,8 +137,9 @@ serve(async (req) => {
     if (message.tool_calls && message.tool_calls.length > 0) {
       console.log('Returning tool calls:', message.tool_calls.length);
       
-      // Convert to our expected format
+      // Convert to our expected format (preserve ID for tool responses)
       const functionCalls = message.tool_calls.map((tc: ToolCall) => ({
+        id: tc.id,
         name: tc.function.name,
         args: JSON.parse(tc.function.arguments),
       }));

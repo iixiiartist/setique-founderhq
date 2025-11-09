@@ -9,8 +9,8 @@ import { Tab } from '../../constants';
 interface Part {
     text?: string;
     inlineData?: { mimeType: string; data: string };
-    functionCall?: { name: string; args: any };
-    functionResponse?: { name: string; response: any };
+    functionCall?: { id?: string; name: string; args: any };
+    functionResponse?: { id?: string; name: string; response: any };
 }
 
 interface Content {
@@ -252,7 +252,11 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
                         });
 
                         return {
-                            functionResponse: { name: call.name, response: result },
+                            functionResponse: { 
+                                id: call.id, // Preserve the tool_call_id
+                                name: call.name, 
+                                response: result 
+                            },
                         };
                     })
                 );
