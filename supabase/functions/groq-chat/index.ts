@@ -1,5 +1,5 @@
 // Supabase Edge Function for secure Groq API calls
-// Uses Llama 3.1 70B via Groq's ultra-fast LPU infrastructure
+// Uses Llama 3.3 70B via Groq's ultra-fast LPU infrastructure
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 
@@ -57,7 +57,7 @@ serve(async (req) => {
       tool_choice = 'auto',
       temperature = 0.7,
       max_tokens = 4096,
-      model = 'llama-3.1-70b-versatile', // Groq's fastest Llama model
+      model = 'llama-3.3-70b-versatile', // Groq's latest Llama model (Nov 2024)
     } = body;
 
     console.log('Received request - messages:', messages.length);
