@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { DashboardData, Task, AppActions, Priority, BusinessProfile, SettingsData } from '../types';
 import type { QuickLink } from '../types';
-import { getAiResponse } from '../services/geminiService';
+import { getAiResponse } from '../services/groqService';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { TASK_TAG_BG_COLORS } from '../constants';

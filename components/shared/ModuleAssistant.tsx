@@ -1,10 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Content } from '@google/genai';
 import { AppActions, TaskCollectionName, NoteableCollectionName, CrmCollectionName, DeletableCollectionName, TabType } from '../../types';
-import { getAiResponse, AILimitError } from '../../services/geminiService';
+import { getAiResponse, AILimitError } from '../../services/groqService';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Tab } from '../../constants';
+
+// Keep using Content format for compatibility
+interface Part {
+    text?: string;
+    inlineData?: { mimeType: string; data: string };
+    functionCall?: { name: string; args: any };
+    functionResponse?: { name: string; response: any };
+}
+
+interface Content {
+    role: 'user' | 'model' | 'tool';
+    parts: Part[];
+}
 
 interface ModuleAssistantProps {
     title: string;
