@@ -271,23 +271,27 @@ serve(async (req) => {
       })
       .eq('id', invitation.id)
 
-    // If new user, create a password reset/update session
-    let sessionInfo = null
+    // If new user, send password reset email instead of exposing temp password
+    let passwordResetSent = false
     if (isNewUser) {
-      // Generate magic link for immediate login and password setup
-      const { data: magicLinkData, error: magicLinkError } = await supabaseAdmin.auth.admin.generateLink({
-        type: 'magiclink',
-        email: invitation.email,
-        options: {
-          redirectTo: `${Deno.env.get('APP_URL') || 'http://localhost:3000'}?setup_password=true`
-        }
-      })
+      try {
+        // Generate password reset link
+        const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
+          type: 'recovery',
+          email: invitation.email,
+          options: {
+            redirectTo: `${Deno.env.get('APP_URL') || 'http://localhost:3000'}/app`
+          }
+        })
 
-      if (!magicLinkError && magicLinkData) {
-        sessionInfo = {
-          magicLink: magicLinkData.properties.action_link,
-          email: invitation.email
+        if (resetError) {
+          console.error('Error generating password reset link:', resetError)
+        } else if (resetData) {
+          passwordResetSent = true
+          console.log('Password reset email sent to:', invitation.email)
         }
+      } catch (error) {
+        console.error('Exception sending password reset:', error)
       }
     }
 
@@ -302,8 +306,8 @@ serve(async (req) => {
         isNewUser,
         needsAuth: !isNewUser, // Existing users need to log in
         email: invitation.email,
-        tempPassword: isNewUser ? tempPassword : undefined,
-        session: sessionInfo
+        passwordResetSent: isNewUser && passwordResetSent,
+        // Note: tempPassword no longer returned for security
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

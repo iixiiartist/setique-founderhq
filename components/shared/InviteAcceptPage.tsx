@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { supabase } from '../../lib/supabase';
 import { APP_CONFIG } from '../../lib/config';
 import { clearInvitationToken } from '../../lib/utils/tokenStorage';
 
@@ -17,28 +16,14 @@ interface InviteAcceptResult {
     isNewUser?: boolean;
     needsAuth?: boolean;
     email?: string;
-    tempPassword?: string;
-    session?: any;
+    passwordResetSent?: boolean;
 }
 
 export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onComplete }) => {
-    const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'needs_login' | 'password_setup'>('loading');
+    const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'needs_login'>('loading');
     const [message, setMessage] = useState('');
     const [inviteData, setInviteData] = useState<InviteAcceptResult | null>(null);
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [name, setName] = useState('');
-    const [formError, setFormError] = useState<string | null>(null);
-    const [isProcessing, setIsProcessing] = useState(false);
     const hasAttemptedRef = useRef(false);
-
-    // Auto-fill name from email when invite data is available
-    useEffect(() => {
-        if (inviteData?.email && !name) {
-            const emailPrefix = inviteData.email.split('@')[0] || '';
-            setName(emailPrefix);
-        }
-    }, [inviteData?.email, name]);
 
     useEffect(() => {
         // Prevent double-call in React Strict Mode using ref
@@ -77,32 +62,22 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
             setInviteData(result);
 
             if (result.isNewUser) {
-                // New user created - sign them in with temp password
-                setStatus('password_setup');
-                setMessage(`Welcome! Your account has been created. Please set your password to continue.`);
-                
-                // Sign in with temporary password
-                if (result.tempPassword && result.email) {
-                    try {
-                        const { error: signInError } = await supabase.auth.signInWithPassword({
-                            email: result.email,
-                            password: result.tempPassword
-                        });
-                        
-                        if (signInError) {
-                            console.error('Error signing in with temp password:', signInError);
-                            // Show error message without exposing password
-                            setStatus('error');
-                            setMessage('There was an error setting up your account. Please contact support or request a new invitation.');
-                        } else {
-                            // Successfully signed in, can now update password
-                            console.log('Successfully signed in with temp password');
-                        }
-                    } catch (e) {
-                        console.error('Error auto-signing in:', e);
-                        setStatus('error');
-                        setMessage('There was an error setting up your account. Please contact support or request a new invitation.');
-                    }
+                // New user created - password reset email has been sent
+                if (result.passwordResetSent) {
+                    setStatus('success');
+                    setMessage(
+                        `Welcome to ${result.workspace_name || 'the workspace'}!\n\n` +
+                        `We've sent a password reset link to ${result.email}.\n\n` +
+                        `Please check your email and click the link to set your password and complete your account setup.`
+                    );
+                } else {
+                    // Fallback if password reset email failed
+                    setStatus('error');
+                    setMessage(
+                        `Your account was created and you've been added to ${result.workspace_name || 'the workspace'}, ` +
+                        `but we couldn't send the password setup email.\n\n` +
+                        `Please contact support or use the "Forgot Password" feature to set up your password.`
+                    );
                 }
             } else if (result.needsAuth) {
                 // Existing user needs to log in - prefill their email
@@ -151,77 +126,6 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
         }
     };
 
-    const handleSetPassword = async () => {
-        // Validate inputs
-        setFormError(null);
-        const trimmedName = name.trim();
-        
-        if (!trimmedName) {
-            setFormError('Please enter your name');
-            return;
-        }
-
-        if (!password) {
-            setFormError('Please enter a password');
-            return;
-        }
-
-        if (password.length < 8) {
-            setFormError('Password must be at least 8 characters');
-            return;
-        }
-
-        if (password !== confirmPassword) {
-            setFormError('Passwords do not match');
-            return;
-        }
-
-        setIsProcessing(true);
-
-        try {
-            // Update both auth metadata and profiles table in parallel
-            const [{ data: userData, error: getUserError }, { error: updateError }] = await Promise.all([
-                supabase.auth.getUser(),
-                supabase.auth.updateUser({
-                    password: password,
-                    data: { full_name: trimmedName }
-                })
-            ]);
-
-            if (getUserError) throw getUserError;
-            if (updateError) throw updateError;
-
-            // Also update profiles table
-            if (userData?.user?.id) {
-                const { error: profileError } = await supabase
-                    .from('profiles')
-                    .update({ full_name: trimmedName })
-                    .eq('id', userData.user.id);
-
-                if (profileError) {
-                    console.error('Error updating profile:', profileError);
-                    // Don't fail the whole process if profile update fails
-                }
-            }
-
-            setStatus('success');
-            setMessage('Password set successfully! Redirecting...');
-            
-            // Clear invitation token on successful completion
-            clearInvitationToken();
-            
-            setTimeout(() => {
-                onComplete();
-            }, 1500);
-
-        } catch (error: any) {
-            console.error('Error setting password:', error);
-            setFormError(error.message || 'Failed to set password. Please try again.');
-        } finally {
-            setIsProcessing(false);
-        }
-    };
-
     if (status === 'loading') {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 to-blue-600 p-4">
@@ -229,89 +133,6 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
                     <div className="animate-spin text-6xl mb-4">⚙️</div>
                     <h2 className="text-2xl font-bold mb-2">Processing Invitation</h2>
                     <p className="text-gray-600">{message}</p>
-                </div>
-            </div>
-        );
-    }
-
-    if (status === 'password_setup') {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 to-blue-600 p-4">
-                <div className="bg-white border-4 border-black shadow-neo-brutal p-8 max-w-md w-full">
-                    <div className="text-center mb-6">
-                        <div className="text-6xl mb-4">🎉</div>
-                        <h2 className="text-2xl font-bold mb-2">Welcome to Setique!</h2>
-                        <p className="text-gray-600 mb-4">{message}</p>
-                        {inviteData?.workspace_name && (
-                            <div className="bg-purple-100 border-2 border-black p-3 mb-4">
-                                <p className="font-bold">Workspace: {inviteData.workspace_name}</p>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="space-y-4">
-                        {formError && (
-                            <div className="bg-red-100 border-2 border-red-600 p-3 text-red-700 font-bold">
-                                ⚠️ {formError}
-                            </div>
-                        )}
-
-                        <div>
-                            <label className="block font-bold mb-2">Your Name</label>
-                            <input
-                                type="text"
-                                value={name}
-                                onChange={(e) => {
-                                    setName(e.target.value);
-                                    setFormError(null);
-                                }}
-                                className={`w-full border-2 p-3 font-mono ${
-                                    formError && !name.trim() ? 'border-red-600' : 'border-black'
-                                }`}
-                                placeholder="Enter your name"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block font-bold mb-2">Set Password</label>
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={(e) => {
-                                    setPassword(e.target.value);
-                                    setFormError(null);
-                                }}
-                                className={`w-full border-2 p-3 font-mono ${
-                                    formError && (!password || password.length < 8) ? 'border-red-600' : 'border-black'
-                                }`}
-                                placeholder="Min 8 characters"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block font-bold mb-2">Confirm Password</label>
-                            <input
-                                type="password"
-                                value={confirmPassword}
-                                onChange={(e) => {
-                                    setConfirmPassword(e.target.value);
-                                    setFormError(null);
-                                }}
-                                className={`w-full border-2 p-3 font-mono ${
-                                    formError && password !== confirmPassword ? 'border-red-600' : 'border-black'
-                                }`}
-                                placeholder="Re-enter password"
-                            />
-                        </div>
-
-                        <button
-                            onClick={handleSetPassword}
-                            disabled={isProcessing || !password || password !== confirmPassword}
-                            className="w-full bg-purple-600 text-white border-4 border-black p-4 font-bold text-lg shadow-neo-btn hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {isProcessing ? 'Setting Password...' : 'Continue →'}
-                        </button>
-                    </div>
                 </div>
             </div>
         );
@@ -343,7 +164,26 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
                 <div className="bg-white border-4 border-black shadow-neo-brutal p-8 max-w-md w-full text-center">
                     <div className="text-6xl mb-4">✅</div>
                     <h2 className="text-2xl font-bold mb-4">Success!</h2>
-                    <p className="text-gray-600 whitespace-pre-line">{message}</p>
+                    <p className="text-gray-600 whitespace-pre-line mb-6">{message}</p>
+                    
+                    {inviteData?.isNewUser && (
+                        <div className="bg-blue-50 border-2 border-blue-600 p-4 mb-4 text-left">
+                            <h3 className="font-bold mb-2">📧 Next Steps:</h3>
+                            <ol className="list-decimal list-inside space-y-1 text-sm">
+                                <li>Check your email inbox</li>
+                                <li>Click the password reset link</li>
+                                <li>Set your new password</li>
+                                <li>Log in and start collaborating!</li>
+                            </ol>
+                        </div>
+                    )}
+                    
+                    <button
+                        onClick={() => window.location.href = '/app'}
+                        className="w-full bg-green-600 text-white border-4 border-black p-4 font-bold text-lg shadow-neo-btn hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-none transition-all"
+                    >
+                        {inviteData?.isNewUser ? 'Go to Login' : 'Continue to App'} →
+                    </button>
                 </div>
             </div>
         );
