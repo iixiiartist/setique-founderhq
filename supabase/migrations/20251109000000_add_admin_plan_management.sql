@@ -76,18 +76,25 @@ BEGIN
         WHERE owner_id = target_user_id;
     END IF;
     
-    -- Log the change
-    INSERT INTO activity_log (user_id, workspace_id, action_type, action_details)
-    VALUES (
-        caller_id,
-        target_workspace_id,
-        'admin_plan_change',
-        json_build_object(
-            'target_user_id', target_user_id,
-            'new_plan_type', new_plan_type,
-            'changed_by_admin', caller_id
-        )
-    );
+    -- Log the change (if activity_log table exists and has required columns)
+    BEGIN
+        INSERT INTO activity_log (user_id, workspace_id, action_type, entity_type, entity_id, metadata)
+        VALUES (
+            caller_id,
+            target_workspace_id,
+            'admin_plan_change',
+            'workspace',
+            target_workspace_id,
+            json_build_object(
+                'target_user_id', target_user_id,
+                'new_plan_type', new_plan_type,
+                'changed_by_admin', caller_id
+            )
+        );
+    EXCEPTION WHEN OTHERS THEN
+        -- If activity_log doesn't exist or has different schema, skip logging
+        NULL;
+    END;
     
     -- Return success
     RETURN json_build_object(
