@@ -368,6 +368,61 @@ const logFinancialsTool: GroqTool = {
     }
 };
 
+const createExpenseTool: GroqTool = {
+    type: 'function',
+    function: {
+        name: 'createExpense',
+        description: 'Creates a new expense record. Use this to log business expenses like software subscriptions, marketing costs, etc.',
+        parameters: {
+            type: 'object',
+            properties: {
+                date: { type: 'string', description: 'Expense date in YYYY-MM-DD format.' },
+                category: { 
+                    type: 'string', 
+                    enum: ['Software/SaaS', 'Marketing', 'Office', 'Legal', 'Contractors', 'Travel', 'Meals', 'Equipment', 'Subscriptions', 'Other'],
+                    description: 'Category of the expense.' 
+                },
+                amount: { type: 'number', description: 'Expense amount in dollars.' },
+                description: { type: 'string', description: 'Description of the expense.' },
+                vendor: { type: 'string', description: 'Optional. Name of the vendor/company.' },
+                paymentMethod: { 
+                    type: 'string', 
+                    enum: ['Credit Card', 'Debit Card', 'Bank Transfer', 'Cash', 'PayPal', 'Other'],
+                    description: 'Optional. Payment method used.' 
+                }
+            },
+            required: ['date', 'category', 'amount', 'description']
+        }
+    }
+};
+
+const updateExpenseTool: GroqTool = {
+    type: 'function',
+    function: {
+        name: 'updateExpense',
+        description: 'Updates an existing expense record.',
+        parameters: {
+            type: 'object',
+            properties: {
+                expenseId: { type: 'string', description: 'ID of the expense to update.' },
+                updates: {
+                    type: 'object',
+                    description: 'Fields to update.',
+                    properties: {
+                        date: { type: 'string' },
+                        category: { type: 'string', enum: ['Software/SaaS', 'Marketing', 'Office', 'Legal', 'Contractors', 'Travel', 'Meals', 'Equipment', 'Subscriptions', 'Other'] },
+                        amount: { type: 'number' },
+                        description: { type: 'string' },
+                        vendor: { type: 'string' },
+                        paymentMethod: { type: 'string', enum: ['Credit Card', 'Debit Card', 'Bank Transfer', 'Cash', 'PayPal', 'Other'] }
+                    }
+                }
+            },
+            required: ['expenseId', 'updates']
+        }
+    }
+};
+
 const deleteItemTool: GroqTool = {
     type: 'function',
     function: {
@@ -520,6 +575,8 @@ export const groqTools: GroqTool[] = [
     updateMeetingTool,
     deleteMeetingTool,
     logFinancialsTool,
+    createExpenseTool,
+    updateExpenseTool,
     deleteItemTool,
     createMarketingItemTool,
     updateMarketingItemTool,
@@ -584,9 +641,11 @@ export const getRelevantTools = (tab: string): GroqTool[] => {
             ];
         
         case 'financials':
-            // Financials: logs + tasks
+            // Financials: revenue logs, expenses, tasks
             return [
                 logFinancialsTool,
+                createExpenseTool,
+                updateExpenseTool,
                 createTaskTool,
                 updateTaskTool,
                 deleteItemTool,

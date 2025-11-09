@@ -193,6 +193,17 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
                     return await actions.deleteMeeting(args.collection as CrmCollectionName, args.crmItemId, args.contactId, args.meetingId);
                 case 'logFinancials':
                     return await actions.logFinancials({ date: args.date, mrr: args.mrr, gmv: args.gmv, signups: args.signups });
+                case 'createExpense':
+                    return await actions.createExpense({
+                        date: args.date,
+                        category: args.category,
+                        amount: args.amount,
+                        description: args.description,
+                        vendor: args.vendor,
+                        paymentMethod: args.paymentMethod
+                    });
+                case 'updateExpense':
+                    return await actions.updateExpense(args.expenseId, args.updates);
                 case 'deleteItem':
                     return await actions.deleteItem(args.collection as DeletableCollectionName, args.itemId);
                 case 'createMarketingItem':
