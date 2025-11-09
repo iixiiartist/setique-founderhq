@@ -19,6 +19,7 @@ interface EnvConfig {
   
   // Optional - Degrades gracefully if missing
   VITE_GROQ_ENABLED?: string;
+  VITE_GROQ_MODEL?: string;
   VITE_STRIPE_PRICE_POWER_INDIVIDUAL?: string;
   VITE_STRIPE_PRICE_TEAM_PRO_BASE?: string;
   VITE_STRIPE_PRICE_TEAM_PRO_SEAT?: string;
@@ -45,6 +46,7 @@ const REQUIRED_ENV_VARS: (keyof EnvConfig)[] = [
  */
 const OPTIONAL_ENV_VARS: (keyof EnvConfig)[] = [
   'VITE_GROQ_ENABLED',
+  'VITE_GROQ_MODEL',
   'VITE_STRIPE_PRICE_POWER_INDIVIDUAL',
   'VITE_STRIPE_PRICE_TEAM_PRO_BASE',
   'VITE_STRIPE_PRICE_TEAM_PRO_SEAT',
@@ -129,6 +131,7 @@ export function getEnvConfig(): EnvConfig {
     
     // Optional (may be undefined)
     VITE_GROQ_ENABLED: import.meta.env.VITE_GROQ_ENABLED,
+    VITE_GROQ_MODEL: import.meta.env.VITE_GROQ_MODEL,
     VITE_STRIPE_PRICE_POWER_INDIVIDUAL: import.meta.env.VITE_STRIPE_PRICE_POWER_INDIVIDUAL,
     VITE_STRIPE_PRICE_TEAM_PRO_BASE: import.meta.env.VITE_STRIPE_PRICE_TEAM_PRO_BASE,
     VITE_STRIPE_PRICE_TEAM_PRO_SEAT: import.meta.env.VITE_STRIPE_PRICE_TEAM_PRO_SEAT,

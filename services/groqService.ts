@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { DatabaseService } from '../lib/services/database';
+import { APP_CONFIG } from '../lib/config';
 import { groqTools } from './groq/tools';
 
 // Local type definitions (previously from @google/genai)
@@ -139,7 +140,7 @@ export const getAiResponse = async (
             messages,
             temperature: 0.7,
             max_tokens: 4096,
-            model: 'llama-3.3-70b-versatile',
+            model: APP_CONFIG.api.groq.defaultModel,
         };
 
         if (useTools) {

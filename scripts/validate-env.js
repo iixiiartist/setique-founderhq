@@ -51,6 +51,7 @@ const IMPORTANT_VARS = [
 const RECOMMENDED_VARS = [
   'VITE_SENTRY_DSN',
   'VITE_GROQ_ENABLED',
+  'VITE_GROQ_MODEL',
 ];
 
 // Validation rules

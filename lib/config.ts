@@ -19,6 +19,7 @@ export const APP_CONFIG = {
     groq: {
       // Groq API key remains server-side only (Supabase secret)
       edgeFunction: 'groq-chat',
+      defaultModel: import.meta.env.VITE_GROQ_MODEL || 'llama-3.3-70b-versatile',
     },
   },
 

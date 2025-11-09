@@ -57,11 +57,15 @@ serve(async (req) => {
       tool_choice = 'auto',
       temperature = 0.7,
       max_tokens = 4096,
-      model = 'llama-3.3-70b-versatile', // Groq's latest Llama model (Nov 2024)
+      model,
     } = body;
+
+    // Use model from request, or fallback to GROQ_MODEL env var, or default
+    const resolvedModel = model || Deno.env.get('GROQ_MODEL') || 'llama-3.3-70b-versatile';
 
     console.log('Received request - messages:', messages.length);
     console.log('Last message role:', messages[messages.length - 1]?.role);
+    console.log('Using model:', resolvedModel);
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return new Response(
@@ -81,7 +85,7 @@ serve(async (req) => {
 
     // Build request body for Groq
     const groqRequest: any = {
-      model,
+      model: resolvedModel,
       messages,
       temperature,
       max_tokens,
@@ -92,7 +96,7 @@ serve(async (req) => {
       groqRequest.tool_choice = tool_choice;
     }
 
-    console.log('Sending to Groq - model:', model);
+    console.log('Sending to Groq - model:', resolvedModel);
 
     // Call Groq API
     const groqResponse = await fetch(
