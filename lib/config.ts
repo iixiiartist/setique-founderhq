@@ -19,8 +19,8 @@ export const APP_CONFIG = {
     groq: {
       // Groq API key remains server-side only (Supabase secret)
       edgeFunction: 'groq-chat',
-      // mixtral-8x7b-32768 has excellent function-calling support and is actively maintained
-      defaultModel: import.meta.env.VITE_GROQ_MODEL || 'mixtral-8x7b-32768',
+      // openai/gpt-oss-120b provides excellent OpenAI-compatible function-calling support
+      defaultModel: import.meta.env.VITE_GROQ_MODEL || 'openai/gpt-oss-120b',
     },
   },
 

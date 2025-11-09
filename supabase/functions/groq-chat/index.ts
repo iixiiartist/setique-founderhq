@@ -62,8 +62,8 @@ serve(async (req) => {
 
     // Use model from request, or fallback to GROQ_MODEL env var, or default
   // Get model from request or environment variable, with fallback
-  // mixtral-8x7b-32768 has excellent function-calling support and is actively maintained
-  const resolvedModel = model || Deno.env.get('GROQ_MODEL') || 'mixtral-8x7b-32768';    console.log('Received request - messages:', messages.length);
+  // openai/gpt-oss-120b provides excellent OpenAI-compatible function-calling support
+  const resolvedModel = model || Deno.env.get('GROQ_MODEL') || 'openai/gpt-oss-120b';    console.log('Received request - messages:', messages.length);
     console.log('Last message role:', messages[messages.length - 1]?.role);
     console.log('Using model:', resolvedModel);
 
