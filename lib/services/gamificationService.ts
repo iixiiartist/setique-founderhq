@@ -1,5 +1,5 @@
 import { GamificationData, AchievementId, DashboardData, TeamAchievementId, WorkspaceAchievement } from '../../types'
-import { logger } from './lib/logger'
+import { logger } from '../logger'
 import { DataPersistenceAdapter } from './dataPersistenceAdapter'
 import { DatabaseService } from './database'
 import { TEAM_ACHIEVEMENTS } from '../../constants'

@@ -1,5 +1,5 @@
 import { supabase } from '../supabase';
-import { logger } from './lib/logger'
+import { logger } from '../logger'
 import { createNotification } from './notificationService';
 import { logActivity } from './activityService';
 
