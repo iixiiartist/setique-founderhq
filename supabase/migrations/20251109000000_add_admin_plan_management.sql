@@ -2,10 +2,14 @@
 -- Created: 2025-11-09
 -- Purpose: Allow admins to manage user plan types
 
+-- Drop old function if it exists (with old signature)
+DROP FUNCTION IF EXISTS admin_update_user_plan(UUID, TEXT);
+
 -- Function to update user plan type (admin only)
 CREATE OR REPLACE FUNCTION admin_update_user_plan(
     target_user_id UUID,
-    new_plan_type TEXT
+    new_plan_type TEXT,
+    new_seats INTEGER DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -62,17 +66,30 @@ BEGIN
         );
     END IF;
     
-    -- Update the workspace plan type (cast TEXT to plan_type enum)
-    UPDATE workspaces
-    SET 
-        plan_type = new_plan_type::plan_type,
-        updated_at = NOW()
-    WHERE owner_id = target_user_id;
-    
-    -- If downgrading to free, ensure seats is null or 1
+    -- Update the workspace plan type and seats (cast TEXT to plan_type enum)
     IF new_plan_type = 'free' THEN
+        -- Free plan: no seats
         UPDATE workspaces
-        SET seats = NULL
+        SET 
+            plan_type = new_plan_type::plan_type,
+            seats = NULL,
+            updated_at = NOW()
+        WHERE owner_id = target_user_id;
+    ELSIF new_plan_type = 'power-individual' THEN
+        -- Power individual: 1 seat
+        UPDATE workspaces
+        SET 
+            plan_type = new_plan_type::plan_type,
+            seats = 1,
+            updated_at = NOW()
+        WHERE owner_id = target_user_id;
+    ELSIF new_plan_type = 'team-pro' THEN
+        -- Team Pro: use provided seats or default to 5
+        UPDATE workspaces
+        SET 
+            plan_type = new_plan_type::plan_type,
+            seats = COALESCE(new_seats, 5),
+            updated_at = NOW()
         WHERE owner_id = target_user_id;
     END IF;
     
@@ -113,7 +130,7 @@ END;
 $$;
 
 -- Grant execute permission to authenticated users (function checks admin status internally)
-GRANT EXECUTE ON FUNCTION admin_update_user_plan(UUID, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION admin_update_user_plan(UUID, TEXT, INTEGER) TO authenticated;
 
 -- Comment on function
-COMMENT ON FUNCTION admin_update_user_plan IS 'Admin-only function to update user plan types. Validates admin status and logs changes.';
+COMMENT ON FUNCTION admin_update_user_plan IS 'Admin-only function to update user plan types and seats. Validates admin status and logs changes.';

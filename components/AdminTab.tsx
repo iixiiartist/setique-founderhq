@@ -37,6 +37,7 @@ const AdminTab: React.FC = () => {
     const [filterConfirmed, setFilterConfirmed] = useState<string>('all');
     const [editingPlanFor, setEditingPlanFor] = useState<string | null>(null);
     const [selectedPlan, setSelectedPlan] = useState<PlanType>('free');
+    const [selectedSeats, setSelectedSeats] = useState<number>(5);
     const [isUpdatingPlan, setIsUpdatingPlan] = useState(false);
 
     // Debounce search query to prevent excessive filtering on every keystroke
@@ -46,14 +47,15 @@ const AdminTab: React.FC = () => {
         loadUserData();
     }, []);
 
-    const updateUserPlan = async (userId: string, newPlan: PlanType) => {
+    const updateUserPlan = async (userId: string, newPlan: PlanType, seats?: number) => {
         try {
             setIsUpdatingPlan(true);
             
             const { data, error } = await supabase
                 .rpc('admin_update_user_plan', {
                     target_user_id: userId,
-                    new_plan_type: newPlan
+                    new_plan_type: newPlan,
+                    new_seats: newPlan === 'team-pro' ? seats : null
                 });
 
             if (error) throw error;
@@ -65,7 +67,8 @@ const AdminTab: React.FC = () => {
                 return;
             }
 
-            alert(`Plan updated successfully to ${newPlan}!`);
+            const seatsMsg = newPlan === 'team-pro' ? ` with ${seats} seats` : '';
+            alert(`Plan updated successfully to ${newPlan}${seatsMsg}!`);
             setEditingPlanFor(null);
             
             // Reload user data to reflect changes
@@ -415,8 +418,20 @@ const AdminTab: React.FC = () => {
                                                     <option value="power-individual">Power</option>
                                                     <option value="team-pro">Team Pro</option>
                                                 </select>
+                                                {selectedPlan === 'team-pro' && (
+                                                    <input
+                                                        type="number"
+                                                        min="2"
+                                                        max="100"
+                                                        value={selectedSeats}
+                                                        onChange={(e) => setSelectedSeats(parseInt(e.target.value) || 5)}
+                                                        disabled={isUpdatingPlan}
+                                                        className="w-16 px-2 py-1 border-2 border-black focus:outline-none focus:border-yellow-400 font-mono text-xs"
+                                                        placeholder="Seats"
+                                                    />
+                                                )}
                                                 <button
-                                                    onClick={() => updateUserPlan(user.id, selectedPlan)}
+                                                    onClick={() => updateUserPlan(user.id, selectedPlan, selectedSeats)}
                                                     disabled={isUpdatingPlan}
                                                     className="px-2 py-1 bg-green-500 text-white text-xs font-mono border-2 border-black hover:bg-green-600 disabled:opacity-50"
                                                 >
@@ -436,6 +451,7 @@ const AdminTab: React.FC = () => {
                                                     onClick={() => {
                                                         setEditingPlanFor(user.id);
                                                         setSelectedPlan(user.planType as PlanType);
+                                                        setSelectedSeats(5); // Default to 5 seats for team plans
                                                     }}
                                                     className="px-3 py-1 bg-yellow-400 text-black text-xs font-mono border-2 border-black hover:bg-yellow-500"
                                                 >
