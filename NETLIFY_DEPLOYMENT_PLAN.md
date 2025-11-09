@@ -30,8 +30,8 @@ npx tailwindcss init -p
 - `.env` and `.env.local` are gitignored ✅
 - Need to configure in Netlify dashboard (manual step)
 
-#### 3. **Supabase Edge Functions Deployment**
-- Already deployed `gemini-chat` ✅
+-#### 3. **Supabase Edge Functions Deployment**
+- Already deployed `groq-chat` ✅
 - Already deployed `accept-invitation` ✅
 - Need to verify all functions are deployed
 
@@ -202,13 +202,13 @@ npx supabase functions list
 ```
 
 Should show:
-- `gemini-chat` ✅
+- `groq-chat` ✅
 - `accept-invitation` ✅
 
 #### Step 3.2: Deploy Any Missing Functions
 If needed:
 ```powershell
-npx supabase functions deploy gemini-chat --no-verify-jwt
+npx supabase functions deploy groq-chat --no-verify-jwt
 npx supabase functions deploy accept-invitation --no-verify-jwt
 ```
 
@@ -248,13 +248,20 @@ Add these variables (get values from your `.env.local`):
 ```
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_anon_key
-VITE_GEMINI_API_KEY=your_gemini_key (OPTIONAL - Edge Function has it)
+# Optional frontend flags
+VITE_GROQ_ENABLED=true
+VITE_GROQ_MODEL=llama-3.3-70b-versatile
+```
+
+Important: The Groq API key must be set as a Supabase secret (server-side):
+```
+npx supabase secrets set GROQ_API_KEY=your_groq_api_key
 ```
 
 **IMPORTANT:** 
 - ✅ Use `VITE_` prefix for client-side variables
 - ✅ Never commit these to GitHub
-- ✅ Gemini API key is already in Supabase Edge Function secrets (secure!)
+- ✅ Groq API key is already in Supabase Edge Function secrets (secure!)
 
 #### Step 4.4: Deploy
 1. Click "Deploy site"
@@ -269,7 +276,7 @@ VITE_GEMINI_API_KEY=your_gemini_key (OPTIONAL - Edge Function has it)
 ## 🔒 Security Considerations
 
 ### ✅ What's Secure (Current Setup)
-1. **Gemini API Key:** Stored in Supabase Edge Function secrets (NOT in client code) ✅
+1. **Groq API Key:** Stored in Supabase Edge Function secrets (NOT in client code) ✅
 2. **Supabase Anon Key:** Public by design, protected by RLS ✅
 3. **Database Access:** Protected by Row Level Security policies ✅
 4. **Admin Features:** Protected by `is_admin` RLS policies ✅
@@ -289,7 +296,7 @@ VITE_GEMINI_API_KEY=your_gemini_key (OPTIONAL - Edge Function has it)
 │     Supabase Cloud         │
 │  ┌──────────────────────┐  │
 │  │  Edge Functions      │  │
-│  │  - gemini-chat       │  │ ← Gemini API Key HERE (secure)
+│  │  - groq-chat         │  │ ← Groq API Key HERE (secure, stored as Supabase secret)
 │  │  - accept-invitation │  │
 │  └──────────────────────┘  │
 │  ┌──────────────────────┐  │
@@ -304,7 +311,7 @@ VITE_GEMINI_API_KEY=your_gemini_key (OPTIONAL - Edge Function has it)
          │
          ▼
 ┌────────────────────────────┐
-│   Google Gemini API        │
+│   Groq API (https://api.groq.com) │
 └────────────────────────────┘
 ```
 
@@ -335,7 +342,7 @@ git branch -M main
 git push -u origin main
 
 # 4. Deploy Supabase functions (if needed)
-npx supabase functions deploy gemini-chat --no-verify-jwt
+npx supabase functions deploy groq-chat --no-verify-jwt
 npx supabase functions deploy accept-invitation --no-verify-jwt
 
 # 5. Run migration SQL in Supabase Dashboard (manual)

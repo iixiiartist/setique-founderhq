@@ -174,8 +174,12 @@ VITE_ENVIRONMENT=development
 # OPTIONAL VARIABLES (App will work without these)
 # ============================================
 
-# Gemini AI Integration (for AI features)
-VITE_GEMINI_API_KEY=
+# Groq AI Integration (for AI features)
+# The Groq API key must be stored server-side as a Supabase secret:
+#   npx supabase secrets set GROQ_API_KEY=your_key
+# Optionally pin a model for local dev with VITE_GROQ_MODEL or server-side GROQ_MODEL
+VITE_GROQ_ENABLED=true
+VITE_GROQ_MODEL=llama-3.3-70b-versatile
 
 # Sentry Error Tracking (for production monitoring)
 VITE_SENTRY_DSN=

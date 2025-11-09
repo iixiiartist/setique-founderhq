@@ -8,20 +8,21 @@
 3. Go to Settings > API and copy your URL and anon key
 4. In the SQL editor, run the contents of `supabase/schema.sql`
 
-### 2. Gemini API Setup
-1. Go to [Google AI Studio](https://aistudio.google.com)
-2. Create an API key
-3. Copy the API key for environment variables
+### 2. Groq AI Setup (server-side)
+1. Groq API keys must be stored server-side as Supabase secrets.
+2. Set your Groq API key in Supabase: `npx supabase secrets set GROQ_API_KEY=your_key`
+3. Optionally pin a model with the `GROQ_MODEL` secret (e.g. `llama-3.3-70b-versatile`)
 
 ## Local Development
 
 1. Clone the repository
 2. Copy `.env.example` to `.env`
-3. Fill in your environment variables:
+3. Fill in your environment variables (frontend):
    ```
-   VITE_GEMINI_API_KEY=your_gemini_api_key
    VITE_SUPABASE_URL=your_supabase_url
    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   VITE_GROQ_ENABLED=true        # optional - toggles UI exposure of Groq features
+   VITE_GROQ_MODEL=llama-3.3-70b-versatile  # optional - pins a model for local dev
    ```
 4. Install dependencies: `npm install`
 5. Start development server: `npm run dev`
@@ -31,11 +32,13 @@
 ### Option 1: Vercel (Recommended)
 
 1. Connect your GitHub repository to Vercel
-2. Set environment variables in Vercel dashboard:
-   - `VITE_GEMINI_API_KEY`
+2. Set environment variables in Vercel dashboard (frontend-only vars):
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
    - `VITE_ENVIRONMENT=production`
+   - (optional) `VITE_GROQ_ENABLED` / `VITE_GROQ_MODEL`
+
+Note: The Groq API key (GROQ_API_KEY) must be stored as a Supabase secret and is not a client-side variable.
 3. Deploy
 
 ### Option 2: Netlify
@@ -62,7 +65,9 @@
 
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `VITE_GEMINI_API_KEY` | Google Gemini API key | Yes |
+| `VITE_GROQ_ENABLED` | Feature flag to expose Groq assistant UI | No |
+| `VITE_GROQ_MODEL` | Optional pinned Groq model for local dev | No |
+| `GROQ_API_KEY` (server-side) | Groq API key stored in Supabase secrets | Yes (server)
 | `VITE_SUPABASE_URL` | Supabase project URL | Yes |
 | `VITE_SUPABASE_ANON_KEY` | Supabase anonymous key | Yes |
 | `VITE_ENVIRONMENT` | Environment (development/production) | No |

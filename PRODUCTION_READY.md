@@ -57,9 +57,9 @@
 3. Run the SQL schema from `supabase/schema.sql`
 4. Copy URL and anon key to environment variables
 
-### 2. Google Gemini API
-1. Get API key from [Google AI Studio](https://aistudio.google.com)
-2. Add to environment variables
+### 2. Groq AI
+1. Store the Groq API key as a Supabase secret: `npx supabase secrets set GROQ_API_KEY=your_key`
+2. Optionally pin a model with the `GROQ_MODEL` Supabase secret or set `VITE_GROQ_MODEL` for local development
 
 ### 3. Environment Configuration
 ```bash
@@ -70,7 +70,7 @@ cp .env.example .env
 Required variables:
 - `VITE_SUPABASE_URL` - Your Supabase project URL
 - `VITE_SUPABASE_ANON_KEY` - Your Supabase anonymous key  
-- `VITE_GEMINI_API_KEY` - Your Google Gemini API key
+- `GROQ_API_KEY` (server-side) - Your Groq API key (set in Supabase secrets)
 
 ## 🚀 Deployment Options
 
@@ -96,7 +96,7 @@ npm run build
 ### Without Database (Local Development)
 - ✅ UI and navigation
 - ✅ Local state management  
-- ✅ AI assistant with Gemini
+- ✅ AI assistant with Groq
 - ✅ All dashboard components
 - ✅ Task management (in memory)
 

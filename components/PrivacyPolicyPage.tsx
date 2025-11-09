@@ -62,7 +62,7 @@ export function PrivacyPolicyPage() {
             <h3 className="text-xl font-bold mt-4 mb-2">2.3 Third-Party Data</h3>
             <ul className="list-disc pl-6 space-y-2">
               <li><strong>Authentication:</strong> Supabase for secure authentication</li>
-              <li><strong>AI Services:</strong> Google Gemini AI for assistant features</li>
+              <li><strong>AI Services:</strong> Groq-hosted large language models for assistant features</li>
               <li><strong>Payment Processing:</strong> Stripe for subscription payments</li>
             </ul>
           </Section>
@@ -107,7 +107,7 @@ export function PrivacyPolicyPage() {
             <h3 className="text-xl font-bold mt-4 mb-2">5.1 Service Providers</h3>
             <ul className="list-disc pl-6 space-y-2">
               <li><strong>Supabase:</strong> Database and authentication services</li>
-              <li><strong>Google Gemini:</strong> AI-powered assistant features</li>
+              <li><strong>Groq:</strong> AI-powered assistant features</li>
               <li><strong>Stripe:</strong> Payment processing</li>
               <li><strong>Netlify:</strong> Application hosting and delivery</li>
             </ul>
@@ -147,7 +147,7 @@ export function PrivacyPolicyPage() {
           <Section title="7. AI and Machine Learning">
             <h3 className="text-xl font-bold mt-4 mb-2">7.1 AI Assistant Usage</h3>
             <p>
-              Your prompts and conversations with the AI assistant are processed by Google Gemini. We only send necessary context to AI services (your prompts and relevant workspace data). We do not train custom AI models on your data.
+              Your prompts and conversations with the AI assistant are processed by Groq-hosted large language models. We only send necessary context to AI services (your prompts and relevant workspace data). We do not train custom AI models on your data.
             </p>
 
             <h3 className="text-xl font-bold mt-4 mb-2">7.2 Opting Out</h3>
