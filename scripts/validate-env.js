@@ -38,7 +38,7 @@ const REQUIRED_VARS = [
 
 // Optional but important variables (will warn if missing)
 const IMPORTANT_VARS = [
-  'VITE_GEMINI_API_KEY',
+  // Note: Groq API key (GROQ_API_KEY) is server-side only in Supabase secrets
   'VITE_STRIPE_PRICE_POWER_INDIVIDUAL',
   'VITE_STRIPE_PRICE_TEAM_PRO_BASE',
   'VITE_STRIPE_PRICE_TEAM_PRO_SEAT',

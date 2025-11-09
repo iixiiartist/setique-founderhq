@@ -32,10 +32,7 @@ export default defineConfig(({ mode }) => {
           },
         }),
       ].filter(Boolean),
-      define: {
-        'process.env.API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY)
-      },
+      // Note: No API keys defined here - Groq key is server-side only
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),

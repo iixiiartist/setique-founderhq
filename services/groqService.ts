@@ -1,7 +1,27 @@
-import { Content, GenerateContentResponse } from '@google/genai';
 import { supabase } from '../lib/supabase';
 import { DatabaseService } from '../lib/services/database';
 import { groqTools } from './groq/tools';
+
+// Local type definitions (previously from @google/genai)
+interface Part {
+    text?: string;
+    inlineData?: { mimeType: string; data: string };
+    functionCall?: { name: string; args: any };
+    functionResponse?: { name: string; response: any };
+}
+
+export interface Content {
+    role: 'user' | 'model' | 'tool';
+    parts: Part[];
+}
+
+export interface GenerateContentResponse {
+    candidates?: Array<{
+        content: Content;
+        finishReason: string;
+    }>;
+    functionCalls?: any[];
+}
 
 interface EdgeFunctionResponse {
     response?: string;
