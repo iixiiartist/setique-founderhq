@@ -70,8 +70,8 @@ serve(async (req) => {
       );
     }
 
-    // Get Groq API key from secure environment
-    const groqApiKey = Deno.env.get('GROQ_API_KEY');
+    // Get Groq API key from secure environment (check both spellings)
+    const groqApiKey = Deno.env.get('GROQ_API_KEY') || Deno.env.get('GROK_API_KEY');
     if (!groqApiKey) {
       return new Response(
         JSON.stringify({ error: 'Groq API key not configured' }),
