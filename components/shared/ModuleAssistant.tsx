@@ -7,6 +7,7 @@ import remarkGfm from 'remark-gfm';
 import { Tab } from '../../constants';
 import { useConversationHistory } from '../../hooks/useConversationHistory';
 import { useFullscreenChat } from '../../hooks/useFullscreenChat';
+import { getRelevantHistory, pruneFunctionResponse } from '../../utils/conversationUtils';
 
 // Keep using Content format for compatibility
 interface Part {
@@ -32,6 +33,8 @@ interface ModuleAssistantProps {
     onNewMessage?: () => void; // Callback when AI responds (for notifications)
     allowFullscreen?: boolean; // Enable fullscreen toggle (default: true)
     autoFullscreenMobile?: boolean; // Auto-open fullscreen on mobile (default: true)
+    businessContext?: string; // Optional context injected on first message
+    teamContext?: string; // Optional context injected on first message
 }
 
 const ModuleAssistant: React.FC<ModuleAssistantProps> = ({ 
@@ -44,7 +47,9 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
     compact = false,
     onNewMessage,
     allowFullscreen = true,
-    autoFullscreenMobile = true
+    autoFullscreenMobile = true,
+    businessContext,
+    teamContext
 }) => {
     // Use conversation history hook for persistence
     const {
@@ -227,6 +232,14 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
         const userMessageParts: any[] = [];
         let textPart = prompt;
 
+        // Inject business/team context on first message only
+        if (history.length === 0 && (businessContext || teamContext)) {
+            const contextParts: string[] = [];
+            if (businessContext) contextParts.push(businessContext);
+            if (teamContext) contextParts.push(teamContext);
+            textPart = `${contextParts.join('\n\n')}\n\n${prompt}`;
+        }
+
         if (file && fileContent && prompt === userInput) {
             textPart = `[File Attached: ${file.name}]\n\n${prompt}`;
             
@@ -248,12 +261,13 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
         clearFile();
 
         try {
-            // Send to AI
+            // Send to AI with sliding window history (last 15 messages)
             // Only use tools if the user's message suggests they want to take action
             const userMessage = textPart.toLowerCase();
             const wantsAction = /\b(create|add|make|update|change|delete|remove|log|upload|set)\b/i.test(userMessage);
             
-            let modelResponse = await getAiResponse(currentHistory, systemPromptRef.current, wantsAction, workspaceId);
+            const relevantHistory = getRelevantHistory(currentHistory);
+            let modelResponse = await getAiResponse(relevantHistory, systemPromptRef.current, wantsAction, workspaceId, currentTab);
 
             while (modelResponse.functionCalls && modelResponse.functionCalls.length > 0) {
                 const functionCalls = modelResponse.functionCalls;
@@ -276,11 +290,14 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
                             args: call.args ?? {},
                         });
 
+                        // Prune large responses to save tokens
+                        const prunedResult = pruneFunctionResponse(result, call.name);
+
                         return {
                             functionResponse: { 
                                 id: call.id, // Preserve the tool_call_id
                                 name: call.name, 
-                                response: result 
+                                response: prunedResult 
                             },
                         };
                     })
@@ -292,7 +309,9 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
                 ];
                 
                 // Continue with tools enabled since we're in a function-calling loop
-                modelResponse = await getAiResponse(currentHistory, systemPromptRef.current, true, workspaceId);
+                // Use sliding window history for function-calling loops too
+                const relevantHistory = getRelevantHistory(currentHistory);
+                modelResponse = await getAiResponse(relevantHistory, systemPromptRef.current, true, workspaceId, currentTab);
             }
             
             // Extract text from the response

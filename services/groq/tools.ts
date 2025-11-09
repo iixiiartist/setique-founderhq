@@ -504,6 +504,7 @@ const getFileContentTool: GroqTool = {
     }
 };
 
+// All tools (for reference/debugging)
 export const groqTools: GroqTool[] = [
     createTaskTool,
     updateTaskTool,
@@ -527,3 +528,81 @@ export const groqTools: GroqTool[] = [
     updateDocumentTool,
     getFileContentTool,
 ];
+
+/**
+ * Get context-aware tools for a specific tab
+ * Reduces token usage by only sending relevant tools (~800 token savings per request)
+ */
+export const getRelevantTools = (tab: string): GroqTool[] => {
+    // Core tools available in all contexts
+    const coreTools = [addNoteTool, updateNoteTool, deleteNoteTool];
+    
+    // File management tools (available everywhere)
+    const fileTools = [uploadDocumentTool, updateDocumentTool, getFileContentTool];
+    
+    // Tab-specific tools
+    switch(tab) {
+        case 'dashboard':
+        case 'platform':
+            // Platform development: tasks + files
+            return [
+                createTaskTool,
+                updateTaskTool,
+                deleteItemTool,
+                ...coreTools,
+                ...fileTools
+            ];
+        
+        case 'investors':
+        case 'customers':
+        case 'partners':
+            // CRM: full CRM toolset + files
+            return [
+                createCrmItemTool,
+                updateCrmItemTool,
+                createContactTool,
+                updateContactTool,
+                deleteContactTool,
+                createMeetingTool,
+                updateMeetingTool,
+                deleteMeetingTool,
+                deleteItemTool,
+                ...coreTools,
+                ...fileTools
+            ];
+        
+        case 'marketing':
+            // Marketing: campaigns + tasks
+            return [
+                createMarketingItemTool,
+                updateMarketingItemTool,
+                createTaskTool,
+                updateTaskTool,
+                deleteItemTool,
+                ...coreTools,
+                ...fileTools
+            ];
+        
+        case 'financials':
+            // Financials: logs + tasks
+            return [
+                logFinancialsTool,
+                createTaskTool,
+                updateTaskTool,
+                deleteItemTool,
+                ...coreTools,
+                ...fileTools
+            ];
+        
+        case 'settings':
+            // Settings: limited toolset
+            return [
+                updateSettingsTool,
+                ...coreTools
+            ];
+        
+        default:
+            // Fallback: core tools only
+            return [...coreTools, ...fileTools];
+    }
+};

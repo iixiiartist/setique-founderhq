@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { DatabaseService } from '../lib/services/database';
 import { APP_CONFIG } from '../lib/config';
-import { groqTools } from './groq/tools';
+import { groqTools, getRelevantTools } from './groq/tools';
 
 // Local type definitions (previously from @google/genai)
 interface Part {
@@ -119,7 +119,8 @@ export const getAiResponse = async (
     history: Content[],
     systemPrompt: string,
     useTools: boolean = true,
-    workspaceId?: string
+    workspaceId?: string,
+    currentTab?: string
 ): Promise<GenerateContentResponse> => {
     try {
         // Get the current session for authentication
@@ -169,8 +170,11 @@ export const getAiResponse = async (
         };
 
         if (useTools) {
-            requestBody.tools = groqTools;
+            // Use context-aware tool filtering to reduce token usage
+            const tools = currentTab ? getRelevantTools(currentTab) : groqTools;
+            requestBody.tools = tools;
             requestBody.tool_choice = 'auto';
+            console.log(`[Groq] Using ${tools.length} tools for tab: ${currentTab || 'default'}`);
         }
 
         // Call the secure Edge Function

@@ -183,6 +183,8 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
             onNewMessage={onNewMessage}
             allowFullscreen={true}
             autoFullscreenMobile={false}
+            businessContext={businessContext}
+            teamContext={teamContext}
           />
         </div>
       </div>
