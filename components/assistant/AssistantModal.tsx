@@ -179,8 +179,10 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
             currentTab={currentTab}
             workspaceId={workspaceId}
             onUpgradeNeeded={onUpgradeNeeded}
-            compact={true}
+            compact={false}
             onNewMessage={onNewMessage}
+            allowFullscreen={true}
+            autoFullscreenMobile={false}
           />
         </div>
       </div>

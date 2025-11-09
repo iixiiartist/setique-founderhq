@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { AppActions, TaskCollectionName, NoteableCollectionName, CrmCollectionName, DeletableCollectionName, TabType } from '../../types';
 import { getAiResponse, AILimitError } from '../../services/groqService';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Tab } from '../../constants';
 import { useConversationHistory } from '../../hooks/useConversationHistory';
+import { useFullscreenChat } from '../../hooks/useFullscreenChat';
 
 // Keep using Content format for compatibility
 interface Part {
@@ -28,6 +30,8 @@ interface ModuleAssistantProps {
     onUpgradeNeeded?: () => void;
     compact?: boolean; // For floating modal mode
     onNewMessage?: () => void; // Callback when AI responds (for notifications)
+    allowFullscreen?: boolean; // Enable fullscreen toggle (default: true)
+    autoFullscreenMobile?: boolean; // Auto-open fullscreen on mobile (default: true)
 }
 
 const ModuleAssistant: React.FC<ModuleAssistantProps> = ({ 
@@ -38,7 +42,9 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
     workspaceId,
     onUpgradeNeeded,
     compact = false,
-    onNewMessage
+    onNewMessage,
+    allowFullscreen = true,
+    autoFullscreenMobile = true
 }) => {
     // Use conversation history hook for persistence
     const {
@@ -49,6 +55,9 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
         messageCount,
         exportAsText
     } = useConversationHistory(currentTab);
+    
+    // Fullscreen mode management
+    const { isFullscreen, toggleFullscreen, exitFullscreen, isMobileDevice } = useFullscreenChat();
     
     const [userInput, setUserInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -375,27 +384,34 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
         });
     };
     
-    return (
-        <div className={`bg-white h-full flex flex-col ${compact ? 'p-4' : 'p-6 border-2 border-black shadow-neo max-h-[85vh]'}`}>
-            {!compact && (
-                <div className="flex justify-between items-center mb-4 shrink-0">
-                    <div className="flex items-center gap-2">
-                        <h2 className="text-xl font-semibold text-black">{title}</h2>
+    // Main chat content
+    const chatContent = (
+        <div className={`bg-white h-full flex flex-col ${
+            compact 
+                ? 'p-4' 
+                : isFullscreen
+                    ? 'p-6 h-full'
+                    : 'p-6 border-2 border-black shadow-neo max-h-[85vh]'
+        }`}>
+            {(!compact || isFullscreen) && (
+                <div className="flex justify-between items-center mb-4 shrink-0 flex-wrap gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <h2 className="text-xl font-semibold text-black truncate">{title}</h2>
                         {messageCount > 0 && (
-                            <span className="text-xs text-gray-500" title="Message count">
+                            <span className="text-xs text-gray-500 shrink-0" title="Message count">
                                 ({messageCount})
                             </span>
                         )}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                         <button
                             onClick={handleGenerateReport}
-                            className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all disabled:opacity-50 flex items-center gap-2"
+                            className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all disabled:opacity-50 flex items-center gap-2 shrink-0"
                             disabled={isLoading}
                             title="Generate a summary report of this module"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M12 20V10H4V20H12ZM14 20V4H22V20H14Z" /></svg>
-                            Report
+                            <span className="hidden sm:inline">Report</span>
                         </button>
                         <button
                             onClick={() => {
@@ -405,7 +421,7 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
                                     setTimeout(() => setIsCopied(false), 2000);
                                 });
                             }}
-                            className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all disabled:opacity-50"
+                            className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all disabled:opacity-50 shrink-0"
                             disabled={history.length === 0 || isCopied}
                             title="Copy conversation to clipboard"
                         >
@@ -417,17 +433,36 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
                                     clearPersistedHistory();
                                 }
                             }}
-                            className="font-mono bg-white border-2 border-black text-red-600 hover:bg-red-50 cursor-pointer text-sm py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all disabled:opacity-50"
+                            className="font-mono bg-white border-2 border-black text-red-600 hover:bg-red-50 cursor-pointer text-sm py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all disabled:opacity-50 shrink-0"
                             disabled={history.length === 0}
                             title="Clear conversation history"
                         >
                             Clear
                         </button>
+                        {allowFullscreen && !compact && (
+                            <button
+                                onClick={toggleFullscreen}
+                                className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-gray-50 shrink-0"
+                                title={isFullscreen ? 'Exit fullscreen (Esc)' : 'Enter fullscreen'}
+                                aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                                aria-pressed={isFullscreen}
+                            >
+                                {isFullscreen ? (
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-4 h-4">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M15 15v4.5M15 15h4.5M15 15l5.25 5.25" />
+                                    </svg>
+                                ) : (
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-4 h-4">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+                                    </svg>
+                                )}
+                            </button>
+                        )}
                     </div>
                 </div>
             )}
             
-            <div className="flex-grow overflow-y-auto custom-scrollbar pr-4 mb-4 border-2 border-black bg-gray-50 p-4 min-h-[200px] flex flex-col gap-4">
+            <div className="flex-grow overflow-y-auto custom-scrollbar pr-4 mb-4 border-2 border-black bg-gray-50 p-4 min-h-[200px] flex flex-col gap-4" role="log" aria-live="polite" aria-atomic="false">
                 {history.length === 0 && (
                     <div className="m-auto text-center text-gray-500">
                         Ask me anything about this module!
@@ -570,6 +605,35 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
             </form>
         </div>
     );
+    
+    // Auto-enter fullscreen on mobile if enabled
+    useEffect(() => {
+        if (autoFullscreenMobile && isMobileDevice() && allowFullscreen && !isFullscreen) {
+            // Small delay to ensure component is mounted
+            const timer = setTimeout(() => {
+                toggleFullscreen();
+            }, 100);
+            return () => clearTimeout(timer);
+        }
+    }, []); // Empty deps - only run on mount
+    
+    // Render fullscreen via portal
+    if (isFullscreen && allowFullscreen) {
+        return ReactDOM.createPortal(
+            <div 
+                className="fixed inset-0 z-[1000] bg-white overflow-hidden"
+                role="dialog"
+                aria-modal="true"
+                aria-label={`${title} - Fullscreen mode`}
+            >
+                {chatContent}
+            </div>,
+            document.body
+        );
+    }
+    
+    // Normal embedded view
+    return chatContent;
 };
 
 export default ModuleAssistant;
