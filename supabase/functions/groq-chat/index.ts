@@ -114,10 +114,32 @@ serve(async (req) => {
     if (!groqResponse.ok) {
       const errorText = await groqResponse.text();
       console.error('Groq API error:', errorText);
+      
+      // Parse error response to provide better feedback
+      let errorDetails = errorText;
+      let isRateLimit = false;
+      let retryAfter = null;
+      
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson.error?.code === 'rate_limit_exceeded') {
+          isRateLimit = true;
+          // Extract retry time from error message if available
+          const match = errorJson.error?.message?.match(/try again in (\d+\.?\d*)/i);
+          if (match) {
+            retryAfter = Math.ceil(parseFloat(match[1]));
+          }
+        }
+      } catch (e) {
+        // Keep original error text if parsing fails
+      }
+      
       return new Response(
         JSON.stringify({
-          error: 'Groq API request failed',
+          error: isRateLimit ? 'Rate limit exceeded' : 'Groq API request failed',
           details: errorText,
+          isRateLimit,
+          retryAfter,
         }),
         { status: groqResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

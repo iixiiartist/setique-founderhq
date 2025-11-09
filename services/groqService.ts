@@ -57,32 +57,57 @@ const convertContentToMessages = (history: Content[]): Message[] => {
     return history.map(content => {
         // Handle user/model roles
         const role = content.role === 'model' ? 'assistant' : content.role;
-        
+
         // Extract text from parts
         const textParts = content.parts
             .filter(p => 'text' in p && p.text)
-            .map(p => p.text)
+            .map(p => p.text as string)
             .join('\n');
-        
-        // Check for function calls
-        const functionCallPart = content.parts.find(p => 'functionCall' in p);
-        
+
+        // Check for function calls (an assistant message may contain multiple)
+        const functionCallParts = content.parts.filter(
+            (p): p is Part & { functionCall: NonNullable<Part['functionCall']> } =>
+                'functionCall' in p && !!p.functionCall
+        );
+
+        if (functionCallParts.length > 0) {
+            return {
+                role: 'assistant' as const,
+                content: textParts || '',
+                tool_calls: functionCallParts.map(tc => ({
+                    id: tc.functionCall?.id || (typeof crypto !== 'undefined' && 'randomUUID' in crypto
+                        ? crypto.randomUUID()
+                        : `call_${Math.random().toString(36).slice(2)}`),
+                    type: 'function' as const,
+                    function: {
+                        name: tc.functionCall.name,
+                        arguments: typeof tc.functionCall.args === 'string'
+                            ? tc.functionCall.args
+                            : JSON.stringify(tc.functionCall.args ?? {}),
+                    },
+                })),
+            };
+        }
+
         // Check for function responses
-        const functionResponsePart = content.parts.find(p => 'functionResponse' in p);
-        
-        if (functionResponsePart && 'functionResponse' in functionResponsePart) {
+        const functionResponsePart = content.parts.find(
+            (p): p is Part & { functionResponse: NonNullable<Part['functionResponse']> } =>
+                'functionResponse' in p && !!p.functionResponse
+        );
+
+        if (functionResponsePart) {
             // This is a tool response - must include tool_call_id
             return {
-                role: 'tool',
-                content: typeof functionResponsePart.functionResponse.response === 'string' 
-                    ? functionResponsePart.functionResponse.response 
+                role: 'tool' as const,
+                content: typeof functionResponsePart.functionResponse.response === 'string'
+                    ? functionResponsePart.functionResponse.response
                     : JSON.stringify(functionResponsePart.functionResponse.response),
                 tool_call_id: functionResponsePart.functionResponse.id || 'unknown',
                 name: functionResponsePart.functionResponse.name,
             };
         }
-        
-        // For messages with no text content (like function calls), provide empty string
+
+        // For messages with no text content (like empty assistant acknowledgements), provide empty string
         return {
             role: role as 'user' | 'assistant' | 'tool',
             content: textParts || '',
@@ -162,6 +187,16 @@ export const getAiResponse = async (
 
         if (data?.error) {
             console.error('[Groq] API error:', data.details);
+            
+            // Check if it's a rate limit error
+            if ((data as any).isRateLimit) {
+                const retryAfter = (data as any).retryAfter;
+                const message = retryAfter 
+                    ? `Rate limit exceeded. Please wait ${retryAfter} seconds before trying again.`
+                    : 'Rate limit exceeded. Please wait a moment before trying again.';
+                throw new Error(message);
+            }
+            
             throw new Error(data.error);
         }
 

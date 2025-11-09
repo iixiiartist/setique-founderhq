@@ -964,6 +964,19 @@ export class DatabaseService {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
+      const { data: seatStatus, error: seatError } = await this.getWorkspaceSeatStatus(workspaceId)
+      if (seatError) throw seatError
+
+      if (seatStatus) {
+        const availableSeats = seatStatus.seatCount - seatStatus.usedSeats - seatStatus.pendingInvites
+        if (availableSeats <= 0) {
+          return {
+            data: null,
+            error: new Error('All seats are already allocated. Increase your seat count before inviting more members.')
+          }
+        }
+      }
+
       // Get workspace and user profile for email
       const { data: workspace } = await supabase
         .from('workspaces')
@@ -1056,6 +1069,38 @@ export class DatabaseService {
     } catch (error) {
       logger.error('Error fetching workspace invitations:', error)
       return { data: [], error }
+    }
+  }
+
+  static async getWorkspaceSeatStatus(workspaceId: string) {
+    try {
+      const { data: subscription, error: subscriptionError } = await supabase
+        .from('subscriptions')
+        .select('seat_count, used_seats')
+        .eq('workspace_id', workspaceId)
+        .maybeSingle()
+
+      if (subscriptionError) throw subscriptionError
+
+      const { count: pendingInvites, error: inviteError } = await supabase
+        .from('workspace_invitations')
+        .select('id', { count: 'exact', head: true })
+        .eq('workspace_id', workspaceId)
+        .eq('status', 'pending')
+
+      if (inviteError) throw inviteError
+
+      return {
+        data: {
+          seatCount: subscription?.seat_count ?? 1,
+          usedSeats: subscription?.used_seats ?? 0,
+          pendingInvites: pendingInvites ?? 0
+        },
+        error: null
+      }
+    } catch (error) {
+      logger.error('Error fetching workspace seat status:', error)
+      return { data: null, error }
     }
   }
 
@@ -1378,7 +1423,7 @@ export class DatabaseService {
       // Get subscription for workspace
       const { data: subscription, error: subError } = await supabase
         .from('subscriptions')
-        .select('plan_type, ai_requests_used, seat_count')
+        .select('plan_type, ai_requests_used, ai_requests_limit, seat_count')
         .eq('workspace_id', workspaceId)
         .maybeSingle();
 
@@ -1417,31 +1462,19 @@ export class DatabaseService {
       // Default to free plan if no subscription
       const planType = subscription?.plan_type || 'free';
       const currentUsage = subscription?.ai_requests_used || 0;
-      const seatCount = subscription?.seat_count || 1;
+      const configuredLimit = subscription?.ai_requests_limit ?? Number.MAX_SAFE_INTEGER;
+      const isUnlimitedPlan = subscription?.ai_requests_limit == null;
+      const allowed = isUnlimitedPlan || currentUsage < configuredLimit;
 
-      // Define limits per plan
-      const limits: Record<string, number> = {
-        'free': 20,
-        'pro-individual': 500,
-        'power-individual': 999999, // Unlimited (high number)
-        'team-starter': 500 * seatCount, // 500 per user
-        'team-pro': 999999, // Unlimited
-      };
-
-      const limit = limits[planType] || 20;
-      
-      // IMPORTANT: Team Pro and Power Individual have unlimited AI - always allow
-      const isUnlimitedPlan = planType === 'team-pro' || planType === 'power-individual';
-      const allowed = isUnlimitedPlan || currentUsage < limit;
-
-      logger.info(`[Database] AI Limit Check: ${currentUsage}/${limit} (${planType}), IsUnlimited: ${isUnlimitedPlan}, Allowed: ${allowed}`);
+      const logLimit = isUnlimitedPlan ? 'unlimited' : configuredLimit;
+      logger.info(`[Database] AI Limit Check: ${currentUsage}/${logLimit} (${planType}), IsUnlimited: ${isUnlimitedPlan}, Allowed: ${allowed}`);
 
       return { 
         allowed, 
-        usage: currentUsage, 
-        limit, 
+        usage: currentUsage,
+        limit: isUnlimitedPlan ? Number.MAX_SAFE_INTEGER : configuredLimit,
         planType,
-        error: null 
+        error: null
       };
     } catch (error) {
       logger.error('[Database] Error checking AI limit:', error);
@@ -1458,43 +1491,13 @@ export class DatabaseService {
 
   static async incrementAIUsage(workspaceId: string, userId?: string) {
     try {
-      // Get current subscription
-      const { data: subscription, error: fetchError } = await supabase
-        .from('subscriptions')
-        .select('ai_requests_used')
-        .eq('workspace_id', workspaceId)
-        .maybeSingle();
+      const { error: rpcError } = await supabase.rpc('increment_ai_usage', {
+        p_workspace_id: workspaceId
+      });
 
-      if (fetchError) throw fetchError;
+      if (rpcError) throw rpcError;
 
-      const currentCount = (subscription?.ai_requests_used || 0) + 1;
-
-      // If no subscription exists, create one with free plan
-      if (!subscription) {
-        const { error: createError } = await supabase
-          .from('subscriptions')
-          .insert({
-            workspace_id: workspaceId,
-            plan_type: 'free',
-            ai_requests_used: 1,
-            ai_requests_reset_at: new Date().toISOString()
-          });
-
-        if (createError) throw createError;
-        logger.info('[Database] Created subscription and incremented AI usage');
-      } else {
-        // Increment usage
-        const { error: updateError } = await supabase
-          .from('subscriptions')
-          .update({ 
-            ai_requests_used: currentCount,
-            updated_at: new Date().toISOString()
-          })
-          .eq('workspace_id', workspaceId);
-
-        if (updateError) throw updateError;
-        logger.info('[Database] Incremented AI usage:', currentCount);
-      }
+      logger.info('[Database] Incremented AI usage via RPC for workspace:', workspaceId);
 
       // Log AI usage for analytics (admin only feature)
       if (userId) {

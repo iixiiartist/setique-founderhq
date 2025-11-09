@@ -18,7 +18,7 @@ const createTaskTool: GroqTool = {
     type: 'function',
     function: {
         name: 'createTask',
-        description: 'Creates a new task for a specific category. You can optionally assign the task to a specific team member.',
+        description: 'Creates a new task for a specific category. You can optionally assign the task to a specific team member by providing their user ID (UUID format).',
         parameters: {
             type: 'object',
             properties: {
@@ -33,8 +33,14 @@ const createTaskTool: GroqTool = {
                     description: 'The priority of the task.',
                     enum: ['Low', 'Medium', 'High']
                 },
-                dueDate: { type: 'string', description: 'Optional. The due date for the task in YYYY-MM-DD format.' },
-                assignedTo: { type: 'string', description: 'Optional. Email address of the team member to assign this task to. Only use if a specific person should handle this task.' }
+                dueDate: { 
+                    type: ['string', 'null'], 
+                    description: 'Optional. The due date for the task in YYYY-MM-DD format. Set to null if no due date.' 
+                },
+                assignedTo: { 
+                    type: ['string', 'null'], 
+                    description: 'Optional. User ID (UUID) of the team member to assign this task to. Set to null or omit if the task should be unassigned. Do NOT use email addresses.' 
+                }
             },
             required: ['category', 'text', 'priority']
         }
