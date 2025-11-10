@@ -263,14 +263,16 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
         setRateLimitError(null); // Clear any previous rate limit errors
 
         const userMessageParts: any[] = [];
-        let textPart = prompt;
+        let textPart = prompt; // This is what the user actually typed
+        let textPartForAI = prompt; // This is what we send to AI (may include context)
 
-        // Inject business/team context on first message only
+        // Inject business/team context on first message only (for AI, not displayed to user)
         if (history.length === 0 && (businessContext || teamContext)) {
             const contextParts: string[] = [];
             if (businessContext) contextParts.push(businessContext);
             if (teamContext) contextParts.push(teamContext);
-            textPart = `${contextParts.join('\n\n')}\n\n${prompt}`;
+            // Prepend context to AI message, but keep user's displayed message clean
+            textPartForAI = `${contextParts.join('\n\n')}\n\n${prompt}`;
         }
 
         // Handle file attachment with cost optimization
@@ -279,6 +281,7 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
         if (file && fileContent && prompt === userInput) {
             fileName = file.name;
             textPart = `[File Attached: ${fileName}]\n\n${prompt}`;
+            textPartForAI = `[File Attached: ${fileName}]\n\n${textPartForAI}`;
             
             // Calculate file size for cost optimization (base64 is ~33% larger than original)
             const fileSizeBytes = Math.ceil((fileContent.length * 3) / 4);
@@ -313,10 +316,13 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
             });
         }
 
-        userMessageParts.unshift({ text: textPart });
+        // Use textPartForAI for sending to AI, but textPart for display
+        userMessageParts.unshift({ text: textPartForAI });
 
-        // Add user message to history
-        addMessage({ role: 'user', parts: userMessageParts });
+        // Add user message to history (with display text, not AI text)
+        addMessage({ role: 'user', parts: [{ text: textPart }, ...userMessageParts.slice(1)] });
+        
+        // Send to AI with context included
         let currentHistory: Content[] = [...history, { role: 'user', parts: userMessageParts }];
         setAiLimitError(null); // Clear any previous error
         
