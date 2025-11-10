@@ -94,6 +94,8 @@ BEGIN
                 plan_type = EXCLUDED.plan_type,
                 seat_count = EXCLUDED.seat_count,
                 ai_requests_limit = EXCLUDED.ai_requests_limit,
+                status = EXCLUDED.status,
+                ai_requests_reset_at = EXCLUDED.ai_requests_reset_at,
                 updated_at = NOW();
         EXCEPTION WHEN undefined_table THEN NULL;
         END;
@@ -123,6 +125,8 @@ BEGIN
                 plan_type = EXCLUDED.plan_type,
                 seat_count = EXCLUDED.seat_count,
                 ai_requests_limit = EXCLUDED.ai_requests_limit,
+                status = EXCLUDED.status,
+                ai_requests_reset_at = EXCLUDED.ai_requests_reset_at,
                 updated_at = NOW();
         EXCEPTION WHEN undefined_table THEN NULL;
         END;
@@ -152,6 +156,8 @@ BEGIN
                 plan_type = EXCLUDED.plan_type,
                 seat_count = EXCLUDED.seat_count,
                 ai_requests_limit = EXCLUDED.ai_requests_limit,
+                status = EXCLUDED.status,
+                ai_requests_reset_at = EXCLUDED.ai_requests_reset_at,
                 updated_at = NOW();
         EXCEPTION WHEN undefined_table THEN NULL;
         END;
