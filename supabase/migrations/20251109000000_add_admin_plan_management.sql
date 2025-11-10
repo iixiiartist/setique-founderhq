@@ -89,7 +89,7 @@ BEGIN
         -- Also update subscriptions table if it exists (free plan)
         BEGIN
             INSERT INTO subscriptions (workspace_id, plan_type, status, seat_count, used_seats, ai_requests_used, ai_requests_limit, ai_requests_reset_at, storage_bytes_used, file_count_used)
-            VALUES (target_workspace_id, new_plan_type::plan_type, 'active', 1, 1, 0, NULL, NOW(), 0, 0)
+            VALUES (target_workspace_id, new_plan_type::plan_type, 'active', 1, 1, 0, 50, NOW(), 0, 0)
             ON CONFLICT (workspace_id) DO UPDATE SET
                 plan_type = EXCLUDED.plan_type,
                 seat_count = EXCLUDED.seat_count,
@@ -117,7 +117,7 @@ BEGIN
         -- Also update subscriptions table if it exists (power-individual)
         BEGIN
             INSERT INTO subscriptions (workspace_id, plan_type, status, seat_count, used_seats, ai_requests_used, ai_requests_limit, ai_requests_reset_at, storage_bytes_used, file_count_used)
-            VALUES (target_workspace_id, new_plan_type::plan_type, 'active', 1, 1, 0, NULL, NOW(), 0, 0)
+            VALUES (target_workspace_id, new_plan_type::plan_type, 'active', 1, 1, 0, 500, NOW(), 0, 0)
             ON CONFLICT (workspace_id) DO UPDATE SET
                 plan_type = EXCLUDED.plan_type,
                 seat_count = EXCLUDED.seat_count,
@@ -145,7 +145,7 @@ BEGIN
         -- Also update subscriptions table if it exists (team-pro)
         BEGIN
             INSERT INTO subscriptions (workspace_id, plan_type, status, seat_count, used_seats, ai_requests_used, ai_requests_limit, ai_requests_reset_at, storage_bytes_used, file_count_used)
-            VALUES (target_workspace_id, new_plan_type::plan_type, 'active', COALESCE(new_seats, 5), 1, 0, NULL, NOW(), 0, 0)
+            VALUES (target_workspace_id, new_plan_type::plan_type, 'active', COALESCE(new_seats, 5), 1, 0, 1000, NOW(), 0, 0)
             ON CONFLICT (workspace_id) DO UPDATE SET
                 plan_type = EXCLUDED.plan_type,
                 seat_count = EXCLUDED.seat_count,
