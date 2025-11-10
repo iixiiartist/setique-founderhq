@@ -78,6 +78,21 @@ export const DocEditor: React.FC<DocEditorProps> = ({
         }
     };
 
+    const handleSendToAI = () => {
+        if (!editor) return;
+        
+        const contentText = editor.getText();
+        const docInfo = `Document: ${title}\nType: ${DOC_TYPE_LABELS[docType]}\nVisibility: ${visibility}\n\n${contentText}`;
+        
+        // Copy to clipboard
+        navigator.clipboard.writeText(docInfo).then(() => {
+            alert('Document content copied to clipboard!\n\nNow:\n1. Click the AI Assistant button (💬) at the bottom right\n2. Paste the content into the chat\n3. Ask the AI to help with your GTM document');
+        }).catch(err => {
+            console.error('Failed to copy:', err);
+            alert('Unable to copy to clipboard. Please select and copy the document content manually.');
+        });
+    };
+
     const handleSave = async () => {
         if (!editor) return;
         
@@ -396,15 +411,18 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                         )}
                     </div>
 
-                    {/* AI Integration Placeholder */}
-                    <div className="mb-4 p-3 bg-yellow-100 border-2 border-yellow-400">
+                    {/* AI Integration */}
+                    <div className="mb-4 p-3 bg-purple-100 border-2 border-purple-400">
                         <p className="text-xs font-bold mb-2">🤖 AI Actions</p>
                         <button
-                            className="w-full px-2 py-1 text-sm font-bold bg-white border-2 border-black hover:bg-gray-100 disabled:opacity-50"
-                            disabled
+                            onClick={handleSendToAI}
+                            className="w-full px-2 py-2 text-sm font-bold bg-purple-600 text-white border-2 border-black hover:bg-purple-700 transition-colors"
                         >
-                            Send to AI (Coming Soon)
+                            📤 Send to AI Chat
                         </button>
+                        <p className="text-xs text-gray-600 mt-2">
+                            Open AI assistant with this document as context
+                        </p>
                     </div>
                 </div>
             </div>
