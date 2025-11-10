@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { APP_CONFIG } from '../../lib/config';
 import { clearInvitationToken } from '../../lib/utils/tokenStorage';
+import { PasswordSetupForm } from './PasswordSetupForm';
 
 interface InviteAcceptPageProps {
     token: string;
@@ -21,7 +22,7 @@ interface InviteAcceptResult {
 }
 
 export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onComplete }) => {
-    const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'needs_login'>('loading');
+    const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'needs_login' | 'setup_password'>('loading');
     const [message, setMessage] = useState('');
     const [inviteData, setInviteData] = useState<InviteAcceptResult | null>(null);
     const hasAttemptedRef = useRef(false);
@@ -64,31 +65,8 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
             setInviteData(result);
 
             if (result.isNewUser) {
-                // New user created
-                if (result.magicLink) {
-                    // We have a magic link - redirect user to it immediately
-                    setStatus('success');
-                    setMessage(`Welcome! Redirecting you to set up your password...`);
-                    setTimeout(() => {
-                        window.location.href = result.magicLink;
-                    }, 1500);
-                } else if (result.passwordResetSent) {
-                    // Email was sent successfully
-                    setStatus('success');
-                    setMessage(
-                        `Welcome to ${result.workspace_name || 'the workspace'}!\n\n` +
-                        `We've sent a password setup link to ${result.email}.\n\n` +
-                        `Please check your email and click the link to set your password and complete your account setup.`
-                    );
-                } else {
-                    // Fallback if password reset email failed
-                    setStatus('error');
-                    setMessage(
-                        `Your account was created and you've been added to ${result.workspace_name || 'the workspace'}, ` +
-                        `but we couldn't send the password setup email.\n\n` +
-                        `Please contact support or use the "Forgot Password" feature to set up your password.`
-                    );
-                }
+                // New user created - show password setup form directly
+                setStatus('setup_password');
             } else if (result.needsAuth) {
                 // Existing user needs to log in - prefill their email
                 setStatus('needs_login');
@@ -145,6 +123,19 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
                     <p className="text-gray-600">{message}</p>
                 </div>
             </div>
+        );
+    }
+
+    if (status === 'setup_password' && inviteData) {
+        return (
+            <PasswordSetupForm
+                email={inviteData.email || ''}
+                workspaceName={inviteData.workspace_name || 'the workspace'}
+                onComplete={() => {
+                    clearInvitationToken();
+                    onComplete();
+                }}
+            />
         );
     }
 
