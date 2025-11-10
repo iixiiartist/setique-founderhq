@@ -22,6 +22,7 @@ const FileLibraryTab = lazy(() => import('./components/FileLibraryTab'));
 const AdminTab = lazy(() => import('./components/AdminTab'));
 const AchievementsTab = lazy(() => import('./components/AchievementsTab'));
 const CalendarTab = lazy(() => import('./components/CalendarTab'));
+const WorkspaceTab = lazy(() => import('./components/workspace/WorkspaceTab'));
 import { BusinessProfileSetup } from './components/BusinessProfileSetup';
 import { AcceptInviteNotification } from './components/shared/AcceptInviteNotification';
 import { NotificationBell } from './components/shared/NotificationBell';
@@ -2106,6 +2107,33 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             workspaceMembers={workspaceMembers}
                             onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
                         />
+                    </Suspense>
+                );
+            case Tab.Workspace:
+                // GTM Docs - available for all paid plans
+                if (workspace?.planType === 'free') {
+                    return (
+                        <div className="p-8 text-center">
+                            <div className="max-w-md mx-auto">
+                                <div className="mb-6 text-6xl">📋</div>
+                                <h2 className="text-2xl font-bold mb-4">GTM Docs - Premium Feature</h2>
+                                <p className="text-gray-600 mb-6">
+                                    Create and collaborate on GTM briefs, campaign plans, battlecards, and more with rich text editing and AI integration. Available on Power and Team Pro plans.
+                                </p>
+                                <button
+                                    onClick={() => setActiveTab(Tab.Settings)}
+                                    className="px-6 py-3 bg-yellow-400 text-black font-bold border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+                                    aria-label="Upgrade to Power or Team Pro plan to access GTM Docs"
+                                >
+                                    Upgrade to Access GTM Docs
+                                </button>
+                            </div>
+                        </div>
+                    );
+                }
+                return (
+                    <Suspense fallback={<TabLoadingFallback />}>
+                        <WorkspaceTab workspaceId={workspace?.id || ''} userId={user?.id || ''} />
                     </Suspense>
                 );
             case Tab.Documents:

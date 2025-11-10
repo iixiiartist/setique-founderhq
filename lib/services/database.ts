@@ -1,6 +1,6 @@
 import { supabase } from '../supabase'
 import { Database } from '../types/database'
-import { DashboardData, Task, AnyCrmItem, Contact, Meeting, MarketingItem, FinancialLog, Document, SettingsData, GamificationData, Priority } from '../../types'
+import { DashboardData, Task, AnyCrmItem, Contact, Meeting, MarketingItem, FinancialLog, Document, SettingsData, GamificationData, Priority, GTMDoc, GTMDocMetadata, LinkedDoc } from '../../types'
 import { dbToTasks, dbToMarketingItems, dbToFinancialLogs, dbToCrmItem, dbToContacts } from '../utils/fieldTransformers'
 import { logger } from '../logger'
 
@@ -2050,6 +2050,365 @@ export class DatabaseService {
       return { data: dashboardData, error: null }
     } catch (error) {
       logger.error('Error fetching dashboard data:', error)
+      return { data: null, error }
+    }
+  }
+
+  // ============================================================================
+  // GTM Docs Operations
+  // ============================================================================
+
+  static async loadGTMDocs(workspaceId: string, options?: {
+    filter?: 'all' | 'mine' | 'team' | 'templates',
+    docType?: string,
+    userId?: string
+  }) {
+    try {
+      let query = supabase
+        .from('gtm_docs')
+        .select('id, workspace_id, owner_id, created_at, updated_at, title, doc_type, visibility, is_template, template_category, tags')
+        .eq('workspace_id', workspaceId)
+
+      // Apply filters
+      if (options?.filter === 'mine' && options?.userId) {
+        query = query.eq('owner_id', options.userId)
+      } else if (options?.filter === 'templates') {
+        query = query.eq('is_template', true)
+      }
+
+      if (options?.docType && options.docType !== 'all') {
+        query = query.eq('doc_type', options.docType)
+      }
+
+      const { data, error } = await query.order('updated_at', { ascending: false })
+
+      if (error) throw error
+
+      // Transform to camelCase
+      const docs = data?.map(dbDoc => ({
+        id: dbDoc.id,
+        workspaceId: dbDoc.workspace_id,
+        ownerId: dbDoc.owner_id,
+        createdAt: dbDoc.created_at,
+        updatedAt: dbDoc.updated_at,
+        title: dbDoc.title,
+        docType: dbDoc.doc_type,
+        visibility: dbDoc.visibility,
+        isTemplate: dbDoc.is_template,
+        templateCategory: dbDoc.template_category,
+        tags: dbDoc.tags || [],
+      })) || []
+
+      return { data: docs, error: null }
+    } catch (error) {
+      logger.error('Error loading GTM docs:', error)
+      return { data: null, error }
+    }
+  }
+
+  static async loadGTMDocById(docId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('gtm_docs')
+        .select('*')
+        .eq('id', docId)
+        .single()
+
+      if (error) throw error
+
+      // Transform to camelCase
+      const doc = {
+        id: data.id,
+        workspaceId: data.workspace_id,
+        ownerId: data.owner_id,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+        title: data.title,
+        docType: data.doc_type,
+        contentJson: data.content_json,
+        contentPlain: data.content_plain,
+        visibility: data.visibility,
+        isTemplate: data.is_template,
+        templateCategory: data.template_category,
+        tags: data.tags || [],
+      }
+
+      return { data: doc, error: null }
+    } catch (error) {
+      logger.error('Error loading GTM doc:', error)
+      return { data: null, error }
+    }
+  }
+
+  static async createGTMDoc(docData: {
+    workspaceId: string,
+    userId: string,
+    title: string,
+    docType: string,
+    contentJson?: any,
+    contentPlain?: string,
+    visibility?: 'private' | 'team',
+    isTemplate?: boolean,
+    templateCategory?: string,
+    tags?: string[]
+  }) {
+    try {
+      const { data, error } = await supabase
+        .from('gtm_docs')
+        .insert({
+          workspace_id: docData.workspaceId,
+          owner_id: docData.userId,
+          title: docData.title,
+          doc_type: docData.docType,
+          content_json: docData.contentJson || null,
+          content_plain: docData.contentPlain || '',
+          visibility: docData.visibility || 'team',
+          is_template: docData.isTemplate || false,
+          template_category: docData.templateCategory || null,
+          tags: docData.tags || [],
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Transform to camelCase
+      const doc = {
+        id: data.id,
+        workspaceId: data.workspace_id,
+        ownerId: data.owner_id,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+        title: data.title,
+        docType: data.doc_type,
+        contentJson: data.content_json,
+        contentPlain: data.content_plain,
+        visibility: data.visibility,
+        isTemplate: data.is_template,
+        templateCategory: data.template_category,
+        tags: data.tags || [],
+      }
+
+      logger.info('[Database] Created GTM doc:', { docId: doc.id, title: doc.title })
+      return { data: doc, error: null }
+    } catch (error) {
+      logger.error('Error creating GTM doc:', error)
+      return { data: null, error }
+    }
+  }
+
+  static async updateGTMDoc(docId: string, updates: {
+    title?: string,
+    docType?: string,
+    contentJson?: any,
+    contentPlain?: string,
+    visibility?: 'private' | 'team',
+    tags?: string[]
+  }) {
+    try {
+      const updateData: any = {
+        updated_at: new Date().toISOString()
+      }
+
+      if (updates.title !== undefined) updateData.title = updates.title
+      if (updates.docType !== undefined) updateData.doc_type = updates.docType
+      if (updates.contentJson !== undefined) updateData.content_json = updates.contentJson
+      if (updates.contentPlain !== undefined) updateData.content_plain = updates.contentPlain
+      if (updates.visibility !== undefined) updateData.visibility = updates.visibility
+      if (updates.tags !== undefined) updateData.tags = updates.tags
+
+      const { data, error } = await supabase
+        .from('gtm_docs')
+        .update(updateData)
+        .eq('id', docId)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Transform to camelCase
+      const doc = {
+        id: data.id,
+        workspaceId: data.workspace_id,
+        ownerId: data.owner_id,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+        title: data.title,
+        docType: data.doc_type,
+        contentJson: data.content_json,
+        contentPlain: data.content_plain,
+        visibility: data.visibility,
+        isTemplate: data.is_template,
+        templateCategory: data.template_category,
+        tags: data.tags || [],
+      }
+
+      logger.info('[Database] Updated GTM doc:', { docId: doc.id })
+      return { data: doc, error: null }
+    } catch (error) {
+      logger.error('Error updating GTM doc:', error)
+      return { data: null, error }
+    }
+  }
+
+  static async deleteGTMDoc(docId: string) {
+    try {
+      const { error } = await supabase
+        .from('gtm_docs')
+        .delete()
+        .eq('id', docId)
+
+      if (error) throw error
+
+      logger.info('[Database] Deleted GTM doc:', { docId })
+      return { data: true, error: null }
+    } catch (error) {
+      logger.error('Error deleting GTM doc:', error)
+      return { data: false, error }
+    }
+  }
+
+  static async searchGTMDocs(workspaceId: string, searchQuery: string) {
+    try {
+      // Use full-text search with ts_rank for relevance
+      const { data, error } = await supabase
+        .rpc('search_gtm_docs', {
+          workspace_id_param: workspaceId,
+          search_query: searchQuery
+        })
+
+      if (error) throw error
+
+      // Transform to camelCase
+      const docs = data?.map((dbDoc: any) => ({
+        id: dbDoc.id,
+        workspaceId: dbDoc.workspace_id,
+        ownerId: dbDoc.owner_id,
+        createdAt: dbDoc.created_at,
+        updatedAt: dbDoc.updated_at,
+        title: dbDoc.title,
+        docType: dbDoc.doc_type,
+        visibility: dbDoc.visibility,
+        isTemplate: dbDoc.is_template,
+        tags: dbDoc.tags || [],
+      })) || []
+
+      return { data: docs, error: null }
+    } catch (error) {
+      // Fallback to basic ILIKE search if RPC function doesn't exist yet
+      logger.warn('Full-text search not available, falling back to ILIKE:', error)
+      
+      const { data, error: fallbackError } = await supabase
+        .from('gtm_docs')
+        .select('id, workspace_id, owner_id, created_at, updated_at, title, doc_type, visibility, is_template, tags')
+        .eq('workspace_id', workspaceId)
+        .or(`title.ilike.%${searchQuery}%,content_plain.ilike.%${searchQuery}%`)
+        .order('updated_at', { ascending: false })
+
+      if (fallbackError) throw fallbackError
+
+      const docs = data?.map(dbDoc => ({
+        id: dbDoc.id,
+        workspaceId: dbDoc.workspace_id,
+        ownerId: dbDoc.owner_id,
+        createdAt: dbDoc.created_at,
+        updatedAt: dbDoc.updated_at,
+        title: dbDoc.title,
+        docType: dbDoc.doc_type,
+        visibility: dbDoc.visibility,
+        isTemplate: dbDoc.is_template,
+        tags: dbDoc.tags || [],
+      })) || []
+
+      return { data: docs, error: null }
+    }
+  }
+
+  static async linkDocToEntity(docId: string, entityType: 'task' | 'event' | 'crm' | 'chat' | 'contact', entityId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('gtm_doc_links')
+        .insert({
+          doc_id: docId,
+          linked_entity_type: entityType,
+          linked_entity_id: entityId
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      logger.info('[Database] Linked GTM doc:', { docId, entityType, entityId })
+      return { data: true, error: null }
+    } catch (error) {
+      logger.error('Error linking GTM doc:', error)
+      return { data: false, error }
+    }
+  }
+
+  static async unlinkDocFromEntity(docId: string, entityId: string) {
+    try {
+      const { error } = await supabase
+        .from('gtm_doc_links')
+        .delete()
+        .eq('doc_id', docId)
+        .eq('linked_entity_id', entityId)
+
+      if (error) throw error
+
+      logger.info('[Database] Unlinked GTM doc:', { docId, entityId })
+      return { data: true, error: null }
+    } catch (error) {
+      logger.error('Error unlinking GTM doc:', error)
+      return { data: false, error }
+    }
+  }
+
+  static async getLinkedDocs(entityType: 'task' | 'event' | 'crm' | 'chat' | 'contact', entityId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('gtm_doc_links')
+        .select(`
+          id,
+          doc_id,
+          created_at,
+          gtm_docs (
+            id,
+            workspace_id,
+            owner_id,
+            created_at,
+            updated_at,
+            title,
+            doc_type,
+            visibility,
+            is_template,
+            tags
+          )
+        `)
+        .eq('linked_entity_type', entityType)
+        .eq('linked_entity_id', entityId)
+
+      if (error) throw error
+
+      // Transform to camelCase with LinkedDoc structure
+      const linkedDocs = data?.map((link: any) => ({
+        id: link.gtm_docs.id,
+        workspaceId: link.gtm_docs.workspace_id,
+        ownerId: link.gtm_docs.owner_id,
+        createdAt: link.gtm_docs.created_at,
+        updatedAt: link.gtm_docs.updated_at,
+        title: link.gtm_docs.title,
+        docType: link.gtm_docs.doc_type,
+        visibility: link.gtm_docs.visibility,
+        isTemplate: link.gtm_docs.is_template,
+        tags: link.gtm_docs.tags || [],
+        linkedAt: link.created_at,
+        linkId: link.id,
+      })) || []
+
+      return { data: linkedDocs, error: null }
+    } catch (error) {
+      logger.error('Error loading linked docs:', error)
       return { data: null, error }
     }
   }

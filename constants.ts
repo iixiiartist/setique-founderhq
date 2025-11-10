@@ -9,6 +9,7 @@ export const Tab = {
     Partners: 'partnerships',
     Marketing: 'marketing',
     Financials: 'financials',
+    Workspace: 'workspace',
     Documents: 'documents',
     Achievements: 'achievements',
     Settings: 'settings',
@@ -31,6 +32,7 @@ export const NAV_ITEMS: NavItem[] = [
     { id: Tab.Partners, label: 'Partnerships' },
     { id: Tab.Marketing, label: 'Marketing' },
     { id: Tab.Financials, label: 'Financials' },
+    { id: Tab.Workspace, label: 'GTM Docs' },
     { id: Tab.Documents, label: 'File Library' },
     { id: Tab.Achievements, label: 'Achievements' },
     { id: Tab.Settings, label: 'Settings' },
@@ -335,4 +337,38 @@ export const TASK_TAG_BORDER_COLORS: Record<string, string> = {
     Partner: 'border-t-purple-400',
     Marketing: 'border-t-pink-400',
     Financials: 'border-t-yellow-400',
+};
+
+// GTM Docs Constants
+export const DOC_TYPE_LABELS: Record<string, string> = {
+    brief: 'GTM Brief',
+    campaign: 'Campaign Plan',
+    meeting_notes: 'Meeting Notes',
+    battlecard: 'Battlecard',
+    outbound_template: 'Outbound Template',
+    icp_sheet: 'ICP Sheet',
+    persona: 'Persona Profile',
+    competitive_snapshot: 'Competitive Snapshot',
+};
+
+export const DOC_TYPE_ICONS: Record<string, string> = {
+    brief: '📋',
+    campaign: '🚀',
+    meeting_notes: '📝',
+    battlecard: '⚔️',
+    outbound_template: '✉️',
+    icp_sheet: '🎯',
+    persona: '👤',
+    competitive_snapshot: '🔍',
+};
+
+export const DOC_TYPE_DESCRIPTIONS: Record<string, string> = {
+    brief: 'Comprehensive GTM strategy and launch brief',
+    campaign: 'Marketing campaign planning and execution',
+    meeting_notes: 'Meeting notes, action items, and decisions',
+    battlecard: 'Competitive positioning and objection handling',
+    outbound_template: 'Email templates and outbound messaging',
+    icp_sheet: 'Ideal Customer Profile definition',
+    persona: 'Detailed buyer persona and use cases',
+    competitive_snapshot: 'Competitive landscape analysis',
 };

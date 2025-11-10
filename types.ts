@@ -436,6 +436,58 @@ export interface Document {
     notes: Note[];
 }
 
+// GTM Docs - Rich text document authoring system
+export type DocType = 
+    | 'brief'
+    | 'campaign'
+    | 'meeting_notes'
+    | 'battlecard'
+    | 'outbound_template'
+    | 'icp_sheet'
+    | 'persona'
+    | 'competitive_snapshot';
+
+export type DocVisibility = 'private' | 'team';
+
+export type LinkedEntityType = 'task' | 'event' | 'crm' | 'chat' | 'contact';
+
+export interface GTMDoc {
+    id: string;
+    workspaceId: string;
+    ownerId: string;
+    createdAt: string;
+    updatedAt: string;
+    title: string;
+    docType: DocType;
+    contentJson: any; // Tiptap JSON format
+    contentPlain: string; // Plain text for search and AI
+    visibility: DocVisibility;
+    isTemplate: boolean;
+    templateCategory?: string;
+    tags: string[];
+    searchVector?: string; // Not typically used in frontend
+}
+
+// Metadata-only version without heavy content (for lists/previews)
+export interface GTMDocMetadata extends Omit<GTMDoc, 'contentJson' | 'contentPlain'> {
+    // Adds preview if needed
+    contentPreview?: string;
+}
+
+export interface GTMDocLink {
+    id: string;
+    docId: string;
+    linkedEntityType: LinkedEntityType;
+    linkedEntityId: string;
+    createdAt: string;
+}
+
+// For displaying linked docs with entity details
+export interface LinkedDoc extends GTMDocMetadata {
+    linkedAt: string;
+    linkId: string; // The gtm_doc_links.id for unlinking
+}
+
 export type AchievementId = 
     'first-task' | 'first-investor' | 'first-customer' | 'first-partner' |
     'ten-tasks' | 'first-deal' | 'content-machine' |
