@@ -186,6 +186,10 @@
     .markdown-content {
         font-size: 1rem;
         line-height: 1.6;
+        max-width: 100%;
+        overflow-wrap: break-word;
+        word-wrap: break-word;
+        word-break: break-word;
     }
     .markdown-content p {
         margin-bottom: 0.75rem;
@@ -218,6 +222,8 @@
         padding: 0.75rem;
         margin-bottom: 1rem;
         overflow-x: auto;
+        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        max-width: 100%;
         font-family: 'IBM Plex Mono', monospace;
     }
     .markdown-content code {
@@ -259,8 +265,12 @@
     
     /* Mobile-specific table adjustments */
     @media (max-width: 768px) {
+        .markdown-content {
+            font-size: 0.9375rem; /* Slightly smaller for better mobile fit */
+        }
         .markdown-content table {
             font-size: 0.875rem; /* Slightly smaller text on mobile */
+            max-width: 100%;
         }
         .markdown-content th, .markdown-content td {
             padding: 0.375rem 0.5rem; /* Tighter padding on mobile */
@@ -271,6 +281,10 @@
         .markdown-content pre {
             font-size: 0.875rem;
             padding: 0.5rem;
+            max-width: calc(100vw - 4rem); /* Ensure code blocks don't exceed viewport */
+        }
+        .markdown-content p {
+            margin-bottom: 0.5rem; /* Tighter spacing on mobile */
         }
     }
     .markdown-content th {
