@@ -157,11 +157,11 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     return (
         <div className="h-full flex flex-col">
             {/* Header */}
-            <div className="p-4 border-b-2 border-black bg-white flex items-center justify-between">
-                <div className="flex items-center gap-3 flex-1">
+            <div className="p-2 lg:p-4 border-b-2 border-black bg-white flex flex-col lg:flex-row items-stretch lg:items-center gap-2 lg:gap-0 lg:justify-between">
+                <div className="flex items-center gap-2 lg:gap-3 flex-1">
                     <button
                         onClick={onClose}
-                        className="px-3 py-1 bg-white border-2 border-black font-bold hover:bg-gray-100 transition-colors"
+                        className="px-2 lg:px-3 py-1 text-sm lg:text-base bg-white border-2 border-black font-bold hover:bg-gray-100 transition-colors min-w-[60px]"
                         aria-label="Close editor"
                     >
                         ← Back
@@ -170,7 +170,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                         type="text"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
-                        className="flex-1 px-3 py-2 text-xl font-bold border-2 border-black"
+                        className="flex-1 px-2 lg:px-3 py-1 lg:py-2 text-base lg:text-xl font-bold border-2 border-black"
                         placeholder="Document title..."
                         aria-label="Document title"
                     />
@@ -178,7 +178,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                 <button
                     onClick={handleSave}
                     disabled={isSaving}
-                    className="ml-3 px-6 py-2 bg-yellow-400 text-black font-bold border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="lg:ml-3 px-4 lg:px-6 py-2 min-h-[44px] bg-yellow-400 text-black font-bold border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     aria-label={isSaving ? 'Saving...' : 'Save document'}
                 >
                     {isSaving ? 'Saving...' : 'Save'}
@@ -186,15 +186,15 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
                 {/* Editor Area */}
                 <div className="flex-1 overflow-y-auto flex flex-col">
                     {/* Tiptap Toolbar */}
                     {editor && (
-                        <div className="sticky top-0 z-10 bg-white border-b-2 border-black p-2 flex flex-wrap gap-1">
+                        <div className="sticky top-0 z-10 bg-white border-b-2 border-black p-1 lg:p-2 flex flex-wrap gap-1">
                             <button
                                 onClick={() => editor.chain().focus().toggleBold().run()}
-                                className={`px-3 py-1 text-sm font-bold border-2 border-black ${
+                                className={`min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${
                                     editor.isActive('bold') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
                                 }`}
                                 title="Bold (Ctrl+B)"
@@ -203,7 +203,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                             </button>
                             <button
                                 onClick={() => editor.chain().focus().toggleItalic().run()}
-                                className={`px-3 py-1 text-sm font-bold border-2 border-black ${
+                                className={`min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${
                                     editor.isActive('italic') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
                                 }`}
                                 title="Italic (Ctrl+I)"
@@ -212,7 +212,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                             </button>
                             <button
                                 onClick={() => editor.chain().focus().toggleStrike().run()}
-                                className={`px-3 py-1 text-sm font-bold border-2 border-black ${
+                                className={`min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${
                                     editor.isActive('strike') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
                                 }`}
                                 title="Strikethrough"
@@ -220,11 +220,11 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                 <s>S</s>
                             </button>
                             
-                            <div className="w-px bg-black mx-1"></div>
+                            <div className="w-px bg-black mx-1 hidden lg:block"></div>
                             
                             <button
                                 onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-                                className={`px-3 py-1 text-sm font-bold border-2 border-black ${
+                                className={`min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${
                                     editor.isActive('heading', { level: 1 }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
                                 }`}
                                 title="Heading 1"
@@ -233,7 +233,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                             </button>
                             <button
                                 onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-                                className={`px-3 py-1 text-sm font-bold border-2 border-black ${
+                                className={`min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${
                                     editor.isActive('heading', { level: 2 }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
                                 }`}
                                 title="Heading 2"
@@ -242,7 +242,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                             </button>
                             <button
                                 onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-                                className={`px-3 py-1 text-sm font-bold border-2 border-black ${
+                                className={`min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${
                                     editor.isActive('heading', { level: 3 }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
                                 }`}
                                 title="Heading 3"
@@ -250,11 +250,11 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                 H3
                             </button>
                             
-                            <div className="w-px bg-black mx-1"></div>
+                            <div className="w-px bg-black mx-1 hidden lg:block"></div>
                             
                             <button
                                 onClick={() => editor.chain().focus().toggleBulletList().run()}
-                                className={`px-3 py-1 text-sm font-bold border-2 border-black ${
+                                className={`min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${
                                     editor.isActive('bulletList') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
                                 }`}
                                 title="Bullet List"
@@ -263,7 +263,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                             </button>
                             <button
                                 onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                                className={`px-3 py-1 text-sm font-bold border-2 border-black ${
+                                className={`min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${
                                     editor.isActive('orderedList') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
                                 }`}
                                 title="Numbered List"
@@ -271,11 +271,11 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                 1. List
                             </button>
                             
-                            <div className="w-px bg-black mx-1"></div>
+                            <div className="w-px bg-black mx-1 hidden lg:block"></div>
                             
                             <button
                                 onClick={() => editor.chain().focus().toggleBlockquote().run()}
-                                className={`px-3 py-1 text-sm font-bold border-2 border-black ${
+                                className={`min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${
                                     editor.isActive('blockquote') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
                                 }`}
                                 title="Quote"
@@ -284,7 +284,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                             </button>
                             <button
                                 onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-                                className={`px-3 py-1 text-sm font-bold border-2 border-black ${
+                                className={`min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${
                                     editor.isActive('codeBlock') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
                                 }`}
                                 title="Code Block"
@@ -292,18 +292,18 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                 {'</>'}
                             </button>
                             
-                            <div className="w-px bg-black mx-1"></div>
+                            <div className="w-px bg-black mx-1 hidden lg:block"></div>
                             
                             <button
                                 onClick={() => editor.chain().focus().setHorizontalRule().run()}
-                                className="px-3 py-1 text-sm font-bold border-2 border-black bg-white hover:bg-gray-100"
+                                className="min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black bg-white hover:bg-gray-100"
                                 title="Horizontal Line"
                             >
                                 ─
                             </button>
                             <button
                                 onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()}
-                                className="px-3 py-1 text-sm font-bold border-2 border-black bg-white hover:bg-gray-100"
+                                className="min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black bg-white hover:bg-gray-100"
                                 title="Clear Formatting"
                             >
                                 Clear
@@ -312,16 +312,16 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                     )}
                     
                     {/* Tiptap Editor Content */}
-                    <div className="flex-1 overflow-y-auto p-6 bg-white">
+                    <div className="flex-1 overflow-y-auto p-3 lg:p-6 bg-white">
                         <EditorContent 
                             editor={editor} 
-                            className="h-full min-h-[500px] border-2 border-black p-4"
+                            className="h-full min-h-[300px] lg:min-h-[500px] border-2 border-black p-3 lg:p-4 text-base lg:text-base"
                         />
                     </div>
                 </div>
 
-                {/* Metadata Sidebar */}
-                <div className="w-64 border-l-2 border-black bg-gray-50 p-4 overflow-y-auto">
+                {/* Metadata Sidebar - Collapsible on mobile */}
+                <div className="lg:w-64 w-full border-t-2 lg:border-t-0 lg:border-l-2 border-black bg-gray-50 p-3 lg:p-4 overflow-y-auto max-h-[50vh] lg:max-h-none">
                     <h3 className="font-black mb-4">Document Settings</h3>
 
                     {/* Doc Type */}

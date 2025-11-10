@@ -86,12 +86,12 @@ export const DocsList: React.FC<DocsListProps> = ({
     return (
         <div className="h-full flex flex-col">
             {/* Header */}
-            <div className="p-4 border-b-2 border-black bg-yellow-300">
-                <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-lg font-black">GTM Docs</h2>
+            <div className="p-3 lg:p-4 border-b-2 border-black bg-yellow-300">
+                <div className="flex items-center justify-between mb-2 lg:mb-3">
+                    <h2 className="text-base lg:text-lg font-black">GTM Docs</h2>
                     <button
                         onClick={onCreateNew}
-                        className="px-3 py-1 bg-black text-white font-bold border-2 border-black shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
+                        className="px-2 lg:px-3 py-1 min-h-[44px] lg:min-h-0 text-sm lg:text-base bg-black text-white font-bold border-2 border-black shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
                         aria-label="Create new document"
                     >
                         + New
@@ -104,19 +104,19 @@ export const DocsList: React.FC<DocsListProps> = ({
                     placeholder="Search docs..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full px-3 py-2 border-2 border-black font-mono text-sm"
+                    className="w-full px-2 lg:px-3 py-2 border-2 border-black font-mono text-sm"
                     aria-label="Search documents"
                 />
             </div>
 
             {/* Filters */}
-            <div className="p-3 border-b-2 border-black bg-gray-50">
-                <div className="flex gap-2 mb-2">
+            <div className="p-2 lg:p-3 border-b-2 border-black bg-gray-50">
+                <div className="flex gap-1 lg:gap-2 mb-2 overflow-x-auto">
                     {(['all', 'mine', 'team', 'templates'] as FilterType[]).map((f) => (
                         <button
                             key={f}
                             onClick={() => setFilter(f)}
-                            className={`px-2 py-1 text-xs font-bold border-2 border-black transition-all ${
+                            className={`px-2 py-1 min-h-[44px] lg:min-h-0 text-xs font-bold border-2 border-black transition-all whitespace-nowrap ${
                                 filter === f
                                     ? 'bg-black text-white'
                                     : 'bg-white hover:bg-gray-100'
@@ -131,7 +131,7 @@ export const DocsList: React.FC<DocsListProps> = ({
                 <select
                     value={docTypeFilter}
                     onChange={(e) => setDocTypeFilter(e.target.value as DocType | 'all')}
-                    className="w-full px-2 py-1 text-xs border-2 border-black font-mono"
+                    className="w-full px-2 py-2 text-xs border-2 border-black font-mono"
                     aria-label="Filter by document type"
                 >
                     <option value="all">All Types</option>
@@ -172,20 +172,20 @@ export const DocsList: React.FC<DocsListProps> = ({
                             <button
                                 key={doc.id}
                                 onClick={() => onDocSelect(doc)}
-                                className={`w-full p-3 text-left hover:bg-yellow-50 transition-colors ${
+                                className={`w-full p-3 lg:p-3 text-left hover:bg-yellow-50 transition-colors min-h-[60px] ${
                                     selectedDocId === doc.id ? 'bg-yellow-100' : 'bg-white'
                                 }`}
                             >
                                 <div className="flex items-start gap-2">
-                                    <span className="text-xl flex-shrink-0">
+                                    <span className="text-lg lg:text-xl flex-shrink-0">
                                         {DOC_TYPE_ICONS[doc.docType] || '📄'}
                                     </span>
                                     <div className="flex-1 min-w-0">
-                                        <h3 className="font-bold truncate">{doc.title}</h3>
+                                        <h3 className="font-bold text-sm lg:text-base truncate">{doc.title}</h3>
                                         <p className="text-xs text-gray-600 truncate">
                                             {DOC_TYPE_LABELS[doc.docType]}
                                         </p>
-                                        <div className="flex items-center gap-2 mt-1">
+                                        <div className="flex items-center gap-1 lg:gap-2 mt-1 flex-wrap">
                                             <span className={`text-xs px-1 border ${
                                                 doc.visibility === 'private'
                                                     ? 'border-gray-400 text-gray-600'
