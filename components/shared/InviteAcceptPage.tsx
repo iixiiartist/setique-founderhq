@@ -17,6 +17,7 @@ interface InviteAcceptResult {
     needsAuth?: boolean;
     email?: string;
     passwordResetSent?: boolean;
+    magicLink?: string;
 }
 
 export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onComplete }) => {
@@ -62,12 +63,20 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
             setInviteData(result);
 
             if (result.isNewUser) {
-                // New user created - password reset email has been sent
-                if (result.passwordResetSent) {
+                // New user created
+                if (result.magicLink) {
+                    // We have a magic link - redirect user to it immediately
+                    setStatus('success');
+                    setMessage(`Welcome! Redirecting you to set up your password...`);
+                    setTimeout(() => {
+                        window.location.href = result.magicLink;
+                    }, 1500);
+                } else if (result.passwordResetSent) {
+                    // Email was sent successfully
                     setStatus('success');
                     setMessage(
                         `Welcome to ${result.workspace_name || 'the workspace'}!\n\n` +
-                        `We've sent a password reset link to ${result.email}.\n\n` +
+                        `We've sent a password setup link to ${result.email}.\n\n` +
                         `Please check your email and click the link to set your password and complete your account setup.`
                     );
                 } else {

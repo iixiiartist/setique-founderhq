@@ -271,31 +271,50 @@ serve(async (req) => {
       })
       .eq('id', invitation.id)
 
-    // If new user, send invite email using Supabase's built-in email service
+    // If new user, generate password setup link
     let passwordResetSent = false
+    let magicLink = null
     if (isNewUser) {
       try {
-        console.log('Sending invite email to new user:', invitation.email)
+        console.log('Generating password setup link for new user:', invitation.email)
         
-        // Use inviteUserByEmail which sends a magic link to set password
-        // This works better for newly created users who don't have a password yet
-        const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-          invitation.email,
-          {
+        // Generate a password recovery link for the new user
+        const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+          type: 'recovery',
+          email: invitation.email,
+          options: {
             redirectTo: `${Deno.env.get('APP_URL') || 'http://localhost:3000'}/app`
           }
-        )
+        })
         
-        if (inviteError) {
-          console.error('Error sending invite email:', inviteError)
-          console.error('Invite error details:', JSON.stringify(inviteError, null, 2))
-          console.error('Make sure SMTP is configured in Supabase Dashboard > Project Settings > Auth > SMTP Settings')
-        } else {
-          passwordResetSent = true
-          console.log('✅ Invite email sent successfully to:', invitation.email)
+        if (linkError) {
+          console.error('Error generating password setup link:', linkError)
+          console.error('Link error details:', JSON.stringify(linkError, null, 2))
+        } else if (linkData?.properties?.action_link) {
+          magicLink = linkData.properties.action_link
+          console.log('✅ Password setup link generated')
+          
+          // Try to send email via Supabase's SMTP (best effort)
+          try {
+            const { error: emailError } = await supabaseAdmin.auth.resetPasswordForEmail(
+              invitation.email,
+              {
+                redirectTo: `${Deno.env.get('APP_URL') || 'http://localhost:3000'}/app`
+              }
+            )
+            
+            if (!emailError) {
+              passwordResetSent = true
+              console.log('✅ Password reset email sent via SMTP')
+            } else {
+              console.warn('Could not send email via SMTP:', emailError.message)
+            }
+          } catch (emailEx) {
+            console.warn('Email sending failed, but magic link is available:', emailEx)
+          }
         }
       } catch (error) {
-        console.error('Exception sending invite email:', error)
+        console.error('Exception generating password setup link:', error)
         console.error('Exception details:', error instanceof Error ? error.stack : error)
       }
     }
@@ -320,6 +339,7 @@ serve(async (req) => {
         needsAuth: !isNewUser, // Existing users need to log in
         email: invitation.email,
         passwordResetSent: isNewUser && passwordResetSent,
+        magicLink: isNewUser ? magicLink : null, // Include magic link for new users
         // Note: tempPassword no longer returned for security
       }),
       { 
