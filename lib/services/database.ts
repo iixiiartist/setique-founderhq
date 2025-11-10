@@ -2412,4 +2412,96 @@ export class DatabaseService {
       return { data: null, error }
     }
   }
+
+  // ============================================================================
+  // GTM Template Seeding
+  // ============================================================================
+
+  static async seedGTMTemplates(workspaceId: string, userId: string) {
+    try {
+      // Check if templates already exist
+      const { data: existing } = await supabase
+        .from('gtm_docs')
+        .select('id')
+        .eq('workspace_id', workspaceId)
+        .eq('is_template', true)
+        .limit(1)
+
+      if (existing && existing.length > 0) {
+        logger.info('[Database] Templates already exist for workspace:', { workspaceId })
+        return { data: { message: 'Templates already exist', count: existing.length }, error: null }
+      }
+
+      const templates = [
+        {
+          title: 'GTM Launch Brief Template',
+          doc_type: 'brief',
+          template_category: 'launch',
+          tags: ['template', 'gtm', 'launch', 'brief'],
+          content_plain: 'GTM Launch Brief\n\nExecutive Summary\n[Brief overview of the product/feature launch and key objectives]\n\nProduct Positioning\nValue Proposition: [What unique value does this provide?]\nPositioning Statement: [For WHO, our product does WHAT, unlike COMPETITORS]\n\nTarget Audience\n• Primary: [Define primary audience]\n• Secondary: [Define secondary audience]\n• Pain points: [Key challenges we solve]\n\nKey Messaging\nCore Message: [One-sentence core message]\nSupporting Messages:\n1. [Message pillar 1]\n2. [Message pillar 2]\n3. [Message pillar 3]\n\nChannel Strategy\n• Content marketing\n• Email campaigns\n• Social media\n• Sales enablement\n\nSuccess Metrics\n• Awareness\n• Engagement\n• Conversion\n• Revenue',
+        },
+        {
+          title: 'Ideal Customer Profile (ICP) Template',
+          doc_type: 'icp_sheet',
+          template_category: 'targeting',
+          tags: ['template', 'icp', 'targeting', 'qualification'],
+          content_plain: 'Ideal Customer Profile (ICP)\n\nCompany Profile\n• Industry: [Target industries]\n• Company Size: [Employee count]\n• Revenue: [ARR range]\n• Geography: [Target regions]\n• Tech Stack: [Technologies they use]\n\nPain Points & Challenges\n1. [Key pain point 1]\n2. [Key pain point 2]\n3. [Key pain point 3]\n\nDecision Makers\n• Economic Buyer\n• Technical Buyer\n• Champion\n\nBuying Process\nTypical Timeline: [Sales cycle]\nEvaluation Criteria:\n• [Criterion 1]\n• [Criterion 2]\n• [Criterion 3]',
+        },
+        {
+          title: 'Campaign Plan Template',
+          doc_type: 'campaign',
+          template_category: 'campaign',
+          tags: ['template', 'campaign', 'marketing', 'planning'],
+          content_plain: 'Campaign Plan\n\nCampaign Overview\nGoal: [What are we trying to achieve?]\nTarget Audience: [Who are we targeting?]\nDuration: [Start - End date]\n\nKey Objectives & KPIs\n• Objective 1: [Measurable goal]\n• Objective 2: [Measurable goal]\n• Objective 3: [Measurable goal]\n\nCampaign Tactics\nContent: [Blog, guides, videos]\nEmail: [Sequences, newsletters]\nSocial Media: [Platform tactics]\nPaid Media: [Ad platforms, budget]\n\nBudget: $[Amount]\n\nTimeline & Milestones',
+        },
+        {
+          title: 'Competitive Battlecard Template',
+          doc_type: 'battlecard',
+          template_category: 'competitive',
+          tags: ['template', 'battlecard', 'competitive', 'sales'],
+          content_plain: 'Competitive Battlecard: [Competitor Name]\n\nCompetitor Overview\n• Founded: [Year]\n• Size: [Company size]\n• Funding: [Total raised]\n• Target Market: [Their focus]\n\nOur Advantages\n1. [Key differentiator 1]\n2. [Key differentiator 2]\n3. [Key differentiator 3]\n\nTheir Weaknesses\n• [Weakness 1]\n• [Weakness 2]\n• [Weakness 3]\n\nCommon Objections & Responses\nObjection: [What they say]\nResponse: [How we respond]\n\nWin Stories\n[Recent competitive wins]',
+        },
+        {
+          title: 'Buyer Persona Template',
+          doc_type: 'persona',
+          template_category: 'persona',
+          tags: ['template', 'persona', 'buyer', 'targeting'],
+          content_plain: 'Buyer Persona: [Persona Name]\n\nDemographics\n• Title: [Job title]\n• Department: [Department]\n• Company Size: [Size range]\n• Industry: [Industries]\n\nGoals & Objectives\n1. [Primary goal]\n2. [Secondary goal]\n3. [Success metrics]\n\nChallenges & Pain Points\n• [Challenge 1]\n• [Challenge 2]\n• [Challenge 3]\n\nA Day in the Life\n[Typical workflow and tasks]\n\nHow We Help\n[How our product solves their problems]\n\nPreferred Channels\n• [Where they consume content]',
+        },
+      ];
+
+      const results = await Promise.all(
+        templates.map(template =>
+          supabase
+            .from('gtm_docs')
+            .insert({
+              workspace_id: workspaceId,
+              owner_id: userId,
+              title: template.title,
+              doc_type: template.doc_type,
+              content_json: null, // Let users fill in content
+              content_plain: template.content_plain,
+              visibility: 'team',
+              is_template: true,
+              template_category: template.template_category,
+              tags: template.tags,
+            })
+            .select()
+        )
+      );
+
+      const errors = results.filter(r => r.error);
+      if (errors.length > 0) {
+        logger.error('[Database] Error seeding some templates:', errors);
+      }
+
+      const successCount = results.filter(r => !r.error).length;
+      logger.info('[Database] Seeded GTM templates:', { workspaceId, count: successCount });
+
+      return { data: { message: 'Templates seeded successfully', count: successCount }, error: null };
+    } catch (error) {
+      logger.error('Error seeding GTM templates:', error);
+      return { data: null, error };
+    }
+  }
 }

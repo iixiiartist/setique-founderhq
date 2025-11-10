@@ -24,6 +24,7 @@ export const DocsList: React.FC<DocsListProps> = ({
     const [docTypeFilter, setDocTypeFilter] = useState<DocType | 'all'>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [isLoading, setIsLoading] = useState(true);
+    const [isSeeding, setIsSeeding] = useState(false);
 
     useEffect(() => {
         loadDocs();
@@ -53,12 +54,34 @@ export const DocsList: React.FC<DocsListProps> = ({
         }
     };
 
+    const handleSeedTemplates = async () => {
+        setIsSeeding(true);
+        try {
+            const { DatabaseService } = await import('../../lib/services/database');
+            const { data, error } = await DatabaseService.seedGTMTemplates(workspaceId, userId);
+            
+            if (error) {
+                console.error('Error seeding templates:', error);
+            } else {
+                console.log('Templates seeded successfully:', data);
+                // Reload docs to show new templates
+                await loadDocs();
+            }
+        } catch (error) {
+            console.error('Error seeding templates:', error);
+        } finally {
+            setIsSeeding(false);
+        }
+    };
+
     const filteredDocs = docs.filter(doc => {
         if (searchQuery && !doc.title.toLowerCase().includes(searchQuery.toLowerCase())) {
             return false;
         }
         return true;
     });
+
+    const hasTemplates = docs.some(doc => doc.isTemplate);
 
     return (
         <div className="h-full flex flex-col">
@@ -127,11 +150,20 @@ export const DocsList: React.FC<DocsListProps> = ({
                 ) : filteredDocs.length === 0 ? (
                     <div className="p-4 text-center text-gray-500">
                         <p className="mb-2">No documents found</p>
+                        {!hasTemplates && (
+                            <button
+                                onClick={handleSeedTemplates}
+                                disabled={isSeeding}
+                                className="w-full mb-3 px-3 py-2 bg-purple-100 border-2 border-purple-600 text-purple-900 font-bold hover:bg-purple-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isSeeding ? 'Creating Templates...' : '📋 Create GTM Templates'}
+                            </button>
+                        )}
                         <button
                             onClick={onCreateNew}
                             className="text-sm text-blue-600 hover:underline"
                         >
-                            Create your first doc
+                            Or create your first doc
                         </button>
                     </div>
                 ) : (
