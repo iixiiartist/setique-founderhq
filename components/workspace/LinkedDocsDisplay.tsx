@@ -3,7 +3,7 @@ import { GTMDocMetadata, LinkedDoc } from '../../types';
 import { DOC_TYPE_ICONS, DOC_TYPE_LABELS } from '../../constants';
 
 interface LinkedDocsDisplayProps {
-    entityType: 'task' | 'calendar_event' | 'crm_item' | 'contact';
+    entityType: 'task' | 'event' | 'crm' | 'chat' | 'contact';
     entityId: string;
     workspaceId: string;
     onAttach?: () => void;

@@ -39,9 +39,10 @@ export const DocLibraryPicker: React.FC<DocLibraryPickerProps> = ({
             const { DatabaseService } = await import('../../lib/services/database');
             const { data, error } = await DatabaseService.loadGTMDocs(
                 workspaceId,
-                userId,
-                'all',
-                searchQuery
+                {
+                    filter: 'all',
+                    userId: userId
+                }
             );
 
             if (error) {
