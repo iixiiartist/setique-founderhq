@@ -6,15 +6,12 @@ export type { PlanType };
 // Plan pricing in cents
 export const PLAN_PRICES = {
   'free': 0,
-  'pro-individual': 2900, // $29/month (legacy)
   'power-individual': 4900, // $49/month
-  'team-starter': 4900, // $49/month base (legacy)
   'team-pro': 9900, // $99/month base
 } as const;
 
 // Additional seat pricing for team plans (in cents)
 export const SEAT_PRICES = {
-  'team-starter': 1500, // $15/seat/month
   'team-pro': 2500, // $25/seat/month
 } as const;
 
@@ -44,22 +41,6 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
       'Basic Analytics'
     ]
   },
-  'pro-individual': {
-    name: 'Pro',
-    aiRequestsPerMonth: 500,
-    storageBytes: 1073741824, // 1 GB
-    fileCount: 250,
-    maxSeats: 1,
-    features: [
-      'Advanced AI Assistant',
-      'Unlimited Tasks',
-      'Full CRM Features',
-      'Document Library (250 files)',
-      'Advanced Analytics',
-      'Priority Support',
-      'Export Data'
-    ]
-  },
   'power-individual': {
     name: 'Power',
     aiRequestsPerMonth: null, // Unlimited
@@ -76,23 +57,6 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
       'Export Data',
       'API Access',
       'Custom Integrations'
-    ]
-  },
-  'team-starter': {
-    name: 'Team Starter',
-    aiRequestsPerMonth: 500, // Per user
-    storageBytes: 3221225472, // 3 GB shared
-    fileCount: 250, // Per user
-    maxSeats: 999,
-    features: [
-      'All Pro Features',
-      'Team Collaboration',
-      'Shared Workspaces',
-      'Team Achievements',
-      'Member Management',
-      'Shared Documents',
-      'Team Analytics',
-      'Role-Based Access'
     ]
   },
   'team-pro': {
@@ -119,16 +83,16 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
 
 // Helper function to check if plan is a team plan
 export function isTeamPlan(planType: PlanType): boolean {
-  return planType === 'team-starter' || planType === 'team-pro';
+  return planType === 'team-pro';
 }
 
 // Helper function to check if plan is an individual plan
 export function isIndividualPlan(planType: PlanType): boolean {
-  return planType === 'free' || planType === 'pro-individual' || planType === 'power-individual';
+  return planType === 'free' || planType === 'power-individual';
 }
 
 // Calculate total monthly price for team plans
-export function calculateTeamPlanPrice(planType: 'team-starter' | 'team-pro', seatCount: number): number {
+export function calculateTeamPlanPrice(planType: 'team-pro', seatCount: number): number {
   const basePriceInCents = PLAN_PRICES[planType];
   const seatPriceInCents = SEAT_PRICES[planType];
   return basePriceInCents + (seatCount * seatPriceInCents);
@@ -149,9 +113,7 @@ export function formatPrice(cents: number): string {
 export function getPlanDisplayName(planType: PlanType): string {
   const names: Record<PlanType, string> = {
     'free': 'Free',
-    'pro-individual': 'Pro',
     'power-individual': 'Power',
-    'team-starter': 'Team Starter',
     'team-pro': 'Team Pro'
   };
   return names[planType];
@@ -166,9 +128,7 @@ export function getPlanCategory(planType: PlanType): 'individual' | 'team' {
 export function canUpgradeToPlan(currentPlan: PlanType, targetPlan: PlanType): boolean {
   const planHierarchy: PlanType[] = [
     'free',
-    'pro-individual',
     'power-individual',
-    'team-starter',
     'team-pro'
   ];
   
@@ -211,10 +171,8 @@ export function isLimitExceeded(used: number, limit: number | null): boolean {
 // Get recommended upgrade plan
 export function getRecommendedUpgrade(currentPlan: PlanType): PlanType | null {
   const upgrades: Record<PlanType, PlanType | null> = {
-    'free': 'pro-individual',
-    'pro-individual': 'power-individual',
-    'power-individual': 'team-starter',
-    'team-starter': 'team-pro',
+    'free': 'power-individual',
+    'power-individual': 'team-pro',
     'team-pro': null // Already at highest plan
   };
   

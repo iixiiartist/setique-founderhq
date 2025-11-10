@@ -48,8 +48,8 @@ export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', 
     const renderPlanCard = (planType: PlanType, isPopular: boolean = false) => {
         const limits = PLAN_LIMITS[planType];
         const basePrice = PLAN_PRICES[planType];
-        const seatPrice = isTeamPlan(planType) ? SEAT_PRICES[planType as 'team-starter' | 'team-pro'] : 0;
-        const totalPrice = isTeamPlan(planType) ? calculateTeamPlanPrice(planType as 'team-starter' | 'team-pro', teamSeats) : basePrice;
+        const seatPrice = isTeamPlan(planType) ? SEAT_PRICES['team-pro'] : 0;
+        const totalPrice = isTeamPlan(planType) ? calculateTeamPlanPrice('team-pro', teamSeats) : basePrice;
         const isCurrentPlan = currentPlan === planType;
 
         return (

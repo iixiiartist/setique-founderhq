@@ -177,9 +177,7 @@ export type WorkspaceRole = 'owner' | 'member';
 
 export type PlanType = 
     | 'free' 
-    | 'pro-individual' 
     | 'power-individual' 
-    | 'team-starter' 
     | 'team-pro';
 
 export interface Workspace {

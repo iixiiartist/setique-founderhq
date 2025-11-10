@@ -46,7 +46,7 @@ export class StripeService {
       } = params;
 
       // Validate team plan seat count
-      if ((planType === 'team-starter' || planType === 'team-pro') && seatCount < 2) {
+      if (planType === 'team-pro' && seatCount < 2) {
         throw new Error('Team plans require at least 2 seats');
       }
 
@@ -54,20 +54,9 @@ export class StripeService {
       let priceId: string | undefined;
       let lineItems: Array<{ price: string; quantity: number }> = [];
 
-      if (planType === 'pro-individual') {
-        priceId = STRIPE_PRICE_IDS['pro-individual'];
-        lineItems = [{ price: priceId!, quantity: 1 }];
-      } else if (planType === 'power-individual') {
+      if (planType === 'power-individual') {
         priceId = STRIPE_PRICE_IDS['power-individual'];
         lineItems = [{ price: priceId!, quantity: 1 }];
-      } else if (planType === 'team-starter') {
-        // Team Starter: Base price + per-seat price
-        const basePriceId = STRIPE_PRICE_IDS['team-starter-base'];
-        const seatPriceId = STRIPE_PRICE_IDS['team-starter-seat'];
-        lineItems = [
-          { price: basePriceId!, quantity: 1 },
-          { price: seatPriceId!, quantity: seatCount }
-        ];
       } else if (planType === 'team-pro') {
         // Team Pro: Base price + per-seat price
         const basePriceId = STRIPE_PRICE_IDS['team-pro-base'];
@@ -211,7 +200,7 @@ export class StripeService {
         throw new Error('No subscription found');
       }
 
-      if (subscription.plan_type !== 'team-starter' && subscription.plan_type !== 'team-pro') {
+      if (subscription.plan_type !== 'team-pro') {
         throw new Error('Seat count can only be updated for team plans');
       }
 
@@ -243,16 +232,14 @@ export class StripeService {
   static calculatePrice(planType: PlanType, seatCount: number = 1): number {
     if (planType === 'free') return 0;
     
-    if (planType === 'team-starter' || planType === 'team-pro') {
+    if (planType === 'team-pro') {
       return calculateTeamPlanPrice(planType, seatCount);
     }
 
     // Individual plans
     const prices: Record<PlanType, number> = {
       'free': 0,
-      'pro-individual': 2900,
-      'power-individual': 9900,
-      'team-starter': 0, // Calculated above
+      'power-individual': 4900,
       'team-pro': 0 // Calculated above
     };
 
