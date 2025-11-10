@@ -93,6 +93,7 @@ BEGIN
             ON CONFLICT (workspace_id) DO UPDATE SET
                 plan_type = EXCLUDED.plan_type,
                 seat_count = EXCLUDED.seat_count,
+                ai_requests_limit = EXCLUDED.ai_requests_limit,
                 updated_at = NOW();
         EXCEPTION WHEN undefined_table THEN NULL;
         END;
@@ -121,6 +122,7 @@ BEGIN
             ON CONFLICT (workspace_id) DO UPDATE SET
                 plan_type = EXCLUDED.plan_type,
                 seat_count = EXCLUDED.seat_count,
+                ai_requests_limit = EXCLUDED.ai_requests_limit,
                 updated_at = NOW();
         EXCEPTION WHEN undefined_table THEN NULL;
         END;
@@ -149,6 +151,7 @@ BEGIN
             ON CONFLICT (workspace_id) DO UPDATE SET
                 plan_type = EXCLUDED.plan_type,
                 seat_count = EXCLUDED.seat_count,
+                ai_requests_limit = EXCLUDED.ai_requests_limit,
                 updated_at = NOW();
         EXCEPTION WHEN undefined_table THEN NULL;
         END;
