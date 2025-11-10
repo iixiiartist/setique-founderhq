@@ -43,17 +43,18 @@ export const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({
   
   // Auto-open on mobile devices (on first mount only)
   React.useEffect(() => {
-    if (autoOpenOnMobile && !isOpen) {
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
-      if (isMobile) {
-        // Small delay to ensure smooth animation
-        const timer = setTimeout(() => {
-          toggle();
-        }, 500);
-        return () => clearTimeout(timer);
-      }
+    if (!autoOpenOnMobile) return;
+    
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+    if (isMobile) {
+      // Small delay to ensure smooth animation
+      const timer = setTimeout(() => {
+        toggle();
+      }, 500);
+      return () => clearTimeout(timer);
     }
-  }, []); // Empty dependency array = run only once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array = run only once on mount, toggle is stable from useCallback
   
   // Expose toggle function to parent via callback ref
   React.useEffect(() => {

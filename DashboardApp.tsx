@@ -2419,7 +2419,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             <AcceptInviteNotification onAccepted={refreshWorkspace} />
             
             {/* Floating AI Assistant - Only available for logged-in Pro/Power users in the actual app (not free users) */}
-            {workspace && workspace.planType !== 'free' && (() => {
+            {workspace && workspace.planType && workspace.planType !== 'free' && (() => {
                 // Build business context from profile
                 const profile = businessProfile as any;
                 const companyName = profile?.company_name || profile?.companyName || 'your company';
