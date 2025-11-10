@@ -20,6 +20,7 @@ DECLARE
     caller_id UUID;
     caller_is_admin BOOLEAN;
     target_workspace_id UUID;
+    current_member_count INTEGER;
     result JSON;
 BEGIN
     -- Get the caller's user ID
@@ -66,6 +67,11 @@ BEGIN
         );
     END IF;
     
+    -- Get current member count for the workspace
+    SELECT COUNT(*) INTO current_member_count
+    FROM workspace_members
+    WHERE workspace_id = target_workspace_id;
+    
     -- Update the workspace plan type and seats (cast TEXT to plan_type enum)
     -- Handle seats column not existing gracefully
     IF new_plan_type = 'free' THEN
@@ -89,7 +95,7 @@ BEGIN
         -- Also update subscriptions table if it exists (free plan)
         BEGIN
             INSERT INTO subscriptions (workspace_id, plan_type, status, seat_count, used_seats, ai_requests_used, ai_requests_limit, ai_requests_reset_at, storage_bytes_used, file_count_used)
-            VALUES (target_workspace_id, new_plan_type::plan_type, 'active', 1, 1, 0, 50, NOW(), 0, 0)
+            VALUES (target_workspace_id, new_plan_type::plan_type, 'active', 1, COALESCE(current_member_count, 1), 0, 50, NOW(), 0, 0)
             ON CONFLICT (workspace_id) DO UPDATE SET
                 plan_type = EXCLUDED.plan_type,
                 seat_count = EXCLUDED.seat_count,
@@ -120,7 +126,7 @@ BEGIN
         -- Also update subscriptions table if it exists (power-individual)
         BEGIN
             INSERT INTO subscriptions (workspace_id, plan_type, status, seat_count, used_seats, ai_requests_used, ai_requests_limit, ai_requests_reset_at, storage_bytes_used, file_count_used)
-            VALUES (target_workspace_id, new_plan_type::plan_type, 'active', 1, 1, 0, 500, NOW(), 0, 0)
+            VALUES (target_workspace_id, new_plan_type::plan_type, 'active', 1, COALESCE(current_member_count, 1), 0, 500, NOW(), 0, 0)
             ON CONFLICT (workspace_id) DO UPDATE SET
                 plan_type = EXCLUDED.plan_type,
                 seat_count = EXCLUDED.seat_count,
@@ -151,7 +157,7 @@ BEGIN
         -- Also update subscriptions table if it exists (team-pro)
         BEGIN
             INSERT INTO subscriptions (workspace_id, plan_type, status, seat_count, used_seats, ai_requests_used, ai_requests_limit, ai_requests_reset_at, storage_bytes_used, file_count_used)
-            VALUES (target_workspace_id, new_plan_type::plan_type, 'active', COALESCE(new_seats, 5), 1, 0, 1000, NOW(), 0, 0)
+            VALUES (target_workspace_id, new_plan_type::plan_type, 'active', COALESCE(new_seats, 5), COALESCE(current_member_count, 1), 0, 1000, NOW(), 0, 0)
             ON CONFLICT (workspace_id) DO UPDATE SET
                 plan_type = EXCLUDED.plan_type,
                 seat_count = EXCLUDED.seat_count,
