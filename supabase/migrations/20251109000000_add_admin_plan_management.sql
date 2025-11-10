@@ -86,14 +86,14 @@ BEGIN
             WHERE owner_id = target_user_id;
         END;
         
-        -- Also update subscriptions table if it exists
+        -- Also update subscriptions table if it exists (free plan)
         BEGIN
-            UPDATE subscriptions
-            SET 
-                plan_type = new_plan_type::plan_type,
-                seat_count = 1,
-                updated_at = NOW()
-            WHERE workspace_id = target_workspace_id;
+            INSERT INTO subscriptions (workspace_id, plan_type, status, seat_count, used_seats, ai_requests_used, ai_requests_limit, ai_requests_reset_at, storage_bytes_used, file_count_used)
+            VALUES (target_workspace_id, new_plan_type::plan_type, 'active', 1, 1, 0, NULL, NOW(), 0, 0)
+            ON CONFLICT (workspace_id) DO UPDATE SET
+                plan_type = EXCLUDED.plan_type,
+                seat_count = EXCLUDED.seat_count,
+                updated_at = NOW();
         EXCEPTION WHEN undefined_table THEN NULL;
         END;
     ELSIF new_plan_type = 'power-individual' THEN
@@ -114,14 +114,14 @@ BEGIN
             WHERE owner_id = target_user_id;
         END;
         
-        -- Also update subscriptions table if it exists
+        -- Also update subscriptions table if it exists (power-individual)
         BEGIN
-            UPDATE subscriptions
-            SET 
-                plan_type = new_plan_type::plan_type,
-                seat_count = 1,
-                updated_at = NOW()
-            WHERE workspace_id = target_workspace_id;
+            INSERT INTO subscriptions (workspace_id, plan_type, status, seat_count, used_seats, ai_requests_used, ai_requests_limit, ai_requests_reset_at, storage_bytes_used, file_count_used)
+            VALUES (target_workspace_id, new_plan_type::plan_type, 'active', 1, 1, 0, NULL, NOW(), 0, 0)
+            ON CONFLICT (workspace_id) DO UPDATE SET
+                plan_type = EXCLUDED.plan_type,
+                seat_count = EXCLUDED.seat_count,
+                updated_at = NOW();
         EXCEPTION WHEN undefined_table THEN NULL;
         END;
     ELSIF new_plan_type = 'team-pro' THEN
@@ -142,14 +142,14 @@ BEGIN
             WHERE owner_id = target_user_id;
         END;
         
-        -- Also update subscriptions table if it exists
+        -- Also update subscriptions table if it exists (team-pro)
         BEGIN
-            UPDATE subscriptions
-            SET 
-                plan_type = new_plan_type::plan_type,
-                seat_count = COALESCE(new_seats, 5),
-                updated_at = NOW()
-            WHERE workspace_id = target_workspace_id;
+            INSERT INTO subscriptions (workspace_id, plan_type, status, seat_count, used_seats, ai_requests_used, ai_requests_limit, ai_requests_reset_at, storage_bytes_used, file_count_used)
+            VALUES (target_workspace_id, new_plan_type::plan_type, 'active', COALESCE(new_seats, 5), 1, 0, NULL, NOW(), 0, 0)
+            ON CONFLICT (workspace_id) DO UPDATE SET
+                plan_type = EXCLUDED.plan_type,
+                seat_count = EXCLUDED.seat_count,
+                updated_at = NOW();
         EXCEPTION WHEN undefined_table THEN NULL;
         END;
     END IF;
