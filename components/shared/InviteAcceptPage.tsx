@@ -20,6 +20,7 @@ interface InviteAcceptResult {
     email?: string;
     passwordResetSent?: boolean;
     magicLink?: string;
+    tempPassword?: string;
 }
 
 export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onComplete }) => {
@@ -65,36 +66,26 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
 
             setInviteData(result);
 
-            if (result.isNewUser && result.magicLink) {
-                // New user created - first log them in via magic link, then show password form
-                console.log('New user detected, logging in via magic link first...');
+            if (result.isNewUser && result.tempPassword && result.email) {
+                // New user created - log them in with temp password first
+                console.log('New user detected, logging in with temporary password...');
                 
-                // Extract the access_token and refresh_token from the magic link
                 try {
-                    const url = new URL(result.magicLink);
-                    const accessToken = url.searchParams.get('access_token');
-                    const refreshToken = url.searchParams.get('refresh_token');
+                    const { error: signInError } = await supabase.auth.signInWithPassword({
+                        email: result.email,
+                        password: result.tempPassword
+                    });
                     
-                    if (accessToken && refreshToken) {
-                        // Set the session using the tokens from the magic link
-                        const { error: sessionError } = await supabase.auth.setSession({
-                            access_token: accessToken,
-                            refresh_token: refreshToken
-                        });
-                        
-                        if (sessionError) {
-                            console.error('Error setting session:', sessionError);
-                            throw sessionError;
-                        }
-                        
-                        console.log('✅ Session established, showing password setup form');
-                        // Now show the password setup form with the user logged in
-                        setStatus('setup_password');
-                    } else {
-                        throw new Error('Magic link missing required tokens');
+                    if (signInError) {
+                        console.error('Error signing in:', signInError);
+                        throw signInError;
                     }
+                    
+                    console.log('✅ Session established, showing password setup form');
+                    // Now show the password setup form with the user logged in
+                    setStatus('setup_password');
                 } catch (err: any) {
-                    console.error('Error processing magic link:', err);
+                    console.error('Error logging in new user:', err);
                     setStatus('error');
                     setMessage('Failed to initialize your session. Please try the invitation link again.');
                 }

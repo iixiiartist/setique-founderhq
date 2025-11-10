@@ -340,7 +340,7 @@ serve(async (req) => {
         email: invitation.email,
         passwordResetSent: isNewUser && passwordResetSent,
         magicLink: isNewUser ? magicLink : null, // Include magic link for new users
-        // Note: tempPassword no longer returned for security
+        tempPassword: isNewUser ? tempPassword : null, // Return temp password for initial login
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
