@@ -349,10 +349,14 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error accepting invitation:', error)
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    console.error('Error details:', JSON.stringify(error, null, 2))
+    
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || 'Failed to accept invitation'
+        error: (error as Error).message || 'Failed to accept invitation',
+        details: error instanceof Error ? error.stack : String(error)
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
