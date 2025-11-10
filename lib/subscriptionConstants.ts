@@ -93,8 +93,8 @@ export function isIndividualPlan(planType: PlanType): boolean {
 
 // Calculate total monthly price for team plans
 export function calculateTeamPlanPrice(planType: 'team-pro', seatCount: number): number {
-  const basePriceInCents = PLAN_PRICES[planType];
-  const seatPriceInCents = SEAT_PRICES[planType];
+  const basePriceInCents = PLAN_PRICES[planType] || 0;
+  const seatPriceInCents = SEAT_PRICES['team-pro'] || 0;
   return basePriceInCents + (seatCount * seatPriceInCents);
 }
 
