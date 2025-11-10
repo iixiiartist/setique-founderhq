@@ -15,6 +15,7 @@ interface FloatingAIAssistantProps {
   teamContext: string;
   planType?: string;
   onToggleRef?: (toggle: () => void) => void;
+  autoOpenOnMobile?: boolean; // Auto-open assistant on mobile devices
 }
 
 export const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({
@@ -27,6 +28,7 @@ export const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({
   teamContext,
   planType,
   onToggleRef,
+  autoOpenOnMobile = true, // Default to true for mobile-first experience
 }) => {
   const {
     isOpen,
@@ -38,6 +40,20 @@ export const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({
     setContext,
     markUnread,
   } = useAssistantState(currentTab);
+  
+  // Auto-open on mobile devices (on first mount only)
+  React.useEffect(() => {
+    if (autoOpenOnMobile && !isOpen) {
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+      if (isMobile) {
+        // Small delay to ensure smooth animation
+        const timer = setTimeout(() => {
+          toggle();
+        }, 500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, []); // Empty dependency array = run only once on mount
   
   // Expose toggle function to parent via callback ref
   React.useEffect(() => {

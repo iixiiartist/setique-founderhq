@@ -599,7 +599,7 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
                         }
 
                         return (
-                            <div key={index} className={`group relative max-w-[80%] p-3 border-2 border-black whitespace-pre-wrap break-words ${
+                            <div key={index} className={`group relative max-w-[95%] sm:max-w-[85%] md:max-w-[80%] p-3 border-2 border-black whitespace-pre-wrap break-words overflow-hidden ${
                                 isUserModel 
                                 ? 'bg-blue-500 text-white self-end shadow-neo-sm' 
                                 : 'bg-gray-100 text-black self-start'
