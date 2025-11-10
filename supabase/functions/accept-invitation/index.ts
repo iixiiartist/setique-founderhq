@@ -271,88 +271,27 @@ serve(async (req) => {
       })
       .eq('id', invitation.id)
 
-    // If new user, send password reset email via Resend
+    // If new user, send password reset email using Supabase's built-in email service
     let passwordResetSent = false
     if (isNewUser) {
       try {
-        console.log('Attempting to generate password setup link for new user:', invitation.email)
+        console.log('Sending password reset email to new user:', invitation.email)
         
-        // Generate invite link for new user (allows them to set password without auto-login)
-        // Using 'invite' type instead of 'recovery' so user can choose their own password
-        const { data: resetData, error: resetError } = await supabaseAdmin.auth.admin.generateLink({
-          type: 'invite',
-          email: invitation.email,
-          options: {
+        // Use Supabase's built-in password reset email (configured in Supabase Dashboard > Authentication > Email Templates)
+        const { error: resetEmailError } = await supabaseAdmin.auth.resetPasswordForEmail(
+          invitation.email,
+          {
             redirectTo: `${Deno.env.get('APP_URL') || 'http://localhost:3000'}/app`
           }
-        })
-
-        if (resetError) {
-          console.error('Error generating password reset link:', resetError)
-          console.error('Reset error details:', JSON.stringify(resetError, null, 2))
-        } else if (resetData && resetData.properties?.action_link) {
-          // Send the password reset email via Resend
-          const resendApiKey = Deno.env.get('RESEND_API_KEY')
-          
-          if (!resendApiKey) {
-            console.warn('RESEND_API_KEY not configured, skipping email send')
-          } else {
-            const emailResponse = await fetch('https://api.resend.com/emails', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${resendApiKey}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                from: 'Joe from Setique <joe@setique.com>',
-                to: [invitation.email],
-                subject: `Set up your password for ${invitation.workspace?.name}`,
-                html: `
-                  <!DOCTYPE html>
-                  <html>
-                    <head>
-                      <style>
-                        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
-                        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-                        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
-                        .button { display: inline-block; background: #667eea; color: white !important; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 20px 0; }
-                        .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
-                      </style>
-                    </head>
-                    <body>
-                      <div class="container">
-                        <div class="header">
-                          <h1 style="margin: 0;">Welcome to ${invitation.workspace?.name}!</h1>
-                        </div>
-                        <div class="content">
-                          <p>Your account has been created and you've been added to <strong>${invitation.workspace?.name}</strong>.</p>
-                          <p>Click the button below to set up your password and complete your account setup:</p>
-                          <p style="text-align: center;">
-                            <a href="${resetData.properties.action_link}" class="button">Set Up Password</a>
-                          </p>
-                          <p style="color: #666; font-size: 14px;">This link will expire in 24 hours. If you didn't request this, you can safely ignore this email.</p>
-                        </div>
-                        <div class="footer">
-                          <p>© ${new Date().getFullYear()} Setique. All rights reserved.</p>
-                        </div>
-                      </div>
-                    </body>
-                  </html>
-                `
-              })
-            })
-
-            if (emailResponse.ok) {
-              passwordResetSent = true
-              console.log('Password reset email sent successfully via Resend to:', invitation.email)
-            } else {
-              const errorText = await emailResponse.text()
-              console.error('Failed to send email via Resend:', errorText)
-            }
-          }
+        )
+        
+        if (resetEmailError) {
+          console.error('Error sending password reset email:', resetEmailError)
+          console.error('Reset error details:', JSON.stringify(resetEmailError, null, 2))
+          console.error('Make sure SMTP is configured in Supabase Dashboard > Project Settings > Auth > SMTP Settings')
         } else {
-          console.warn('No reset data returned, but no error either')
+          passwordResetSent = true
+          console.log('✅ Password reset email sent successfully to:', invitation.email)
         }
       } catch (error) {
         console.error('Exception sending password reset:', error)
