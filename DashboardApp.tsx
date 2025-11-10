@@ -67,7 +67,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
     // State management for lazy-loaded data
     const [data, setData] = useState<DashboardData>(EMPTY_DASHBOARD_DATA);
     const [isLoading, setIsLoading] = useState(true);
-    const [loadedTabs, setLoadedTabs] = useState<Set<string>>(new Set());
+    const loadedTabsRef = useRef<Set<string>>(new Set()); // Use ref to avoid infinite loop
     const userId = user?.id;
     
     const [toast, setToast] = useState<{ message: string; type: 'info' | 'success' } | null>(null);
@@ -229,12 +229,12 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
         };
 
         initializeApp();
-    }, [user, workspace?.id, loadCoreData, loadDocumentsMetadata]);
+    }, [user?.id, workspace?.id]); // Only re-run when user or workspace ID actually changes
 
     // Load tab-specific data when tab changes (lazy loading)
     useEffect(() => {
         const loadTabData = async () => {
-            if (!user || !workspace || loadedTabs.has(activeTab) || isLoading) {
+            if (!user || !workspace || loadedTabsRef.current.has(activeTab) || isLoading) {
                 return; // Already loaded this tab or still loading
             }
 
@@ -245,24 +245,24 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     case Tab.Dashboard:
                     case Tab.Calendar:
                         // Load tasks for dashboard and calendar
-                        if (!loadedTabs.has('tasks')) {
+                        if (!loadedTabsRef.current.has('tasks')) {
                             const tasks = await loadTasks();
                             setData(prev => ({ ...prev, ...tasks }));
-                            setLoadedTabs(prev => new Set(prev).add('tasks'));
+                            loadedTabsRef.current.add('tasks');
                         }
                         
                         // Calendar also needs marketing items and CRM items for events
                         if (activeTab === Tab.Calendar) {
-                            if (!loadedTabs.has('marketing')) {
+                            if (!loadedTabsRef.current.has('marketing')) {
                                 const marketing = await loadMarketing();
                                 setData(prev => ({ ...prev, marketing }));
-                                setLoadedTabs(prev => new Set(prev).add('marketing'));
+                                loadedTabsRef.current.add('marketing');
                             }
                             
-                            if (!loadedTabs.has('crm')) {
+                            if (!loadedTabsRef.current.has('crm')) {
                                 const crm = await loadCrmItems();
                                 setData(prev => ({ ...prev, ...crm }));
-                                setLoadedTabs(prev => new Set(prev).add('crm'));
+                                loadedTabsRef.current.add('crm');
                             }
                         }
                         break;
@@ -271,74 +271,74 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     case Tab.Customers:
                     case Tab.Partners:
                         // Load CRM items
-                        if (!loadedTabs.has('crm')) {
+                        if (!loadedTabsRef.current.has('crm')) {
                             const crm = await loadCrmItems();
                             setData(prev => ({ ...prev, ...crm }));
-                            setLoadedTabs(prev => new Set(prev).add('crm'));
+                            loadedTabsRef.current.add('crm');
                         }
                         
                         // Also load tasks for CRM tabs
-                        if (!loadedTabs.has('tasks')) {
+                        if (!loadedTabsRef.current.has('tasks')) {
                             const tasks = await loadTasks();
                             setData(prev => ({ ...prev, ...tasks }));
-                            setLoadedTabs(prev => new Set(prev).add('tasks'));
+                            loadedTabsRef.current.add('tasks');
                         }
                         break;
 
                     case Tab.Marketing:
                         // Load marketing items
-                        if (!loadedTabs.has('marketing')) {
+                        if (!loadedTabsRef.current.has('marketing')) {
                             const marketing = await loadMarketing();
                             setData(prev => ({ ...prev, marketing }));
-                            setLoadedTabs(prev => new Set(prev).add('marketing'));
+                            loadedTabsRef.current.add('marketing');
                         }
                         
                         // Also load marketing tasks
-                        if (!loadedTabs.has('tasks')) {
+                        if (!loadedTabsRef.current.has('tasks')) {
                             const tasks = await loadTasks();
                             setData(prev => ({ ...prev, ...tasks }));
-                            setLoadedTabs(prev => new Set(prev).add('tasks'));
+                            loadedTabsRef.current.add('tasks');
                         }
                         break;
 
                     case Tab.Financials:
                         // Load financial logs and expenses
-                        if (!loadedTabs.has('financials')) {
+                        if (!loadedTabsRef.current.has('financials')) {
                             const financials = await loadFinancials();
                             setData(prev => ({ ...prev, ...financials }));
-                            setLoadedTabs(prev => new Set(prev).add('financials'));
+                            loadedTabsRef.current.add('financials');
                         }
                         
                         // Also load financial tasks
-                        if (!loadedTabs.has('tasks')) {
+                        if (!loadedTabsRef.current.has('tasks')) {
                             const tasks = await loadTasks();
                             setData(prev => ({ ...prev, ...tasks }));
-                            setLoadedTabs(prev => new Set(prev).add('tasks'));
+                            loadedTabsRef.current.add('tasks');
                         }
                         break;
 
                     case Tab.Documents:
                         // Load documents
-                        if (!loadedTabs.has('documents')) {
+                        if (!loadedTabsRef.current.has('documents')) {
                             const documents = await loadDocuments();
                             setData(prev => ({ ...prev, documents }));
-                            setLoadedTabs(prev => new Set(prev).add('documents'));
+                            loadedTabsRef.current.add('documents');
                         }
                         break;
 
                     case Tab.Platform:
                         // Load platform tasks
-                        if (!loadedTabs.has('tasks')) {
+                        if (!loadedTabsRef.current.has('tasks')) {
                             const tasks = await loadTasks();
                             setData(prev => ({ ...prev, ...tasks }));
-                            setLoadedTabs(prev => new Set(prev).add('tasks'));
+                            loadedTabsRef.current.add('tasks');
                         }
                         
                         // Load documents for platform tab
-                        if (!loadedTabs.has('documents')) {
+                        if (!loadedTabsRef.current.has('documents')) {
                             const documents = await loadDocuments();
                             setData(prev => ({ ...prev, documents }));
-                            setLoadedTabs(prev => new Set(prev).add('documents'));
+                            loadedTabsRef.current.add('documents');
                         }
                         break;
 
@@ -348,7 +348,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         break;
                 }
 
-                setLoadedTabs(prev => new Set(prev).add(activeTab));
+                loadedTabsRef.current.add(activeTab);
                 setIsLoading(false); // Done loading
             } catch (error) {
                 logger.error(`Error loading data for tab ${activeTab}:`, error);
@@ -357,7 +357,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
         };
 
         loadTabData();
-    }, [activeTab, user, workspace?.id, loadedTabs, loadTasks, loadCrmItems, loadMarketing, loadFinancials, loadDocuments, isLoading]);
+    }, [activeTab, user?.id, workspace?.id, isLoading]); // Removed function deps and loadedTabs to prevent infinite loop
 
     // Handle data loading errors
     useEffect(() => {
@@ -538,7 +538,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
     const reload = useCallback(async () => {
         // Invalidate all caches
         invalidateAllCache();
-        setLoadedTabs(new Set());
+        loadedTabsRef.current.clear();
         
         // Reload core data
         try {
@@ -556,12 +556,12 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 case Tab.Platform:
                     const tasks = await loadTasks({ force: true });
                     setData(prev => ({ ...prev, ...tasks }));
-                    setLoadedTabs(prev => new Set(prev).add('tasks'));
+                    loadedTabsRef.current.add('tasks');
                     
                     if (activeTab === Tab.Platform) {
                         const documents = await loadDocuments({ force: true });
                         setData(prev => ({ ...prev, documents }));
-                        setLoadedTabs(prev => new Set(prev).add('documents'));
+                        loadedTabsRef.current.add('documents');
                     }
                     break;
 
@@ -570,37 +570,37 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 case Tab.Partners:
                     const crm = await loadCrmItems({ force: true });
                     setData(prev => ({ ...prev, ...crm }));
-                    setLoadedTabs(prev => new Set(prev).add('crm'));
+                    loadedTabsRef.current.add('crm');
                     
                     const crmTasks = await loadTasks({ force: true });
                     setData(prev => ({ ...prev, ...crmTasks }));
-                    setLoadedTabs(prev => new Set(prev).add('tasks'));
+                    loadedTabsRef.current.add('tasks');
                     break;
 
                 case Tab.Marketing:
                     const marketing = await loadMarketing({ force: true });
                     setData(prev => ({ ...prev, marketing }));
-                    setLoadedTabs(prev => new Set(prev).add('marketing'));
+                    loadedTabsRef.current.add('marketing');
                     
                     const marketingTasks = await loadTasks({ force: true });
                     setData(prev => ({ ...prev, ...marketingTasks }));
-                    setLoadedTabs(prev => new Set(prev).add('tasks'));
+                    loadedTabsRef.current.add('tasks');
                     break;
 
                 case Tab.Financials:
                     const financials = await loadFinancials({ force: true });
                     setData(prev => ({ ...prev, ...financials }));
-                    setLoadedTabs(prev => new Set(prev).add('financials'));
+                    loadedTabsRef.current.add('financials');
                     
                     const financialTasks = await loadTasks({ force: true });
                     setData(prev => ({ ...prev, ...financialTasks }));
-                    setLoadedTabs(prev => new Set(prev).add('tasks'));
+                    loadedTabsRef.current.add('tasks');
                     break;
 
                 case Tab.Documents:
                     const docs = await loadDocuments({ force: true });
                     setData(prev => ({ ...prev, documents: docs }));
-                    setLoadedTabs(prev => new Set(prev).add('documents'));
+                    loadedTabsRef.current.add('documents');
                     break;
 
                 case Tab.Settings:
@@ -609,7 +609,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     break;
             }
             
-            setLoadedTabs(prev => new Set(prev).add(activeTab));
+            loadedTabsRef.current.add(activeTab);
         } catch (error) {
             logger.error('Error reloading data:', error);
         }
@@ -1365,7 +1365,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 }));
                 
                 // Mark as loaded
-                setLoadedTabs(prev => new Set(prev).add('financials'));
+                loadedTabsRef.current.add('financials');
                 
                 // Award XP for logging financials
                 const result = await GamificationService.awardXP(
@@ -1436,7 +1436,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     financials: freshFinancials.financials,
                     expenses: freshFinancials.expenses 
                 }));
-                setLoadedTabs(prev => new Set(prev).add('financials'));
+                loadedTabsRef.current.add('financials');
 
                 // Check team achievements
                 if (workspace?.id && userId) {
@@ -1480,7 +1480,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     financials: freshFinancials.financials,
                     expenses: freshFinancials.expenses 
                 }));
-                setLoadedTabs(prev => new Set(prev).add('financials'));
+                loadedTabsRef.current.add('financials');
                 
                 return { success: true, message: 'Expense updated successfully' };
             } catch (error) {
@@ -1602,7 +1602,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 invalidateCache('marketing');
                 const freshMarketing = await loadMarketing({ force: true });
                 setData(prev => ({ ...prev, marketing: freshMarketing }));
-                setLoadedTabs(prev => new Set(prev).add('marketing'));
+                loadedTabsRef.current.add('marketing');
                 
                 logger.info('[createMarketingItem] Created successfully, reloaded data');
                 handleToast(`Marketing item "${itemData.title}" created.`, 'success');
