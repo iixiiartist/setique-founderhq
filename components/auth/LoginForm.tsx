@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { normalizeEmail } from '../../lib/utils/emailHelpers'
 import { supabase } from '../../lib/supabase'
+import { sanitizeAuthError } from '../../lib/utils/errorMessages'
 
 interface Props {
   onSuccess?: () => void
@@ -67,15 +68,8 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
         const { data, error } = await signUp(normalizedEmail, password, trimmedName)
         console.log('SignUp result:', { data, error })
         if (error) {
-          // Provide user-friendly error messages
-          let errorMsg = ''
-          if (error.message.includes('already registered')) {
-            errorMsg = 'This email is already registered. Please sign in instead.'
-          } else if (error.message.includes('Password')) {
-            errorMsg = 'Password must be at least 6 characters long.'
-          } else {
-            errorMsg = error.message || 'An error occurred during sign up.'
-          }
+          // Use sanitized error messages
+          const errorMsg = sanitizeAuthError(error)
           setError(errorMsg)
           sessionStorage.setItem('auth_error', errorMsg)
           setLoading(false)
@@ -91,18 +85,14 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
         const { data, error } = await signIn(normalizedEmail, password)
         console.log('SignIn result:', { data, error })
         if (error) {
-          // Provide user-friendly error messages
-          let errorMsg = ''
-          if (error.message.includes('Invalid login credentials')) {
-            errorMsg = 'Invalid email or password. Please check your credentials and try again.'
-          } else if (error.message.includes('Email not confirmed')) {
-            errorMsg = 'Please confirm your email address first. Check your inbox for the confirmation link we sent you.'
+          // Use sanitized error messages
+          const errorMsg = sanitizeAuthError(error)
+          
+          // Check if needs email confirmation
+          if (error.message?.toLowerCase().includes('email not confirmed')) {
             setAwaitingConfirmation(true)
-          } else if (error.message.includes('User not found')) {
-            errorMsg = 'No account found with this email. Please sign up first.'
-          } else {
-            errorMsg = error.message || 'An error occurred during sign in.'
           }
+          
           console.log('Setting error message:', errorMsg)
           setError(errorMsg)
           sessionStorage.setItem('auth_error', errorMsg)
@@ -122,7 +112,7 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
       }
     } catch (err: any) {
       console.error('Exception during auth:', err)
-      const errorMsg = err?.message || '⚠️ An unexpected error occurred. Please try again.'
+      const errorMsg = sanitizeAuthError(err)
       setError(errorMsg)
       sessionStorage.setItem('auth_error', errorMsg)
       setLoading(false)
@@ -148,7 +138,7 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
         setMessage('Password reset email sent! Check your inbox for the reset link.')
       }
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.')
+      setError(sanitizeAuthError(err))
     } finally {
       setLoading(false)
     }
@@ -174,12 +164,12 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
       })
 
       if (error) {
-        setError(`Failed to resend confirmation: ${error.message}`)
+        setError(sanitizeAuthError(error))
       } else {
         setMessage('Confirmation email resent! Check your inbox (and spam folder).')
       }
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.')
+      setError(sanitizeAuthError(err))
     } finally {
       setLoading(false)
     }

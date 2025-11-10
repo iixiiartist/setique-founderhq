@@ -3,6 +3,7 @@ import { APP_CONFIG } from '../../lib/config';
 import { clearInvitationToken } from '../../lib/utils/tokenStorage';
 import { PasswordSetupForm } from './PasswordSetupForm';
 import { supabase } from '../../lib/supabase';
+import { sanitizeAuthError } from '../../lib/utils/errorMessages';
 
 interface InviteAcceptPageProps {
     token: string;
@@ -87,7 +88,7 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
                 } catch (err: any) {
                     console.error('Error logging in new user:', err);
                     setStatus('error');
-                    setMessage('Failed to initialize your session. Please try the invitation link again.');
+                    setMessage(sanitizeAuthError(err));
                 }
             } else if (result.needsAuth) {
                 // Existing user needs to log in - prefill their email
@@ -129,6 +130,9 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
             } else if (error.message) {
                 errorMessage = error.message;
             }
+            
+            // Sanitize the error message to remove technical details
+            errorMessage = sanitizeAuthError({ message: errorMessage });
             
             console.error('Final error message:', errorMessage);
             setStatus('error');

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { sanitizeAuthError } from '../../lib/utils/errorMessages';
 
 interface PasswordSetupFormProps {
     email: string;
@@ -61,7 +62,7 @@ export const PasswordSetupForm: React.FC<PasswordSetupFormProps> = ({ email, wor
             onComplete();
         } catch (err: any) {
             console.error('Error setting password:', err);
-            setError(err.message || 'Failed to set password. Please try again.');
+            setError(sanitizeAuthError(err));
         } finally {
             setIsSubmitting(false);
         }
