@@ -44,7 +44,7 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'apikey': APP_CONFIG.api.supabase.anonKey,
+                    'Authorization': `Bearer ${APP_CONFIG.api.supabase.anonKey}`,
                 },
                 body: JSON.stringify({ token })
             });
