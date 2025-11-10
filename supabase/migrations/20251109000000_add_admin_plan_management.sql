@@ -85,6 +85,17 @@ BEGIN
                 updated_at = NOW()
             WHERE owner_id = target_user_id;
         END;
+        
+        -- Also update subscriptions table if it exists
+        BEGIN
+            UPDATE subscriptions
+            SET 
+                plan_type = new_plan_type::plan_type,
+                seat_count = 1,
+                updated_at = NOW()
+            WHERE workspace_id = target_workspace_id;
+        EXCEPTION WHEN undefined_table THEN NULL;
+        END;
     ELSIF new_plan_type = 'power-individual' THEN
         -- Power individual: 1 seat
         BEGIN
@@ -102,6 +113,17 @@ BEGIN
                 updated_at = NOW()
             WHERE owner_id = target_user_id;
         END;
+        
+        -- Also update subscriptions table if it exists
+        BEGIN
+            UPDATE subscriptions
+            SET 
+                plan_type = new_plan_type::plan_type,
+                seat_count = 1,
+                updated_at = NOW()
+            WHERE workspace_id = target_workspace_id;
+        EXCEPTION WHEN undefined_table THEN NULL;
+        END;
     ELSIF new_plan_type = 'team-pro' THEN
         -- Team Pro: use provided seats or default to 5
         BEGIN
@@ -118,6 +140,17 @@ BEGIN
                 plan_type = new_plan_type::plan_type,
                 updated_at = NOW()
             WHERE owner_id = target_user_id;
+        END;
+        
+        -- Also update subscriptions table if it exists
+        BEGIN
+            UPDATE subscriptions
+            SET 
+                plan_type = new_plan_type::plan_type,
+                seat_count = COALESCE(new_seats, 5),
+                updated_at = NOW()
+            WHERE workspace_id = target_workspace_id;
+        EXCEPTION WHEN undefined_table THEN NULL;
         END;
     END IF;
     
