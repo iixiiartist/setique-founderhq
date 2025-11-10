@@ -273,9 +273,38 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
             textPart = `${contextParts.join('\n\n')}\n\n${prompt}`;
         }
 
+        // Handle file attachment with cost optimization
+        let fileSaved = false;
+        let fileName = '';
         if (file && fileContent && prompt === userInput) {
-            textPart = `[File Attached: ${file.name}]\n\n${prompt}`;
+            fileName = file.name;
+            textPart = `[File Attached: ${fileName}]\n\n${prompt}`;
             
+            // Calculate file size for cost optimization (base64 is ~33% larger than original)
+            const fileSizeBytes = Math.ceil((fileContent.length * 3) / 4);
+            const fileSizeMB = fileSizeBytes / (1024 * 1024);
+            
+            // Auto-save to file library for future reference
+            // COST OPTIMIZATION: File stored once in library, AI can reference by name
+            // This prevents sending large base64 in context for every future message
+            try {
+                await actions.uploadDocument(
+                    fileName,
+                    file.type,
+                    fileContent,
+                    currentTab,
+                    undefined, // companyId
+                    undefined  // contactId
+                );
+                fileSaved = true;
+                console.log(`✅ Auto-saved to library: ${fileName} (${fileSizeMB.toFixed(2)}MB)`);
+            } catch (error) {
+                console.warn('⚠️ Auto-save failed:', error);
+                // Continue - still send file to AI even if save fails
+            }
+            
+            // Send file to AI as inline data (for this conversation only)
+            // OPTIMIZATION: AI can now reference file by name from library in future messages
             userMessageParts.push({
                 inlineData: {
                     mimeType: file.type,

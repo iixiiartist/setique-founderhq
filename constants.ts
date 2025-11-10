@@ -51,8 +51,11 @@ export const EMPTY_DASHBOARD_DATA: DashboardData = {
     expenses: [],
     financialTasks: [],
     documents: [],
+    documentsMetadata: [],
     settings: {
         desktopNotifications: false,
+        autoSaveAttachments: true, // Auto-save by default
+        maxFileSizeMB: 10, // 10MB limit to control storage costs
     },
     gamification: {
         streak: 0,

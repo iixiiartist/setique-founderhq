@@ -57,6 +57,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
         loadMarketing,
         loadFinancials,
         loadDocuments,
+        loadDocumentsMetadata,
         invalidateCache,
         invalidateAllCache,
         isLoading: isDataLoading,
@@ -206,13 +207,18 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             try {
                 setIsLoading(true);
                 
-                // Load only core data on app start (2 queries instead of 8-10)
-                const coreData = await loadCoreData();
+                // Load core data + document metadata on app start
+                // Document metadata is lightweight (no base64 content) so AI can access files across all tabs
+                const [coreData, documentsMetadata] = await Promise.all([
+                    loadCoreData(),
+                    loadDocumentsMetadata()
+                ]);
                 
                 setData(prev => ({
                     ...prev,
                     gamification: coreData.gamification,
-                    settings: coreData.settings
+                    settings: coreData.settings,
+                    documentsMetadata: documentsMetadata
                 }));
                 
                 setIsLoading(false);
@@ -223,7 +229,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
         };
 
         initializeApp();
-    }, [user, workspace?.id, loadCoreData]);
+    }, [user, workspace?.id, loadCoreData, loadDocumentsMetadata]);
 
     // Load tab-specific data when tab changes (lazy loading)
     useEffect(() => {
@@ -1780,6 +1786,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
                 await reload();
                 invalidateCache('documents');
+                invalidateCache('documentsMetadata'); // Refresh metadata for AI context
                 handleToast(`"${name}" uploaded successfully.`, 'success');
 
                 // Check team achievements

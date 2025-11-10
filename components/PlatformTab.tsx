@@ -68,14 +68,9 @@ When asked for a report, analyze the provided task data.
 **File Handling & Global Knowledge Base:**
 - The application has a central File Library. You have access to the metadata of ALL uploaded documents, listed below in the "File Library Context".
 - Use the information in these documents to provide more accurate and context-aware answers to user questions, assist with tasks, and conduct research.
-- When a user attaches a new file, their message is a multi-part message with text and \`inlineData\` (containing base64 content and mimeType). The text is prefixed with \`[File Attached: filename.ext]\`.
-- When asked to save an attached file, call the \`uploadDocument\` function.
-    - \`name\`: Extract from the \`[File Attached: ...]\` prefix.
-    - \`mimeType\`: Use the \`mimeType\` from \`inlineData\`.
-    - \`content\`: Use the \`data\` field (base64 string) from \`inlineData\`.
-    - \`module\`: Set this to '${Tab.Platform}'.
-    - \`companyId\`, \`contactId\`: If the conversation context mentions a specific company or contact related to the file, find the corresponding ID from the CRM context and include it.
-- Do NOT ask for this information. Do NOT use content from previous files in the history when saving a new one.
+- **IMPORTANT**: When a user attaches a file, it is AUTOMATICALLY saved to the file library. You do NOT need to call \`uploadDocument\` unless explicitly asked. The file will appear in the File Library Context for future reference.
+- When a user attaches a file, their message is a multi-part message with text and \`inlineData\` (containing base64 content and mimeType). The text is prefixed with \`[File Attached: filename.ext]\`.
+- To access a previously uploaded file's content, use the \`getFileContent\` function with the file's ID from the File Library Context.
 
 **File Analysis Instructions:**
 - **Finding File IDs:** When a user asks about a file by its name (e.g., "What is in 'planning_doc.pdf'?"), you MUST look up its ID in the \`Current File Library Context\` provided to you. Use that ID to call the \`getFileContent\` function. Do NOT ask the user for the file ID if the file name is in your context.

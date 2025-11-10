@@ -374,6 +374,77 @@ export const useLazyDataPersistence = () => {
     }
   }, [user, workspace?.id, dataCache])
 
+  /**
+   * Load just document metadata (lightweight - no base64 content)
+   * Used for AI context across all tabs
+   * @param options.force - If true, bypasses cache and fetches fresh data from server
+   * @returns Array of document metadata (id, name, module, etc.)
+   */
+  const loadDocumentsMetadata = useCallback(async (options: LoadOptions = {}) => {
+    const cacheKey = 'documentsMetadata'
+    const cached = dataCache[cacheKey]
+    
+    // Return cached data if still fresh (unless force reload)
+    if (!options.force && cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      return cached.data
+    }
+
+    if (!user || !workspace?.id) {
+      return []
+    }
+
+    try {
+      setDataCache(prev => ({
+        ...prev,
+        [cacheKey]: { ...prev[cacheKey], isLoading: true }
+      }))
+
+      // Query only metadata fields, exclude heavy base64 content
+      const { data: documents, error } = await supabase
+        .from('documents')
+        .select('id, name, module, mime_type, uploaded_by, uploaded_by_name, created_at, workspace_id')
+        .eq('workspace_id', workspace.id)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error loading documents metadata:', error)
+        setDataCache(prev => ({
+          ...prev,
+          [cacheKey]: { data: [], timestamp: Date.now(), isLoading: false }
+        }))
+        return []
+      }
+
+      // Transform to match Document interface (without content field)
+      const metadata = (documents || []).map(doc => ({
+        id: doc.id,
+        name: doc.name,
+        module: doc.module,
+        mimeType: doc.mime_type,
+        uploadedBy: doc.uploaded_by,
+        uploadedByName: doc.uploaded_by_name,
+        createdAt: new Date(doc.created_at).getTime(),
+        workspaceId: doc.workspace_id,
+        // content field intentionally excluded to save memory
+      }))
+
+      setDataCache(prev => ({
+        ...prev,
+        [cacheKey]: { data: metadata, timestamp: Date.now(), isLoading: false }
+      }))
+
+      return metadata
+    } catch (err) {
+      console.error('Error loading documents metadata:', err)
+      setError(err as Error)
+      setDataCache(prev => ({
+        ...prev,
+        [cacheKey]: { data: [], timestamp: Date.now(), isLoading: false }
+      }))
+      return []
+    }
+  }, [user, workspace?.id, dataCache])
+
   // Invalidate specific cache
   const invalidateCache = useCallback((key: string) => {
     setDataCache(prev => {
@@ -400,6 +471,7 @@ export const useLazyDataPersistence = () => {
     loadMarketing,
     loadFinancials,
     loadDocuments,
+    loadDocumentsMetadata,
     invalidateCache,
     invalidateAllCache,
     isLoading,

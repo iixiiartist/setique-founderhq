@@ -411,6 +411,8 @@ export interface BusinessProfile {
 export interface SettingsData {
     desktopNotifications: boolean;
     quickLinks?: QuickLink[];
+    autoSaveAttachments?: boolean; // Auto-save chat file attachments to library (default: true)
+    maxFileSizeMB?: number; // Max file size for uploads in MB (default: 10)
 }
 
 export interface QuickLink {
@@ -465,6 +467,7 @@ export interface DashboardData {
     expenses: Expense[];
     financialTasks: Task[];
     documents: Document[];
+    documentsMetadata: Omit<Document, 'content'>[]; // Lightweight metadata for AI context
     settings: SettingsData;
     gamification: GamificationData;
 }
