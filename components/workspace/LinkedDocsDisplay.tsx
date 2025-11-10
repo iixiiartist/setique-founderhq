@@ -1,0 +1,146 @@
+import React, { useState, useEffect } from 'react';
+import { GTMDocMetadata, LinkedDoc } from '../../types';
+import { DOC_TYPE_ICONS, DOC_TYPE_LABELS } from '../../constants';
+
+interface LinkedDocsDisplayProps {
+    entityType: 'task' | 'calendar_event' | 'crm_item' | 'contact';
+    entityId: string;
+    workspaceId: string;
+    onAttach?: () => void;
+    compact?: boolean;
+}
+
+export const LinkedDocsDisplay: React.FC<LinkedDocsDisplayProps> = ({
+    entityType,
+    entityId,
+    workspaceId,
+    onAttach,
+    compact = false
+}) => {
+    const [linkedDocs, setLinkedDocs] = useState<GTMDocMetadata[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        loadLinkedDocs();
+    }, [entityId, workspaceId]);
+
+    const loadLinkedDocs = async () => {
+        if (!entityId) return;
+        
+        setIsLoading(true);
+        try {
+            const { DatabaseService } = await import('../../lib/services/database');
+            const { data, error} = await DatabaseService.getLinkedDocs(
+                entityType,
+                entityId
+            );
+
+            if (error) {
+                console.error('Error loading linked docs:', error);
+                return;
+            }
+
+            setLinkedDocs(data || []);
+        } catch (error) {
+            console.error('Failed to load linked docs:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleUnlink = async (docId: string) => {
+        if (!window.confirm('Remove this document link?')) return;
+
+        try {
+            const { DatabaseService } = await import('../../lib/services/database');
+            const { error } = await DatabaseService.unlinkDocFromEntity(
+                docId,
+                entityId
+            );
+
+            if (error) {
+                console.error('Error unlinking doc:', error);
+                alert('Failed to unlink document');
+                return;
+            }
+
+            // Refresh the list
+            await loadLinkedDocs();
+        } catch (error) {
+            console.error('Failed to unlink doc:', error);
+            alert('Failed to unlink document');
+        }
+    };
+
+    if (isLoading) {
+        return (
+            <div className="text-xs text-gray-500">
+                Loading linked docs...
+            </div>
+        );
+    }
+
+    if (linkedDocs.length === 0 && !onAttach) {
+        return null;
+    }
+
+    return (
+        <div className={compact ? 'space-y-1' : 'space-y-2'}>
+            {!compact && onAttach && (
+                <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-bold">Linked Docs</h4>
+                    <button
+                        onClick={onAttach}
+                        className="text-xs px-2 py-1 bg-purple-100 border border-purple-600 text-purple-700 font-bold hover:bg-purple-200 transition-colors"
+                    >
+                        + Attach Doc
+                    </button>
+                </div>
+            )}
+
+            {linkedDocs.length === 0 ? (
+                <p className="text-xs text-gray-500 italic">
+                    No documents linked
+                </p>
+            ) : (
+                <div className={compact ? 'flex flex-wrap gap-1' : 'space-y-1'}>
+                    {linkedDocs.map((doc) => (
+                        <div
+                            key={doc.id}
+                            className={`flex items-center justify-between ${
+                                compact
+                                    ? 'px-2 py-1 bg-purple-50 border border-purple-300 text-xs'
+                                    : 'p-2 bg-white border-2 border-black'
+                            }`}
+                        >
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <span className={compact ? 'text-sm' : 'text-lg'}>
+                                    {DOC_TYPE_ICONS[doc.docType] || '📄'}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                    <p className={`font-bold truncate ${compact ? 'text-xs' : 'text-sm'}`}>
+                                        {doc.title}
+                                    </p>
+                                    {!compact && (
+                                        <p className="text-xs text-gray-600 truncate">
+                                            {DOC_TYPE_LABELS[doc.docType]}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => handleUnlink(doc.id)}
+                                className={`ml-2 font-bold text-red-600 hover:text-red-800 ${
+                                    compact ? 'text-sm' : 'text-lg'
+                                }`}
+                                title="Unlink document"
+                            >
+                                ×
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
