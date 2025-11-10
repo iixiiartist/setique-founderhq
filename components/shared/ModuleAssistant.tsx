@@ -35,6 +35,7 @@ interface ModuleAssistantProps {
     autoFullscreenMobile?: boolean; // Auto-open fullscreen on mobile (default: true)
     businessContext?: string; // Optional context injected on first message
     teamContext?: string; // Optional context injected on first message
+    maxFileSizeMB?: number; // Max file size for AI chat (default: 5MB, lower than storage limit due to base64 overhead)
 }
 
 const ModuleAssistant: React.FC<ModuleAssistantProps> = ({ 
@@ -49,7 +50,8 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
     allowFullscreen = true,
     autoFullscreenMobile = true,
     businessContext,
-    teamContext
+    teamContext,
+    maxFileSizeMB = 5 // Default 5MB for AI chat (base64 encoding adds ~33% overhead)
 }) => {
     // Use conversation history hook for persistence
     const {
@@ -72,6 +74,7 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
     const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null);
     const [aiLimitError, setAiLimitError] = useState<AILimitError | null>(null);
     const [rateLimitError, setRateLimitError] = useState<string | null>(null);
+    const [fileSizeError, setFileSizeError] = useState<string | null>(null);
     const [requestTimestamps, setRequestTimestamps] = useState<number[]>([]);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -131,6 +134,20 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];
         if (selectedFile) {
+            // Validate file size
+            const fileSizeInMB = selectedFile.size / (1024 * 1024);
+            if (fileSizeInMB > maxFileSizeMB) {
+                setFileSizeError(`File too large. Maximum size is ${maxFileSizeMB}MB (file is ${fileSizeInMB.toFixed(2)}MB)`);
+                // Clear the file input
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
+                return;
+            }
+            
+            // Clear any previous errors
+            setFileSizeError(null);
+            
             setFile(selectedFile);
             const content = await blobToBase64(selectedFile);
             setFileContent(content);
@@ -280,12 +297,21 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
         let fileName = '';
         if (file && fileContent && prompt === userInput) {
             fileName = file.name;
-            textPart = `[File Attached: ${fileName}]\n\n${prompt}`;
-            textPartForAI = `[File Attached: ${fileName}]\n\n${textPartForAI}`;
             
-            // Calculate file size for cost optimization (base64 is ~33% larger than original)
+            // Calculate file size for validation (base64 is ~33% larger than original)
             const fileSizeBytes = Math.ceil((fileContent.length * 3) / 4);
             const fileSizeMB = fileSizeBytes / (1024 * 1024);
+            
+            // Double-check file size before sending to AI
+            if (fileSizeMB > maxFileSizeMB) {
+                setFileSizeError(`File too large to send to AI. Maximum size is ${maxFileSizeMB}MB (file is ${fileSizeMB.toFixed(2)}MB)`);
+                setIsLoading(false);
+                clearFile();
+                return;
+            }
+            
+            textPart = `[File Attached: ${fileName}]\n\n${prompt}`;
+            textPartForAI = `[File Attached: ${fileName}]\n\n${textPartForAI}`;
             
             // Auto-save to file library for future reference
             // COST OPTIMIZATION: File stored once in library, AI can reference by name
@@ -659,16 +685,47 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
                 </div>
             )}
 
+            {/* File Size Error */}
+            {fileSizeError && (
+                <div className="bg-red-100 border-2 border-red-500 p-4 shrink-0">
+                    <div className="flex items-start gap-3">
+                        <span className="text-2xl">📁</span>
+                        <div className="flex-1">
+                            <h3 className="font-bold text-red-800 mb-1">File Too Large</h3>
+                            <p className="text-sm text-red-700">
+                                {fileSizeError}
+                            </p>
+                            <button
+                                onClick={() => setFileSizeError(null)}
+                                className="mt-2 text-xs underline text-red-600 hover:text-red-800"
+                            >
+                                Dismiss
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <form onSubmit={handleChatSubmit} className="flex flex-col gap-2 shrink-0">
                 {file && (
                     <div className="flex items-center justify-between p-2 bg-gray-100 border-2 border-dashed border-black text-sm">
-                        <span className="truncate pr-2">{file.name}</span>
+                        <div className="flex-1 truncate pr-2">
+                            <div className="font-medium">{file.name}</div>
+                            <div className="text-xs text-gray-600">
+                                {(file.size / (1024 * 1024)).toFixed(2)}MB
+                            </div>
+                        </div>
                         <button type="button" onClick={clearFile} className="font-bold text-lg hover:text-red-500" aria-label="Remove attached file">&times;</button>
                     </div>
                 )}
                 <div className="flex gap-4">
                     <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" id={`file-upload-${title.replace(/\s+/g, '-')}`} />
-                    <label htmlFor={`file-upload-${title.replace(/\s+/g, '-')}`} className="p-3 border-2 border-black shadow-neo-btn cursor-pointer flex items-center justify-center" aria-label="Attach a file">
+                    <label 
+                        htmlFor={`file-upload-${title.replace(/\s+/g, '-')}`} 
+                        className="p-3 border-2 border-black shadow-neo-btn cursor-pointer flex items-center justify-center hover:bg-gray-50 transition-colors" 
+                        aria-label={`Attach a file (max ${maxFileSizeMB}MB)`}
+                        title={`Attach a file (max ${maxFileSizeMB}MB)`}
+                    >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-6 h-6">
                             <path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.122 2.122l7.81-7.81" />
                         </svg>
