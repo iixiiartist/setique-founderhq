@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { APP_CONFIG } from '../../lib/config';
 import { clearInvitationToken } from '../../lib/utils/tokenStorage';
 import { PasswordSetupForm } from './PasswordSetupForm';
+import { supabase } from '../../lib/supabase';
 
 interface InviteAcceptPageProps {
     token: string;
@@ -64,9 +65,39 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
 
             setInviteData(result);
 
-            if (result.isNewUser) {
-                // New user created - show password setup form directly
-                setStatus('setup_password');
+            if (result.isNewUser && result.magicLink) {
+                // New user created - first log them in via magic link, then show password form
+                console.log('New user detected, logging in via magic link first...');
+                
+                // Extract the access_token and refresh_token from the magic link
+                try {
+                    const url = new URL(result.magicLink);
+                    const accessToken = url.searchParams.get('access_token');
+                    const refreshToken = url.searchParams.get('refresh_token');
+                    
+                    if (accessToken && refreshToken) {
+                        // Set the session using the tokens from the magic link
+                        const { error: sessionError } = await supabase.auth.setSession({
+                            access_token: accessToken,
+                            refresh_token: refreshToken
+                        });
+                        
+                        if (sessionError) {
+                            console.error('Error setting session:', sessionError);
+                            throw sessionError;
+                        }
+                        
+                        console.log('✅ Session established, showing password setup form');
+                        // Now show the password setup form with the user logged in
+                        setStatus('setup_password');
+                    } else {
+                        throw new Error('Magic link missing required tokens');
+                    }
+                } catch (err: any) {
+                    console.error('Error processing magic link:', err);
+                    setStatus('error');
+                    setMessage('Failed to initialize your session. Please try the invitation link again.');
+                }
             } else if (result.needsAuth) {
                 // Existing user needs to log in - prefill their email
                 setStatus('needs_login');

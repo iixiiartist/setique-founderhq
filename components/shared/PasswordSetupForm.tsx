@@ -113,6 +113,7 @@ export const PasswordSetupForm: React.FC<PasswordSetupFormProps> = ({ email, wor
                             placeholder="Enter your password"
                             required
                             disabled={isSubmitting}
+                            autoComplete="new-password"
                         />
                         {password && (
                             <div className="mt-2">
@@ -148,6 +149,7 @@ export const PasswordSetupForm: React.FC<PasswordSetupFormProps> = ({ email, wor
                             placeholder="Confirm your password"
                             required
                             disabled={isSubmitting}
+                            autoComplete="new-password"
                         />
                     </div>
 
