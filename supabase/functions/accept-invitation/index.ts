@@ -271,30 +271,31 @@ serve(async (req) => {
       })
       .eq('id', invitation.id)
 
-    // If new user, send password reset email using Supabase's built-in email service
+    // If new user, send invite email using Supabase's built-in email service
     let passwordResetSent = false
     if (isNewUser) {
       try {
-        console.log('Sending password reset email to new user:', invitation.email)
+        console.log('Sending invite email to new user:', invitation.email)
         
-        // Use Supabase's built-in password reset email (configured in Supabase Dashboard > Authentication > Email Templates)
-        const { error: resetEmailError } = await supabaseAdmin.auth.resetPasswordForEmail(
+        // Use inviteUserByEmail which sends a magic link to set password
+        // This works better for newly created users who don't have a password yet
+        const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
           invitation.email,
           {
             redirectTo: `${Deno.env.get('APP_URL') || 'http://localhost:3000'}/app`
           }
         )
         
-        if (resetEmailError) {
-          console.error('Error sending password reset email:', resetEmailError)
-          console.error('Reset error details:', JSON.stringify(resetEmailError, null, 2))
+        if (inviteError) {
+          console.error('Error sending invite email:', inviteError)
+          console.error('Invite error details:', JSON.stringify(inviteError, null, 2))
           console.error('Make sure SMTP is configured in Supabase Dashboard > Project Settings > Auth > SMTP Settings')
         } else {
           passwordResetSent = true
-          console.log('✅ Password reset email sent successfully to:', invitation.email)
+          console.log('✅ Invite email sent successfully to:', invitation.email)
         }
       } catch (error) {
-        console.error('Exception sending password reset:', error)
+        console.error('Exception sending invite email:', error)
         console.error('Exception details:', error instanceof Error ? error.stack : error)
       }
     }
