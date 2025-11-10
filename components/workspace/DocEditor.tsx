@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Placeholder from '@tiptap/extension-placeholder';
 import { GTMDoc, DocType, DocVisibility } from '../../types';
 import { DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '../../constants';
 
@@ -20,10 +23,25 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     const [title, setTitle] = useState('Untitled Document');
     const [docType, setDocType] = useState<DocType>('brief');
     const [visibility, setVisibility] = useState<DocVisibility>('team');
-    const [content, setContent] = useState('');
     const [tags, setTags] = useState<string[]>([]);
     const [isSaving, setIsSaving] = useState(false);
     const [isLoading, setIsLoading] = useState(!!docId);
+
+    // Initialize Tiptap editor
+    const editor = useEditor({
+        extensions: [
+            StarterKit,
+            Placeholder.configure({
+                placeholder: 'Start writing your document...',
+            }),
+        ],
+        content: '',
+        editorProps: {
+            attributes: {
+                class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-xl focus:outline-none min-h-full p-4',
+            },
+        },
+    });
 
     useEffect(() => {
         if (docId) {
@@ -43,8 +61,15 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                 setTitle(data.title);
                 setDocType(data.docType as DocType);
                 setVisibility(data.visibility as DocVisibility);
-                setContent(data.contentPlain || '');
                 setTags(data.tags);
+                
+                // Load content into Tiptap editor
+                if (editor && data.contentJson) {
+                    editor.commands.setContent(data.contentJson);
+                } else if (editor && data.contentPlain) {
+                    // Fallback to plain text if no JSON
+                    editor.commands.setContent(data.contentPlain);
+                }
             }
         } catch (error) {
             console.error('Error loading doc:', error);
@@ -54,9 +79,15 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     };
 
     const handleSave = async () => {
+        if (!editor) return;
+        
         setIsSaving(true);
         try {
             const { DatabaseService } = await import('../../lib/services/database');
+            
+            // Extract content from editor
+            const contentJson = editor.getJSON();
+            const contentPlain = editor.getText();
             
             if (docId) {
                 // Update existing doc
@@ -64,7 +95,8 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                     title,
                     docType,
                     visibility,
-                    contentPlain: content,
+                    contentJson,
+                    contentPlain,
                     tags
                 });
                 
@@ -81,7 +113,8 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                     title,
                     docType,
                     visibility,
-                    contentPlain: content,
+                    contentJson,
+                    contentPlain,
                     tags
                 });
                 
@@ -140,15 +173,136 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             {/* Main Content */}
             <div className="flex-1 flex overflow-hidden">
                 {/* Editor Area */}
-                <div className="flex-1 overflow-y-auto p-6">
-                    {/* Placeholder: Will be replaced with Tiptap editor */}
-                    <textarea
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                        className="w-full h-full p-4 border-2 border-black font-mono resize-none"
-                        placeholder="Start writing... (Tiptap editor will be integrated here)"
-                        aria-label="Document content"
-                    />
+                <div className="flex-1 overflow-y-auto flex flex-col">
+                    {/* Tiptap Toolbar */}
+                    {editor && (
+                        <div className="sticky top-0 z-10 bg-white border-b-2 border-black p-2 flex flex-wrap gap-1">
+                            <button
+                                onClick={() => editor.chain().focus().toggleBold().run()}
+                                className={`px-3 py-1 text-sm font-bold border-2 border-black ${
+                                    editor.isActive('bold') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
+                                }`}
+                                title="Bold (Ctrl+B)"
+                            >
+                                <strong>B</strong>
+                            </button>
+                            <button
+                                onClick={() => editor.chain().focus().toggleItalic().run()}
+                                className={`px-3 py-1 text-sm font-bold border-2 border-black ${
+                                    editor.isActive('italic') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
+                                }`}
+                                title="Italic (Ctrl+I)"
+                            >
+                                <em>I</em>
+                            </button>
+                            <button
+                                onClick={() => editor.chain().focus().toggleStrike().run()}
+                                className={`px-3 py-1 text-sm font-bold border-2 border-black ${
+                                    editor.isActive('strike') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
+                                }`}
+                                title="Strikethrough"
+                            >
+                                <s>S</s>
+                            </button>
+                            
+                            <div className="w-px bg-black mx-1"></div>
+                            
+                            <button
+                                onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                                className={`px-3 py-1 text-sm font-bold border-2 border-black ${
+                                    editor.isActive('heading', { level: 1 }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
+                                }`}
+                                title="Heading 1"
+                            >
+                                H1
+                            </button>
+                            <button
+                                onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                                className={`px-3 py-1 text-sm font-bold border-2 border-black ${
+                                    editor.isActive('heading', { level: 2 }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
+                                }`}
+                                title="Heading 2"
+                            >
+                                H2
+                            </button>
+                            <button
+                                onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                                className={`px-3 py-1 text-sm font-bold border-2 border-black ${
+                                    editor.isActive('heading', { level: 3 }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
+                                }`}
+                                title="Heading 3"
+                            >
+                                H3
+                            </button>
+                            
+                            <div className="w-px bg-black mx-1"></div>
+                            
+                            <button
+                                onClick={() => editor.chain().focus().toggleBulletList().run()}
+                                className={`px-3 py-1 text-sm font-bold border-2 border-black ${
+                                    editor.isActive('bulletList') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
+                                }`}
+                                title="Bullet List"
+                            >
+                                • List
+                            </button>
+                            <button
+                                onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                                className={`px-3 py-1 text-sm font-bold border-2 border-black ${
+                                    editor.isActive('orderedList') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
+                                }`}
+                                title="Numbered List"
+                            >
+                                1. List
+                            </button>
+                            
+                            <div className="w-px bg-black mx-1"></div>
+                            
+                            <button
+                                onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                                className={`px-3 py-1 text-sm font-bold border-2 border-black ${
+                                    editor.isActive('blockquote') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
+                                }`}
+                                title="Quote"
+                            >
+                                " Quote
+                            </button>
+                            <button
+                                onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+                                className={`px-3 py-1 text-sm font-bold border-2 border-black ${
+                                    editor.isActive('codeBlock') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
+                                }`}
+                                title="Code Block"
+                            >
+                                {'</>'}
+                            </button>
+                            
+                            <div className="w-px bg-black mx-1"></div>
+                            
+                            <button
+                                onClick={() => editor.chain().focus().setHorizontalRule().run()}
+                                className="px-3 py-1 text-sm font-bold border-2 border-black bg-white hover:bg-gray-100"
+                                title="Horizontal Line"
+                            >
+                                ─
+                            </button>
+                            <button
+                                onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()}
+                                className="px-3 py-1 text-sm font-bold border-2 border-black bg-white hover:bg-gray-100"
+                                title="Clear Formatting"
+                            >
+                                Clear
+                            </button>
+                        </div>
+                    )}
+                    
+                    {/* Tiptap Editor Content */}
+                    <div className="flex-1 overflow-y-auto p-6 bg-white">
+                        <EditorContent 
+                            editor={editor} 
+                            className="h-full min-h-[500px] border-2 border-black p-4"
+                        />
+                    </div>
                 </div>
 
                 {/* Metadata Sidebar */}
