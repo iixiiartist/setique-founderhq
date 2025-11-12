@@ -44,6 +44,10 @@ export const ContactManager: React.FC<ContactManagerProps> = ({
     const [importProgress, setImportProgress] = useState(0);
     const [importResult, setImportResult] = useState<CSVImportResult | null>(null);
     const [newTag, setNewTag] = useState('');
+    const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+    const [duplicateGroups, setDuplicateGroups] = useState<Contact[][]>([]);
+    const [selectedDuplicateGroup, setSelectedDuplicateGroup] = useState<Contact[] | null>(null);
+    const [primaryContact, setPrimaryContact] = useState<Contact | null>(null);
     const [formData, setFormData] = useState<ContactFormData>({
         name: '',
         email: '',
@@ -308,6 +312,154 @@ export const ContactManager: React.FC<ContactManagerProps> = ({
         }
     };
 
+    // Duplicate Detection
+    const normalizeString = (str: string): string => {
+        return str.toLowerCase().trim().replace(/[^\w\s]/g, '');
+    };
+
+    const normalizePhone = (phone: string): string => {
+        return phone.replace(/\D/g, '');
+    };
+
+    const calculateSimilarity = (str1: string, str2: string): number => {
+        // Simple similarity: check if one contains the other or they share significant prefix
+        const norm1 = normalizeString(str1);
+        const norm2 = normalizeString(str2);
+        
+        if (norm1 === norm2) return 1.0;
+        if (norm1.includes(norm2) || norm2.includes(norm1)) return 0.8;
+        
+        // Check if they share first 3 characters (for similar names)
+        if (norm1.length >= 3 && norm2.length >= 3 && norm1.substring(0, 3) === norm2.substring(0, 3)) {
+            return 0.6;
+        }
+        
+        return 0;
+    };
+
+    const detectDuplicates = () => {
+        const groups: Contact[][] = [];
+        const processed = new Set<string>();
+
+        allContacts.forEach((contact, index) => {
+            if (processed.has(contact.id)) return;
+
+            const potentialDuplicates: Contact[] = [contact];
+            processed.add(contact.id);
+
+            // Check remaining contacts
+            for (let i = index + 1; i < allContacts.length; i++) {
+                const other = allContacts[i];
+                if (processed.has(other.id)) continue;
+
+                let isDuplicate = false;
+
+                // Exact email match
+                if (contact.email && other.email && 
+                    normalizeString(contact.email) === normalizeString(other.email)) {
+                    isDuplicate = true;
+                }
+
+                // Exact phone match
+                if (!isDuplicate && contact.phone && other.phone &&
+                    normalizePhone(contact.phone) === normalizePhone(other.phone)) {
+                    isDuplicate = true;
+                }
+
+                // Similar names (high similarity)
+                if (!isDuplicate) {
+                    const nameSimilarity = calculateSimilarity(contact.name, other.name);
+                    if (nameSimilarity >= 0.8) {
+                        isDuplicate = true;
+                    }
+                }
+
+                if (isDuplicate) {
+                    potentialDuplicates.push(other);
+                    processed.add(other.id);
+                }
+            }
+
+            // Only add groups with 2+ contacts
+            if (potentialDuplicates.length > 1) {
+                groups.push(potentialDuplicates);
+            }
+        });
+
+        setDuplicateGroups(groups);
+        setShowDuplicateModal(true);
+    };
+
+    const startMergeWorkflow = (group: Contact[]) => {
+        setSelectedDuplicateGroup(group);
+        setPrimaryContact(group[0]); // Default to first contact as primary
+    };
+
+    const handleMergeContacts = async () => {
+        if (!selectedDuplicateGroup || !primaryContact) return;
+
+        try {
+            // Merge logic: combine data from duplicates into primary
+            const duplicatesToRemove = selectedDuplicateGroup.filter(c => c.id !== primaryContact.id);
+            
+            // Combine tags
+            const allTagsSet = new Set<string>(primaryContact.tags || []);
+            duplicatesToRemove.forEach(dup => {
+                dup.tags?.forEach(tag => allTagsSet.add(tag));
+            });
+
+            // Combine notes (notes is an array of Note objects)
+            const combinedNotes = [...(primaryContact.notes || [])];
+            duplicatesToRemove.forEach(dup => {
+                if (dup.notes && dup.notes.length > 0) {
+                    // Add a separator note
+                    combinedNotes.push({
+                        text: `--- Merged from ${dup.name} ---`,
+                        timestamp: Date.now(),
+                    });
+                    // Add all notes from duplicate
+                    combinedNotes.push(...dup.notes);
+                }
+            });
+
+            // Update primary contact with merged data
+            const linkedAccount = getLinkedAccount(primaryContact);
+            if (linkedAccount) {
+                await actions.updateContact(
+                    crmType,
+                    linkedAccount.id,
+                    primaryContact.id,
+                    {
+                        tags: Array.from(allTagsSet),
+                        notes: combinedNotes,
+                        // Keep phone if primary doesn't have it
+                        phone: primaryContact.phone || duplicatesToRemove.find(d => d.phone)?.phone || '',
+                        // Keep title if primary doesn't have it
+                        title: primaryContact.title || duplicatesToRemove.find(d => d.title)?.title || '',
+                    } as any
+                );
+
+                // Delete duplicate contacts
+                for (const duplicate of duplicatesToRemove) {
+                    const dupLinkedAccount = getLinkedAccount(duplicate);
+                    if (dupLinkedAccount) {
+                        await actions.deleteContact(crmType, dupLinkedAccount.id, duplicate.id);
+                    }
+                }
+
+                alert(`Successfully merged ${duplicatesToRemove.length} duplicate contact(s) into ${primaryContact.name}`);
+                
+                // Refresh duplicate detection
+                setSelectedDuplicateGroup(null);
+                setPrimaryContact(null);
+                detectDuplicates();
+            }
+        } catch (error) {
+            console.error('Error merging contacts:', error);
+            alert('Failed to merge contacts');
+        }
+    };
+
     const getCrmTypeLabel = () => {
         switch (crmType) {
             case 'investors': return 'Investor';
@@ -529,6 +681,13 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                         className="font-mono bg-blue-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-blue-600 transition-all"
                     >
                         📤 Import CSV
+                    </button>
+                    <button
+                        onClick={detectDuplicates}
+                        disabled={allContacts.length < 2}
+                        className="font-mono bg-yellow-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-yellow-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        🔍 Find Duplicates
                     </button>
                     <button
                         onClick={() => setShowAddModal(true)}
@@ -1110,6 +1269,152 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                         </button>
                     </div>
                 )}
+            </Modal>
+
+            {/* Duplicate Detection Modal */}
+            <Modal
+                isOpen={showDuplicateModal}
+                onClose={() => {
+                    setShowDuplicateModal(false);
+                    setSelectedDuplicateGroup(null);
+                    setPrimaryContact(null);
+                }}
+                title="Duplicate Contacts"
+            >
+                <div className="space-y-4">
+                    {selectedDuplicateGroup ? (
+                        /* Merge Workflow */
+                        <div className="space-y-4">
+                            <div className="bg-yellow-50 border-2 border-yellow-300 p-3">
+                                <p className="text-sm font-mono">
+                                    <strong>⚠️ Merge Warning:</strong> Select the primary contact to keep. 
+                                    Other contacts will be deleted, but their data (tags, notes) will be merged into the primary.
+                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                {selectedDuplicateGroup.map((contact) => (
+                                    <div
+                                        key={contact.id}
+                                        className={`p-4 border-2 cursor-pointer transition-all ${
+                                            primaryContact?.id === contact.id
+                                                ? 'border-green-500 bg-green-50'
+                                                : 'border-gray-300 bg-white hover:border-blue-400'
+                                        }`}
+                                        onClick={() => setPrimaryContact(contact)}
+                                    >
+                                        <div className="flex items-start justify-between">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    {primaryContact?.id === contact.id && (
+                                                        <span className="text-green-600 font-bold">✓ PRIMARY</span>
+                                                    )}
+                                                    <h4 className="font-mono font-bold text-black">{contact.name}</h4>
+                                                </div>
+                                                <p className="text-sm text-gray-600">📧 {contact.email}</p>
+                                                {contact.phone && (
+                                                    <p className="text-sm text-gray-600">📞 {contact.phone}</p>
+                                                )}
+                                                {contact.title && (
+                                                    <p className="text-sm text-gray-600">💼 {contact.title}</p>
+                                                )}
+                                                {contact.tags && contact.tags.length > 0 && (
+                                                    <div className="mt-1 flex gap-1 flex-wrap">
+                                                        {contact.tags.map(tag => (
+                                                            <span key={tag} className="text-xs px-2 py-1 bg-purple-100 text-purple-700">
+                                                                🏷️ {tag}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                {contact.notes && contact.notes.length > 0 && (
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        📝 {contact.notes.length} note(s)
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={handleMergeContacts}
+                                    disabled={!primaryContact}
+                                    className="flex-1 font-mono bg-green-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-green-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    ✓ Merge Contacts
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setSelectedDuplicateGroup(null);
+                                        setPrimaryContact(null);
+                                    }}
+                                    className="font-mono bg-gray-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-gray-600 transition-all"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        /* Duplicate Groups List */
+                        <div className="space-y-4">
+                            {duplicateGroups.length === 0 ? (
+                                <div className="text-center py-8">
+                                    <p className="text-green-600 font-mono font-semibold">
+                                        ✓ No duplicate contacts found!
+                                    </p>
+                                    <p className="text-sm text-gray-500 mt-2">
+                                        All contacts appear to be unique.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    <div className="bg-yellow-50 border-2 border-yellow-300 p-3">
+                                        <p className="text-sm font-mono">
+                                            <strong>Found {duplicateGroups.length} potential duplicate group(s)</strong>
+                                        </p>
+                                        <p className="text-xs text-gray-600 mt-1">
+                                            Click "Review & Merge" to combine duplicate contacts
+                                        </p>
+                                    </div>
+
+                                    {duplicateGroups.map((group, idx) => (
+                                        <div key={idx} className="border-2 border-gray-300 p-3 bg-white">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <h4 className="font-mono font-semibold text-black">
+                                                    Duplicate Group {idx + 1} ({group.length} contacts)
+                                                </h4>
+                                                <button
+                                                    onClick={() => startMergeWorkflow(group)}
+                                                    className="font-mono bg-blue-500 text-white border-2 border-black px-3 py-1 text-xs rounded-none font-semibold shadow-neo-btn hover:bg-blue-600 transition-all"
+                                                >
+                                                    Review & Merge
+                                                </button>
+                                            </div>
+                                            <div className="space-y-1 text-sm">
+                                                {group.map((contact) => (
+                                                    <div key={contact.id} className="text-gray-700">
+                                                        • <strong>{contact.name}</strong> - {contact.email}
+                                                        {contact.phone && ` - ${contact.phone}`}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            <button
+                                onClick={() => setShowDuplicateModal(false)}
+                                className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    )}
+                </div>
             </Modal>
         </div>
     );
