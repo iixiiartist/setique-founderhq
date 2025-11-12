@@ -189,8 +189,11 @@ CREATE TABLE contacts (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     name TEXT NOT NULL,
     email TEXT NOT NULL,
+    phone TEXT,
+    title TEXT,
     linkedin TEXT DEFAULT '',
-    notes JSONB DEFAULT '[]'
+    notes JSONB DEFAULT '[]',
+    tags JSONB DEFAULT '[]'
 );
 
 -- Create meetings table
@@ -299,6 +302,7 @@ CREATE INDEX idx_crm_items_status ON crm_items(status);
 
 CREATE INDEX idx_contacts_user_id ON contacts(user_id);
 CREATE INDEX idx_contacts_crm_item_id ON contacts(crm_item_id);
+CREATE INDEX idx_contacts_tags ON contacts USING GIN (tags);
 
 CREATE INDEX idx_meetings_user_id ON meetings(user_id);
 CREATE INDEX idx_meetings_contact_id ON meetings(contact_id);
