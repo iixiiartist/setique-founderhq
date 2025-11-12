@@ -35,12 +35,15 @@ export const ContactManager: React.FC<ContactManagerProps> = ({
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
+    const [showTagModal, setShowTagModal] = useState(false);
     const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterBy, setFilterBy] = useState<'all' | 'linked' | 'unlinked'>('all');
+    const [filterByTag, setFilterByTag] = useState<string>('');
     const [isImporting, setIsImporting] = useState(false);
     const [importProgress, setImportProgress] = useState(0);
     const [importResult, setImportResult] = useState<CSVImportResult | null>(null);
+    const [newTag, setNewTag] = useState('');
     const [formData, setFormData] = useState<ContactFormData>({
         name: '',
         email: '',
@@ -64,6 +67,15 @@ export const ContactManager: React.FC<ContactManagerProps> = ({
     const allContacts = useMemo(() => {
         return contacts;
     }, [contacts]);
+
+    // Get all unique tags from contacts
+    const allTags = useMemo(() => {
+        const tagSet = new Set<string>();
+        allContacts.forEach(contact => {
+            contact.tags?.forEach(tag => tagSet.add(tag));
+        });
+        return Array.from(tagSet).sort();
+    }, [allContacts]);
 
     // Filter contacts based on search and filter
     const filteredContacts = useMemo(() => {
@@ -90,8 +102,15 @@ export const ContactManager: React.FC<ContactManagerProps> = ({
             });
         }
 
+        // Tag filter
+        if (filterByTag) {
+            filtered = filtered.filter(contact => 
+                contact.tags?.includes(filterByTag)
+            );
+        }
+
         return filtered;
-    }, [allContacts, searchQuery, filterBy, crmItems]);
+    }, [allContacts, searchQuery, filterBy, filterByTag, crmItems]);
 
     // Get CRM account name for a contact
     const getLinkedAccount = (contact: Contact): AnyCrmItem | undefined => {
@@ -226,6 +245,67 @@ export const ContactManager: React.FC<ContactManagerProps> = ({
             newAccountName: ''
         });
         setShowEditModal(true);
+    };
+
+    // Tag Management
+    const openTagModal = (contact: Contact) => {
+        setSelectedContact(contact);
+        setNewTag('');
+        setShowTagModal(true);
+    };
+
+    const handleAddTag = async () => {
+        if (!selectedContact || !newTag.trim()) return;
+
+        try {
+            const linkedAccount = getLinkedAccount(selectedContact);
+            if (!linkedAccount) {
+                alert('Cannot add tag: No linked account found.');
+                return;
+            }
+
+            const currentTags = selectedContact.tags || [];
+            const tag = newTag.trim().toLowerCase();
+            
+            if (currentTags.includes(tag)) {
+                alert('Tag already exists on this contact');
+                return;
+            }
+
+            const updatedTags = [...currentTags, tag];
+            await actions.updateContact(
+                crmType,
+                linkedAccount.id,
+                selectedContact.id,
+                { tags: updatedTags } as any
+            );
+
+            setNewTag('');
+        } catch (error) {
+            console.error('Error adding tag:', error);
+            alert('Failed to add tag');
+        }
+    };
+
+    const handleRemoveTag = async (contact: Contact, tagToRemove: string) => {
+        try {
+            const linkedAccount = getLinkedAccount(contact);
+            if (!linkedAccount) {
+                alert('Cannot remove tag: No linked account found.');
+                return;
+            }
+
+            const updatedTags = (contact.tags || []).filter(tag => tag !== tagToRemove);
+            await actions.updateContact(
+                crmType,
+                linkedAccount.id,
+                contact.id,
+                { tags: updatedTags } as any
+            );
+        } catch (error) {
+            console.error('Error removing tag:', error);
+            alert('Failed to remove tag');
+        }
     };
 
     const getCrmTypeLabel = () => {
@@ -460,7 +540,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
             </div>
 
             {/* Search and Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <input
                     type="text"
                     value={searchQuery}
@@ -476,6 +556,18 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                     <option value="all">All Contacts</option>
                     <option value="linked">Linked to {getCrmTypeLabel()}s</option>
                     <option value="unlinked">Unlinked Contacts</option>
+                </select>
+                <select
+                    value={filterByTag}
+                    onChange={(e) => setFilterByTag(e.target.value)}
+                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                >
+                    <option value="">All Tags</option>
+                    {allTags.map(tag => (
+                        <option key={tag} value={tag}>
+                            🏷️ {tag}
+                        </option>
+                    ))}
                 </select>
             </div>
 
@@ -531,8 +623,38 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                                 </span>
                                             </div>
                                         )}
+                                        {/* Tags */}
+                                        {contact.tags && contact.tags.length > 0 && (
+                                            <div className="mt-2 flex flex-wrap gap-1">
+                                                {contact.tags.map(tag => (
+                                                    <span
+                                                        key={tag}
+                                                        className="inline-flex items-center gap-1 px-2 py-1 bg-purple-50 border border-purple-300 text-xs font-mono text-purple-700 font-semibold"
+                                                    >
+                                                        🏷️ {tag}
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleRemoveTag(contact, tag);
+                                                            }}
+                                                            className="ml-1 text-purple-900 hover:text-red-600"
+                                                            title="Remove tag"
+                                                        >
+                                                            ×
+                                                        </button>
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="flex gap-2 flex-shrink-0">
+                                        <button
+                                            onClick={() => openTagModal(contact)}
+                                            className="px-3 py-1 bg-purple-500 text-white border-2 border-black text-xs font-bold hover:bg-purple-600 transition-all"
+                                            title="Manage tags"
+                                        >
+                                            🏷️
+                                        </button>
                                         <button
                                             onClick={() => openEditModal(contact)}
                                             className="px-3 py-1 bg-blue-500 text-white border-2 border-black text-xs font-bold hover:bg-blue-600 transition-all"
@@ -883,6 +1005,111 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                         </div>
                     )}
                 </div>
+            </Modal>
+
+            {/* Tag Management Modal */}
+            <Modal
+                isOpen={showTagModal}
+                onClose={() => {
+                    setShowTagModal(false);
+                    setSelectedContact(null);
+                    setNewTag('');
+                }}
+                title={selectedContact ? `Manage Tags - ${selectedContact.name}` : 'Manage Tags'}
+            >
+                {selectedContact && (
+                    <div className="space-y-4">
+                        {/* Current Tags */}
+                        <div>
+                            <h4 className="font-mono font-semibold text-black mb-2">Current Tags:</h4>
+                            {selectedContact.tags && selectedContact.tags.length > 0 ? (
+                                <div className="flex flex-wrap gap-2">
+                                    {selectedContact.tags.map(tag => (
+                                        <span
+                                            key={tag}
+                                            className="inline-flex items-center gap-2 px-3 py-2 bg-purple-50 border-2 border-purple-300 text-sm font-mono text-purple-700 font-semibold"
+                                        >
+                                            🏷️ {tag}
+                                            <button
+                                                onClick={() => handleRemoveTag(selectedContact, tag)}
+                                                className="text-purple-900 hover:text-red-600 font-bold"
+                                                title="Remove tag"
+                                            >
+                                                ×
+                                            </button>
+                                        </span>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-gray-500">No tags assigned yet</p>
+                            )}
+                        </div>
+
+                        {/* Add New Tag */}
+                        <div>
+                            <h4 className="font-mono font-semibold text-black mb-2">Add New Tag:</h4>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={newTag}
+                                    onChange={(e) => setNewTag(e.target.value)}
+                                    onKeyPress={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            handleAddTag();
+                                        }
+                                    }}
+                                    placeholder="e.g., decision-maker, champion"
+                                    className="flex-1 bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-purple-500"
+                                />
+                                <button
+                                    onClick={handleAddTag}
+                                    disabled={!newTag.trim()}
+                                    className="font-mono bg-purple-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-purple-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    + Add
+                                </button>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                                Common tags: decision-maker, technical, champion, influencer, blocker
+                            </p>
+                        </div>
+
+                        {/* Suggested Tags */}
+                        {allTags.length > 0 && (
+                            <div>
+                                <h4 className="font-mono font-semibold text-black mb-2">Existing Tags in System:</h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {allTags
+                                        .filter(tag => !selectedContact.tags?.includes(tag))
+                                        .map(tag => (
+                                            <button
+                                                key={tag}
+                                                onClick={() => {
+                                                    setNewTag(tag);
+                                                }}
+                                                className="px-2 py-1 bg-gray-100 border border-gray-300 text-xs font-mono text-gray-700 hover:bg-purple-100 hover:border-purple-300 transition-all"
+                                            >
+                                                {tag}
+                                            </button>
+                                        ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Close Button */}
+                        <button
+                            onClick={() => {
+                                setShowTagModal(false);
+                                setSelectedContact(null);
+                                setNewTag('');
+                            }}
+                            className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800"
+                        >
+                            Done
+                        </button>
+                    </div>
+                )}
             </Modal>
         </div>
     );

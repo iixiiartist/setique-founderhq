@@ -53,6 +53,7 @@ export interface Contact {
     assignedTo?: string | null;
     assignedToName?: string | null;
     createdByName?: string | null;
+    tags?: string[];
 }
 
 export interface BaseCrmItem {
