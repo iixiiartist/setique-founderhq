@@ -291,6 +291,31 @@ export const ContactManager: React.FC<ContactManagerProps> = ({
         setShowEditModal(true);
     };
 
+    const closeAddModal = () => {
+        setShowAddModal(false);
+        setFormData({
+            name: '',
+            email: '',
+            phone: '',
+            title: '',
+            linkedCrmId: '',
+            newAccountName: ''
+        });
+    };
+
+    const closeEditModal = () => {
+        setShowEditModal(false);
+        setSelectedContact(null);
+        setFormData({
+            name: '',
+            email: '',
+            phone: '',
+            title: '',
+            linkedCrmId: '',
+            newAccountName: ''
+        });
+    };
+
     // Tag Management
     const openTagModal = (contact: Contact) => {
         setSelectedContact(contact);
@@ -1283,18 +1308,8 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
             {/* Add Contact Modal */}
             <Modal
                 isOpen={showAddModal}
-                onClose={() => {
-                    setShowAddModal(false);
-                    setFormData({
-                        name: '',
-                        email: '',
-                        phone: '',
-                        title: '',
-                        linkedCrmId: '',
-                        newAccountName: ''
-                    });
-                }}
-                title={`Add New Contact`}
+                onClose={closeAddModal}
+                title="Add New Contact"
             >
                 <form onSubmit={handleAddContact} className="space-y-4">
                     <div>
@@ -1393,7 +1408,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                         </button>
                         <button
                             type="button"
-                            onClick={() => setShowAddModal(false)}
+                            onClick={closeAddModal}
                             className="flex-1 font-mono font-semibold bg-white text-black py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-100"
                         >
                             Cancel
@@ -1763,19 +1778,8 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
             {/* Edit Contact Modal */}
             <Modal
                 isOpen={showEditModal}
-                onClose={() => {
-                    setShowEditModal(false);
-                    setSelectedContact(null);
-                    setFormData({
-                        name: '',
-                        email: '',
-                        phone: '',
-                        title: '',
-                        linkedCrmId: '',
-                        newAccountName: ''
-                    });
-                }}
-                title={`Edit Contact`}
+                onClose={closeEditModal}
+                title="Edit Contact"
             >
                 <form onSubmit={handleEditContact} className="space-y-4">
                     <div>
@@ -1841,7 +1845,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                         </button>
                         <button
                             type="button"
-                            onClick={() => setShowEditModal(false)}
+                            onClick={closeEditModal}
                             className="flex-1 font-mono font-semibold bg-white text-black py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-100"
                         >
                             Cancel
