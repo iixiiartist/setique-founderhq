@@ -60,6 +60,7 @@ export const ContactManager: React.FC<ContactManagerProps> = ({
     const [filterByTitle, setFilterByTitle] = useState('');
     const [filterByNoteCount, setFilterByNoteCount] = useState<'any' | 'none' | 'has'>('any');
     const [filterByMeetingCount, setFilterByMeetingCount] = useState<'any' | 'none' | 'has'>('any');
+    const [showTimelineModal, setShowTimelineModal] = useState(false);
     const [formData, setFormData] = useState<ContactFormData>({
         name: '',
         email: '',
@@ -726,6 +727,12 @@ export const ContactManager: React.FC<ContactManagerProps> = ({
         }
     };
 
+    // Activity Timeline
+    const openTimelineModal = (contact: Contact) => {
+        setSelectedContact(contact);
+        setShowTimelineModal(true);
+    };
+
     const getCrmTypeLabel = () => {
         switch (crmType) {
             case 'investors': return 'Investor';
@@ -1217,6 +1224,13 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                     </div>
                                     <div className="flex gap-2 flex-shrink-0">
                                         <button
+                                            onClick={() => openTimelineModal(contact)}
+                                            className="px-3 py-1 bg-cyan-500 text-white border-2 border-black text-xs font-bold hover:bg-cyan-600 transition-all"
+                                            title="View activity timeline"
+                                        >
+                                            📊
+                                        </button>
+                                        <button
                                             onClick={() => openNotesModal(contact)}
                                             className="px-3 py-1 bg-green-500 text-white border-2 border-black text-xs font-bold hover:bg-green-600 transition-all"
                                             title="View/add notes"
@@ -1372,6 +1386,121 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                         </button>
                     </div>
                 </form>
+            </Modal>
+
+            {/* Activity Timeline Modal */}
+            <Modal
+                isOpen={showTimelineModal}
+                onClose={() => {
+                    setShowTimelineModal(false);
+                    setSelectedContact(null);
+                }}
+                title={selectedContact ? `Activity Timeline - ${selectedContact.name}` : 'Activity Timeline'}
+            >
+                {selectedContact && (
+                    <div className="space-y-4">
+                        <div className="max-h-96 overflow-y-auto">
+                            {(() => {
+                                // Combine all activities with timestamps
+                                const activities: Array<{
+                                    type: 'note' | 'meeting';
+                                    timestamp: number;
+                                    data: any;
+                                }> = [];
+
+                                // Add notes
+                                (selectedContact.notes || []).forEach(note => {
+                                    activities.push({ type: 'note', timestamp: note.timestamp, data: note });
+                                });
+
+                                // Add meetings
+                                (selectedContact.meetings || []).forEach(meeting => {
+                                    activities.push({ type: 'meeting', timestamp: meeting.timestamp, data: meeting });
+                                });
+
+                                // Sort by timestamp descending (most recent first)
+                                activities.sort((a, b) => b.timestamp - a.timestamp);
+
+                                if (activities.length === 0) {
+                                    return (
+                                        <div className="text-center py-8 text-gray-500">
+                                            <p>No activity yet</p>
+                                            <p className="text-sm mt-2">Notes and meetings will appear here</p>
+                                        </div>
+                                    );
+                                }
+
+                                return (
+                                    <div className="relative border-l-4 border-blue-300 pl-6 space-y-4">
+                                        {activities.map((activity, idx) => {
+                                            const date = new Date(activity.timestamp);
+                                            return (
+                                                <div key={`${activity.type}-${activity.timestamp}-${idx}`} className="relative">
+                                                    {/* Timeline dot */}
+                                                    <div className="absolute -left-8 w-4 h-4 rounded-full bg-blue-500 border-2 border-white"></div>
+                                                    
+                                                    <div className={`p-3 border-2 ${
+                                                        activity.type === 'note' 
+                                                            ? 'bg-green-50 border-green-300' 
+                                                            : 'bg-purple-50 border-purple-300'
+                                                    }`}>
+                                                        <div className="flex items-start justify-between">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-lg">
+                                                                    {activity.type === 'note' ? '📝' : '📅'}
+                                                                </span>
+                                                                <div>
+                                                                    <p className="font-mono font-semibold text-sm">
+                                                                        {activity.type === 'note' ? 'Note Added' : 'Meeting'}
+                                                                    </p>
+                                                                    <p className="text-xs text-gray-600">
+                                                                        {date.toLocaleDateString()} at {date.toLocaleTimeString()}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        {activity.type === 'note' && (
+                                                            <p className="mt-2 text-sm whitespace-pre-wrap text-gray-700">
+                                                                {activity.data.text}
+                                                            </p>
+                                                        )}
+                                                        
+                                                        {activity.type === 'meeting' && (
+                                                            <div className="mt-2 text-sm">
+                                                                <p className="font-semibold text-gray-900">{activity.data.title}</p>
+                                                                {activity.data.attendees && (
+                                                                    <p className="text-gray-600 mt-1">
+                                                                        <strong>Attendees:</strong> {activity.data.attendees}
+                                                                    </p>
+                                                                )}
+                                                                {activity.data.summary && (
+                                                                    <p className="text-gray-700 mt-1 whitespace-pre-wrap">
+                                                                        {activity.data.summary}
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            })()}
+                        </div>
+
+                        <button
+                            onClick={() => {
+                                setShowTimelineModal(false);
+                                setSelectedContact(null);
+                            }}
+                            className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800"
+                        >
+                            Close
+                        </button>
+                    </div>
+                )}
             </Modal>
 
             {/* Notes Modal */}
