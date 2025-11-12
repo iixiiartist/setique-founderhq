@@ -53,6 +53,9 @@ export const ContactManager: React.FC<ContactManagerProps> = ({
     const [showBulkActionsModal, setShowBulkActionsModal] = useState(false);
     const [bulkAction, setBulkAction] = useState<'tag' | 'delete' | 'export' | null>(null);
     const [bulkTagToAdd, setBulkTagToAdd] = useState('');
+    const [showNotesModal, setShowNotesModal] = useState(false);
+    const [noteDraft, setNoteDraft] = useState('');
+    const [editingNoteTimestamp, setEditingNoteTimestamp] = useState<number | null>(null);
     const [formData, setFormData] = useState<ContactFormData>({
         name: '',
         email: '',
@@ -618,6 +621,79 @@ export const ContactManager: React.FC<ContactManagerProps> = ({
         setShowBulkActionsModal(false);
         setBulkSelectMode(false);
         setSelectedContactIds(new Set());
+    };
+
+    // Notes: view/add/edit/delete notes for a contact
+    const openNotesModal = (contact: Contact) => {
+        setSelectedContact(contact);
+        setNoteDraft('');
+        setEditingNoteTimestamp(null);
+        setShowNotesModal(true);
+    };
+
+    const handleAddNote = async () => {
+        if (!selectedContact || !noteDraft.trim()) return;
+
+        try {
+            const linkedAccount = getLinkedAccount(selectedContact);
+            const res = await actions.addNote('contacts', selectedContact.id, noteDraft.trim(), linkedAccount?.id);
+            if (res.success) {
+                // Optimistic local update
+                const newNote = { text: noteDraft.trim(), timestamp: Date.now() } as any;
+                setSelectedContact({ ...selectedContact, notes: [...(selectedContact.notes || []), newNote] });
+                setNoteDraft('');
+            } else {
+                alert('Failed to add note: ' + res.message);
+            }
+        } catch (err) {
+            console.error('Error adding note:', err);
+            alert('Failed to add note');
+        }
+    };
+
+    const startEditNote = (noteTimestamp: number, currentText: string) => {
+        setEditingNoteTimestamp(noteTimestamp);
+        setNoteDraft(currentText);
+    };
+
+    const handleUpdateNote = async () => {
+        if (!selectedContact || editingNoteTimestamp === null) return;
+
+        try {
+            const linkedAccount = getLinkedAccount(selectedContact);
+            const res = await actions.updateNote('contacts', selectedContact.id, editingNoteTimestamp, noteDraft.trim(), linkedAccount?.id);
+            if (res.success) {
+                // Update locally
+                const updatedNotes = (selectedContact.notes || []).map(n => n.timestamp === editingNoteTimestamp ? { ...n, text: noteDraft.trim() } : n);
+                setSelectedContact({ ...selectedContact, notes: updatedNotes });
+                setEditingNoteTimestamp(null);
+                setNoteDraft('');
+            } else {
+                alert('Failed to update note: ' + res.message);
+            }
+        } catch (err) {
+            console.error('Error updating note:', err);
+            alert('Failed to update note');
+        }
+    };
+
+    const handleDeleteNote = async (noteTimestamp: number) => {
+        if (!selectedContact) return;
+        if (!confirm('Delete this note?')) return;
+
+        try {
+            const linkedAccount = getLinkedAccount(selectedContact);
+            const res = await actions.deleteNote('contacts', selectedContact.id, noteTimestamp, linkedAccount?.id);
+            if (res.success) {
+                const remaining = (selectedContact.notes || []).filter(n => n.timestamp !== noteTimestamp);
+                setSelectedContact({ ...selectedContact, notes: remaining });
+            } else {
+                alert('Failed to delete note: ' + res.message);
+            }
+        } catch (err) {
+            console.error('Error deleting note:', err);
+            alert('Failed to delete note');
+        }
     };
 
     const getCrmTypeLabel = () => {
@@ -1191,6 +1267,113 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                 </form>
             </Modal>
 
+            {/* Notes Modal */}
+            <Modal
+                isOpen={showNotesModal}
+                onClose={() => {
+                    setShowNotesModal(false);
+                    setSelectedContact(null);
+                    setNoteDraft('');
+                    setEditingNoteTimestamp(null);
+                }}
+                title={selectedContact ? `Notes - ${selectedContact.name}` : 'Notes'}
+            >
+                {selectedContact && (
+                    <div className="space-y-4">
+                        <div className="max-h-64 overflow-y-auto bg-white border-2 border-gray-200 p-3">
+                            {(selectedContact.notes || []).length === 0 ? (
+                                <p className="text-sm text-gray-500">No notes yet</p>
+                            ) : (
+                                (selectedContact.notes || []).slice().reverse().map((note: any) => (
+                                    <div key={note.timestamp} className="mb-3 p-2 border-b border-gray-100">
+                                        <div className="flex items-start justify-between">
+                                            <div>
+                                                <p className="text-xs text-gray-600">
+                                                    {new Date(note.timestamp).toLocaleString()}
+                                                </p>
+                                                <p className="mt-1 text-sm whitespace-pre-wrap">{note.text}</p>
+                                            </div>
+                                            <div className="flex flex-col gap-1 ml-3">
+                                                <button
+                                                    onClick={() => startEditNote(note.timestamp, note.text)}
+                                                    className="text-xs bg-blue-500 text-white px-2 py-1 border-2 border-black rounded-none"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteNote(note.timestamp)}
+                                                    className="text-xs bg-red-500 text-white px-2 py-1 border-2 border-black rounded-none"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        <div>
+                            <label className="block font-mono text-sm font-semibold text-black mb-1">Add / Edit Note</label>
+                            <textarea
+                                value={noteDraft}
+                                onChange={(e) => setNoteDraft(e.target.value)}
+                                rows={4}
+                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                placeholder="Write a note. Use Markdown or plain text."
+                            />
+                            <div className="flex gap-2 mt-2">
+                                {editingNoteTimestamp ? (
+                                    <>
+                                        <button
+                                            onClick={handleUpdateNote}
+                                            className="font-mono bg-blue-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-blue-600 transition-all"
+                                        >
+                                            Save
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setEditingNoteTimestamp(null);
+                                                setNoteDraft('');
+                                            }}
+                                            className="font-mono bg-gray-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-gray-600 transition-all"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <button
+                                            onClick={handleAddNote}
+                                            className="font-mono bg-green-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-green-600 transition-all"
+                                        >
+                                            + Add Note
+                                        </button>
+                                        <button
+                                            onClick={() => { setNoteDraft(''); }}
+                                            className="font-mono bg-gray-200 text-black border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-gray-300 transition-all"
+                                        >
+                                            Clear
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => {
+                                setShowNotesModal(false);
+                                setSelectedContact(null);
+                                setNoteDraft('');
+                                setEditingNoteTimestamp(null);
+                            }}
+                            className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800"
+                        >
+                            Done
+                        </button>
+                    </div>
+                )}
+            </Modal>
             {/* Edit Contact Modal */}
             <Modal
                 isOpen={showEditModal}
