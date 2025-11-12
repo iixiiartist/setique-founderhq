@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Contact, Task, AppActions, CrmCollectionName, TaskCollectionName, Note, AnyCrmItem, Priority } from '../../types';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { Contact, Task, AppActions, CrmCollectionName, TaskCollectionName, Note, AnyCrmItem, Priority, NoteableCollectionName } from '../../types';
 import Modal from './Modal';
 import NotesManager from './NotesManager';
 import { TASK_TAG_BG_COLORS } from '../../constants';
@@ -132,6 +132,19 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
     const handleLinkedinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setEditForm(prev => ({ ...prev, linkedin: e.target.value }));
     };
+
+    // Stable handlers for NotesManager to prevent re-renders
+    const handleAddNote = useCallback((collection: NoteableCollectionName, itemId: string, noteText: string) => {
+        return actions.addNote(collection, itemId, noteText, contact.crmItemId);
+    }, [actions, contact.crmItemId]);
+
+    const handleUpdateNote = useCallback((collection: NoteableCollectionName, itemId: string, ts: number, newText: string) => {
+        return actions.updateNote(collection, itemId, ts, newText, contact.crmItemId);
+    }, [actions, contact.crmItemId]);
+
+    const handleDeleteNote = useCallback((collection: NoteableCollectionName, itemId: string, ts: number) => {
+        return actions.deleteNote(collection, itemId, ts, contact.crmItemId);
+    }, [actions, contact.crmItemId]);
     
     const handleUpdateTask = () => {
         if (editingTask && editText.trim() !== '') {
@@ -333,9 +346,9 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
                         notes={editForm.notes} 
                         itemId={editForm.id} 
                         collection='contacts'
-                        addNoteAction={(collection, itemId, noteText) => actions.addNote(collection, itemId, noteText, contact.crmItemId)}
-                        updateNoteAction={(collection, itemId, ts, newText) => actions.updateNote(collection, itemId, ts, newText, contact.crmItemId)}
-                        deleteNoteAction={(collection, itemId, ts) => actions.deleteNote(collection, itemId, ts, contact.crmItemId)}
+                        addNoteAction={handleAddNote}
+                        updateNoteAction={handleUpdateNote}
+                        deleteNoteAction={handleDeleteNote}
                     />
                     <div className="flex gap-4 mt-4">
                         <button onClick={handleUpdate} className="font-mono w-full bg-black border-2 border-black text-white cursor-pointer text-sm py-2 px-3 rounded-none font-semibold shadow-neo-btn transition-all">Save Changes</button>
