@@ -56,6 +56,10 @@ export const ContactManager: React.FC<ContactManagerProps> = ({
     const [showNotesModal, setShowNotesModal] = useState(false);
     const [noteDraft, setNoteDraft] = useState('');
     const [editingNoteTimestamp, setEditingNoteTimestamp] = useState<number | null>(null);
+    const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+    const [filterByTitle, setFilterByTitle] = useState('');
+    const [filterByNoteCount, setFilterByNoteCount] = useState<'any' | 'none' | 'has'>('any');
+    const [filterByMeetingCount, setFilterByMeetingCount] = useState<'any' | 'none' | 'has'>('any');
     const [formData, setFormData] = useState<ContactFormData>({
         name: '',
         email: '',
@@ -121,8 +125,34 @@ export const ContactManager: React.FC<ContactManagerProps> = ({
             );
         }
 
+        // Advanced filters
+        if (filterByTitle.trim()) {
+            const titleQuery = filterByTitle.toLowerCase();
+            filtered = filtered.filter(c => 
+                c.title && c.title.toLowerCase().includes(titleQuery)
+            );
+        }
+
+        if (filterByNoteCount !== 'any') {
+            filtered = filtered.filter(contact => {
+                const noteCount = (contact.notes || []).length;
+                if (filterByNoteCount === 'none') return noteCount === 0;
+                if (filterByNoteCount === 'has') return noteCount > 0;
+                return true;
+            });
+        }
+
+        if (filterByMeetingCount !== 'any') {
+            filtered = filtered.filter(contact => {
+                const meetingCount = (contact.meetings || []).length;
+                if (filterByMeetingCount === 'none') return meetingCount === 0;
+                if (filterByMeetingCount === 'has') return meetingCount > 0;
+                return true;
+            });
+        }
+
         return filtered;
-    }, [allContacts, searchQuery, filterBy, filterByTag, crmItems]);
+    }, [allContacts, searchQuery, filterBy, filterByTag, filterByTitle, filterByNoteCount, filterByMeetingCount, crmItems]);
 
     // Get CRM account name for a contact
     const getLinkedAccount = (contact: Contact): AnyCrmItem | undefined => {
@@ -995,35 +1025,105 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
             )}
 
             {/* Search and Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search contacts by name, email, phone..."
-                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                />
-                <select
-                    value={filterBy}
-                    onChange={(e) => setFilterBy(e.target.value as any)}
-                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                >
-                    <option value="all">All Contacts</option>
-                    <option value="linked">Linked to {getCrmTypeLabel()}s</option>
-                    <option value="unlinked">Unlinked Contacts</option>
-                </select>
-                <select
-                    value={filterByTag}
-                    onChange={(e) => setFilterByTag(e.target.value)}
-                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                >
-                    <option value="">All Tags</option>
-                    {allTags.map(tag => (
-                        <option key={tag} value={tag}>
-                            🏷️ {tag}
-                        </option>
-                    ))}
-                </select>
+            <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search contacts by name, email, phone..."
+                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                    />
+                    <select
+                        value={filterBy}
+                        onChange={(e) => setFilterBy(e.target.value as any)}
+                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                    >
+                        <option value="all">All Contacts</option>
+                        <option value="linked">Linked to {getCrmTypeLabel()}s</option>
+                        <option value="unlinked">Unlinked Contacts</option>
+                    </select>
+                    <select
+                        value={filterByTag}
+                        onChange={(e) => setFilterByTag(e.target.value)}
+                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                    >
+                        <option value="">All Tags</option>
+                        {allTags.map(tag => (
+                            <option key={tag} value={tag}>
+                                🏷️ {tag}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Advanced Filters Toggle */}
+                <div className="flex items-center justify-between">
+                    <button
+                        onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                        className="text-sm font-mono text-blue-600 hover:underline flex items-center gap-1"
+                    >
+                        {showAdvancedFilters ? '▼' : '▶'} Advanced Filters
+                    </button>
+                    {(filterByTitle || filterByNoteCount !== 'any' || filterByMeetingCount !== 'any') && (
+                        <button
+                            onClick={() => {
+                                setFilterByTitle('');
+                                setFilterByNoteCount('any');
+                                setFilterByMeetingCount('any');
+                            }}
+                            className="text-xs font-mono text-gray-600 hover:text-red-600"
+                        >
+                            Clear Advanced Filters
+                        </button>
+                    )}
+                </div>
+
+                {/* Advanced Filters Panel */}
+                {showAdvancedFilters && (
+                    <div className="bg-gray-50 border-2 border-gray-300 p-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                            <label className="block text-xs font-mono font-semibold text-gray-700 mb-1">
+                                Title Contains
+                            </label>
+                            <input
+                                type="text"
+                                value={filterByTitle}
+                                onChange={(e) => setFilterByTitle(e.target.value)}
+                                placeholder="e.g., CEO, Manager..."
+                                className="w-full bg-white border-2 border-gray-400 text-black p-2 text-sm rounded-none focus:outline-none focus:border-blue-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-mono font-semibold text-gray-700 mb-1">
+                                Notes
+                            </label>
+                            <select
+                                value={filterByNoteCount}
+                                onChange={(e) => setFilterByNoteCount(e.target.value as any)}
+                                className="w-full bg-white border-2 border-gray-400 text-black p-2 text-sm rounded-none focus:outline-none focus:border-blue-500"
+                            >
+                                <option value="any">Any</option>
+                                <option value="has">Has Notes</option>
+                                <option value="none">No Notes</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-mono font-semibold text-gray-700 mb-1">
+                                Meetings
+                            </label>
+                            <select
+                                value={filterByMeetingCount}
+                                onChange={(e) => setFilterByMeetingCount(e.target.value as any)}
+                                className="w-full bg-white border-2 border-gray-400 text-black p-2 text-sm rounded-none focus:outline-none focus:border-blue-500"
+                            >
+                                <option value="any">Any</option>
+                                <option value="has">Has Meetings</option>
+                                <option value="none">No Meetings</option>
+                            </select>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Contact List */}
@@ -1116,6 +1216,13 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                         )}
                                     </div>
                                     <div className="flex gap-2 flex-shrink-0">
+                                        <button
+                                            onClick={() => openNotesModal(contact)}
+                                            className="px-3 py-1 bg-green-500 text-white border-2 border-black text-xs font-bold hover:bg-green-600 transition-all"
+                                            title="View/add notes"
+                                        >
+                                            📝
+                                        </button>
                                         <button
                                             onClick={() => openTagModal(contact)}
                                             className="px-3 py-1 bg-purple-500 text-white border-2 border-black text-xs font-bold hover:bg-purple-600 transition-all"
