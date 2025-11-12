@@ -214,6 +214,37 @@ const CrmTab: React.FC<CrmTabProps> = React.memo(({
         // TODO: Add activity logging when activityService is available
     };
 
+    const handleAssignContact = async (contactId: string, assignedUserId: string | null, assignedUserName: string | null) => {
+        if (!workspaceId || !userId) {
+            console.warn('[CrmTab] Cannot assign contact: missing workspaceId or userId', { workspaceId, userId });
+            return;
+        }
+
+        try {
+            console.log('[CrmTab] Assigning contact:', { contactId, assignedUserId, assignedUserName });
+            isUpdatingRef.current = true;
+            // Update contact via actions (assumes actions.updateContact(collection, crmItemId, contactId, updates))
+            // We need crmItemId - attempt to find it from crmItems
+            const contactOwner = crmItems.find(item => item.contacts?.some(c => c.id === contactId));
+            const crmItemId = contactOwner ? contactOwner.id : undefined;
+            if (!crmItemId) {
+                console.warn('[CrmTab] Could not find parent CRM item for contact', { contactId });
+                return;
+            }
+
+            await actions.updateContact(crmCollection, crmItemId, contactId, {
+                assignedTo: assignedUserId,
+                assignedToName: assignedUserName || null
+            } as any);
+
+            console.log('[CrmTab] Contact assignment update completed');
+        } catch (err) {
+            console.error('[CrmTab] Error assigning contact', err);
+        } finally {
+            isUpdatingRef.current = false;
+        }
+    };
+
     const filteredCrmItems = useMemo(() => {
         if (filterAssignment === 'my' && userId) {
             return crmItems.filter(item => item.assignedTo === userId);
@@ -244,6 +275,8 @@ const CrmTab: React.FC<CrmTabProps> = React.memo(({
                 onBack={() => setSelectedContact(null)}
                 crmCollection={crmCollection}
                 taskCollection={taskCollection}
+                    workspaceMembers={workspaceMembers}
+                    onAssignContact={(userId, userName, contactId) => handleAssignContact(contactId, userId, userName)}
             />
         )
     }

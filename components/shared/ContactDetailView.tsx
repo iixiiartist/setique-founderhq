@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Contact, Task, AppActions, CrmCollectionName, TaskCollectionName, Note, AnyCrmItem, Priority, NoteableCollectionName } from '../../types';
+import { Contact, Task, AppActions, CrmCollectionName, TaskCollectionName, Note, AnyCrmItem, Priority, NoteableCollectionName, WorkspaceMember } from '../../types';
+import { AssignmentDropdown } from './AssignmentDropdown';
 import Modal from './Modal';
 import NotesManager from './NotesManager';
 import { TASK_TAG_BG_COLORS } from '../../constants';
@@ -14,6 +15,9 @@ interface ContactDetailViewProps {
     onBack: () => void;
     crmCollection: CrmCollectionName;
     taskCollection: TaskCollectionName;
+    // Optional members and assign handler to enable assigning contacts to team members
+    workspaceMembers?: WorkspaceMember[];
+    onAssignContact?: (userId: string | null, userName: string | null, contactId: string) => void;
 }
 
 const ContactTaskItem: React.FC<{ task: Task; onEdit: (task: Task, triggerRef: React.RefObject<HTMLButtonElement>) => void; actions: AppActions; tag: string; taskCollection: TaskCollectionName; }> = ({ task, onEdit, actions, tag, taskCollection }) => {
@@ -59,7 +63,7 @@ const ContactTaskItem: React.FC<{ task: Task; onEdit: (task: Task, triggerRef: R
     );
 };
 
-const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentItem, tasks, actions, onBack, crmCollection, taskCollection }) => {
+const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentItem, tasks, actions, onBack, crmCollection, taskCollection, workspaceMembers = [], onAssignContact }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState<Contact>(contact);
     const [newTaskText, setNewTaskText] = useState('');
@@ -73,6 +77,22 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
     
     const editContactModalTriggerRef = useRef<HTMLButtonElement | null>(null);
     const editTaskModalTriggerRef = useRef<HTMLButtonElement | null>(null);
+    // Debugging: render counter to help trace re-renders/focus issues
+    const renderCountRef = useRef(0);
+    renderCountRef.current += 1;
+    // Lightweight focus logger when editing to help diagnose single-key typing focus loss
+    useEffect(() => {
+        if (!isEditing) return;
+
+        const onFocusIn = (e: FocusEvent) => {
+            const target = e.target as HTMLElement | null;
+            if (!target) return;
+            console.debug('[ContactDetailView] focusin', { contactId: contact.id, activeId: target.id, tag: target.tagName, renderCount: renderCountRef.current });
+        };
+
+        document.addEventListener('focusin', onFocusIn);
+        return () => document.removeEventListener('focusin', onFocusIn);
+    }, [isEditing, contact.id]);
 
     // Only sync editForm with contact prop when modal is closed
     useEffect(() => {
@@ -189,10 +209,20 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
                         >
                             ← Back to {parentItem.company}
                         </button>
-                        <div>
+                            <div>
                             <h1 className="text-3xl font-bold">{contact.name}</h1>
                             <p className="text-gray-600 text-sm mt-1">Contact at {parentItem.company}</p>
                         </div>
+                            {workspaceMembers.length > 0 && onAssignContact && (
+                                <div className="ml-4">
+                                    <AssignmentDropdown
+                                        workspaceMembers={workspaceMembers.map(m => ({ id: m.userId, name: m.fullName || 'Unknown', email: m.email || '', role: m.role }))}
+                                        currentAssignee={contact.assignedTo || undefined}
+                                        onAssign={(userId, userName) => onAssignContact(userId, userName, contact.id)}
+                                        placeholder="Assign contact..."
+                                    />
+                                </div>
+                            )}
                     </div>
                     <button 
                         onClick={() => {
@@ -227,6 +257,12 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
                                 <div>
                                     <p className="text-sm font-mono uppercase text-gray-600">Title</p>
                                     <p className="text-lg font-semibold text-black">{contact.title}</p>
+                                </div>
+                            )}
+                            {contact.assignedToName && (
+                                <div>
+                                    <p className="text-sm font-mono uppercase text-gray-600">Assigned To</p>
+                                    <p className="text-lg font-semibold text-black">→ {contact.assignedToName}</p>
                                 </div>
                             )}
                             {valueDisplay('Email', contact.email ? (

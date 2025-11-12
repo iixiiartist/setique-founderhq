@@ -376,6 +376,8 @@ export class DataPersistenceAdapter {
     if (updates.linkedin !== undefined) dbUpdates.linkedin = updates.linkedin
     if (updates.notes) dbUpdates.notes = updates.notes
     if (updates.tags !== undefined) dbUpdates.tags = updates.tags
+  if (updates.assignedTo !== undefined) dbUpdates.assigned_to = updates.assignedTo
+  if (updates.assignedToName !== undefined) dbUpdates.assigned_to_name = updates.assignedToName
 
     const { data, error } = await DatabaseService.updateContact(contactId, dbUpdates)
     return { data, error }
