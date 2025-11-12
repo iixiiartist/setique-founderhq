@@ -61,6 +61,7 @@ export const ContactManager: React.FC<ContactManagerProps> = ({
     const [filterByNoteCount, setFilterByNoteCount] = useState<'any' | 'none' | 'has'>('any');
     const [filterByMeetingCount, setFilterByMeetingCount] = useState<'any' | 'none' | 'has'>('any');
     const [showTimelineModal, setShowTimelineModal] = useState(false);
+    const [showRelationshipModal, setShowRelationshipModal] = useState(false);
     const [formData, setFormData] = useState<ContactFormData>({
         name: '',
         email: '',
@@ -733,6 +734,12 @@ export const ContactManager: React.FC<ContactManagerProps> = ({
         setShowTimelineModal(true);
     };
 
+    // Relationship Mapping
+    const openRelationshipModal = (contact: Contact) => {
+        setSelectedContact(contact);
+        setShowRelationshipModal(true);
+    };
+
     const getCrmTypeLabel = () => {
         switch (crmType) {
             case 'investors': return 'Investor';
@@ -1224,6 +1231,13 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                     </div>
                                     <div className="flex gap-2 flex-shrink-0">
                                         <button
+                                            onClick={() => openRelationshipModal(contact)}
+                                            className="px-3 py-1 bg-pink-500 text-white border-2 border-black text-xs font-bold hover:bg-pink-600 transition-all"
+                                            title="View relationships"
+                                        >
+                                            🔗
+                                        </button>
+                                        <button
                                             onClick={() => openTimelineModal(contact)}
                                             className="px-3 py-1 bg-cyan-500 text-white border-2 border-black text-xs font-bold hover:bg-cyan-600 transition-all"
                                             title="View activity timeline"
@@ -1386,6 +1400,142 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                         </button>
                     </div>
                 </form>
+            </Modal>
+
+            {/* Relationship Mapping Modal */}
+            <Modal
+                isOpen={showRelationshipModal}
+                onClose={() => {
+                    setShowRelationshipModal(false);
+                    setSelectedContact(null);
+                }}
+                title={selectedContact ? `Relationships - ${selectedContact.name}` : 'Relationships'}
+            >
+                {selectedContact && (
+                    <div className="space-y-4">
+                        <div className="space-y-3">
+                            {/* Primary Account */}
+                            {(() => {
+                                const linkedAccount = getLinkedAccount(selectedContact);
+                                if (!linkedAccount) {
+                                    return (
+                                        <div className="text-center py-8 text-gray-500">
+                                            <p>⚠️ This contact is not linked to any account</p>
+                                        </div>
+                                    );
+                                }
+
+                                // Get all contacts in the same account
+                                const sameAccountContacts = allContacts.filter(c => 
+                                    c.id !== selectedContact.id && 
+                                    getLinkedAccount(c)?.id === linkedAccount.id
+                                );
+
+                                // Get contacts from other accounts with shared tags
+                                const sharedTags = selectedContact.tags || [];
+                                const relatedContactsFromOtherAccounts = sharedTags.length > 0
+                                    ? allContacts.filter(c => {
+                                        if (c.id === selectedContact.id) return false;
+                                        const cAccount = getLinkedAccount(c);
+                                        if (!cAccount || cAccount.id === linkedAccount.id) return false;
+                                        return (c.tags || []).some(tag => sharedTags.includes(tag));
+                                    })
+                                    : [];
+
+                                return (
+                                    <>
+                                        {/* Same Account Section */}
+                                        <div className="bg-blue-50 border-2 border-blue-300 p-4">
+                                            <h4 className="font-mono font-bold text-black mb-2 flex items-center gap-2">
+                                                🏢 Same Account: {linkedAccount.company}
+                                            </h4>
+                                            {sameAccountContacts.length === 0 ? (
+                                                <p className="text-sm text-gray-600">No other contacts in this account</p>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    {sameAccountContacts.map(contact => (
+                                                        <div key={contact.id} className="bg-white border border-blue-200 p-2">
+                                                            <p className="font-semibold text-sm">{contact.name}</p>
+                                                            <p className="text-xs text-gray-600">{contact.email}</p>
+                                                            {contact.title && (
+                                                                <p className="text-xs text-gray-500">💼 {contact.title}</p>
+                                                            )}
+                                                            {contact.tags && contact.tags.length > 0 && (
+                                                                <div className="mt-1 flex gap-1 flex-wrap">
+                                                                    {contact.tags.map(tag => (
+                                                                        <span key={tag} className="text-xs px-1 py-0.5 bg-purple-100 text-purple-700">
+                                                                            🏷️ {tag}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Related Contacts (Shared Tags) Section */}
+                                        {relatedContactsFromOtherAccounts.length > 0 && (
+                                            <div className="bg-purple-50 border-2 border-purple-300 p-4">
+                                                <h4 className="font-mono font-bold text-black mb-2 flex items-center gap-2">
+                                                    🔗 Related Contacts (Shared Tags)
+                                                </h4>
+                                                <div className="space-y-2">
+                                                    {relatedContactsFromOtherAccounts.map(contact => {
+                                                        const contactAccount = getLinkedAccount(contact);
+                                                        const commonTags = (contact.tags || []).filter(tag => sharedTags.includes(tag));
+                                                        return (
+                                                            <div key={contact.id} className="bg-white border border-purple-200 p-2">
+                                                                <p className="font-semibold text-sm">{contact.name}</p>
+                                                                <p className="text-xs text-gray-600">{contact.email}</p>
+                                                                {contactAccount && (
+                                                                    <p className="text-xs text-gray-500">🏢 {contactAccount.company}</p>
+                                                                )}
+                                                                {contact.title && (
+                                                                    <p className="text-xs text-gray-500">💼 {contact.title}</p>
+                                                                )}
+                                                                <div className="mt-1 flex gap-1 flex-wrap">
+                                                                    {commonTags.map(tag => (
+                                                                        <span key={tag} className="text-xs px-1 py-0.5 bg-purple-200 text-purple-800 font-semibold">
+                                                                            🏷️ {tag}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Summary */}
+                                        <div className="bg-gray-50 border-2 border-gray-300 p-3">
+                                            <p className="text-sm font-mono">
+                                                <strong>Network Summary:</strong>
+                                            </p>
+                                            <ul className="text-sm text-gray-700 mt-1 space-y-1">
+                                                <li>• {sameAccountContacts.length} colleague(s) in same account</li>
+                                                <li>• {relatedContactsFromOtherAccounts.length} related contact(s) across other accounts</li>
+                                                <li>• {(selectedContact.tags || []).length} tag(s) for relationship tracking</li>
+                                            </ul>
+                                        </div>
+                                    </>
+                                );
+                            })()}
+                        </div>
+
+                        <button
+                            onClick={() => {
+                                setShowRelationshipModal(false);
+                                setSelectedContact(null);
+                            }}
+                            className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800"
+                        >
+                            Close
+                        </button>
+                    </div>
+                )}
             </Modal>
 
             {/* Activity Timeline Modal */}
