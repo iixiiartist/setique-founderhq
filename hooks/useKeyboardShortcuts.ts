@@ -110,8 +110,7 @@ export const useKeyboardShortcuts = (config: KeyboardShortcutsConfig) => {
       '5': Tab.Financials,
       '6': Tab.Calendar,
       '7': Tab.Documents,
-      '8': Tab.Settings,
-      '9': Tab.Achievements
+      '8': Tab.Settings
     };
 
     const newTab = tabShortcuts[event.key];

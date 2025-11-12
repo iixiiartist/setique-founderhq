@@ -208,64 +208,6 @@ export interface WorkspaceMember {
     avatarUrl?: string;
 }
 
-export type TeamAchievementId = 
-    // Team Building (6)
-    | 'team_first_member'
-    | 'team_5_members'
-    | 'team_10_members'
-    | 'team_first_week'
-    | 'team_first_month'
-    | 'team_first_year'
-    // Collaboration (5)
-    | 'collab_10_shared_tasks'
-    | 'collab_50_shared_tasks'
-    | 'collab_10_meetings'
-    | 'collab_shared_contact'
-    | 'collab_shared_deal'
-    // Financial (5)
-    | 'finance_10k_gmv'
-    | 'finance_100k_gmv'
-    | 'finance_1m_gmv'
-    | 'finance_10k_mrr'
-    | 'finance_expense_tracking'
-    // Productivity (5)
-    | 'productivity_100_tasks'
-    | 'productivity_500_tasks'
-    | 'productivity_daily_streak_7'
-    | 'productivity_daily_streak_30'
-    | 'productivity_10_documents'
-    // Engagement (4)
-    | 'engage_all_active_week'
-    | 'engage_ai_power_users'
-    | 'engage_marketing_launch'
-    | 'engage_crm_100_contacts';
-
-export interface TeamAchievement {
-    id: TeamAchievementId;
-    name: string;
-    description: string;
-    tier: 1 | 2 | 3 | 4; // Tier determines XP reward
-    xpReward: number;
-    category: 'team-building' | 'collaboration' | 'financial' | 'productivity' | 'engagement';
-    icon?: string;
-}
-
-export interface WorkspaceAchievement {
-    id: string;
-    workspaceId: string;
-    achievementId: TeamAchievementId;
-    unlockedAt: number;
-    unlockedByUserId?: string;
-    metadata?: Record<string, any>;
-    // Populated from achievement definition
-    achievementName?: string;
-    achievementDescription?: string;
-    xpReward?: number;
-    // Populated from user profile
-    unlockedByName?: string;
-    unlockedByEmail?: string;
-}
-
 export type CompanySize = 
     | '1-10 employees'
     | '11-50 employees'
@@ -488,21 +430,6 @@ export interface LinkedDoc extends GTMDocMetadata {
     linkId: string; // The gtm_doc_links.id for unlinking
 }
 
-export type AchievementId = 
-    'first-task' | 'first-investor' | 'first-customer' | 'first-partner' |
-    'ten-tasks' | 'first-deal' | 'content-machine' |
-    'streak-3' | 'streak-7' | 'streak-30' |
-    'level-2' | 'level-5' | 'level-10';
-
-
-export interface GamificationData {
-    streak: number;
-    lastActivityDate: string | null; // YYYY-MM-DD
-    xp: number;
-    level: number;
-    achievements: AchievementId[];
-}
-
 export interface DashboardData {
     platformTasks: Task[];
     investors: Investor[];
@@ -519,7 +446,6 @@ export interface DashboardData {
     documents: Document[];
     documentsMetadata: Omit<Document, 'content'>[]; // Lightweight metadata for AI context
     settings: SettingsData;
-    gamification: GamificationData;
 }
 
 // Types for AI Function Calling
@@ -535,9 +461,9 @@ export interface AppActions {
     addNote: (collection: NoteableCollectionName, itemId: string, noteText: string, crmItemId?: string) => Promise<{ success: boolean; message: string; }>;
     updateNote: (collection: NoteableCollectionName, itemId: string, noteTimestamp: number, newText: string, crmItemId?: string) => Promise<{ success: boolean; message: string; }>;
     deleteNote: (collection: NoteableCollectionName, itemId: string, noteTimestamp: number, crmItemId?: string) => Promise<{ success: boolean; message: string; }>;
-    createCrmItem: (collection: CrmCollectionName, data: Partial<Omit<AnyCrmItem, 'id' | 'createdAt' | 'notes' | 'contacts'>>) => Promise<{ success: boolean; message: string; }>;
+    createCrmItem: (collection: CrmCollectionName, data: Partial<Omit<AnyCrmItem, 'id' | 'createdAt' | 'notes' | 'contacts'>>) => Promise<{ success: boolean; message: string; itemId?: string; }>;
     updateCrmItem: (collection: CrmCollectionName, itemId: string, updates: Partial<AnyCrmItem>) => Promise<{ success: boolean; message: string; }>;
-    createContact: (collection: CrmCollectionName, crmItemId: string, contactData: Omit<Contact, 'id' | 'crmItemId' | 'notes' | 'meetings'>) => Promise<{ success: boolean; message: string }>;
+    createContact: (collection: CrmCollectionName, crmItemId: string, contactData: Omit<Contact, 'id' | 'crmItemId' | 'notes' | 'meetings'>) => Promise<{ success: boolean; message: string; contactId?: string; }>;
     updateContact: (collection: CrmCollectionName, crmItemId: string, contactId: string, updates: Partial<Contact>) => Promise<{ success: boolean; message: string }>;
     deleteContact: (collection: CrmCollectionName, crmItemId: string, contactId: string) => Promise<{ success: boolean; message: string }>;
     createMeeting: (collection: CrmCollectionName, crmItemId: string, contactId: string, meetingData: Omit<Meeting, 'id'>) => Promise<{ success: boolean; message: string; }>;
@@ -551,7 +477,6 @@ export interface AppActions {
     updateMarketingItem: (itemId: string, updates: Partial<Omit<MarketingItem, 'id' | 'createdAt' | 'notes'>>) => Promise<{ success: boolean; message: string; }>;
     deleteMarketingItem: (itemId: string) => Promise<{ success: boolean; message: string; }>;
     updateSettings: (updates: Partial<SettingsData>) => Promise<{ success: boolean; message: string; }>;
-    resetGamification: () => Promise<{ success: boolean; message: string; }>;
     uploadDocument: (name: string, mimeType: string, content: string, module: TabType, companyId?: string, contactId?: string) => Promise<{ success: boolean; message: string; }>;
     updateDocument: (docId: string, name: string, mimeType: string, content: string) => Promise<{ success: boolean; message: string; }>;
     deleteDocument: (docId: string) => Promise<{ success: boolean; message: string; }>;

@@ -607,28 +607,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ settings, onUpdateSettings, a
                         </div>
                     </fieldset>
 
-                    <fieldset className="border-2 border-dashed border-black p-4">
-                        <legend className="text-lg font-mono font-semibold px-2">Gamification</legend>
-                        <div className="space-y-4">
-                            <div>
-                                <h3 className="font-bold text-black mb-2">Reset Progress</h3>
-                                <p className="text-sm text-gray-600 mb-4">
-                                    Reset your XP, level, streak, and achievements back to the starting state. This action cannot be undone.
-                                </p>
-                                <button
-                                    onClick={() => {
-                                        if (window.confirm('Are you sure you want to reset all gamification progress? This will:\n\n• Set XP to 0\n• Set Level to 1\n• Clear all achievements\n• Reset streak to 0\n\nThis action cannot be undone.')) {
-                                            actions.resetGamification();
-                                        }
-                                    }}
-                                    className="font-mono bg-red-600 border-2 border-black text-white cursor-pointer py-2 px-4 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-red-700"
-                                >
-                                    Reset All Progress
-                                </button>
-                            </div>
-                        </div>
-                    </fieldset>
-
                     <fieldset className="border-2 border-dashed border-red-600 p-4 bg-red-50">
                         <legend className="text-lg font-mono font-semibold px-2 text-red-800">Danger Zone</legend>
                         <div className="space-y-4">

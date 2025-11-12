@@ -1,5 +1,4 @@
-import { DashboardData, Task, AnyCrmItem, Contact, Meeting, FinancialLog, MarketingItem, Document, SettingsData, TaskCollectionName, CrmCollectionName, NoteableCollectionName, DeletableCollectionName, Priority, AchievementId } from './types';
-import { ACHIEVEMENTS } from './constants';
+import { DashboardData, Task, AnyCrmItem, Contact, Meeting, FinancialLog, MarketingItem, Document, SettingsData, TaskCollectionName, CrmCollectionName, NoteableCollectionName, DeletableCollectionName, Priority } from './types';
 
 type AppAction =
     | { type: 'CREATE_TASK'; payload: { category: TaskCollectionName, task: Task } }
@@ -24,101 +23,12 @@ type AppAction =
     | { type: 'UPDATE_DOCUMENT'; payload: { docId: string, name: string, mimeType: string, content: string } }
     | { type: 'DELETE_DOCUMENT'; payload: { docId: string } };
 
-const handleGamification = (state: DashboardData, actionType: string, payload?: any): DashboardData => {
-    let gamification = { ...state.gamification };
-    let newAchievements: AchievementId[] = [];
-
-    // XP Values
-    const XP_MAP: Record<string, number> = {
-        CREATE_TASK: 5,
-        CREATE_CRM_ITEM: 20,
-        WIN_DEAL: 100,
-        CREATE_CONTACT: 10,
-        PUBLISH_MARKETING: 50,
-        CREATE_MARKETING_ITEM: 25,
-    };
-
-    // 1. Update XP
-    let xpToAdd = 0;
-    if (actionType === 'COMPLETE_TASK' && payload?.priority) {
-        const priorityXpMap: Record<Priority, number> = { 'Low': 10, 'Medium': 50, 'High': 100 };
-        xpToAdd = priorityXpMap[payload.priority] || 50;
-        if (payload.isOverdue) {
-            xpToAdd += 5;
-        }
-    } else if (actionType === 'LOG_FINANCIALS' && payload?.logData) {
-        const BASE_XP = 10;
-        const XP_PER_SIGNUP = 2;
-        xpToAdd = BASE_XP + (payload.logData.signups * XP_PER_SIGNUP);
-    } else {
-        xpToAdd = (XP_MAP as any)[actionType] || 0;
-    }
-    gamification.xp += xpToAdd;
-
-    // 2. Update Streak
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
-    if (gamification.lastActivityDate !== todayStr) {
-        const yesterday = new Date(today);
-        yesterday.setDate(today.getDate() - 1);
-        const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-        if (gamification.lastActivityDate === yesterdayStr) {
-            gamification.streak += 1;
-        } else {
-            gamification.streak = 1;
-        }
-        gamification.lastActivityDate = todayStr;
-    }
-
-    // 3. Check for Level Up
-    const levelThreshold = (level: number) => 100 * level + Math.pow(level, 2) * 50;
-    let currentThreshold = levelThreshold(gamification.level);
-    while (gamification.xp >= currentThreshold) {
-        gamification.level += 1;
-        gamification.xp -= currentThreshold;
-        currentThreshold = levelThreshold(gamification.level);
-    }
-
-    // 4. Check for Achievements
-    const checkAndAddAchievement = (id: AchievementId) => {
-        if (!gamification.achievements.includes(id)) {
-            newAchievements.push(id);
-        }
-    };
-    
-    const allTasksInNewData = [...state.platformTasks, ...state.investorTasks, ...state.customerTasks, ...state.partnerTasks, ...state.marketingTasks, ...state.financialTasks];
-    const completedTasks = allTasksInNewData.filter(t => t.status === 'Done');
-
-    if (completedTasks.length >= 1) checkAndAddAchievement('first-task');
-    if (completedTasks.length >= 10) checkAndAddAchievement('ten-tasks');
-    if (state.investors.length >= 1) checkAndAddAchievement('first-investor');
-    if (state.customers.length >= 1) checkAndAddAchievement('first-customer');
-    if (state.partners.length >= 1) checkAndAddAchievement('first-partner');
-    if (state.customers.some(c => c.status === 'Won')) checkAndAddAchievement('first-deal');
-    if (state.marketing.filter(m => m.status === 'Published').length >= 5) checkAndAddAchievement('content-machine');
-    
-    if (gamification.streak >= 3) checkAndAddAchievement('streak-3');
-    if (gamification.streak >= 7) checkAndAddAchievement('streak-7');
-    if (gamification.streak >= 30) checkAndAddAchievement('streak-30');
-
-    if (gamification.level >= 2) checkAndAddAchievement('level-2');
-    if (gamification.level >= 5) checkAndAddAchievement('level-5');
-    if (gamification.level >= 10) checkAndAddAchievement('level-10');
-
-    if (newAchievements.length > 0) {
-        gamification.achievements = [...gamification.achievements, ...newAchievements];
-    }
-
-    return { ...state, gamification };
-};
-
 export const appReducer = (state: DashboardData, action: AppAction): DashboardData => {
     switch(action.type) {
         case 'CREATE_TASK': {
             const { category, task } = action.payload;
             const newState = { ...state, [category]: [task, ...state[category]] };
-            return handleGamification(newState, 'CREATE_TASK');
+            return newState;
         }
         case 'UPDATE_TASK': {
             const { taskId, updates } = action.payload;
@@ -154,7 +64,7 @@ export const appReducer = (state: DashboardData, action: AppAction): DashboardDa
             if (updated && updates.status === 'Done' && taskBeforeUpdate?.status !== 'Done') {
                 const todayStr = new Date().toISOString().split('T')[0];
                 const isOverdue = !!taskBeforeUpdate.dueDate && taskBeforeUpdate.dueDate < todayStr;
-                return handleGamification(newState, 'COMPLETE_TASK', { priority: taskBeforeUpdate.priority, isOverdue });
+                return newState;
             }
             
             return newState;
@@ -267,7 +177,7 @@ export const appReducer = (state: DashboardData, action: AppAction): DashboardDa
         case 'CREATE_CRM_ITEM': {
             const { collection, item } = action.payload;
             const newState = { ...state, [collection]: [item, ...state[collection]] };
-            return handleGamification(newState, 'CREATE_CRM_ITEM');
+            return newState;
         }
 
         case 'UPDATE_CRM_ITEM': {
@@ -278,7 +188,7 @@ export const appReducer = (state: DashboardData, action: AppAction): DashboardDa
                 newItems[itemIndex] = { ...newItems[itemIndex], ...updates };
                 const newState = { ...state, [collection]: newItems };
                 if (updates.status === 'Won') {
-                    return handleGamification(newState, 'WIN_DEAL');
+                    return newState;
                 }
                 return newState;
             }
@@ -293,7 +203,7 @@ export const appReducer = (state: DashboardData, action: AppAction): DashboardDa
                 const oldContacts = newItems[itemIndex].contacts || [];
                 newItems[itemIndex] = { ...newItems[itemIndex], contacts: [contact, ...oldContacts] };
                 const newState = { ...state, [collection]: newItems };
-                return handleGamification(newState, 'CREATE_CONTACT');
+                return newState;
             }
             return state;
         }
@@ -405,7 +315,7 @@ export const appReducer = (state: DashboardData, action: AppAction): DashboardDa
         case 'LOG_FINANCIALS': {
             const newLog = action.payload;
             const newState = { ...state, financials: [newLog, ...state.financials] };
-            return handleGamification(newState, 'LOG_FINANCIALS', { logData: newLog });
+            return newState;
         }
         
         case 'DELETE_ITEM': {
@@ -421,7 +331,7 @@ export const appReducer = (state: DashboardData, action: AppAction): DashboardDa
         case 'CREATE_MARKETING_ITEM': {
             const newItem = action.payload;
             const newState = { ...state, marketing: [newItem, ...state.marketing] };
-            return handleGamification(newState, 'CREATE_MARKETING_ITEM');
+            return newState;
         }
 
         case 'UPDATE_MARKETING_ITEM': {
@@ -432,7 +342,7 @@ export const appReducer = (state: DashboardData, action: AppAction): DashboardDa
                 newItems[itemIndex] = { ...newItems[itemIndex], ...updates };
                 const newState = { ...state, marketing: newItems };
                 if (updates.status === 'Published') {
-                    return handleGamification(newState, 'PUBLISH_MARKETING');
+                    return newState;
                 }
                 return newState;
             }

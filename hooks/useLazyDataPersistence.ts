@@ -34,23 +34,20 @@ export const useLazyDataPersistence = () => {
   const loadCoreData = useCallback(async () => {
     if (!user || !supabase || !workspace?.id) {
       return {
-        gamification: EMPTY_DASHBOARD_DATA.gamification,
         settings: EMPTY_DASHBOARD_DATA.settings
       }
     }
 
     try {
-      // Load only gamification and settings from full dashboard data
+      // Load only settings from full dashboard data
       const { data: dashboardData } = await DatabaseService.getAllDashboardData(user.id, workspace.id)
       
       return {
-        gamification: dashboardData?.gamification || EMPTY_DASHBOARD_DATA.gamification,
         settings: dashboardData?.settings || EMPTY_DASHBOARD_DATA.settings
       }
     } catch (err) {
       console.error('Error loading core data:', err)
       return {
-        gamification: EMPTY_DASHBOARD_DATA.gamification,
         settings: EMPTY_DASHBOARD_DATA.settings
       }
     }

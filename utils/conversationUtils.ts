@@ -17,17 +17,19 @@ interface Content {
  * Uses a sliding window approach to limit token usage while preserving important context.
  * 
  * Strategy:
- * - Keep last 10-15 messages (most recent context)
+ * - Keep last 8-10 messages (most recent context)
  * - Always preserve function calls and their responses (they're essential for multi-step operations)
  * - For long conversations, older messages are dropped
  * 
+ * OPTIMIZATION: Reduced from 15 to 10 messages to save ~30-40% tokens on long conversations
+ * 
  * @param history Full conversation history
- * @param maxMessages Maximum number of messages to include (default: 15)
+ * @param maxMessages Maximum number of messages to include (default: 10, reduced from 15)
  * @returns Filtered history array
  */
 export function getRelevantHistory(
   history: Content[],
-  maxMessages: number = 15
+  maxMessages: number = 10
 ): Content[] {
   if (history.length <= maxMessages) {
     return history;

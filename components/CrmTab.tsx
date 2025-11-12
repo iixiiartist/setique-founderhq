@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { BaseCrmItem, Investor, Customer, Partner, Task, AppActions, Priority, CrmCollectionName, TaskCollectionName, AnyCrmItem, TabType, Contact, Document, BusinessProfile, WorkspaceMember } from '../types';
-import ModuleAssistant from './shared/ModuleAssistant';
 import { Tab } from '../constants';
 import AccountDetailView from './shared/AccountDetailView';
 import ContactDetailView from './shared/ContactDetailView';
 import TaskManagement from './shared/TaskManagement';
 import { AssignmentDropdown } from './shared/AssignmentDropdown';
 import { useWorkspace } from '../contexts/WorkspaceContext';
+import { ContactManager } from './shared/ContactManager';
 
 
 const CrmItemCard: React.FC<{ item: AnyCrmItem, onView: (item: AnyCrmItem) => void }> = ({ item, onView }) => {
@@ -233,131 +233,6 @@ const CrmTab: React.FC<CrmTabProps> = React.memo(({
     }), [actions]);
 
     const generalTasks = useMemo(() => tasks.filter(t => !t.crmItemId), [tasks]);
-
-    const { expertTitle, expertDescription, currentTab } = useMemo(() => {
-        const tabIdMapping: Record<string, TabType> = {
-            'Investor': Tab.Investors,
-            'Customer': Tab.Customers,
-            'Partner': Tab.Partners,
-        };
-        const tab = tabIdMapping[title] || Tab.Dashboard;
-
-        switch (title) {
-            case 'Investor':
-                return { 
-                    expertTitle: 'Fundraising AI',
-                    expertDescription: 'an expert fundraising and investor relations assistant. Your goal is to help research investors, draft outreach emails, prepare for meetings, and manage the fundraising pipeline for Setique.',
-                    currentTab: tab,
-                };
-            case 'Customer':
-                return {
-                    expertTitle: 'Sales AI',
-                    expertDescription: 'an expert sales and business development assistant for B2B tech. Your customers are "Builders" (companies and developers who buy AI data). Your goal is to help with lead generation, sales pipeline management, and closing deals with these Builders.',
-                    currentTab: tab,
-                };
-            case 'Partner':
-                return {
-                    expertTitle: 'Partnerships AI',
-                    expertDescription: 'an expert partnerships and strategic alliances assistant. Your goal is to identify potential partners (e.g., data annotation companies, MLOps platforms), manage relationships, and structure deals that benefit Setique.',
-                    currentTab: tab,
-                };
-            default:
-                return {
-                    expertTitle: 'CRM AI',
-                    expertDescription: 'a helpful CRM assistant.',
-                    currentTab: tab,
-                };
-        }
-    }, [title]);
-    
-    // Build business context from profile (handle snake_case from database)
-    const profile = businessProfile as any;
-    const companyName = profile?.company_name || profile?.companyName || 'your company';
-    const industry = profile?.industry || 'Not specified';
-    const businessModel = profile?.business_model || profile?.businessModel || 'Not specified';
-    const description = profile?.description || 'Not specified';
-    const targetMarket = profile?.target_market || profile?.targetMarket || 'Not specified';
-    const primaryGoal = profile?.primary_goal || profile?.primaryGoal || 'Not specified';
-    const keyChallenges = profile?.key_challenges || profile?.keyChallenges || 'Not specified';
-    
-    const businessContext = businessProfile ? `
-**Business Context: ${companyName}**
-- **Company:** ${companyName}
-- **Industry:** ${industry}
-- **Business Model:** ${businessModel}
-- **Description:** ${description}
-- **Target Market:** ${targetMarket}
-- **Primary Goal:** ${primaryGoal}
-- **Key Challenges:** ${keyChallenges}
-` : `**Business Context:** Not yet configured.`;
-
-    // Workspace team context for collaboration
-    const teamContext = workspaceMembers.length > 0 ? `
-**Team Members (${workspaceMembers.length}):**
-${workspaceMembers.map(m => `- ${m.fullName} (${m.email}) - Role: ${m.role}`).join('\n')}
-
-**Collaboration Notes:**
-- When creating tasks, you can assign them to specific team members by their email address
-- CRM data (${title}s) is shared across the workspace for collaborative relationship management
-- Use team member names when discussing deal ownership, follow-up assignments, or meeting scheduling
-- Consider team member expertise when suggesting who should handle specific relationships
-` : `**Team:** Working solo (no additional team members in workspace).`;
-    
-    const systemPrompt = `You are ${expertDescription}
-
-${businessContext}
-
-${teamContext}
-
-**New Feature: Meeting Notes**
-You can now manage meeting notes for contacts. This includes creating new meeting summaries, updating existing ones, and reviewing past conversations. Each meeting has a title, attendees, and a summary. Use the \`createMeeting\`, \`updateMeeting\`, and \`deleteMeeting\` functions for this.
-
-**Reporting Guidelines:**
-When asked for a report, analyze the provided CRM data.
-- Summarize the pipeline by status (e.g., count of items in 'Lead', 'Qualified', 'Won').
-- If this is the Customer CRM, calculate the total deal value of all items with status 'Won'.
-- List any companies with a 'nextActionDate' that is in the past.
-- Conclude with a brief, actionable suggestion for pipeline management.
-
-**File Handling:**
-- When a user attaches a file, their message is a multi-part message. One part is text, and another part is \`inlineData\` containing the file's base64 encoded content (\`data\`) and its \`mimeType\`. The user's text will also be prefixed with \`[File Attached: filename.ext]\`.
-- When the user asks to save the file (e.g., "save this", "add it to the library"), this request refers to the file attached in their **most recent message**.
-- To save the file, you MUST call the \`uploadDocument\` function.
-- For the \`uploadDocument\` parameters:
-    - \`name\`: Extract the filename from the \`[File Attached: ...]\` prefix.
-    - \`mimeType\`: Use the \`mimeType\` from the \`inlineData\` part of the user's message.
-    - \`content\`: Use the \`data\` field from the \`inlineData\` part. This is the base64 content.
-    - \`module\`: Set this to '${currentTab}'.
-- Do NOT ask for this information. You have everything you need from the user's multi-part message. Do NOT use content from previous files in the conversation history when saving.
-
-**File Analysis Instructions:**
-- **Finding File IDs:** When a user asks about a file by its name (e.g., "What is in 'investor_deck.pdf'?"), you MUST look up its ID in the \`Current File Library Context\` provided to you. Use that ID to call the \`getFileContent\` function. Do NOT ask the user for the file ID if the file name is in your context.
-- **Critical Two-Step Process:**
-    1.  **Call the Tool:** Once you have the file ID, call the \`getFileContent\` function.
-    2.  **Analyze and Respond:** After the system returns the file's content, you MUST use that information to answer the user's original question. Do NOT just say "I've completed the action." Your job is not finished until you have provided a summary or answer based on the file's content.
-
-**Example Interaction:**
-User: "Did Acme Corp send us their MSA?"
-You (Assistant): "Yes, I see a file named 'Acme_Corp_MSA.pdf'."
-User: "Great, what are the payment terms?"
-You (Assistant): *[Internal Action: Finds the ID for 'Acme_Corp_MSA.pdf' in the context, then calls getFileContent(fileId: 'doc-12345')]*
-System: *[Internal Action: Returns file content to the model]*
-You (Assistant): "The payment terms in the Acme Corp MSA are Net 30."
-
-**Response Accuracy:**
-- Do not make up or hallucinate information. All responses must be based on real-world information and the data provided.
-- If you do not have an answer to a question, explicitly state that you don't know the answer at this time.
-
-Use the provided dashboard context to answer questions and call functions to complete tasks.
-Today's date is ${new Date().toISOString().split('T')[0]}.
-
-Current ${title} CRM Context:
-Items: ${JSON.stringify(crmItems, null, 2)}
-Tasks: ${JSON.stringify(tasks, null, 2)}
-
-Current File Library Context:
-${JSON.stringify(documentsMetadata, null, 2)}
-`;
     
     if (selectedContact && selectedItem) {
         return (
@@ -436,6 +311,17 @@ ${JSON.stringify(documentsMetadata, null, 2)}
                 <div className="bg-white p-6 border-2 border-black shadow-neo">
                     <h2 className="text-xl font-bold text-black mb-4">Add New {title}</h2>
                     <AddCrmForm title={title} collection={crmCollection} actions={actions} />
+                </div>
+
+                {/* Contact Manager */}
+                <div className="bg-white p-6 border-2 border-black shadow-neo">
+                    <ContactManager
+                        contacts={crmItems.flatMap(item => item.contacts || [])}
+                        crmItems={crmItems}
+                        actions={actions}
+                        crmType={crmCollection}
+                        workspaceId={workspaceId}
+                    />
                 </div>
 
                 {/* Quick Access Sections */}
@@ -573,18 +459,6 @@ ${JSON.stringify(documentsMetadata, null, 2)}
                     placeholder="e.g., 'Draft outreach templates'"
                 />
             </div>
-            {workspace?.planType !== 'free' && (
-                <div className="lg:col-span-1">
-                    <ModuleAssistant 
-                        title={expertTitle} 
-                        systemPrompt={systemPrompt} 
-                        actions={actions} 
-                        currentTab={currentTab}
-                        workspaceId={workspaceId}
-                        onUpgradeNeeded={onUpgradeNeeded}
-                    />
-                </div>
-            )}
         </div>
     );
 });

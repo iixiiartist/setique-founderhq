@@ -54,15 +54,16 @@ interface Message {
 
 // Convert Content[] format (used by UI) to Message[] format (used by Groq API)
 const convertContentToMessages = (history: Content[]): Message[] => {
-    return history.map(content => {
-        // Handle user/model roles
-        const role = content.role === 'model' ? 'assistant' : content.role;
+    return history
+        .map(content => {
+            // Handle user/model roles
+            const role = content.role === 'model' ? 'assistant' : content.role;
 
-        // Extract text from parts
-        const textParts = content.parts
-            .filter(p => 'text' in p && p.text)
-            .map(p => p.text as string)
-            .join('\n');
+            // Extract text from parts
+            const textParts = content.parts
+                .filter(p => 'text' in p && p.text)
+                .map(p => p.text as string)
+                .join('\n');
 
         // Check for function calls (an assistant message may contain multiple)
         const functionCallParts = content.parts.filter(
@@ -112,6 +113,14 @@ const convertContentToMessages = (history: Content[]): Message[] => {
             role: role as 'user' | 'assistant' | 'tool',
             content: textParts || '',
         };
+    })
+    .filter(msg => {
+        // Filter out empty assistant messages (they cause 400 errors in API)
+        if (msg.role === 'assistant' && !msg.content && !('tool_calls' in msg)) {
+            console.warn('[Groq] Filtering out empty assistant message from history');
+            return false;
+        }
+        return true;
     });
 };
 

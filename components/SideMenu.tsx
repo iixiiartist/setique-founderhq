@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { NAV_ITEMS, TabType, Tab } from '../constants';
-import { GamificationData, PlanType } from '../types';
+import { PlanType } from '../types';
 import { usePrefetchTabs } from '../hooks/usePrefetchTabs';
 
 interface SideMenuProps {
@@ -8,8 +8,6 @@ interface SideMenuProps {
     onClose: () => void;
     activeTab: TabType;
     onSwitchTab: (tab: TabType) => void;
-    gamification: GamificationData;
-    onProgressBarClick: () => void;
     workspacePlan?: PlanType;
     isAdmin?: boolean;
     workspaceId?: string;
@@ -21,8 +19,6 @@ const SideMenu: React.FC<SideMenuProps> = ({
     onClose, 
     activeTab, 
     onSwitchTab, 
-    gamification, 
-    onProgressBarClick, 
     workspacePlan, 
     isAdmin,
     workspaceId,
@@ -38,10 +34,6 @@ const SideMenu: React.FC<SideMenuProps> = ({
     const hoverTimeoutRef = useRef<(() => void) | null>(null);
     const activeClass = "text-blue-500 border-black bg-gray-100";
     const inactiveClass = "text-gray-600 border-transparent";
-
-    const levelThreshold = (level: number) => 100 * level + Math.pow(level, 2) * 50;
-    const currentLevelThreshold = levelThreshold(gamification.level);
-    const progressPercentage = Math.min(100, (gamification.xp / currentLevelThreshold) * 100);
     
     // Filter out Documents tab for free users and Admin tab for non-admins
     const filteredNavItems = NAV_ITEMS.filter(item => {
@@ -106,19 +98,6 @@ const SideMenu: React.FC<SideMenuProps> = ({
                     ))}
                 </nav>
                 <div className="mt-auto pt-4 border-t-2 border-dashed border-black">
-                     <button 
-                        onClick={onProgressBarClick} 
-                        className="w-full mb-4 text-left cursor-pointer group"
-                        aria-label="View open tasks"
-                     >
-                        <div className="flex justify-between items-end mb-1 font-mono">
-                            <span className="font-semibold">Founder Lvl. {gamification.level}</span>
-                            <span className="text-sm">{Math.floor(gamification.xp)} / {Math.floor(currentLevelThreshold)} XP</span>
-                        </div>
-                        <div className="w-full bg-gray-200 border-2 border-black h-4 group-hover:border-blue-500 transition-colors">
-                            <div className="bg-blue-500 h-full" style={{ width: `${progressPercentage}%` }}></div>
-                        </div>
-                    </button>
                     {userId && (
                         <div className="text-sm text-gray-500 font-mono truncate" title={userId}>
                             User ID: {userId.substring(0, 8)}...

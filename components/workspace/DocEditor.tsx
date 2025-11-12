@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
-import { GTMDoc, DocType, DocVisibility } from '../../types';
+import { GTMDoc, DocType, DocVisibility, AppActions, DashboardData } from '../../types';
 import { DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '../../constants';
+import { useWorkspace } from '../../contexts/WorkspaceContext';
+import { AICommandPalette } from './AICommandPalette';
+import { useAIWorkspaceContext } from '../../hooks/useAIWorkspaceContext';
 
 interface DocEditorProps {
     workspaceId: string;
@@ -11,6 +14,10 @@ interface DocEditorProps {
     docId?: string; // undefined for new doc
     onClose: () => void;
     onSave: (doc: GTMDoc) => void;
+    onReloadList?: () => void; // Callback to reload docs list in sidebar
+    actions: AppActions;
+    data: DashboardData;
+    onUpgradeNeeded?: () => void;
 }
 
 export const DocEditor: React.FC<DocEditorProps> = ({
@@ -19,18 +26,39 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     docId,
     onClose,
     onSave,
+    onReloadList,
+    actions,
+    data,
+    onUpgradeNeeded,
 }) => {
+    const { workspace } = useWorkspace();
     const [title, setTitle] = useState('Untitled Document');
     const [docType, setDocType] = useState<DocType>('brief');
     const [visibility, setVisibility] = useState<DocVisibility>('team');
     const [tags, setTags] = useState<string[]>([]);
     const [isSaving, setIsSaving] = useState(false);
     const [isLoading, setIsLoading] = useState(!!docId);
+    
+    // AI Command Palette state
+    const [showAICommandPalette, setShowAICommandPalette] = useState(false);
+    const [aiPalettePosition, setAIPalettePosition] = useState({ top: 0, left: 0 });
+    
+    // Fetch workspace context for AI
+    const { context: workspaceContext, loading: contextLoading } = useAIWorkspaceContext(
+        docId,
+        workspaceId,
+        userId
+    );
 
     // Initialize Tiptap editor
     const editor = useEditor({
         extensions: [
-            StarterKit,
+            StarterKit.configure({
+                // Add keyboard shortcuts
+                heading: {
+                    levels: [1, 2, 3],
+                },
+            }),
             Placeholder.configure({
                 placeholder: 'Start writing your document...',
             }),
@@ -39,6 +67,20 @@ export const DocEditor: React.FC<DocEditorProps> = ({
         editorProps: {
             attributes: {
                 class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-xl focus:outline-none min-h-full p-4',
+            },
+            handleKeyDown: (view, event) => {
+                // Cmd+K or Ctrl+K to open AI command palette
+                if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+                    event.preventDefault();
+                    const coords = view.coordsAtPos(view.state.selection.from);
+                    setAIPalettePosition({ 
+                        top: coords.top + window.scrollY + 30, 
+                        left: coords.left + window.scrollX 
+                    });
+                    setShowAICommandPalette(true);
+                    return true;
+                }
+                return false;
             },
         },
     });
@@ -143,6 +185,52 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             console.error('Error saving doc:', error);
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleSaveToFileLibrary = async () => {
+        if (!editor) {
+            alert('Editor not ready');
+            return;
+        }
+
+        const confirmed = window.confirm(
+            'Save this document to the File Library? This will create an HTML version that can be shared and attached to tasks.'
+        );
+        
+        if (!confirmed) return;
+
+        try {
+            const { DatabaseService } = await import('../../lib/services/database');
+            
+            // Get the HTML content
+            const htmlContent = editor.getHTML();
+            
+            // Create a document entry in the file library
+            const { data, error } = await DatabaseService.createDocument(userId, workspaceId, {
+                name: `${title}.html`,
+                module: 'workspace', // GTM Docs workspace
+                mime_type: 'text/html',
+                content: htmlContent,
+                notes: {
+                    gtmDocId: docId || null,
+                    docType: docType,
+                    tags: tags,
+                    source: 'gtm_docs'
+                }
+            });
+
+            if (error) {
+                console.error('Error saving to file library:', error);
+                alert('Failed to save to file library: ' + error.message);
+            } else {
+                alert('✅ Document saved to File Library!');
+                // Reload the docs list to show the new file
+                onReloadList?.();
+            }
+        } catch (error) {
+            console.error('Error saving to file library:', error);
+            alert('Failed to save to file library');
         }
     };
 
@@ -308,6 +396,27 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                             >
                                 Clear
                             </button>
+                            
+                            <div className="w-px bg-black mx-1 hidden lg:block"></div>
+                            
+                            {/* AI Writing Assistant */}
+                            <button
+                                onClick={() => {
+                                    if (!editor) return;
+                                    const { view } = editor;
+                                    const coords = view.coordsAtPos(view.state.selection.from);
+                                    setAIPalettePosition({ 
+                                        top: coords.top + window.scrollY + 30, 
+                                        left: coords.left + window.scrollX 
+                                    });
+                                    setShowAICommandPalette(true);
+                                }}
+                                disabled={!workspaceContext || contextLoading}
+                                className="min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black bg-purple-500 text-white hover:bg-purple-600 disabled:bg-gray-300 disabled:text-gray-500"
+                                title="AI Writing Assistant (Cmd+K)"
+                            >
+                                🤖 AI
+                            </button>
                         </div>
                     )}
                     
@@ -411,21 +520,53 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                         )}
                     </div>
 
-                    {/* AI Integration */}
-                    <div className="mb-4 p-3 bg-purple-100 border-2 border-purple-400">
-                        <p className="text-xs font-bold mb-2">🤖 AI Actions</p>
+                    {/* Actions */}
+                    <div className="space-y-2 mb-4">
                         <button
                             onClick={handleSendToAI}
-                            className="w-full px-2 py-2 text-sm font-bold bg-purple-600 text-white border-2 border-black hover:bg-purple-700 transition-colors"
+                            disabled={!editor}
+                            className="w-full px-3 py-2 bg-blue-500 text-white font-bold border-2 border-black shadow-neo-btn hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                         >
-                            📤 Send to AI Chat
+                            📨 Send to AI Chat
                         </button>
-                        <p className="text-xs text-gray-600 mt-2">
-                            Open AI assistant with this document as context
-                        </p>
+                        <button
+                            onClick={handleSaveToFileLibrary}
+                            disabled={!docId || !editor}
+                            className="w-full px-3 py-2 bg-green-500 text-white font-bold border-2 border-black shadow-neo-btn hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                            title={!docId ? 'Save document first' : 'Save to File Library'}
+                        >
+                            💾 Save to File Library
+                        </button>
                     </div>
+
+                    {/* AI Quick Info */}
+                    {workspace?.planType !== 'free' && (
+                        <div className="mb-4 p-3 bg-purple-100 border-2 border-purple-400">
+                            <p className="text-xs font-bold mb-2">🤖 AI Writing Assistant</p>
+                            <p className="text-xs text-gray-700">
+                                Click the <strong>🤖 AI</strong> button in the toolbar or press <kbd className="px-1 py-0.5 bg-white border border-gray-400 rounded text-xs font-mono">Cmd+K</kbd> to use AI assistance.
+                            </p>
+                            <p className="text-xs text-gray-600 mt-2">
+                                Select text for quick actions: improve, expand, summarize, or rewrite.
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
+
+            {/* AI Command Palette */}
+            {showAICommandPalette && editor && workspaceContext && (
+                <AICommandPalette
+                    editor={editor}
+                    position={aiPalettePosition}
+                    onClose={() => setShowAICommandPalette(false)}
+                    workspaceContext={workspaceContext}
+                    docType={docType}
+                    data={data}
+                />
+            )}
+
+
         </div>
     );
 };

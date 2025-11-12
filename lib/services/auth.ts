@@ -148,13 +148,6 @@ export class AuthService {
           full_name: fullName || '',
           settings: {
             desktopNotifications: false,
-          },
-          gamification: {
-            streak: 0,
-            lastActivityDate: null,
-            xp: 0,
-            level: 1,
-            achievements: [],
           }
         })
 

@@ -72,9 +72,6 @@ export default defineConfig(({ mode }) => {
               if (id.includes('/components/AdminTab')) {
                 return 'admin-tab';
               }
-              if (id.includes('/components/AchievementsTab')) {
-                return 'achievements-tab';
-              }
               if (id.includes('/components/PlatformTab')) {
                 return 'platform-tab';
               }

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { AppActions, TaskCollectionName, NoteableCollectionName, CrmCollectionName, DeletableCollectionName, TabType } from '../../types';
+import { AppActions, TaskCollectionName, NoteableCollectionName, CrmCollectionName, DeletableCollectionName, TabType, GTMDocMetadata, AnyCrmItem } from '../../types';
 import { getAiResponse, AILimitError } from '../../services/groqService';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -8,6 +8,10 @@ import { Tab } from '../../constants';
 import { useConversationHistory } from '../../hooks/useConversationHistory';
 import { useFullscreenChat } from '../../hooks/useFullscreenChat';
 import { getRelevantHistory, pruneFunctionResponse } from '../../utils/conversationUtils';
+import { DocLibraryPicker } from '../workspace/DocLibraryPicker';
+import { useAuth } from '../../contexts/AuthContext';
+import { QuickActionsToolbar } from './QuickActionsToolbar';
+import { InlineFormModal } from './InlineFormModal';
 
 // Keep using Content format for compatibility
 interface Part {
@@ -36,6 +40,7 @@ interface ModuleAssistantProps {
     businessContext?: string; // Optional context injected on first message
     teamContext?: string; // Optional context injected on first message
     maxFileSizeMB?: number; // Max file size for AI chat (default: 5MB, lower than storage limit due to base64 overhead)
+    crmItems?: AnyCrmItem[]; // For contact form in quick actions
 }
 
 const ModuleAssistant: React.FC<ModuleAssistantProps> = ({ 
@@ -51,7 +56,8 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
     autoFullscreenMobile = true,
     businessContext,
     teamContext,
-    maxFileSizeMB = 5 // Default 5MB for AI chat (base64 encoding adds ~33% overhead)
+    maxFileSizeMB = 5, // Default 5MB for AI chat (base64 encoding adds ~33% overhead)
+    crmItems = []
 }) => {
     // Use conversation history hook for persistence
     const {
@@ -66,6 +72,7 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
     // Fullscreen mode management
     const { isFullscreen, toggleFullscreen, exitFullscreen, isMobileDevice } = useFullscreenChat();
     
+    const { user } = useAuth();
     const [userInput, setUserInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [file, setFile] = useState<File | null>(null);
@@ -76,6 +83,9 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
     const [rateLimitError, setRateLimitError] = useState<string | null>(null);
     const [fileSizeError, setFileSizeError] = useState<string | null>(null);
     const [requestTimestamps, setRequestTimestamps] = useState<number[]>([]);
+    const [showDocPicker, setShowDocPicker] = useState(false);
+    const [attachedDoc, setAttachedDoc] = useState<GTMDocMetadata | null>(null);
+    const [showInlineForm, setShowInlineForm] = useState<{ type: 'task' | 'crm' | 'contact' | 'event' | 'expense' | 'document'; data?: any } | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const systemPromptRef = useRef(systemPrompt);
@@ -161,6 +171,10 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
             fileInputRef.current.value = '';
         }
     };
+
+    const clearDoc = () => {
+        setAttachedDoc(null);
+    };
     
     const executeAction = async (call: { name: string, args: any }) => {
         const { name, args } = call;
@@ -197,6 +211,53 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
                     return await actions.updateContact(args.collection as CrmCollectionName, args.crmItemId, args.contactId, args.updates);
                 case 'deleteContact':
                     return await actions.deleteContact(args.collection as CrmCollectionName, args.crmItemId, args.contactId);
+                case 'searchContacts': {
+                    const query = args.query.toLowerCase();
+                    const targetCollection = args.collection && args.collection !== 'all' ? args.collection : null;
+                    
+                    const results: any[] = [];
+                    crmItems.forEach(item => {
+                        // Filter by collection if specified
+                        if (targetCollection) {
+                            const itemType = 'checkSize' in item ? 'investors' : 
+                                           'dealValue' in item ? 'customers' : 'partners';
+                            if (itemType !== targetCollection) return;
+                        }
+                        
+                        // Check if company name matches
+                        const companyMatches = item.company.toLowerCase().includes(query);
+                        
+                        // Search contacts
+                        (item.contacts || []).forEach(contact => {
+                            const matches = 
+                                contact.name.toLowerCase().includes(query) ||
+                                contact.email.toLowerCase().includes(query) ||
+                                (contact.title && contact.title.toLowerCase().includes(query)) ||
+                                (contact.phone && contact.phone.toLowerCase().includes(query)) ||
+                                companyMatches;
+                            
+                            if (matches) {
+                                results.push({
+                                    contactId: contact.id,
+                                    name: contact.name,
+                                    email: contact.email,
+                                    phone: contact.phone,
+                                    title: contact.title,
+                                    company: item.company,
+                                    companyId: item.id,
+                                    crmType: 'checkSize' in item ? 'investors' : 
+                                             'dealValue' in item ? 'customers' : 'partners'
+                                });
+                            }
+                        });
+                    });
+                    
+                    return {
+                        success: true,
+                        message: `Found ${results.length} contact(s) matching "${args.query}"`,
+                        results
+                    };
+                }
                 case 'createMeeting':
                     return await actions.createMeeting(args.collection as CrmCollectionName, args.crmItemId, args.contactId, {
                         title: args.title,
@@ -292,6 +353,21 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
             textPartForAI = `${contextParts.join('\n\n')}\n\n${prompt}`;
         }
 
+        // Inject GTM doc content if attached
+        if (attachedDoc) {
+            const docContext = `
+
+--- GTM Document Reference ---
+Title: ${attachedDoc.title}
+Type: ${attachedDoc.docType}
+Visibility: ${attachedDoc.visibility}
+${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 ? `Tags: ${attachedDoc.tags.join(', ')}\n` : ''}${attachedDoc.contentPreview ? `Content: ${attachedDoc.contentPreview}` : ''}
+--- End Document ---
+`;
+            textPart = `📎 [GTM Doc: ${attachedDoc.title}]\n\n${textPart}`;
+            textPartForAI = `${docContext}\n\n${textPartForAI}`;
+        }
+
         // Handle file attachment with cost optimization
         let fileSaved = false;
         let fileName = '';
@@ -353,6 +429,7 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
         setAiLimitError(null); // Clear any previous error
         
         clearFile();
+        clearDoc();
 
         try {
             // Send to AI with sliding window history (last 15 messages)
@@ -410,11 +487,17 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
             
             // Extract text from the response
             const finalResponseText = modelResponse.candidates?.[0]?.content?.parts?.find(p => 'text' in p)?.text ?? "I've completed the action.";
-            addMessage({ role: 'model', parts: [{ text: finalResponseText }] });
             
-            // Trigger notification callback if provided
-            if (onNewMessage) {
-                onNewMessage();
+            // Only add message if response is not empty (avoid empty assistant messages that cause 400 errors)
+            if (finalResponseText && finalResponseText.trim().length > 0) {
+                addMessage({ role: 'model', parts: [{ text: finalResponseText }] });
+                
+                // Trigger notification callback if provided
+                if (onNewMessage) {
+                    onNewMessage();
+                }
+            } else {
+                console.warn('[ModuleAssistant] Received empty response from AI, not adding to conversation history');
             }
 
         } catch (error) {
@@ -507,7 +590,7 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
                     : 'p-6 border-2 border-black shadow-neo max-h-[85vh]'
         }`}>
             {(!compact || isFullscreen) && (
-                <div className="flex justify-between items-center mb-4 shrink-0 flex-wrap gap-2">
+                <div className="flex justify-between items-start mb-4 shrink-0 flex-wrap gap-2 relative">
                     <div className="flex items-center gap-2 min-w-0">
                         <h2 className="text-xl font-semibold text-black truncate">{title}</h2>
                         {messageCount > 0 && (
@@ -517,6 +600,22 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
                         )}
                     </div>
                     <div className="flex gap-2 flex-wrap">
+                        {/* Quick Actions Toolbar - moved to top */}
+                        <QuickActionsToolbar
+                            actions={actions}
+                            currentTab={currentTab}
+                            workspaceId={workspaceId}
+                            onActionComplete={(message) => {
+                                // Add system message to chat
+                                addMessage({
+                                    role: 'model',
+                                    parts: [{ text: message }]
+                                });
+                            }}
+                            onOpenForm={(formType, data) => {
+                                setShowInlineForm({ type: formType, data });
+                            }}
+                        />
                         <button
                             onClick={handleGenerateReport}
                             className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all disabled:opacity-50 flex items-center gap-2 shrink-0"
@@ -718,6 +817,17 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
                         <button type="button" onClick={clearFile} className="font-bold text-lg hover:text-red-500" aria-label="Remove attached file">&times;</button>
                     </div>
                 )}
+                {attachedDoc && (
+                    <div className="flex items-center justify-between p-2 bg-purple-50 border-2 border-purple-600 text-sm">
+                        <div className="flex-1 truncate pr-2">
+                            <div className="font-medium">📎 {attachedDoc.title}</div>
+                            <div className="text-xs text-purple-700">
+                                {attachedDoc.docType} • {attachedDoc.visibility}
+                            </div>
+                        </div>
+                        <button type="button" onClick={clearDoc} className="font-bold text-lg hover:text-red-500" aria-label="Remove attached document">&times;</button>
+                    </div>
+                )}
                 <div className="flex gap-4">
                     <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" id={`file-upload-${title.replace(/\s+/g, '-')}`} />
                     <label 
@@ -730,6 +840,17 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
                             <path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.122 2.122l7.81-7.81" />
                         </svg>
                     </label>
+                    {workspaceId && user && (
+                        <button
+                            type="button"
+                            onClick={() => setShowDocPicker(true)}
+                            className="p-3 border-2 border-purple-600 bg-purple-50 shadow-neo-btn cursor-pointer flex items-center justify-center hover:bg-purple-100 transition-colors"
+                            aria-label="Attach GTM document"
+                            title="Attach GTM document"
+                        >
+                            <span className="text-xl">📄</span>
+                        </button>
+                    )}
                     <input
                         type="text"
                         value={userInput}
@@ -741,7 +862,7 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
                     <button
                         type="submit"
                         className="font-mono font-semibold bg-blue-500 text-white p-3 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn-lg disabled:bg-gray-400 disabled:cursor-not-allowed disabled:text-gray-200"
-                        disabled={isLoading || (!userInput && !file)}
+                        disabled={isLoading || (!userInput && !file && !attachedDoc)}
                     >
                         Send
                     </button>
@@ -764,20 +885,94 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
     // Render fullscreen via portal
     if (isFullscreen && allowFullscreen) {
         return ReactDOM.createPortal(
-            <div 
-                className="fixed inset-0 z-[1000] bg-white overflow-hidden"
-                role="dialog"
-                aria-modal="true"
-                aria-label={`${title} - Fullscreen mode`}
-            >
-                {chatContent}
-            </div>,
+            <>
+                <div 
+                    className="fixed inset-0 z-[1000] bg-white overflow-hidden"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={`${title} - Fullscreen mode`}
+                >
+                    {chatContent}
+                </div>
+                {showDocPicker && workspaceId && user && (
+                    <DocLibraryPicker
+                        isOpen={showDocPicker}
+                        workspaceId={workspaceId}
+                        userId={user.id}
+                        onSelect={async (doc) => {
+                            // Load full doc content for AI context
+                            const { DatabaseService } = await import('../../lib/services/database');
+                            const { data: fullDoc } = await DatabaseService.loadGTMDocById(doc.id);
+                            if (fullDoc) {
+                                // Add contentPreview from contentPlain for AI
+                                const docWithContent = {
+                                    ...doc,
+                                    contentPreview: fullDoc.contentPlain || 'No content available'
+                                };
+                                setAttachedDoc(docWithContent);
+                            } else {
+                                setAttachedDoc(doc);
+                            }
+                            setShowDocPicker(false);
+                        }}
+                        onClose={() => setShowDocPicker(false)}
+                        title="Attach GTM Document to Chat"
+                    />
+                )}
+            </>,
             document.body
         );
     }
     
     // Normal embedded view
-    return chatContent;
+    return (
+        <>
+            {chatContent}
+            {showDocPicker && workspaceId && user && (
+                <DocLibraryPicker
+                    isOpen={showDocPicker}
+                    workspaceId={workspaceId}
+                    userId={user.id}
+                    onSelect={async (doc) => {
+                        // Load full doc content for AI context
+                        const { DatabaseService } = await import('../../lib/services/database');
+                        const { data: fullDoc } = await DatabaseService.loadGTMDocById(doc.id);
+                        if (fullDoc) {
+                            // Add contentPreview from contentPlain for AI
+                            const docWithContent = {
+                                ...doc,
+                                contentPreview: fullDoc.contentPlain || 'No content available'
+                            };
+                            setAttachedDoc(docWithContent);
+                        } else {
+                            setAttachedDoc(doc);
+                        }
+                        setShowDocPicker(false);
+                    }}
+                    onClose={() => setShowDocPicker(false)}
+                    title="Attach GTM Document to Chat"
+                />
+            )}
+            {showInlineForm && (
+                <InlineFormModal
+                    formType={showInlineForm.type}
+                    formData={showInlineForm.data}
+                    actions={actions}
+                    onClose={() => setShowInlineForm(null)}
+                    onSuccess={(message) => {
+                        addMessage({
+                            role: 'model',
+                            parts: [{ text: message }]
+                        });
+                        setShowInlineForm(null);
+                    }}
+                    crmItems={crmItems}
+                    currentTab={currentTab}
+                    workspaceId={workspaceId}
+                />
+            )}
+        </>
+    );
 };
 
 export default ModuleAssistant;

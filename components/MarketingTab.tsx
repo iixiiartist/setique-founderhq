@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { MarketingItem, AppActions, Task, Priority, Document, BusinessProfile, WorkspaceMember } from '../types';
 import Modal from './shared/Modal';
 import NotesManager from './shared/NotesManager';
-import ModuleAssistant from './shared/ModuleAssistant';
 import { Tab } from '../constants';
 import TaskManagement from './shared/TaskManagement';
 import { useWorkspace } from '../contexts/WorkspaceContext';
@@ -71,90 +70,6 @@ const MarketingTab: React.FC<{
     const [editingItem, setEditingItem] = useState<MarketingItem | null>(null);
     const [editForm, setEditForm] = useState<Omit<MarketingItem, 'id'|'createdAt'|'notes'>>({ title: '', type: 'Blog Post', status: 'Planned', dueDate: '', dueTime: '' });
     const modalTriggerRef = useRef<HTMLButtonElement | null>(null);
-    
-    const documentsMetadata = useMemo(() => documents.map(({ id, name, mimeType, module, uploadedAt }) => ({ id, name, mimeType, module, uploadedAt })), [documents]);
-
-    // Build business context from profile (handle snake_case from database)
-    const profile = businessProfile as any;
-    const companyName = profile?.company_name || profile?.companyName || 'your company';
-    const industry = profile?.industry || 'Not specified';
-    const businessModel = profile?.business_model || profile?.businessModel || 'Not specified';
-    const description = profile?.description || 'Not specified';
-    const targetMarket = profile?.target_market || profile?.targetMarket || 'Not specified';
-    const primaryGoal = profile?.primary_goal || profile?.primaryGoal || 'Not specified';
-    
-    const businessContext = businessProfile ? `
-**Business Context: ${companyName}**
-- **Company:** ${companyName}
-- **Industry:** ${industry}
-- **Business Model:** ${businessModel}
-- **Description:** ${description}
-- **Target Market:** ${targetMarket}
-- **Primary Goal:** ${primaryGoal}
-` : `**Business Context:** Not yet configured.`;
-
-    const teamContext = workspaceMembers.length > 0 ? `
-**Team Members (${workspaceMembers.length}):**
-${workspaceMembers.map(member => `- ${member.fullName || member.email || 'Unknown Member'} (${member.email || 'no email'}) - Role: ${member.role}`).join('\n')}
-
-**Collaboration Notes:**
-- Coordinate campaign ownership with the listed teammates when suggesting follow-up actions.
-- Reference teammates by name when proposing assignments or requesting approvals.
-` : `**Team:** Working solo (no additional team members in workspace).`;
-
-    const systemPrompt = `You are an expert marketing and growth hacking assistant for ${companyName}.
-
-${businessContext}
-
-${teamContext}
-
-**Reporting Guidelines:**
-When asked for a report, analyze the provided marketing data.
-- Summarize the number of content items by status (Planned, In Progress, Published, etc.).
-- Break down the content by type (Blog Post, Newsletter, etc.).
-- Highlight how many items are currently 'In Progress'.
-- Conclude with a suggestion on what type of content to prioritize next based on the current pipeline.
-
-**File Handling:**
-- When a user attaches a file, their message is a multi-part message. One part is text, and another part is \`inlineData\` containing the file's base64 encoded content (\`data\`) and its \`mimeType\`. The user's text will also be prefixed with \`[File Attached: filename.ext]\`.
-- When the user asks to save the file (e.g., "save this", "add it to the library"), this request refers to the file attached in their **most recent message**.
-- To save the file, you MUST call the \`uploadDocument\` function.
-- For the \`uploadDocument\` parameters:
-    - \`name\`: Extract the filename from the \`[File Attached: ...]\` prefix.
-    - \`mimeType\`: Use the \`mimeType\` from the \`inlineData\` part of the user's message.
-    - \`content\`: Use the \`data\` field from the \`inlineData\` part. This is the base64 content.
-    - \`module\`: Set this to '${Tab.Marketing}'.
-- Do NOT ask for this information. You have everything you need from the user's multi-part message. Do NOT use content from previous files in the conversation history when saving.
-
-**File Analysis Instructions:**
-- **Finding File IDs:** When a user asks about a file by its name (e.g., "What is in 'blog_draft.md'?"), you MUST look up its ID in the \`Current File Library Context\` provided to you. Use that ID to call the \`getFileContent\` function. Do NOT ask the user for the file ID if the file name is in your context.
-- **Critical Two-Step Process:**
-    1.  **Call the Tool:** Once you have the file ID, call the \`getFileContent\` function.
-    2.  **Analyze and Respond:** After the system returns the file's content, you MUST use that information to answer the user's original question. Do NOT just say "I've completed the action." Your job is not finished until you have provided a summary or answer based on the file's content.
-
-**Example Interaction:**
-User: "Do we have the final copy for the newsletter?"
-You (Assistant): "Yes, I see a file named 'october_newsletter_final.txt'."
-User: "Can you summarize it for me?"
-You (Assistant): *[Internal Action: Finds the ID for 'october_newsletter_final.txt' in the context, then calls getFileContent(fileId: 'doc-12345')]*
-System: *[Internal Action: Returns file content to the model]*
-You (Assistant): "The newsletter focuses on the launch of our new Bounty feature and includes a spotlight on a top Pro Curator. The call-to-action is to sign up for the waitlist."
-
-**Response Accuracy:**
-- Do not make up or hallucinate information. All responses must be based on real-world information and the data provided.
-- If you do not have an answer to a question, explicitly state that you don't know the answer at this time.
-
-Your goal is to help with content strategy, SEO, social media campaigns, and copywriting to grow ${companyName} and reach their target market.
-Use the provided dashboard context to answer questions and call functions to complete tasks.
-Today's date is ${new Date().toISOString().split('T')[0]}.
-
-Current Marketing Context:
-Campaigns: ${JSON.stringify(items, null, 2)}
-Tasks: ${JSON.stringify(tasks, null, 2)}
-
-Current File Library Context:
-${JSON.stringify(documentsMetadata, null, 2)}
-`;
 
     useEffect(() => {
         if (editingItem) {
@@ -249,18 +164,6 @@ ${JSON.stringify(documentsMetadata, null, 2)}
                     />
                 </div>
             </div>
-            {workspace?.planType !== 'free' && (
-                <div className="lg:col-span-1">
-                    <ModuleAssistant 
-                        title="Marketing AI" 
-                        systemPrompt={systemPrompt} 
-                        actions={actions} 
-                        currentTab={Tab.Marketing}
-                        workspaceId={workspaceId}
-                        onUpgradeNeeded={onUpgradeNeeded}
-                    />
-                </div>
-            )}
 
             <Modal isOpen={!!editingItem} onClose={() => setEditingItem(null)} title="Edit Marketing Item" triggerRef={modalTriggerRef}>
                 {editingItem && (

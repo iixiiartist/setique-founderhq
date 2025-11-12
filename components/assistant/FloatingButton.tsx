@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Loader2 } from 'lucide-react';
 import './animations.css';
 
 interface FloatingButtonProps {
@@ -7,6 +7,7 @@ interface FloatingButtonProps {
   hasUnread: boolean;
   unreadCount?: number;
   className?: string;
+  isLoading?: boolean;
 }
 
 export const FloatingButton: React.FC<FloatingButtonProps> = ({
@@ -14,10 +15,12 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
   hasUnread,
   unreadCount = 0,
   className = '',
+  isLoading = false,
 }) => {
   const [isFirstRender, setIsFirstRender] = useState(true);
   
   useEffect(() => {
+    console.log('[FloatingButton] MOUNTED and VISIBLE - Check bottom-right corner');
     // Only animate on first render
     const timer = setTimeout(() => setIsFirstRender(false), 500);
     return () => clearTimeout(timer);
@@ -27,10 +30,10 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
     <button
       onClick={onClick}
       className={`
-        fixed bottom-6 right-6 z-50
-        w-14 h-14 rounded-full
+        fixed bottom-6 right-6
+        w-16 h-16 rounded-full
         bg-blue-600 text-white
-        border-3 border-black
+        border-4 border-black
         shadow-neo-btn-lg
         hover:shadow-neo-xl
         flex items-center justify-center
@@ -40,25 +43,32 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
         ${className}
       `}
       style={{
+        zIndex: 99999,
         transition: 'transform 0.15s ease-out, box-shadow 0.15s ease-out',
-        willChange: 'transform, box-shadow'
+        willChange: 'transform, box-shadow',
+        pointerEvents: 'auto'
       }}
+      title={isLoading ? "Loading data..." : "Open AI Assistant"}
+      aria-label={isLoading ? "Loading data..." : "Open AI Assistant"}
+      disabled={isLoading}
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'scale(1.05)';
+        if (!isLoading) e.currentTarget.style.transform = 'scale(1.05)';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'scale(1)';
+        if (!isLoading) e.currentTarget.style.transform = 'scale(1)';
       }}
       onMouseDown={(e) => {
-        e.currentTarget.style.transform = 'scale(0.95)';
+        if (!isLoading) e.currentTarget.style.transform = 'scale(0.95)';
       }}
       onMouseUp={(e) => {
-        e.currentTarget.style.transform = 'scale(1.05)';
+        if (!isLoading) e.currentTarget.style.transform = 'scale(1.05)';
       }}
-      aria-label="Open AI Assistant"
-      title="Open AI Assistant"
     >
-      <Sparkles className="w-6 h-6" strokeWidth={2.5} />
+      {isLoading ? (
+        <Loader2 className="w-6 h-6 animate-spin" strokeWidth={2.5} />
+      ) : (
+        <Sparkles className="w-6 h-6" strokeWidth={2.5} />
+      )}
       
       {hasUnread && unreadCount > 0 && (
         <span

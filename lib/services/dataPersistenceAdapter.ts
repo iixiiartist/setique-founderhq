@@ -2,7 +2,7 @@ import { DatabaseService } from './database'
 import { logActivity } from './activityService'
 import { 
   Task, AnyCrmItem, Contact, Meeting, MarketingItem, 
-  FinancialLog, Document, SettingsData, GamificationData,
+  FinancialLog, Document, SettingsData,
   TaskCollectionName, CrmCollectionName, Priority, TaskStatus
 } from '../../types'
 import { taskToDb, marketingItemToDb, crmItemToDb, contactToDb } from '../utils/fieldTransformers'
@@ -613,14 +613,6 @@ export class DataPersistenceAdapter {
   static async updateSettings(userId: string, settings: SettingsData) {
     const { data, error } = await DatabaseService.updateUserProfile(userId, {
       settings: settings as any
-    })
-    return { data, error }
-  }
-
-  // Gamification operations
-  static async updateGamification(userId: string, gamification: GamificationData) {
-    const { data, error } = await DatabaseService.updateUserProfile(userId, {
-      gamification: gamification as any
     })
     return { data, error }
   }

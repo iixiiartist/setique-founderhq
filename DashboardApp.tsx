@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import { logger } from './lib/logger'
-import { Tab, EMPTY_DASHBOARD_DATA, NAV_ITEMS, ACHIEVEMENTS } from './constants';
-import { DashboardData, AppActions, Task, TaskCollectionName, CrmCollectionName, NoteableCollectionName, AnyCrmItem, FinancialLog, Note, BaseCrmItem, MarketingItem, SettingsData, Document, Contact, TabType, GamificationData, AchievementId, Priority, CalendarEvent, Meeting, TaskStatus } from './types';
+import { Tab, EMPTY_DASHBOARD_DATA, NAV_ITEMS } from './constants';
+import { DashboardData, AppActions, Task, TaskCollectionName, CrmCollectionName, NoteableCollectionName, AnyCrmItem, FinancialLog, Note, BaseCrmItem, MarketingItem, SettingsData, Document, Contact, TabType, Priority, CalendarEvent, Meeting, TaskStatus } from './types';
 import SideMenu from './components/SideMenu';
 import DashboardTab from './components/DashboardTab';
 import Toast from './components/shared/Toast';
@@ -20,7 +20,6 @@ const FinancialsTab = lazy(() => import('./components/FinancialsTab'));
 const SettingsTab = lazy(() => import('./components/SettingsTab'));
 const FileLibraryTab = lazy(() => import('./components/FileLibraryTab'));
 const AdminTab = lazy(() => import('./components/AdminTab'));
-const AchievementsTab = lazy(() => import('./components/AchievementsTab'));
 const CalendarTab = lazy(() => import('./components/CalendarTab'));
 const WorkspaceTab = lazy(() => import('./components/workspace/WorkspaceTab'));
 import { BusinessProfileSetup } from './components/BusinessProfileSetup';
@@ -33,12 +32,11 @@ import { LoadingSpinner } from './components/shared/Loading';
 import { useLazyDataPersistence } from './hooks/useLazyDataPersistence';
 import { DataPersistenceAdapter } from './lib/services/dataPersistenceAdapter';
 import { DatabaseService } from './lib/services/database';
-import { GamificationService, TeamAchievementService } from './lib/services/gamificationService';
 import { supabase } from './lib/supabase';
 
 const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePlan }) => {
     const { user, signOut } = useAuth();
-    const { workspace, businessProfile, showOnboarding, saveBusinessProfile, dismissOnboarding, isLoadingWorkspace, refreshWorkspace, canEditTask, workspaceMembers } = useWorkspace();
+    const { workspace, businessProfile, showOnboarding, saveBusinessProfile, dismissOnboarding, isLoadingWorkspace, refreshWorkspace, canEditTask, workspaceMembers, isWorkspaceOwner } = useWorkspace();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showBusinessProfileModal, setShowBusinessProfileModal] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
@@ -197,7 +195,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
         }
     }, [subscribePlan, workspace, isLoadingWorkspace]);
 
-    // Initialize app - load only core data (gamification & settings)
+    // Initialize app - load only core data (settings)
     useEffect(() => {
         const initializeApp = async () => {
             if (!user || !workspace) {
@@ -217,7 +215,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 
                 setData(prev => ({
                     ...prev,
-                    gamification: coreData.gamification,
                     settings: coreData.settings,
                     documentsMetadata: documentsMetadata
                 }));
@@ -344,7 +341,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         break;
 
                     case Tab.Settings:
-                    case Tab.Achievements:
                         // No additional data needed (uses core data)
                         break;
                 }
@@ -546,7 +542,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             const coreData = await loadCoreData();
             setData(prev => ({
                 ...prev,
-                gamification: coreData.gamification,
                 settings: coreData.settings
             }));
             
@@ -605,7 +600,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     break;
 
                 case Tab.Settings:
-                case Tab.Achievements:
                     // No additional data needed
                     break;
             }
@@ -644,6 +638,66 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             });
     }, [allTasks]);
     
+    
+    // --- AI Data Loading Handler ---
+    const handleAIDataLoad = useCallback(async (tab: TabType) => {
+        console.log(`[DashboardApp] AI requested data load for tab: ${tab}`);
+        
+        switch (tab) {
+            case Tab.Investors:
+            case Tab.Customers:
+            case Tab.Partners:
+                // Load CRM items with force refresh
+                await loadCrmItems({ force: true });
+                await loadTasks({ force: true });
+                break;
+            
+            case Tab.Marketing:
+                // Load marketing items with force refresh
+                await loadMarketing({ force: true });
+                await loadTasks({ force: true });
+                break;
+            
+            case Tab.Financials:
+                // Load financial data with force refresh
+                await loadFinancials({ force: true });
+                await loadTasks({ force: true });
+                break;
+            
+            case Tab.Platform:
+                // Load platform tasks with force refresh
+                await loadTasks({ force: true });
+                break;
+            
+            case Tab.Calendar:
+                // Calendar needs multiple data sources
+                await loadTasks({ force: true });
+                await loadCrmItems({ force: true });
+                await loadMarketing({ force: true });
+                break;
+            
+            case Tab.Dashboard:
+                // Dashboard needs overview data
+                await loadCoreData();
+                await loadTasks({ force: true });
+                await loadCrmItems({ force: true });
+                await loadMarketing({ force: true });
+                break;
+            
+            case Tab.Documents:
+            case Tab.Workspace:
+                // Load documents
+                await loadDocuments({ force: true });
+                break;
+            
+            default:
+                // For other tabs, just ensure core data is loaded
+                await loadCoreData();
+                break;
+        }
+        
+        console.log(`[DashboardApp] Data load complete for tab: ${tab}`);
+    }, [loadCrmItems, loadMarketing, loadFinancials, loadTasks, loadCoreData, loadDocuments]);
     
     // --- AI Action Implementations ---
     const allCompanies = useMemo(() => {
@@ -811,54 +865,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         ...data.marketingTasks,
                         ...data.financialTasks,
                     ];
-                    const task = allTasksFlat.find(t => t.id === taskId);
-                    const xpAmount = GamificationService.REWARDS.TASK_COMPLETE + 
-                        (task?.priority === 'High' ? GamificationService.REWARDS.HIGH_PRIORITY_TASK : 0);
-                    
-                    const result = await GamificationService.awardXP(
-                        userId,
-                        data.gamification,
-                        xpAmount,
-                        data,
-                        `Completed task: ${task?.text || 'Unknown'}`
-                    );
-
-                    // Show level-up or achievement notifications
-                    if (result.leveledUp) {
-                        handleToast(`🎉 Level Up! You're now Level ${result.newLevel}!`, 'success');
-                    } else if (result.newAchievements.length > 0) {
-                        const achievement = ACHIEVEMENTS[result.newAchievements[0]];
-                        handleToast(`🏆 Achievement Unlocked: ${achievement.title}`, 'success');
-                    }
-
-                    // Check team achievements if workspace exists
-                    if (workspace?.id && userId) {
-                        const allTasks = [
-                            ...data.platformTasks,
-                            ...data.investorTasks,
-                            ...data.customerTasks,
-                            ...data.partnerTasks,
-                            ...data.marketingTasks,
-                            ...data.financialTasks,
-                        ];
-                        const completedTasksCount = allTasks.filter(t => t.status === 'Done').length;
-                        
-                        const teamResult = await TeamAchievementService.onTaskCompleted(
-                            workspace.id,
-                            userId,
-                            completedTasksCount,
-                            completedTasksCount // For now, treat all completed tasks as shared
-                        );
-
-                        // Show team achievement notifications (teamResult can be void if skipped)
-                        if (teamResult?.newAchievements?.length > 0) {
-                            const firstAchievement = teamResult.newAchievements![0];
-                            handleToast(
-                                `🏆 Team Achievement Unlocked: ${firstAchievement.achievementName} (+${firstAchievement.xpReward} Team XP)`,
-                                'success'
-                            );
-                        }
-                    }
                     
                     await reload();
                     invalidateCache('tasks');
@@ -1093,55 +1099,27 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 const newCompanyName = itemData.company || 'New Item';
                 handleToast(`Creating ${collection.slice(0, -1)}...`, 'info');
                 
-                await DataPersistenceAdapter.createCrmItem(userId, workspace.id, collection, itemData as any);
+                const { data: createdItem, error: createError } = await DataPersistenceAdapter.createCrmItem(userId, workspace.id, collection, itemData as any);
+                
+                if (createError || !createdItem) {
+                    throw new Error('Failed to create CRM item');
+                }
                 
                 // Track action in Sentry
                 trackAction('crm_item_created', { collection });
                 
                 invalidateCache('crm');
                 
-                // Award XP for creating CRM item
-                const result = await GamificationService.awardXP(
-                    userId,
-                    data.gamification,
-                    GamificationService.REWARDS.CRM_ITEM_CREATED,
-                    data,
-                    `Created ${collection.slice(0, -1)}: ${newCompanyName}`
-                );
-
-                // Show notifications
+                // Show success notification
                 const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-                if (result.leveledUp) {
-                    handleToast(`🎉 Level Up! You're now Level ${result.newLevel}!`, 'success');
-                } else if (result.newAchievements.length > 0) {
-                    const achievement = ACHIEVEMENTS[result.newAchievements[0]];
-                    handleToast(`🏆 ${achievement.title}: ${achievement.description}`, 'success');
-                } else {
-                    handleToast(`${titleCase(collection.slice(0, -1))} "${newCompanyName}" created successfully.`, 'success');
-                }
+                handleToast(`${titleCase(collection.slice(0, -1))} "${newCompanyName}" created successfully.`, 'success');
                 
-                // Reload data once after all operations
-                await reload();
+                // Reload CRM data immediately to update UI
+                const crm = await loadCrmItems({ force: true });
+                setData(prev => ({ ...prev, ...crm }));
+                loadedTabsRef.current.add('crm');
 
-                // Check team achievements
-                if (workspace?.id && userId) {
-                    const totalContacts = [...data.investors, ...data.customers, ...data.partners].length + 1;
-                    const teamResult = await TeamAchievementService.onCRMContactAdded(
-                        workspace.id,
-                        userId,
-                        totalContacts
-                    );
-
-                    if (teamResult?.newAchievements?.length > 0) {
-                        const firstAchievement = teamResult.newAchievements[0];
-                        handleToast(
-                            `🏆 Team Achievement: ${firstAchievement.achievementName} (+${firstAchievement.xpReward} Team XP)`,
-                            'success'
-                        );
-                    }
-                }
-
-                return { success: true, message: `${collection} item created.` };
+                return { success: true, message: `${collection} item created.`, itemId: createdItem.id };
             } catch (error) {
                 logger.error('Error creating CRM item:', error);
                 handleToast('Failed to create CRM item', 'info');
@@ -1160,8 +1138,13 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 // Track action in Sentry
                 trackAction('crm_item_updated', { itemId, collection });
                 
-                await reload();
                 invalidateCache('crm');
+                
+                // Reload CRM data immediately to update UI (works on any tab, including Calendar)
+                const crm = await loadCrmItems({ force: true });
+                setData(prev => ({ ...prev, ...crm }));
+                loadedTabsRef.current.add('crm');
+                
                 return { success: true, message: 'CRM item updated.' };
             } catch (error) {
                 logger.error('Error updating CRM item:', error);
@@ -1179,29 +1162,20 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             }
 
             try {
-                await DataPersistenceAdapter.createContact(userId, workspace.id, crmItemId, contactData);
-                await reload();
+                const { data: createdContact, error: createError } = await DataPersistenceAdapter.createContact(userId, workspace.id, crmItemId, contactData);
                 
-                // Award XP for adding contact
-                const result = await GamificationService.awardXP(
-                    userId,
-                    data.gamification,
-                    GamificationService.REWARDS.CONTACT_ADDED,
-                    data,
-                    `Added contact: ${contactData.name}`
-                );
-
-                if (result.leveledUp) {
-                    handleToast(`🎉 Level Up! You're now Level ${result.newLevel}!`, 'success');
-                } else if (result.newAchievements.length > 0) {
-                    const achievement = ACHIEVEMENTS[result.newAchievements[0]];
-                    handleToast(`🏆 ${achievement.title}`, 'success');
-                } else {
-                    handleToast(`Contact "${contactData.name}" created.`, 'success');
+                if (createError || !createdContact) {
+                    throw new Error('Failed to create contact');
                 }
                 
-                await reload();
-                return { success: true, message: 'Contact created.' };
+                handleToast(`Contact "${contactData.name}" created.`, 'success');
+                
+                // Reload CRM data immediately to update UI
+                const crm = await loadCrmItems({ force: true });
+                setData(prev => ({ ...prev, ...crm }));
+                loadedTabsRef.current.add('crm');
+                
+                return { success: true, message: 'Contact created.', contactId: createdContact.id };
             } catch (error) {
                 logger.error('Error creating contact:', error);
                 return { success: false, message: 'Failed to create contact' };
@@ -1254,51 +1228,13 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
             try {
                 await DataPersistenceAdapter.createMeeting(userId, workspace.id, contactId, meetingData);
-                await reload();
                 
-                // Award XP for logging meeting
-                const result = await GamificationService.awardXP(
-                    userId,
-                    data.gamification,
-                    GamificationService.REWARDS.MEETING_LOGGED,
-                    data,
-                    `Logged meeting: ${meetingData.title}`
-                );
-
-                if (result.leveledUp) {
-                    handleToast(`🎉 Level Up! You're now Level ${result.newLevel}!`, 'success');
-                } else if (result.newAchievements.length > 0) {
-                    const achievement = ACHIEVEMENTS[result.newAchievements[0]];
-                    handleToast(`🏆 ${achievement.title}`, 'success');
-                } else {
-                    handleToast(`Meeting "${meetingData.title}" logged.`, 'success');
-                }
-
-                // Check team achievements
-                if (workspace?.id && userId) {
-                    // Count all meetings across all CRM contacts
-                    const allCrmItems = [...data.investors, ...data.customers, ...data.partners];
-                    const totalMeetings = allCrmItems.reduce((count, item) => {
-                        const contacts = item.contacts || [];
-                        return count + contacts.reduce((meetingCount, contact) => {
-                            return meetingCount + (contact.meetings?.length || 0);
-                        }, 0);
-                    }, 0) + 1; // +1 for the meeting we just created
-
-                    const teamResult = await TeamAchievementService.onMeetingLogged(
-                        workspace.id,
-                        userId,
-                        totalMeetings
-                    );
-
-                    if (teamResult?.newAchievements?.length > 0) {
-                        const firstAchievement = teamResult.newAchievements[0];
-                        handleToast(
-                            `🏆 Team Achievement: ${firstAchievement.achievementName} (+${firstAchievement.xpReward} Team XP)`,
-                            'success'
-                        );
-                    }
-                }
+                // Reload CRM data immediately to update UI (works on any tab, including Calendar)
+                const crm = await loadCrmItems({ force: true });
+                setData(prev => ({ ...prev, ...crm }));
+                loadedTabsRef.current.add('crm');
+                
+                handleToast(`Meeting "${meetingData.title}" logged.`, 'success');
                 
                 await reload();
                 return { success: true, message: 'Meeting created.' };
@@ -1368,45 +1304,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 // Mark as loaded
                 loadedTabsRef.current.add('financials');
                 
-                // Award XP for logging financials
-                const result = await GamificationService.awardXP(
-                    userId,
-                    data.gamification,
-                    GamificationService.REWARDS.FINANCIAL_LOGGED,
-                    data,
-                    `Logged financials for ${logData.date}`
-                );
-
-                if (result.leveledUp) {
-                    handleToast(`🎉 Level Up! You're now Level ${result.newLevel}!`, 'success');
-                } else if (result.newAchievements.length > 0) {
-                    const achievement = ACHIEVEMENTS[result.newAchievements[0]];
-                    handleToast(`🏆 ${achievement.title}`, 'success');
-                } else {
-                    handleToast(`Financials logged for ${logData.date}.`, 'success');
-                }
-
-                // Check team achievements for financial milestones
-                if (workspace?.id && userId) {
-                    // Calculate total GMV and MRR
-                    const totalGMV = freshFinancials.financials.reduce((sum, log) => sum + (log.gmv || 0), 0);
-                    const totalMRR = freshFinancials.financials.reduce((sum, log) => sum + (log.mrr || 0), 0);
-
-                    const teamResult = await TeamAchievementService.onFinancialUpdate(
-                        workspace.id,
-                        userId,
-                        totalGMV,
-                        totalMRR
-                    );
-
-                    if (teamResult?.newAchievements?.length > 0) {
-                        const firstAchievement = teamResult.newAchievements[0];
-                        handleToast(
-                            `🏆 Team Achievement: ${firstAchievement.achievementName} (+${firstAchievement.xpReward} Team XP)`,
-                            'success'
-                        );
-                    }
-                }
+                handleToast(`Financials logged for ${logData.date}.`, 'success');
                 
                 await reload();
                 return { success: true, message: `Financials logged for date ${logData.date}.` };
@@ -1438,24 +1336,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     expenses: freshFinancials.expenses 
                 }));
                 loadedTabsRef.current.add('financials');
-
-                // Check team achievements
-                if (workspace?.id && userId) {
-                    const totalExpenses = freshFinancials.expenses.length;
-                    const teamResult = await TeamAchievementService.onExpenseTracked(
-                        workspace.id,
-                        userId,
-                        totalExpenses
-                    );
-
-                    if (teamResult?.newAchievements?.length > 0) {
-                        const firstAchievement = teamResult.newAchievements[0];
-                        handleToast(
-                            `🏆 Team Achievement: ${firstAchievement.achievementName} (+${firstAchievement.xpReward} Team XP)`,
-                            'success'
-                        );
-                    }
-                }
                 
                 return { success: true, message: `Expense created: ${expenseData.description}` };
             } catch (error) {
@@ -1651,43 +1531,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     status: updates.status,
                     wasPublished: wasPublished && previousStatus !== 'Published'
                 });
-
-                // Award XP if marketing item was just published (not already published)
-                if (wasPublished && previousStatus !== 'Published') {
-                    const item = data.marketing.find(m => m.id === itemId);
-                    const result = await GamificationService.awardXP(
-                        userId,
-                        data.gamification,
-                        GamificationService.REWARDS.MARKETING_PUBLISHED,
-                        data,
-                        `Published marketing: ${item?.title || 'Unknown'}`
-                    );
-
-                    if (result.leveledUp) {
-                        handleToast(`🎉 Level Up! You're now Level ${result.newLevel}!`, 'success');
-                    } else if (result.newAchievements.length > 0) {
-                        const achievement = ACHIEVEMENTS[result.newAchievements[0]];
-                        handleToast(`🏆 ${achievement.title}`, 'success');
-                    }
-
-                    // Check team achievements for marketing campaign launch
-                    if (workspace?.id && userId) {
-                        const publishedCount = data.marketing.filter(m => m.status === 'Published').length + 1;
-                        const teamResult = await TeamAchievementService.onMarketingCampaignLaunched(
-                            workspace.id,
-                            userId,
-                            publishedCount
-                        );
-
-                        if (teamResult?.newAchievements?.length > 0) {
-                            const firstAchievement = teamResult.newAchievements[0];
-                            handleToast(
-                                `🏆 Team Achievement: ${firstAchievement.achievementName} (+${firstAchievement.xpReward} Team XP)`,
-                                'success'
-                            );
-                        }
-                    }
-                }
                 
                 // Single reload and cache invalidation after all updates
                 logger.info('[updateMarketingItem] Reloading data...');
@@ -1735,22 +1578,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             }
         },
 
-        resetGamification: async () => {
-            if (!userId || !supabase) {
-                return { success: false, message: 'Database not connected' };
-            }
-
-            try {
-                await GamificationService.resetProgress(userId);
-                await reload();
-                handleToast("Gamification progress reset!", 'success');
-                return { success: true, message: 'Progress reset successfully.' };
-            } catch (error) {
-                logger.error('Error resetting gamification:', error);
-                return { success: false, message: 'Failed to reset progress' };
-            }
-        },
-        
         uploadDocument: async (name, mimeType, content, module, companyId, contactId) => {
             if (!userId || !supabase) {
                 return { success: false, message: 'Database not connected' };
@@ -1789,24 +1616,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 invalidateCache('documents');
                 invalidateCache('documentsMetadata'); // Refresh metadata for AI context
                 handleToast(`"${name}" uploaded successfully.`, 'success');
-
-                // Check team achievements
-                if (workspace?.id && userId) {
-                    const totalDocuments = data.documents.length + 1;
-                    const teamResult = await TeamAchievementService.onDocumentUploaded(
-                        workspace.id,
-                        userId,
-                        totalDocuments
-                    );
-
-                    if (teamResult?.newAchievements?.length > 0) {
-                        const firstAchievement = teamResult.newAchievements[0];
-                        handleToast(
-                            `🏆 Team Achievement: ${firstAchievement.achievementName} (+${firstAchievement.xpReward} Team XP)`,
-                            'success'
-                        );
-                    }
-                }
 
                 return { success: true, message: `Document "${name}" uploaded to the library.` };
             } catch (error) {
@@ -2018,12 +1827,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     <Suspense fallback={<TabLoadingFallback />}>
                         <PlatformTab 
                             tasks={data.platformTasks} 
-                            actions={actions} 
-                            documents={data.documents} 
-                            businessProfile={businessProfile} 
-                            workspaceId={workspace?.id}
-                            workspaceMembers={workspaceMembers}
-                            onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
+                            actions={actions}
                         />
                     </Suspense>
                 );
@@ -2133,7 +1937,13 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 }
                 return (
                     <Suspense fallback={<TabLoadingFallback />}>
-                        <WorkspaceTab workspaceId={workspace?.id || ''} userId={user?.id || ''} />
+                        <WorkspaceTab 
+                            workspaceId={workspace?.id || ''} 
+                            userId={user?.id || ''} 
+                            actions={actions}
+                            data={data}
+                            onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
+                        />
                     </Suspense>
                 );
             case Tab.Documents:
@@ -2161,17 +1971,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 return (
                     <Suspense fallback={<TabLoadingFallback />}>
                         <FileLibraryTab documents={data.documents} actions={actions} companies={allCompanies} contacts={allContacts} />
-                    </Suspense>
-                );
-            case Tab.Achievements:
-                return (
-                    <Suspense fallback={<TabLoadingFallback />}>
-                        <AchievementsTab 
-                            gamification={data.gamification} 
-                            workspaceId={workspace?.id}
-                            currentPlan={workspace?.planType || 'free'}
-                            onUpgrade={() => setActiveTab(Tab.Settings)}
-                        />
                     </Suspense>
                 );
             case Tab.Settings:
@@ -2316,8 +2115,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 onClose={() => setIsMenuOpen(false)}
                 activeTab={activeTab}
                 onSwitchTab={switchTab}
-                gamification={data.gamification}
-                onProgressBarClick={() => setIsTaskFocusModalOpen(true)}
                 workspacePlan={workspace?.planType}
                 isAdmin={isAdmin}
                 workspaceId={workspace?.id}
@@ -2343,10 +2140,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         )}
                     </div>
                     <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-end">
-                        <div className="flex items-center gap-1 sm:gap-2 font-mono font-semibold" role="status" aria-label={`Daily Streak: ${data.gamification.streak} days`} title={`Daily Streak: ${data.gamification.streak} days`}>
-                            <span className="text-xl sm:text-2xl" aria-hidden="true">{data.gamification.streak > 0 ? '🔥' : '🧊'}</span>
-                            <span className="text-lg sm:text-xl">{data.gamification.streak}</span>
-                        </div>
                         {/* Notification Bell */}
                         {user && workspace && (
                             <NotificationBell 
@@ -2445,9 +2238,12 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
             {/* Workspace Invitation Notifications */}
             <AcceptInviteNotification onAccepted={refreshWorkspace} />
-            
-            {/* Floating AI Assistant - Only available for logged-in Pro/Power users in the actual app (not free users) */}
-            {workspace && workspace.planType && workspace.planType !== 'free' && (() => {
+                </>
+            )}
+
+            {/* Floating AI Assistant - Available across all tabs when workspace exists */}
+            {/* Temporarily disabled plan check for local development */}
+            {workspace && (() => {
                 // Build business context from profile
                 const profile = businessProfile as any;
                 const companyName = profile?.company_name || profile?.companyName || 'your company';
@@ -2468,24 +2264,35 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 ${workspaceMembers.map(member => `- ${member.fullName || member.email || 'Unknown Member'} (${member.email || 'no email'}) - Role: ${member.role}`).join('\n')}
 ` : `**Team:** Working solo (no additional team members in workspace).`;
                 
+                // Build current user context for personalized AI responses
+                const currentMember = workspaceMembers.find(m => m.userId === user?.id);
+                const isOwner = isWorkspaceOwner();
+                const userContextStr = user && currentMember ? `
+**Current User:**
+- You are assisting: ${currentMember.fullName || user.email || 'User'}${currentMember.email ? ` (${currentMember.email})` : ''}
+- Role: ${isOwner ? 'Workspace Owner' : 'Team Member'}
+- Permissions: ${isOwner ? 'Full access to all workspace data and settings' : 'Can edit own tasks and tasks assigned to you'}
+` : '';
+                
                 return (
                     <FloatingAIAssistant
                         currentTab={activeTab}
                         actions={actions}
+                        data={data}
                         workspaceId={workspace?.id}
                         onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
                         companyName={companyName}
                         businessContext={businessContextStr}
+                        userContext={userContextStr}
                         teamContext={teamContextStr}
-                        planType={workspace?.planType}
+                        planType={workspace?.planType || 'free'}
+                        onDataLoadNeeded={handleAIDataLoad}
                         onToggleRef={(toggle) => {
                             toggleAIAssistantRef.current = toggle;
                         }}
                     />
                 );
             })()}
-                </>
-            )}
         </>
     );
 };

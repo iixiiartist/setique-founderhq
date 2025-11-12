@@ -5,6 +5,9 @@ import Modal from './shared/Modal';
 import CalendarEventForm, { CalendarEventFormData } from './calendar/CalendarEventForm';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { DocLibraryPicker } from './workspace/DocLibraryPicker';
+import { LinkedDocsDisplay } from './workspace/LinkedDocsDisplay';
+import { useAuth } from '../contexts/AuthContext';
 
 interface CalendarTabProps {
     events: CalendarEvent[];
@@ -77,8 +80,9 @@ const CalendarHeader: React.FC<{
     );
 };
 
-const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActions; onClose: () => void; }> = ({ event, actions, onClose }) => {
+const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActions; onClose: () => void; workspace?: Workspace; }> = ({ event, actions, onClose, workspace }) => {
     const [isEditing, setIsEditing] = useState(false);
+    const { user } = useAuth();
 
     // Task edit state
     const [editText, setEditText] = useState('');
@@ -95,6 +99,10 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
 
     // CRM action edit state
     const [editNextAction, setEditNextAction] = useState('');
+
+    // Doc linking state
+    const [showDocPicker, setShowDocPicker] = useState(false);
+    const [linkedDocsKey, setLinkedDocsKey] = useState(0);
     const [editCompany, setEditCompany] = useState('');
 
     // Shared edit state
@@ -491,11 +499,69 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
                     )}
                 </>
             )}
+            
+            {/* Linked GTM Docs Section */}
+            {workspace && (isMeeting || isTask) && (
+                <div className="border-t-2 border-gray-200 pt-4 mt-4">
+                    <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-mono text-sm font-semibold text-black">📎 Linked Documents</h4>
+                        <button
+                            type="button"
+                            onClick={() => setShowDocPicker(true)}
+                            className="font-mono bg-blue-500 border-2 border-black text-white text-xs py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-blue-600"
+                        >
+                            + Attach Doc
+                        </button>
+                    </div>
+                    <LinkedDocsDisplay
+                        key={linkedDocsKey}
+                        workspaceId={workspace.id}
+                        entityType={isMeeting ? 'event' : 'task'}
+                        entityId={event.id}
+                        compact={false}
+                    />
+                </div>
+            )}
+            
             <div className="flex gap-2 mt-4">
                 <button onClick={handleEditClick} className="flex-1 font-mono font-semibold bg-white text-black py-2 px-4 rounded-none border-2 border-black shadow-neo-btn hover:bg-gray-100">Edit</button>
                 <button onClick={handleDelete} className="flex-1 font-mono font-semibold bg-red-600 text-white py-2 px-4 rounded-none border-2 border-black shadow-neo-btn hover:bg-red-700">Delete</button>
                 <button onClick={onClose} className="flex-1 font-mono font-semibold bg-black text-white py-2 px-4 rounded-none border-2 border-black shadow-neo-btn">Close</button>
             </div>
+            
+            {/* Doc Library Picker Modal */}
+            {showDocPicker && workspace && user && (isMeeting || isTask) && (
+                <DocLibraryPicker
+                    isOpen={showDocPicker}
+                    workspaceId={workspace.id}
+                    userId={user.id}
+                    onClose={() => setShowDocPicker(false)}
+                    onSelect={async (doc) => {
+                        try {
+                            const { DatabaseService } = await import('../lib/services/database');
+                            const { error } = await DatabaseService.linkDocToEntity(
+                                doc.id,
+                                isMeeting ? 'event' : 'task',
+                                event.id
+                            );
+
+                            if (error) {
+                                console.error('Error linking doc:', error);
+                                alert('Failed to link document');
+                                return;
+                            }
+
+                            // Refresh the linked docs display
+                            setLinkedDocsKey(prev => prev + 1);
+                            setShowDocPicker(false);
+                        } catch (error) {
+                            console.error('Failed to link doc:', error);
+                            alert('Failed to link document');
+                        }
+                    }}
+                    title={isMeeting ? "Attach Document to Meeting" : "Attach Document to Task"}
+                />
+            )}
         </div>
     );
 };
@@ -849,6 +915,7 @@ const CalendarTab: React.FC<CalendarTabProps> = ({
                         event={selectedEvent} 
                         actions={actions}
                         onClose={() => setSelectedEvent(null)}
+                        workspace={workspace}
                     />
                 )}
             </Modal>
@@ -893,6 +960,29 @@ const CalendarTab: React.FC<CalendarTabProps> = ({
                         onSubmit={handleEventFormSubmit}
                         onCancel={() => setShowNewEventModal(false)}
                         planType={workspace?.planType}
+                        onCreateCrmItem={async (collection, company) => {
+                            const result = await actions.createCrmItem(collection, {
+                                company,
+                                status: 'Lead',
+                                priority: 'Medium' as Priority
+                            });
+                            if (!result.success || !result.itemId) {
+                                throw new Error(result.message || 'Failed to create item');
+                            }
+                            return result.itemId;
+                        }}
+                        onCreateContact={async (collection, itemId, name, email) => {
+                            const result = await actions.createContact(collection, itemId, {
+                                name,
+                                email: email || '',  // Default to empty string if not provided
+                                phone: undefined,
+                                linkedin: undefined
+                            });
+                            if (!result.success || !result.contactId) {
+                                throw new Error(result.message || 'Failed to create contact');
+                            }
+                            return result.contactId;
+                        }}
                     />
                 </div>
             </Modal>

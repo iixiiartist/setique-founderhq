@@ -10,6 +10,8 @@ interface CalendarEventFormProps {
     onSubmit: (data: CalendarEventFormData) => Promise<void>;
     onCancel: () => void;
     planType?: string;
+    onCreateCrmItem?: (collection: CrmCollectionName, company: string) => Promise<string>; // Returns new item ID
+    onCreateContact?: (collection: CrmCollectionName, itemId: string, name: string, email: string) => Promise<string>; // Returns new contact ID
 }
 
 export interface CalendarEventFormData {
@@ -42,7 +44,9 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
     crmItems,
     onSubmit,
     onCancel,
-    planType = 'free'
+    planType = 'free',
+    onCreateCrmItem,
+    onCreateContact
 }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -70,6 +74,13 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
     const [nextAction, setNextAction] = useState('');
     const [crmActionCollection, setCrmActionCollection] = useState<CrmCollectionName>('investors');
     const [crmActionItemId, setCrmActionItemId] = useState('');
+
+    // Quick-add states
+    const [showQuickAddCrm, setShowQuickAddCrm] = useState(false);
+    const [quickAddCrmName, setQuickAddCrmName] = useState('');
+    const [showQuickAddContact, setShowQuickAddContact] = useState(false);
+    const [quickAddContactName, setQuickAddContactName] = useState('');
+    const [quickAddContactEmail, setQuickAddContactEmail] = useState('');
 
     const isTeamPlan = planType?.startsWith('team');
     const canAssignTasks = isTeamPlan && workspaceMembers.length > 1;
@@ -117,6 +128,50 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
         }
 
         return null;
+    };
+
+    const handleQuickAddCrm = async () => {
+        if (!quickAddCrmName.trim() || !onCreateCrmItem) {
+            return;
+        }
+
+        try {
+            setIsSubmitting(true);
+            setError(null);
+            const newItemId = await onCreateCrmItem(crmCollection, quickAddCrmName.trim());
+            setCrmItemId(newItemId);
+            setShowQuickAddCrm(false);
+            setQuickAddCrmName('');
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to create CRM item');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleQuickAddContact = async () => {
+        if (!quickAddContactName.trim() || !crmItemId || !onCreateContact) {
+            return;
+        }
+
+        try {
+            setIsSubmitting(true);
+            setError(null);
+            const newContactId = await onCreateContact(
+                crmCollection,
+                crmItemId,
+                quickAddContactName.trim(),
+                quickAddContactEmail.trim()
+            );
+            setContactId(newContactId);
+            setShowQuickAddContact(false);
+            setQuickAddContactName('');
+            setQuickAddContactEmail('');
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to create contact');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -327,51 +382,126 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                     </div>
 
                     <div>
-                        <label htmlFor="meeting-crm-item" className="block font-mono text-sm font-semibold text-black mb-1">
-                            Select {crmCollection.slice(0, -1).charAt(0).toUpperCase() + crmCollection.slice(1, -1)} <span className="text-red-600">*</span>
-                        </label>
-                        <select
-                            id="meeting-crm-item"
-                            value={crmItemId}
-                            onChange={(e) => {
-                                setCrmItemId(e.target.value);
-                                setContactId(''); // Reset contact when CRM item changes
-                            }}
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                        >
-                            <option value="">-- Select --</option>
-                            {crmItems[crmCollection]?.map(item => (
-                                <option key={item.id} value={item.id}>
-                                    {item.company || 'Unnamed'}
-                                </option>
-                            ))}
-                        </select>
+                        <div className="flex items-center justify-between mb-1">
+                            <label htmlFor="meeting-crm-item" className="font-mono text-sm font-semibold text-black">
+                                Select {crmCollection.slice(0, -1).charAt(0).toUpperCase() + crmCollection.slice(1, -1)} <span className="text-red-600">*</span>
+                            </label>
+                            {onCreateCrmItem && (
+                                <button
+                                    type="button"
+                                    onClick={() => setShowQuickAddCrm(!showQuickAddCrm)}
+                                    className="text-xs font-mono font-semibold text-blue-600 hover:text-blue-800"
+                                >
+                                    {showQuickAddCrm ? '✕ Cancel' : '+ New'}
+                                </button>
+                            )}
+                        </div>
+                        
+                        {showQuickAddCrm ? (
+                            <div className="space-y-2 p-3 border-2 border-blue-300 bg-blue-50">
+                                <input
+                                    type="text"
+                                    value={quickAddCrmName}
+                                    onChange={(e) => setQuickAddCrmName(e.target.value)}
+                                    placeholder={`Company name...`}
+                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    autoFocus
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleQuickAddCrm}
+                                    disabled={!quickAddCrmName.trim() || isSubmitting}
+                                    className="w-full py-2 px-4 font-mono font-semibold bg-blue-600 text-white border-2 border-blue-700 hover:bg-blue-700 disabled:bg-gray-300 disabled:border-gray-400 disabled:cursor-not-allowed"
+                                >
+                                    {isSubmitting ? 'Creating...' : 'Create & Select'}
+                                </button>
+                            </div>
+                        ) : (
+                            <select
+                                id="meeting-crm-item"
+                                value={crmItemId}
+                                onChange={(e) => {
+                                    setCrmItemId(e.target.value);
+                                    setContactId(''); // Reset contact when CRM item changes
+                                }}
+                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                            >
+                                <option value="">-- Select --</option>
+                                {crmItems[crmCollection]?.map(item => (
+                                    <option key={item.id} value={item.id}>
+                                        {item.company || 'Unnamed'}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
                     </div>
 
                     <div>
-                        <label htmlFor="meeting-contact" className="block font-mono text-sm font-semibold text-black mb-1">
-                            Contact <span className="text-red-600">*</span>
-                        </label>
-                        <select
-                            id="meeting-contact"
-                            value={contactId}
-                            onChange={(e) => setContactId(e.target.value)}
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                            disabled={!crmItemId}
-                        >
-                            <option value="">-- Select Contact --</option>
-                            {availableContacts.map(contact => (
-                                <option key={contact.id} value={contact.id}>
-                                    {contact.name}
-                                </option>
-                            ))}
-                        </select>
-                        {crmItemId && availableContacts.length === 0 && (
-                            <p className="text-xs text-gray-600 mt-1">
-                                No contacts found. Add a contact to this {crmCollection.slice(0, -1)} first.
-                            </p>
+                        <div className="flex items-center justify-between mb-1">
+                            <label htmlFor="meeting-contact" className="font-mono text-sm font-semibold text-black">
+                                Contact <span className="text-red-600">*</span>
+                            </label>
+                            {onCreateContact && crmItemId && (
+                                <button
+                                    type="button"
+                                    onClick={() => setShowQuickAddContact(!showQuickAddContact)}
+                                    className="text-xs font-mono font-semibold text-blue-600 hover:text-blue-800"
+                                >
+                                    {showQuickAddContact ? '✕ Cancel' : '+ New Contact'}
+                                </button>
+                            )}
+                        </div>
+                        
+                        {showQuickAddContact ? (
+                            <div className="space-y-2 p-3 border-2 border-blue-300 bg-blue-50">
+                                <input
+                                    type="text"
+                                    value={quickAddContactName}
+                                    onChange={(e) => setQuickAddContactName(e.target.value)}
+                                    placeholder="Contact name..."
+                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    autoFocus
+                                />
+                                <input
+                                    type="email"
+                                    value={quickAddContactEmail}
+                                    onChange={(e) => setQuickAddContactEmail(e.target.value)}
+                                    placeholder="Email (optional)..."
+                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleQuickAddContact}
+                                    disabled={!quickAddContactName.trim() || isSubmitting}
+                                    className="w-full py-2 px-4 font-mono font-semibold bg-blue-600 text-white border-2 border-blue-700 hover:bg-blue-700 disabled:bg-gray-300 disabled:border-gray-400 disabled:cursor-not-allowed"
+                                >
+                                    {isSubmitting ? 'Creating...' : 'Create & Select'}
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+                                <select
+                                    id="meeting-contact"
+                                    value={contactId}
+                                    onChange={(e) => setContactId(e.target.value)}
+                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    required
+                                    disabled={!crmItemId}
+                                >
+                                    <option value="">-- Select Contact --</option>
+                                    {availableContacts.map(contact => (
+                                        <option key={contact.id} value={contact.id}>
+                                            {contact.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                {crmItemId && availableContacts.length === 0 && !showQuickAddContact && (
+                                    <p className="text-xs text-gray-600 mt-1">
+                                        No contacts found. Click "+ New Contact" above to add one.
+                                    </p>
+                                )}
+                            </>
                         )}
                     </div>
 

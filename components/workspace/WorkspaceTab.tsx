@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { GTMDocMetadata } from '../../types';
+import { GTMDocMetadata, AppActions, DashboardData } from '../../types';
 import { DocsList } from './DocsList';
 import { DocEditor } from './DocEditor';
 
 interface WorkspaceTabProps {
     workspaceId: string;
     userId: string;
+    actions: AppActions;
+    data: DashboardData;
+    onUpgradeNeeded?: () => void;
 }
 
-export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId }) => {
+export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId, actions, data, onUpgradeNeeded }) => {
     const [selectedDoc, setSelectedDoc] = useState<GTMDocMetadata | null>(null);
     const [isCreatingNew, setIsCreatingNew] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [reloadKey, setReloadKey] = useState(0); // Force reload of docs list
 
     const handleDocSelect = (doc: GTMDocMetadata) => {
         setSelectedDoc(doc);
@@ -28,6 +32,11 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId 
     const handleCloseEditor = () => {
         setSelectedDoc(null);
         setIsCreatingNew(false);
+    };
+
+    const handleReloadDocs = () => {
+        // Increment key to force DocsList to reload
+        setReloadKey(prev => prev + 1);
     };
 
     return (
@@ -53,6 +62,7 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId 
                 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
             `}>
                 <DocsList
+                    key={reloadKey}
                     workspaceId={workspaceId}
                     userId={userId}
                     onDocSelect={handleDocSelect}
@@ -77,10 +87,14 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId 
                         userId={userId}
                         docId={selectedDoc?.id}
                         onClose={handleCloseEditor}
-                        onSave={() => {
-                            // Refresh list after save
-                            handleCloseEditor();
+                        onSave={(doc) => {
+                            // Refresh list after save to show updated doc
+                            handleReloadDocs();
                         }}
+                        onReloadList={handleReloadDocs}
+                        actions={actions}
+                        data={data}
+                        onUpgradeNeeded={onUpgradeNeeded}
                     />
                 ) : (
                     <div className="h-full flex items-center justify-center p-4 lg:p-8">

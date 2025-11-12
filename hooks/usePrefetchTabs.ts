@@ -96,10 +96,6 @@ export const usePrefetchTabs = ({ workspaceId, userId, enabled = true }: UsePref
           // Settings data is lightweight, no prefetch needed
           break;
 
-        case Tab.Achievements:
-          // Gamification data is already loaded in sidebar
-          break;
-
         default:
           // No prefetching needed for Dashboard, Admin
           break;

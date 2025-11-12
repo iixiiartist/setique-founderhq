@@ -7,6 +7,8 @@ import { TASK_TAG_BG_COLORS } from '../../constants';
 import XpBadge from './XpBadge';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { DocLibraryPicker } from '../workspace/DocLibraryPicker';
+import { LinkedDocsDisplay } from '../workspace/LinkedDocsDisplay';
 
 interface TaskItemProps {
     task: Task;
@@ -125,6 +127,8 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
     const [editDueDate, setEditDueDate] = useState('');
     const [editAssignedTo, setEditAssignedTo] = useState('');
     const modalTriggerRef = useRef<HTMLButtonElement | null>(null);
+    const [showDocPicker, setShowDocPicker] = useState(false);
+    const [linkedDocsKey, setLinkedDocsKey] = useState(0); // Force re-render of LinkedDocsDisplay
     
     const { workspaceMembers, workspace } = useWorkspace();
     const { user } = useAuth();
@@ -383,6 +387,29 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
                                 />
                             </div>
                         </div>
+                        {/* Linked GTM Docs Section */}
+                        {workspace && (
+                            <div className="border-t-2 border-gray-200 pt-4 mt-4">
+                                <div className="flex items-center justify-between mb-2">
+                                    <h4 className="font-mono text-sm font-semibold text-black">📎 Linked Documents</h4>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowDocPicker(true)}
+                                        className="font-mono bg-blue-500 border-2 border-black text-white text-xs py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-blue-600"
+                                    >
+                                        + Attach Doc
+                                    </button>
+                                </div>
+                                <LinkedDocsDisplay
+                                    key={linkedDocsKey}
+                                    workspaceId={workspace.id}
+                                    entityType="task"
+                                    entityId={editingTask.id}
+                                    compact={false}
+                                />
+                            </div>
+                        )}
+
                         <NotesManager 
                             notes={editingTask.notes} 
                             itemId={editingTask.id} 
@@ -415,6 +442,40 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
                     </div>
                 )}
             </Modal>
+
+            {/* Doc Library Picker Modal */}
+            {showDocPicker && editingTask && workspace && user && (
+                <DocLibraryPicker
+                    isOpen={showDocPicker}
+                    workspaceId={workspace.id}
+                    userId={user.id}
+                    onClose={() => setShowDocPicker(false)}
+                    onSelect={async (doc) => {
+                        try {
+                            const { DatabaseService } = await import('../../lib/services/database');
+                            const { error } = await DatabaseService.linkDocToEntity(
+                                doc.id,
+                                'task',
+                                editingTask.id
+                            );
+
+                            if (error) {
+                                console.error('Error linking doc:', error);
+                                alert('Failed to link document');
+                                return;
+                            }
+
+                            // Refresh the linked docs display
+                            setLinkedDocsKey(prev => prev + 1);
+                            setShowDocPicker(false);
+                        } catch (error) {
+                            console.error('Failed to link doc:', error);
+                            alert('Failed to link document');
+                        }
+                    }}
+                    title="Attach Document to Task"
+                />
+            )}
         </>
     );
 };

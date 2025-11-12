@@ -17,6 +17,7 @@ const getInitialState = (currentTab: TabType): AssistantState => {
       const parsed = JSON.parse(saved);
       return {
         ...parsed,
+        isOpen: false, // Always start closed so button is visible
         selectedContext: currentTab, // Always start with current tab
         hasUnread: false, // Reset unread on page load
         unreadCount: 0,

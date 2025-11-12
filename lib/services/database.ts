@@ -1,6 +1,6 @@
 import { supabase } from '../supabase'
 import { Database } from '../types/database'
-import { DashboardData, Task, AnyCrmItem, Contact, Meeting, MarketingItem, FinancialLog, Document, SettingsData, GamificationData, Priority, GTMDoc, GTMDocMetadata, LinkedDoc } from '../../types'
+import { DashboardData, Task, AnyCrmItem, Contact, Meeting, MarketingItem, FinancialLog, Document, SettingsData, Priority, GTMDoc, GTMDocMetadata, LinkedDoc } from '../../types'
 import { dbToTasks, dbToMarketingItems, dbToFinancialLogs, dbToCrmItem, dbToContacts } from '../utils/fieldTransformers'
 import { logger } from '../logger'
 
@@ -550,7 +550,11 @@ export class DatabaseService {
     try {
       const { data, error } = await supabase
         .from('documents')
-        .insert({ ...docData, user_id: userId, workspace_id: workspaceId })
+        .insert({ 
+          ...docData, 
+          user_id: userId,
+          workspace_id: workspaceId 
+        })
         .select()
         .single()
 
@@ -2028,14 +2032,7 @@ export class DatabaseService {
         expenses: allExpenses,
         documents: allDocuments,
         
-        settings: profileResult.data?.settings as SettingsData || { desktopNotifications: false },
-        gamification: profileResult.data?.gamification as GamificationData || {
-          streak: 0,
-          lastActivityDate: null,
-          xp: 0,
-          level: 1,
-          achievements: []
-        }
+        settings: profileResult.data?.settings as SettingsData || { desktopNotifications: false }
       }
 
       // Debug logging for CRM items

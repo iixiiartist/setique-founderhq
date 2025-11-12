@@ -74,6 +74,78 @@ export const DocsList: React.FC<DocsListProps> = ({
         }
     };
 
+    const handleCopyTemplate = async (doc: GTMDocMetadata, e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevent doc selection
+        
+        const newTitle = window.prompt(`Copy document as:`, `${doc.title} (Copy)`);
+        if (!newTitle || !newTitle.trim()) {
+            return;
+        }
+
+        try {
+            const { DatabaseService } = await import('../../lib/services/database');
+            
+            // Load full doc content
+            const { data: fullDoc, error: loadError } = await DatabaseService.loadGTMDocById(doc.id);
+            if (loadError || !fullDoc) {
+                alert('Failed to load document content');
+                return;
+            }
+            
+            // Create new doc as non-template copy (preserve original visibility if not template)
+            const { data, error } = await DatabaseService.createGTMDoc({
+                workspaceId,
+                userId,
+                title: newTitle.trim(),
+                docType: fullDoc.docType,
+                visibility: doc.isTemplate ? 'private' : fullDoc.visibility, // Templates become private, others keep visibility
+                contentJson: fullDoc.contentJson,
+                contentPlain: fullDoc.contentPlain,
+                tags: fullDoc.tags,
+                isTemplate: false, // Copies are never templates
+            });
+            
+            if (error) {
+                console.error('Error copying document:', error);
+                alert('Failed to copy document');
+            } else {
+                // Reload docs to show new copy
+                await loadDocs();
+                // Open the new doc
+                if (data) {
+                    onDocSelect(data as GTMDocMetadata);
+                }
+            }
+        } catch (error) {
+            console.error('Error copying document:', error);
+            alert('Failed to copy document');
+        }
+    };
+
+    const handleDeleteDoc = async (docId: string, docTitle: string, e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevent doc selection
+        
+        if (!window.confirm(`Delete "${docTitle}"? This action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            const { DatabaseService } = await import('../../lib/services/database');
+            const { error } = await DatabaseService.deleteGTMDoc(docId);
+            
+            if (error) {
+                console.error('Error deleting doc:', error);
+                alert('Failed to delete document');
+            } else {
+                // Reload docs to remove deleted item
+                await loadDocs();
+            }
+        } catch (error) {
+            console.error('Error deleting doc:', error);
+            alert('Failed to delete document');
+        }
+    };
+
     const filteredDocs = docs.filter(doc => {
         if (searchQuery && !doc.title.toLowerCase().includes(searchQuery.toLowerCase())) {
             return false;
@@ -169,39 +241,59 @@ export const DocsList: React.FC<DocsListProps> = ({
                 ) : (
                     <div className="divide-y-2 divide-black">
                         {filteredDocs.map((doc) => (
-                            <button
+                            <div
                                 key={doc.id}
-                                onClick={() => onDocSelect(doc)}
-                                className={`w-full p-3 lg:p-3 text-left hover:bg-yellow-50 transition-colors min-h-[60px] ${
-                                    selectedDocId === doc.id ? 'bg-yellow-100' : 'bg-white'
+                                className={`w-full p-3 lg:p-3 min-h-[60px] relative group ${
+                                    selectedDocId === doc.id ? 'bg-yellow-100' : 'bg-white hover:bg-yellow-50'
                                 }`}
                             >
-                                <div className="flex items-start gap-2">
-                                    <span className="text-lg lg:text-xl flex-shrink-0">
-                                        {DOC_TYPE_ICONS[doc.docType] || '📄'}
-                                    </span>
-                                    <div className="flex-1 min-w-0">
-                                        <h3 className="font-bold text-sm lg:text-base truncate">{doc.title}</h3>
-                                        <p className="text-xs text-gray-600 truncate">
-                                            {DOC_TYPE_LABELS[doc.docType]}
-                                        </p>
-                                        <div className="flex items-center gap-1 lg:gap-2 mt-1 flex-wrap">
-                                            <span className={`text-xs px-1 border ${
-                                                doc.visibility === 'private'
-                                                    ? 'border-gray-400 text-gray-600'
-                                                    : 'border-green-600 text-green-700'
-                                            }`}>
-                                                {doc.visibility === 'private' ? '🔒 Private' : '👥 Team'}
-                                            </span>
-                                            {doc.isTemplate && (
-                                                <span className="text-xs px-1 border border-purple-600 text-purple-700">
-                                                    📋 Template
+                                <div className="flex items-start gap-2 justify-between">
+                                    <div 
+                                        onClick={() => onDocSelect(doc)}
+                                        className="cursor-pointer flex items-start gap-2 flex-1 min-w-0"
+                                    >
+                                        <span className="text-lg lg:text-xl flex-shrink-0">
+                                            {DOC_TYPE_ICONS[doc.docType] || '📄'}
+                                        </span>
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="font-bold text-sm lg:text-base truncate">{doc.title}</h3>
+                                            <p className="text-xs text-gray-600 truncate">
+                                                {DOC_TYPE_LABELS[doc.docType]}
+                                            </p>
+                                            <div className="flex items-center gap-1 lg:gap-2 mt-1 flex-wrap">
+                                                <span className={`text-xs px-1 border ${
+                                                    doc.visibility === 'private'
+                                                        ? 'border-gray-400 text-gray-600'
+                                                        : 'border-green-600 text-green-700'
+                                                }`}>
+                                                    {doc.visibility === 'private' ? '🔒 Private' : '👥 Team'}
                                                 </span>
-                                            )}
+                                                {doc.isTemplate && (
+                                                    <span className="text-xs px-1 border border-purple-600 text-purple-700">
+                                                        📋 Template
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
+                                    <div className="flex gap-2 flex-shrink-0">
+                                        <button
+                                            onClick={(e) => handleCopyTemplate(doc, e)}
+                                            className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 border-2 border-blue-600 font-bold transition-colors"
+                                            title="Copy document"
+                                        >
+                                            📋
+                                        </button>
+                                        <button
+                                            onClick={(e) => handleDeleteDoc(doc.id, doc.title, e)}
+                                            className="px-3 py-1 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 border-2 border-red-600 font-bold transition-colors"
+                                            title="Delete document"
+                                        >
+                                            🗑️
+                                        </button>
+                                    </div>
                                 </div>
-                            </button>
+                            </div>
                         ))}
                     </div>
                 )}

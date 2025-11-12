@@ -276,6 +276,29 @@ const deleteContactTool: GroqTool = {
     }
 };
 
+const searchContactsTool: GroqTool = {
+    type: 'function',
+    function: {
+        name: 'searchContacts',
+        description: 'Searches for contacts across all CRM items by name, email, title, or company name. Returns matching contacts with their linked CRM accounts.',
+        parameters: {
+            type: 'object',
+            properties: {
+                query: { 
+                    type: 'string', 
+                    description: 'Search query - can be contact name, email, title, or company name.' 
+                },
+                collection: {
+                    type: 'string',
+                    description: 'Optional. Filter by CRM type (investors, customers, or partners). Omit to search all.',
+                    enum: ['investors', 'customers', 'partners', 'all']
+                }
+            },
+            required: ['query']
+        }
+    }
+};
+
 const createMeetingTool: GroqTool = {
     type: 'function',
     function: {
@@ -571,6 +594,7 @@ export const groqTools: GroqTool[] = [
     createContactTool,
     updateContactTool,
     deleteContactTool,
+    searchContactsTool,
     createMeetingTool,
     updateMeetingTool,
     deleteMeetingTool,
@@ -597,71 +621,46 @@ export const getRelevantTools = (tab: string): GroqTool[] => {
     // File management tools (available everywhere)
     const fileTools = [uploadDocumentTool, updateDocumentTool, getFileContentTool];
     
-    // Tab-specific tools
+    // Task tools (available everywhere for cross-module task creation)
+    const taskTools = [createTaskTool, updateTaskTool, deleteItemTool];
+    
+    // CRM tools (available everywhere for cross-module CRM management)
+    const crmTools = [
+        createCrmItemTool,
+        updateCrmItemTool,
+        createContactTool,
+        updateContactTool,
+        deleteContactTool,
+        searchContactsTool,
+        createMeetingTool,
+        updateMeetingTool,
+        deleteMeetingTool
+    ];
+    
+    // Marketing tools (available everywhere)
+    const marketingTools = [createMarketingItemTool, updateMarketingItemTool];
+    
+    // Financial tools (available everywhere)
+    const financialTools = [logFinancialsTool, createExpenseTool, updateExpenseTool];
+    
+    // Tab-specific tools (Settings is the only exception)
     switch(tab) {
-        case 'dashboard':
-        case 'platform':
-            // Platform development: tasks + files
-            return [
-                createTaskTool,
-                updateTaskTool,
-                deleteItemTool,
-                ...coreTools,
-                ...fileTools
-            ];
-        
-        case 'investors':
-        case 'customers':
-        case 'partners':
-            // CRM: full CRM toolset + files
-            return [
-                createCrmItemTool,
-                updateCrmItemTool,
-                createContactTool,
-                updateContactTool,
-                deleteContactTool,
-                createMeetingTool,
-                updateMeetingTool,
-                deleteMeetingTool,
-                deleteItemTool,
-                ...coreTools,
-                ...fileTools
-            ];
-        
-        case 'marketing':
-            // Marketing: campaigns + tasks
-            return [
-                createMarketingItemTool,
-                updateMarketingItemTool,
-                createTaskTool,
-                updateTaskTool,
-                deleteItemTool,
-                ...coreTools,
-                ...fileTools
-            ];
-        
-        case 'financials':
-            // Financials: revenue logs, expenses, tasks
-            return [
-                logFinancialsTool,
-                createExpenseTool,
-                updateExpenseTool,
-                createTaskTool,
-                updateTaskTool,
-                deleteItemTool,
-                ...coreTools,
-                ...fileTools
-            ];
-        
         case 'settings':
-            // Settings: limited toolset
+            // Settings: only settings-specific tools
             return [
                 updateSettingsTool,
                 ...coreTools
             ];
         
         default:
-            // Fallback: core tools only
-            return [...coreTools, ...fileTools];
+            // All other tabs: full toolset for complete AI capabilities
+            return [
+                ...taskTools,
+                ...crmTools,
+                ...marketingTools,
+                ...financialTools,
+                ...coreTools,
+                ...fileTools
+            ];
     }
 };

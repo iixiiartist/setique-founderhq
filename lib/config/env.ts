@@ -14,8 +14,10 @@ interface EnvConfig {
   // Required - Critical for app functionality
   VITE_SUPABASE_URL: string;
   VITE_SUPABASE_ANON_KEY: string;
-  VITE_STRIPE_PUBLISHABLE_KEY: string;
   VITE_APP_URL: string;
+  
+  // Required in production, optional in development
+  VITE_STRIPE_PUBLISHABLE_KEY?: string;
   
   // Optional - Degrades gracefully if missing
   VITE_GROQ_ENABLED?: string;
@@ -33,12 +35,19 @@ interface EnvConfig {
 /**
  * Required environment variables for the application to function
  * These are critical and will block startup if missing
+ * Note: VITE_STRIPE_PUBLISHABLE_KEY is required in production but optional in development
  */
 const REQUIRED_ENV_VARS: (keyof EnvConfig)[] = [
   'VITE_SUPABASE_URL',
   'VITE_SUPABASE_ANON_KEY',
-  'VITE_STRIPE_PUBLISHABLE_KEY',
   'VITE_APP_URL',
+];
+
+/**
+ * Required only in production (optional in development)
+ */
+const PRODUCTION_REQUIRED_ENV_VARS: (keyof EnvConfig)[] = [
+  'VITE_STRIPE_PUBLISHABLE_KEY',
 ];
 
 /**
@@ -161,6 +170,26 @@ export function validateEnvironment(): void {
     }
   });
   
+  // Validate production-required variables (only in production environment)
+  const isProduction = env.VITE_ENVIRONMENT === 'production' || !import.meta.env.DEV;
+  if (isProduction) {
+    PRODUCTION_REQUIRED_ENV_VARS.forEach((key) => {
+      const value = env[key];
+      const error = validateEnvVar(key, value as string, true);
+      if (error) {
+        errors.push(error);
+      }
+    });
+  } else {
+    // In development, only warn if production-required vars are missing
+    PRODUCTION_REQUIRED_ENV_VARS.forEach((key) => {
+      const value = env[key];
+      if (!value || value.trim() === '') {
+        warnings.push(`${key} not set (payment features will be disabled)`);
+      }
+    });
+  }
+  
   // Validate optional variables (only check validity if set, don't warn if missing)
   OPTIONAL_ENV_VARS.forEach((key) => {
     const value = env[key];
@@ -175,7 +204,7 @@ export function validateEnvironment(): void {
   // Log warnings only for invalid (not missing) optional variables
   if (warnings.length > 0) {
     console.warn('⚠️  Environment Configuration Warnings:');
-    warnings.forEach((warning) => console.warn(`   ${warning}`));
+    warnings.forEach((warning) => console.warn(`   • ${warning}`));
   }
   
   // Throw error if any required variables are missing
