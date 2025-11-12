@@ -1078,14 +1078,20 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
             {/* Search and Filters */}
             <div className="space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <label htmlFor="contact-search" className="sr-only">Search contacts</label>
                     <input
+                        id="contact-search"
+                        name="contact-search"
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search contacts by name, email, phone..."
                         className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
                     />
+                    <label htmlFor="contact-filter-by" className="sr-only">Filter by status</label>
                     <select
+                        id="contact-filter-by"
+                        name="contact-filter-by"
                         value={filterBy}
                         onChange={(e) => setFilterBy(e.target.value as any)}
                         className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
@@ -1094,7 +1100,10 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                         <option value="linked">Linked to {getCrmTypeLabel()}s</option>
                         <option value="unlinked">Unlinked Contacts</option>
                     </select>
+                    <label htmlFor="contact-filter-tag" className="sr-only">Filter by tag</label>
                     <select
+                        id="contact-filter-tag"
+                        name="contact-filter-tag"
                         value={filterByTag}
                         onChange={(e) => setFilterByTag(e.target.value)}
                         className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
@@ -1134,10 +1143,12 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                 {showAdvancedFilters && (
                     <div className="bg-gray-50 border-2 border-gray-300 p-3 grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div>
-                            <label className="block text-xs font-mono font-semibold text-gray-700 mb-1">
+                            <label htmlFor="filter-by-title" className="block text-xs font-mono font-semibold text-gray-700 mb-1">
                                 Title Contains
                             </label>
                             <input
+                                id="filter-by-title"
+                                name="filter-by-title"
                                 type="text"
                                 value={filterByTitle}
                                 onChange={(e) => setFilterByTitle(e.target.value)}
@@ -1146,10 +1157,12 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-mono font-semibold text-gray-700 mb-1">
+                            <label htmlFor="filter-by-note-count" className="block text-xs font-mono font-semibold text-gray-700 mb-1">
                                 Notes
                             </label>
                             <select
+                                id="filter-by-note-count"
+                                name="filter-by-note-count"
                                 value={filterByNoteCount}
                                 onChange={(e) => setFilterByNoteCount(e.target.value as any)}
                                 className="w-full bg-white border-2 border-gray-400 text-black p-2 text-sm rounded-none focus:outline-none focus:border-blue-500"
@@ -1160,10 +1173,12 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs font-mono font-semibold text-gray-700 mb-1">
+                            <label htmlFor="filter-by-meeting-count" className="block text-xs font-mono font-semibold text-gray-700 mb-1">
                                 Meetings
                             </label>
                             <select
+                                id="filter-by-meeting-count"
+                                name="filter-by-meeting-count"
                                 value={filterByMeetingCount}
                                 onChange={(e) => setFilterByMeetingCount(e.target.value as any)}
                                 className="w-full bg-white border-2 border-gray-400 text-black p-2 text-sm rounded-none focus:outline-none focus:border-blue-500"
@@ -1203,7 +1218,12 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                 <div className="flex items-start justify-between gap-4">
                                     {bulkSelectMode && (
                                         <div className="flex-shrink-0">
+                                            <label htmlFor={`bulk-select-${contact.id}`} className="sr-only">
+                                                Select {contact.name}
+                                            </label>
                                             <input
+                                                id={`bulk-select-${contact.id}`}
+                                                name={`bulk-select-${contact.id}`}
                                                 type="checkbox"
                                                 checked={isSelected}
                                                 onChange={() => toggleContactSelection(contact.id)}
@@ -1325,10 +1345,12 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
             >
                 <form onSubmit={handleAddContact} className="space-y-4">
                     <div>
-                        <label className="block font-mono text-sm font-semibold text-black mb-1">
+                        <label htmlFor="add-contact-name" className="block font-mono text-sm font-semibold text-black mb-1">
                             Contact Name *
                         </label>
                         <input
+                            id="add-contact-name"
+                            name="add-contact-name"
                             type="text"
                             value={formData.name}
                             onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))}
@@ -1339,10 +1361,12 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                     </div>
 
                     <div>
-                        <label className="block font-mono text-sm font-semibold text-black mb-1">
+                        <label htmlFor="add-contact-email" className="block font-mono text-sm font-semibold text-black mb-1">
                             Email *
                         </label>
                         <input
+                            id="add-contact-email"
+                            name="add-contact-email"
                             type="email"
                             value={formData.email}
                             onChange={(e) => setFormData(p => ({ ...p, email: e.target.value }))}
@@ -1353,10 +1377,12 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                     </div>
 
                     <div>
-                        <label className="block font-mono text-sm font-semibold text-black mb-1">
+                        <label htmlFor="add-contact-phone" className="block font-mono text-sm font-semibold text-black mb-1">
                             Phone
                         </label>
                         <input
+                            id="add-contact-phone"
+                            name="add-contact-phone"
                             type="tel"
                             value={formData.phone}
                             onChange={(e) => setFormData(p => ({ ...p, phone: e.target.value }))}
@@ -1366,10 +1392,12 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                     </div>
 
                     <div>
-                        <label className="block font-mono text-sm font-semibold text-black mb-1">
+                        <label htmlFor="add-contact-title" className="block font-mono text-sm font-semibold text-black mb-1">
                             Job Title
                         </label>
                         <input
+                            id="add-contact-title"
+                            name="add-contact-title"
                             type="text"
                             value={formData.title}
                             onChange={(e) => setFormData(p => ({ ...p, title: e.target.value }))}
@@ -1379,10 +1407,12 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                     </div>
 
                     <div className="border-t-2 border-gray-300 pt-4">
-                        <label className="block font-mono text-sm font-semibold text-black mb-2">
+                        <label htmlFor="add-contact-link-crm" className="block font-mono text-sm font-semibold text-black mb-2">
                             Link to {getCrmTypeLabel()} Account
                         </label>
                         <select
+                            id="add-contact-link-crm"
+                            name="add-contact-link-crm"
                             value={formData.linkedCrmId}
                             onChange={(e) => setFormData(p => ({ ...p, linkedCrmId: e.target.value }))}
                             className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 mb-2"
@@ -1397,10 +1427,12 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
 
                         {!formData.linkedCrmId && (
                             <div>
-                                <label className="block font-mono text-xs text-gray-600 mb-1">
+                                <label htmlFor="add-contact-new-account" className="block font-mono text-xs text-gray-600 mb-1">
                                     Or create new {getCrmTypeLabel().toLowerCase()} account:
                                 </label>
                                 <input
+                                    id="add-contact-new-account"
+                                    name="add-contact-new-account"
                                     type="text"
                                     value={formData.newAccountName}
                                     onChange={(e) => setFormData(p => ({ ...p, newAccountName: e.target.value }))}
@@ -1795,10 +1827,12 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
             >
                 <form onSubmit={handleEditContact} className="space-y-4">
                     <div>
-                        <label className="block font-mono text-sm font-semibold text-black mb-1">
+                        <label htmlFor="edit-contact-name" className="block font-mono text-sm font-semibold text-black mb-1">
                             Contact Name *
                         </label>
                         <input
+                            id="edit-contact-name"
+                            name="edit-contact-name"
                             type="text"
                             value={formData.name}
                             onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))}
@@ -1809,10 +1843,12 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                     </div>
 
                     <div>
-                        <label className="block font-mono text-sm font-semibold text-black mb-1">
+                        <label htmlFor="edit-contact-email" className="block font-mono text-sm font-semibold text-black mb-1">
                             Email *
                         </label>
                         <input
+                            id="edit-contact-email"
+                            name="edit-contact-email"
                             type="email"
                             value={formData.email}
                             onChange={(e) => setFormData(p => ({ ...p, email: e.target.value }))}
@@ -1823,10 +1859,12 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                     </div>
 
                     <div>
-                        <label className="block font-mono text-sm font-semibold text-black mb-1">
+                        <label htmlFor="edit-contact-phone" className="block font-mono text-sm font-semibold text-black mb-1">
                             Phone
                         </label>
                         <input
+                            id="edit-contact-phone"
+                            name="edit-contact-phone"
                             type="tel"
                             value={formData.phone}
                             onChange={(e) => setFormData(p => ({ ...p, phone: e.target.value }))}
@@ -1836,10 +1874,12 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                     </div>
 
                     <div>
-                        <label className="block font-mono text-sm font-semibold text-black mb-1">
+                        <label htmlFor="edit-contact-title" className="block font-mono text-sm font-semibold text-black mb-1">
                             Job Title
                         </label>
                         <input
+                            id="edit-contact-title"
+                            name="edit-contact-title"
                             type="text"
                             value={formData.title}
                             onChange={(e) => setFormData(p => ({ ...p, title: e.target.value }))}
@@ -1901,10 +1941,12 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                     {/* File Upload */}
                     {!isImporting && !importResult && (
                         <div>
-                            <label className="block font-mono text-sm font-semibold text-black mb-2">
+                            <label htmlFor="csv-upload-file" className="block font-mono text-sm font-semibold text-black mb-2">
                                 Select CSV File
                             </label>
                             <input
+                                id="csv-upload-file"
+                                name="csv-upload-file"
                                 type="file"
                                 accept=".csv"
                                 onChange={(e) => {
@@ -2026,7 +2068,10 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                         <div>
                             <h4 className="font-mono font-semibold text-black mb-2">Add New Tag:</h4>
                             <div className="flex gap-2">
+                                <label htmlFor="new-tag-input" className="sr-only">New tag name</label>
                                 <input
+                                    id="new-tag-input"
+                                    name="new-tag-input"
                                     type="text"
                                     value={newTag}
                                     onChange={(e) => setNewTag(e.target.value)}
@@ -2106,7 +2151,10 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                 Add a tag to {selectedContactIds.size} selected contact(s)
                             </p>
                             <div className="flex gap-2">
+                                <label htmlFor="bulk-tag-input" className="sr-only">Tag name for bulk action</label>
                                 <input
+                                    id="bulk-tag-input"
+                                    name="bulk-tag-input"
                                     type="text"
                                     value={bulkTagToAdd}
                                     onChange={(e) => setBulkTagToAdd(e.target.value)}
