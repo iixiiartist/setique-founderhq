@@ -48,6 +48,11 @@ export const ContactManager: React.FC<ContactManagerProps> = ({
     const [duplicateGroups, setDuplicateGroups] = useState<Contact[][]>([]);
     const [selectedDuplicateGroup, setSelectedDuplicateGroup] = useState<Contact[] | null>(null);
     const [primaryContact, setPrimaryContact] = useState<Contact | null>(null);
+    const [bulkSelectMode, setBulkSelectMode] = useState(false);
+    const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
+    const [showBulkActionsModal, setShowBulkActionsModal] = useState(false);
+    const [bulkAction, setBulkAction] = useState<'tag' | 'delete' | 'export' | null>(null);
+    const [bulkTagToAdd, setBulkTagToAdd] = useState('');
     const [formData, setFormData] = useState<ContactFormData>({
         name: '',
         email: '',
@@ -460,6 +465,161 @@ export const ContactManager: React.FC<ContactManagerProps> = ({
         }
     };
 
+    // Bulk Operations
+    const toggleBulkSelect = () => {
+        setBulkSelectMode(!bulkSelectMode);
+        setSelectedContactIds(new Set());
+    };
+
+    const toggleContactSelection = (contactId: string) => {
+        const newSet = new Set(selectedContactIds);
+        if (newSet.has(contactId)) {
+            newSet.delete(contactId);
+        } else {
+            newSet.add(contactId);
+        }
+        setSelectedContactIds(newSet);
+    };
+
+    const selectAllFilteredContacts = () => {
+        const allIds = new Set(filteredContacts.map(c => c.id));
+        setSelectedContactIds(allIds);
+    };
+
+    const deselectAllContacts = () => {
+        setSelectedContactIds(new Set());
+    };
+
+    const handleBulkAction = (action: 'tag' | 'delete' | 'export') => {
+        if (selectedContactIds.size === 0) {
+            alert('Please select at least one contact');
+            return;
+        }
+        setBulkAction(action);
+        setShowBulkActionsModal(true);
+    };
+
+    const executeBulkTag = async () => {
+        if (!bulkTagToAdd.trim()) {
+            alert('Please enter a tag');
+            return;
+        }
+
+        try {
+            const selectedContacts = allContacts.filter(c => selectedContactIds.has(c.id));
+            let successCount = 0;
+
+            for (const contact of selectedContacts) {
+                const linkedAccount = getLinkedAccount(contact);
+                if (linkedAccount) {
+                    const currentTags = contact.tags || [];
+                    if (!currentTags.includes(bulkTagToAdd.trim())) {
+                        await actions.updateContact(
+                            crmType,
+                            linkedAccount.id,
+                            contact.id,
+                            { tags: [...currentTags, bulkTagToAdd.trim()] } as any
+                        );
+                        successCount++;
+                    }
+                }
+                // Small delay to avoid rate limiting
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+
+            alert(`Successfully added tag "${bulkTagToAdd}" to ${successCount} contact(s)`);
+            setBulkTagToAdd('');
+            setShowBulkActionsModal(false);
+            setBulkSelectMode(false);
+            setSelectedContactIds(new Set());
+        } catch (error) {
+            console.error('Error bulk tagging:', error);
+            alert('Failed to add tags to some contacts');
+        }
+    };
+
+    const executeBulkDelete = async () => {
+        if (!confirm(`Are you sure you want to delete ${selectedContactIds.size} contact(s)? This cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            const selectedContacts = allContacts.filter(c => selectedContactIds.has(c.id));
+            let successCount = 0;
+
+            for (const contact of selectedContacts) {
+                const linkedAccount = getLinkedAccount(contact);
+                if (linkedAccount) {
+                    await actions.deleteContact(crmType, linkedAccount.id, contact.id);
+                    successCount++;
+                }
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+
+            alert(`Successfully deleted ${successCount} contact(s)`);
+            setShowBulkActionsModal(false);
+            setBulkSelectMode(false);
+            setSelectedContactIds(new Set());
+        } catch (error) {
+            console.error('Error bulk deleting:', error);
+            alert('Failed to delete some contacts');
+        }
+    };
+
+    const executeBulkExport = () => {
+        const selectedContacts = allContacts.filter(c => selectedContactIds.has(c.id));
+        
+        if (selectedContacts.length === 0) {
+            alert('No contacts selected for export');
+            return;
+        }
+
+        // CSV Header
+        const headers = ['name', 'email', 'phone', 'title', 'company', 'tags'];
+        const csvRows = [headers.join(',')];
+
+        // CSV Data
+        selectedContacts.forEach(contact => {
+            const linkedAccount = getLinkedAccount(contact);
+            const row = [
+                contact.name,
+                contact.email,
+                contact.phone || '',
+                contact.title || '',
+                linkedAccount?.company || '',
+                (contact.tags || []).join('; ')
+            ];
+            
+            // Escape and wrap fields with commas/quotes
+            const escapedRow = row.map(field => {
+                const stringField = String(field);
+                if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
+                    return `"${stringField.replace(/"/g, '""')}"`;
+                }
+                return stringField;
+            });
+            
+            csvRows.push(escapedRow.join(','));
+        });
+
+        // Download
+        const csvContent = csvRows.join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `bulk_contacts_export_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+
+        alert(`Successfully exported ${selectedContacts.length} contact(s)`);
+        setShowBulkActionsModal(false);
+        setBulkSelectMode(false);
+        setSelectedContactIds(new Set());
+    };
+
     const getCrmTypeLabel = () => {
         switch (crmType) {
             case 'investors': return 'Investor';
@@ -690,6 +850,16 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                         🔍 Find Duplicates
                     </button>
                     <button
+                        onClick={toggleBulkSelect}
+                        className={`font-mono border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn transition-all ${
+                            bulkSelectMode
+                                ? 'bg-orange-600 text-white hover:bg-orange-700'
+                                : 'bg-orange-500 text-white hover:bg-orange-600'
+                        }`}
+                    >
+                        {bulkSelectMode ? '✕ Exit Bulk Select' : '☑️ Bulk Select'}
+                    </button>
+                    <button
                         onClick={() => setShowAddModal(true)}
                         className="font-mono bg-green-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-green-600 transition-all"
                     >
@@ -697,6 +867,56 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                     </button>
                 </div>
             </div>
+
+            {/* Bulk Actions Bar */}
+            {bulkSelectMode && (
+                <div className="bg-orange-50 border-2 border-orange-400 p-3">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                            <span className="font-mono font-semibold">
+                                {selectedContactIds.size} selected
+                            </span>
+                            <button
+                                onClick={selectAllFilteredContacts}
+                                className="text-xs font-mono text-blue-600 hover:underline"
+                            >
+                                Select All ({filteredContacts.length})
+                            </button>
+                            {selectedContactIds.size > 0 && (
+                                <button
+                                    onClick={deselectAllContacts}
+                                    className="text-xs font-mono text-gray-600 hover:underline"
+                                >
+                                    Deselect All
+                                </button>
+                            )}
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => handleBulkAction('tag')}
+                                disabled={selectedContactIds.size === 0}
+                                className="font-mono bg-purple-500 text-white border-2 border-black px-3 py-1 text-sm rounded-none font-semibold shadow-neo-btn hover:bg-purple-600 transition-all disabled:opacity-50"
+                            >
+                                🏷️ Tag
+                            </button>
+                            <button
+                                onClick={() => handleBulkAction('export')}
+                                disabled={selectedContactIds.size === 0}
+                                className="font-mono bg-blue-500 text-white border-2 border-black px-3 py-1 text-sm rounded-none font-semibold shadow-neo-btn hover:bg-blue-600 transition-all disabled:opacity-50"
+                            >
+                                📥 Export
+                            </button>
+                            <button
+                                onClick={() => handleBulkAction('delete')}
+                                disabled={selectedContactIds.size === 0}
+                                className="font-mono bg-red-500 text-white border-2 border-black px-3 py-1 text-sm rounded-none font-semibold shadow-neo-btn hover:bg-red-600 transition-all disabled:opacity-50"
+                            >
+                                🗑️ Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Search and Filters */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -745,12 +965,25 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                 ) : (
                     filteredContacts.map(contact => {
                         const linkedAccount = getLinkedAccount(contact);
+                        const isSelected = selectedContactIds.has(contact.id);
                         return (
                             <div
                                 key={contact.id}
-                                className="bg-white border-2 border-black p-4 shadow-neo hover:shadow-neo-lg transition-all"
+                                className={`bg-white border-2 p-4 shadow-neo hover:shadow-neo-lg transition-all ${
+                                    isSelected ? 'border-orange-500 bg-orange-50' : 'border-black'
+                                }`}
                             >
                                 <div className="flex items-start justify-between gap-4">
+                                    {bulkSelectMode && (
+                                        <div className="flex-shrink-0">
+                                            <input
+                                                type="checkbox"
+                                                checked={isSelected}
+                                                onChange={() => toggleContactSelection(contact.id)}
+                                                className="w-5 h-5 cursor-pointer"
+                                            />
+                                        </div>
+                                    )}
                                     <div className="flex-grow min-w-0">
                                         <h4 className="font-bold text-lg text-black truncate">
                                             {contact.name}
@@ -1269,6 +1502,110 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                         </button>
                     </div>
                 )}
+            </Modal>
+
+            {/* Bulk Actions Modal */}
+            <Modal
+                isOpen={showBulkActionsModal}
+                onClose={() => {
+                    setShowBulkActionsModal(false);
+                    setBulkAction(null);
+                    setBulkTagToAdd('');
+                }}
+                title={`Bulk ${bulkAction === 'tag' ? 'Tag' : bulkAction === 'delete' ? 'Delete' : 'Export'}`}
+            >
+                <div className="space-y-4">
+                    {bulkAction === 'tag' && (
+                        <div className="space-y-3">
+                            <p className="text-sm text-gray-600">
+                                Add a tag to {selectedContactIds.size} selected contact(s)
+                            </p>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={bulkTagToAdd}
+                                    onChange={(e) => setBulkTagToAdd(e.target.value)}
+                                    onKeyPress={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            executeBulkTag();
+                                        }
+                                    }}
+                                    placeholder="Enter tag name..."
+                                    className="flex-1 bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-purple-500"
+                                />
+                                <button
+                                    onClick={executeBulkTag}
+                                    className="font-mono bg-purple-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-purple-600 transition-all"
+                                >
+                                    Add Tag
+                                </button>
+                            </div>
+                            {allTags.length > 0 && (
+                                <div>
+                                    <p className="text-xs text-gray-500 mb-2">Quick select:</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {allTags.map(tag => (
+                                            <button
+                                                key={tag}
+                                                onClick={() => setBulkTagToAdd(tag)}
+                                                className="px-2 py-1 bg-purple-50 border border-purple-300 text-xs font-mono text-purple-700 hover:bg-purple-100 transition-all"
+                                            >
+                                                {tag}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {bulkAction === 'delete' && (
+                        <div className="space-y-3">
+                            <div className="bg-red-50 border-2 border-red-300 p-3">
+                                <p className="text-sm font-mono text-red-800">
+                                    <strong>⚠️ Warning:</strong> You are about to delete {selectedContactIds.size} contact(s). 
+                                    This action cannot be undone.
+                                </p>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={executeBulkDelete}
+                                    className="flex-1 font-mono bg-red-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-red-600 transition-all"
+                                >
+                                    Delete {selectedContactIds.size} Contact(s)
+                                </button>
+                                <button
+                                    onClick={() => setShowBulkActionsModal(false)}
+                                    className="font-mono bg-gray-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-gray-600 transition-all"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {bulkAction === 'export' && (
+                        <div className="space-y-3">
+                            <p className="text-sm text-gray-600">
+                                Export {selectedContactIds.size} selected contact(s) to CSV file
+                            </p>
+                            <button
+                                onClick={executeBulkExport}
+                                className="w-full font-mono bg-blue-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-blue-600 transition-all"
+                            >
+                                📥 Download CSV
+                            </button>
+                        </div>
+                    )}
+
+                    <button
+                        onClick={() => setShowBulkActionsModal(false)}
+                        className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800"
+                    >
+                        Close
+                    </button>
+                </div>
             </Modal>
 
             {/* Duplicate Detection Modal */}
