@@ -7,8 +7,6 @@ import DashboardTab from './components/DashboardTab';
 import Toast from './components/shared/Toast';
 import TaskFocusModal from './components/shared/TaskFocusModal';
 import { TabLoadingFallback } from './components/shared/TabLoadingFallback';
-import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
-import KeyboardShortcutsHelp from './components/shared/KeyboardShortcutsHelp';
 import { setUser as setSentryUser, setWorkspaceContext, trackAction } from './lib/sentry.tsx';
 
 // Lazy load heavy tab components for code splitting
@@ -40,7 +38,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showBusinessProfileModal, setShowBusinessProfileModal] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
-    const [showKeyboardShortcutsHelp, setShowKeyboardShortcutsHelp] = useState(false);
     
     // Persist active tab in localStorage so it survives page refresh
     const [activeTab, setActiveTab] = useState<TabType>(() => {
@@ -141,43 +138,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
         checkAdminStatus();
     }, [user]);
-
-    // Keyboard shortcuts for accessibility and power users
-    useKeyboardShortcuts({
-        enabled: !!workspace && !isLoading && !isLoadingWorkspace,
-        onNewTask: () => {
-            // Context-aware new task based on current tab
-            const taskCategory = activeTab === Tab.Platform ? 'platformTasks' :
-                                activeTab === Tab.Investors ? 'investorTasks' :
-                                activeTab === Tab.Customers ? 'customerTasks' :
-                                activeTab === Tab.Partners ? 'partnerTasks' :
-                                activeTab === Tab.Marketing ? 'marketingTasks' :
-                                activeTab === Tab.Financials ? 'financialTasks' : 'platformTasks';
-            
-            // For now, just focus on "Add Task" button (proper modal integration would go here)
-            handleToast('New task shortcut (Ctrl+N or N) pressed', 'info');
-        },
-        onSearch: () => {
-            // Focus search input if it exists (placeholder for now)
-            handleToast('Search shortcut (Ctrl+K or /) pressed', 'info');
-        },
-        onHelp: () => {
-            setShowKeyboardShortcutsHelp(true);
-        },
-        onTabChange: (tab) => {
-            setActiveTab(tab);
-            setIsMenuOpen(false);
-        },
-        onEscape: () => {
-            if (isMenuOpen) setIsMenuOpen(false);
-            if (showKeyboardShortcutsHelp) setShowKeyboardShortcutsHelp(false);
-        },
-        onToggleAI: () => {
-            if (toggleAIAssistantRef.current) {
-                toggleAIAssistantRef.current();
-            }
-        }
-    });
 
     // Handle pending subscription redirect
     useEffect(() => {
@@ -2098,12 +2058,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
             
-            {/* Keyboard Shortcuts Help Modal */}
-            <KeyboardShortcutsHelp 
-                isOpen={showKeyboardShortcutsHelp}
-                onClose={() => setShowKeyboardShortcutsHelp(false)}
-            />
-            
             <TaskFocusModal
                 isOpen={isTaskFocusModalOpen}
                 onClose={() => setIsTaskFocusModalOpen(false)}
@@ -2155,14 +2109,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                                 aria-label="Sign out of your account"
                             >
                                 Sign Out
-                            </button>
-                            <button
-                                onClick={() => setShowKeyboardShortcutsHelp(true)}
-                                className="px-2 sm:px-3 py-1 text-xs sm:text-sm border-2 border-black bg-white hover:bg-gray-100 transition-colors"
-                                aria-label="Show keyboard shortcuts (press ? anywhere)"
-                                title="Keyboard shortcuts (press ?)"
-                            >
-                                ?
                             </button>
                         </div>
                     </div>
