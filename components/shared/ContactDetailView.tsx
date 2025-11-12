@@ -96,6 +96,14 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
 
     const contactTasks = useMemo(() => tasks.filter(t => t.contactId === contact.id), [tasks, contact.id]);
 
+    const closeEditModal = () => {
+        setIsEditing(false);
+    };
+
+    const closeEditTaskModal = () => {
+        setEditingTask(null);
+    };
+
     const handleUpdate = () => {
         actions.updateContact(crmCollection, contact.crmItemId, editForm.id, editForm);
         setIsEditing(false);
@@ -275,7 +283,7 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
                     </div>
                 </div>
             </div>
-             <Modal isOpen={isEditing} onClose={() => setIsEditing(false)} title={`Edit Contact`} triggerRef={editContactModalTriggerRef}>
+             <Modal isOpen={isEditing} onClose={closeEditModal} title="Edit Contact" triggerRef={editContactModalTriggerRef}>
                  <div className="space-y-4">
                     <div>
                         <label htmlFor={`edit-contact-name-${editForm.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Name</label>
@@ -307,11 +315,11 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
                     />
                     <div className="flex gap-4 mt-4">
                         <button onClick={handleUpdate} className="font-mono w-full bg-black border-2 border-black text-white cursor-pointer text-sm py-2 px-3 rounded-none font-semibold shadow-neo-btn transition-all">Save Changes</button>
-                        <button onClick={() => setIsEditing(false)} className="font-mono w-full bg-gray-200 border-2 border-black text-black cursor-pointer text-sm py-2 px-3 rounded-none font-semibold shadow-neo-btn transition-all">Cancel</button>
+                        <button onClick={closeEditModal} className="font-mono w-full bg-gray-200 border-2 border-black text-black cursor-pointer text-sm py-2 px-3 rounded-none font-semibold shadow-neo-btn transition-all">Cancel</button>
                     </div>
                 </div>
             </Modal>
-             <Modal isOpen={!!editingTask} onClose={() => setEditingTask(null)} title="Edit Task" triggerRef={editTaskModalTriggerRef}>
+             <Modal isOpen={!!editingTask} onClose={closeEditTaskModal} title="Edit Task" triggerRef={editTaskModalTriggerRef}>
                 {editingTask && (
                     <div className="space-y-4">
                          <div>
