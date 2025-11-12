@@ -108,6 +108,27 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
         actions.updateContact(crmCollection, contact.crmItemId, editForm.id, editForm);
         setIsEditing(false);
     };
+
+    // Stable handlers for form inputs
+    const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setEditForm(prev => ({ ...prev, name: e.target.value }));
+    };
+
+    const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setEditForm(prev => ({ ...prev, email: e.target.value }));
+    };
+
+    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setEditForm(prev => ({ ...prev, phone: e.target.value }));
+    };
+
+    const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setEditForm(prev => ({ ...prev, title: e.target.value }));
+    };
+
+    const handleLinkedinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setEditForm(prev => ({ ...prev, linkedin: e.target.value }));
+    };
     
     const handleUpdateTask = () => {
         if (editingTask && editText.trim() !== '') {
@@ -287,23 +308,23 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
                  <div className="space-y-4">
                     <div>
                         <label htmlFor={`edit-contact-name-${editForm.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Name</label>
-                        <input id={`edit-contact-name-${editForm.id}`} value={editForm.name || ''} onChange={(e) => setEditForm(p => ({...p!, name: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" />
+                        <input id={`edit-contact-name-${editForm.id}`} value={editForm.name || ''} onChange={handleNameChange} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" />
                     </div>
                     <div>
                         <label htmlFor={`edit-contact-email-${editForm.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Email</label>
-                        <input id={`edit-contact-email-${editForm.id}`} value={editForm.email || ''} onChange={(e) => setEditForm(p => ({...p!, email: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" type="email"/>
+                        <input id={`edit-contact-email-${editForm.id}`} value={editForm.email || ''} onChange={handleEmailChange} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" type="email"/>
                     </div>
                     <div>
                         <label htmlFor={`edit-contact-phone-${editForm.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Phone</label>
-                        <input id={`edit-contact-phone-${editForm.id}`} value={editForm.phone || ''} onChange={(e) => setEditForm(p => ({...p!, phone: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" type="tel"/>
+                        <input id={`edit-contact-phone-${editForm.id}`} value={editForm.phone || ''} onChange={handlePhoneChange} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" type="tel"/>
                     </div>
                     <div>
                         <label htmlFor={`edit-contact-title-${editForm.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Title</label>
-                        <input id={`edit-contact-title-${editForm.id}`} value={editForm.title || ''} onChange={(e) => setEditForm(p => ({...p!, title: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" placeholder="e.g., CEO, VP Sales"/>
+                        <input id={`edit-contact-title-${editForm.id}`} value={editForm.title || ''} onChange={handleTitleChange} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" placeholder="e.g., CEO, VP Sales"/>
                     </div>
                      <div>
                         <label htmlFor={`edit-contact-linkedin-${editForm.id}`} className="block font-mono text-sm font-semibold text-black mb-1">LinkedIn</label>
-                        <input id={`edit-contact-linkedin-${editForm.id}`} value={editForm.linkedin || ''} onChange={(e) => setEditForm(p => ({...p!, linkedin: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" type="url"/>
+                        <input id={`edit-contact-linkedin-${editForm.id}`} value={editForm.linkedin || ''} onChange={handleLinkedinChange} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" type="url"/>
                     </div>
                     <NotesManager 
                         notes={editForm.notes} 
