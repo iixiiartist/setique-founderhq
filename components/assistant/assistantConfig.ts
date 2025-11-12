@@ -73,6 +73,11 @@ Current File Library Summary:
 - By module: ${JSON.stringify(documentsSummary.byModule)}
 Recent files: ${JSON.stringify(documentsSummary.recent)}
 
+**GTM Document Linking:**
+- You can link GTM documents (pitch decks, case studies, etc.) to tasks
+- Tasks can have multiple linked documents for reference
+- When discussing tasks, consider suggesting relevant documents to attach
+
 **Note:** For detailed task information, use the available functions to query specific tasks.`;
     },
   },
@@ -140,6 +145,11 @@ Recent investors: ${JSON.stringify(investorSummary.recent)}
 Tasks Summary:
 - Total: ${taskSummary.total} (Todo: ${taskSummary.todo}, In Progress: ${taskSummary.inProgress}, Done: ${taskSummary.done})
 
+**GTM Document Linking:**
+- CRM items (investors) can have linked documents like pitch decks, case studies, and investor updates
+- When preparing for investor meetings, suggest attaching relevant GTM documents
+- Documents can be linked to contacts and scheduled meetings for easy access
+
 **Note:** For detailed investor information, use the available functions to query specific investors.`;
     },
   },
@@ -196,6 +206,11 @@ Recent: ${JSON.stringify(customerSummary.recent)}
 
 Tasks: ${taskSummary.total} (Todo: ${taskSummary.todo})
 
+**GTM Document Linking:**
+- Customer CRM items can have linked documents like sales decks, case studies, and proposals
+- When working on deals, suggest attaching relevant GTM documents to customer records
+- Documents can provide context for customer interactions and sales cycles
+
 **Note:** Use functions for detailed customer information.`;
     },
   },
@@ -241,6 +256,11 @@ Today's date is ${new Date().toISOString().split('T')[0]}.
 Partner Pipeline Summary:
 - Total: ${partnerSummary.total} partners, Status: ${JSON.stringify(partnerSummary.byStatus)}, Overdue: ${partnerSummary.overdue}
 Recent: ${JSON.stringify(partnerSummary.recent)}
+
+**GTM Document Linking:**
+- Partner CRM items can have linked documents like partnership proposals and case studies
+- When developing partnerships, suggest attaching relevant GTM documents
+- Documents can support partnership negotiations and collaboration planning
 
 **Note:** Use functions for detailed partner information.`;
     },
@@ -403,6 +423,11 @@ Calendar Summary:
 Recent overdue: ${JSON.stringify(calendarSummary.recentOverdue)}
 Today's tasks: ${JSON.stringify(calendarSummary.todaysTasksList)}
 
+**GTM Document Linking:**
+- Calendar events and meetings can have linked GTM documents
+- When preparing for meetings, consider suggesting relevant documents (pitch decks, case studies)
+- Documents can be attached to provide context for scheduled activities
+
 **Note:** Use functions to query specific task details or create/update tasks.`;
     },
   },
@@ -550,6 +575,12 @@ Document Library Summary:
 - By module: ${JSON.stringify(documentsSummary.byModule)}
 - By type: ${JSON.stringify(documentsSummary.byType)}
 Recent: ${JSON.stringify(documentsSummary.recent)}
+
+**Document Linking Capabilities:**
+- GTM documents can be linked to tasks, calendar events, and CRM items (investors, customers, partners)
+- This creates contextual relationships between documents and business activities
+- When users ask about documents for specific activities, consider suggesting relevant linkages
+- Document templates available: Pitch Deck, One-Pager, Sales Deck, Investor Update, Case Study
 
 **Note:** Use functions to access, create, or modify documents.`;
     },

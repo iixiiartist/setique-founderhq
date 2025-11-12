@@ -139,7 +139,7 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
           right: '24px',
           width: 'min(450px, calc(100vw - 3rem))',
           height: 'min(650px, calc(100vh - 8rem))',
-          border: '4px solid #9333ea',
+          border: '4px solid #2563eb',
           borderRadius: '8px',
         }),
         zIndex: isFullscreen ? 100000 : 99998,
