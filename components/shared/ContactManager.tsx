@@ -342,12 +342,17 @@ export const ContactManager: React.FC<ContactManagerProps> = ({
             }
 
             const updatedTags = [...currentTags, tag];
-            await actions.updateContact(
+            const result = await actions.updateContact(
                 crmType,
                 linkedAccount.id,
                 selectedContact.id,
                 { tags: updatedTags } as any
             );
+
+            if (result.success) {
+                // Update local state to reflect the change immediately
+                setSelectedContact({ ...selectedContact, tags: updatedTags });
+            }
 
             setNewTag('');
         } catch (error) {
@@ -365,12 +370,19 @@ export const ContactManager: React.FC<ContactManagerProps> = ({
             }
 
             const updatedTags = (contact.tags || []).filter(tag => tag !== tagToRemove);
-            await actions.updateContact(
+            const result = await actions.updateContact(
                 crmType,
                 linkedAccount.id,
                 contact.id,
                 { tags: updatedTags } as any
             );
+
+            if (result.success) {
+                // Update local state if this is the selected contact
+                if (selectedContact && selectedContact.id === contact.id) {
+                    setSelectedContact({ ...selectedContact, tags: updatedTags });
+                }
+            }
         } catch (error) {
             console.error('Error removing tag:', error);
             alert('Failed to remove tag');
