@@ -44,8 +44,6 @@ export const AccountManager: React.FC<AccountManagerProps> = ({
     workspaceId,
     onViewAccount
 }) => {
-    console.log('[AccountManager] Rendered with crmType:', crmType);
-    
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
@@ -1034,7 +1032,7 @@ export const AccountManager: React.FC<AccountManagerProps> = ({
             <Modal
                 isOpen={showAddModal}
                 onClose={closeAddModal}
-                title={`Add New ${getCrmTypeLabel()} [Type: ${crmType}]`}
+                title={`Add New ${getCrmTypeLabel()}`}
             >
                 <form onSubmit={handleAddAccount} className="space-y-4">
                     <div>
@@ -1134,12 +1132,6 @@ export const AccountManager: React.FC<AccountManagerProps> = ({
                     </div>
 
                     {/* Type-specific fields */}
-                    <div style={{ padding: '10px', backgroundColor: '#ffeb3b', border: '2px solid red', margin: '10px 0' }}>
-                        DEBUG: crmType = "{crmType}" | 
-                        investors={String(crmType === 'investors')} | 
-                        customers={String(crmType === 'customers')} | 
-                        partners={String(crmType === 'partners')}
-                    </div>
                     {crmType === 'investors' && (
                         <div className="grid grid-cols-2 gap-4">
                             <div>

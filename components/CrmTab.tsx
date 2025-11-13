@@ -172,7 +172,13 @@ const CrmTab: React.FC<CrmTabProps> = React.memo(({
 
     const getCrmType = (): 'investors' | 'customers' | 'partners' => {
         const lowerTitle = title.toLowerCase();
-        return lowerTitle as 'investors' | 'customers' | 'partners';
+        // Map singular to plural (title is "Investor", "Customer", "Partner")
+        const mapping: Record<string, 'investors' | 'customers' | 'partners'> = {
+            'investor': 'investors',
+            'customer': 'customers',
+            'partner': 'partners'
+        };
+        return mapping[lowerTitle] || (lowerTitle + 's') as 'investors' | 'customers' | 'partners';
     };
 
     return (
