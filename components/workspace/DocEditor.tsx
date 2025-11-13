@@ -28,6 +28,7 @@ import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { AICommandPalette } from './AICommandPalette';
 import { ImageUploadModal } from './ImageUploadModal';
 import { useAIWorkspaceContext } from '../../hooks/useAIWorkspaceContext';
+import { uploadToSupabase, validateImageFile } from '../../lib/services/imageUploadService';
 
 interface DocEditorProps {
     workspaceId: string;
@@ -152,6 +153,24 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                 }
                 return false;
             },
+            handlePaste: (view, event) => {
+                // Handle pasted images
+                const items = event.clipboardData?.items;
+                if (!items) return false;
+
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].type.indexOf('image') !== -1) {
+                        event.preventDefault();
+                        const file = items[i].getAsFile();
+                        if (file) {
+                            // Upload and insert the pasted image
+                            handlePastedImage(file);
+                        }
+                        return true;
+                    }
+                }
+                return false;
+            },
         },
     });
 
@@ -187,6 +206,32 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             console.error('Error loading doc:', error);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handlePastedImage = async (file: File) => {
+        if (!editor) return;
+
+        try {
+            // Validate the file
+            const validation = validateImageFile(file);
+            if (validation !== true) {
+                alert(validation.error);
+                return;
+            }
+
+            // Upload to Supabase
+            const result = await uploadToSupabase(file, workspaceId, docId);
+
+            // Insert image into editor at current cursor position
+            editor.chain().focus().setResizableImage({ 
+                src: result.url,
+                alt: `Pasted image ${new Date().toISOString()}`
+            }).run();
+
+        } catch (error: any) {
+            console.error('Paste image error:', error);
+            alert(`Failed to upload pasted image: ${error.message || 'Unknown error'}`);
         }
     };
 
