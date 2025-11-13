@@ -82,7 +82,7 @@ export const ResizableImage = Image.extend<ResizableImageOptions>({
         },
       },
       width: {
-        default: this.options.defaultWidth,
+        default: null,
         parseHTML: element => {
           const width = element.style.width || element.getAttribute('width');
           return width ? parseInt(width, 10) : null;
