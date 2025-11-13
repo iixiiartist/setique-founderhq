@@ -2,6 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import TextAlign from '@tiptap/extension-text-align';
+import TextStyle from '@tiptap/extension-text-style';
+import Color from '@tiptap/extension-color';
+import Highlight from '@tiptap/extension-highlight';
+import Underline from '@tiptap/extension-underline';
+import Subscript from '@tiptap/extension-subscript';
+import Superscript from '@tiptap/extension-superscript';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
+import Link from '@tiptap/extension-link';
+import Image from '@tiptap/extension-image';
+import FontFamily from '@tiptap/extension-font-family';
 import { GTMDoc, DocType, DocVisibility, AppActions, DashboardData } from '../../types';
 import { DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '../../constants';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
@@ -43,6 +59,12 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     const [showAICommandPalette, setShowAICommandPalette] = useState(false);
     const [aiPalettePosition, setAIPalettePosition] = useState({ top: 0, left: 0 });
     
+    // Toolbar state
+    const [showColorPicker, setShowColorPicker] = useState(false);
+    const [showHighlightPicker, setShowHighlightPicker] = useState(false);
+    const [showLinkInput, setShowLinkInput] = useState(false);
+    const [linkUrl, setLinkUrl] = useState('');
+    
     // Fetch workspace context for AI
     const { context: workspaceContext, loading: contextLoading } = useAIWorkspaceContext(
         docId,
@@ -50,17 +72,51 @@ export const DocEditor: React.FC<DocEditorProps> = ({
         userId
     );
 
-    // Initialize Tiptap editor
+    // Initialize Tiptap editor with premium extensions
     const editor = useEditor({
         extensions: [
             StarterKit.configure({
-                // Add keyboard shortcuts
                 heading: {
-                    levels: [1, 2, 3],
+                    levels: [1, 2, 3, 4, 5, 6],
                 },
             }),
             Placeholder.configure({
                 placeholder: 'Start writing your document...',
+            }),
+            TextAlign.configure({
+                types: ['heading', 'paragraph'],
+            }),
+            TextStyle,
+            Color,
+            Highlight.configure({
+                multicolor: true,
+            }),
+            Underline,
+            Subscript,
+            Superscript,
+            TaskList,
+            TaskItem.configure({
+                nested: true,
+            }),
+            Table.configure({
+                resizable: true,
+            }),
+            TableRow,
+            TableCell,
+            TableHeader,
+            Link.configure({
+                openOnClick: false,
+                HTMLAttributes: {
+                    class: 'text-blue-600 underline hover:text-blue-800',
+                },
+            }),
+            Image.configure({
+                HTMLAttributes: {
+                    class: 'max-w-full h-auto rounded border-2 border-black',
+                },
+            }),
+            FontFamily.configure({
+                types: ['textStyle'],
             }),
         ],
         content: '',
@@ -277,151 +333,220 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
                 {/* Editor Area */}
                 <div className="flex-1 overflow-y-auto flex flex-col">
-                    {/* Tiptap Toolbar */}
+                    {/* Premium Tiptap Toolbar */}
                     {editor && (
-                        <div className="sticky top-0 z-10 bg-white border-b-2 border-black p-1 lg:p-2 flex flex-wrap gap-1">
-                            <button
-                                onClick={() => editor.chain().focus().toggleBold().run()}
-                                className={`min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${
-                                    editor.isActive('bold') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
-                                }`}
-                                title="Bold (Ctrl+B)"
-                            >
-                                <strong>B</strong>
-                            </button>
-                            <button
-                                onClick={() => editor.chain().focus().toggleItalic().run()}
-                                className={`min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${
-                                    editor.isActive('italic') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
-                                }`}
-                                title="Italic (Ctrl+I)"
-                            >
-                                <em>I</em>
-                            </button>
-                            <button
-                                onClick={() => editor.chain().focus().toggleStrike().run()}
-                                className={`min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${
-                                    editor.isActive('strike') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
-                                }`}
-                                title="Strikethrough"
-                            >
-                                <s>S</s>
-                            </button>
-                            
-                            <div className="w-px bg-black mx-1 hidden lg:block"></div>
-                            
-                            <button
-                                onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-                                className={`min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${
-                                    editor.isActive('heading', { level: 1 }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
-                                }`}
-                                title="Heading 1"
-                            >
-                                H1
-                            </button>
-                            <button
-                                onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-                                className={`min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${
-                                    editor.isActive('heading', { level: 2 }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
-                                }`}
-                                title="Heading 2"
-                            >
-                                H2
-                            </button>
-                            <button
-                                onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-                                className={`min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${
-                                    editor.isActive('heading', { level: 3 }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
-                                }`}
-                                title="Heading 3"
-                            >
-                                H3
-                            </button>
-                            
-                            <div className="w-px bg-black mx-1 hidden lg:block"></div>
-                            
-                            <button
-                                onClick={() => editor.chain().focus().toggleBulletList().run()}
-                                className={`min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${
-                                    editor.isActive('bulletList') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
-                                }`}
-                                title="Bullet List"
-                            >
-                                • List
-                            </button>
-                            <button
-                                onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                                className={`min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${
-                                    editor.isActive('orderedList') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
-                                }`}
-                                title="Numbered List"
-                            >
-                                1. List
-                            </button>
-                            
-                            <div className="w-px bg-black mx-1 hidden lg:block"></div>
-                            
-                            <button
-                                onClick={() => editor.chain().focus().toggleBlockquote().run()}
-                                className={`min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${
-                                    editor.isActive('blockquote') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
-                                }`}
-                                title="Quote"
-                            >
-                                " Quote
-                            </button>
-                            <button
-                                onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-                                className={`min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${
-                                    editor.isActive('codeBlock') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
-                                }`}
-                                title="Code Block"
-                            >
-                                {'</>'}
-                            </button>
-                            
-                            <div className="w-px bg-black mx-1 hidden lg:block"></div>
-                            
-                            <button
-                                onClick={() => editor.chain().focus().setHorizontalRule().run()}
-                                className="min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black bg-white hover:bg-gray-100"
-                                title="Horizontal Line"
-                            >
-                                ─
-                            </button>
-                            <button
-                                onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()}
-                                className="min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black bg-white hover:bg-gray-100"
-                                title="Clear Formatting"
-                            >
-                                Clear
-                            </button>
-                            
-                            <div className="w-px bg-black mx-1 hidden lg:block"></div>
-                            
-                            {/* AI Writing Assistant */}
-                            <button
-                                onClick={() => {
+                        <div className="sticky top-0 z-10 bg-white border-b-2 border-black p-1 lg:p-2 overflow-x-auto">
+                            <div className="flex flex-wrap gap-1 min-w-max">
+                                {/* Text Formatting */}
+                                <button onClick={() => editor.chain().focus().toggleBold().run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('bold') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Bold (Ctrl+B)"><strong>B</strong></button>
+                                <button onClick={() => editor.chain().focus().toggleItalic().run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('italic') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Italic (Ctrl+I)"><em>I</em></button>
+                                <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('underline') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Underline (Ctrl+U)"><u>U</u></button>
+                                <button onClick={() => editor.chain().focus().toggleStrike().run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('strike') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Strikethrough"><s>S</s></button>
+                                
+                                <div className="w-px bg-black mx-1"></div>
+                                
+                                {/* Subscript/Superscript */}
+                                <button onClick={() => editor.chain().focus().toggleSubscript().run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('subscript') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Subscript">X<sub>₂</sub></button>
+                                <button onClick={() => editor.chain().focus().toggleSuperscript().run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('superscript') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Superscript">X<sup>²</sup></button>
+                                
+                                <div className="w-px bg-black mx-1"></div>
+                                
+                                {/* Color & Highlight */}
+                                <div className="relative">
+                                    <button onClick={() => setShowColorPicker(!showColorPicker)} className="px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black bg-white hover:bg-gray-100" title="Text Color">
+                                        <span style={{ color: editor.getAttributes('textStyle').color || '#000' }}>A</span>
+                                    </button>
+                                    {showColorPicker && (
+                                        <div className="absolute top-full mt-1 left-0 bg-white border-2 border-black p-2 shadow-lg z-20 grid grid-cols-5 gap-1">
+                                            {['#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFA500', '#800080', '#008000'].map(color => (
+                                                <button key={color} onClick={() => { editor.chain().focus().setColor(color).run(); setShowColorPicker(false); }} className="w-6 h-6 border-2 border-black" style={{ backgroundColor: color }} title={color} />
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="relative">
+                                    <button onClick={() => setShowHighlightPicker(!showHighlightPicker)} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('highlight') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Highlight">
+                                        <span className="bg-yellow-300 px-1">H</span>
+                                    </button>
+                                    {showHighlightPicker && (
+                                        <div className="absolute top-full mt-1 left-0 bg-white border-2 border-black p-2 shadow-lg z-20 grid grid-cols-4 gap-1">
+                                            {['#FFFF00', '#00FF00', '#00FFFF', '#FF00FF', '#FFA500', '#FFB6C1'].map(color => (
+                                                <button key={color} onClick={() => { editor.chain().focus().toggleHighlight({ color }).run(); setShowHighlightPicker(false); }} className="w-6 h-6 border-2 border-black" style={{ backgroundColor: color }} title={color} />
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                <div className="w-px bg-black mx-1"></div>
+                                
+                                {/* Headings */}
+                                <button onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('heading', { level: 1 }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Heading 1">H1</button>
+                                <button onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('heading', { level: 2 }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Heading 2">H2</button>
+                                <button onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('heading', { level: 3 }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Heading 3">H3</button>
+                                
+                                <div className="w-px bg-black mx-1"></div>
+                                
+                                {/* Text Alignment */}
+                                <button onClick={() => editor.chain().focus().setTextAlign('left').run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive({ textAlign: 'left' }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Align Left">⬅</button>
+                                <button onClick={() => editor.chain().focus().setTextAlign('center').run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive({ textAlign: 'center' }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Align Center">↔</button>
+                                <button onClick={() => editor.chain().focus().setTextAlign('right').run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive({ textAlign: 'right' }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Align Right">➡</button>
+                                <button onClick={() => editor.chain().focus().setTextAlign('justify').run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive({ textAlign: 'justify' }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Justify">≡</button>
+                                
+                                <div className="w-px bg-black mx-1"></div>
+                                
+                                {/* Lists */}
+                                <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('bulletList') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Bullet List">• List</button>
+                                <button onClick={() => editor.chain().focus().toggleOrderedList().run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('orderedList') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Numbered List">1. List</button>
+                                <button onClick={() => editor.chain().focus().toggleTaskList().run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('taskList') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Task List">☑ Tasks</button>
+                                
+                                <div className="w-px bg-black mx-1"></div>
+                                
+                                {/* Blocks */}
+                                <button onClick={() => editor.chain().focus().toggleBlockquote().run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('blockquote') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Quote">" Quote</button>
+                                <button onClick={() => editor.chain().focus().toggleCodeBlock().run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('codeBlock') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Code Block">{'</>'}</button>
+                                <button onClick={() => editor.chain().focus().setHorizontalRule().run()} className="px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black bg-white hover:bg-gray-100" title="Horizontal Rule">─</button>
+                                
+                                <div className="w-px bg-black mx-1"></div>
+                                
+                                {/* Table */}
+                                <button onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} className="px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black bg-white hover:bg-gray-100" title="Insert Table">⊞ Table</button>
+                                {editor.isActive('table') && (
+                                    <>
+                                        <button onClick={() => editor.chain().focus().addColumnBefore().run()} className="px-2 py-1 text-xs border-2 border-black bg-white hover:bg-gray-100" title="Add Column Before">+Col←</button>
+                                        <button onClick={() => editor.chain().focus().addColumnAfter().run()} className="px-2 py-1 text-xs border-2 border-black bg-white hover:bg-gray-100" title="Add Column After">+Col→</button>
+                                        <button onClick={() => editor.chain().focus().deleteColumn().run()} className="px-2 py-1 text-xs border-2 border-black bg-red-100 hover:bg-red-200" title="Delete Column">-Col</button>
+                                        <button onClick={() => editor.chain().focus().addRowBefore().run()} className="px-2 py-1 text-xs border-2 border-black bg-white hover:bg-gray-100" title="Add Row Above">+Row↑</button>
+                                        <button onClick={() => editor.chain().focus().addRowAfter().run()} className="px-2 py-1 text-xs border-2 border-black bg-white hover:bg-gray-100" title="Add Row Below">+Row↓</button>
+                                        <button onClick={() => editor.chain().focus().deleteRow().run()} className="px-2 py-1 text-xs border-2 border-black bg-red-100 hover:bg-red-200" title="Delete Row">-Row</button>
+                                        <button onClick={() => editor.chain().focus().deleteTable().run()} className="px-2 py-1 text-xs border-2 border-black bg-red-200 hover:bg-red-300" title="Delete Table">✕ Table</button>
+                                    </>
+                                )}
+                                
+                                <div className="w-px bg-black mx-1"></div>
+                                
+                                {/* Link */}
+                                <div className="relative">
+                                    <button onClick={() => {
+                                        if (editor.isActive('link')) {
+                                            editor.chain().focus().unsetLink().run();
+                                        } else {
+                                            setShowLinkInput(true);
+                                            setLinkUrl(editor.getAttributes('link').href || '');
+                                        }
+                                    }} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('link') ? 'bg-blue-200' : 'bg-white hover:bg-gray-100'}`} title="Link">🔗</button>
+                                    {showLinkInput && (
+                                        <div className="absolute top-full mt-1 left-0 bg-white border-2 border-black p-2 shadow-lg z-20 flex gap-1">
+                                            <input type="url" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://..." className="px-2 py-1 border-2 border-black text-sm w-48" />
+                                            <button onClick={() => { if (linkUrl) { editor.chain().focus().setLink({ href: linkUrl }).run(); } setShowLinkInput(false); setLinkUrl(''); }} className="px-2 py-1 bg-green-500 text-white font-bold border-2 border-black text-xs">✓</button>
+                                            <button onClick={() => { setShowLinkInput(false); setLinkUrl(''); }} className="px-2 py-1 bg-red-500 text-white font-bold border-2 border-black text-xs">✕</button>
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                {/* Image */}
+                                <button onClick={() => {
+                                    const url = window.prompt('Enter image URL:');
+                                    if (url) { editor.chain().focus().setImage({ src: url }).run(); }
+                                }} className="px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black bg-white hover:bg-gray-100" title="Insert Image">🖼 Image</button>
+                                
+                                <div className="w-px bg-black mx-1"></div>
+                                
+                                {/* Clear Formatting */}
+                                <button onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()} className="px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black bg-white hover:bg-gray-100" title="Clear Formatting">Clear</button>
+                                
+                                <div className="w-px bg-black mx-1"></div>
+                                
+                                {/* AI Writing Assistant */}
+                                <button onClick={() => {
                                     if (!editor) return;
                                     const { view } = editor;
                                     const coords = view.coordsAtPos(view.state.selection.from);
-                                    setAIPalettePosition({ 
-                                        top: coords.top + window.scrollY + 30, 
-                                        left: coords.left + window.scrollX 
-                                    });
+                                    setAIPalettePosition({ top: coords.top + window.scrollY + 30, left: coords.left + window.scrollX });
                                     setShowAICommandPalette(true);
-                                }}
-                                disabled={!workspaceContext || contextLoading}
-                                className="min-w-[44px] min-h-[44px] lg:min-w-0 lg:min-h-0 px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black bg-purple-500 text-white hover:bg-purple-600 disabled:bg-gray-300 disabled:text-gray-500"
-                                title="AI Writing Assistant (Cmd+K)"
-                            >
-                                🤖 AI
-                            </button>
+                                }} disabled={!workspaceContext || contextLoading} className="px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black bg-purple-500 text-white hover:bg-purple-600 disabled:bg-gray-300 disabled:text-gray-500" title="AI Writing Assistant (Cmd+K)">🤖 AI</button>
+                            </div>
                         </div>
                     )}
                     
                     {/* Tiptap Editor Content */}
                     <div className="flex-1 overflow-y-auto p-3 lg:p-6 bg-white">
+                        <style jsx global>{`
+                            /* Table Styles */
+                            .ProseMirror table {
+                                border-collapse: collapse;
+                                table-layout: fixed;
+                                width: 100%;
+                                margin: 1rem 0;
+                                overflow: hidden;
+                            }
+                            .ProseMirror table td,
+                            .ProseMirror table th {
+                                min-width: 1em;
+                                border: 2px solid #000;
+                                padding: 0.5rem;
+                                vertical-align: top;
+                                box-sizing: border-box;
+                                position: relative;
+                            }
+                            .ProseMirror table th {
+                                background-color: #fef08a;
+                                font-weight: bold;
+                                text-align: left;
+                            }
+                            .ProseMirror table .selectedCell {
+                                background-color: #e0e0e0;
+                            }
+                            
+                            /* Task List Styles */
+                            .ProseMirror ul[data-type="taskList"] {
+                                list-style: none;
+                                padding: 0;
+                            }
+                            .ProseMirror ul[data-type="taskList"] li {
+                                display: flex;
+                                align-items: flex-start;
+                                margin: 0.25rem 0;
+                            }
+                            .ProseMirror ul[data-type="taskList"] li > label {
+                                flex: 0 0 auto;
+                                margin-right: 0.5rem;
+                                user-select: none;
+                            }
+                            .ProseMirror ul[data-type="taskList"] li > div {
+                                flex: 1 1 auto;
+                            }
+                            .ProseMirror ul[data-type="taskList"] input[type="checkbox"] {
+                                width: 1.2rem;
+                                height: 1.2rem;
+                                cursor: pointer;
+                                margin-top: 0.15rem;
+                            }
+                            
+                            /* Image Styles */
+                            .ProseMirror img {
+                                max-width: 100%;
+                                height: auto;
+                                display: block;
+                                margin: 1rem auto;
+                                border: 2px solid #000;
+                            }
+                            
+                            /* Link Styles */
+                            .ProseMirror a {
+                                color: #2563eb;
+                                text-decoration: underline;
+                                cursor: pointer;
+                            }
+                            .ProseMirror a:hover {
+                                color: #1d4ed8;
+                            }
+                            
+                            /* Highlight Styles */
+                            .ProseMirror mark {
+                                padding: 0.125rem 0.25rem;
+                                border-radius: 0.25rem;
+                            }
+                        `}</style>
                         <EditorContent 
                             editor={editor} 
                             className="h-full min-h-[300px] lg:min-h-[500px] border-2 border-black p-3 lg:p-4 text-base lg:text-base"
