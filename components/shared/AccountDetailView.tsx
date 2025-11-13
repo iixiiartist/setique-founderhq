@@ -521,14 +521,14 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                     </div>
 
                     {/* Type-specific fields */}
-                    {'checkSize' in editForm && (
+                    {crmCollection === 'investors' && (
                         <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-200">
                             <div>
                                 <label htmlFor="edit-check-size" className="block font-mono text-sm font-semibold text-black mb-1">Check Size ($)</label>
                                 <input 
                                     id="edit-check-size" 
                                     type="number"
-                                    value={editForm.checkSize || ''} 
+                                    value={(editForm as any).checkSize || ''} 
                                     onChange={(e) => handleFormChange('checkSize', e.target.value ? Number(e.target.value) : undefined)} 
                                     placeholder="e.g., 100000"
                                     className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
@@ -554,14 +554,14 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                         </div>
                     )}
 
-                    {'dealValue' in editForm && (
+                    {crmCollection === 'customers' && (
                         <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-200">
                             <div>
                                 <label htmlFor="edit-deal-value" className="block font-mono text-sm font-semibold text-black mb-1">Deal Value ($)</label>
                                 <input 
                                     id="edit-deal-value" 
                                     type="number"
-                                    value={editForm.dealValue || ''} 
+                                    value={(editForm as any).dealValue || ''} 
                                     onChange={(e) => handleFormChange('dealValue', e.target.value ? Number(e.target.value) : undefined)} 
                                     placeholder="e.g., 50000"
                                     className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
@@ -587,13 +587,13 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                         </div>
                     )}
 
-                    {'opportunity' in editForm && (
+                    {crmCollection === 'partners' && (
                         <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-200">
                             <div>
                                 <label htmlFor="edit-opportunity" className="block font-mono text-sm font-semibold text-black mb-1">Opportunity</label>
                                 <input 
                                     id="edit-opportunity" 
-                                    value={editForm.opportunity || ''} 
+                                    value={(editForm as any).opportunity || ''} 
                                     onChange={(e) => handleFormChange('opportunity', e.target.value)} 
                                     placeholder="e.g., Co-marketing campaign"
                                     className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
