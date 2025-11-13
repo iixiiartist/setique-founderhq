@@ -1,135 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { BaseCrmItem, Investor, Customer, Partner, Task, AppActions, Priority, CrmCollectionName, TaskCollectionName, AnyCrmItem, TabType, Contact, Document, BusinessProfile, WorkspaceMember } from '../types';
-import { Tab } from '../constants';
+import { AnyCrmItem, Task, AppActions, CrmCollectionName, TaskCollectionName, Contact, Document, BusinessProfile, WorkspaceMember } from '../types';
 import AccountDetailView from './shared/AccountDetailView';
 import ContactDetailView from './shared/ContactDetailView';
 import TaskManagement from './shared/TaskManagement';
-import { AssignmentDropdown } from './shared/AssignmentDropdown';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { ContactManager } from './shared/ContactManager';
-
-
-const CrmItemCard: React.FC<{ item: AnyCrmItem, onView: (item: AnyCrmItem) => void }> = ({ item, onView }) => {
-    const todayStr = new Date().toISOString().split('T')[0];
-    const isOverdue = item.nextActionDate && item.nextActionDate < todayStr;
-    const lastNote = item.notes.length > 0 ? [...item.notes].sort((a,b) => b.timestamp - a.timestamp)[0] : null;
-
-    const valueDisplay = () => {
-        if ('checkSize' in item && item.checkSize != null) return <span className="font-bold text-xl text-green-600">${(item as Investor).checkSize.toLocaleString()}</span>;
-        if ('dealValue' in item && item.dealValue != null) return <span className="font-bold text-xl text-blue-600">${(item as Customer).dealValue.toLocaleString()}</span>;
-        if ('opportunity' in item) return <span className="font-semibold text-lg text-purple-600 truncate" title={(item as Partner).opportunity}>{(item as Partner).opportunity || 'N/A'}</span>;
-        return null;
-    };
-
-    return (
-        <li className={`group bg-white border-2 shadow-neo hover:shadow-neo-lg transition-all ${isOverdue ? 'border-red-500' : 'border-black'}`}>
-            <div className="p-5">
-                {/* Header */}
-                <div className="flex items-start justify-between gap-4 mb-3">
-                    <div className="flex-grow min-w-0">
-                        <h3 className="font-bold text-xl text-black truncate mb-1">{item.company}</h3>
-                        <p className="text-sm text-gray-600">{(item.contacts && item.contacts[0]?.name) || 'No contacts'}</p>
-                    </div>
-                    <div className="flex-shrink-0 text-right">
-                        {valueDisplay()}
-                    </div>
-                </div>
-
-                {/* Status Row */}
-                <div className="flex flex-wrap items-center gap-2 mb-3 pb-3 border-b border-gray-200">
-                    <span className={`priority-badge priority-${item.priority.toLowerCase()}`}>{item.priority}</span>
-                    <span className="px-3 py-1 bg-gray-100 border border-black text-xs font-mono font-semibold">
-                        {item.status}
-                    </span>
-                    {item.assignedToName && (
-                        <span className="px-3 py-1 bg-blue-50 border border-blue-300 text-xs font-mono text-blue-700 font-semibold">
-                            → {item.assignedToName}
-                        </span>
-                    )}
-                </div>
-
-                {/* Next Action */}
-                <div className="space-y-2 mb-3">
-                    <div className="flex items-start gap-2">
-                        <span className="text-xs font-mono text-gray-500 uppercase shrink-0">Last Contact:</span>
-                        <span className="text-sm text-gray-700">{lastNote ? new Date(lastNote.timestamp).toLocaleDateString() : 'N/A'}</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                        <span className="text-xs font-mono text-gray-500 uppercase shrink-0">Next Action:</span>
-                        <div className="flex-grow min-w-0">
-                            <span className="text-sm font-medium text-black">{item.nextAction || 'None'}</span>
-                            {item.nextActionDate && (
-                                <span className="text-sm text-gray-600 ml-2">
-                                    ({new Date(item.nextActionDate + 'T00:00:00').toLocaleDateString(undefined, { timeZone: 'UTC' })})
-                                </span>
-                            )}
-                            {isOverdue && <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs font-mono font-bold">OVERDUE</span>}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Last Note Preview */}
-                {lastNote && (
-                    <div className="bg-gray-50 border-l-4 border-black p-3 mb-3">
-                        <p className="text-sm text-gray-700 italic line-clamp-2" title={lastNote.text}>
-                            "{lastNote.text}"
-                        </p>
-                    </div>
-                )}
-
-                {/* Action Button */}
-                <button 
-                    onClick={() => onView(item)} 
-                    className="w-full font-mono bg-black text-white border-2 border-black py-2 px-4 rounded-none font-semibold shadow-neo-btn hover:bg-white hover:text-black transition-all"
-                >
-                    View Account →
-                </button>
-            </div>
-        </li>
-    );
-};
-
-
-const AddCrmForm: React.FC<{ title: string, collection: CrmCollectionName, actions: AppActions}> = ({ title, collection, actions }) => {
-    const [form, setForm] = useState<Partial<AnyCrmItem>>({ company: '', nextAction: '', nextActionDate: '', nextActionTime: '' });
-    
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!form.company || form.company.trim() === '') return;
-        actions.createCrmItem(collection, form);
-        setForm({ company: '', nextAction: '', nextActionDate: '', nextActionTime: '' });
-    };
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-                <label htmlFor={`crm-company-${collection}`} className="block font-mono text-sm font-semibold text-black mb-1">
-                    Company Name
-                </label>
-                <input id={`crm-company-${collection}`} value={form.company || ''} onChange={(e) => setForm(p => ({...p, company: e.target.value}))} placeholder="e.g., Acme Corp" required className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" />
-            </div>
-             <div>
-                <label htmlFor={`crm-nextAction-${collection}`} className="block font-mono text-sm font-semibold text-black mb-1">
-                    Next Action
-                </label>
-                <input id={`crm-nextAction-${collection}`} value={form.nextAction || ''} onChange={(e) => setForm(p => ({...p, nextAction: e.target.value}))} placeholder="e.g., Send follow-up" className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" />
-            </div>
-            <div>
-                <label htmlFor={`crm-nextActionDate-${collection}`} className="block font-mono text-sm font-semibold text-black mb-1">
-                    Next Action Date
-                </label>
-                <input id={`crm-nextActionDate-${collection}`} type="date" value={form.nextActionDate || ''} onChange={(e) => setForm(p => ({...p, nextActionDate: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" />
-            </div>
-            <div>
-                <label htmlFor={`crm-nextActionTime-${collection}`} className="block font-mono text-sm font-semibold text-black mb-1">
-                    Next Action Time
-                </label>
-                <input id={`crm-nextActionTime-${collection}`} type="time" value={form.nextActionTime || ''} onChange={(e) => setForm(p => ({...p, nextActionTime: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" />
-            </div>
-            <button type="submit" className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn">Add {title}</button>
-        </form>
-    )
-};
+import { AccountManager } from './shared/AccountManager';
+import { FollowUpsManager } from './shared/FollowUpsManager';
 
 interface CrmTabProps {
     title: string;
@@ -159,7 +36,6 @@ const CrmTab: React.FC<CrmTabProps> = React.memo(({
     const { workspace } = useWorkspace();
     const [selectedItem, setSelectedItem] = useState<AnyCrmItem | null>(null);
     const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
-    const [filterAssignment, setFilterAssignment] = useState<string>('all');
     const isUpdatingRef = useRef(false);
 
     const { crmCollection, taskCollection, tag } = useMemo(() => {
@@ -245,14 +121,7 @@ const CrmTab: React.FC<CrmTabProps> = React.memo(({
         }
     };
 
-    const filteredCrmItems = useMemo(() => {
-        if (filterAssignment === 'my' && userId) {
-            return crmItems.filter(item => item.assignedTo === userId);
-        } else if (filterAssignment === 'unassigned') {
-            return crmItems.filter(item => !item.assignedTo);
-        }
-        return crmItems; // 'all'
-    }, [crmItems, filterAssignment, userId]);
+
 
     // Wrap updateCrmItem to set updating flag
     const wrappedActions = useMemo(() => ({
@@ -300,50 +169,23 @@ const CrmTab: React.FC<CrmTabProps> = React.memo(({
         );
     }
 
+    const getCrmType = (): 'investors' | 'customers' | 'partners' => {
+        const lowerTitle = title.toLowerCase();
+        return lowerTitle as 'investors' | 'customers' | 'partners';
+    };
+
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
-                {/* Pipeline Section - Full Width */}
+                {/* Account Manager - Replaces Pipeline and Add Form */}
                 <div className="bg-white p-6 border-2 border-black shadow-neo">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                        <h2 className="text-2xl font-bold text-black">{title} Pipeline</h2>
-                        {workspaceMembers.length > 0 && (
-                            <select 
-                                value={filterAssignment} 
-                                onChange={(e) => setFilterAssignment(e.target.value)}
-                                className="text-sm bg-white border-2 border-black text-black py-2 px-3 rounded-none font-mono cursor-pointer shadow-neo-sm hover:bg-gray-50 transition-colors"
-                            >
-                                <option value="all">All {title}s</option>
-                                <option value="my">My {title}s</option>
-                                <option value="unassigned">Unassigned</option>
-                            </select>
-                        )}
-                    </div>
-                    <ul className="max-h-[70vh] overflow-y-auto custom-scrollbar pr-2 space-y-3">
-                        {filteredCrmItems.length > 0 ? (
-                            filteredCrmItems.map(item => <CrmItemCard key={item.id} item={item} onView={setSelectedItem} />)
-                        ) : (
-                            <div className="text-center py-12">
-                                <p className="text-gray-400 text-lg italic">
-                                    No {filterAssignment === 'my' ? 'assigned' : filterAssignment === 'unassigned' ? 'unassigned' : ''} {title.toLowerCase()} items{filterAssignment !== 'all' ? ' found' : ' yet'}.
-                                </p>
-                                {filterAssignment !== 'all' && (
-                                    <button 
-                                        onClick={() => setFilterAssignment('all')}
-                                        className="mt-4 text-sm text-blue-600 hover:underline"
-                                    >
-                                        View all {title.toLowerCase()}s
-                                    </button>
-                                )}
-                            </div>
-                        )}
-                    </ul>
-                </div>
-
-                {/* Add New Form */}
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
-                    <h2 className="text-xl font-bold text-black mb-4">Add New {title}</h2>
-                    <AddCrmForm title={title} collection={crmCollection} actions={actions} />
+                    <AccountManager
+                        crmItems={crmItems}
+                        actions={actions}
+                        crmCollection={crmCollection}
+                        crmType={getCrmType()}
+                        workspaceId={workspaceId}
+                    />
                 </div>
 
                 {/* Contact Manager */}
@@ -354,6 +196,14 @@ const CrmTab: React.FC<CrmTabProps> = React.memo(({
                         actions={actions}
                         crmType={crmCollection}
                         workspaceId={workspaceId}
+                    />
+                </div>
+
+                {/* Follow Ups Manager - Replaces old "Add New" section */}
+                <div className="bg-white p-6 border-2 border-black shadow-neo">
+                    <FollowUpsManager
+                        allCrmItems={crmItems}
+                        userId={userId}
                     />
                 </div>
 
