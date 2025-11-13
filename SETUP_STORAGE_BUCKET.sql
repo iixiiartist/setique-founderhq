@@ -87,7 +87,7 @@ SELECT
     cmd
 FROM pg_policies
 WHERE tablename = 'objects'
-AND policyname LIKE '%workspace%'
+AND (policyname LIKE '%workspace%' OR policyname LIKE '%publicly readable%')
 ORDER BY policyname;
 
 -- =====================================================

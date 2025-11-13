@@ -1,47 +1,21 @@
-Copyright (c) 2025 Setique. All rights reserved.
+MIT License
 
-PROPRIETARY SOFTWARE LICENSE
+Copyright (c) 2021 Supabase, Inc. and contributors
 
-This software and associated documentation files (the "Software"), including but not 
-limited to source code, object code, documentation, and any related materials, are 
-the proprietary and confidential property of Setique.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-RESTRICTIONS:
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-1. NO LICENSE GRANTED: No license, right, title, or interest in or to the Software 
-   is granted except as expressly set forth herein.
-
-2. NO COPYING: You may not copy, reproduce, distribute, publish, display, perform, 
-   modify, create derivative works from, transmit, or in any way exploit any part 
-   of the Software.
-
-3. NO COMMERCIAL USE: You may not use the Software for any commercial purpose 
-   without explicit written permission from Setique.
-
-4. NO REVERSE ENGINEERING: You may not reverse engineer, decompile, disassemble, 
-   or attempt to derive the source code of the Software.
-
-5. VIEWING ONLY: This repository is made available for portfolio and demonstration 
-   purposes only. Viewing the code does not grant any rights to use, copy, or 
-   implement it.
-
-UNAUTHORIZED USE:
-
-Any unauthorized copying, modification, distribution, or use of this Software is 
-strictly prohibited and will be prosecuted to the maximum extent possible under 
-applicable law.
-
-CONTACT:
-
-For licensing inquiries or permission requests, please contact:
-Email: joe@setique.com
-Website: https://setique.com
-
-DISCLAIMER:
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
-INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A 
-PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT 
-HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION 
-OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
-SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

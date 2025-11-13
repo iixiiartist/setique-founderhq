@@ -20,8 +20,6 @@ import { FontFamily } from '@tiptap/extension-font-family';
 import { Typography } from '@tiptap/extension-typography';
 import { CharacterCount } from '@tiptap/extension-character-count';
 import { Focus } from '@tiptap/extension-focus';
-import { Gapcursor } from '@tiptap/extension-gapcursor';
-import { Dropcursor } from '@tiptap/extension-dropcursor';
 import { Youtube } from '@tiptap/extension-youtube';
 import { ResizableImage } from '../../lib/tiptap/ResizableImage';
 import { GTMDoc, DocType, DocVisibility, AppActions, DashboardData } from '../../types';
@@ -84,11 +82,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     // Initialize Tiptap editor with premium extensions
     const editor = useEditor({
         extensions: [
-            StarterKit.configure({
-                heading: {
-                    levels: [1, 2, 3, 4, 5, 6],
-                },
-            }),
+            StarterKit,
             Placeholder.configure({
                 placeholder: 'Start writing your document...',
             }),
@@ -133,11 +127,6 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             Focus.configure({
                 className: 'has-focus',
                 mode: 'all',
-            }),
-            Gapcursor,
-            Dropcursor.configure({
-                color: '#000',
-                width: 4,
             }),
             Youtube.configure({
                 controls: true,
