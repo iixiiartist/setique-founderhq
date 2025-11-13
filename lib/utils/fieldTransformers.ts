@@ -74,6 +74,13 @@ interface DbCrmItem {
   check_size?: number | null;
   deal_value?: number | null;
   opportunity?: string | null;
+  // Deal flow management fields
+  website?: string | null;
+  industry?: string | null;
+  description?: string | null;
+  investment_stage?: string | null; // For investors
+  deal_stage?: string | null; // For customers
+  partner_type?: string | null; // For partners
 }
 
 interface DbContact {
@@ -208,7 +215,7 @@ export function dbToMarketingItem(dbItem: DbMarketingItem): MarketingItem {
  * Transform database CRM item record to application BaseCrmItem model
  */
 export function dbToCrmItem(dbItem: DbCrmItem): BaseCrmItem {
-  return {
+  const base: any = {
     id: dbItem.id,
     company: dbItem.company,
     contacts: [], // Contacts are loaded separately and merged
@@ -222,6 +229,16 @@ export function dbToCrmItem(dbItem: DbCrmItem): BaseCrmItem {
     assignedTo: dbItem.assigned_to || undefined,
     assignedToName: dbItem.assigned_to_name || undefined,
   };
+  
+  // Add deal flow management fields
+  if (dbItem.website) base.website = dbItem.website;
+  if (dbItem.industry) base.industry = dbItem.industry;
+  if (dbItem.description) base.description = dbItem.description;
+  if (dbItem.investment_stage) base.stage = dbItem.investment_stage; // Map to 'stage' for app
+  if (dbItem.deal_stage) base.dealStage = dbItem.deal_stage;
+  if (dbItem.partner_type) base.partnerType = dbItem.partner_type;
+  
+  return base;
 }
 
 /**

@@ -277,9 +277,15 @@ export class DataPersistenceAdapter {
       checkSize?: number
       dealValue?: number
       opportunity?: string
+      website?: string
+      industry?: string
+      description?: string
+      stage?: string // Investment stage for investors
+      dealStage?: string // Deal stage for customers
+      partnerType?: string // Partner type for partners
     }
   ) {
-    const crmData = {
+    const crmData: any = {
       // Don't include id - let database generate it
       company: itemData.company,
       type: collectionToType(collection),
@@ -290,13 +296,25 @@ export class DataPersistenceAdapter {
       check_size: itemData.checkSize || null,
       deal_value: itemData.dealValue || null,
       opportunity: itemData.opportunity || null,
-      notes: []
+      notes: [],
+      // New deal flow fields
+      website: itemData.website || null,
+      industry: itemData.industry || null,
+      description: itemData.description || null,
+      investment_stage: itemData.stage || null,
+      deal_stage: itemData.dealStage || null,
+      partner_type: itemData.partnerType || null
     }
 
     console.log('[DataPersistence] Creating CRM item:', { 
       collection, 
       type: crmData.type, 
-      company: crmData.company
+      company: crmData.company,
+      website: crmData.website,
+      industry: crmData.industry,
+      stage: crmData.investment_stage,
+      dealStage: crmData.deal_stage,
+      partnerType: crmData.partner_type
     });
 
     const { data, error } = await DatabaseService.createCrmItem(userId, workspaceId, crmData)
@@ -318,6 +336,14 @@ export class DataPersistenceAdapter {
     if ('checkSize' in updates) dbUpdates.check_size = updates.checkSize;
     if ('dealValue' in updates) dbUpdates.deal_value = updates.dealValue;
     if ('opportunity' in updates) dbUpdates.opportunity = updates.opportunity;
+    
+    // Add deal flow management fields
+    if ('website' in updates) dbUpdates.website = updates.website || null;
+    if ('industry' in updates) dbUpdates.industry = updates.industry || null;
+    if ('description' in updates) dbUpdates.description = updates.description || null;
+    if ('stage' in updates) dbUpdates.investment_stage = (updates as any).stage || null;
+    if ('dealStage' in updates) dbUpdates.deal_stage = (updates as any).dealStage || null;
+    if ('partnerType' in updates) dbUpdates.partner_type = (updates as any).partnerType || null;
 
     console.log('[DataPersistenceAdapter] updateCrmItem - updates:', updates);
     console.log('[DataPersistenceAdapter] updateCrmItem - dbUpdates:', dbUpdates);
