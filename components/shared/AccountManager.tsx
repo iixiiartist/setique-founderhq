@@ -17,10 +17,16 @@ interface AccountFormData {
     nextAction: string;
     nextActionDate: string;
     nextActionTime: string;
+    website?: string;
+    industry?: string;
+    description?: string;
     // Type-specific fields
     checkSize?: number;
+    stage?: string; // For investors: Seed, Series A, B, C, etc.
     dealValue?: number;
+    dealStage?: string; // For customers: Prospect, Qualified, Proposal, etc.
     opportunity?: string;
+    partnerType?: string; // For partners: Technology, Marketing, Distribution, etc.
 }
 
 interface CSVImportResult {
@@ -68,8 +74,14 @@ export const AccountManager: React.FC<AccountManagerProps> = ({
         status: 'Active',
         nextAction: '',
         nextActionDate: '',
-        nextActionTime: ''
+        nextActionTime: '',
+        website: '',
+        industry: '',
+        description: ''
     });
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+    const [sortBy, setSortBy] = useState<'company' | 'priority' | 'status' | 'value' | 'lastContact'>('company');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
     // Get all unique tags from CRM items
     const allTags = useMemo(() => {
@@ -141,8 +153,66 @@ export const AccountManager: React.FC<AccountManagerProps> = ({
             filtered = filtered.filter(item => item.nextActionDate && item.nextActionDate < today);
         }
 
+        // Sort items
+        filtered.sort((a, b) => {
+            let comparison = 0;
+            
+            switch (sortBy) {
+                case 'company':
+                    comparison = a.company.localeCompare(b.company);
+                    break;
+                case 'priority':
+                    const priorityOrder = { 'High': 3, 'Medium': 2, 'Low': 1 };
+                    comparison = (priorityOrder[a.priority] || 0) - (priorityOrder[b.priority] || 0);
+                    break;
+                case 'status':
+                    comparison = a.status.localeCompare(b.status);
+                    break;
+                case 'value':
+                    const aValue = ('checkSize' in a ? (a as Investor).checkSize : 'dealValue' in a ? (a as Customer).dealValue : 0) || 0;
+                    const bValue = ('checkSize' in b ? (b as Investor).checkSize : 'dealValue' in b ? (b as Customer).dealValue : 0) || 0;
+                    comparison = aValue - bValue;
+                    break;
+                case 'lastContact':
+                    const aLastNote = a.notes?.length ? Math.max(...a.notes.map(n => n.timestamp)) : 0;
+                    const bLastNote = b.notes?.length ? Math.max(...b.notes.map(n => n.timestamp)) : 0;
+                    comparison = aLastNote - bLastNote;
+                    break;
+            }
+            
+            return sortOrder === 'asc' ? comparison : -comparison;
+        });
+
         return filtered;
-    }, [crmItems, searchQuery, filterByStatus, filterByPriority, filterByTag, filterByContactCount, filterByNoteCount, filterOverdue]);
+    }, [crmItems, searchQuery, filterByStatus, filterByPriority, filterByTag, filterByContactCount, filterByNoteCount, filterOverdue, sortBy, sortOrder]);
+
+    // Calculate analytics
+    const analytics = useMemo(() => {
+        const total = filteredItems.length;
+        const highPriority = filteredItems.filter(i => i.priority === 'High').length;
+        const overdueCount = filteredItems.filter(i => {
+            const today = new Date().toISOString().split('T')[0];
+            return i.nextActionDate && i.nextActionDate < today;
+        }).length;
+        
+        let totalValue = 0;
+        filteredItems.forEach(item => {
+            if ('checkSize' in item && item.checkSize) totalValue += item.checkSize;
+            if ('dealValue' in item && item.dealValue) totalValue += item.dealValue;
+        });
+        
+        const withContacts = filteredItems.filter(i => (i.contacts || []).length > 0).length;
+        const avgContactsPerAccount = total > 0 ? filteredItems.reduce((sum, i) => sum + (i.contacts || []).length, 0) / total : 0;
+        
+        return {
+            total,
+            highPriority,
+            overdueCount,
+            totalValue,
+            withContacts,
+            avgContactsPerAccount: Math.round(avgContactsPerAccount * 10) / 10
+        };
+    }, [filteredItems]);
 
     const getCrmTypeLabel = () => {
         switch (crmType) {
@@ -183,14 +253,7 @@ export const AccountManager: React.FC<AccountManagerProps> = ({
             await actions.createCrmItem(crmCollection, itemData);
             
             // Reset form
-            setFormData({
-                company: '',
-                priority: 'Medium',
-                status: 'Active',
-                nextAction: '',
-                nextActionDate: '',
-                nextActionTime: ''
-            });
+            setFormData(resetFormData());
             setShowAddModal(false);
         } catch (error) {
             console.error('Error creating account:', error);
@@ -226,14 +289,7 @@ export const AccountManager: React.FC<AccountManagerProps> = ({
             
             setShowEditModal(false);
             setSelectedItem(null);
-            setFormData({
-                company: '',
-                priority: 'Medium',
-                status: 'Active',
-                nextAction: '',
-                nextActionDate: '',
-                nextActionTime: ''
-            });
+            setFormData(resetFormData());
         } catch (error) {
             console.error('Error updating account:', error);
             alert('Failed to update account. Please try again.');
@@ -259,41 +315,51 @@ export const AccountManager: React.FC<AccountManagerProps> = ({
             status: item.status,
             nextAction: item.nextAction || '',
             nextActionDate: item.nextActionDate || '',
-            nextActionTime: item.nextActionTime || ''
+            nextActionTime: item.nextActionTime || '',
+            website: (item as any).website || '',
+            industry: (item as any).industry || '',
+            description: (item as any).description || ''
         };
 
         // Add type-specific fields
-        if ('checkSize' in item) formUpdate.checkSize = (item as Investor).checkSize;
-        if ('dealValue' in item) formUpdate.dealValue = (item as Customer).dealValue;
-        if ('opportunity' in item) formUpdate.opportunity = (item as Partner).opportunity;
+        if ('checkSize' in item) {
+            formUpdate.checkSize = (item as Investor).checkSize;
+            formUpdate.stage = (item as any).stage || '';
+        }
+        if ('dealValue' in item) {
+            formUpdate.dealValue = (item as Customer).dealValue;
+            formUpdate.dealStage = (item as any).dealStage || '';
+        }
+        if ('opportunity' in item) {
+            formUpdate.opportunity = (item as Partner).opportunity;
+            formUpdate.partnerType = (item as any).partnerType || '';
+        }
 
         setFormData(formUpdate);
         setShowEditModal(true);
     };
 
+    const resetFormData = () => ({
+        company: '',
+        priority: 'Medium' as Priority,
+        status: 'Active',
+        nextAction: '',
+        nextActionDate: '',
+        nextActionTime: '',
+        website: '',
+        industry: '',
+        description: ''
+    });
+
     const closeAddModal = () => {
         setShowAddModal(false);
-        setFormData({
-            company: '',
-            priority: 'Medium',
-            status: 'Active',
-            nextAction: '',
-            nextActionDate: '',
-            nextActionTime: ''
-        });
+        setFormData(resetFormData());
     };
 
     const closeEditModal = () => {
         setShowEditModal(false);
         setSelectedItem(null);
-        setFormData({
-            company: '',
-            priority: 'Medium',
-            status: 'Active',
-            nextAction: '',
-            nextActionDate: '',
-            nextActionTime: ''
-        });
+        setFormData(resetFormData());
     };
 
     // CSV Export
@@ -697,8 +763,82 @@ export const AccountManager: React.FC<AccountManagerProps> = ({
                 )}
             </div>
 
+            {/* Analytics Dashboard */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-400 p-3 text-center">
+                    <div className="text-2xl font-bold font-mono text-blue-800">{analytics.total}</div>
+                    <div className="text-xs font-mono text-blue-600">Total {getCrmTypeLabel()}s</div>
+                </div>
+                <div className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-400 p-3 text-center">
+                    <div className="text-2xl font-bold font-mono text-red-800">{analytics.highPriority}</div>
+                    <div className="text-xs font-mono text-red-600">High Priority</div>
+                </div>
+                <div className="bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-400 p-3 text-center">
+                    <div className="text-2xl font-bold font-mono text-orange-800">{analytics.overdueCount}</div>
+                    <div className="text-xs font-mono text-orange-600">Overdue</div>
+                </div>
+                <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-400 p-3 text-center">
+                    <div className="text-xl font-bold font-mono text-green-800">
+                        ${(analytics.totalValue / 1000000).toFixed(1)}M
+                    </div>
+                    <div className="text-xs font-mono text-green-600">Total Value</div>
+                </div>
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-400 p-3 text-center">
+                    <div className="text-2xl font-bold font-mono text-purple-800">{analytics.withContacts}</div>
+                    <div className="text-xs font-mono text-purple-600">With Contacts</div>
+                </div>
+                <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-2 border-indigo-400 p-3 text-center">
+                    <div className="text-2xl font-bold font-mono text-indigo-800">{analytics.avgContactsPerAccount}</div>
+                    <div className="text-xs font-mono text-indigo-600">Avg Contacts</div>
+                </div>
+            </div>
+
+            {/* View Controls and Sort */}
+            <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
+                <div className="flex items-center gap-2">
+                    <span className="text-sm font-mono font-semibold text-gray-700">Sort by:</span>
+                    <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as any)}
+                        className="text-sm bg-white border-2 border-black text-black py-1 px-2 rounded-none focus:outline-none focus:border-blue-500"
+                    >
+                        <option value="company">Company</option>
+                        <option value="priority">Priority</option>
+                        <option value="status">Status</option>
+                        <option value="value">Value</option>
+                        <option value="lastContact">Last Contact</option>
+                    </select>
+                    <button
+                        onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                        className="px-2 py-1 bg-gray-200 border-2 border-black text-black text-sm font-mono hover:bg-gray-300 transition-all"
+                        title={`Sort ${sortOrder === 'asc' ? 'ascending' : 'descending'}`}
+                    >
+                        {sortOrder === 'asc' ? '↑' : '↓'}
+                    </button>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="text-sm font-mono font-semibold text-gray-700">View:</span>
+                    <button
+                        onClick={() => setViewMode('list')}
+                        className={`px-3 py-1 border-2 border-black text-sm font-mono font-semibold transition-all ${
+                            viewMode === 'list' ? 'bg-black text-white' : 'bg-white text-black hover:bg-gray-100'
+                        }`}
+                    >
+                        List
+                    </button>
+                    <button
+                        onClick={() => setViewMode('grid')}
+                        className={`px-3 py-1 border-2 border-black text-sm font-mono font-semibold transition-all ${
+                            viewMode === 'grid' ? 'bg-black text-white' : 'bg-white text-black hover:bg-gray-100'
+                        }`}
+                    >
+                        Grid
+                    </button>
+                </div>
+            </div>
+
             {/* Account List */}
-            <div className="space-y-2 max-h-96 overflow-y-auto">
+            <div className={`${viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-3' : 'space-y-2'} max-h-96 overflow-y-auto`}>
                 {filteredItems.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
                         <p>No accounts found</p>
@@ -714,6 +854,12 @@ export const AccountManager: React.FC<AccountManagerProps> = ({
                         const isSelected = selectedItemIds.has(item.id);
                         const todayStr = new Date().toISOString().split('T')[0];
                         const isOverdue = item.nextActionDate && item.nextActionDate < todayStr;
+                        const lastNote = item.notes && item.notes.length > 0 
+                            ? [...item.notes].sort((a, b) => b.timestamp - a.timestamp)[0] 
+                            : null;
+                        const daysSinceContact = lastNote 
+                            ? Math.floor((Date.now() - lastNote.timestamp) / (1000 * 60 * 60 * 24))
+                            : null;
                         
                         return (
                             <div
@@ -740,22 +886,38 @@ export const AccountManager: React.FC<AccountManagerProps> = ({
                                     )}
                                     <div className="flex-grow min-w-0">
                                         <div className="flex items-start justify-between gap-4 mb-2">
-                                            <h4 className="font-bold text-lg text-black truncate">
-                                                {item.company}
-                                            </h4>
-                                            {'checkSize' in item && (
-                                                <span className="font-bold text-green-600">
-                                                    ${(item as Investor).checkSize?.toLocaleString()}
-                                                </span>
-                                            )}
-                                            {'dealValue' in item && (
-                                                <span className="font-bold text-blue-600">
-                                                    ${(item as Customer).dealValue?.toLocaleString()}
-                                                </span>
-                                            )}
+                                            <div className="flex-grow min-w-0">
+                                                <h4 className="font-bold text-lg text-black truncate">
+                                                    {item.company}
+                                                </h4>
+                                                {(item.contacts || []).length > 0 && (
+                                                    <p className="text-sm text-gray-600 truncate">
+                                                        {item.contacts![0].name}
+                                                        {item.contacts!.length > 1 && ` +${item.contacts!.length - 1} more`}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <div className="flex-shrink-0 text-right">
+                                                {'checkSize' in item && item.checkSize && (
+                                                    <div>
+                                                        <div className="font-bold text-lg text-green-600">
+                                                            ${(item.checkSize / 1000)}K
+                                                        </div>
+                                                        <div className="text-xs text-gray-500">Check Size</div>
+                                                    </div>
+                                                )}
+                                                {'dealValue' in item && item.dealValue && (
+                                                    <div>
+                                                        <div className="font-bold text-lg text-blue-600">
+                                                            ${(item.dealValue / 1000)}K
+                                                        </div>
+                                                        <div className="text-xs text-gray-500">Deal Value</div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                         
-                                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                                        <div className="flex flex-wrap items-center gap-2 mb-3">
                                             <span className={`priority-badge priority-${item.priority.toLowerCase()}`}>
                                                 {item.priority}
                                             </span>
@@ -774,21 +936,50 @@ export const AccountManager: React.FC<AccountManagerProps> = ({
                                             )}
                                         </div>
 
-                                        <div className="space-y-1 text-sm">
-                                            <p className="text-gray-600">
-                                                👥 {(item.contacts || []).length} contact(s)
-                                            </p>
-                                            {item.nextAction && (
-                                                <p className="text-gray-700">
-                                                    <span className="font-semibold">Next:</span> {item.nextAction}
-                                                    {item.nextActionDate && (
-                                                        <span className="text-gray-500 ml-2">
-                                                            ({new Date(item.nextActionDate + 'T00:00:00').toLocaleDateString(undefined, { timeZone: 'UTC' })})
-                                                        </span>
-                                                    )}
-                                                </p>
+                                        <div className="grid grid-cols-2 gap-2 mb-3 text-xs">
+                                            <div className="flex items-center gap-1 text-gray-600">
+                                                <span>👥</span>
+                                                <span>{(item.contacts || []).length} contacts</span>
+                                            </div>
+                                            <div className="flex items-center gap-1 text-gray-600">
+                                                <span>�</span>
+                                                <span>{(item.notes || []).length} notes</span>
+                                            </div>
+                                            <div className="flex items-center gap-1 text-gray-600">
+                                                <span>📄</span>
+                                                <span>{((item as any).documents || []).length} docs</span>
+                                            </div>
+                                            {daysSinceContact !== null && (
+                                                <div className={`flex items-center gap-1 ${daysSinceContact > 30 ? 'text-red-600 font-semibold' : 'text-gray-600'}`}>
+                                                    <span>🕐</span>
+                                                    <span>{daysSinceContact}d ago</span>
+                                                </div>
                                             )}
                                         </div>
+
+                                        {item.nextAction && (
+                                            <div className="bg-blue-50 border-l-4 border-blue-500 p-2 mb-2">
+                                                <p className="text-sm font-medium text-gray-800">{item.nextAction}</p>
+                                                {item.nextActionDate && (
+                                                    <p className="text-xs text-gray-600 mt-1">
+                                                        📅 {new Date(item.nextActionDate + 'T00:00:00').toLocaleDateString(undefined, { 
+                                                            month: 'short', 
+                                                            day: 'numeric', 
+                                                            year: 'numeric',
+                                                            timeZone: 'UTC' 
+                                                        })}
+                                                        {item.nextActionTime && ` at ${item.nextActionTime}`}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
+                                        
+                                        {lastNote && (
+                                            <div className="bg-gray-50 border-l-4 border-gray-400 p-2 mb-2">
+                                                <p className="text-xs text-gray-500 mb-1">Latest Note:</p>
+                                                <p className="text-sm text-gray-700 line-clamp-2">{lastNote.text}</p>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="flex flex-col gap-2 shrink-0">
                                         <button
@@ -867,55 +1058,168 @@ export const AccountManager: React.FC<AccountManagerProps> = ({
                         </div>
                     </div>
 
-                    {/* Type-specific fields */}
-                    {crmType === 'investors' && (
+                    {/* Additional Details */}
+                    <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor="add-check-size" className="block font-mono text-sm font-semibold text-black mb-1">
-                                Check Size ($)
+                            <label htmlFor="add-website" className="block font-mono text-sm font-semibold text-black mb-1">
+                                Website
                             </label>
                             <input
-                                id="add-check-size"
-                                name="add-check-size"
-                                type="number"
-                                value={formData.checkSize || ''}
-                                onChange={(e) => setFormData(p => ({ ...p, checkSize: e.target.value ? Number(e.target.value) : undefined }))}
-                                placeholder="e.g., 100000"
+                                id="add-website"
+                                name="add-website"
+                                type="url"
+                                value={formData.website || ''}
+                                onChange={(e) => setFormData(p => ({ ...p, website: e.target.value }))}
+                                placeholder="https://example.com"
                                 className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
                             />
+                        </div>
+                        <div>
+                            <label htmlFor="add-industry" className="block font-mono text-sm font-semibold text-black mb-1">
+                                Industry
+                            </label>
+                            <input
+                                id="add-industry"
+                                name="add-industry"
+                                type="text"
+                                value={formData.industry || ''}
+                                onChange={(e) => setFormData(p => ({ ...p, industry: e.target.value }))}
+                                placeholder="e.g., SaaS, Fintech"
+                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label htmlFor="add-description" className="block font-mono text-sm font-semibold text-black mb-1">
+                            Description
+                        </label>
+                        <textarea
+                            id="add-description"
+                            name="add-description"
+                            value={formData.description || ''}
+                            onChange={(e) => setFormData(p => ({ ...p, description: e.target.value }))}
+                            placeholder="Brief description of the company..."
+                            rows={3}
+                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 resize-none"
+                        />
+                    </div>
+
+                    {/* Type-specific fields */}
+                    {crmType === 'investors' && (
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="add-check-size" className="block font-mono text-sm font-semibold text-black mb-1">
+                                    Check Size ($)
+                                </label>
+                                <input
+                                    id="add-check-size"
+                                    name="add-check-size"
+                                    type="number"
+                                    value={formData.checkSize || ''}
+                                    onChange={(e) => setFormData(p => ({ ...p, checkSize: e.target.value ? Number(e.target.value) : undefined }))}
+                                    placeholder="e.g., 100000"
+                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="add-stage" className="block font-mono text-sm font-semibold text-black mb-1">
+                                    Investment Stage
+                                </label>
+                                <select
+                                    id="add-stage"
+                                    name="add-stage"
+                                    value={formData.stage || ''}
+                                    onChange={(e) => setFormData(p => ({ ...p, stage: e.target.value }))}
+                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                >
+                                    <option value="">Select stage...</option>
+                                    <option value="Pre-Seed">Pre-Seed</option>
+                                    <option value="Seed">Seed</option>
+                                    <option value="Series A">Series A</option>
+                                    <option value="Series B">Series B</option>
+                                    <option value="Series C+">Series C+</option>
+                                    <option value="Growth">Growth</option>
+                                </select>
+                            </div>
                         </div>
                     )}
 
                     {crmType === 'customers' && (
-                        <div>
-                            <label htmlFor="add-deal-value" className="block font-mono text-sm font-semibold text-black mb-1">
-                                Deal Value ($)
-                            </label>
-                            <input
-                                id="add-deal-value"
-                                name="add-deal-value"
-                                type="number"
-                                value={formData.dealValue || ''}
-                                onChange={(e) => setFormData(p => ({ ...p, dealValue: e.target.value ? Number(e.target.value) : undefined }))}
-                                placeholder="e.g., 50000"
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                            />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="add-deal-value" className="block font-mono text-sm font-semibold text-black mb-1">
+                                    Deal Value ($)
+                                </label>
+                                <input
+                                    id="add-deal-value"
+                                    name="add-deal-value"
+                                    type="number"
+                                    value={formData.dealValue || ''}
+                                    onChange={(e) => setFormData(p => ({ ...p, dealValue: e.target.value ? Number(e.target.value) : undefined }))}
+                                    placeholder="e.g., 50000"
+                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="add-deal-stage" className="block font-mono text-sm font-semibold text-black mb-1">
+                                    Deal Stage
+                                </label>
+                                <select
+                                    id="add-deal-stage"
+                                    name="add-deal-stage"
+                                    value={formData.dealStage || ''}
+                                    onChange={(e) => setFormData(p => ({ ...p, dealStage: e.target.value }))}
+                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                >
+                                    <option value="">Select stage...</option>
+                                    <option value="Lead">Lead</option>
+                                    <option value="Qualified">Qualified</option>
+                                    <option value="Proposal">Proposal</option>
+                                    <option value="Negotiation">Negotiation</option>
+                                    <option value="Closed Won">Closed Won</option>
+                                    <option value="Closed Lost">Closed Lost</option>
+                                </select>
+                            </div>
                         </div>
                     )}
 
                     {crmType === 'partners' && (
-                        <div>
-                            <label htmlFor="add-opportunity" className="block font-mono text-sm font-semibold text-black mb-1">
-                                Opportunity
-                            </label>
-                            <input
-                                id="add-opportunity"
-                                name="add-opportunity"
-                                type="text"
-                                value={formData.opportunity || ''}
-                                onChange={(e) => setFormData(p => ({ ...p, opportunity: e.target.value }))}
-                                placeholder="e.g., Co-marketing campaign"
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                            />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="add-opportunity" className="block font-mono text-sm font-semibold text-black mb-1">
+                                    Opportunity
+                                </label>
+                                <input
+                                    id="add-opportunity"
+                                    name="add-opportunity"
+                                    type="text"
+                                    value={formData.opportunity || ''}
+                                    onChange={(e) => setFormData(p => ({ ...p, opportunity: e.target.value }))}
+                                    placeholder="e.g., Co-marketing campaign"
+                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="add-partner-type" className="block font-mono text-sm font-semibold text-black mb-1">
+                                    Partner Type
+                                </label>
+                                <select
+                                    id="add-partner-type"
+                                    name="add-partner-type"
+                                    value={formData.partnerType || ''}
+                                    onChange={(e) => setFormData(p => ({ ...p, partnerType: e.target.value }))}
+                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                >
+                                    <option value="">Select type...</option>
+                                    <option value="Technology">Technology</option>
+                                    <option value="Marketing">Marketing</option>
+                                    <option value="Distribution">Distribution</option>
+                                    <option value="Integration">Integration</option>
+                                    <option value="Referral">Referral</option>
+                                    <option value="Strategic">Strategic</option>
+                                </select>
+                            </div>
                         </div>
                     )}
 
@@ -1038,54 +1342,168 @@ export const AccountManager: React.FC<AccountManagerProps> = ({
                         </div>
                     </div>
 
-                    {crmType === 'investors' && (
+                    {/* Additional Details */}
+                    <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor="edit-check-size" className="block font-mono text-sm font-semibold text-black mb-1">
-                                Check Size ($)
+                            <label htmlFor="edit-website" className="block font-mono text-sm font-semibold text-black mb-1">
+                                Website
                             </label>
                             <input
-                                id="edit-check-size"
-                                name="edit-check-size"
-                                type="number"
-                                value={formData.checkSize || ''}
-                                onChange={(e) => setFormData(p => ({ ...p, checkSize: e.target.value ? Number(e.target.value) : undefined }))}
-                                placeholder="e.g., 100000"
+                                id="edit-website"
+                                name="edit-website"
+                                type="url"
+                                value={formData.website || ''}
+                                onChange={(e) => setFormData(p => ({ ...p, website: e.target.value }))}
+                                placeholder="https://example.com"
                                 className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
                             />
+                        </div>
+                        <div>
+                            <label htmlFor="edit-industry" className="block font-mono text-sm font-semibold text-black mb-1">
+                                Industry
+                            </label>
+                            <input
+                                id="edit-industry"
+                                name="edit-industry"
+                                type="text"
+                                value={formData.industry || ''}
+                                onChange={(e) => setFormData(p => ({ ...p, industry: e.target.value }))}
+                                placeholder="e.g., SaaS, Fintech"
+                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label htmlFor="edit-description" className="block font-mono text-sm font-semibold text-black mb-1">
+                            Description
+                        </label>
+                        <textarea
+                            id="edit-description"
+                            name="edit-description"
+                            value={formData.description || ''}
+                            onChange={(e) => setFormData(p => ({ ...p, description: e.target.value }))}
+                            placeholder="Brief description of the company..."
+                            rows={3}
+                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 resize-none"
+                        />
+                    </div>
+
+                    {/* Type-specific fields */}
+                    {crmType === 'investors' && (
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="edit-check-size" className="block font-mono text-sm font-semibold text-black mb-1">
+                                    Check Size ($)
+                                </label>
+                                <input
+                                    id="edit-check-size"
+                                    name="edit-check-size"
+                                    type="number"
+                                    value={formData.checkSize || ''}
+                                    onChange={(e) => setFormData(p => ({ ...p, checkSize: e.target.value ? Number(e.target.value) : undefined }))}
+                                    placeholder="e.g., 100000"
+                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="edit-stage" className="block font-mono text-sm font-semibold text-black mb-1">
+                                    Investment Stage
+                                </label>
+                                <select
+                                    id="edit-stage"
+                                    name="edit-stage"
+                                    value={formData.stage || ''}
+                                    onChange={(e) => setFormData(p => ({ ...p, stage: e.target.value }))}
+                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                >
+                                    <option value="">Select stage...</option>
+                                    <option value="Pre-Seed">Pre-Seed</option>
+                                    <option value="Seed">Seed</option>
+                                    <option value="Series A">Series A</option>
+                                    <option value="Series B">Series B</option>
+                                    <option value="Series C+">Series C+</option>
+                                    <option value="Growth">Growth</option>
+                                </select>
+                            </div>
                         </div>
                     )}
 
                     {crmType === 'customers' && (
-                        <div>
-                            <label htmlFor="edit-deal-value" className="block font-mono text-sm font-semibold text-black mb-1">
-                                Deal Value ($)
-                            </label>
-                            <input
-                                id="edit-deal-value"
-                                name="edit-deal-value"
-                                type="number"
-                                value={formData.dealValue || ''}
-                                onChange={(e) => setFormData(p => ({ ...p, dealValue: e.target.value ? Number(e.target.value) : undefined }))}
-                                placeholder="e.g., 50000"
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                            />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="edit-deal-value" className="block font-mono text-sm font-semibold text-black mb-1">
+                                    Deal Value ($)
+                                </label>
+                                <input
+                                    id="edit-deal-value"
+                                    name="edit-deal-value"
+                                    type="number"
+                                    value={formData.dealValue || ''}
+                                    onChange={(e) => setFormData(p => ({ ...p, dealValue: e.target.value ? Number(e.target.value) : undefined }))}
+                                    placeholder="e.g., 50000"
+                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="edit-deal-stage" className="block font-mono text-sm font-semibold text-black mb-1">
+                                    Deal Stage
+                                </label>
+                                <select
+                                    id="edit-deal-stage"
+                                    name="edit-deal-stage"
+                                    value={formData.dealStage || ''}
+                                    onChange={(e) => setFormData(p => ({ ...p, dealStage: e.target.value }))}
+                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                >
+                                    <option value="">Select stage...</option>
+                                    <option value="Lead">Lead</option>
+                                    <option value="Qualified">Qualified</option>
+                                    <option value="Proposal">Proposal</option>
+                                    <option value="Negotiation">Negotiation</option>
+                                    <option value="Closed Won">Closed Won</option>
+                                    <option value="Closed Lost">Closed Lost</option>
+                                </select>
+                            </div>
                         </div>
                     )}
 
                     {crmType === 'partners' && (
-                        <div>
-                            <label htmlFor="edit-opportunity" className="block font-mono text-sm font-semibold text-black mb-1">
-                                Opportunity
-                            </label>
-                            <input
-                                id="edit-opportunity"
-                                name="edit-opportunity"
-                                type="text"
-                                value={formData.opportunity || ''}
-                                onChange={(e) => setFormData(p => ({ ...p, opportunity: e.target.value }))}
-                                placeholder="e.g., Co-marketing campaign"
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                            />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="edit-opportunity" className="block font-mono text-sm font-semibold text-black mb-1">
+                                    Opportunity
+                                </label>
+                                <input
+                                    id="edit-opportunity"
+                                    name="edit-opportunity"
+                                    type="text"
+                                    value={formData.opportunity || ''}
+                                    onChange={(e) => setFormData(p => ({ ...p, opportunity: e.target.value }))}
+                                    placeholder="e.g., Co-marketing campaign"
+                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="edit-partner-type" className="block font-mono text-sm font-semibold text-black mb-1">
+                                    Partner Type
+                                </label>
+                                <select
+                                    id="edit-partner-type"
+                                    name="edit-partner-type"
+                                    value={formData.partnerType || ''}
+                                    onChange={(e) => setFormData(p => ({ ...p, partnerType: e.target.value }))}
+                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                >
+                                    <option value="">Select type...</option>
+                                    <option value="Technology">Technology</option>
+                                    <option value="Marketing">Marketing</option>
+                                    <option value="Distribution">Distribution</option>
+                                    <option value="Integration">Integration</option>
+                                    <option value="Referral">Referral</option>
+                                    <option value="Strategic">Strategic</option>
+                                </select>
+                            </div>
                         </div>
                     )}
 
