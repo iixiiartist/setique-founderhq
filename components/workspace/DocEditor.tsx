@@ -60,6 +60,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     const [aiPalettePosition, setAIPalettePosition] = useState({ top: 0, left: 0 });
     
     // Toolbar state
+    const [showToolbarMenu, setShowToolbarMenu] = useState(false);
     const [showColorPicker, setShowColorPicker] = useState(false);
     const [showHighlightPicker, setShowHighlightPicker] = useState(false);
     const [showLinkInput, setShowLinkInput] = useState(false);
@@ -333,137 +334,160 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
                 {/* Editor Area */}
                 <div className="flex-1 overflow-y-auto flex flex-col">
-                    {/* Premium Tiptap Toolbar */}
+                    {/* Hamburger Toolbar Menu */}
                     {editor && (
-                        <div className="sticky top-0 z-10 bg-white border-b-2 border-black p-1 lg:p-2 overflow-x-auto">
-                            <div className="flex flex-wrap gap-1 min-w-max">
-                                {/* Text Formatting */}
-                                <button onClick={() => editor.chain().focus().toggleBold().run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('bold') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Bold (Ctrl+B)"><strong>B</strong></button>
-                                <button onClick={() => editor.chain().focus().toggleItalic().run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('italic') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Italic (Ctrl+I)"><em>I</em></button>
-                                <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('underline') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Underline (Ctrl+U)"><u>U</u></button>
-                                <button onClick={() => editor.chain().focus().toggleStrike().run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('strike') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Strikethrough"><s>S</s></button>
-                                
-                                <div className="w-px bg-black mx-1"></div>
-                                
-                                {/* Subscript/Superscript */}
-                                <button onClick={() => editor.chain().focus().toggleSubscript().run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('subscript') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Subscript">X<sub>₂</sub></button>
-                                <button onClick={() => editor.chain().focus().toggleSuperscript().run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('superscript') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Superscript">X<sup>²</sup></button>
-                                
-                                <div className="w-px bg-black mx-1"></div>
-                                
-                                {/* Color & Highlight */}
+                        <div className="sticky top-0 z-10 bg-white border-b-2 border-black p-2">
+                            <div className="flex items-center justify-between">
                                 <div className="relative">
-                                    <button onClick={() => setShowColorPicker(!showColorPicker)} className="px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black bg-white hover:bg-gray-100" title="Text Color">
-                                        <span style={{ color: editor.getAttributes('textStyle').color || '#000' }}>A</span>
+                                    <button 
+                                        onClick={() => setShowToolbarMenu(!showToolbarMenu)}
+                                        className="px-4 py-2 text-sm font-bold border-2 border-black bg-white hover:bg-yellow-300 flex items-center gap-2"
+                                        title="Formatting Tools"
+                                    >
+                                        <span className="text-lg">☰</span>
+                                        <span>Format</span>
                                     </button>
-                                    {showColorPicker && (
-                                        <div className="absolute top-full mt-1 left-0 bg-white border-2 border-black p-2 shadow-lg z-20 grid grid-cols-5 gap-1">
-                                            {['#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFA500', '#800080', '#008000'].map(color => (
-                                                <button key={color} onClick={() => { editor.chain().focus().setColor(color).run(); setShowColorPicker(false); }} className="w-6 h-6 border-2 border-black" style={{ backgroundColor: color }} title={color} />
-                                            ))}
+                                    
+                                    {showToolbarMenu && (
+                                        <div className="absolute top-full mt-1 left-0 bg-white border-2 border-black shadow-lg z-30 min-w-[280px] max-h-[70vh] overflow-y-auto">
+                                            {/* Text Formatting Section */}
+                                            <div className="border-b-2 border-black p-2">
+                                                <div className="text-xs font-bold mb-2 text-gray-600">TEXT FORMATTING</div>
+                                                <div className="grid grid-cols-4 gap-1">
+                                                    <button onClick={() => { editor.chain().focus().toggleBold().run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive('bold') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Bold"><strong>B</strong></button>
+                                                    <button onClick={() => { editor.chain().focus().toggleItalic().run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive('italic') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Italic"><em>I</em></button>
+                                                    <button onClick={() => { editor.chain().focus().toggleUnderline().run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive('underline') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Underline"><u>U</u></button>
+                                                    <button onClick={() => { editor.chain().focus().toggleStrike().run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive('strike') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Strikethrough"><s>S</s></button>
+                                                    <button onClick={() => { editor.chain().focus().toggleSubscript().run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive('subscript') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Subscript">X₂</button>
+                                                    <button onClick={() => { editor.chain().focus().toggleSuperscript().run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive('superscript') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Superscript">X²</button>
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Colors Section */}
+                                            <div className="border-b-2 border-black p-2">
+                                                <div className="text-xs font-bold mb-2 text-gray-600">COLORS</div>
+                                                <div className="mb-2">
+                                                    <div className="text-xs mb-1">Text Color:</div>
+                                                    <div className="grid grid-cols-5 gap-1">
+                                                        {['#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFA500', '#800080', '#008000'].map(color => (
+                                                            <button key={color} onClick={() => { editor.chain().focus().setColor(color).run(); }} className="w-10 h-10 border-2 border-black hover:scale-110 transition-transform" style={{ backgroundColor: color }} title={color} />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div className="text-xs mb-1">Highlight:</div>
+                                                    <div className="grid grid-cols-6 gap-1">
+                                                        {['#FFFF00', '#00FF00', '#00FFFF', '#FF00FF', '#FFA500', '#FFB6C1'].map(color => (
+                                                            <button key={color} onClick={() => { editor.chain().focus().toggleHighlight({ color }).run(); }} className="w-10 h-10 border-2 border-black hover:scale-110 transition-transform" style={{ backgroundColor: color }} title={color} />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Headings Section */}
+                                            <div className="border-b-2 border-black p-2">
+                                                <div className="text-xs font-bold mb-2 text-gray-600">HEADINGS</div>
+                                                <div className="flex flex-col gap-1">
+                                                    <button onClick={() => { editor.chain().focus().toggleHeading({ level: 1 }).run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-left font-bold border-2 border-black ${editor.isActive('heading', { level: 1 }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`}>Heading 1</button>
+                                                    <button onClick={() => { editor.chain().focus().toggleHeading({ level: 2 }).run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-left font-bold border-2 border-black ${editor.isActive('heading', { level: 2 }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`}>Heading 2</button>
+                                                    <button onClick={() => { editor.chain().focus().toggleHeading({ level: 3 }).run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-left font-bold border-2 border-black ${editor.isActive('heading', { level: 3 }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`}>Heading 3</button>
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Alignment Section */}
+                                            <div className="border-b-2 border-black p-2">
+                                                <div className="text-xs font-bold mb-2 text-gray-600">ALIGNMENT</div>
+                                                <div className="grid grid-cols-4 gap-1">
+                                                    <button onClick={() => { editor.chain().focus().setTextAlign('left').run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive({ textAlign: 'left' }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Left">⬅</button>
+                                                    <button onClick={() => { editor.chain().focus().setTextAlign('center').run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive({ textAlign: 'center' }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Center">↔</button>
+                                                    <button onClick={() => { editor.chain().focus().setTextAlign('right').run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive({ textAlign: 'right' }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Right">➡</button>
+                                                    <button onClick={() => { editor.chain().focus().setTextAlign('justify').run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive({ textAlign: 'justify' }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Justify">≡</button>
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Lists Section */}
+                                            <div className="border-b-2 border-black p-2">
+                                                <div className="text-xs font-bold mb-2 text-gray-600">LISTS</div>
+                                                <div className="flex flex-col gap-1">
+                                                    <button onClick={() => { editor.chain().focus().toggleBulletList().run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-left font-bold border-2 border-black ${editor.isActive('bulletList') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`}>• Bullet List</button>
+                                                    <button onClick={() => { editor.chain().focus().toggleOrderedList().run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-left font-bold border-2 border-black ${editor.isActive('orderedList') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`}>1. Numbered List</button>
+                                                    <button onClick={() => { editor.chain().focus().toggleTaskList().run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-left font-bold border-2 border-black ${editor.isActive('taskList') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`}>☑ Task List</button>
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Blocks Section */}
+                                            <div className="border-b-2 border-black p-2">
+                                                <div className="text-xs font-bold mb-2 text-gray-600">BLOCKS</div>
+                                                <div className="flex flex-col gap-1">
+                                                    <button onClick={() => { editor.chain().focus().toggleBlockquote().run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-left font-bold border-2 border-black ${editor.isActive('blockquote') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`}>" Quote</button>
+                                                    <button onClick={() => { editor.chain().focus().toggleCodeBlock().run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-left font-bold border-2 border-black ${editor.isActive('codeBlock') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`}>{'</>'} Code Block</button>
+                                                    <button onClick={() => { editor.chain().focus().setHorizontalRule().run(); setShowToolbarMenu(false); }} className="px-3 py-2 text-left font-bold border-2 border-black bg-white hover:bg-gray-100">─ Horizontal Rule</button>
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Table Section */}
+                                            <div className="border-b-2 border-black p-2">
+                                                <div className="text-xs font-bold mb-2 text-gray-600">TABLE</div>
+                                                <button onClick={() => { editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(); setShowToolbarMenu(false); }} className="w-full px-3 py-2 text-left font-bold border-2 border-black bg-white hover:bg-gray-100 mb-1">⊞ Insert Table</button>
+                                                {editor.isActive('table') && (
+                                                    <div className="flex flex-col gap-1">
+                                                        <button onClick={() => { editor.chain().focus().addColumnBefore().run(); setShowToolbarMenu(false); }} className="px-3 py-2 text-left text-xs border-2 border-black bg-white hover:bg-gray-100">+Col Before</button>
+                                                        <button onClick={() => { editor.chain().focus().addColumnAfter().run(); setShowToolbarMenu(false); }} className="px-3 py-2 text-left text-xs border-2 border-black bg-white hover:bg-gray-100">+Col After</button>
+                                                        <button onClick={() => { editor.chain().focus().deleteColumn().run(); setShowToolbarMenu(false); }} className="px-3 py-2 text-left text-xs border-2 border-black bg-red-100 hover:bg-red-200">-Delete Column</button>
+                                                        <button onClick={() => { editor.chain().focus().addRowBefore().run(); setShowToolbarMenu(false); }} className="px-3 py-2 text-left text-xs border-2 border-black bg-white hover:bg-gray-100">+Row Above</button>
+                                                        <button onClick={() => { editor.chain().focus().addRowAfter().run(); setShowToolbarMenu(false); }} className="px-3 py-2 text-left text-xs border-2 border-black bg-white hover:bg-gray-100">+Row Below</button>
+                                                        <button onClick={() => { editor.chain().focus().deleteRow().run(); setShowToolbarMenu(false); }} className="px-3 py-2 text-left text-xs border-2 border-black bg-red-100 hover:bg-red-200">-Delete Row</button>
+                                                        <button onClick={() => { editor.chain().focus().deleteTable().run(); setShowToolbarMenu(false); }} className="px-3 py-2 text-left text-xs border-2 border-black bg-red-200 hover:bg-red-300">✕ Delete Table</button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            
+                                            {/* Media Section */}
+                                            <div className="border-b-2 border-black p-2">
+                                                <div className="text-xs font-bold mb-2 text-gray-600">MEDIA</div>
+                                                <div className="flex flex-col gap-1">
+                                                    <button onClick={() => {
+                                                        if (editor.isActive('link')) {
+                                                            editor.chain().focus().unsetLink().run();
+                                                            setShowToolbarMenu(false);
+                                                        } else {
+                                                            setShowLinkInput(true);
+                                                            setLinkUrl(editor.getAttributes('link').href || '');
+                                                        }
+                                                    }} className={`px-3 py-2 text-left font-bold border-2 border-black ${editor.isActive('link') ? 'bg-blue-200' : 'bg-white hover:bg-gray-100'}`}>🔗 {editor.isActive('link') ? 'Remove Link' : 'Add Link'}</button>
+                                                    {showLinkInput && (
+                                                        <div className="p-2 bg-gray-50 border-2 border-black">
+                                                            <input type="url" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://..." className="w-full px-2 py-1 border-2 border-black text-sm mb-1" />
+                                                            <div className="flex gap-1">
+                                                                <button onClick={() => { if (linkUrl) { editor.chain().focus().setLink({ href: linkUrl }).run(); } setShowLinkInput(false); setLinkUrl(''); setShowToolbarMenu(false); }} className="flex-1 px-2 py-1 bg-green-500 text-white font-bold border-2 border-black text-xs">✓ Add</button>
+                                                                <button onClick={() => { setShowLinkInput(false); setLinkUrl(''); }} className="flex-1 px-2 py-1 bg-red-500 text-white font-bold border-2 border-black text-xs">✕ Cancel</button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    <button onClick={() => {
+                                                        const url = window.prompt('Enter image URL:');
+                                                        if (url) { editor.chain().focus().setImage({ src: url }).run(); }
+                                                        setShowToolbarMenu(false);
+                                                    }} className="px-3 py-2 text-left font-bold border-2 border-black bg-white hover:bg-gray-100">🖼 Insert Image</button>
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Clear Formatting */}
+                                            <div className="p-2">
+                                                <button onClick={() => { editor.chain().focus().clearNodes().unsetAllMarks().run(); setShowToolbarMenu(false); }} className="w-full px-3 py-2 text-left font-bold border-2 border-black bg-white hover:bg-gray-100">Clear Formatting</button>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
-                                <div className="relative">
-                                    <button onClick={() => setShowHighlightPicker(!showHighlightPicker)} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('highlight') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Highlight">
-                                        <span className="bg-yellow-300 px-1">H</span>
-                                    </button>
-                                    {showHighlightPicker && (
-                                        <div className="absolute top-full mt-1 left-0 bg-white border-2 border-black p-2 shadow-lg z-20 grid grid-cols-4 gap-1">
-                                            {['#FFFF00', '#00FF00', '#00FFFF', '#FF00FF', '#FFA500', '#FFB6C1'].map(color => (
-                                                <button key={color} onClick={() => { editor.chain().focus().toggleHighlight({ color }).run(); setShowHighlightPicker(false); }} className="w-6 h-6 border-2 border-black" style={{ backgroundColor: color }} title={color} />
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
                                 
-                                <div className="w-px bg-black mx-1"></div>
-                                
-                                {/* Headings */}
-                                <button onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('heading', { level: 1 }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Heading 1">H1</button>
-                                <button onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('heading', { level: 2 }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Heading 2">H2</button>
-                                <button onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('heading', { level: 3 }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Heading 3">H3</button>
-                                
-                                <div className="w-px bg-black mx-1"></div>
-                                
-                                {/* Text Alignment */}
-                                <button onClick={() => editor.chain().focus().setTextAlign('left').run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive({ textAlign: 'left' }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Align Left">⬅</button>
-                                <button onClick={() => editor.chain().focus().setTextAlign('center').run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive({ textAlign: 'center' }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Align Center">↔</button>
-                                <button onClick={() => editor.chain().focus().setTextAlign('right').run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive({ textAlign: 'right' }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Align Right">➡</button>
-                                <button onClick={() => editor.chain().focus().setTextAlign('justify').run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive({ textAlign: 'justify' }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Justify">≡</button>
-                                
-                                <div className="w-px bg-black mx-1"></div>
-                                
-                                {/* Lists */}
-                                <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('bulletList') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Bullet List">• List</button>
-                                <button onClick={() => editor.chain().focus().toggleOrderedList().run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('orderedList') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Numbered List">1. List</button>
-                                <button onClick={() => editor.chain().focus().toggleTaskList().run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('taskList') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Task List">☑ Tasks</button>
-                                
-                                <div className="w-px bg-black mx-1"></div>
-                                
-                                {/* Blocks */}
-                                <button onClick={() => editor.chain().focus().toggleBlockquote().run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('blockquote') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Quote">" Quote</button>
-                                <button onClick={() => editor.chain().focus().toggleCodeBlock().run()} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('codeBlock') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Code Block">{'</>'}</button>
-                                <button onClick={() => editor.chain().focus().setHorizontalRule().run()} className="px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black bg-white hover:bg-gray-100" title="Horizontal Rule">─</button>
-                                
-                                <div className="w-px bg-black mx-1"></div>
-                                
-                                {/* Table */}
-                                <button onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} className="px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black bg-white hover:bg-gray-100" title="Insert Table">⊞ Table</button>
-                                {editor.isActive('table') && (
-                                    <>
-                                        <button onClick={() => editor.chain().focus().addColumnBefore().run()} className="px-2 py-1 text-xs border-2 border-black bg-white hover:bg-gray-100" title="Add Column Before">+Col←</button>
-                                        <button onClick={() => editor.chain().focus().addColumnAfter().run()} className="px-2 py-1 text-xs border-2 border-black bg-white hover:bg-gray-100" title="Add Column After">+Col→</button>
-                                        <button onClick={() => editor.chain().focus().deleteColumn().run()} className="px-2 py-1 text-xs border-2 border-black bg-red-100 hover:bg-red-200" title="Delete Column">-Col</button>
-                                        <button onClick={() => editor.chain().focus().addRowBefore().run()} className="px-2 py-1 text-xs border-2 border-black bg-white hover:bg-gray-100" title="Add Row Above">+Row↑</button>
-                                        <button onClick={() => editor.chain().focus().addRowAfter().run()} className="px-2 py-1 text-xs border-2 border-black bg-white hover:bg-gray-100" title="Add Row Below">+Row↓</button>
-                                        <button onClick={() => editor.chain().focus().deleteRow().run()} className="px-2 py-1 text-xs border-2 border-black bg-red-100 hover:bg-red-200" title="Delete Row">-Row</button>
-                                        <button onClick={() => editor.chain().focus().deleteTable().run()} className="px-2 py-1 text-xs border-2 border-black bg-red-200 hover:bg-red-300" title="Delete Table">✕ Table</button>
-                                    </>
-                                )}
-                                
-                                <div className="w-px bg-black mx-1"></div>
-                                
-                                {/* Link */}
-                                <div className="relative">
-                                    <button onClick={() => {
-                                        if (editor.isActive('link')) {
-                                            editor.chain().focus().unsetLink().run();
-                                        } else {
-                                            setShowLinkInput(true);
-                                            setLinkUrl(editor.getAttributes('link').href || '');
-                                        }
-                                    }} className={`px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black ${editor.isActive('link') ? 'bg-blue-200' : 'bg-white hover:bg-gray-100'}`} title="Link">🔗</button>
-                                    {showLinkInput && (
-                                        <div className="absolute top-full mt-1 left-0 bg-white border-2 border-black p-2 shadow-lg z-20 flex gap-1">
-                                            <input type="url" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://..." className="px-2 py-1 border-2 border-black text-sm w-48" />
-                                            <button onClick={() => { if (linkUrl) { editor.chain().focus().setLink({ href: linkUrl }).run(); } setShowLinkInput(false); setLinkUrl(''); }} className="px-2 py-1 bg-green-500 text-white font-bold border-2 border-black text-xs">✓</button>
-                                            <button onClick={() => { setShowLinkInput(false); setLinkUrl(''); }} className="px-2 py-1 bg-red-500 text-white font-bold border-2 border-black text-xs">✕</button>
-                                        </div>
-                                    )}
-                                </div>
-                                
-                                {/* Image */}
-                                <button onClick={() => {
-                                    const url = window.prompt('Enter image URL:');
-                                    if (url) { editor.chain().focus().setImage({ src: url }).run(); }
-                                }} className="px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black bg-white hover:bg-gray-100" title="Insert Image">🖼 Image</button>
-                                
-                                <div className="w-px bg-black mx-1"></div>
-                                
-                                {/* Clear Formatting */}
-                                <button onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()} className="px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black bg-white hover:bg-gray-100" title="Clear Formatting">Clear</button>
-                                
-                                <div className="w-px bg-black mx-1"></div>
-                                
-                                {/* AI Writing Assistant */}
+                                {/* AI Assistant Button - Always visible */}
                                 <button onClick={() => {
                                     if (!editor) return;
                                     const { view } = editor;
                                     const coords = view.coordsAtPos(view.state.selection.from);
                                     setAIPalettePosition({ top: coords.top + window.scrollY + 30, left: coords.left + window.scrollX });
                                     setShowAICommandPalette(true);
-                                }} disabled={!workspaceContext || contextLoading} className="px-2 lg:px-3 py-1 text-sm font-bold border-2 border-black bg-purple-500 text-white hover:bg-purple-600 disabled:bg-gray-300 disabled:text-gray-500" title="AI Writing Assistant (Cmd+K)">🤖 AI</button>
+                                }} disabled={!workspaceContext || contextLoading} className="px-4 py-2 text-sm font-bold border-2 border-black bg-purple-500 text-white hover:bg-purple-600 disabled:bg-gray-300 disabled:text-gray-500" title="AI Writing Assistant (Cmd+K)">🤖 AI</button>
                             </div>
                         </div>
                     )}
