@@ -8,6 +8,7 @@ interface ContactManagerProps {
     actions: AppActions;
     crmType: 'investors' | 'customers' | 'partners'; // Which CRM context we're in
     workspaceId?: string;
+    onViewContact?: (contact: Contact, parentItem: AnyCrmItem) => void;
 }
 
 interface ContactFormData {
@@ -30,7 +31,8 @@ export const ContactManager: React.FC<ContactManagerProps> = ({
     crmItems,
     actions,
     crmType,
-    workspaceId
+    workspaceId,
+    onViewContact
 }) => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
@@ -1315,6 +1317,20 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                         >
                                             🏷️
                                         </button>
+                                        {onViewContact && (() => {
+                                            const parentItem = crmItems.find(item => 
+                                                item.contacts?.some(c => c.id === contact.id)
+                                            );
+                                            return parentItem ? (
+                                                <button
+                                                    onClick={() => onViewContact(contact, parentItem)}
+                                                    className="px-3 py-1 bg-green-500 text-white border-2 border-black text-xs font-bold hover:bg-green-600 transition-all"
+                                                    title="View contact details"
+                                                >
+                                                    👁️
+                                                </button>
+                                            ) : null;
+                                        })()}
                                         <button
                                             onClick={() => openEditModal(contact)}
                                             className="px-3 py-1 bg-blue-500 text-white border-2 border-black text-xs font-bold hover:bg-blue-600 transition-all"

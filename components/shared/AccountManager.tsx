@@ -8,6 +8,7 @@ interface AccountManagerProps {
     crmCollection: CrmCollectionName;
     crmType: 'investors' | 'customers' | 'partners';
     workspaceId?: string;
+    onViewAccount?: (item: AnyCrmItem) => void;
 }
 
 interface AccountFormData {
@@ -40,7 +41,8 @@ export const AccountManager: React.FC<AccountManagerProps> = ({
     actions,
     crmCollection,
     crmType,
-    workspaceId
+    workspaceId,
+    onViewAccount
 }) => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
@@ -982,11 +984,19 @@ export const AccountManager: React.FC<AccountManagerProps> = ({
                                         )}
                                     </div>
                                     <div className="flex flex-col gap-2 shrink-0">
+                                        {onViewAccount && (
+                                            <button
+                                                onClick={() => onViewAccount(item)}
+                                                className="font-mono bg-green-500 text-white border-2 border-black px-3 py-1 text-sm rounded-none font-semibold shadow-neo-btn hover:bg-green-600 transition-all"
+                                            >
+                                                👁️ View
+                                            </button>
+                                        )}
                                         <button
                                             onClick={() => openEditModal(item)}
                                             className="font-mono bg-blue-500 text-white border-2 border-black px-3 py-1 text-sm rounded-none font-semibold shadow-neo-btn hover:bg-blue-600 transition-all"
                                         >
-                                            Edit
+                                            ✏️ Edit
                                         </button>
                                         <button
                                             onClick={() => handleDeleteAccount(item)}

@@ -36,6 +36,7 @@ const CrmTab: React.FC<CrmTabProps> = React.memo(({
     const { workspace } = useWorkspace();
     const [selectedItem, setSelectedItem] = useState<AnyCrmItem | null>(null);
     const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+    const [activeView, setActiveView] = useState<'accounts' | 'contacts' | 'followups'>('accounts');
     const isUpdatingRef = useRef(false);
 
     const { crmCollection, taskCollection, tag } = useMemo(() => {
@@ -177,34 +178,71 @@ const CrmTab: React.FC<CrmTabProps> = React.memo(({
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
-                {/* Account Manager - Replaces Pipeline and Add Form */}
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
-                    <AccountManager
-                        crmItems={crmItems}
-                        actions={actions}
-                        crmCollection={crmCollection}
-                        crmType={getCrmType()}
-                        workspaceId={workspaceId}
-                    />
-                </div>
-
-                {/* Contact Manager */}
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
-                    <ContactManager
-                        contacts={crmItems.flatMap(item => item.contacts || [])}
-                        crmItems={crmItems}
-                        actions={actions}
-                        crmType={crmCollection}
-                        workspaceId={workspaceId}
-                    />
-                </div>
-
-                {/* Follow Ups Manager - Replaces old "Add New" section */}
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
-                    <FollowUpsManager
-                        allCrmItems={crmItems}
-                        userId={userId}
-                    />
+                {/* View Navigation Tabs */}
+                <div className="bg-white border-2 border-black shadow-neo">
+                    <div className="flex border-b-2 border-black">
+                        <button
+                            onClick={() => setActiveView('accounts')}
+                            className={`flex-1 font-mono font-bold py-3 px-4 transition-all ${
+                                activeView === 'accounts'
+                                    ? 'bg-black text-white'
+                                    : 'bg-white text-black hover:bg-gray-100'
+                            }`}
+                        >
+                            📊 Account Management
+                        </button>
+                        <button
+                            onClick={() => setActiveView('contacts')}
+                            className={`flex-1 font-mono font-bold py-3 px-4 border-l-2 border-r-2 border-black transition-all ${
+                                activeView === 'contacts'
+                                    ? 'bg-black text-white'
+                                    : 'bg-white text-black hover:bg-gray-100'
+                            }`}
+                        >
+                            👥 Contact Management
+                        </button>
+                        <button
+                            onClick={() => setActiveView('followups')}
+                            className={`flex-1 font-mono font-bold py-3 px-4 transition-all ${
+                                activeView === 'followups'
+                                    ? 'bg-black text-white'
+                                    : 'bg-white text-black hover:bg-gray-100'
+                            }`}
+                        >
+                            📋 Follow Ups
+                        </button>
+                    </div>
+                    <div className="p-6">
+                        {activeView === 'accounts' && (
+                            <AccountManager
+                                crmItems={crmItems}
+                                actions={actions}
+                                crmCollection={crmCollection}
+                                crmType={getCrmType()}
+                                workspaceId={workspaceId}
+                                onViewAccount={setSelectedItem}
+                            />
+                        )}
+                        {activeView === 'contacts' && (
+                            <ContactManager
+                                contacts={crmItems.flatMap(item => item.contacts || [])}
+                                crmItems={crmItems}
+                                actions={actions}
+                                crmType={crmCollection}
+                                workspaceId={workspaceId}
+                                onViewContact={(contact, parentItem) => {
+                                    setSelectedItem(parentItem);
+                                    setSelectedContact(contact);
+                                }}
+                            />
+                        )}
+                        {activeView === 'followups' && (
+                            <FollowUpsManager
+                                allCrmItems={crmItems}
+                                userId={userId}
+                            />
+                        )}
+                    </div>
                 </div>
 
                 {/* Quick Access Sections */}
