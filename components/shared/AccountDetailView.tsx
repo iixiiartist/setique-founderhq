@@ -261,7 +261,67 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                                     </span>
                                 )}
                             </div>
-                            {specificValueDisplay()}
+                            
+                            {/* Deal Flow / Value Section */}
+                            <div className="border-t border-gray-200 pt-4 space-y-3">
+                                {specificValueDisplay()}
+                                
+                                {/* Investment Stage for Investors */}
+                                {'checkSize' in item && (item as any).stage && (
+                                    <div className="bg-green-50 border-2 border-green-400 p-3">
+                                        <p className="text-xs font-mono uppercase text-green-700 mb-1">Investment Stage</p>
+                                        <p className="text-lg font-bold text-green-800">{(item as any).stage}</p>
+                                    </div>
+                                )}
+                                
+                                {/* Deal Stage for Customers */}
+                                {'dealValue' in item && (item as any).dealStage && (
+                                    <div className="bg-blue-50 border-2 border-blue-400 p-3">
+                                        <p className="text-xs font-mono uppercase text-blue-700 mb-1">Deal Stage</p>
+                                        <p className="text-lg font-bold text-blue-800">{(item as any).dealStage}</p>
+                                    </div>
+                                )}
+                                
+                                {/* Partner Type for Partners */}
+                                {'opportunity' in item && (item as any).partnerType && (
+                                    <div className="bg-purple-50 border-2 border-purple-400 p-3">
+                                        <p className="text-xs font-mono uppercase text-purple-700 mb-1">Partner Type</p>
+                                        <p className="text-lg font-bold text-purple-800">{(item as any).partnerType}</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Additional Info Section */}
+                            {((item as any).website || (item as any).industry || (item as any).description) && (
+                                <div className="border-t border-gray-200 pt-4 space-y-3">
+                                    {(item as any).website && (
+                                        <div>
+                                            <p className="text-xs font-mono uppercase text-gray-600 mb-1">Website</p>
+                                            <a 
+                                                href={(item as any).website} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                className="text-sm text-blue-600 hover:underline break-all"
+                                            >
+                                                {(item as any).website}
+                                            </a>
+                                        </div>
+                                    )}
+                                    {(item as any).industry && (
+                                        <div>
+                                            <p className="text-xs font-mono uppercase text-gray-600 mb-1">Industry</p>
+                                            <p className="text-sm text-black">{(item as any).industry}</p>
+                                        </div>
+                                    )}
+                                    {(item as any).description && (
+                                        <div>
+                                            <p className="text-xs font-mono uppercase text-gray-600 mb-1">Description</p>
+                                            <p className="text-sm text-gray-700 whitespace-pre-wrap">{(item as any).description}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            
                             <div className="border-t border-gray-200 pt-4">
                                 <p className="text-sm font-mono uppercase text-gray-600 mb-2">Next Action</p>
                                 <p className={`text-lg font-semibold ${item.nextActionDate && new Date(item.nextActionDate + 'T00:00:00').toISOString().split('T')[0] < new Date().toISOString().split('T')[0] ? 'text-red-600' : 'text-black'}`}>
