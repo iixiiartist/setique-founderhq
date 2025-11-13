@@ -149,17 +149,21 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
 
     const companyTasks = useMemo(() => tasks.filter(t => t.crmItemId === item.id && !t.contactId), [tasks, item.id]);
 
-    const handleUpdate = () => {
+    const handleFormChange = useCallback((field: string, value: any) => {
+        setEditForm(prev => ({ ...prev!, [field]: value }));
+    }, []);
+
+    const handleUpdate = useCallback(() => {
         actions.updateCrmItem(crmCollection, editForm.id, editForm);
         setIsEditing(false);
-    };
+    }, [actions, crmCollection, editForm]);
     
-    const handleUpdateTask = () => {
+    const handleUpdateTask = useCallback(() => {
         if (editingTask && editText.trim() !== '') {
             actions.updateTask(editingTask.id, { text: editText, priority: editPriority, dueDate: editDueDate });
         }
         setEditingTask(null);
-    }
+    }, [editingTask, editText, editPriority, editDueDate, actions]);
 
     const handleAddTask = (e: React.FormEvent) => {
         e.preventDefault();
@@ -450,7 +454,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                         <input 
                             id="edit-company" 
                             value={editForm.company || ''} 
-                            onChange={(e) => setEditForm(p => ({...p!, company: e.target.value}))} 
+                            onChange={(e) => handleFormChange('company', e.target.value)} 
                             className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
                             required
                         />
@@ -462,7 +466,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                             <select 
                                 id="edit-priority" 
                                 value={editForm.priority || 'Medium'} 
-                                onChange={(e) => setEditForm(p => ({...p!, priority: e.target.value as Priority}))} 
+                                onChange={(e) => handleFormChange('priority', e.target.value as Priority)} 
                                 className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
                             >
                                 <option>Low</option><option>Medium</option><option>High</option>
@@ -473,7 +477,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                             <input 
                                 id="edit-status" 
                                 value={editForm.status || ''} 
-                                onChange={(e) => setEditForm(p => ({...p!, status: e.target.value}))} 
+                                onChange={(e) => handleFormChange('status', e.target.value)} 
                                 placeholder="e.g., Active, Prospect"
                                 className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
                             />
@@ -487,7 +491,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                                 id="edit-website" 
                                 type="url"
                                 value={(editForm as any).website || ''} 
-                                onChange={(e) => setEditForm(p => ({...p!, website: e.target.value} as any))} 
+                                onChange={(e) => handleFormChange('website', e.target.value)} 
                                 placeholder="https://example.com"
                                 className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
                             />
@@ -497,7 +501,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                             <input 
                                 id="edit-industry" 
                                 value={(editForm as any).industry || ''} 
-                                onChange={(e) => setEditForm(p => ({...p!, industry: e.target.value} as any))} 
+                                onChange={(e) => handleFormChange('industry', e.target.value)} 
                                 placeholder="e.g., SaaS, Fintech"
                                 className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
                             />
@@ -509,7 +513,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                         <textarea 
                             id="edit-description" 
                             value={(editForm as any).description || ''} 
-                            onChange={(e) => setEditForm(p => ({...p!, description: e.target.value} as any))} 
+                            onChange={(e) => handleFormChange('description', e.target.value)} 
                             placeholder="Brief description of the company..."
                             rows={3}
                             className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 resize-none" 
@@ -525,7 +529,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                                     id="edit-check-size" 
                                     type="number"
                                     value={editForm.checkSize || ''} 
-                                    onChange={(e) => setEditForm(p => ({...p as any, checkSize: e.target.value ? Number(e.target.value) : undefined}))} 
+                                    onChange={(e) => handleFormChange('checkSize', e.target.value ? Number(e.target.value) : undefined)} 
                                     placeholder="e.g., 100000"
                                     className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
                                 />
@@ -535,7 +539,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                                 <select 
                                     id="edit-stage" 
                                     value={(editForm as any).stage || ''} 
-                                    onChange={(e) => setEditForm(p => ({...p as any, stage: e.target.value}))} 
+                                    onChange={(e) => handleFormChange('stage', e.target.value)} 
                                     className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
                                 >
                                     <option value="">Select stage...</option>
@@ -558,7 +562,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                                     id="edit-deal-value" 
                                     type="number"
                                     value={editForm.dealValue || ''} 
-                                    onChange={(e) => setEditForm(p => ({...p as any, dealValue: e.target.value ? Number(e.target.value) : undefined}))} 
+                                    onChange={(e) => handleFormChange('dealValue', e.target.value ? Number(e.target.value) : undefined)} 
                                     placeholder="e.g., 50000"
                                     className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
                                 />
@@ -568,7 +572,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                                 <select 
                                     id="edit-deal-stage" 
                                     value={(editForm as any).dealStage || ''} 
-                                    onChange={(e) => setEditForm(p => ({...p as any, dealStage: e.target.value}))} 
+                                    onChange={(e) => handleFormChange('dealStage', e.target.value)} 
                                     className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
                                 >
                                     <option value="">Select stage...</option>
@@ -590,7 +594,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                                 <input 
                                     id="edit-opportunity" 
                                     value={editForm.opportunity || ''} 
-                                    onChange={(e) => setEditForm(p => ({...p as any, opportunity: e.target.value}))} 
+                                    onChange={(e) => handleFormChange('opportunity', e.target.value)} 
                                     placeholder="e.g., Co-marketing campaign"
                                     className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
                                 />
@@ -600,7 +604,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                                 <select 
                                     id="edit-partner-type" 
                                     value={(editForm as any).partnerType || ''} 
-                                    onChange={(e) => setEditForm(p => ({...p as any, partnerType: e.target.value}))} 
+                                    onChange={(e) => handleFormChange('partnerType', e.target.value)} 
                                     className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
                                 >
                                     <option value="">Select type...</option>
@@ -620,7 +624,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                         <input 
                             id="edit-next-action" 
                             value={editForm.nextAction || ''} 
-                            onChange={(e) => setEditForm(p => ({...p!, nextAction: e.target.value}))} 
+                            onChange={(e) => handleFormChange('nextAction', e.target.value)} 
                             placeholder="e.g., Send intro email"
                             className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
                         />
@@ -633,7 +637,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                                 id="edit-next-action-date" 
                                 type="date" 
                                 value={editForm.nextActionDate || ''} 
-                                onChange={(e) => setEditForm(p => ({...p!, nextActionDate: e.target.value}))} 
+                                onChange={(e) => handleFormChange('nextActionDate', e.target.value)} 
                                 className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
                             />
                         </div>
@@ -643,7 +647,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                                 id="edit-next-action-time" 
                                 type="time" 
                                 value={editForm.nextActionTime || ''} 
-                                onChange={(e) => setEditForm(p => ({...p!, nextActionTime: e.target.value}))} 
+                                onChange={(e) => handleFormChange('nextActionTime', e.target.value)} 
                                 className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
                             />
                         </div>
