@@ -234,24 +234,32 @@ export const AccountManager: React.FC<AccountManagerProps> = ({
         }
 
         try {
-            const itemData: Partial<AnyCrmItem> = {
+            const itemData: any = {
                 company: formData.company.trim(),
                 priority: formData.priority,
                 status: formData.status,
                 nextAction: formData.nextAction || undefined,
                 nextActionDate: formData.nextActionDate || undefined,
                 nextActionTime: formData.nextActionTime || undefined,
+                // Add deal flow management fields
+                website: formData.website || undefined,
+                industry: formData.industry || undefined,
+                description: formData.description || undefined,
             };
 
             // Add type-specific fields
-            if (crmType === 'investors' && formData.checkSize) {
-                (itemData as Partial<Investor>).checkSize = formData.checkSize;
-            } else if (crmType === 'customers' && formData.dealValue) {
-                (itemData as Partial<Customer>).dealValue = formData.dealValue;
-            } else if (crmType === 'partners' && formData.opportunity) {
-                (itemData as Partial<Partner>).opportunity = formData.opportunity;
+            if (crmType === 'investors') {
+                if (formData.checkSize) itemData.checkSize = formData.checkSize;
+                if (formData.stage) itemData.stage = formData.stage;
+            } else if (crmType === 'customers') {
+                if (formData.dealValue) itemData.dealValue = formData.dealValue;
+                if (formData.dealStage) itemData.dealStage = formData.dealStage;
+            } else if (crmType === 'partners') {
+                if (formData.opportunity) itemData.opportunity = formData.opportunity;
+                if (formData.partnerType) itemData.partnerType = formData.partnerType;
             }
 
+            console.log('[AccountManager] Creating account with data:', itemData);
             await actions.createCrmItem(crmCollection, itemData);
             
             // Reset form
@@ -269,24 +277,32 @@ export const AccountManager: React.FC<AccountManagerProps> = ({
         if (!selectedItem) return;
 
         try {
-            const updates: Partial<AnyCrmItem> = {
+            const updates: any = {
                 company: formData.company.trim(),
                 priority: formData.priority,
                 status: formData.status,
                 nextAction: formData.nextAction || undefined,
                 nextActionDate: formData.nextActionDate || undefined,
                 nextActionTime: formData.nextActionTime || undefined,
+                // Add deal flow management fields
+                website: formData.website || undefined,
+                industry: formData.industry || undefined,
+                description: formData.description || undefined,
             };
 
             // Add type-specific fields
-            if (crmType === 'investors' && formData.checkSize !== undefined) {
-                (updates as Partial<Investor>).checkSize = formData.checkSize;
-            } else if (crmType === 'customers' && formData.dealValue !== undefined) {
-                (updates as Partial<Customer>).dealValue = formData.dealValue;
-            } else if (crmType === 'partners' && formData.opportunity) {
-                (updates as Partial<Partner>).opportunity = formData.opportunity;
+            if (crmType === 'investors') {
+                if (formData.checkSize !== undefined) updates.checkSize = formData.checkSize;
+                if (formData.stage) updates.stage = formData.stage;
+            } else if (crmType === 'customers') {
+                if (formData.dealValue !== undefined) updates.dealValue = formData.dealValue;
+                if (formData.dealStage) updates.dealStage = formData.dealStage;
+            } else if (crmType === 'partners') {
+                if (formData.opportunity) updates.opportunity = formData.opportunity;
+                if (formData.partnerType) updates.partnerType = formData.partnerType;
             }
 
+            console.log('[AccountManager] Updating account with data:', updates);
             await actions.updateCrmItem(crmCollection, selectedItem.id, updates);
             
             setShowEditModal(false);
