@@ -153,10 +153,17 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
         setEditForm(prev => ({ ...prev!, [field]: value }));
     }, []);
 
-    const handleUpdate = useCallback(() => {
-        actions.updateCrmItem(crmCollection, editForm.id, editForm);
+    const closeEditModal = useCallback(() => {
         setIsEditing(false);
-    }, [actions, crmCollection, editForm]);
+    }, []);
+
+    const handleUpdate = useCallback(() => {
+        setEditForm(currentForm => {
+            actions.updateCrmItem(crmCollection, currentForm.id, currentForm);
+            return currentForm;
+        });
+        setIsEditing(false);
+    }, [actions, crmCollection]);
     
     const handleUpdateTask = useCallback(() => {
         if (editingTask && editText.trim() !== '') {
@@ -447,7 +454,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                     </div>
                 </div>
             </div>
-             <Modal isOpen={isEditing} onClose={() => setIsEditing(false)} title={`Edit ${title}`} triggerRef={editCrmModalTriggerRef}>
+             <Modal isOpen={isEditing} onClose={closeEditModal} title={`Edit ${title}`} triggerRef={editCrmModalTriggerRef}>
                  <div className="space-y-4">
                     <div>
                         <label htmlFor="edit-company" className="block font-mono text-sm font-semibold text-black mb-1">Company Name *</label>
