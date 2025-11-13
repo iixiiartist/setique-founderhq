@@ -1,7 +1,7 @@
 -- =====================================================
 -- STORAGE BUCKET SETUP FOR GTM DOCS IMAGE UPLOADS
 -- =====================================================
--- Run this script in Supabase SQL Editor
+-- Run this script in Supabase SQL Editor (MUST run as service_role/admin)
 -- Project: https://jffnzpdcmdalxqhkfymx.supabase.co
 -- Date: November 13, 2025
 -- =====================================================
@@ -17,6 +17,50 @@ VALUES (
     ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 )
 ON CONFLICT (id) DO NOTHING;
+
+-- Step 2: Drop existing policies if they exist (for clean re-runs)
+DROP POLICY IF EXISTS "Users can upload to their workspace" ON storage.objects;
+DROP POLICY IF EXISTS "Images are publicly readable" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete their workspace images" ON storage.objects;
+
+-- Step 3: Allow authenticated users to upload images to their workspace folders
+-- Images are stored as: workspace-images/{workspaceId}/{docId}/{filename}
+CREATE POLICY "Users can upload to their workspace"
+ON storage.objects
+FOR INSERT
+TO authenticated
+WITH CHECK (
+    bucket_id = 'workspace-images'
+    AND (storage.foldername(name))[1] IN (
+        SELECT w.id::text 
+        FROM workspaces w
+        INNER JOIN workspace_members wm ON w.id = wm.workspace_id
+        WHERE wm.user_id = auth.uid()
+    )
+);
+
+-- Step 4: Allow public read access to all images
+-- This enables image URLs to work in documents shared with others
+CREATE POLICY "Images are publicly readable"
+ON storage.objects
+FOR SELECT
+TO public
+USING (bucket_id = 'workspace-images');
+
+-- Step 5: Allow users to delete images from their workspace
+CREATE POLICY "Users can delete their workspace images"
+ON storage.objects
+FOR DELETE
+TO authenticated
+USING (
+    bucket_id = 'workspace-images'
+    AND (storage.foldername(name))[1] IN (
+        SELECT w.id::text 
+        FROM workspaces w
+        INNER JOIN workspace_members wm ON w.id = wm.workspace_id
+        WHERE wm.user_id = auth.uid()
+    )
+);
 
 -- =====================================================
 -- VERIFICATION QUERIES
