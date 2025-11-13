@@ -305,6 +305,7 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
                             </label>
                             <textarea
                                 id="new-contact-task"
+                                name="new-contact-task"
                                 value={newTaskText}
                                 onChange={(e) => setNewTaskText(e.target.value)}
                                 placeholder="e.g., Send intro email, Schedule follow-up call..."
@@ -316,6 +317,7 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
                                     <label htmlFor="new-task-priority" className="block text-xs font-mono text-gray-600 mb-1">PRIORITY</label>
                                     <select
                                         id="new-task-priority"
+                                        name="new-task-priority"
                                         value={newTaskPriority}
                                         onChange={(e) => setNewTaskPriority(e.target.value as Priority)}
                                         className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
@@ -329,6 +331,7 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
                                     <label htmlFor="new-task-duedate" className="block text-xs font-mono text-gray-600 mb-1">DUE DATE</label>
                                     <input
                                         id="new-task-duedate"
+                                        name="new-task-duedate"
                                         type="date"
                                         value={newTaskDueDate}
                                         onChange={(e) => setNewTaskDueDate(e.target.value)}
@@ -360,23 +363,23 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
                  <div className="space-y-4">
                     <div>
                         <label htmlFor={`edit-contact-name-${contact.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Name</label>
-                        <input id={`edit-contact-name-${contact.id}`} value={editForm.name || ''} onChange={handleNameChange} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" />
+                        <input id={`edit-contact-name-${contact.id}`} name={`edit-contact-name-${contact.id}`} value={editForm.name || ''} onChange={handleNameChange} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" />
                     </div>
                     <div>
                         <label htmlFor={`edit-contact-email-${contact.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Email</label>
-                        <input id={`edit-contact-email-${contact.id}`} value={editForm.email || ''} onChange={handleEmailChange} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" type="email"/>
+                        <input id={`edit-contact-email-${contact.id}`} name={`edit-contact-email-${contact.id}`} value={editForm.email || ''} onChange={handleEmailChange} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" type="email"/>
                     </div>
                     <div>
                         <label htmlFor={`edit-contact-phone-${contact.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Phone</label>
-                        <input id={`edit-contact-phone-${contact.id}`} value={editForm.phone || ''} onChange={handlePhoneChange} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" type="tel"/>
+                        <input id={`edit-contact-phone-${contact.id}`} name={`edit-contact-phone-${contact.id}`} value={editForm.phone || ''} onChange={handlePhoneChange} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" type="tel"/>
                     </div>
                     <div>
                         <label htmlFor={`edit-contact-title-${contact.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Title</label>
-                        <input id={`edit-contact-title-${contact.id}`} value={editForm.title || ''} onChange={handleTitleChange} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" placeholder="e.g., CEO, VP Sales"/>
+                        <input id={`edit-contact-title-${contact.id}`} name={`edit-contact-title-${contact.id}`} value={editForm.title || ''} onChange={handleTitleChange} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" placeholder="e.g., CEO, VP Sales"/>
                     </div>
                      <div>
                         <label htmlFor={`edit-contact-linkedin-${contact.id}`} className="block font-mono text-sm font-semibold text-black mb-1">LinkedIn</label>
-                        <input id={`edit-contact-linkedin-${contact.id}`} value={editForm.linkedin || ''} onChange={handleLinkedinChange} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" type="url"/>
+                        <input id={`edit-contact-linkedin-${contact.id}`} name={`edit-contact-linkedin-${contact.id}`} value={editForm.linkedin || ''} onChange={handleLinkedinChange} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" type="url"/>
                     </div>
                     <NotesManager 
                         notes={editForm.notes} 
@@ -399,6 +402,7 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
                             <label htmlFor={`edit-contact-task-${editingTask.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Task Description</label>
                             <textarea 
                                 id={`edit-contact-task-${editingTask.id}`}
+                                name={`edit-contact-task-${editingTask.id}`}
                                 value={editText || ''}
                                 onChange={(e) => setEditText(e.target.value)}
                                 className="w-full bg-white border-2 border-black text-black rounded-none focus:outline-none p-2 min-h-[80px]"
@@ -409,6 +413,7 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
                                 <label htmlFor={`edit-priority-${editingTask.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Priority</label>
                                 <select
                                     id={`edit-priority-${editingTask.id}`}
+                                    name={`edit-priority-${editingTask.id}`}
                                     value={editPriority || 'Medium'}
                                     onChange={(e) => setEditPriority(e.target.value as Priority)}
                                     className="w-full bg-white border-2 border-black text-black rounded-none focus:outline-none p-2 h-full"
@@ -422,6 +427,7 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
                                 <label htmlFor={`edit-duedate-${editingTask.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Due Date</label>
                                 <input
                                     id={`edit-duedate-${editingTask.id}`}
+                                    name={`edit-duedate-${editingTask.id}`}
                                     type="date"
                                     value={editDueDate || ''}
                                     onChange={(e) => setEditDueDate(e.target.value)}

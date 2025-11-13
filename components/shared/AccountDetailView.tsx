@@ -73,11 +73,16 @@ const ContactForm: React.FC<{ crmItemId: string, collection: CrmCollectionName, 
     }
     return (
         <form onSubmit={handleSubmit} className="space-y-2">
-            <input value={form.name} onChange={e => setForm(p=>({...p, name: e.target.value}))} placeholder="Name" required className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
-            <input value={form.email} onChange={e => setForm(p=>({...p, email: e.target.value}))} placeholder="Email" type="email" className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
-            <input value={form.phone} onChange={e => setForm(p=>({...p, phone: e.target.value}))} placeholder="Phone" type="tel" className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
-            <input value={form.title} onChange={e => setForm(p=>({...p, title: e.target.value}))} placeholder="Title (e.g., CEO, VP Sales)" className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
-            <input value={form.linkedin} onChange={e => setForm(p=>({...p, linkedin: e.target.value}))} placeholder="LinkedIn URL" type="url" className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
+            <label htmlFor={`contact-form-name-${crmItemId}`} className="sr-only">Name</label>
+            <input id={`contact-form-name-${crmItemId}`} name={`contact-form-name-${crmItemId}`} value={form.name} onChange={e => setForm(p=>({...p, name: e.target.value}))} placeholder="Name" required className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
+            <label htmlFor={`contact-form-email-${crmItemId}`} className="sr-only">Email</label>
+            <input id={`contact-form-email-${crmItemId}`} name={`contact-form-email-${crmItemId}`} value={form.email} onChange={e => setForm(p=>({...p, email: e.target.value}))} placeholder="Email" type="email" className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
+            <label htmlFor={`contact-form-phone-${crmItemId}`} className="sr-only">Phone</label>
+            <input id={`contact-form-phone-${crmItemId}`} name={`contact-form-phone-${crmItemId}`} value={form.phone} onChange={e => setForm(p=>({...p, phone: e.target.value}))} placeholder="Phone" type="tel" className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
+            <label htmlFor={`contact-form-title-${crmItemId}`} className="sr-only">Title</label>
+            <input id={`contact-form-title-${crmItemId}`} name={`contact-form-title-${crmItemId}`} value={form.title} onChange={e => setForm(p=>({...p, title: e.target.value}))} placeholder="Title (e.g., CEO, VP Sales)" className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
+            <label htmlFor={`contact-form-linkedin-${crmItemId}`} className="sr-only">LinkedIn URL</label>
+            <input id={`contact-form-linkedin-${crmItemId}`} name={`contact-form-linkedin-${crmItemId}`} value={form.linkedin} onChange={e => setForm(p=>({...p, linkedin: e.target.value}))} placeholder="LinkedIn URL" type="url" className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
             <button type="submit" className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn">Add Contact</button>
         </form>
     );
@@ -324,6 +329,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                             </label>
                             <input
                                 id="new-account-task"
+                                name="new-account-task"
                                 value={newTaskText || ''}
                                 onChange={(e) => setNewTaskText(e.target.value)}
                                 placeholder="e.g., Prepare Q4 presentation..."
@@ -335,6 +341,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                                     <label htmlFor="new-task-priority" className="block text-xs font-mono text-gray-600 mb-1">PRIORITY</label>
                                     <select
                                         id="new-task-priority"
+                                        name="new-task-priority"
                                         value={newTaskPriority || 'Medium'}
                                         onChange={(e) => setNewTaskPriority(e.target.value as Priority)}
                                         className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
@@ -348,6 +355,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                                     <label htmlFor="new-task-duedate" className="block text-xs font-mono text-gray-600 mb-1">DUE DATE</label>
                                     <input
                                         id="new-task-duedate"
+                                        name="new-task-duedate"
                                         type="date"
                                         value={newTaskDueDate || ''}
                                         onChange={(e) => setNewTaskDueDate(e.target.value)}
@@ -380,25 +388,25 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label htmlFor={`edit-company-${editForm.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Company</label>
-                            <input id={`edit-company-${editForm.id}`} value={editForm.company || ''} onChange={(e) => setEditForm(p => ({...p!, company: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" />
+                            <input id={`edit-company-${editForm.id}`} name={`edit-company-${editForm.id}`} value={editForm.company || ''} onChange={(e) => setEditForm(p => ({...p!, company: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" />
                         </div>
                         <div>
                             <label htmlFor={`edit-priority-${editForm.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Priority</label>
-                            <select id={`edit-priority-${editForm.id}`} value={editForm.priority || 'Medium'} onChange={(e) => setEditForm(p => ({...p!, priority: e.target.value as Priority}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none">
+                            <select id={`edit-priority-${editForm.id}`} name={`edit-priority-${editForm.id}`} value={editForm.priority || 'Medium'} onChange={(e) => setEditForm(p => ({...p!, priority: e.target.value as Priority}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none">
                                 <option>Low</option><option>Medium</option><option>High</option>
                             </select>
                         </div>
                         <div>
                             <label htmlFor={`edit-status-${editForm.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Status</label>
-                            <input id={`edit-status-${editForm.id}`} value={editForm.status || ''} onChange={(e) => setEditForm(p => ({...p!, status: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" />
+                            <input id={`edit-status-${editForm.id}`} name={`edit-status-${editForm.id}`} value={editForm.status || ''} onChange={(e) => setEditForm(p => ({...p!, status: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" />
                         </div>
                          <div>
                             <label htmlFor={`edit-nextAction-${editForm.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Next Action</label>
-                            <input id={`edit-nextAction-${editForm.id}`} value={editForm.nextAction || ''} onChange={(e) => setEditForm(p => ({...p!, nextAction: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" />
+                            <input id={`edit-nextAction-${editForm.id}`} name={`edit-nextAction-${editForm.id}`} value={editForm.nextAction || ''} onChange={(e) => setEditForm(p => ({...p!, nextAction: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" />
                         </div>
                         <div>
                             <label htmlFor={`edit-nextActionDate-${editForm.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Next Action Date</label>
-                            <input id={`edit-nextActionDate-${editForm.id}`} type="date" value={editForm.nextActionDate || ''} onChange={(e) => setEditForm(p => ({...p!, nextActionDate: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" />
+                            <input id={`edit-nextActionDate-${editForm.id}`} name={`edit-nextActionDate-${editForm.id}`} type="date" value={editForm.nextActionDate || ''} onChange={(e) => setEditForm(p => ({...p!, nextActionDate: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" />
                         </div>
                     </div>
                     <NotesManager 
@@ -422,6 +430,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                             <label htmlFor={`edit-acc-task-${editingTask.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Task Description</label>
                             <textarea 
                                 id={`edit-acc-task-${editingTask.id}`}
+                                name={`edit-acc-task-${editingTask.id}`}
                                 value={editText || ''}
                                 onChange={(e) => setEditText(e.target.value)}
                                 className="w-full bg-white border-2 border-black text-black rounded-none focus:outline-none p-2 min-h-[80px]"
@@ -432,6 +441,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                                 <label htmlFor={`edit-priority-${editingTask.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Priority</label>
                                 <select
                                     id={`edit-priority-${editingTask.id}`}
+                                    name={`edit-priority-${editingTask.id}`}
                                     value={editPriority || 'Medium'}
                                     onChange={(e) => setEditPriority(e.target.value as Priority)}
                                     className="w-full bg-white border-2 border-black text-black rounded-none focus:outline-none p-2 h-full"
@@ -445,6 +455,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                                 <label htmlFor={`edit-duedate-${editingTask.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Due Date</label>
                                 <input
                                     id={`edit-duedate-${editingTask.id}`}
+                                    name={`edit-duedate-${editingTask.id}`}
                                     type="date"
                                     value={editDueDate || ''}
                                     onChange={(e) => setEditDueDate(e.target.value)}
