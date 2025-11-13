@@ -126,37 +126,51 @@ export const AICommandPalette: React.FC<AICommandPaletteProps> = ({
     const { businessProfile } = workspaceContext;
     
     if (!businessProfile) {
-      return `You are a professional GTM content writer. Generate high-quality content in HTML format. Be concise and professional.`;
+      return `You are a professional GTM content writer. Generate high-quality content in HTML format. Be concise and professional.
+
+CRITICAL: You have NO business data available. Write strategically without inventing metrics, numbers, or timelines. Focus on frameworks and best practices.`;
     }
 
     const { companyName, description, targetMarket, valueProposition, businessModel } = businessProfile;
 
-    // Token-optimized context summaries
+    // Build data availability summary for AI awareness
+    const dataAvailability: string[] = [];
+    
+    // Token-optimized context summaries - only include if data exists
     const investorContext = data.investors.length > 0
       ? `Investors: ${data.investors.slice(0, 3).map(i => i.company).join(', ')}${data.investors.length > 3 ? ` (+${data.investors.length - 3} more)` : ''}`
       : '';
+    if (investorContext) dataAvailability.push('investors');
     
     const customerContext = data.customers.length > 0
       ? `Key Customers: ${data.customers.slice(0, 3).map(c => c.company).join(', ')}${data.customers.length > 3 ? ` (+${data.customers.length - 3} more)` : ''}`
       : '';
+    if (customerContext) dataAvailability.push('customers');
     
     const partnerContext = data.partners.length > 0
       ? `Partners: ${data.partners.slice(0, 3).map(p => p.company).join(', ')}${data.partners.length > 3 ? ` (+${data.partners.length - 3} more)` : ''}`
       : '';
+    if (partnerContext) dataAvailability.push('partners');
     
     const marketingContext = data.marketing.length > 0
       ? `Recent Marketing: ${data.marketing.slice(0, 2).map(m => m.title).join(', ')}`
       : '';
+    if (marketingContext) dataAvailability.push('marketing campaigns');
     
     // Calculate total MRR and GMV from financials array
     const latestFinancial = data.financials.length > 0 
       ? data.financials.reduce((latest, f) => f.date > latest.date ? f : latest, data.financials[0])
       : null;
     const revenueContext = latestFinancial
-      ? `Revenue: $${latestFinancial.mrr.toLocaleString()} MRR, $${latestFinancial.gmv.toLocaleString()} GMV`
+      ? `Revenue: $${latestFinancial.mrr.toLocaleString()} MRR, $${latestFinancial.gmv.toLocaleString()} GMV (as of ${latestFinancial.date})`
       : businessProfile.currentMrr
       ? `Revenue: $${businessProfile.currentMrr.toLocaleString()} MRR`
       : '';
+    if (revenueContext) dataAvailability.push('financial metrics');
+    
+    const dataAvailabilitySummary = dataAvailability.length > 0
+      ? `\nAVAILABLE DATA: ${dataAvailability.join(', ')}`
+      : `\nAVAILABLE DATA: Business profile only (no CRM or financial data)`;
 
     return `You are a professional GTM content writer for ${companyName}.
 
@@ -167,19 +181,29 @@ Business Context:
 - Target Market: ${targetMarket || 'N/A'}
 - Value Prop: ${valueProposition || 'N/A'}
 - Business Model: ${businessModel || 'N/A'}
+${dataAvailabilitySummary}
 
-Workspace Data Context:
-${investorContext ? `- ${investorContext}` : ''}
-${customerContext ? `- ${customerContext}` : ''}
-${partnerContext ? `- ${partnerContext}` : ''}
-${marketingContext ? `- ${marketingContext}` : ''}
-${revenueContext ? `- ${revenueContext}` : ''}
+Workspace Data Context (ONLY USE THESE - DO NOT INVENT):
+${investorContext ? `- ${investorContext}` : '- No investor data available'}
+${customerContext ? `- ${customerContext}` : '- No customer data available'}
+${partnerContext ? `- ${partnerContext}` : '- No partner data available'}
+${marketingContext ? `- ${marketingContext}` : '- No marketing campaign data available'}
+${revenueContext ? `- ${revenueContext}` : '- No financial data available'}
+
+CRITICAL GROUNDING RULES:
+1. ONLY use data explicitly provided in the Business Context and Workspace Data Context above
+2. NEVER invent, estimate, or hallucinate financial numbers, metrics, dates, or statistics
+3. If specific data is not provided (revenue, customer counts, timelines), write strategically WITHOUT making up numbers
+4. Use placeholder language like "our current metrics" or "based on performance" instead of fake numbers
+5. If asked for financial projections or data you don't have, state clearly: "Financial data not available in workspace. Please add actual metrics to your workspace for accurate reporting."
+6. Focus on strategy, positioning, and messaging - areas where you can add value without data
+7. When real data IS provided above, use it accurately and cite it properly
 
 Formatting Guidelines:
 - Use HTML tags for formatting (<h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>)
 - Be concise and professional
 - Focus on GTM strategy and business outcomes
-- Use data-driven insights when relevant
+- Use data-driven insights ONLY when real data is available above
 
 Important: Only return the content to insert/replace. Do not include explanations or meta-commentary.`;
   };
