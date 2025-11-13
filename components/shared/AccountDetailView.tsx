@@ -445,41 +445,224 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
             </div>
              <Modal isOpen={isEditing} onClose={() => setIsEditing(false)} title={`Edit ${title}`} triggerRef={editCrmModalTriggerRef}>
                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label htmlFor="edit-company" className="block font-mono text-sm font-semibold text-black mb-1">Company Name *</label>
+                        <input 
+                            id="edit-company" 
+                            value={editForm.company || ''} 
+                            onChange={(e) => setEditForm(p => ({...p!, company: e.target.value}))} 
+                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
+                            required
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor={`edit-company-${editForm.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Company</label>
-                            <input id={`edit-company-${editForm.id}`} name={`edit-company-${editForm.id}`} value={editForm.company || ''} onChange={(e) => setEditForm(p => ({...p!, company: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" />
-                        </div>
-                        <div>
-                            <label htmlFor={`edit-priority-${editForm.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Priority</label>
-                            <select id={`edit-priority-${editForm.id}`} name={`edit-priority-${editForm.id}`} value={editForm.priority || 'Medium'} onChange={(e) => setEditForm(p => ({...p!, priority: e.target.value as Priority}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none">
+                            <label htmlFor="edit-priority" className="block font-mono text-sm font-semibold text-black mb-1">Priority</label>
+                            <select 
+                                id="edit-priority" 
+                                value={editForm.priority || 'Medium'} 
+                                onChange={(e) => setEditForm(p => ({...p!, priority: e.target.value as Priority}))} 
+                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            >
                                 <option>Low</option><option>Medium</option><option>High</option>
                             </select>
                         </div>
                         <div>
-                            <label htmlFor={`edit-status-${editForm.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Status</label>
-                            <input id={`edit-status-${editForm.id}`} name={`edit-status-${editForm.id}`} value={editForm.status || ''} onChange={(e) => setEditForm(p => ({...p!, status: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" />
-                        </div>
-                         <div>
-                            <label htmlFor={`edit-nextAction-${editForm.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Next Action</label>
-                            <input id={`edit-nextAction-${editForm.id}`} name={`edit-nextAction-${editForm.id}`} value={editForm.nextAction || ''} onChange={(e) => setEditForm(p => ({...p!, nextAction: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" />
-                        </div>
-                        <div>
-                            <label htmlFor={`edit-nextActionDate-${editForm.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Next Action Date</label>
-                            <input id={`edit-nextActionDate-${editForm.id}`} name={`edit-nextActionDate-${editForm.id}`} type="date" value={editForm.nextActionDate || ''} onChange={(e) => setEditForm(p => ({...p!, nextActionDate: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" />
+                            <label htmlFor="edit-status" className="block font-mono text-sm font-semibold text-black mb-1">Status</label>
+                            <input 
+                                id="edit-status" 
+                                value={editForm.status || ''} 
+                                onChange={(e) => setEditForm(p => ({...p!, status: e.target.value}))} 
+                                placeholder="e.g., Active, Prospect"
+                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
+                            />
                         </div>
                     </div>
-                    <NotesManager 
-                        notes={editForm.notes} 
-                        itemId={editForm.id} 
-                        collection={crmCollection} 
-                        addNoteAction={actions.addNote}
-                        updateNoteAction={actions.updateNote}
-                        deleteNoteAction={actions.deleteNote}
-                    />
-                    <div className="flex gap-4 mt-4">
-                        <button onClick={handleUpdate} className="font-mono w-full bg-black border-2 border-black text-white cursor-pointer text-sm py-2 px-3 rounded-none font-semibold shadow-neo-btn transition-all">Save Changes</button>
-                        <button onClick={() => setIsEditing(false)} className="font-mono w-full bg-gray-200 border-2 border-black text-black cursor-pointer text-sm py-2 px-3 rounded-none font-semibold shadow-neo-btn transition-all">Cancel</button>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="edit-website" className="block font-mono text-sm font-semibold text-black mb-1">Website</label>
+                            <input 
+                                id="edit-website" 
+                                type="url"
+                                value={(editForm as any).website || ''} 
+                                onChange={(e) => setEditForm(p => ({...p!, website: e.target.value} as any))} 
+                                placeholder="https://example.com"
+                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="edit-industry" className="block font-mono text-sm font-semibold text-black mb-1">Industry</label>
+                            <input 
+                                id="edit-industry" 
+                                value={(editForm as any).industry || ''} 
+                                onChange={(e) => setEditForm(p => ({...p!, industry: e.target.value} as any))} 
+                                placeholder="e.g., SaaS, Fintech"
+                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label htmlFor="edit-description" className="block font-mono text-sm font-semibold text-black mb-1">Description</label>
+                        <textarea 
+                            id="edit-description" 
+                            value={(editForm as any).description || ''} 
+                            onChange={(e) => setEditForm(p => ({...p!, description: e.target.value} as any))} 
+                            placeholder="Brief description of the company..."
+                            rows={3}
+                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 resize-none" 
+                        />
+                    </div>
+
+                    {/* Type-specific fields */}
+                    {'checkSize' in editForm && (
+                        <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-200">
+                            <div>
+                                <label htmlFor="edit-check-size" className="block font-mono text-sm font-semibold text-black mb-1">Check Size ($)</label>
+                                <input 
+                                    id="edit-check-size" 
+                                    type="number"
+                                    value={editForm.checkSize || ''} 
+                                    onChange={(e) => setEditForm(p => ({...p as any, checkSize: e.target.value ? Number(e.target.value) : undefined}))} 
+                                    placeholder="e.g., 100000"
+                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="edit-stage" className="block font-mono text-sm font-semibold text-black mb-1">Investment Stage</label>
+                                <select 
+                                    id="edit-stage" 
+                                    value={(editForm as any).stage || ''} 
+                                    onChange={(e) => setEditForm(p => ({...p as any, stage: e.target.value}))} 
+                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                >
+                                    <option value="">Select stage...</option>
+                                    <option value="Pre-Seed">Pre-Seed</option>
+                                    <option value="Seed">Seed</option>
+                                    <option value="Series A">Series A</option>
+                                    <option value="Series B">Series B</option>
+                                    <option value="Series C+">Series C+</option>
+                                    <option value="Growth">Growth</option>
+                                </select>
+                            </div>
+                        </div>
+                    )}
+
+                    {'dealValue' in editForm && (
+                        <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-200">
+                            <div>
+                                <label htmlFor="edit-deal-value" className="block font-mono text-sm font-semibold text-black mb-1">Deal Value ($)</label>
+                                <input 
+                                    id="edit-deal-value" 
+                                    type="number"
+                                    value={editForm.dealValue || ''} 
+                                    onChange={(e) => setEditForm(p => ({...p as any, dealValue: e.target.value ? Number(e.target.value) : undefined}))} 
+                                    placeholder="e.g., 50000"
+                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="edit-deal-stage" className="block font-mono text-sm font-semibold text-black mb-1">Deal Stage</label>
+                                <select 
+                                    id="edit-deal-stage" 
+                                    value={(editForm as any).dealStage || ''} 
+                                    onChange={(e) => setEditForm(p => ({...p as any, dealStage: e.target.value}))} 
+                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                >
+                                    <option value="">Select stage...</option>
+                                    <option value="Lead">Lead</option>
+                                    <option value="Qualified">Qualified</option>
+                                    <option value="Proposal">Proposal</option>
+                                    <option value="Negotiation">Negotiation</option>
+                                    <option value="Closed Won">Closed Won</option>
+                                    <option value="Closed Lost">Closed Lost</option>
+                                </select>
+                            </div>
+                        </div>
+                    )}
+
+                    {'opportunity' in editForm && (
+                        <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-200">
+                            <div>
+                                <label htmlFor="edit-opportunity" className="block font-mono text-sm font-semibold text-black mb-1">Opportunity</label>
+                                <input 
+                                    id="edit-opportunity" 
+                                    value={editForm.opportunity || ''} 
+                                    onChange={(e) => setEditForm(p => ({...p as any, opportunity: e.target.value}))} 
+                                    placeholder="e.g., Co-marketing campaign"
+                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="edit-partner-type" className="block font-mono text-sm font-semibold text-black mb-1">Partner Type</label>
+                                <select 
+                                    id="edit-partner-type" 
+                                    value={(editForm as any).partnerType || ''} 
+                                    onChange={(e) => setEditForm(p => ({...p as any, partnerType: e.target.value}))} 
+                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                >
+                                    <option value="">Select type...</option>
+                                    <option value="Technology">Technology</option>
+                                    <option value="Marketing">Marketing</option>
+                                    <option value="Distribution">Distribution</option>
+                                    <option value="Integration">Integration</option>
+                                    <option value="Referral">Referral</option>
+                                    <option value="Strategic">Strategic</option>
+                                </select>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="pt-2 border-t border-gray-200">
+                        <label htmlFor="edit-next-action" className="block font-mono text-sm font-semibold text-black mb-1">Next Action</label>
+                        <input 
+                            id="edit-next-action" 
+                            value={editForm.nextAction || ''} 
+                            onChange={(e) => setEditForm(p => ({...p!, nextAction: e.target.value}))} 
+                            placeholder="e.g., Send intro email"
+                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="edit-next-action-date" className="block font-mono text-sm font-semibold text-black mb-1">Next Action Date</label>
+                            <input 
+                                id="edit-next-action-date" 
+                                type="date" 
+                                value={editForm.nextActionDate || ''} 
+                                onChange={(e) => setEditForm(p => ({...p!, nextActionDate: e.target.value}))} 
+                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="edit-next-action-time" className="block font-mono text-sm font-semibold text-black mb-1">Next Action Time</label>
+                            <input 
+                                id="edit-next-action-time" 
+                                type="time" 
+                                value={editForm.nextActionTime || ''} 
+                                onChange={(e) => setEditForm(p => ({...p!, nextActionTime: e.target.value}))} 
+                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
+                            />
+                        </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-gray-200">
+                        <NotesManager 
+                            notes={editForm.notes} 
+                            itemId={editForm.id} 
+                            collection={crmCollection} 
+                            addNoteAction={actions.addNote}
+                            updateNoteAction={actions.updateNote}
+                            deleteNoteAction={actions.deleteNote}
+                        />
+                    </div>
+
+                    <div className="flex gap-4 pt-4">
+                        <button onClick={handleUpdate} className="font-mono w-full bg-black border-2 border-black text-white cursor-pointer text-sm py-3 px-4 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-gray-800">Save Changes</button>
+                        <button onClick={() => setIsEditing(false)} className="font-mono w-full bg-white border-2 border-black text-black cursor-pointer text-sm py-3 px-4 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-gray-100">Cancel</button>
                     </div>
                 </div>
             </Modal>

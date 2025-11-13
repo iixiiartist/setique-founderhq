@@ -1422,6 +1422,21 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                         />
                     </div>
 
+                    <div>
+                        <label htmlFor="add-contact-linkedin" className="block font-mono text-sm font-semibold text-black mb-1">
+                            LinkedIn Profile
+                        </label>
+                        <input
+                            id="add-contact-linkedin"
+                            name="add-contact-linkedin"
+                            type="url"
+                            value={formData.linkedin}
+                            onChange={(e) => setFormData(p => ({ ...p, linkedin: e.target.value }))}
+                            placeholder="https://linkedin.com/in/username"
+                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                        />
+                    </div>
+
                     <div className="border-t-2 border-gray-300 pt-4">
                         <label htmlFor="add-contact-link-crm" className="block font-mono text-sm font-semibold text-black mb-2">
                             Link to {getCrmTypeLabel()} Account
@@ -1900,6 +1915,21 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                             value={formData.title}
                             onChange={(e) => setFormData(p => ({ ...p, title: e.target.value }))}
                             placeholder="e.g., CEO, VP of Sales"
+                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                        />
+                    </div>
+
+                    <div>
+                        <label htmlFor="edit-contact-linkedin" className="block font-mono text-sm font-semibold text-black mb-1">
+                            LinkedIn Profile
+                        </label>
+                        <input
+                            id="edit-contact-linkedin"
+                            name="edit-contact-linkedin"
+                            type="url"
+                            value={formData.linkedin}
+                            onChange={(e) => setFormData(p => ({ ...p, linkedin: e.target.value }))}
+                            placeholder="https://linkedin.com/in/username"
                             className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
                         />
                     </div>
