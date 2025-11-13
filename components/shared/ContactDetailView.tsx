@@ -77,29 +77,13 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
     
     const editContactModalTriggerRef = useRef<HTMLButtonElement | null>(null);
     const editTaskModalTriggerRef = useRef<HTMLButtonElement | null>(null);
-    // Debugging: render counter to help trace re-renders/focus issues
-    const renderCountRef = useRef(0);
-    renderCountRef.current += 1;
-    // Lightweight focus logger when editing to help diagnose single-key typing focus loss
+
+    // Initialize editForm only when modal opens
     useEffect(() => {
-        if (!isEditing) return;
-
-        const onFocusIn = (e: FocusEvent) => {
-            const target = e.target as HTMLElement | null;
-            if (!target) return;
-            console.debug('[ContactDetailView] focusin', { contactId: contact.id, activeId: target.id, tag: target.tagName, renderCount: renderCountRef.current });
-        };
-
-        document.addEventListener('focusin', onFocusIn);
-        return () => document.removeEventListener('focusin', onFocusIn);
-    }, [isEditing, contact.id]);
-
-    // Only sync editForm with contact prop when modal is closed
-    useEffect(() => {
-        if (!isEditing) {
+        if (isEditing) {
             setEditForm(contact);
         }
-    }, [contact, isEditing]);
+    }, [isEditing]);
 
     useEffect(() => {
         if (editingTask) {
@@ -119,39 +103,25 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
 
     const contactTasks = useMemo(() => tasks.filter(t => t.contactId === contact.id), [tasks, contact.id]);
 
-    const closeEditModal = () => {
+    const closeEditModal = useCallback(() => {
         setIsEditing(false);
-    };
+    }, []);
 
-    const closeEditTaskModal = () => {
+    const closeEditTaskModal = useCallback(() => {
         setEditingTask(null);
-    };
+    }, []);
 
-    const handleUpdate = () => {
-        actions.updateContact(crmCollection, contact.crmItemId, editForm.id, editForm);
-        setIsEditing(false);
-    };
+    const handleUpdate = useCallback(async () => {
+        const result = await actions.updateContact(crmCollection, contact.crmItemId, editForm.id, editForm);
+        if (result.success) {
+            setIsEditing(false);
+        }
+    }, [actions, crmCollection, contact.crmItemId, editForm]);
 
-    // Stable handlers for form inputs
-    const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setEditForm(prev => ({ ...prev, name: e.target.value }));
-    };
-
-    const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setEditForm(prev => ({ ...prev, email: e.target.value }));
-    };
-
-    const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setEditForm(prev => ({ ...prev, phone: e.target.value }));
-    };
-
-    const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setEditForm(prev => ({ ...prev, title: e.target.value }));
-    };
-
-    const handleLinkedinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setEditForm(prev => ({ ...prev, linkedin: e.target.value }));
-    };
+    // Use a single handler for all form field changes
+    const handleFormChange = useCallback((field: keyof Contact, value: string) => {
+        setEditForm(prev => ({ ...prev, [field]: value }));
+    }, []);
 
     // Stable handlers for NotesManager to prevent re-renders
     const handleAddNote = useCallback((collection: NoteableCollectionName, itemId: string, noteText: string) => {
@@ -362,36 +332,88 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
              <Modal isOpen={isEditing} onClose={closeEditModal} title="Edit Contact" triggerRef={editContactModalTriggerRef}>
                  <div className="space-y-4">
                     <div>
-                        <label htmlFor={`edit-contact-name-${contact.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Name</label>
-                        <input id={`edit-contact-name-${contact.id}`} name={`edit-contact-name-${contact.id}`} value={editForm.name || ''} onChange={handleNameChange} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" />
+                        <label htmlFor="edit-contact-name" className="block font-mono text-sm font-semibold text-black mb-1">Name *</label>
+                        <input 
+                            id="edit-contact-name" 
+                            name="name"
+                            type="text"
+                            value={editForm.name} 
+                            onChange={(e) => handleFormChange('name', e.target.value)}
+                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
+                            required
+                        />
                     </div>
                     <div>
-                        <label htmlFor={`edit-contact-email-${contact.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Email</label>
-                        <input id={`edit-contact-email-${contact.id}`} name={`edit-contact-email-${contact.id}`} value={editForm.email || ''} onChange={handleEmailChange} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" type="email"/>
+                        <label htmlFor="edit-contact-email" className="block font-mono text-sm font-semibold text-black mb-1">Email *</label>
+                        <input 
+                            id="edit-contact-email"
+                            name="email"
+                            type="email"
+                            value={editForm.email} 
+                            onChange={(e) => handleFormChange('email', e.target.value)}
+                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            required
+                        />
                     </div>
                     <div>
-                        <label htmlFor={`edit-contact-phone-${contact.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Phone</label>
-                        <input id={`edit-contact-phone-${contact.id}`} name={`edit-contact-phone-${contact.id}`} value={editForm.phone || ''} onChange={handlePhoneChange} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" type="tel"/>
+                        <label htmlFor="edit-contact-phone" className="block font-mono text-sm font-semibold text-black mb-1">Phone</label>
+                        <input 
+                            id="edit-contact-phone"
+                            name="phone"
+                            type="tel"
+                            value={editForm.phone || ''} 
+                            onChange={(e) => handleFormChange('phone', e.target.value)}
+                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            placeholder="e.g., +1 (555) 123-4567"
+                        />
                     </div>
                     <div>
-                        <label htmlFor={`edit-contact-title-${contact.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Title</label>
-                        <input id={`edit-contact-title-${contact.id}`} name={`edit-contact-title-${contact.id}`} value={editForm.title || ''} onChange={handleTitleChange} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" placeholder="e.g., CEO, VP Sales"/>
+                        <label htmlFor="edit-contact-title" className="block font-mono text-sm font-semibold text-black mb-1">Title</label>
+                        <input 
+                            id="edit-contact-title"
+                            name="title"
+                            type="text"
+                            value={editForm.title || ''} 
+                            onChange={(e) => handleFormChange('title', e.target.value)}
+                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
+                            placeholder="e.g., CEO, VP Sales, Product Manager"
+                        />
                     </div>
                      <div>
-                        <label htmlFor={`edit-contact-linkedin-${contact.id}`} className="block font-mono text-sm font-semibold text-black mb-1">LinkedIn</label>
-                        <input id={`edit-contact-linkedin-${contact.id}`} name={`edit-contact-linkedin-${contact.id}`} value={editForm.linkedin || ''} onChange={handleLinkedinChange} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" type="url"/>
+                        <label htmlFor="edit-contact-linkedin" className="block font-mono text-sm font-semibold text-black mb-1">LinkedIn Profile</label>
+                        <input 
+                            id="edit-contact-linkedin"
+                            name="linkedin"
+                            type="url"
+                            value={editForm.linkedin || ''} 
+                            onChange={(e) => handleFormChange('linkedin', e.target.value)}
+                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            placeholder="https://linkedin.com/in/username"
+                        />
                     </div>
-                    <NotesManager 
-                        notes={editForm.notes} 
-                        itemId={editForm.id} 
-                        collection='contacts'
-                        addNoteAction={handleAddNote}
-                        updateNoteAction={handleUpdateNote}
-                        deleteNoteAction={handleDeleteNote}
-                    />
-                    <div className="flex gap-4 mt-4">
-                        <button onClick={handleUpdate} className="font-mono w-full bg-black border-2 border-black text-white cursor-pointer text-sm py-2 px-3 rounded-none font-semibold shadow-neo-btn transition-all">Save Changes</button>
-                        <button onClick={closeEditModal} className="font-mono w-full bg-gray-200 border-2 border-black text-black cursor-pointer text-sm py-2 px-3 rounded-none font-semibold shadow-neo-btn transition-all">Cancel</button>
+                    <div className="pt-4 border-t border-gray-200">
+                        <NotesManager 
+                            notes={editForm.notes} 
+                            itemId={editForm.id} 
+                            collection='contacts'
+                            addNoteAction={handleAddNote}
+                            updateNoteAction={handleUpdateNote}
+                            deleteNoteAction={handleDeleteNote}
+                        />
+                    </div>
+                    <div className="flex gap-4 pt-4">
+                        <button 
+                            onClick={handleUpdate} 
+                            className="font-mono w-full bg-black border-2 border-black text-white cursor-pointer text-sm py-3 px-4 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-gray-800"
+                        >
+                            Save Changes
+                        </button>
+                        <button 
+                            onClick={closeEditModal} 
+                            className="font-mono w-full bg-white border-2 border-black text-black cursor-pointer text-sm py-3 px-4 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-gray-100"
+                        >
+                            Cancel
+                        </button>
                     </div>
                 </div>
             </Modal>
