@@ -16,12 +16,19 @@ import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
 import { Link } from '@tiptap/extension-link';
-import { Image } from '@tiptap/extension-image';
 import { FontFamily } from '@tiptap/extension-font-family';
+import { Typography } from '@tiptap/extension-typography';
+import { CharacterCount } from '@tiptap/extension-character-count';
+import { Focus } from '@tiptap/extension-focus';
+import { Gapcursor } from '@tiptap/extension-gapcursor';
+import { Dropcursor } from '@tiptap/extension-dropcursor';
+import { Youtube } from '@tiptap/extension-youtube';
+import { ResizableImage } from '../../lib/tiptap/ResizableImage';
 import { GTMDoc, DocType, DocVisibility, AppActions, DashboardData } from '../../types';
 import { DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '../../constants';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { AICommandPalette } from './AICommandPalette';
+import { ImageUploadModal } from './ImageUploadModal';
 import { useAIWorkspaceContext } from '../../hooks/useAIWorkspaceContext';
 
 interface DocEditorProps {
@@ -65,6 +72,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     const [showHighlightPicker, setShowHighlightPicker] = useState(false);
     const [showLinkInput, setShowLinkInput] = useState(false);
     const [linkUrl, setLinkUrl] = useState('');
+    const [showImageUploadModal, setShowImageUploadModal] = useState(false);
     
     // Fetch workspace context for AI
     const { context: workspaceContext, loading: contextLoading } = useAIWorkspaceContext(
@@ -111,13 +119,29 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                     class: 'text-blue-600 underline hover:text-blue-800',
                 },
             }),
-            Image.configure({
-                HTMLAttributes: {
-                    class: 'max-w-full h-auto rounded border-2 border-black',
-                },
+            ResizableImage.configure({
+                inline: false,
+                allowBase64: false,
+                enableResize: true,
+                defaultAlignment: 'center',
             }),
             FontFamily.configure({
                 types: ['textStyle'],
+            }),
+            Typography,
+            CharacterCount,
+            Focus.configure({
+                className: 'has-focus',
+                mode: 'all',
+            }),
+            Gapcursor,
+            Dropcursor.configure({
+                color: '#000',
+                width: 4,
+            }),
+            Youtube.configure({
+                controls: true,
+                nocookie: true,
             }),
         ],
         content: '',
@@ -465,10 +489,14 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                                         </div>
                                                     )}
                                                     <button onClick={() => {
-                                                        const url = window.prompt('Enter image URL:');
-                                                        if (url) { editor.chain().focus().setImage({ src: url }).run(); }
+                                                        setShowImageUploadModal(true);
                                                         setShowToolbarMenu(false);
                                                     }} className="px-3 py-2 text-left font-bold border-2 border-black bg-white hover:bg-gray-100">🖼 Insert Image</button>
+                                                    <button onClick={() => {
+                                                        const url = window.prompt('Enter YouTube URL:');
+                                                        if (url) { editor.chain().focus().setYoutubeVideo({ src: url }).run(); }
+                                                        setShowToolbarMenu(false);
+                                                    }} className="px-3 py-2 text-left font-bold border-2 border-black bg-white hover:bg-gray-100">📺 Embed Video</button>
                                                 </div>
                                             </div>
                                             
@@ -570,11 +598,62 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                 padding: 0.125rem 0.25rem;
                                 border-radius: 0.25rem;
                             }
+                            
+                            /* Focus Styles */
+                            .ProseMirror .has-focus {
+                                border-radius: 4px;
+                                box-shadow: 0 0 0 2px #fef08a;
+                            }
+                            
+                            /* Resizable Image Styles */
+                            .resizable-image-container {
+                                margin: 1rem 0;
+                                text-align: center;
+                            }
+                            .resizable-image-container.align-left {
+                                text-align: left;
+                            }
+                            .resizable-image-container.align-right {
+                                text-align: right;
+                            }
+                            .resizable-image-container.align-center {
+                                text-align: center;
+                            }
+                            .resizable-image-wrapper {
+                                display: inline-block;
+                                position: relative;
+                            }
+                            
+                            /* YouTube Embed Styles */
+                            .ProseMirror iframe[data-youtube-video] {
+                                aspect-ratio: 16 / 9;
+                                width: 100%;
+                                border: 2px solid #000;
+                                margin: 1rem 0;
+                            }
+                            
+                            /* Dropcursor Styles */
+                            .ProseMirror .ProseMirror-dropcursor {
+                                background-color: #000;
+                                width: 4px;
+                            }
                         `}</style>
                         <EditorContent 
                             editor={editor} 
                             className="h-full min-h-[300px] lg:min-h-[500px] border-2 border-black p-3 lg:p-4 text-base lg:text-base"
                         />
+                        
+                        {/* Character Count Footer */}
+                        {editor && (
+                            <div className="mt-2 px-4 py-2 bg-gray-50 border-2 border-black text-xs text-gray-600 flex justify-between items-center">
+                                <span>
+                                    {editor.storage.characterCount.words()} words • {editor.storage.characterCount.characters()} characters
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                    Typography: Smart quotes, em dashes, © ™ ® symbols enabled
+                                </span>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -715,6 +794,17 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                 />
             )}
 
+            {/* Image Upload Modal */}
+            {showImageUploadModal && editor && (
+                <ImageUploadModal
+                    workspaceId={workspaceId}
+                    docId={docId}
+                    onInsert={(url, alt) => {
+                        editor.chain().focus().setResizableImage({ src: url, alt }).run();
+                    }}
+                    onClose={() => setShowImageUploadModal(false)}
+                />
+            )}
 
         </div>
     );
