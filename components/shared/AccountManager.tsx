@@ -1134,7 +1134,12 @@ export const AccountManager: React.FC<AccountManagerProps> = ({
                     </div>
 
                     {/* Type-specific fields */}
-                    {/* DEBUG: crmType = {crmType} */}
+                    <div style={{ padding: '10px', backgroundColor: '#ffeb3b', border: '2px solid red', margin: '10px 0' }}>
+                        DEBUG: crmType = "{crmType}" | 
+                        investors={String(crmType === 'investors')} | 
+                        customers={String(crmType === 'customers')} | 
+                        partners={String(crmType === 'partners')}
+                    </div>
                     {crmType === 'investors' && (
                         <div className="grid grid-cols-2 gap-4">
                             <div>
