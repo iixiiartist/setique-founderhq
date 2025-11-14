@@ -198,6 +198,13 @@ ${partnerContext ? `- ${partnerContext}` : '- No partner data available'}
 ${marketingContext ? `- ${marketingContext}` : '- No marketing campaign data available'}
 ${revenueContext ? `- ${revenueContext}` : '- No financial data available'}
 
+For Chart Generation - Available Data Counts:
+- Financial Logs: ${data.financials.length} entries
+- Expenses: ${data.expenses.length} entries
+- CRM Items: ${data.investors.length + data.customers.length + data.partners.length} total (${data.investors.length} investors, ${data.customers.length} customers, ${data.partners.length} partners)
+- Marketing Campaigns: ${data.marketing.length} campaigns
+- Tasks: ${data.tasks.length} tasks
+
 CRITICAL GROUNDING RULES:
 1. ONLY use data explicitly provided in the Business Context and Workspace Data Context above
 2. NEVER invent, estimate, or hallucinate financial numbers, metrics, dates, or statistics
@@ -207,8 +214,32 @@ CRITICAL GROUNDING RULES:
 6. Focus on strategy, positioning, and messaging - areas where you can add value without data
 7. When real data IS provided above, use it accurately and cite it properly
 
+CHART GENERATION CAPABILITY:
+If the user requests a chart, graph, or data visualization, you can generate one by responding with a JSON object:
+{
+  "chartType": "line" | "bar" | "pie" | "area",
+  "title": "Chart Title",
+  "data": [{"key": "value", ...}],
+  "dataKeys": ["key1", "key2"],
+  "xAxisKey": "key",
+  "colors": ["#3b82f6", "#10b981"],
+  "width": 700,
+  "height": 350,
+  "showLegend": true,
+  "showGrid": true
+}
+
+Chart type guidance:
+- "line": For trends over time (revenue growth, signups over months)
+- "bar": For comparisons (pipeline stages, counts by category)
+- "pie": For distribution/breakdown (expense categories, deal stages)
+- "area": For cumulative metrics (total revenue, customer growth)
+
+Use the available workspace data listed above to populate the chart. DO NOT invent data.
+
 Formatting Guidelines:
-- Use HTML tags for formatting (<h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>)
+- For regular content: Use HTML tags (<h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>)
+- For charts: Respond ONLY with the JSON object (no explanations, no markdown)
 - Be concise and professional
 - Focus on GTM strategy and business outcomes
 - Use data-driven insights ONLY when real data is available above
@@ -250,35 +281,38 @@ Important: Only return the content to insert/replace. Do not include explanation
       // Extract and clean response
       let responseText = extractTextFromResponse(response);
       
-      // Check if response is a chart configuration
-      const isChartRequest = prompt.toLowerCase().includes('chart') || 
-                            prompt.toLowerCase().includes('graph') ||
-                            prompt.toLowerCase().includes('visualization');
+      console.log('AI Response:', responseText);
       
-      if (isChartRequest) {
-        try {
-          // Try to parse as JSON chart config
-          let chartConfig;
+      // Check if response contains JSON (chart configuration)
+      // Look for JSON pattern anywhere in the response
+      try {
+        // Remove markdown code blocks if present
+        let cleanedResponse = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        
+        // Try to extract JSON from the response
+        const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const chartConfig = JSON.parse(jsonMatch[0]);
           
-          // Remove markdown code blocks if present
-          const cleanedResponse = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+          console.log('Parsed chart config:', chartConfig);
           
-          // Try to extract JSON from the response
-          const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            chartConfig = JSON.parse(jsonMatch[0]);
-            
-            // Validate chart config has required fields
-            if (chartConfig.chartType && chartConfig.data && chartConfig.dataKeys) {
-              // Insert chart using editor command
-              editor.chain().focus().insertChart(chartConfig).run();
-              onClose();
-              return;
-            }
+          // Validate chart config has required fields
+          if (chartConfig.chartType && chartConfig.data && chartConfig.dataKeys) {
+            console.log('Valid chart config detected, inserting chart');
+            // Insert chart using editor command
+            editor.chain().focus().insertChart(chartConfig).run();
+            onClose();
+            return;
+          } else {
+            console.log('JSON found but missing required chart fields:', {
+              hasChartType: !!chartConfig.chartType,
+              hasData: !!chartConfig.data,
+              hasDataKeys: !!chartConfig.dataKeys
+            });
           }
-        } catch (parseError) {
-          console.log('Not a valid chart config, treating as regular content');
         }
+      } catch (parseError) {
+        console.log('JSON parse error, treating as regular content:', parseError);
       }
       
       // Remove markdown code blocks if present
