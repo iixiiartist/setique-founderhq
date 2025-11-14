@@ -22,6 +22,9 @@ import { CharacterCount } from '@tiptap/extension-character-count';
 import { Focus } from '@tiptap/extension-focus';
 import { Youtube } from '@tiptap/extension-youtube';
 import { ResizableImage } from '../../lib/tiptap/ResizableImage';
+import { FontSize } from '../../lib/tiptap/FontSize';
+import { HexColorPicker } from 'react-colorful';
+import EmojiPicker from 'emoji-picker-react';
 import { GTMDoc, DocType, DocVisibility, AppActions, DashboardData } from '../../types';
 import { DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '../../constants';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
@@ -74,6 +77,11 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     const [linkUrl, setLinkUrl] = useState('');
     const [showImageUploadModal, setShowImageUploadModal] = useState(false);
     const [showExportMenu, setShowExportMenu] = useState(false);
+    const [showAdvancedColorPicker, setShowAdvancedColorPicker] = useState(false);
+    const [showAdvancedHighlightPicker, setShowAdvancedHighlightPicker] = useState(false);
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const [selectedColor, setSelectedColor] = useState('#000000');
+    const [selectedHighlight, setSelectedHighlight] = useState('#FFFF00');
     
     // Fetch workspace context for AI
     const { context: workspaceContext, loading: contextLoading } = useAIWorkspaceContext(
@@ -123,6 +131,9 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                 defaultAlignment: 'center',
             }),
             FontFamily.configure({
+                types: ['textStyle'],
+            }),
+            FontSize.configure({
                 types: ['textStyle'],
             }),
             Typography,
@@ -467,6 +478,37 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                                 </select>
                                             </div>
 
+                                            {/* Font Size Section */}
+                                            <div className="border-b-2 border-black p-2">
+                                                <div className="text-xs font-bold mb-2 text-gray-600">FONT SIZE</div>
+                                                <select 
+                                                    onChange={(e) => {
+                                                        if (e.target.value === 'unset') {
+                                                            editor.chain().focus().unsetFontSize().run();
+                                                        } else {
+                                                            editor.chain().focus().setFontSize(e.target.value).run();
+                                                        }
+                                                    }}
+                                                    className="w-full px-2 py-2 text-sm border-2 border-black font-bold"
+                                                    value={editor.getAttributes('textStyle').fontSize || ''}
+                                                >
+                                                    <option value="">Default (16px)</option>
+                                                    <option value="unset">Remove Size</option>
+                                                    <option value="10px">Tiny (10px)</option>
+                                                    <option value="12px">Small (12px)</option>
+                                                    <option value="14px">Normal (14px)</option>
+                                                    <option value="16px">Medium (16px)</option>
+                                                    <option value="18px">Large (18px)</option>
+                                                    <option value="20px">XL (20px)</option>
+                                                    <option value="24px">XXL (24px)</option>
+                                                    <option value="28px">Huge (28px)</option>
+                                                    <option value="32px">Massive (32px)</option>
+                                                    <option value="36px">Giant (36px)</option>
+                                                    <option value="48px">Gigantic (48px)</option>
+                                                    <option value="64px">Colossal (64px)</option>
+                                                </select>
+                                            </div>
+
                                             {/* Text Formatting Section */}
                                             <div className="border-b-2 border-black p-2">
                                                 <div className="text-xs font-bold mb-2 text-gray-600">TEXT FORMATTING</div>
@@ -480,23 +522,105 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                                 </div>
                                             </div>
                                             
-                                            {/* Colors Section */}
+                                            {/* Colors Section - Advanced Color Picker */}
                                             <div className="border-b-2 border-black p-2">
                                                 <div className="text-xs font-bold mb-2 text-gray-600">COLORS</div>
-                                                <div className="mb-2">
-                                                    <div className="text-xs mb-1">Text Color:</div>
-                                                    <div className="grid grid-cols-5 gap-1">
-                                                        {['#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#FFA500', '#800080', '#008000'].map(color => (
-                                                            <button key={color} onClick={() => { editor.chain().focus().setColor(color).run(); }} className="w-10 h-10 border-2 border-black hover:scale-110 transition-transform" style={{ backgroundColor: color }} title={color} />
-                                                        ))}
+                                                
+                                                {/* Text Color Picker */}
+                                                <div className="mb-3">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="text-xs font-medium">Text Color</span>
+                                                        <button 
+                                                            onClick={() => setShowAdvancedColorPicker(!showAdvancedColorPicker)}
+                                                            className="flex items-center gap-2 px-3 py-1 text-xs font-bold border-2 border-black bg-white hover:bg-gray-100"
+                                                        >
+                                                            <div 
+                                                                className="w-5 h-5 border-2 border-black" 
+                                                                style={{ backgroundColor: selectedColor }}
+                                                            />
+                                                            {showAdvancedColorPicker ? 'Close' : 'Pick Color'}
+                                                        </button>
+                                                    </div>
+                                                    {showAdvancedColorPicker && (
+                                                        <div className="mb-2">
+                                                            <HexColorPicker 
+                                                                color={selectedColor} 
+                                                                onChange={(color) => {
+                                                                    setSelectedColor(color);
+                                                                    editor.chain().focus().setColor(color).run();
+                                                                }}
+                                                                style={{ width: '100%', height: '150px' }}
+                                                            />
+                                                            <input
+                                                                type="text"
+                                                                value={selectedColor}
+                                                                onChange={(e) => {
+                                                                    setSelectedColor(e.target.value);
+                                                                    if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+                                                                        editor.chain().focus().setColor(e.target.value).run();
+                                                                    }
+                                                                }}
+                                                                className="w-full mt-2 px-2 py-1 text-sm border-2 border-black font-mono"
+                                                                placeholder="#000000"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    <div className="flex gap-1">
+                                                        <button 
+                                                            onClick={() => editor.chain().focus().unsetColor().run()}
+                                                            className="flex-1 px-2 py-1 text-xs font-bold border-2 border-black bg-white hover:bg-gray-100"
+                                                        >
+                                                            Clear Color
+                                                        </button>
                                                     </div>
                                                 </div>
+
+                                                {/* Highlight Color Picker */}
                                                 <div>
-                                                    <div className="text-xs mb-1">Highlight:</div>
-                                                    <div className="grid grid-cols-6 gap-1">
-                                                        {['#FFFF00', '#00FF00', '#00FFFF', '#FF00FF', '#FFA500', '#FFB6C1'].map(color => (
-                                                            <button key={color} onClick={() => { editor.chain().focus().toggleHighlight({ color }).run(); }} className="w-10 h-10 border-2 border-black hover:scale-110 transition-transform" style={{ backgroundColor: color }} title={color} />
-                                                        ))}
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="text-xs font-medium">Highlight</span>
+                                                        <button 
+                                                            onClick={() => setShowAdvancedHighlightPicker(!showAdvancedHighlightPicker)}
+                                                            className="flex items-center gap-2 px-3 py-1 text-xs font-bold border-2 border-black bg-white hover:bg-gray-100"
+                                                        >
+                                                            <div 
+                                                                className="w-5 h-5 border-2 border-black" 
+                                                                style={{ backgroundColor: selectedHighlight }}
+                                                            />
+                                                            {showAdvancedHighlightPicker ? 'Close' : 'Pick Color'}
+                                                        </button>
+                                                    </div>
+                                                    {showAdvancedHighlightPicker && (
+                                                        <div className="mb-2">
+                                                            <HexColorPicker 
+                                                                color={selectedHighlight} 
+                                                                onChange={(color) => {
+                                                                    setSelectedHighlight(color);
+                                                                    editor.chain().focus().toggleHighlight({ color }).run();
+                                                                }}
+                                                                style={{ width: '100%', height: '150px' }}
+                                                            />
+                                                            <input
+                                                                type="text"
+                                                                value={selectedHighlight}
+                                                                onChange={(e) => {
+                                                                    setSelectedHighlight(e.target.value);
+                                                                    if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+                                                                        editor.chain().focus().toggleHighlight({ color: e.target.value }).run();
+                                                                    }
+                                                                }}
+                                                                className="w-full mt-2 px-2 py-1 text-sm border-2 border-black font-mono"
+                                                                placeholder="#FFFF00"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    <div className="flex gap-1">
+                                                        <button 
+                                                            onClick={() => editor.chain().focus().unsetHighlight().run()}
+                                                            className="flex-1 px-2 py-1 text-xs font-bold border-2 border-black bg-white hover:bg-gray-100"
+                                                        >
+                                                            Clear Highlight
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -582,8 +706,31 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                             
                                             {/* Media Section */}
                                             <div className="border-b-2 border-black p-2">
-                                                <div className="text-xs font-bold mb-2 text-gray-600">MEDIA</div>
+                                                <div className="text-xs font-bold mb-2 text-gray-600">MEDIA & INSERT</div>
                                                 <div className="flex flex-col gap-1">
+                                                    {/* Emoji Picker */}
+                                                    <button 
+                                                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                                                        className="px-3 py-2 text-left font-bold border-2 border-black bg-white hover:bg-gray-100"
+                                                    >
+                                                        😀 {showEmojiPicker ? 'Close Emoji Picker' : 'Insert Emoji'}
+                                                    </button>
+                                                    {showEmojiPicker && (
+                                                        <div className="mb-2">
+                                                            <EmojiPicker
+                                                                onEmojiClick={(emojiObject) => {
+                                                                    editor.chain().focus().insertContent(emojiObject.emoji).run();
+                                                                    setShowEmojiPicker(false);
+                                                                }}
+                                                                width="100%"
+                                                                height="300px"
+                                                                searchDisabled={false}
+                                                                skinTonesDisabled={false}
+                                                                previewConfig={{ showPreview: false }}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    
                                                     <button onClick={() => {
                                                         if (editor.isActive('link')) {
                                                             editor.chain().focus().unsetLink().run();
