@@ -494,7 +494,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                     {/* Hamburger Toolbar Menu */}
                     {editor && (
                         <div className="sticky top-0 z-10 bg-white border-b-2 border-black p-2">
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between flex-wrap gap-2">
                                 <div className="relative" ref={toolbarMenuRef}>
                                     <button 
                                         onClick={() => setShowToolbarMenu(!showToolbarMenu)}
@@ -870,6 +870,107 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                             </div>
                                         </div>
                                     )}
+                                </div>
+                                
+                                {/* Quick Formatting Toolbar */}
+                                <div className="flex items-center gap-1 flex-wrap">
+                                    {/* Text Style Buttons */}
+                                    <button
+                                        onClick={() => editor.chain().focus().toggleBold().run()}
+                                        className={`px-3 py-2 text-sm font-bold border-2 border-black hover:bg-gray-100 ${editor.isActive('bold') ? 'bg-yellow-300' : 'bg-white'}`}
+                                        title="Bold (Cmd+B)"
+                                    >
+                                        <strong>B</strong>
+                                    </button>
+                                    <button
+                                        onClick={() => editor.chain().focus().toggleItalic().run()}
+                                        className={`px-3 py-2 text-sm font-bold border-2 border-black hover:bg-gray-100 ${editor.isActive('italic') ? 'bg-yellow-300' : 'bg-white'}`}
+                                        title="Italic (Cmd+I)"
+                                    >
+                                        <em>I</em>
+                                    </button>
+                                    <button
+                                        onClick={() => editor.chain().focus().toggleUnderline().run()}
+                                        className={`px-3 py-2 text-sm font-bold border-2 border-black hover:bg-gray-100 ${editor.isActive('underline') ? 'bg-yellow-300' : 'bg-white'}`}
+                                        title="Underline (Cmd+U)"
+                                    >
+                                        <u>U</u>
+                                    </button>
+                                    <button
+                                        onClick={() => editor.chain().focus().toggleStrike().run()}
+                                        className={`px-3 py-2 text-sm font-bold border-2 border-black hover:bg-gray-100 ${editor.isActive('strike') ? 'bg-yellow-300' : 'bg-white'}`}
+                                        title="Strikethrough"
+                                    >
+                                        <s>S</s>
+                                    </button>
+                                    
+                                    <div className="w-px h-6 bg-black mx-1" />
+                                    
+                                    {/* Heading Buttons */}
+                                    <button
+                                        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                                        className={`px-3 py-2 text-xs font-bold border-2 border-black hover:bg-gray-100 ${editor.isActive('heading', { level: 1 }) ? 'bg-yellow-300' : 'bg-white'}`}
+                                        title="Heading 1"
+                                    >
+                                        H1
+                                    </button>
+                                    <button
+                                        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                                        className={`px-3 py-2 text-xs font-bold border-2 border-black hover:bg-gray-100 ${editor.isActive('heading', { level: 2 }) ? 'bg-yellow-300' : 'bg-white'}`}
+                                        title="Heading 2"
+                                    >
+                                        H2
+                                    </button>
+                                    <button
+                                        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                                        className={`px-3 py-2 text-xs font-bold border-2 border-black hover:bg-gray-100 ${editor.isActive('heading', { level: 3 }) ? 'bg-yellow-300' : 'bg-white'}`}
+                                        title="Heading 3"
+                                    >
+                                        H3
+                                    </button>
+                                    
+                                    <div className="w-px h-6 bg-black mx-1" />
+                                    
+                                    {/* List Buttons */}
+                                    <button
+                                        onClick={() => editor.chain().focus().toggleBulletList().run()}
+                                        className={`px-3 py-2 text-sm font-bold border-2 border-black hover:bg-gray-100 ${editor.isActive('bulletList') ? 'bg-yellow-300' : 'bg-white'}`}
+                                        title="Bullet List"
+                                    >
+                                        •
+                                    </button>
+                                    <button
+                                        onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                                        className={`px-3 py-2 text-sm font-bold border-2 border-black hover:bg-gray-100 ${editor.isActive('orderedList') ? 'bg-yellow-300' : 'bg-white'}`}
+                                        title="Numbered List"
+                                    >
+                                        1.
+                                    </button>
+                                    
+                                    <div className="w-px h-6 bg-black mx-1" />
+                                    
+                                    {/* Alignment Buttons */}
+                                    <button
+                                        onClick={() => editor.chain().focus().setTextAlign('left').run()}
+                                        className={`px-3 py-2 text-xs font-bold border-2 border-black hover:bg-gray-100 ${editor.isActive({ textAlign: 'left' }) ? 'bg-yellow-300' : 'bg-white'}`}
+                                        title="Align Left"
+                                    >
+                                        ⬅
+                                    </button>
+                                    <button
+                                        onClick={() => editor.chain().focus().setTextAlign('center').run()}
+                                        className={`px-3 py-2 text-xs font-bold border-2 border-black hover:bg-gray-100 ${editor.isActive({ textAlign: 'center' }) ? 'bg-yellow-300' : 'bg-white'}`}
+                                        title="Align Center"
+                                    >
+                                        ↔
+                                    </button>
+                                    <button
+                                        onClick={() => editor.chain().focus().setTextAlign('right').run()}
+                                        className={`px-3 py-2 text-xs font-bold border-2 border-black hover:bg-gray-100 ${editor.isActive({ textAlign: 'right' }) ? 'bg-yellow-300' : 'bg-white'}`}
+                                        title="Align Right"
+                                    >
+                                        ➡
+                                    </button>
                                 </div>
                                 
                                 {/* AI Assistant Button - Always visible */}
