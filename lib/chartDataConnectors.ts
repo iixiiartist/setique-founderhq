@@ -1,4 +1,4 @@
-import { FinancialLog, Expense, CrmItem, MarketingItem, Task } from '../types';
+import { FinancialLog, Expense, AnyCrmItem, MarketingItem, Task } from '../types';
 
 /**
  * Transform financial logs into chart-ready data
@@ -38,14 +38,14 @@ export const getExpenseChartData = (expenses: Expense[]) => {
 /**
  * Transform CRM items into pipeline chart data
  */
-export const getPipelineChartData = (crmItems: CrmItem[]): Array<{ stage: string; count: number }> => {
-  const byStage = crmItems.reduce((acc, item) => {
-    const stage = item.stage || 'Unknown';
-    acc[stage] = (acc[stage] || 0) + 1;
+export const getPipelineChartData = (crmItems: AnyCrmItem[]): Array<{ stage: string; count: number }> => {
+  const byStatus = crmItems.reduce((acc, item) => {
+    const status = item.status || 'Unknown';
+    acc[status] = (acc[status] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
   
-  return Object.entries(byStage).map(([stage, count]) => ({
+  return Object.entries(byStatus).map(([stage, count]) => ({
     stage,
     count: count as number,
   }));
@@ -86,7 +86,7 @@ export const getTaskCompletionChartData = (tasks: Task[]) => {
  */
 export const getGrowthChartData = (
   financialLogs: FinancialLog[],
-  crmItems: CrmItem[]
+  crmItems: AnyCrmItem[]
 ) => {
   const sortedLogs = [...financialLogs].sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
@@ -95,7 +95,7 @@ export const getGrowthChartData = (
   return sortedLogs.map(log => {
     // Count customers up to this date
     const customersUpToDate = crmItems.filter(
-      item => item.stage === 'Closed Won' && 
+      item => item.status === 'Closed Won' && 
       new Date(item.createdAt || 0) <= new Date(log.date)
     ).length;
     
