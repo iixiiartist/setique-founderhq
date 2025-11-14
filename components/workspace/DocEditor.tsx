@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -85,6 +85,9 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [selectedColor, setSelectedColor] = useState('#000000');
     const [selectedHighlight, setSelectedHighlight] = useState('#FFFF00');
+    
+    // Ref for toolbar menu to detect clicks outside
+    const toolbarMenuRef = useRef<HTMLDivElement>(null);
     
     // Fetch workspace context for AI
     const { context: workspaceContext, loading: contextLoading } = useAIWorkspaceContext(
@@ -196,6 +199,23 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             loadDoc();
         }
     }, [docId]);
+
+    // Close toolbar menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (showToolbarMenu && toolbarMenuRef.current && !toolbarMenuRef.current.contains(event.target as Node)) {
+                setShowToolbarMenu(false);
+            }
+        };
+
+        if (showToolbarMenu) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showToolbarMenu]);
 
     const loadDoc = async () => {
         setIsLoading(true);
@@ -471,7 +491,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                     {editor && (
                         <div className="sticky top-0 z-10 bg-white border-b-2 border-black p-2">
                             <div className="flex items-center justify-between">
-                                <div className="relative">
+                                <div className="relative" ref={toolbarMenuRef}>
                                     <button 
                                         onClick={() => setShowToolbarMenu(!showToolbarMenu)}
                                         className="px-4 py-2 text-sm font-bold border-2 border-black bg-white hover:bg-yellow-300 flex items-center gap-2"
@@ -817,8 +837,18 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                             </div>
                                             
                                             {/* Clear Formatting */}
-                                            <div className="p-2">
-                                                <button onClick={() => { editor.chain().focus().clearNodes().unsetAllMarks().run(); setShowToolbarMenu(false); }} className="w-full px-3 py-2 text-left font-bold border-2 border-black bg-white hover:bg-gray-100">Clear Formatting</button>
+                                            <div className="border-b-2 border-black p-2">
+                                                <button onClick={() => { editor.chain().focus().clearNodes().unsetAllMarks().run(); setShowToolbarMenu(false); }} className="w-full px-3 py-2 text-left font-bold border-2 border-black bg-white hover:bg-gray-100">🧹 Clear Formatting</button>
+                                            </div>
+                                            
+                                            {/* Close Button */}
+                                            <div className="p-2 bg-gray-50">
+                                                <button 
+                                                    onClick={() => setShowToolbarMenu(false)} 
+                                                    className="w-full px-3 py-2 text-center font-bold border-2 border-black bg-yellow-400 hover:bg-yellow-500 transition-colors"
+                                                >
+                                                    ✓ Done
+                                                </button>
                                             </div>
                                         </div>
                                     )}
@@ -993,6 +1023,12 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                         <EditorContent 
                             editor={editor} 
                             className="h-full min-h-[300px] lg:min-h-[500px] border-2 border-black p-3 lg:p-4 text-base lg:text-base"
+                            onClick={() => {
+                                // Auto-close toolbar menu when clicking into the editor
+                                if (showToolbarMenu) {
+                                    setShowToolbarMenu(false);
+                                }
+                            }}
                         />
                         
                         {/* Character Count Footer */}
