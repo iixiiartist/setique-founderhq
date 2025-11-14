@@ -484,10 +484,31 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                             <div className="border-b-2 border-black p-2">
                                                 <div className="text-xs font-bold mb-2 text-gray-600">ALIGNMENT</div>
                                                 <div className="grid grid-cols-4 gap-1">
-                                                    <button onClick={() => { editor.chain().focus().setTextAlign('left').run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive({ textAlign: 'left' }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Left">⬅</button>
-                                                    <button onClick={() => { editor.chain().focus().setTextAlign('center').run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive({ textAlign: 'center' }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Center">↔</button>
-                                                    <button onClick={() => { editor.chain().focus().setTextAlign('right').run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive({ textAlign: 'right' }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Right">➡</button>
-                                                    <button onClick={() => { editor.chain().focus().setTextAlign('justify').run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive({ textAlign: 'justify' }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Justify">≡</button>
+                                                    <button onClick={() => { 
+                                                        if (editor.isActive('resizableImage')) {
+                                                            editor.chain().focus().updateAttributes('resizableImage', { alignment: 'left' }).run();
+                                                        } else {
+                                                            editor.chain().focus().setTextAlign('left').run();
+                                                        }
+                                                        setShowToolbarMenu(false);
+                                                    }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive({ textAlign: 'left' }) || editor.isActive('resizableImage', { alignment: 'left' }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Left">⬅</button>
+                                                    <button onClick={() => { 
+                                                        if (editor.isActive('resizableImage')) {
+                                                            editor.chain().focus().updateAttributes('resizableImage', { alignment: 'center' }).run();
+                                                        } else {
+                                                            editor.chain().focus().setTextAlign('center').run();
+                                                        }
+                                                        setShowToolbarMenu(false);
+                                                    }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive({ textAlign: 'center' }) || editor.isActive('resizableImage', { alignment: 'center' }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Center">↔</button>
+                                                    <button onClick={() => { 
+                                                        if (editor.isActive('resizableImage')) {
+                                                            editor.chain().focus().updateAttributes('resizableImage', { alignment: 'right' }).run();
+                                                        } else {
+                                                            editor.chain().focus().setTextAlign('right').run();
+                                                        }
+                                                        setShowToolbarMenu(false);
+                                                    }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive({ textAlign: 'right' }) || editor.isActive('resizableImage', { alignment: 'right' }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Right">➡</button>
+                                                    <button onClick={() => { editor.chain().focus().setTextAlign('justify').run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive({ textAlign: 'justify' }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Justify" disabled={editor.isActive('resizableImage')}>≡</button>
                                                 </div>
                                             </div>
                                             
