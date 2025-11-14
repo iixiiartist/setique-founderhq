@@ -38,7 +38,7 @@ export const getExpenseChartData = (expenses: Expense[]) => {
 /**
  * Transform CRM items into pipeline chart data
  */
-export const getPipelineChartData = (crmItems: CrmItem[]) => {
+export const getPipelineChartData = (crmItems: CrmItem[]): Array<{ stage: string; count: number }> => {
   const byStage = crmItems.reduce((acc, item) => {
     const stage = item.stage || 'Unknown';
     acc[stage] = (acc[stage] || 0) + 1;
@@ -47,7 +47,7 @@ export const getPipelineChartData = (crmItems: CrmItem[]) => {
   
   return Object.entries(byStage).map(([stage, count]) => ({
     stage,
-    count,
+    count: count as number,
   }));
 };
 

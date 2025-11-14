@@ -57,6 +57,8 @@ export const applyTemplate = (
   };
 };
 
+export type ChartTemplateName = keyof typeof CHART_TEMPLATES;
+
 export const getTemplateNames = () => Object.keys(CHART_TEMPLATES);
 
 export const getTemplateConfig = (templateName: string) => {

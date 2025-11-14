@@ -25,8 +25,6 @@ import { ResizableImage } from '../../lib/tiptap/ResizableImage';
 import { FontSize } from '../../lib/tiptap/FontSize';
 import { PageBreak } from '../../lib/tiptap/PageBreak';
 import ChartNode from '../../lib/tiptap/ChartNode';
-import { getTemplateNames } from '../../lib/chartTemplates';
-import { getSampleChartData } from '../../lib/chartDataConnectors';
 import { HexColorPicker } from 'react-colorful';
 import EmojiPicker from 'emoji-picker-react';
 import { GTMDoc, DocType, DocVisibility, AppActions, DashboardData } from '../../types';
@@ -34,6 +32,7 @@ import { DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '../../constants';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { AICommandPalette } from './AICommandPalette';
 import { ImageUploadModal } from './ImageUploadModal';
+import { ChartQuickInsert } from './ChartQuickInsert';
 import { useAIWorkspaceContext } from '../../hooks/useAIWorkspaceContext';
 import { uploadToSupabase, validateImageFile } from '../../lib/services/imageUploadService';
 import { exportToMarkdown, exportToPDF, exportToHTML, exportToText, generateFilename } from '../../lib/services/documentExport';
@@ -88,6 +87,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [selectedColor, setSelectedColor] = useState('#000000');
     const [selectedHighlight, setSelectedHighlight] = useState('#FFFF00');
+    const [showChartQuickInsert, setShowChartQuickInsert] = useState(false);
     
     // Ref for toolbar menu to detect clicks outside
     const toolbarMenuRef = useRef<HTMLDivElement>(null);
@@ -786,67 +786,15 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                             {/* Charts & Graphs Section */}
                                             <div className="border-b-2 border-black p-2">
                                                 <div className="text-xs font-bold mb-2 text-gray-600">CHARTS & GRAPHS</div>
-                                                <div className="flex flex-col gap-1">
-                                                    <button onClick={() => {
-                                                        const chartData = getSampleChartData('line');
-                                                        editor.chain().focus().insertChart({
-                                                            chartType: 'line',
-                                                            title: 'Revenue Trends',
-                                                            data: chartData,
-                                                            dataKeys: ['mrr', 'gmv'],
-                                                            xAxisKey: 'date',
-                                                            colors: ['#3b82f6', '#10b981'],
-                                                            width: 700,
-                                                            height: 350,
-                                                        }).run();
+                                                <button 
+                                                    onClick={() => {
+                                                        setShowChartQuickInsert(true);
                                                         setShowToolbarMenu(false);
-                                                    }} className="px-3 py-2 text-left font-bold border-2 border-black bg-white hover:bg-blue-50">📈 Line Chart</button>
-                                                    
-                                                    <button onClick={() => {
-                                                        const chartData = getSampleChartData('bar');
-                                                        editor.chain().focus().insertChart({
-                                                            chartType: 'bar',
-                                                            title: 'Sales Pipeline',
-                                                            data: chartData,
-                                                            dataKeys: ['count'],
-                                                            xAxisKey: 'stage',
-                                                            colors: ['#3b82f6'],
-                                                            width: 700,
-                                                            height: 350,
-                                                        }).run();
-                                                        setShowToolbarMenu(false);
-                                                    }} className="px-3 py-2 text-left font-bold border-2 border-black bg-white hover:bg-blue-50">📊 Bar Chart</button>
-                                                    
-                                                    <button onClick={() => {
-                                                        const chartData = getSampleChartData('pie');
-                                                        editor.chain().focus().insertChart({
-                                                            chartType: 'pie',
-                                                            title: 'Expense Breakdown',
-                                                            data: chartData,
-                                                            dataKeys: ['amount'],
-                                                            xAxisKey: 'category',
-                                                            colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'],
-                                                            width: 600,
-                                                            height: 350,
-                                                        }).run();
-                                                        setShowToolbarMenu(false);
-                                                    }} className="px-3 py-2 text-left font-bold border-2 border-black bg-white hover:bg-blue-50">🥧 Pie Chart</button>
-                                                    
-                                                    <button onClick={() => {
-                                                        const chartData = getSampleChartData('area');
-                                                        editor.chain().focus().insertChart({
-                                                            chartType: 'area',
-                                                            title: 'Growth Metrics',
-                                                            data: chartData,
-                                                            dataKeys: ['signups', 'customers', 'revenue'],
-                                                            xAxisKey: 'month',
-                                                            colors: ['#3b82f6', '#10b981', '#f59e0b'],
-                                                            width: 700,
-                                                            height: 350,
-                                                        }).run();
-                                                        setShowToolbarMenu(false);
-                                                    }} className="px-3 py-2 text-left font-bold border-2 border-black bg-white hover:bg-blue-50">📉 Area Chart</button>
-                                                </div>
+                                                    }} 
+                                                    className="w-full px-3 py-2 text-left font-bold border-2 border-black bg-blue-50 hover:bg-blue-100"
+                                                >
+                                                    📊 Insert Chart with Template
+                                                </button>
                                             </div>
                                             
                                             {/* Media Section */}
@@ -1325,6 +1273,15 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                         editor.chain().focus().setResizableImage({ src: url, alt }).run();
                     }}
                     onClose={() => setShowImageUploadModal(false)}
+                />
+            )}
+
+            {/* Chart Quick Insert Modal */}
+            {showChartQuickInsert && editor && (
+                <ChartQuickInsert
+                    editor={editor}
+                    onClose={() => setShowChartQuickInsert(false)}
+                    data={data}
                 />
             )}
 
