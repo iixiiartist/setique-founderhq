@@ -60,16 +60,16 @@ export function LandingPage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center max-w-3xl mx-auto">
           <div className="inline-block mb-4 px-4 py-2 bg-yellow-300 border-2 border-black shadow-neo font-mono text-sm font-bold">
-            ⚡ AI-POWERED GTM PLATFORM
+            ⚡ LIGHTWEIGHT AI-POWERED GTM HUB
           </div>
           <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
-            <span className="text-blue-600">Your Complete GTM Command Center</span>
+            <span className="text-blue-600">Everything You Need to Run GTM in One Place</span>
           </h1>
           <p className="text-2xl md:text-3xl font-semibold text-gray-800 mb-6">
-            Professional Documents. Smart CRM. AI Assistants.
+            CRM • AI Assistants • Collaboration • GTM Docs
           </p>
           <p className="text-xl text-gray-700 mb-8 leading-relaxed">
-            Create stunning GTM documents with our premium editor. Manage your sales pipeline with 3-in-1 CRM. Get AI-powered insights from context-aware assistants. All in one lightweight platform built for founders, sales teams, and consultants.
+            Manage your entire go-to-market workflow with smart CRM, context-aware AI assistants, team collaboration tools, and premium documents. Purpose-built for founders, sales teams, and consultants who need a lightweight alternative to bloated enterprise platforms.
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Link
@@ -95,8 +95,8 @@ export function LandingPage() {
       <section className="bg-gray-50 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Built for Ambitious Professionals</h2>
-            <p className="text-lg text-gray-600">Whether you're scaling a startup or managing clients, FounderHQ adapts to your workflow</p>
+            <h2 className="text-3xl font-bold mb-4">Your Lightweight Alternative to Bloated Platforms</h2>
+            <p className="text-lg text-gray-600">Stop juggling 10 tools. Get CRM, AI, collaboration, and docs in one focused workspace</p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             <UseCase
@@ -186,55 +186,55 @@ export function LandingPage() {
       {/* Features Grid */}
       <section id="features" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 bg-white">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold mb-4">Everything You Need</h2>
-          <p className="text-xl text-gray-600">Built for founders, consultants, sales reps, and small business owners</p>
+          <h2 className="text-4xl font-bold mb-4">All Your GTM Tools in One Hub</h2>
+          <p className="text-xl text-gray-600">CRM, AI, collaboration, docs, tasks, calendar, and analytics—working together seamlessly</p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           <FeatureCard
-            icon={<FileText className="w-8 h-8" />}
-            title="GTM Docs with Premium Editor"
-            description="Create professional documents with 24 formatting tools, custom fonts, colors, emoji picker, and page breaks. Includes 5 GTM templates: Executive Summary, Product Brief, Launch Plan, Competitive Analysis, and Sales Deck."
+            icon={<Users className="w-8 h-8" />}
+            title="3-in-1 Smart CRM"
+            description="Separate pipelines for Investors, Customers, and Partners. Track contacts, meetings, deal stages, and values. Assign leads to team members and never miss a follow-up with AI-powered insights."
           />
           <FeatureCard
             icon={<Brain className="w-8 h-8" />}
             title="Context-Aware AI Assistants"
-            description="Module-specific AI for fundraising, sales, partnerships, marketing, and product. Each assistant understands your business profile and can reference your documents, CRM, and tasks."
-          />
-          <FeatureCard
-            icon={<Users className="w-8 h-8" />}
-            title="3-in-1 CRM System"
-            description="Separate pipelines for Investors, Customers, and Partners. Track contacts, meetings, deal stages, and values. Assign leads to team members and never miss a follow-up."
+            description="Module-specific AI for fundraising, sales, partnerships, marketing, and product. Each assistant understands your business profile and can reference your documents, CRM, and tasks for relevant insights."
           />
           <FeatureCard
             icon={<Target className="w-8 h-8" />}
             title="Smart Task Management"
-            description="Organize tasks by module (Platform, Investor, Customer, Partner, Marketing). Assign to team members, set priorities, track progress, and earn XP for completions."
-          />
-          <FeatureCard
-            icon={<Megaphone className="w-8 h-8" />}
-            title="Marketing Campaign Planner"
-            description="Plan blog posts, newsletters, social campaigns, and events. Track status from draft to published. Link to CRM contacts and tag relevant stakeholders."
-          />
-          <FeatureCard
-            icon={<BarChart3 className="w-8 h-8" />}
-            title="Financial Tracking & Analytics"
-            description="Log MRR, GMV, signups, and expenses. Visualize trends with interactive charts. Track runway and burn rate. Export data for deeper analysis."
-          />
-          <FeatureCard
-            icon={<Calendar className="w-8 h-8" />}
-            title="Unified Calendar View"
-            description="See all your tasks, meetings, and marketing deadlines in one place. Color-coded by module, filterable by priority, with quick-add for events."
+            description="Organize tasks by module (Platform, Investor, Customer, Partner, Marketing). Assign to team members, set priorities, track progress, and earn XP for completions with gamification."
           />
           <FeatureCard
             icon={<Shield className="w-8 h-8" />}
             title="Team Collaboration"
-            description="Invite team members to shared workspaces. Assign tasks and CRM leads. Track team XP and achievements. Role-based permissions for security."
+            description="Invite team members to shared workspaces. Assign tasks and CRM leads. Track team XP and achievements. Role-based permissions for security. Real-time updates across all modules."
+          />
+          <FeatureCard
+            icon={<Calendar className="w-8 h-8" />}
+            title="Unified Calendar View"
+            description="See all your tasks, meetings, and marketing deadlines in one place. Color-coded by module, filterable by priority, with quick-add for events. Sync with external calendars."
+          />
+          <FeatureCard
+            icon={<BarChart3 className="w-8 h-8" />}
+            title="Financial Tracking & Analytics"
+            description="Log MRR, GMV, signups, and expenses. Visualize trends with interactive charts. Track runway and burn rate. Export data for deeper analysis and reporting."
+          />
+          <FeatureCard
+            icon={<FileText className="w-8 h-8" />}
+            title="Premium GTM Documents"
+            description="Create professional documents with 24 formatting tools, charts & graphs, custom fonts, colors, and page breaks. Export to PDF/Word. Includes 5 GTM templates for common use cases."
+          />
+          <FeatureCard
+            icon={<Megaphone className="w-8 h-8" />}
+            title="Marketing Campaign Planner"
+            description="Plan blog posts, newsletters, social campaigns, and events. Track status from draft to published. Link to CRM contacts and tag relevant stakeholders for coordination."
           />
           <FeatureCard
             icon={<Sparkles className="w-8 h-8" />}
-            title="Document Export & Templates"
-            description="Export documents to PDF, Markdown, HTML, or plain text. Choose from professional GTM templates. Image upload with crop and resize tools."
+            title="AI-Powered Workflows"
+            description="Generate charts from data, get document suggestions, automate CRM insights, and receive smart task recommendations. AI adapts to your workspace and business context."
           />
         </div>
       </section>

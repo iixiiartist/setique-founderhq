@@ -24,6 +24,9 @@ import { Youtube } from '@tiptap/extension-youtube';
 import { ResizableImage } from '../../lib/tiptap/ResizableImage';
 import { FontSize } from '../../lib/tiptap/FontSize';
 import { PageBreak } from '../../lib/tiptap/PageBreak';
+import ChartNode from '../../lib/tiptap/ChartNode';
+import { getTemplateNames } from '../../lib/chartTemplates';
+import { getSampleChartData } from '../../lib/chartDataConnectors';
 import { HexColorPicker } from 'react-colorful';
 import EmojiPicker from 'emoji-picker-react';
 import { GTMDoc, DocType, DocVisibility, AppActions, DashboardData } from '../../types';
@@ -153,6 +156,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                 controls: true,
                 nocookie: true,
             }),
+            ChartNode,
         ],
         content: '',
         editorProps: {
@@ -777,6 +781,72 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                                         <button onClick={() => { editor.chain().focus().deleteTable().run(); setShowToolbarMenu(false); }} className="px-3 py-2 text-left text-xs border-2 border-black bg-red-200 hover:bg-red-300">✕ Delete Table</button>
                                                     </div>
                                                 )}
+                                            </div>
+                                            
+                                            {/* Charts & Graphs Section */}
+                                            <div className="border-b-2 border-black p-2">
+                                                <div className="text-xs font-bold mb-2 text-gray-600">CHARTS & GRAPHS</div>
+                                                <div className="flex flex-col gap-1">
+                                                    <button onClick={() => {
+                                                        const chartData = getSampleChartData('line');
+                                                        editor.chain().focus().insertChart({
+                                                            chartType: 'line',
+                                                            title: 'Revenue Trends',
+                                                            data: chartData,
+                                                            dataKeys: ['mrr', 'gmv'],
+                                                            xAxisKey: 'date',
+                                                            colors: ['#3b82f6', '#10b981'],
+                                                            width: 700,
+                                                            height: 350,
+                                                        }).run();
+                                                        setShowToolbarMenu(false);
+                                                    }} className="px-3 py-2 text-left font-bold border-2 border-black bg-white hover:bg-blue-50">📈 Line Chart</button>
+                                                    
+                                                    <button onClick={() => {
+                                                        const chartData = getSampleChartData('bar');
+                                                        editor.chain().focus().insertChart({
+                                                            chartType: 'bar',
+                                                            title: 'Sales Pipeline',
+                                                            data: chartData,
+                                                            dataKeys: ['count'],
+                                                            xAxisKey: 'stage',
+                                                            colors: ['#3b82f6'],
+                                                            width: 700,
+                                                            height: 350,
+                                                        }).run();
+                                                        setShowToolbarMenu(false);
+                                                    }} className="px-3 py-2 text-left font-bold border-2 border-black bg-white hover:bg-blue-50">📊 Bar Chart</button>
+                                                    
+                                                    <button onClick={() => {
+                                                        const chartData = getSampleChartData('pie');
+                                                        editor.chain().focus().insertChart({
+                                                            chartType: 'pie',
+                                                            title: 'Expense Breakdown',
+                                                            data: chartData,
+                                                            dataKeys: ['amount'],
+                                                            xAxisKey: 'category',
+                                                            colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'],
+                                                            width: 600,
+                                                            height: 350,
+                                                        }).run();
+                                                        setShowToolbarMenu(false);
+                                                    }} className="px-3 py-2 text-left font-bold border-2 border-black bg-white hover:bg-blue-50">🥧 Pie Chart</button>
+                                                    
+                                                    <button onClick={() => {
+                                                        const chartData = getSampleChartData('area');
+                                                        editor.chain().focus().insertChart({
+                                                            chartType: 'area',
+                                                            title: 'Growth Metrics',
+                                                            data: chartData,
+                                                            dataKeys: ['signups', 'customers', 'revenue'],
+                                                            xAxisKey: 'month',
+                                                            colors: ['#3b82f6', '#10b981', '#f59e0b'],
+                                                            width: 700,
+                                                            height: 350,
+                                                        }).run();
+                                                        setShowToolbarMenu(false);
+                                                    }} className="px-3 py-2 text-left font-bold border-2 border-black bg-white hover:bg-blue-50">📉 Area Chart</button>
+                                                </div>
                                             </div>
                                             
                                             {/* Media Section */}
