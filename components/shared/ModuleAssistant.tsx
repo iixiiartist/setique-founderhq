@@ -765,18 +765,30 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
             {aiLimitError && (
                 <div className="bg-yellow-100 border-2 border-yellow-400 p-4 shrink-0">
                     <div className="flex items-start gap-3">
-                        <span className="text-2xl">⚠️</span>
+                        <span className="text-2xl">✨</span>
                         <div className="flex-1">
-                            <h3 className="font-bold text-yellow-800 mb-1">AI Usage Limit Reached</h3>
+                            <h3 className="font-bold text-yellow-800 mb-1">
+                                {aiLimitError.limit === 0 ? 'AI Features Not Available on Free Plan' : 'AI Usage Limit Reached'}
+                            </h3>
                             <p className="text-sm text-yellow-700 mb-2">
-                                You've used <strong>{aiLimitError.usage}/{aiLimitError.limit}</strong> AI requests on the <strong>{aiLimitError.planType}</strong> plan.
+                                {aiLimitError.limit === 0 ? (
+                                    <>
+                                        The Free plan includes task management, basic CRM, and calendar features. 
+                                        <strong> Upgrade to Power ($49/mo)</strong> or <strong>Team Pro ($99/mo)</strong> to unlock unlimited AI assistants, document library, and premium features.
+                                    </>
+                                ) : (
+                                    <>
+                                        You've used <strong>{aiLimitError.usage}/{aiLimitError.limit}</strong> AI requests on the <strong>{aiLimitError.planType}</strong> plan. 
+                                        Upgrade for unlimited AI access.
+                                    </>
+                                )}
                             </p>
                             {onUpgradeNeeded && (
                                 <button
                                     onClick={onUpgradeNeeded}
-                                    className="px-4 py-2 border-2 border-black bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-neo"
+                                    className="px-4 py-2 border-2 border-black bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-neo text-sm"
                                 >
-                                    Upgrade Plan →
+                                    View Pricing & Upgrade →
                                 </button>
                             )}
                         </div>
