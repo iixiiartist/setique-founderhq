@@ -34,6 +34,7 @@ import { ImageUploadModal } from './ImageUploadModal';
 import { useAIWorkspaceContext } from '../../hooks/useAIWorkspaceContext';
 import { uploadToSupabase, validateImageFile } from '../../lib/services/imageUploadService';
 import { exportToMarkdown, exportToPDF, exportToHTML, exportToText, generateFilename } from '../../lib/services/documentExport';
+import { GTM_TEMPLATES, type DocumentTemplate } from '../../lib/templates/gtmTemplates';
 
 interface DocEditorProps {
     workspaceId: string;
@@ -78,6 +79,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     const [linkUrl, setLinkUrl] = useState('');
     const [showImageUploadModal, setShowImageUploadModal] = useState(false);
     const [showExportMenu, setShowExportMenu] = useState(false);
+    const [showTemplateMenu, setShowTemplateMenu] = useState(false);
     const [showAdvancedColorPicker, setShowAdvancedColorPicker] = useState(false);
     const [showAdvancedHighlightPicker, setShowAdvancedHighlightPicker] = useState(false);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -274,6 +276,36 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             console.error('Export error:', error);
             alert(`Failed to export document: ${error.message || 'Unknown error'}`);
         }
+    };
+
+    const handleApplyTemplate = (template: DocumentTemplate) => {
+        if (!editor) return;
+        
+        // Confirm if document has content
+        const currentContent = editor.getText().trim();
+        if (currentContent.length > 0) {
+            const confirmed = window.confirm(
+                `Applying a template will replace all current content.\n\nTemplate: ${template.name}\n\nAre you sure you want to continue?`
+            );
+            if (!confirmed) {
+                setShowTemplateMenu(false);
+                return;
+            }
+        }
+        
+        // Apply template content
+        editor.commands.setContent(template.content);
+        
+        // Update document title if it's still "Untitled Document"
+        if (title === 'Untitled Document') {
+            setTitle(template.name);
+        }
+        
+        // Close menu
+        setShowTemplateMenu(false);
+        
+        // Focus editor
+        editor.commands.focus();
     };
 
     const handleSendToAI = () => {
@@ -1063,6 +1095,30 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                         >
                             📨 Send to AI Chat
                         </button>
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowTemplateMenu(!showTemplateMenu)}
+                                disabled={!editor}
+                                className="w-full px-3 py-2 bg-blue-500 text-white font-bold border-2 border-black shadow-neo-btn hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center justify-between"
+                            >
+                                <span>📋 Use Template</span>
+                                <span>{showTemplateMenu ? '▲' : '▼'}</span>
+                            </button>
+                            {showTemplateMenu && editor && (
+                                <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-50 max-h-[400px] overflow-y-auto">
+                                    {GTM_TEMPLATES.map((template) => (
+                                        <button
+                                            key={template.id}
+                                            onClick={() => handleApplyTemplate(template)}
+                                            className="w-full px-3 py-2 text-left text-sm hover:bg-yellow-300 border-b-2 border-black last:border-b-0"
+                                        >
+                                            <div className="font-bold">{template.icon} {template.name}</div>
+                                            <div className="text-xs text-gray-600 mt-1">{template.description}</div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                         <button
                             onClick={handleSaveToFileLibrary}
                             disabled={!docId || !editor}
