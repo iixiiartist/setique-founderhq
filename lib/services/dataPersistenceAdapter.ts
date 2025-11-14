@@ -638,6 +638,368 @@ export class DataPersistenceAdapter {
     return { error }
   }
 
+  // ============================================================================
+  // FINANCIAL ENHANCEMENTS
+  // ============================================================================
+
+  static async createRevenueTransaction(
+    userId: string,
+    workspaceId: string,
+    transactionData: {
+      transactionDate: string
+      amount: number
+      currency?: string
+      transactionType: 'invoice' | 'payment' | 'refund' | 'recurring'
+      status?: 'pending' | 'paid' | 'overdue' | 'cancelled'
+      crmItemId?: string
+      contactId?: string
+      dealStage?: string
+      invoiceNumber?: string
+      paymentMethod?: string
+      paymentDate?: string
+      dueDate?: string
+      revenueCategory?: 'product_sale' | 'service_fee' | 'subscription' | 'consulting' | 'partnership' | 'other'
+      productLine?: string
+      description?: string
+      notes?: any[]
+      documentIds?: string[]
+    }
+  ) {
+    const transaction = {
+      workspace_id: workspaceId,
+      user_id: userId,
+      transaction_date: transactionData.transactionDate,
+      amount: transactionData.amount,
+      currency: transactionData.currency || 'USD',
+      transaction_type: transactionData.transactionType,
+      status: transactionData.status || 'pending',
+      crm_item_id: transactionData.crmItemId || null,
+      contact_id: transactionData.contactId || null,
+      deal_stage: transactionData.dealStage || null,
+      invoice_number: transactionData.invoiceNumber || null,
+      payment_method: transactionData.paymentMethod || null,
+      payment_date: transactionData.paymentDate || null,
+      due_date: transactionData.dueDate || null,
+      revenue_category: transactionData.revenueCategory || null,
+      product_line: transactionData.productLine || null,
+      description: transactionData.description || null,
+      notes: transactionData.notes || [],
+      document_ids: transactionData.documentIds || null,
+    }
+
+    const { data, error } = await DatabaseService.createRevenueTransaction(transaction)
+    
+    // Log activity
+    if (data && workspaceId) {
+      await logActivity({
+        workspaceId,
+        userId,
+        actionType: 'revenue_created',
+        entityType: 'revenue',
+        entityId: data.id,
+        metadata: {
+          amount: transactionData.amount,
+          type: transactionData.transactionType,
+        },
+      });
+    }
+    
+    return { data, error }
+  }
+
+  static async updateRevenueTransaction(
+    transactionId: string,
+    updates: {
+      amount?: number
+      status?: string
+      paymentDate?: string
+      paymentMethod?: string
+      description?: string
+      notes?: any[]
+    },
+    userId?: string,
+    workspaceId?: string
+  ) {
+    const dbUpdates: any = {}
+    if (updates.amount !== undefined) dbUpdates.amount = updates.amount
+    if (updates.status) dbUpdates.status = updates.status
+    if (updates.paymentDate) dbUpdates.payment_date = updates.paymentDate
+    if (updates.paymentMethod) dbUpdates.payment_method = updates.paymentMethod
+    if (updates.description) dbUpdates.description = updates.description
+    if (updates.notes) dbUpdates.notes = updates.notes
+
+    const { data, error } = await DatabaseService.updateRevenueTransaction(transactionId, dbUpdates)
+    
+    // Log payment received
+    if (data && userId && workspaceId && updates.status === 'paid') {
+      await logActivity({
+        workspaceId,
+        userId,
+        actionType: 'payment_received',
+        entityType: 'revenue',
+        entityId: transactionId,
+        metadata: {
+          amount: data.amount,
+        },
+      });
+    }
+    
+    return { data, error }
+  }
+
+  static async deleteRevenueTransaction(transactionId: string) {
+    const { data, error } = await DatabaseService.deleteRevenueTransaction(transactionId)
+    return { data, error }
+  }
+
+  static async createFinancialForecast(
+    userId: string,
+    workspaceId: string,
+    forecastData: {
+      forecastMonth: string
+      forecastType: 'revenue' | 'expense' | 'runway'
+      forecastedAmount: number
+      confidenceLevel?: 'low' | 'medium' | 'high'
+      basedOnDeals?: string[]
+      assumptions?: string
+    }
+  ) {
+    const forecast = {
+      workspace_id: workspaceId,
+      user_id: userId,
+      forecast_month: forecastData.forecastMonth,
+      forecast_type: forecastData.forecastType,
+      forecasted_amount: forecastData.forecastedAmount,
+      confidence_level: forecastData.confidenceLevel || 'medium',
+      based_on_deals: forecastData.basedOnDeals || null,
+      assumptions: forecastData.assumptions || null,
+    }
+
+    const { data, error } = await DatabaseService.createFinancialForecast(forecast)
+    return { data, error }
+  }
+
+  static async createBudgetPlan(
+    userId: string,
+    workspaceId: string,
+    budgetData: {
+      budgetName: string
+      budgetPeriodStart: string
+      budgetPeriodEnd: string
+      category: string
+      allocatedAmount: number
+      alertThreshold?: number
+      notes?: string
+    }
+  ) {
+    const budget = {
+      workspace_id: workspaceId,
+      user_id: userId,
+      budget_name: budgetData.budgetName,
+      budget_period_start: budgetData.budgetPeriodStart,
+      budget_period_end: budgetData.budgetPeriodEnd,
+      category: budgetData.category,
+      allocated_amount: budgetData.allocatedAmount,
+      spent_amount: 0,
+      alert_threshold: budgetData.alertThreshold || 0.8,
+      notes: budgetData.notes || null,
+    }
+
+    const { data, error } = await DatabaseService.createBudgetPlan(budget)
+    
+    // Log activity
+    if (data && workspaceId) {
+      await logActivity({
+        workspaceId,
+        userId,
+        actionType: 'budget_created',
+        entityType: 'budget',
+        entityId: data.id,
+        metadata: {
+          budgetName: budgetData.budgetName,
+          amount: budgetData.allocatedAmount,
+        },
+      });
+    }
+    
+    return { data, error }
+  }
+
+  static async updateBudgetPlan(
+    budgetId: string,
+    updates: {
+      allocatedAmount?: number
+      spentAmount?: number
+      notes?: string
+    }
+  ) {
+    const dbUpdates: any = {}
+    if (updates.allocatedAmount !== undefined) dbUpdates.allocated_amount = updates.allocatedAmount
+    if (updates.spentAmount !== undefined) dbUpdates.spent_amount = updates.spentAmount
+    if (updates.notes !== undefined) dbUpdates.notes = updates.notes
+
+    const { data, error } = await DatabaseService.updateBudgetPlan(budgetId, dbUpdates)
+    return { data, error }
+  }
+
+  // ============================================================================
+  // MARKETING ENHANCEMENTS
+  // ============================================================================
+
+  static async createCampaignAttribution(
+    workspaceId: string,
+    userId: string,
+    attributionData: {
+      marketingItemId: string
+      crmItemId: string
+      contactId?: string
+      attributionType: 'first_touch' | 'last_touch' | 'multi_touch'
+      attributionWeight?: number
+      interactionDate?: string
+      conversionDate?: string
+      revenueAttributed?: number
+      utmSource?: string
+      utmMedium?: string
+      utmCampaign?: string
+      utmContent?: string
+    }
+  ) {
+    const attribution = {
+      workspace_id: workspaceId,
+      marketing_item_id: attributionData.marketingItemId,
+      crm_item_id: attributionData.crmItemId,
+      contact_id: attributionData.contactId || null,
+      attribution_type: attributionData.attributionType,
+      attribution_weight: attributionData.attributionWeight || 1.0,
+      interaction_date: attributionData.interactionDate || new Date().toISOString(),
+      conversion_date: attributionData.conversionDate || null,
+      revenue_attributed: attributionData.revenueAttributed || 0,
+      utm_source: attributionData.utmSource || null,
+      utm_medium: attributionData.utmMedium || null,
+      utm_campaign: attributionData.utmCampaign || null,
+      utm_content: attributionData.utmContent || null,
+    }
+
+    const { data, error } = await DatabaseService.createCampaignAttribution(attribution)
+    
+    // Log activity
+    if (data && workspaceId) {
+      await logActivity({
+        workspaceId,
+        userId,
+        actionType: 'attribution_created',
+        entityType: 'attribution',
+        entityId: data.id,
+        metadata: {
+          attributionType: attributionData.attributionType,
+        },
+      });
+    }
+    
+    return { data, error }
+  }
+
+  static async createMarketingAnalytics(
+    workspaceId: string,
+    userId: string,
+    analyticsData: {
+      marketingItemId: string
+      analyticsDate: string
+      impressions?: number
+      clicks?: number
+      engagements?: number
+      conversions?: number
+      leadsGenerated?: number
+      revenueGenerated?: number
+      adSpend?: number
+      channel?: 'email' | 'social' | 'paid_ads' | 'content' | 'events' | 'other'
+    }
+  ) {
+    const analytics = {
+      workspace_id: workspaceId,
+      marketing_item_id: analyticsData.marketingItemId,
+      analytics_date: analyticsData.analyticsDate,
+      impressions: analyticsData.impressions || 0,
+      clicks: analyticsData.clicks || 0,
+      engagements: analyticsData.engagements || 0,
+      conversions: analyticsData.conversions || 0,
+      leads_generated: analyticsData.leadsGenerated || 0,
+      revenue_generated: analyticsData.revenueGenerated || 0,
+      ad_spend: analyticsData.adSpend || 0,
+      channel: analyticsData.channel || null,
+    }
+
+    const { data, error } = await DatabaseService.createMarketingAnalytics(analytics)
+    return { data, error }
+  }
+
+  static async updateMarketingAnalytics(
+    analyticsId: string,
+    updates: {
+      impressions?: number
+      clicks?: number
+      engagements?: number
+      conversions?: number
+      leadsGenerated?: number
+      revenueGenerated?: number
+      adSpend?: number
+    }
+  ) {
+    const dbUpdates: any = {}
+    if (updates.impressions !== undefined) dbUpdates.impressions = updates.impressions
+    if (updates.clicks !== undefined) dbUpdates.clicks = updates.clicks
+    if (updates.engagements !== undefined) dbUpdates.engagements = updates.engagements
+    if (updates.conversions !== undefined) dbUpdates.conversions = updates.conversions
+    if (updates.leadsGenerated !== undefined) dbUpdates.leads_generated = updates.leadsGenerated
+    if (updates.revenueGenerated !== undefined) dbUpdates.revenue_generated = updates.revenueGenerated
+    if (updates.adSpend !== undefined) dbUpdates.ad_spend = updates.adSpend
+
+    const { data, error } = await DatabaseService.updateMarketingAnalytics(analyticsId, dbUpdates)
+    return { data, error }
+  }
+
+  static async createMarketingCalendarLink(
+    workspaceId: string,
+    userId: string,
+    linkData: {
+      marketingItemId: string
+      linkedId: string
+      linkedType: 'task' | 'calendar_event' | 'milestone'
+      relationshipType?: 'related' | 'deliverable' | 'milestone' | 'deadline'
+    }
+  ) {
+    const link = {
+      workspace_id: workspaceId,
+      marketing_item_id: linkData.marketingItemId,
+      linked_id: linkData.linkedId,
+      linked_type: linkData.linkedType,
+      relationship_type: linkData.relationshipType || 'related',
+    }
+
+    const { data, error } = await DatabaseService.createMarketingCalendarLink(link)
+    
+    // Log activity
+    if (data && workspaceId) {
+      await logActivity({
+        workspaceId,
+        userId,
+        actionType: 'calendar_linked',
+        entityType: 'marketing',
+        entityId: linkData.marketingItemId,
+        metadata: {
+          linkedType: linkData.linkedType,
+        },
+      });
+    }
+    
+    return { data, error }
+  }
+
+  static async deleteMarketingCalendarLink(linkId: string) {
+    const { data, error } = await DatabaseService.deleteMarketingCalendarLink(linkId)
+    return { data, error }
+  }
+
   // Settings operations
   static async updateSettings(userId: string, settings: SettingsData) {
     const { data, error } = await DatabaseService.updateUserProfile(userId, {

@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useWorkspace } from '../contexts/WorkspaceContext'
 import { DatabaseService } from '../lib/services/database'
-import { DashboardData, Task, MarketingItem, FinancialLog, Expense, Document, Investor, Customer, Partner } from '../types'
+import { DashboardData, Task, MarketingItem, FinancialLog, Expense, Document, Investor, Customer, Partner, Deal, Priority } from '../types'
 import { EMPTY_DASHBOARD_DATA } from '../constants'
 import { supabase } from '../lib/supabase'
 
@@ -249,7 +249,12 @@ export const useLazyDataPersistence = () => {
     }
 
     if (!user || !workspace?.id) {
-      return []
+      return {
+        marketing: [],
+        campaignAttributions: [],
+        marketingAnalytics: [],
+        marketingCalendarLinks: []
+      }
     }
 
     try {
@@ -258,18 +263,40 @@ export const useLazyDataPersistence = () => {
         [cacheKey]: { ...prev[cacheKey], isLoading: true }
       }))
 
-      const { data: marketing } = await DatabaseService.getMarketingItems(workspace.id)
+      const [
+        marketingRes,
+        attributionsRes,
+        analyticsRes,
+        calendarLinksRes
+      ] = await Promise.all([
+        DatabaseService.getMarketingItems(workspace.id),
+        DatabaseService.getCampaignAttributions(workspace.id),
+        DatabaseService.getMarketingAnalytics(workspace.id),
+        DatabaseService.getMarketingCalendarLinks(workspace.id)
+      ])
+
+      const result = {
+        marketing: marketingRes.data || [],
+        campaignAttributions: attributionsRes.data || [],
+        marketingAnalytics: analyticsRes.data || [],
+        marketingCalendarLinks: calendarLinksRes.data || []
+      }
 
       setDataCache(prev => ({
         ...prev,
-        [cacheKey]: { data: marketing || [], timestamp: Date.now(), isLoading: false }
+        [cacheKey]: { data: result, timestamp: Date.now(), isLoading: false }
       }))
 
-      return marketing || []
+      return result
     } catch (err) {
       console.error('Error loading marketing:', err)
       setError(err as Error)
-      return []
+      return {
+        marketing: [],
+        campaignAttributions: [],
+        marketingAnalytics: [],
+        marketingCalendarLinks: []
+      }
     }
   }, [user, workspace?.id, dataCache])
 
@@ -288,7 +315,13 @@ export const useLazyDataPersistence = () => {
     }
 
     if (!user || !workspace?.id) {
-      return { financials: [], expenses: [] }
+      return { 
+        financials: [], 
+        expenses: [],
+        revenueTransactions: [],
+        financialForecasts: [],
+        budgetPlans: []
+      }
     }
 
     try {
@@ -297,14 +330,26 @@ export const useLazyDataPersistence = () => {
         [cacheKey]: { ...prev[cacheKey], isLoading: true }
       }))
 
-      const [financialsRes, expensesRes] = await Promise.all([
+      const [
+        financialsRes, 
+        expensesRes,
+        revenueTransactionsRes,
+        forecastsRes,
+        budgetsRes
+      ] = await Promise.all([
         DatabaseService.getFinancialLogs(workspace.id),
-        DatabaseService.getExpenses(workspace.id)
+        DatabaseService.getExpenses(workspace.id),
+        DatabaseService.getRevenueTransactions(workspace.id),
+        DatabaseService.getFinancialForecasts(workspace.id),
+        DatabaseService.getBudgetPlans(workspace.id)
       ])
 
       const result = {
         financials: financialsRes.data || [],
-        expenses: expensesRes.data || []
+        expenses: expensesRes.data || [],
+        revenueTransactions: revenueTransactionsRes.data || [],
+        financialForecasts: forecastsRes.data || [],
+        budgetPlans: budgetsRes.data || []
       }
 
       setDataCache(prev => ({
@@ -316,7 +361,13 @@ export const useLazyDataPersistence = () => {
     } catch (err) {
       console.error('Error loading financials:', err)
       setError(err as Error)
-      return { financials: [], expenses: [] }
+      return { 
+        financials: [], 
+        expenses: [],
+        revenueTransactions: [],
+        financialForecasts: [],
+        budgetPlans: []
+      }
     }
   }, [user, workspace?.id, dataCache])
 
@@ -464,6 +515,76 @@ export const useLazyDataPersistence = () => {
     return dataCache[key]?.isLoading || false
   }, [dataCache])
 
+  /**
+   * Load deals/opportunities
+   * @param options.force - If true, bypasses cache and fetches fresh data from server
+   * @returns Array of deals
+   */
+  const loadDeals = useCallback(async (options: LoadOptions = {}) => {
+    const cacheKey = 'deals'
+    const cached = dataCache[cacheKey]
+    
+    // Return cached data if still fresh (unless force reload)
+    if (!options.force && cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      return cached.data
+    }
+
+    if (!user || !workspace?.id) {
+      return []
+    }
+
+    try {
+      setDataCache(prev => ({
+        ...prev,
+        [cacheKey]: { ...prev[cacheKey], isLoading: true }
+      }))
+
+      const result = await DatabaseService.getDeals(workspace.id)
+      const deals = result.data || []
+
+      const transformedDeals = deals.map(deal => ({
+        id: deal.id,
+        workspaceId: deal.workspace_id,
+        title: deal.title,
+        crmItemId: deal.crm_item_id || undefined,
+        contactId: deal.contact_id || undefined,
+        value: parseFloat(deal.value.toString()),
+        currency: deal.currency,
+        stage: deal.stage as Deal['stage'],
+        probability: deal.probability,
+        expectedCloseDate: deal.expected_close_date || undefined,
+        actualCloseDate: deal.actual_close_date || undefined,
+        source: deal.source || undefined,
+        category: deal.category as Deal['category'],
+        priority: (deal.priority.charAt(0).toUpperCase() + deal.priority.slice(1)) as Priority,
+        assignedTo: deal.assigned_to || null,
+        assignedToName: deal.assigned_to_name || null,
+        createdAt: new Date(deal.created_at).getTime(),
+        updatedAt: new Date(deal.updated_at).getTime(),
+        notes: deal.notes || [],
+        tags: deal.tags || [],
+        customFields: deal.custom_fields || {},
+      }))
+
+      const dataToCache = transformedDeals
+
+      setDataCache(prev => ({
+        ...prev,
+        [cacheKey]: { data: dataToCache, timestamp: Date.now(), isLoading: false }
+      }))
+
+      return dataToCache
+    } catch (err) {
+      logger.error('[useLazyDataPersistence] Error loading deals:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load deals')
+      setDataCache(prev => ({
+        ...prev,
+        [cacheKey]: { ...prev[cacheKey], isLoading: false }
+      }))
+      return []
+    }
+  }, [user, workspace?.id, dataCache])
+
   return {
     loadCoreData,
     loadTasks,
@@ -472,6 +593,7 @@ export const useLazyDataPersistence = () => {
     loadFinancials,
     loadDocuments,
     loadDocumentsMetadata,
+    loadDeals,
     invalidateCache,
     invalidateAllCache,
     isLoading,

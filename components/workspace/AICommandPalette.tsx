@@ -145,28 +145,28 @@ CRITICAL: You have NO business data available. Write strategically without inven
     const dataAvailability: string[] = [];
     
     // Token-optimized context summaries - only include if data exists
-    const investorContext = data.investors.length > 0
+    const investorContext = data.investors?.length > 0
       ? `Investors: ${data.investors.slice(0, 3).map(i => i.company).join(', ')}${data.investors.length > 3 ? ` (+${data.investors.length - 3} more)` : ''}`
       : '';
     if (investorContext) dataAvailability.push('investors');
     
-    const customerContext = data.customers.length > 0
+    const customerContext = data.customers?.length > 0
       ? `Key Customers: ${data.customers.slice(0, 3).map(c => c.company).join(', ')}${data.customers.length > 3 ? ` (+${data.customers.length - 3} more)` : ''}`
       : '';
     if (customerContext) dataAvailability.push('customers');
     
-    const partnerContext = data.partners.length > 0
+    const partnerContext = data.partners?.length > 0
       ? `Partners: ${data.partners.slice(0, 3).map(p => p.company).join(', ')}${data.partners.length > 3 ? ` (+${data.partners.length - 3} more)` : ''}`
       : '';
     if (partnerContext) dataAvailability.push('partners');
     
-    const marketingContext = data.marketing.length > 0
+    const marketingContext = data.marketing?.length > 0
       ? `Recent Marketing: ${data.marketing.slice(0, 2).map(m => m.title).join(', ')}`
       : '';
     if (marketingContext) dataAvailability.push('marketing campaigns');
     
     // Calculate total MRR and GMV from financials array
-    const latestFinancial = data.financials.length > 0 
+    const latestFinancial = data.financials?.length > 0 
       ? data.financials.reduce((latest, f) => f.date > latest.date ? f : latest, data.financials[0])
       : null;
     const revenueContext = latestFinancial
@@ -199,11 +199,11 @@ ${marketingContext ? `- ${marketingContext}` : '- No marketing campaign data ava
 ${revenueContext ? `- ${revenueContext}` : '- No financial data available'}
 
 For Chart Generation - Available Data Counts:
-- Financial Logs: ${data.financials.length} entries
-- Expenses: ${data.expenses.length} entries
-- CRM Items: ${data.investors.length + data.customers.length + data.partners.length} total (${data.investors.length} investors, ${data.customers.length} customers, ${data.partners.length} partners)
-- Marketing Campaigns: ${data.marketing.length} campaigns
-- Tasks: ${data.tasks.length} tasks
+- Financial Logs: ${data.financials?.length || 0} entries
+- Expenses: ${data.expenses?.length || 0} entries
+- CRM Items: ${(data.investors?.length || 0) + (data.customers?.length || 0) + (data.partners?.length || 0)} total (${data.investors?.length || 0} investors, ${data.customers?.length || 0} customers, ${data.partners?.length || 0} partners)
+- Marketing Campaigns: ${data.marketing?.length || 0} campaigns
+- Tasks: ${data.tasks?.length || 0} tasks
 
 CRITICAL GROUNDING RULES:
 1. ONLY use data explicitly provided in the Business Context and Workspace Data Context above

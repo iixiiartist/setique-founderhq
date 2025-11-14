@@ -85,15 +85,62 @@ export interface Partner extends BaseCrmItem {
 
 export type AnyCrmItem = Investor | Customer | Partner;
 
+export interface Deal {
+    id: string;
+    workspaceId: string;
+    title: string;
+    crmItemId?: string; // Link to company/CRM item
+    contactId?: string; // Primary contact for deal
+    value: number;
+    currency: string;
+    stage: 'lead' | 'qualified' | 'proposal' | 'negotiation' | 'closed_won' | 'closed_lost';
+    probability: number; // 0-100
+    expectedCloseDate?: string; // YYYY-MM-DD
+    actualCloseDate?: string; // YYYY-MM-DD
+    source?: string; // How deal was sourced (referral, inbound, outbound, etc)
+    category: 'investment' | 'customer_deal' | 'partnership' | 'other';
+    priority: Priority;
+    assignedTo?: string | null;
+    assignedToName?: string | null;
+    createdAt: number;
+    updatedAt: number;
+    notes: Note[];
+    tags?: string[];
+    customFields?: Record<string, any>;
+}
+
 export interface MarketingItem {
     id: string;
     title: string;
-    type: 'Blog Post' | 'Newsletter' | 'Social Campaign' | 'Webinar' | 'Other';
+    type: 'Blog Post' | 'Newsletter' | 'Social Campaign' | 'Webinar' | 'Product Launch' | 'Event' | 'Other';
     status: 'Planned' | 'In Progress' | 'Completed' | 'Published' | 'Cancelled';
     createdAt: number;
     notes: Note[];
     dueDate?: string; // YYYY-MM-DD
     dueTime?: string; // HH:MM (24-hour format)
+    assignedTo?: string;
+    assignedToName?: string;
+    
+    // NEW: Campaign details
+    workspaceId?: string;
+    campaignBudget?: number;
+    actualSpend?: number;
+    targetAudience?: string;
+    channels?: ('email' | 'social' | 'paid_ads' | 'content' | 'events')[];
+    goals?: string;
+    kpis?: {
+        impressions?: number;
+        clicks?: number;
+        engagements?: number;
+        conversions?: number;
+        revenue?: number;
+    };
+    
+    // Links
+    documentIds?: string[]; // Linked campaign documents
+    calendarEventIds?: string[]; // Linked calendar events
+    tags?: string[];
+    parentCampaignId?: string; // For sub-campaigns
 }
 
 export type CalendarTaskEvent = Task & {
@@ -172,6 +219,156 @@ export interface Expense {
     paymentMethod?: PaymentMethod;
     receiptDocumentId?: string;
     notes: Note[];
+    
+    // NEW: Attribution fields
+    workspaceId?: string;
+    crmItemId?: string;
+    marketingItemId?: string;
+    expenseType?: 'operating' | 'marketing' | 'sales' | 'rd';
+    isRecurring?: boolean;
+    recurrencePeriod?: 'monthly' | 'quarterly' | 'annual';
+    tags?: string[];
+    
+    // Denormalized for display
+    companyName?: string;
+    campaignTitle?: string;
+}
+
+// ============================================================================
+// NEW: Financial Enhancement Types
+// ============================================================================
+
+export interface RevenueTransaction {
+    id: string;
+    workspaceId: string;
+    userId: string;
+    transactionDate: string; // YYYY-MM-DD
+    amount: number;
+    currency: string;
+    transactionType: 'invoice' | 'payment' | 'refund' | 'recurring';
+    status: 'pending' | 'paid' | 'overdue' | 'cancelled';
+    
+    // Attribution
+    crmItemId?: string;
+    contactId?: string;
+    dealStage?: string;
+    companyName?: string; // Denormalized for display
+    
+    // Invoice details
+    invoiceNumber?: string;
+    paymentMethod?: string;
+    paymentDate?: string;
+    dueDate?: string;
+    
+    // Categorization
+    revenueCategory?: 'product_sale' | 'service_fee' | 'subscription' | 'consulting' | 'partnership' | 'other';
+    productLine?: string;
+    
+    description?: string;
+    notes: Note[];
+    documentIds?: string[];
+    
+    createdAt: number;
+    updatedAt: number;
+}
+
+export interface FinancialForecast {
+    id: string;
+    workspaceId: string;
+    userId: string;
+    forecastMonth: string; // YYYY-MM-DD (first day of month)
+    forecastType: 'revenue' | 'expense' | 'runway';
+    forecastedAmount: number;
+    confidenceLevel: 'low' | 'medium' | 'high';
+    basedOnDeals?: string[]; // Array of CRM item IDs
+    assumptions?: string;
+    createdAt: number;
+    updatedAt: number;
+}
+
+export interface BudgetPlan {
+    id: string;
+    workspaceId: string;
+    userId: string;
+    budgetName: string;
+    budgetPeriodStart: string; // YYYY-MM-DD
+    budgetPeriodEnd: string; // YYYY-MM-DD
+    category: ExpenseCategory;
+    allocatedAmount: number;
+    spentAmount: number;
+    remainingAmount: number; // Calculated
+    alertThreshold: number; // 0-1 (e.g., 0.8 for 80%)
+    notes?: string;
+    createdAt: number;
+    updatedAt: number;
+}
+
+// ============================================================================
+// NEW: Marketing Enhancement Types
+// ============================================================================
+
+export interface CampaignAttribution {
+    id: string;
+    workspaceId: string;
+    marketingItemId: string;
+    crmItemId: string;
+    contactId?: string;
+    attributionType: 'first_touch' | 'last_touch' | 'multi_touch';
+    attributionWeight: number;
+    interactionDate: number;
+    conversionDate?: number;
+    revenueAttributed: number;
+    
+    // UTM parameters
+    utmSource?: string;
+    utmMedium?: string;
+    utmCampaign?: string;
+    utmContent?: string;
+    
+    // Denormalized for display
+    campaignTitle?: string;
+    companyName?: string;
+    
+    createdAt: number;
+    updatedAt: number;
+}
+
+export interface MarketingAnalytics {
+    id: string;
+    workspaceId: string;
+    marketingItemId: string;
+    analyticsDate: string; // YYYY-MM-DD
+    
+    // Metrics
+    impressions: number;
+    clicks: number;
+    engagements: number;
+    conversions: number;
+    leadsGenerated: number;
+    revenueGenerated: number;
+    
+    // Costs
+    adSpend: number;
+    
+    // Calculated
+    ctr: number; // Click-through rate
+    conversionRate: number;
+    roi: number; // Return on investment
+    
+    channel?: 'email' | 'social' | 'paid_ads' | 'content' | 'events' | 'other';
+    
+    createdAt: number;
+    updatedAt: number;
+}
+
+export interface MarketingCalendarLink {
+    id: string;
+    workspaceId: string;
+    marketingItemId: string;
+    linkedType: 'task' | 'calendar_event' | 'milestone';
+    linkedId: string;
+    relationshipType: 'related' | 'deliverable' | 'milestone' | 'deadline';
+    createdAt: number;
 }
 
 export type WorkspaceRole = 'owner' | 'member';
@@ -447,6 +644,19 @@ export interface DashboardData {
     documents: Document[];
     documentsMetadata: Omit<Document, 'content'>[]; // Lightweight metadata for AI context
     settings: SettingsData;
+    
+    // NEW: Financial enhancement data
+    revenueTransactions: RevenueTransaction[];
+    financialForecasts: FinancialForecast[];
+    budgetPlans: BudgetPlan[];
+    
+    // NEW: Marketing enhancement data
+    campaignAttributions: CampaignAttribution[];
+    marketingAnalytics: MarketingAnalytics[];
+    marketingCalendarLinks: MarketingCalendarLink[];
+    
+    // NEW: Deal/Opportunity tracking
+    deals: Deal[];
 }
 
 // Types for AI Function Calling
@@ -482,4 +692,38 @@ export interface AppActions {
     updateDocument: (docId: string, name: string, mimeType: string, content: string) => Promise<{ success: boolean; message: string; }>;
     deleteDocument: (docId: string) => Promise<{ success: boolean; message: string; }>;
     getFileContent: (fileId: string) => Promise<{ success: boolean; message: string; content?: string; }>;
+    
+    // NEW: Revenue transaction actions
+    createRevenueTransaction: (data: Omit<RevenueTransaction, 'id' | 'createdAt' | 'updatedAt'>) => Promise<{ success: boolean; message: string; transactionId?: string; }>;
+    updateRevenueTransaction: (transactionId: string, updates: Partial<RevenueTransaction>) => Promise<{ success: boolean; message: string; }>;
+    deleteRevenueTransaction: (transactionId: string) => Promise<{ success: boolean; message: string; }>;
+    
+    // NEW: Financial forecast actions
+    createFinancialForecast: (data: Omit<FinancialForecast, 'id' | 'createdAt' | 'updatedAt'>) => Promise<{ success: boolean; message: string; forecastId?: string; }>;
+    updateFinancialForecast: (forecastId: string, updates: Partial<FinancialForecast>) => Promise<{ success: boolean; message: string; }>;
+    deleteFinancialForecast: (forecastId: string) => Promise<{ success: boolean; message: string; }>;
+    
+    // NEW: Budget plan actions
+    createBudgetPlan: (data: Omit<BudgetPlan, 'id' | 'createdAt' | 'updatedAt' | 'spentAmount' | 'remainingAmount'>) => Promise<{ success: boolean; message: string; budgetId?: string; }>;
+    updateBudgetPlan: (budgetId: string, updates: Partial<BudgetPlan>) => Promise<{ success: boolean; message: string; }>;
+    deleteBudgetPlan: (budgetId: string) => Promise<{ success: boolean; message: string; }>;
+    
+    // NEW: Campaign attribution actions
+    createCampaignAttribution: (data: Omit<CampaignAttribution, 'id' | 'createdAt' | 'updatedAt'>) => Promise<{ success: boolean; message: string; attributionId?: string; }>;
+    updateCampaignAttribution: (attributionId: string, updates: Partial<CampaignAttribution>) => Promise<{ success: boolean; message: string; }>;
+    deleteCampaignAttribution: (attributionId: string) => Promise<{ success: boolean; message: string; }>;
+    
+    // NEW: Marketing analytics actions
+    createMarketingAnalytics: (data: Omit<MarketingAnalytics, 'id' | 'createdAt' | 'updatedAt' | 'ctr' | 'conversionRate' | 'roi'>) => Promise<{ success: boolean; message: string; analyticsId?: string; }>;
+    updateMarketingAnalytics: (analyticsId: string, updates: Partial<MarketingAnalytics>) => Promise<{ success: boolean; message: string; }>;
+    deleteMarketingAnalytics: (analyticsId: string) => Promise<{ success: boolean; message: string; }>;
+    
+    // NEW: Marketing calendar link actions
+    createMarketingCalendarLink: (data: Omit<MarketingCalendarLink, 'id' | 'createdAt'>) => Promise<{ success: boolean; message: string; linkId?: string; }>;
+    deleteMarketingCalendarLink: (linkId: string) => Promise<{ success: boolean; message: string; }>;
+    
+    // NEW: Deal/Opportunity actions
+    createDeal: (data: Omit<Deal, 'id' | 'createdAt' | 'updatedAt' | 'notes'>) => Promise<{ success: boolean; message: string; dealId?: string; }>;
+    updateDeal: (dealId: string, updates: Partial<Deal>) => Promise<{ success: boolean; message: string; }>;
+    deleteDeal: (dealId: string) => Promise<{ success: boolean; message: string; }>;
 }

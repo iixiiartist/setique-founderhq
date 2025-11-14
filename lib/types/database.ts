@@ -643,6 +643,303 @@ export interface Database {
           metadata?: any
         }
       }
+      revenue_transactions: {
+        Row: {
+          id: string
+          workspace_id: string
+          user_id: string
+          transaction_date: string
+          amount: number
+          currency: string
+          transaction_type: 'invoice' | 'payment' | 'refund' | 'recurring'
+          status: 'pending' | 'paid' | 'overdue' | 'cancelled'
+          crm_item_id: string | null
+          contact_id: string | null
+          deal_stage: string | null
+          invoice_number: string | null
+          payment_method: string | null
+          payment_date: string | null
+          due_date: string | null
+          revenue_category: string | null
+          product_line: string | null
+          description: string | null
+          notes: Json | null
+          document_ids: string[] | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          user_id: string
+          transaction_date: string
+          amount: number
+          currency?: string
+          transaction_type: 'invoice' | 'payment' | 'refund' | 'recurring'
+          status?: 'pending' | 'paid' | 'overdue' | 'cancelled'
+          crm_item_id?: string | null
+          contact_id?: string | null
+          deal_stage?: string | null
+          invoice_number?: string | null
+          payment_method?: string | null
+          payment_date?: string | null
+          due_date?: string | null
+          revenue_category?: string | null
+          product_line?: string | null
+          description?: string | null
+          notes?: Json | null
+          document_ids?: string[] | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          workspace_id?: string
+          user_id?: string
+          transaction_date?: string
+          amount?: number
+          currency?: string
+          transaction_type?: 'invoice' | 'payment' | 'refund' | 'recurring'
+          status?: 'pending' | 'paid' | 'overdue' | 'cancelled'
+          crm_item_id?: string | null
+          contact_id?: string | null
+          deal_stage?: string | null
+          invoice_number?: string | null
+          payment_method?: string | null
+          payment_date?: string | null
+          due_date?: string | null
+          revenue_category?: string | null
+          product_line?: string | null
+          description?: string | null
+          notes?: Json | null
+          document_ids?: string[] | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      financial_forecasts: {
+        Row: {
+          id: string
+          workspace_id: string
+          user_id: string
+          forecast_month: string
+          forecast_type: 'revenue' | 'expense' | 'runway'
+          forecasted_amount: number
+          confidence_level: 'low' | 'medium' | 'high'
+          based_on_deals: string[] | null
+          assumptions: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          user_id: string
+          forecast_month: string
+          forecast_type: 'revenue' | 'expense' | 'runway'
+          forecasted_amount: number
+          confidence_level?: 'low' | 'medium' | 'high'
+          based_on_deals?: string[] | null
+          assumptions?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          workspace_id?: string
+          user_id?: string
+          forecast_month?: string
+          forecast_type?: 'revenue' | 'expense' | 'runway'
+          forecasted_amount?: number
+          confidence_level?: 'low' | 'medium' | 'high'
+          based_on_deals?: string[] | null
+          assumptions?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      budget_plans: {
+        Row: {
+          id: string
+          workspace_id: string
+          user_id: string
+          budget_name: string
+          budget_period_start: string
+          budget_period_end: string
+          category: string
+          allocated_amount: number
+          spent_amount: number
+          alert_threshold: number
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          user_id: string
+          budget_name: string
+          budget_period_start: string
+          budget_period_end: string
+          category: string
+          allocated_amount: number
+          spent_amount?: number
+          alert_threshold?: number
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          workspace_id?: string
+          user_id?: string
+          budget_name?: string
+          budget_period_start?: string
+          budget_period_end?: string
+          category?: string
+          allocated_amount?: number
+          spent_amount?: number
+          alert_threshold?: number
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      campaign_attribution: {
+        Row: {
+          id: string
+          workspace_id: string
+          marketing_item_id: string
+          crm_item_id: string
+          contact_id: string | null
+          attribution_type: 'first_touch' | 'last_touch' | 'multi_touch'
+          attribution_weight: number
+          interaction_date: string
+          conversion_date: string | null
+          revenue_attributed: number
+          utm_source: string | null
+          utm_medium: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          marketing_item_id: string
+          crm_item_id: string
+          contact_id?: string | null
+          attribution_type: 'first_touch' | 'last_touch' | 'multi_touch'
+          attribution_weight?: number
+          interaction_date?: string
+          conversion_date?: string | null
+          revenue_attributed?: number
+          utm_source?: string | null
+          utm_medium?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          workspace_id?: string
+          marketing_item_id?: string
+          crm_item_id?: string
+          contact_id?: string | null
+          attribution_type?: 'first_touch' | 'last_touch' | 'multi_touch'
+          attribution_weight?: number
+          interaction_date?: string
+          conversion_date?: string | null
+          revenue_attributed?: number
+          utm_source?: string | null
+          utm_medium?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      marketing_calendar_links: {
+        Row: {
+          id: string
+          workspace_id: string
+          marketing_item_id: string
+          linked_type: 'task' | 'calendar_event' | 'milestone'
+          linked_id: string
+          relationship_type: 'related' | 'deliverable' | 'milestone' | 'deadline'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          marketing_item_id: string
+          linked_type: 'task' | 'calendar_event' | 'milestone'
+          linked_id: string
+          relationship_type?: 'related' | 'deliverable' | 'milestone' | 'deadline'
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          workspace_id?: string
+          marketing_item_id?: string
+          linked_type?: 'task' | 'calendar_event' | 'milestone'
+          linked_id?: string
+          relationship_type?: 'related' | 'deliverable' | 'milestone' | 'deadline'
+          created_at?: string
+        }
+      }
+      marketing_analytics: {
+        Row: {
+          id: string
+          workspace_id: string
+          marketing_item_id: string
+          analytics_date: string
+          impressions: number
+          clicks: number
+          engagements: number
+          conversions: number
+          leads_generated: number
+          revenue_generated: number
+          ad_spend: number
+          channel: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          marketing_item_id: string
+          analytics_date: string
+          impressions?: number
+          clicks?: number
+          engagements?: number
+          conversions?: number
+          leads_generated?: number
+          revenue_generated?: number
+          ad_spend?: number
+          channel?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          workspace_id?: string
+          marketing_item_id?: string
+          analytics_date?: string
+          impressions?: number
+          clicks?: number
+          engagements?: number
+          conversions?: number
+          leads_generated?: number
+          revenue_generated?: number
+          ad_spend?: number
+          channel?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

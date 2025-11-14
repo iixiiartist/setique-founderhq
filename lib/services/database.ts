@@ -2501,4 +2501,422 @@ export class DatabaseService {
       return { data: null, error };
     }
   }
+
+  // ============================================================================
+  // FINANCIAL ENHANCEMENTS
+  // ============================================================================
+
+  static async getRevenueTransactions(workspaceId: string, filters?: any) {
+    try {
+      let query = supabase
+        .from('revenue_transactions')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .order('transaction_date', { ascending: false });
+
+      if (filters?.startDate) {
+        query = query.gte('transaction_date', filters.startDate);
+      }
+      if (filters?.endDate) {
+        query = query.lte('transaction_date', filters.endDate);
+      }
+      if (filters?.status) {
+        query = query.eq('status', filters.status);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      return { data, error: null };
+    } catch (error) {
+      logger.error('Error fetching revenue transactions:', error);
+      return { data: null, error };
+    }
+  }
+
+  static async createRevenueTransaction(transaction: Tables['revenue_transactions']['Insert']) {
+    try {
+      const { data, error } = await supabase
+        .from('revenue_transactions')
+        .insert([transaction])
+        .select()
+        .single();
+
+      if (error) throw error;
+      logger.info('[Database] Created revenue transaction:', { id: data.id });
+      return { data, error: null };
+    } catch (error) {
+      logger.error('Error creating revenue transaction:', error);
+      return { data: null, error };
+    }
+  }
+
+  static async updateRevenueTransaction(id: string, updates: Tables['revenue_transactions']['Update']) {
+    try {
+      const { data, error } = await supabase
+        .from('revenue_transactions')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      logger.error('Error updating revenue transaction:', error);
+      return { data: null, error };
+    }
+  }
+
+  static async deleteRevenueTransaction(id: string) {
+    try {
+      const { error } = await supabase
+        .from('revenue_transactions')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return { data: true, error: null };
+    } catch (error) {
+      logger.error('Error deleting revenue transaction:', error);
+      return { data: false, error };
+    }
+  }
+
+  static async getFinancialForecasts(workspaceId: string, forecastType?: string) {
+    try {
+      let query = supabase
+        .from('financial_forecasts')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .order('forecast_month', { ascending: true });
+
+      if (forecastType) {
+        query = query.eq('forecast_type', forecastType);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      return { data, error: null };
+    } catch (error) {
+      logger.error('Error fetching financial forecasts:', error);
+      return { data: null, error };
+    }
+  }
+
+  static async createFinancialForecast(forecast: Tables['financial_forecasts']['Insert']) {
+    try {
+      const { data, error } = await supabase
+        .from('financial_forecasts')
+        .insert([forecast])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      logger.error('Error creating financial forecast:', error);
+      return { data: null, error };
+    }
+  }
+
+  static async getBudgetPlans(workspaceId: string, activePlansOnly = false) {
+    try {
+      let query = supabase
+        .from('budget_plans')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .order('budget_period_start', { ascending: false });
+
+      if (activePlansOnly) {
+        const today = new Date().toISOString().split('T')[0];
+        query = query
+          .lte('budget_period_start', today)
+          .gte('budget_period_end', today);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      return { data, error: null };
+    } catch (error) {
+      logger.error('Error fetching budget plans:', error);
+      return { data: null, error };
+    }
+  }
+
+  static async createBudgetPlan(budget: Tables['budget_plans']['Insert']) {
+    try {
+      const { data, error } = await supabase
+        .from('budget_plans')
+        .insert([budget])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      logger.error('Error creating budget plan:', error);
+      return { data: null, error };
+    }
+  }
+
+  static async updateBudgetPlan(id: string, updates: Tables['budget_plans']['Update']) {
+    try {
+      const { data, error } = await supabase
+        .from('budget_plans')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      logger.error('Error updating budget plan:', error);
+      return { data: null, error };
+    }
+  }
+
+  // ============================================================================
+  // MARKETING ENHANCEMENTS
+  // ============================================================================
+
+  static async getCampaignAttributions(workspaceId: string, filters?: any) {
+    try {
+      let query = supabase
+        .from('campaign_attribution')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .order('interaction_date', { ascending: false });
+
+      if (filters?.marketingItemId) {
+        query = query.eq('marketing_item_id', filters.marketingItemId);
+      }
+      if (filters?.crmItemId) {
+        query = query.eq('crm_item_id', filters.crmItemId);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      return { data, error: null };
+    } catch (error) {
+      logger.error('Error fetching campaign attributions:', error);
+      return { data: null, error };
+    }
+  }
+
+  static async createCampaignAttribution(attribution: Tables['campaign_attribution']['Insert']) {
+    try {
+      const { data, error } = await supabase
+        .from('campaign_attribution')
+        .insert([attribution])
+        .select()
+        .single();
+
+      if (error) throw error;
+      logger.info('[Database] Created campaign attribution:', { id: data.id });
+      return { data, error: null };
+    } catch (error) {
+      logger.error('Error creating campaign attribution:', error);
+      return { data: null, error };
+    }
+  }
+
+  static async getMarketingAnalytics(workspaceId: string, filters?: any) {
+    try {
+      let query = supabase
+        .from('marketing_analytics')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .order('analytics_date', { ascending: false });
+
+      if (filters?.marketingItemId) {
+        query = query.eq('marketing_item_id', filters.marketingItemId);
+      }
+      if (filters?.startDate) {
+        query = query.gte('analytics_date', filters.startDate);
+      }
+      if (filters?.endDate) {
+        query = query.lte('analytics_date', filters.endDate);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      return { data, error: null };
+    } catch (error) {
+      logger.error('Error fetching marketing analytics:', error);
+      return { data: null, error };
+    }
+  }
+
+  static async createMarketingAnalytics(analytics: Tables['marketing_analytics']['Insert']) {
+    try {
+      const { data, error } = await supabase
+        .from('marketing_analytics')
+        .insert([analytics])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      logger.error('Error creating marketing analytics:', error);
+      return { data: null, error };
+    }
+  }
+
+  static async updateMarketingAnalytics(id: string, updates: Tables['marketing_analytics']['Update']) {
+    try {
+      const { data, error } = await supabase
+        .from('marketing_analytics')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      logger.error('Error updating marketing analytics:', error);
+      return { data: null, error };
+    }
+  }
+
+  static async getMarketingCalendarLinks(workspaceId: string, marketingItemId?: string) {
+    try {
+      let query = supabase
+        .from('marketing_calendar_links')
+        .select('*')
+        .eq('workspace_id', workspaceId);
+
+      if (marketingItemId) {
+        query = query.eq('marketing_item_id', marketingItemId);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      return { data, error: null };
+    } catch (error) {
+      logger.error('Error fetching marketing calendar links:', error);
+      return { data: null, error };
+    }
+  }
+
+  static async createMarketingCalendarLink(link: Tables['marketing_calendar_links']['Insert']) {
+    try {
+      const { data, error } = await supabase
+        .from('marketing_calendar_links')
+        .insert([link])
+        .select()
+        .single();
+
+      if (error) throw error;
+      logger.info('[Database] Created marketing calendar link:', { id: data.id });
+      return { data, error: null };
+    } catch (error) {
+      logger.error('Error creating marketing calendar link:', error);
+      return { data: null, error };
+    }
+  }
+
+  static async deleteMarketingCalendarLink(id: string) {
+    try {
+      const { error } = await supabase
+        .from('marketing_calendar_links')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return { data: true, error: null };
+    } catch (error) {
+      logger.error('Error deleting marketing calendar link:', error);
+      return { data: false, error };
+    }
+  }
+
+  // ===== DEAL/OPPORTUNITY MANAGEMENT =====
+  
+  static async getDeals(workspaceId: string, filters?: { stage?: string; category?: string; assignedTo?: string }) {
+    try {
+      let query = supabase
+        .from('deals')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .order('created_at', { ascending: false });
+
+      if (filters?.stage) {
+        query = query.eq('stage', filters.stage);
+      }
+      if (filters?.category) {
+        query = query.eq('category', filters.category);
+      }
+      if (filters?.assignedTo) {
+        query = query.eq('assigned_to', filters.assignedTo);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      return { data, error: null };
+    } catch (error) {
+      logger.error('Error fetching deals:', error);
+      return { data: null, error };
+    }
+  }
+
+  static async createDeal(deal: Tables['deals']['Insert']) {
+    try {
+      const { data, error } = await supabase
+        .from('deals')
+        .insert([deal])
+        .select()
+        .single();
+
+      if (error) throw error;
+      logger.info('[Database] Created deal:', { id: data.id, title: deal.title });
+      return { data, error: null };
+    } catch (error) {
+      logger.error('Error creating deal:', error);
+      return { data: null, error };
+    }
+  }
+
+  static async updateDeal(id: string, updates: Tables['deals']['Update']) {
+    try {
+      const { data, error } = await supabase
+        .from('deals')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      logger.info('[Database] Updated deal:', { id });
+      return { data, error: null };
+    } catch (error) {
+      logger.error('Error updating deal:', error);
+      return { data: null, error };
+    }
+  }
+
+  static async deleteDeal(id: string) {
+    try {
+      const { error } = await supabase
+        .from('deals')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      logger.info('[Database] Deleted deal:', { id });
+      return { data: true, error: null };
+    } catch (error) {
+      logger.error('Error deleting deal:', error);
+      return { data: false, error };
+    }
+  }
 }

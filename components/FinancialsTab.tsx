@@ -2,11 +2,12 @@ import React, { useState, useMemo } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
-import { FinancialLog, Expense, ExpenseCategory, PaymentMethod, AppActions, Task, Document, BusinessProfile, WorkspaceMember } from '../types';
+import { FinancialLog, Expense, ExpenseCategory, PaymentMethod, AppActions, Task, Document, BusinessProfile, WorkspaceMember, DashboardData } from '../types';
 import { Tab } from '../constants';
 import TaskManagement from './shared/TaskManagement';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import KpiCard from './shared/KpiCard';
+import { RevenueModule, CashFlowModule, MetricsModule } from './financials';
 
 const EXPENSE_CATEGORY_OPTIONS: ExpenseCategory[] = [
     'Software/SaaS',
@@ -221,8 +222,10 @@ const FinancialsTab: React.FC<{
     workspaceId?: string;
     onUpgradeNeeded?: () => void;
     workspaceMembers?: WorkspaceMember[];
-}> = React.memo(({ items, expenses, tasks, actions, documents, businessProfile, workspaceId, onUpgradeNeeded, workspaceMembers = [] }) => {
+    data?: DashboardData;
+}> = React.memo(({ items, expenses, tasks, actions, documents, businessProfile, workspaceId, onUpgradeNeeded, workspaceMembers = [], data }) => {
     const { workspace } = useWorkspace();
+    const [currentView, setCurrentView] = useState<'overview' | 'revenue' | 'cashflow' | 'metrics'>('overview');
     const [form, setForm] = useState<Omit<FinancialLog, 'id'>>({
         date: new Date().toISOString().split('T')[0], mrr: 0, gmv: 0, signups: 0
     });
@@ -394,7 +397,79 @@ const FinancialsTab: React.FC<{
     }, [form.signups]);
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="space-y-6">
+            {/* View Selector */}
+            <div className="bg-white p-4 border-2 border-black shadow-neo">
+                <div className="flex flex-wrap gap-2">
+                    <button
+                        onClick={() => setCurrentView('overview')}
+                        className={`px-4 py-2 border-2 border-black font-mono font-semibold transition-all ${
+                            currentView === 'overview'
+                                ? 'bg-black text-white shadow-neo-btn'
+                                : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
+                        }`}
+                    >
+                        Overview
+                    </button>
+                    <button
+                        onClick={() => setCurrentView('revenue')}
+                        className={`px-4 py-2 border-2 border-black font-mono font-semibold transition-all ${
+                            currentView === 'revenue'
+                                ? 'bg-black text-white shadow-neo-btn'
+                                : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
+                        }`}
+                    >
+                        Revenue
+                    </button>
+                    <button
+                        onClick={() => setCurrentView('cashflow')}
+                        className={`px-4 py-2 border-2 border-black font-mono font-semibold transition-all ${
+                            currentView === 'cashflow'
+                                ? 'bg-black text-white shadow-neo-btn'
+                                : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
+                        }`}
+                    >
+                        Cash Flow
+                    </button>
+                    <button
+                        onClick={() => setCurrentView('metrics')}
+                        className={`px-4 py-2 border-2 border-black font-mono font-semibold transition-all ${
+                            currentView === 'metrics'
+                                ? 'bg-black text-white shadow-neo-btn'
+                                : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
+                        }`}
+                    >
+                        Metrics
+                    </button>
+                </div>
+            </div>
+
+            {/* Render based on selected view */}
+            {currentView === 'revenue' && data && (
+                <RevenueModule
+                    data={data}
+                    actions={actions}
+                    workspaceId={workspaceId}
+                />
+            )}
+
+            {currentView === 'cashflow' && data && (
+                <CashFlowModule
+                    data={data}
+                    actions={actions}
+                />
+            )}
+
+            {currentView === 'metrics' && data && (
+                <MetricsModule
+                    data={data}
+                    actions={actions}
+                    workspaceId={workspaceId}
+                />
+            )}
+
+            {currentView === 'overview' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
                 {/* KPI Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -701,6 +776,8 @@ const FinancialsTab: React.FC<{
                     placeholder="e.g., 'Prepare Q3 board deck'"
                 />
             </div>
+            </div>
+            )}
         </div>
     );
 });

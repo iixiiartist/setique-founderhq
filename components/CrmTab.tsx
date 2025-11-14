@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { AnyCrmItem, Task, AppActions, CrmCollectionName, TaskCollectionName, Contact, Document, BusinessProfile, WorkspaceMember } from '../types';
+import { AnyCrmItem, Task, AppActions, CrmCollectionName, TaskCollectionName, Contact, Document, BusinessProfile, WorkspaceMember, Deal } from '../types';
 import AccountDetailView from './shared/AccountDetailView';
 import ContactDetailView from './shared/ContactDetailView';
 import TaskManagement from './shared/TaskManagement';
@@ -7,6 +7,7 @@ import { useWorkspace } from '../contexts/WorkspaceContext';
 import { ContactManager } from './shared/ContactManager';
 import { AccountManager } from './shared/AccountManager';
 import { FollowUpsManager } from './shared/FollowUpsManager';
+import { DealsModule } from './crm';
 
 interface CrmTabProps {
     title: string;
@@ -19,6 +20,7 @@ interface CrmTabProps {
     onUpgradeNeeded?: () => void;
     workspaceMembers?: WorkspaceMember[];
     userId?: string;
+    deals?: Deal[];
 }
 
 const CrmTab: React.FC<CrmTabProps> = React.memo(({ 
@@ -31,12 +33,13 @@ const CrmTab: React.FC<CrmTabProps> = React.memo(({
     workspaceId,
     onUpgradeNeeded,
     workspaceMembers = [],
-    userId
+    userId,
+    deals = []
 }) => {
     const { workspace } = useWorkspace();
     const [selectedItem, setSelectedItem] = useState<AnyCrmItem | null>(null);
     const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
-    const [activeView, setActiveView] = useState<'accounts' | 'contacts' | 'followups'>('accounts');
+    const [activeView, setActiveView] = useState<'accounts' | 'contacts' | 'followups' | 'deals'>('accounts');
     const isUpdatingRef = useRef(false);
 
     const { crmCollection, taskCollection, tag } = useMemo(() => {
@@ -217,6 +220,16 @@ const CrmTab: React.FC<CrmTabProps> = React.memo(({
                         >
                             📋 Follow Ups
                         </button>
+                        <button
+                            onClick={() => setActiveView('deals')}
+                            className={`flex-1 font-mono font-bold py-3 px-4 border-l-2 border-black transition-all ${
+                                activeView === 'deals'
+                                    ? 'bg-black text-white'
+                                    : 'bg-white text-black hover:bg-gray-100'
+                            }`}
+                        >
+                            💼 Deal Pipeline
+                        </button>
                     </div>
                     <div className="p-6">
                         {activeView === 'accounts' && (
@@ -246,6 +259,19 @@ const CrmTab: React.FC<CrmTabProps> = React.memo(({
                             <FollowUpsManager
                                 allCrmItems={crmItems}
                                 userId={userId}
+                            />
+                        )}
+                        {activeView === 'deals' && (
+                            <DealsModule
+                                deals={deals}
+                                crmItems={crmItems}
+                                actions={actions}
+                                workspaceId={workspaceId || ''}
+                                userId={userId}
+                                workspaceMembers={workspaceMembers.map(m => ({
+                                    id: m.userId,
+                                    name: m.fullName || m.email || 'Unknown'
+                                }))}
                             />
                         )}
                     </div>

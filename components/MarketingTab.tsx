@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { MarketingItem, AppActions, Task, Priority, Document, BusinessProfile, WorkspaceMember } from '../types';
+import { MarketingItem, AppActions, Task, Priority, Document, BusinessProfile, WorkspaceMember, DashboardData } from '../types';
 import Modal from './shared/Modal';
 import NotesManager from './shared/NotesManager';
 import { Tab } from '../constants';
 import TaskManagement from './shared/TaskManagement';
 import { useWorkspace } from '../contexts/WorkspaceContext';
+import { CampaignAnalyticsModule, AttributionModule } from './marketing';
 
 const MarketingItemCard: React.FC<{ item: MarketingItem; actions: AppActions; onEdit: (item: MarketingItem, triggerRef: React.RefObject<HTMLButtonElement>) => void; }> = ({ item, actions, onEdit }) => {
     const lastNote = item.notes?.length > 0 ? [...item.notes].sort((a,b) => b.timestamp - a.timestamp)[0] : null;
@@ -62,8 +63,10 @@ const MarketingTab: React.FC<{
     workspaceId?: string;
     onUpgradeNeeded?: () => void;
     workspaceMembers?: WorkspaceMember[];
-}> = React.memo(({ items, tasks, actions, documents, businessProfile, workspaceId, onUpgradeNeeded, workspaceMembers = [] }) => {
+    data?: DashboardData;
+}> = React.memo(({ items, tasks, actions, documents, businessProfile, workspaceId, onUpgradeNeeded, workspaceMembers = [], data }) => {
     const { workspace } = useWorkspace();
+    const [currentView, setCurrentView] = useState<'calendar' | 'analytics' | 'attribution'>('calendar');
     const [form, setForm] = useState<Omit<MarketingItem, 'id'|'createdAt'|'notes'>>({
         title: '', type: 'Blog Post', status: 'Planned', dueDate: ''
     });
@@ -99,7 +102,14 @@ const MarketingTab: React.FC<{
 
     const handleUpdate = () => {
         if (editingItem) {
-            actions.updateMarketingItem(editingItem.id, editForm);
+            // Ensure all fields including dueDate and dueTime are passed
+            actions.updateMarketingItem(editingItem.id, {
+                title: editForm.title,
+                type: editForm.type,
+                status: editForm.status,
+                dueDate: editForm.dueDate || null,
+                dueTime: editForm.dueTime || null
+            });
         }
         setEditingItem(null);
     };
@@ -110,6 +120,61 @@ const MarketingTab: React.FC<{
     };
 
     return (
+        <div className="space-y-6">
+            {/* View Selector */}
+            <div className="bg-white p-4 border-2 border-black shadow-neo">
+                <div className="flex flex-wrap gap-2">
+                    <button
+                        onClick={() => setCurrentView('calendar')}
+                        className={`px-4 py-2 border-2 border-black font-mono font-semibold transition-all ${
+                            currentView === 'calendar'
+                                ? 'bg-black text-white shadow-neo-btn'
+                                : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
+                        }`}
+                    >
+                        Content Calendar
+                    </button>
+                    <button
+                        onClick={() => setCurrentView('analytics')}
+                        className={`px-4 py-2 border-2 border-black font-mono font-semibold transition-all ${
+                            currentView === 'analytics'
+                                ? 'bg-black text-white shadow-neo-btn'
+                                : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
+                        }`}
+                    >
+                        Campaign Analytics
+                    </button>
+                    <button
+                        onClick={() => setCurrentView('attribution')}
+                        className={`px-4 py-2 border-2 border-black font-mono font-semibold transition-all ${
+                            currentView === 'attribution'
+                                ? 'bg-black text-white shadow-neo-btn'
+                                : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
+                        }`}
+                    >
+                        Attribution
+                    </button>
+                </div>
+            </div>
+
+            {/* Render based on selected view */}
+            {currentView === 'analytics' && data && (
+                <CampaignAnalyticsModule
+                    data={data}
+                    actions={actions}
+                    workspaceId={workspaceId}
+                />
+            )}
+
+            {currentView === 'attribution' && data && (
+                <AttributionModule
+                    data={data}
+                    actions={actions}
+                    workspaceId={workspaceId}
+                />
+            )}
+
+            {currentView === 'calendar' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -164,6 +229,8 @@ const MarketingTab: React.FC<{
                     />
                 </div>
             </div>
+        </div>
+            )}
 
             <Modal isOpen={!!editingItem} onClose={() => setEditingItem(null)} title="Edit Marketing Item" triggerRef={modalTriggerRef}>
                 {editingItem && (

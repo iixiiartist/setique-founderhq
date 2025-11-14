@@ -56,7 +56,14 @@ export const EMPTY_DASHBOARD_DATA: DashboardData = {
         desktopNotifications: false,
         autoSaveAttachments: true, // Auto-save by default
         maxFileSizeMB: 10, // 10MB limit to control storage costs
-    }
+    },
+    revenueTransactions: [],
+    financialForecasts: [],
+    budgetPlans: [],
+    campaignAttributions: [],
+    marketingAnalytics: [],
+    marketingCalendarLinks: [],
+    deals: []
 };
 
 export const TASK_TAG_BG_COLORS: Record<string, string> = {

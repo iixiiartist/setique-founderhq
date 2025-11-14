@@ -46,6 +46,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
     });
     
     // Use lazy loading for better performance
+    const lazyDataPersistence = useLazyDataPersistence();
     const {
         loadCoreData,
         loadTasks,
@@ -54,11 +55,18 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
         loadFinancials,
         loadDocuments,
         loadDocumentsMetadata,
+        loadDeals,
         invalidateCache,
         invalidateAllCache,
         isLoading: isDataLoading,
         error: dataError
-    } = useLazyDataPersistence();
+    } = lazyDataPersistence;
+    
+    // Create a ref to access lazy data methods in actions
+    const useLazyDataPersistenceRef = useRef(lazyDataPersistence);
+    useEffect(() => {
+        useLazyDataPersistenceRef.current = lazyDataPersistence;
+    }, [lazyDataPersistence]);
     
     // State management for lazy-loaded data
     const [data, setData] = useState<DashboardData>(EMPTY_DASHBOARD_DATA);
@@ -212,8 +220,8 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         // Calendar also needs marketing items and CRM items for events
                         if (activeTab === Tab.Calendar) {
                             if (!loadedTabsRef.current.has('marketing')) {
-                                const marketing = await loadMarketing();
-                                setData(prev => ({ ...prev, marketing }));
+                                const marketingData = await loadMarketing();
+                                setData(prev => ({ ...prev, ...marketingData }));
                                 loadedTabsRef.current.add('marketing');
                             }
                             
@@ -246,8 +254,8 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     case Tab.Marketing:
                         // Load marketing items
                         if (!loadedTabsRef.current.has('marketing')) {
-                            const marketing = await loadMarketing();
-                            setData(prev => ({ ...prev, marketing }));
+                            const marketingData = await loadMarketing();
+                            setData(prev => ({ ...prev, ...marketingData }));
                             loadedTabsRef.current.add('marketing');
                         }
                         
@@ -535,7 +543,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
                 case Tab.Marketing:
                     const marketing = await loadMarketing({ force: true });
-                    setData(prev => ({ ...prev, marketing }));
+                    setData(prev => ({ ...prev, ...marketing }));
                     loadedTabsRef.current.add('marketing');
                     
                     const marketingTasks = await loadTasks({ force: true });
@@ -607,9 +615,13 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             case Tab.Investors:
             case Tab.Customers:
             case Tab.Partners:
-                // Load CRM items with force refresh
+                // Load CRM items and deals with force refresh
                 await loadCrmItems({ force: true });
                 await loadTasks({ force: true });
+                if (useLazyDataPersistenceRef.current?.loadDeals) {
+                    const deals = await useLazyDataPersistenceRef.current.loadDeals({ force: true });
+                    setData(prev => ({ ...prev, deals }));
+                }
                 break;
             
             case Tab.Marketing:
@@ -1442,7 +1454,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 // Reload marketing data immediately
                 invalidateCache('marketing');
                 const freshMarketing = await loadMarketing({ force: true });
-                setData(prev => ({ ...prev, marketing: freshMarketing }));
+                setData(prev => ({ ...prev, ...freshMarketing }));
                 loadedTabsRef.current.add('marketing');
                 
                 logger.info('[createMarketingItem] Created successfully, reloaded data');
@@ -1658,7 +1670,118 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             }
             return { success: false, message: `File with ID ${fileId} not found.` };
         },
-    }), [userId, supabase, data, reload, handleToast]);
+
+        // Deal/Opportunity Management
+        createDeal: async (dealData) => {
+            if (!workspace?.id || !userId) {
+                return { success: false, message: 'User or workspace not available' };
+            }
+
+            try {
+                const dbData = {
+                    workspace_id: workspace.id,
+                    title: dealData.title,
+                    crm_item_id: dealData.crmItemId || null,
+                    contact_id: dealData.contactId || null,
+                    value: dealData.value,
+                    currency: dealData.currency,
+                    stage: dealData.stage,
+                    probability: dealData.probability,
+                    expected_close_date: dealData.expectedCloseDate || null,
+                    actual_close_date: dealData.actualCloseDate || null,
+                    source: dealData.source || null,
+                    category: dealData.category,
+                    priority: dealData.priority.toLowerCase(),
+                    assigned_to: dealData.assignedTo || null,
+                    assigned_to_name: dealData.assignedToName || null,
+                };
+
+                const result = await DatabaseService.createDeal(dbData as any);
+                if (result.error) {
+                    throw new Error('Failed to create deal');
+                }
+
+                // Reload deals
+                invalidateCache('deals');
+                if (useLazyDataPersistenceRef.current?.loadDeals) {
+                    const deals = await useLazyDataPersistenceRef.current.loadDeals({ force: true });
+                    setData(prev => ({ ...prev, deals }));
+                }
+
+                handleToast(`Deal "${dealData.title}" created successfully`, 'success');
+                return { success: true, message: 'Deal created successfully', dealId: result.data?.id };
+            } catch (error) {
+                logger.error('Error creating deal:', error);
+                handleToast('Failed to create deal', 'info');
+                return { success: false, message: 'Failed to create deal' };
+            }
+        },
+
+        updateDeal: async (dealId, updates) => {
+            try {
+                const dbUpdates: any = {};
+                if (updates.title !== undefined) dbUpdates.title = updates.title;
+                if (updates.crmItemId !== undefined) dbUpdates.crm_item_id = updates.crmItemId;
+                if (updates.contactId !== undefined) dbUpdates.contact_id = updates.contactId;
+                if (updates.value !== undefined) dbUpdates.value = updates.value;
+                if (updates.currency !== undefined) dbUpdates.currency = updates.currency;
+                if (updates.stage !== undefined) dbUpdates.stage = updates.stage;
+                if (updates.probability !== undefined) dbUpdates.probability = updates.probability;
+                if (updates.expectedCloseDate !== undefined) dbUpdates.expected_close_date = updates.expectedCloseDate;
+                if (updates.actualCloseDate !== undefined) dbUpdates.actual_close_date = updates.actualCloseDate;
+                if (updates.source !== undefined) dbUpdates.source = updates.source;
+                if (updates.category !== undefined) dbUpdates.category = updates.category;
+                if (updates.priority !== undefined) dbUpdates.priority = updates.priority.toLowerCase();
+                if (updates.assignedTo !== undefined) dbUpdates.assigned_to = updates.assignedTo;
+                if (updates.assignedToName !== undefined) dbUpdates.assigned_to_name = updates.assignedToName;
+                if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+                if (updates.tags !== undefined) dbUpdates.tags = updates.tags;
+                if (updates.customFields !== undefined) dbUpdates.custom_fields = updates.customFields;
+
+                const result = await DatabaseService.updateDeal(dealId, dbUpdates);
+                if (result.error) {
+                    throw new Error('Failed to update deal');
+                }
+
+                // Reload deals
+                invalidateCache('deals');
+                if (useLazyDataPersistenceRef.current?.loadDeals) {
+                    const deals = await useLazyDataPersistenceRef.current.loadDeals({ force: true });
+                    setData(prev => ({ ...prev, deals }));
+                }
+
+                handleToast('Deal updated successfully', 'success');
+                return { success: true, message: 'Deal updated successfully' };
+            } catch (error) {
+                logger.error('Error updating deal:', error);
+                handleToast('Failed to update deal', 'info');
+                return { success: false, message: 'Failed to update deal' };
+            }
+        },
+
+        deleteDeal: async (dealId) => {
+            try {
+                const result = await DatabaseService.deleteDeal(dealId);
+                if (result.error) {
+                    throw new Error('Failed to delete deal');
+                }
+
+                // Reload deals
+                invalidateCache('deals');
+                if (useLazyDataPersistenceRef.current?.loadDeals) {
+                    const deals = await useLazyDataPersistenceRef.current.loadDeals({ force: true });
+                    setData(prev => ({ ...prev, deals }));
+                }
+
+                handleToast('Deal deleted successfully', 'success');
+                return { success: true, message: 'Deal deleted successfully' };
+            } catch (error) {
+                logger.error('Error deleting deal:', error);
+                handleToast('Failed to delete deal', 'info');
+                return { success: false, message: 'Failed to delete deal' };
+            }
+        },
+    }), [userId, supabase, data, reload, handleToast, workspace, invalidateCache, useLazyDataPersistenceRef]);
     
     const renderTabContent = () => {
         // Generate all meetings from CRM items with proper company type
@@ -1805,6 +1928,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
                             workspaceMembers={workspaceMembers}
                             userId={user?.id}
+                            deals={data.deals}
                         />
                     </Suspense>
                 );
@@ -1822,6 +1946,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
                             workspaceMembers={workspaceMembers}
                             userId={user?.id}
+                            deals={data.deals}
                         />
                     </Suspense>
                 );
@@ -1839,6 +1964,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
                             workspaceMembers={workspaceMembers}
                             userId={user?.id}
+                            deals={data.deals}
                         />
                     </Suspense>
                 );
@@ -1854,6 +1980,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             workspaceId={workspace?.id}
                             workspaceMembers={workspaceMembers}
                             onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
+                            data={data}
                         />
                     </Suspense>
                 );
@@ -1870,6 +1997,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             workspaceId={workspace?.id}
                             workspaceMembers={workspaceMembers}
                             onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
+                            data={data}
                         />
                     </Suspense>
                 );
