@@ -436,6 +436,37 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                     
                                     {showToolbarMenu && (
                                         <div className="absolute top-full mt-1 left-0 bg-white border-2 border-black shadow-lg z-30 min-w-[280px] max-h-[70vh] overflow-y-auto">
+                                            {/* Font Family Section */}
+                                            <div className="border-b-2 border-black p-2">
+                                                <div className="text-xs font-bold mb-2 text-gray-600">FONT FAMILY</div>
+                                                <select 
+                                                    onChange={(e) => {
+                                                        if (e.target.value === 'unset') {
+                                                            editor.chain().focus().unsetFontFamily().run();
+                                                        } else {
+                                                            editor.chain().focus().setFontFamily(e.target.value).run();
+                                                        }
+                                                    }}
+                                                    className="w-full px-2 py-2 text-sm border-2 border-black font-bold"
+                                                    value={editor.getAttributes('textStyle').fontFamily || ''}
+                                                >
+                                                    <option value="">Default (Inter)</option>
+                                                    <option value="unset">Remove Font</option>
+                                                    <option value="Arial, sans-serif" style={{ fontFamily: 'Arial, sans-serif' }}>Arial</option>
+                                                    <option value="'Times New Roman', serif" style={{ fontFamily: 'Times New Roman, serif' }}>Times New Roman</option>
+                                                    <option value="Georgia, serif" style={{ fontFamily: 'Georgia, serif' }}>Georgia</option>
+                                                    <option value="'Courier New', monospace" style={{ fontFamily: 'Courier New, monospace' }}>Courier New</option>
+                                                    <option value="Verdana, sans-serif" style={{ fontFamily: 'Verdana, sans-serif' }}>Verdana</option>
+                                                    <option value="Helvetica, sans-serif" style={{ fontFamily: 'Helvetica, sans-serif' }}>Helvetica</option>
+                                                    <option value="'Comic Sans MS', cursive" style={{ fontFamily: 'Comic Sans MS, cursive' }}>Comic Sans</option>
+                                                    <option value="Impact, sans-serif" style={{ fontFamily: 'Impact, sans-serif' }}>Impact</option>
+                                                    <option value="'Trebuchet MS', sans-serif" style={{ fontFamily: 'Trebuchet MS, sans-serif' }}>Trebuchet</option>
+                                                    <option value="'Palatino Linotype', serif" style={{ fontFamily: 'Palatino Linotype, serif' }}>Palatino</option>
+                                                    <option value="Garamond, serif" style={{ fontFamily: 'Garamond, serif' }}>Garamond</option>
+                                                    <option value="'Brush Script MT', cursive" style={{ fontFamily: 'Brush Script MT, cursive' }}>Brush Script</option>
+                                                </select>
+                                            </div>
+
                                             {/* Text Formatting Section */}
                                             <div className="border-b-2 border-black p-2">
                                                 <div className="text-xs font-bold mb-2 text-gray-600">TEXT FORMATTING</div>
