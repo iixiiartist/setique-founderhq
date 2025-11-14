@@ -23,6 +23,7 @@ import { Focus } from '@tiptap/extension-focus';
 import { Youtube } from '@tiptap/extension-youtube';
 import { ResizableImage } from '../../lib/tiptap/ResizableImage';
 import { FontSize } from '../../lib/tiptap/FontSize';
+import { PageBreak } from '../../lib/tiptap/PageBreak';
 import { HexColorPicker } from 'react-colorful';
 import EmojiPicker from 'emoji-picker-react';
 import { GTMDoc, DocType, DocVisibility, AppActions, DashboardData } from '../../types';
@@ -136,6 +137,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             FontSize.configure({
                 types: ['textStyle'],
             }),
+            PageBreak,
             Typography,
             CharacterCount,
             Focus.configure({
@@ -684,6 +686,13 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                                     <button onClick={() => { editor.chain().focus().toggleBlockquote().run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-left font-bold border-2 border-black ${editor.isActive('blockquote') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`}>" Quote</button>
                                                     <button onClick={() => { editor.chain().focus().toggleCodeBlock().run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-left font-bold border-2 border-black ${editor.isActive('codeBlock') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`}>{'</>'} Code Block</button>
                                                     <button onClick={() => { editor.chain().focus().setHorizontalRule().run(); setShowToolbarMenu(false); }} className="px-3 py-2 text-left font-bold border-2 border-black bg-white hover:bg-gray-100">─ Horizontal Rule</button>
+                                                    <button 
+                                                        onClick={() => { editor.chain().focus().setPageBreak().run(); setShowToolbarMenu(false); }} 
+                                                        className="px-3 py-2 text-left font-bold border-2 border-black bg-white hover:bg-gray-100"
+                                                        title="Insert Page Break (Cmd/Ctrl+Enter)"
+                                                    >
+                                                        ⊟ Page Break
+                                                    </button>
                                                 </div>
                                             </div>
                                             
@@ -784,6 +793,42 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                     {/* Tiptap Editor Content */}
                     <div className="flex-1 overflow-y-auto p-3 lg:p-6 bg-white">
                         <style jsx global>{`
+                            /* Page Break Styles */
+                            .ProseMirror .page-break {
+                                margin: 2rem 0;
+                                padding: 1rem 0;
+                                border: none;
+                                border-top: 2px dashed #ccc;
+                                border-bottom: 2px dashed #ccc;
+                                position: relative;
+                                page-break-after: always;
+                                break-after: page;
+                            }
+                            .ProseMirror .page-break::before {
+                                content: '📄 Page Break';
+                                position: absolute;
+                                top: 50%;
+                                left: 50%;
+                                transform: translate(-50%, -50%);
+                                background: white;
+                                padding: 0.25rem 0.75rem;
+                                font-size: 0.75rem;
+                                font-weight: bold;
+                                color: #999;
+                                border: 1px solid #ccc;
+                                border-radius: 4px;
+                            }
+                            @media print {
+                                .ProseMirror .page-break {
+                                    border: none;
+                                    margin: 0;
+                                    padding: 0;
+                                }
+                                .ProseMirror .page-break::before {
+                                    display: none;
+                                }
+                            }
+                            
                             /* Table Styles */
                             .ProseMirror table {
                                 border-collapse: collapse;

@@ -45,6 +45,15 @@ export const exportToMarkdown = (editor: Editor, filename: string = 'document.md
     },
   });
 
+  turndownService.addRule('pageBreak', {
+    filter: node => {
+      return node.nodeName === 'DIV' && node.getAttribute('data-type') === 'page-break';
+    },
+    replacement: () => {
+      return '\n\n---\n\n';
+    },
+  });
+
   const markdown = turndownService.turndown(html);
   
   // Download file
@@ -168,6 +177,24 @@ export const exportToHTML = (editor: Editor, filename: string = 'document.html')
     .task-list { list-style: none; padding-left: 0; }
     .task-item { display: flex; align-items: flex-start; }
     .task-item input[type="checkbox"] { margin-right: 8px; margin-top: 4px; }
+    .page-break { 
+      page-break-after: always; 
+      break-after: page;
+      margin: 40px 0;
+      border-top: 2px dashed #ccc;
+      border-bottom: 2px dashed #ccc;
+      padding: 20px 0;
+      text-align: center;
+      color: #999;
+      font-size: 0.875rem;
+    }
+    @media print {
+      .page-break {
+        border: none;
+        margin: 0;
+        padding: 0;
+      }
+    }
   </style>
 </head>
 <body>
