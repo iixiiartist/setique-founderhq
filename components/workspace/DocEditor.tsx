@@ -29,6 +29,7 @@ import { AICommandPalette } from './AICommandPalette';
 import { ImageUploadModal } from './ImageUploadModal';
 import { useAIWorkspaceContext } from '../../hooks/useAIWorkspaceContext';
 import { uploadToSupabase, validateImageFile } from '../../lib/services/imageUploadService';
+import { exportToMarkdown, exportToPDF, exportToHTML, exportToText, generateFilename } from '../../lib/services/documentExport';
 
 interface DocEditorProps {
     workspaceId: string;
@@ -72,6 +73,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     const [showLinkInput, setShowLinkInput] = useState(false);
     const [linkUrl, setLinkUrl] = useState('');
     const [showImageUploadModal, setShowImageUploadModal] = useState(false);
+    const [showExportMenu, setShowExportMenu] = useState(false);
     
     // Fetch workspace context for AI
     const { context: workspaceContext, loading: contextLoading } = useAIWorkspaceContext(
@@ -232,6 +234,32 @@ export const DocEditor: React.FC<DocEditorProps> = ({
         } catch (error: any) {
             console.error('Paste image error:', error);
             alert(`Failed to upload pasted image: ${error.message || 'Unknown error'}`);
+        }
+    };
+
+    const handleExport = async (format: 'markdown' | 'pdf' | 'html' | 'text') => {
+        if (!editor) return;
+
+        try {
+            const filename = generateFilename(title || 'document', format === 'markdown' ? 'md' : format);
+
+            switch (format) {
+                case 'markdown':
+                    exportToMarkdown(editor, filename);
+                    break;
+                case 'pdf':
+                    await exportToPDF(editor, title || 'Document', filename);
+                    break;
+                case 'html':
+                    exportToHTML(editor, filename);
+                    break;
+                case 'text':
+                    exportToText(editor, filename);
+                    break;
+            }
+        } catch (error: any) {
+            console.error('Export error:', error);
+            alert(`Failed to export document: ${error.message || 'Unknown error'}`);
         }
     };
 
@@ -799,6 +827,44 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                         >
                             💾 Save to File Library
                         </button>
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowExportMenu(!showExportMenu)}
+                                disabled={!editor}
+                                className="w-full px-3 py-2 bg-purple-500 text-white font-bold border-2 border-black shadow-neo-btn hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center justify-between"
+                            >
+                                <span>📥 Export Document</span>
+                                <span>{showExportMenu ? '▲' : '▼'}</span>
+                            </button>
+                            {showExportMenu && editor && (
+                                <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-50">
+                                    <button
+                                        onClick={() => { handleExport('markdown'); setShowExportMenu(false); }}
+                                        className="w-full px-3 py-2 text-left text-sm font-bold hover:bg-yellow-300 border-b-2 border-black"
+                                    >
+                                        📝 Markdown (.md)
+                                    </button>
+                                    <button
+                                        onClick={() => { handleExport('pdf'); setShowExportMenu(false); }}
+                                        className="w-full px-3 py-2 text-left text-sm font-bold hover:bg-yellow-300 border-b-2 border-black"
+                                    >
+                                        📄 PDF (.pdf)
+                                    </button>
+                                    <button
+                                        onClick={() => { handleExport('html'); setShowExportMenu(false); }}
+                                        className="w-full px-3 py-2 text-left text-sm font-bold hover:bg-yellow-300 border-b-2 border-black"
+                                    >
+                                        🌐 HTML (.html)
+                                    </button>
+                                    <button
+                                        onClick={() => { handleExport('text'); setShowExportMenu(false); }}
+                                        className="w-full px-3 py-2 text-left text-sm font-bold hover:bg-yellow-300"
+                                    >
+                                        📋 Plain Text (.txt)
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* AI Quick Info */}

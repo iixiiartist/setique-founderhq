@@ -116,6 +116,8 @@
     "@tiptap/react": "^3.10.5",
     "@tiptap/starter-kit": "^3.10.5",
     "date-fns": "^4.1.0",
+    "html-to-image": "^1.11.13",
+    "jspdf": "^3.0.3",
     "lucide-react": "^0.552.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
@@ -127,6 +129,7 @@
     "recharts": "^3.3.0",
     "remark-gfm": "^4.0.0",
     "stripe": "^19.2.0",
+    "turndown": "^7.2.2",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
