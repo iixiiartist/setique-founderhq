@@ -87,10 +87,6 @@ export const exportToPDF = async (
       format: 'a4',
     });
 
-    // Add title
-    pdf.setFontSize(16);
-    pdf.text(title, 20, 20);
-
     // Calculate image dimensions to fit A4
     const img = new Image();
     img.src = dataUrl;
@@ -104,7 +100,7 @@ export const exportToPDF = async (
     const imgHeight = (img.height * imgWidth) / img.width;
 
     let heightLeft = imgHeight;
-    let position = 30; // Start below title
+    let position = 20; // Start at top margin
 
     // Add image(s) across multiple pages if needed
     pdf.addImage(dataUrl, 'PNG', 20, position, imgWidth, imgHeight);
