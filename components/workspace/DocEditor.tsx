@@ -444,6 +444,8 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                     </button>
                     <input
                         type="text"
+                        id="doc-title-input"
+                        name="docTitle"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         className="flex-1 px-2 lg:px-3 py-1 lg:py-2 text-base lg:text-xl font-bold border-2 border-black"
@@ -484,7 +486,9 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                             {/* Font Family Section */}
                                             <div className="border-b-2 border-black p-2">
                                                 <div className="text-xs font-bold mb-2 text-gray-600">FONT FAMILY</div>
-                                                <select 
+                                                <select
+                                                    id="font-family-select"
+                                                    name="fontFamily"
                                                     onChange={(e) => {
                                                         if (e.target.value === 'unset') {
                                                             editor.chain().focus().unsetFontFamily().run();
@@ -494,6 +498,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                                     }}
                                                     className="w-full px-2 py-2 text-sm border-2 border-black font-bold"
                                                     value={editor.getAttributes('textStyle').fontFamily || ''}
+                                                    aria-label="Select font family"
                                                 >
                                                     <option value="">Default (Inter)</option>
                                                     <option value="unset">Remove Font</option>
@@ -515,7 +520,9 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                             {/* Font Size Section */}
                                             <div className="border-b-2 border-black p-2">
                                                 <div className="text-xs font-bold mb-2 text-gray-600">FONT SIZE</div>
-                                                <select 
+                                                <select
+                                                    id="font-size-select"
+                                                    name="fontSize"
                                                     onChange={(e) => {
                                                         if (e.target.value === 'unset') {
                                                             editor.chain().focus().unsetFontSize().run();
@@ -525,6 +532,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                                     }}
                                                     className="w-full px-2 py-2 text-sm border-2 border-black font-bold"
                                                     value={editor.getAttributes('textStyle').fontSize || ''}
+                                                    aria-label="Select font size"
                                                 >
                                                     <option value="">Default (16px)</option>
                                                     <option value="unset">Remove Size</option>
@@ -587,6 +595,8 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                                             />
                                                             <input
                                                                 type="text"
+                                                                id="text-color-hex"
+                                                                name="textColorHex"
                                                                 value={selectedColor}
                                                                 onChange={(e) => {
                                                                     setSelectedColor(e.target.value);
@@ -596,6 +606,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                                                 }}
                                                                 className="w-full mt-2 px-2 py-1 text-sm border-2 border-black font-mono"
                                                                 placeholder="#000000"
+                                                                aria-label="Text color hex code"
                                                             />
                                                         </div>
                                                     )}
@@ -636,6 +647,8 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                                             />
                                                             <input
                                                                 type="text"
+                                                                id="highlight-color-hex"
+                                                                name="highlightColorHex"
                                                                 value={selectedHighlight}
                                                                 onChange={(e) => {
                                                                     setSelectedHighlight(e.target.value);
@@ -645,6 +658,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                                                 }}
                                                                 className="w-full mt-2 px-2 py-1 text-sm border-2 border-black font-mono"
                                                                 placeholder="#FFFF00"
+                                                                aria-label="Highlight color hex code"
                                                             />
                                                         </div>
                                                     )}
@@ -783,7 +797,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                                     }} className={`px-3 py-2 text-left font-bold border-2 border-black ${editor.isActive('link') ? 'bg-blue-200' : 'bg-white hover:bg-gray-100'}`}>🔗 {editor.isActive('link') ? 'Remove Link' : 'Add Link'}</button>
                                                     {showLinkInput && (
                                                         <div className="p-2 bg-gray-50 border-2 border-black">
-                                                            <input type="url" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://..." className="w-full px-2 py-1 border-2 border-black text-sm mb-1" />
+                                                            <input type="url" id="link-url-input" name="linkUrl" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://..." className="w-full px-2 py-1 border-2 border-black text-sm mb-1" aria-label="Link URL" />
                                                             <div className="flex gap-1">
                                                                 <button onClick={() => { if (linkUrl) { editor.chain().focus().setLink({ href: linkUrl }).run(); } setShowLinkInput(false); setLinkUrl(''); setShowToolbarMenu(false); }} className="flex-1 px-2 py-1 bg-green-500 text-white font-bold border-2 border-black text-xs">✓ Add</button>
                                                                 <button onClick={() => { setShowLinkInput(false); setLinkUrl(''); }} className="flex-1 px-2 py-1 bg-red-500 text-white font-bold border-2 border-black text-xs">✕ Cancel</button>
@@ -1053,6 +1067,8 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                         <label className="block text-sm font-bold mb-2">Tags</label>
                         <input
                             type="text"
+                            id="doc-tags-input"
+                            name="docTags"
                             placeholder="Add tags (comma separated)"
                             className="w-full px-2 py-2 border-2 border-black font-mono text-sm"
                             onKeyDown={(e) => {
