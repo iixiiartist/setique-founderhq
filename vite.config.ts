@@ -38,6 +38,12 @@ export default defineConfig(({ mode }) => {
           '@': path.resolve(__dirname, '.'),
         }
       },
+      optimizeDeps: {
+        include: [
+          'react-colorful',
+          'emoji-picker-react',
+        ]
+      },
       build: {
         target: 'esnext',
         minify: 'terser',
