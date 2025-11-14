@@ -21,7 +21,8 @@ export type AIAction =
   | 'objection_handling'
   | 'pain_points'
   | 'decision_makers'
-  | 'buying_process';
+  | 'buying_process'
+  | 'generate_chart';
 
 /**
  * Builds context-aware AI prompts with business profile and workspace data
@@ -257,6 +258,55 @@ Competitive Analysis:`;
       prompt += `Generate common objections prospects might have about ${context.businessProfile?.description || 'this business'} and how to handle them. Format as Q&A.
 
 Objection Handling:`;
+      break;
+
+    case 'generate_chart':
+      prompt += `Generate a chart configuration based on the user's request and available workspace data.
+
+CRITICAL CHART GENERATION RULES:
+1. You must respond with a valid JSON object that matches this exact structure:
+{
+  "chartType": "line" | "bar" | "pie" | "area",
+  "title": "Chart Title",
+  "data": [{"key": "value", ...}],
+  "dataKeys": ["key1", "key2"],
+  "xAxisKey": "key",
+  "colors": ["#3b82f6", "#10b981"],
+  "width": 700,
+  "height": 350,
+  "showLegend": true,
+  "showGrid": true
+}
+
+2. Available workspace data you can reference:
+${context.financialLogs.length > 0 ? `- Financial Logs: ${context.financialLogs.length} entries with MRR, GMV, signups data` : ''}
+${context.expenses.length > 0 ? `- Expenses: ${context.expenses.length} entries by category` : ''}
+${context.crmItems.length > 0 ? `- CRM Items: ${context.crmItems.length} deals across investor/customer/partner pipelines` : ''}
+${context.marketingCampaigns.length > 0 ? `- Marketing: ${context.marketingCampaigns.length} campaigns by type` : ''}
+${context.tasks.length > 0 ? `- Tasks: ${context.tasks.length} tasks by status and priority` : ''}
+
+3. Chart type selection:
+- Use "line" for trends over time (revenue, signups, growth metrics)
+- Use "bar" for comparisons (pipeline stages, task counts by module)
+- Use "pie" for distribution (expense breakdown, deal stages, campaign types)
+- Use "area" for cumulative metrics (total revenue, customer growth)
+
+4. Data format requirements:
+- For line/bar/area charts: array of objects with xAxisKey and numeric dataKeys
+- For pie charts: array of objects with category key (xAxisKey) and value key (dataKeys[0])
+- All data must be derived from the workspace data listed above - DO NOT invent data
+
+5. Color palette (use these hex codes):
+- Blue: #3b82f6
+- Green: #10b981
+- Orange: #f59e0b
+- Red: #ef4444
+- Purple: #8b5cf6
+- Pink: #ec4899
+
+User Request: ${customPrompt || 'Create a relevant chart based on available data'}
+
+Generate chart configuration JSON:`;
       break;
 
     default:

@@ -49,12 +49,20 @@ interface AICommandPaletteProps {
 const QUICK_SUGGESTIONS = [
   { label: '📋 Executive Summary', prompt: 'Write an executive summary for this document based on our business context' },
   { label: '🎯 Key Messages', prompt: 'Generate 3-5 key messages that align with our value proposition and target market' },
-  { label: '� Target Audience', prompt: 'Describe our target audience with pain points and buying behaviors' },
+  { label: '👥 Target Audience', prompt: 'Describe our target audience with pain points and buying behaviors' },
   { label: '💡 Value Props', prompt: 'List our key value propositions and competitive differentiators' },
   { label: '🚀 Go-to-Market', prompt: 'Outline a go-to-market strategy based on our business model and target market' },
   { label: '⚔️ Competitive Analysis', prompt: 'Analyze our competitive landscape and positioning' },
   { label: '💬 Messaging Framework', prompt: 'Create a messaging framework with tagline, positioning, and key messages' },
   { label: '📈 Launch Timeline', prompt: 'Create a product launch timeline with milestones and activities' },
+];
+
+// Chart generation quick commands
+const CHART_SUGGESTIONS = [
+  { label: '📈 Revenue Chart', prompt: 'Create a line chart showing our revenue trends over time using financial data' },
+  { label: '🥧 Expense Breakdown', prompt: 'Create a pie chart breaking down our expenses by category' },
+  { label: '📊 Sales Pipeline', prompt: 'Create a bar chart showing our customer pipeline by stage' },
+  { label: '📉 Growth Metrics', prompt: 'Create an area chart showing signups, customers, and revenue growth' },
 ];
 
 export const AICommandPalette: React.FC<AICommandPaletteProps> = ({
@@ -242,6 +250,37 @@ Important: Only return the content to insert/replace. Do not include explanation
       // Extract and clean response
       let responseText = extractTextFromResponse(response);
       
+      // Check if response is a chart configuration
+      const isChartRequest = prompt.toLowerCase().includes('chart') || 
+                            prompt.toLowerCase().includes('graph') ||
+                            prompt.toLowerCase().includes('visualization');
+      
+      if (isChartRequest) {
+        try {
+          // Try to parse as JSON chart config
+          let chartConfig;
+          
+          // Remove markdown code blocks if present
+          const cleanedResponse = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+          
+          // Try to extract JSON from the response
+          const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            chartConfig = JSON.parse(jsonMatch[0]);
+            
+            // Validate chart config has required fields
+            if (chartConfig.chartType && chartConfig.data && chartConfig.dataKeys) {
+              // Insert chart using editor command
+              editor.chain().focus().insertChart(chartConfig).run();
+              onClose();
+              return;
+            }
+          }
+        } catch (parseError) {
+          console.log('Not a valid chart config, treating as regular content');
+        }
+      }
+      
       // Remove markdown code blocks if present
       responseText = responseText.replace(/```html\n?/g, '').replace(/```\n?/g, '').trim();
       
@@ -338,8 +377,8 @@ Important: Only return the content to insert/replace. Do not include explanation
       {/* Quick Suggestions */}
       {!loading && (
         <div className="flex-1 overflow-y-auto p-4">
-          <h4 className="text-xs font-bold text-gray-700 uppercase mb-3">Quick Suggestions</h4>
-          <div className="grid grid-cols-2 gap-2">
+          <h4 className="text-xs font-bold text-gray-700 uppercase mb-3">Content Suggestions</h4>
+          <div className="grid grid-cols-2 gap-2 mb-4">
             {QUICK_SUGGESTIONS.map((suggestion, idx) => (
               <button
                 key={idx}
@@ -350,6 +389,23 @@ Important: Only return the content to insert/replace. Do not include explanation
               </button>
             ))}
           </div>
+          
+          <h4 className="text-xs font-bold text-gray-700 uppercase mb-3 mt-4">📊 Chart Generation</h4>
+          <div className="grid grid-cols-2 gap-2">
+            {CHART_SUGGESTIONS.map((suggestion, idx) => (
+              <button
+                key={`chart-${idx}`}
+                onClick={() => handleSuggestionClick(suggestion)}
+                className="text-left px-3 py-2 bg-blue-50 border-2 border-black text-xs font-bold hover:bg-blue-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none transition-all"
+              >
+                {suggestion.label}
+              </button>
+            ))}
+          </div>
+          
+          <p className="text-xs text-gray-600 mt-3 italic">
+            💡 Tip: AI will automatically detect chart requests and generate interactive charts based on your workspace data
+          </p>
         </div>
       )}
 

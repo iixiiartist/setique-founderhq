@@ -54,6 +54,17 @@ export const exportToMarkdown = (editor: Editor, filename: string = 'document.md
     },
   });
 
+  turndownService.addRule('chartNode', {
+    filter: node => {
+      return node.nodeName === 'DIV' && node.getAttribute('data-type') === 'chart';
+    },
+    replacement: (content, node: any) => {
+      const title = node.getAttribute('data-chart-title') || 'Chart';
+      const chartType = node.getAttribute('data-chart-type') || 'chart';
+      return `\n\n[Chart: ${title} (${chartType})]\n\n`;
+    },
+  });
+
   const markdown = turndownService.turndown(html);
   
   // Download file
@@ -188,11 +199,26 @@ export const exportToHTML = (editor: Editor, filename: string = 'document.html')
       color: #999;
       font-size: 0.875rem;
     }
+    [data-type="chart"] {
+      margin: 24px 0;
+      padding: 16px;
+      border: 1px solid #dfe2e5;
+      border-radius: 6px;
+      background: #f9fafb;
+    }
+    [data-type="chart"] h4 {
+      margin: 0 0 12px 0;
+      font-size: 1.1em;
+      color: #333;
+    }
     @media print {
       .page-break {
         border: none;
         margin: 0;
         padding: 0;
+      }
+      [data-type="chart"] {
+        page-break-inside: avoid;
       }
     }
   </style>
