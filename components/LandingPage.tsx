@@ -60,16 +60,16 @@ export function LandingPage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center max-w-3xl mx-auto">
           <div className="inline-block mb-4 px-4 py-2 bg-yellow-300 border-2 border-black shadow-neo font-mono text-sm font-bold">
-            ⚡ LIGHTWEIGHT AI-POWERED GTM HUB
+            ⚡ FOR FOUNDERS, SALES TEAMS & CONSULTANTS
           </div>
           <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
-            <span className="text-blue-600">Everything You Need to Run GTM in One Place</span>
+            <span className="text-blue-600">Your Lightweight, AI-Powered Hub for GTM</span>
           </h1>
           <p className="text-2xl md:text-3xl font-semibold text-gray-800 mb-6">
-            CRM • AI Assistants • Collaboration • GTM Docs
+            Smart CRM • Context-Aware AI • Team Collaboration • GTM Docs
           </p>
           <p className="text-xl text-gray-700 mb-8 leading-relaxed">
-            Manage your entire go-to-market workflow with smart CRM, context-aware AI assistants, team collaboration tools, and premium documents. Purpose-built for founders, sales teams, and consultants who need a lightweight alternative to bloated enterprise platforms.
+            Stop juggling Salesforce, HubSpot, Notion, and 7 other tools. FounderHQ gives you everything you need to run go-to-market in one lightweight hub—CRM, AI assistants, docs, tasks, calendar, and analytics that actually work together.
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Link
@@ -95,29 +95,24 @@ export function LandingPage() {
       <section className="bg-gray-50 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Your Lightweight Alternative to Bloated Platforms</h2>
-            <p className="text-lg text-gray-600">Stop juggling 10 tools. Get CRM, AI, collaboration, and docs in one focused workspace</p>
+            <h2 className="text-3xl font-bold mb-4">Built for Teams That Move Fast</h2>
+            <p className="text-lg text-gray-600">No bloat. No BS. Just the GTM tools you actually need.</p>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             <UseCase
-              title="Founders"
-              description="Track investor relationships, manage product development, and monitor business metrics in one place."
+              title="Startup Founders"
+              description="Manage fundraising, customers, and product roadmap in one hub. Track investor meetings, close deals, and coordinate your team without switching between 10 tools."
               icon={<Rocket className="w-8 h-8" />}
             />
             <UseCase
-              title="Consultants"
-              description="Manage multiple client projects, organize deliverables, and keep client communications organized."
-              icon={<Briefcase className="w-8 h-8" />}
-            />
-            <UseCase
-              title="Sales Professionals"
-              description="Track your customer pipeline, manage follow-ups, and never miss a deal opportunity."
+              title="Sales Teams"
+              description="Close more deals with smart CRM and AI insights. Track every customer conversation, automate follow-ups, and get real-time coaching from your AI sales assistant."
               icon={<TrendingUp className="w-8 h-8" />}
             />
             <UseCase
-              title="Small Business Owners"
-              description="Manage day-to-day operations, track expenses, and coordinate your team's tasks."
-              icon={<Store className="w-8 h-8" />}
+              title="GTM Consultants"
+              description="Deliver faster with templates and AI. Manage multiple client projects, generate GTM strategies, and create professional deliverables in half the time."
+              icon={<Briefcase className="w-8 h-8" />}
             />
           </div>
         </div>
@@ -131,9 +126,9 @@ export function LandingPage() {
               <Sparkles className="w-4 h-4" />
               AI-POWERED INSIGHTS
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">Context-Aware AI Assistants</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">AI That Actually Knows Your Business</h2>
             <p className="text-lg text-gray-700 mb-6 leading-relaxed">
-              Every module has a dedicated AI assistant tuned to your specific business function. Each assistant has real-time access to your business profile, CRM data, tasks, documents, and calendar—providing relevant insights based on your actual workspace data. Available on Power and Team Pro plans.
+              Unlike generic ChatGPT, our AI assistants have full context on your deals, contacts, tasks, and metrics. Get actionable insights specific to your GTM motion—not generic advice. Each module has a dedicated AI trained for that function.
             </p>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 text-left">
               <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
@@ -186,15 +181,15 @@ export function LandingPage() {
       {/* Features Grid */}
       <section id="features" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 bg-white">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold mb-4">All Your GTM Tools in One Hub</h2>
-          <p className="text-xl text-gray-600">CRM, AI, collaboration, docs, tasks, calendar, and analytics—working together seamlessly</p>
+          <h2 className="text-4xl font-bold mb-4">Everything GTM Teams Need, Nothing They Don't</h2>
+          <p className="text-xl text-gray-600">Built by operators who were tired of enterprise bloatware. Zero fluff, maximum impact.</p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           <FeatureCard
             icon={<Users className="w-8 h-8" />}
             title="3-in-1 Smart CRM"
-            description="Separate pipelines for Investors, Customers, and Partners. Track contacts, meetings, deal stages, and values. Assign leads to team members and never miss a follow-up with AI-powered insights."
+            description="Fundraising pipeline. Sales pipeline. Partnership pipeline. All in one view. Track every conversation, deal stage, and follow-up. AI suggests next steps based on your actual deal flow."
           />
           <FeatureCard
             icon={<Brain className="w-8 h-8" />}
@@ -243,8 +238,8 @@ export function LandingPage() {
       <section id="pricing" className="bg-gray-50 py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Simple, Transparent Pricing</h2>
-            <p className="text-xl text-gray-600">Choose the plan that fits your stage</p>
+            <h2 className="text-4xl font-bold mb-4">Pricing That Scales With You</h2>
+            <p className="text-xl text-gray-600">From bootstrapped founder to scaling team—no enterprise sales BS</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
@@ -252,7 +247,7 @@ export function LandingPage() {
               name="Free"
               price="$0"
               period="/month"
-              description="Perfect for exploring the platform"
+              description="Try it out. No credit card. Forever free."
               features={[
                 "Task Management",
                 "Basic CRM (limited)",
@@ -269,7 +264,7 @@ export function LandingPage() {
               name="Power"
               price="$49"
               period="/month"
-              description="For serious founders building their business"
+              description="For solo founders and consultants who need AI + full CRM"
               features={[
                 "Unlimited AI requests/month",
                 "Unlimited files",
@@ -290,7 +285,7 @@ export function LandingPage() {
               name="Team Pro"
               price="$99"
               period="/month"
-              description="For teams collaborating together"
+              description="For sales teams and agencies managing multiple deals"
               additionalPricing="+ $25/user/month"
               features={[
                 "Unlimited AI requests/month per user",
