@@ -3,7 +3,6 @@ import { AnyCrmItem, Task, AppActions, CrmCollectionName, TaskCollectionName, In
 import Modal from './Modal';
 import NotesManager from './NotesManager';
 import { TASK_TAG_BG_COLORS } from '../../constants';
-import XpBadge from './XpBadge';
 import { AssignmentDropdown } from './AssignmentDropdown';
 
 interface AccountDetailViewProps {
@@ -37,7 +36,6 @@ const AccountTaskItem: React.FC<{ task: Task; onEdit: (task: Task, triggerRef: R
                     />
                     <div className="flex-grow">
                         <span className={`text-black ${task.status === 'Done' ? 'line-through' : ''}`}>{task.text}</span>
-                        <div className="mt-1"><XpBadge priority={task.priority} /></div>
                     </div>
                 </div>
                 <div className="flex gap-2 shrink-0 ml-2">

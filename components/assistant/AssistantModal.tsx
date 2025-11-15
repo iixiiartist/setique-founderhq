@@ -88,7 +88,7 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
         customers: data.customers?.length || 0,
         partners: data.partners?.length || 0,
         marketing: data.marketing?.length || 0,
-        platformTasks: data.platformTasks?.length || 0,
+        productsServicesTasks: data.productsServicesTasks?.length || 0,
         investorTasks: data.investorTasks?.length || 0,
         customerTasks: data.customerTasks?.length || 0,
         marketingTasks: data.marketingTasks?.length || 0,
@@ -245,7 +245,7 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
       {/* Backdrop - subtle for better UX, darker in fullscreen */}
       {isOpen && (
         <div
-          className={`fixed inset-0 ${isFullscreen ? 'bg-black/30' : 'bg-black/10'} backdrop-fade-enter`}
+          className={`fixed inset-0 ${isFullscreen ? 'bg-gray-200/10' : 'bg-gray-200/10'} backdrop-fade-enter`}
           style={{ zIndex: isFullscreen ? 99999 : 99997 }}
           onClick={isFullscreen ? () => setIsFullscreen(false) : onMinimize}
           aria-hidden="true"

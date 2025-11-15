@@ -5,7 +5,6 @@ import Modal from './Modal';
 import NotesManager from './NotesManager';
 import { TASK_TAG_BG_COLORS } from '../../constants';
 import MeetingsManager from './MeetingsManager';
-import XpBadge from './XpBadge';
 
 interface ContactDetailViewProps {
     contact: Contact;
@@ -38,7 +37,6 @@ const ContactTaskItem: React.FC<{ task: Task; onEdit: (task: Task, triggerRef: R
                     />
                     <div className="flex-grow">
                         <span className={`text-black ${task.status === 'Done' ? 'line-through' : ''}`}>{task.text}</span>
-                        <div className="mt-1"><XpBadge priority={task.priority} /></div>
                     </div>
                 </div>
                 <div className="flex gap-2 shrink-0 ml-2">

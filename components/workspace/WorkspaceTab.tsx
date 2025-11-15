@@ -74,7 +74,7 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId,
             {/* Overlay for mobile when sidebar is open */}
             {isSidebarOpen && (
                 <div
-                    className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+                    className="lg:hidden fixed inset-0 bg-gray-200 bg-opacity-10 z-30"
                     onClick={() => setIsSidebarOpen(false)}
                 />
             )}

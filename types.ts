@@ -21,18 +21,27 @@ export interface Meeting {
     summary: string; // Markdown
 }
 
+export interface Subtask {
+    id: string;
+    text: string;
+    completed: boolean;
+    createdAt: number;
+    completedAt?: number;
+}
+
 // TaskCollectionName is defined later in this file for AI Function Calling types
 export interface Task {
     id: string;
     text: string;
     status: TaskStatus;
     priority: Priority;
-    category: 'platformTasks' | 'investorTasks' | 'customerTasks' | 'partnerTasks' | 'marketingTasks' | 'financialTasks'; // Required category for organizing tasks
+    category: 'productsServicesTasks' | 'investorTasks' | 'customerTasks' | 'partnerTasks' | 'marketingTasks' | 'financialTasks'; // Required category for organizing tasks
     createdAt: number;
     completedAt?: number;
     dueDate?: string; // YYYY-MM-DD
     dueTime?: string; // HH:MM (24-hour format)
     notes: Note[];
+    subtasks?: Subtask[]; // Nested subtasks for sophisticated task management
     crmItemId?: string;
     contactId?: string;
     userId?: string; // User who created the task (for permission checks)
@@ -107,6 +116,159 @@ export interface Deal {
     notes: Note[];
     tags?: string[];
     customFields?: Record<string, any>;
+    
+    // NEW: Product/Service linking
+    productServiceId?: string;
+    productServiceName?: string;
+    quantity?: number;
+    unitPrice?: number;
+    discountPercent?: number;
+    discountAmount?: number;
+    taxAmount?: number;
+    totalValue?: number;
+}
+
+// ============================================================================
+// NEW: Products & Services Types
+// ============================================================================
+
+export type ProductServiceCategory = 'product' | 'service' | 'bundle';
+
+export type ProductServiceStatus = 'active' | 'inactive' | 'discontinued' | 'draft' | 'archived' | 'out_of_stock';
+
+export type ProductServiceType = 
+    | 'digital'      // Downloads, software, digital content
+    | 'physical'     // Physical goods requiring shipping
+    | 'saas'         // Software as a Service
+    | 'consulting'   // Professional services
+    | 'package'      // Service packages (bundles)
+    | 'subscription' // Recurring service/product
+    | 'booking';     // Appointments, reservations
+
+export type PricingModel = 
+    | 'flat_rate'    // One-time fixed price
+    | 'hourly'       // $/hour
+    | 'daily'        // $/day
+    | 'weekly'       // $/week
+    | 'monthly'      // $/month (subscription)
+    | 'annual'       // $/year (subscription)
+    | 'tiered'       // Volume-based pricing
+    | 'usage_based'  // Pay per use (API calls, etc.)
+    | 'custom';      // Negotiated/custom pricing
+
+export interface TieredPrice {
+    minQuantity: number;
+    maxQuantity?: number; // null = unlimited
+    price: number;
+    label?: string; // e.g., "1-10 users", "Enterprise"
+}
+
+export interface UsagePricing {
+    metric: string; // e.g., 'api_calls', 'storage_gb', 'users'
+    unitPrice: number;
+    includedUnits?: number; // Free tier
+    overagePrice?: number; // Price after free tier
+}
+
+export interface SubscriptionPlan {
+    name: string; // 'Basic', 'Pro', 'Enterprise'
+    price: number;
+    billingCycle: 'monthly' | 'annual';
+    features: string[];
+    limits?: Record<string, number>; // { users: 10, storage_gb: 100 }
+    isPopular?: boolean;
+}
+
+export interface ProductService {
+    // Core
+    id: string;
+    workspaceId: string;
+    createdBy?: string;
+    createdAt: string;
+    updatedAt: string;
+    
+    // Basic Info
+    name: string;
+    description?: string;
+    sku?: string;
+    category: ProductServiceCategory;
+    type: ProductServiceType;
+    status: ProductServiceStatus;
+    
+    // Pricing
+    pricingModel: PricingModel;
+    basePrice?: number;
+    currency: string;
+    
+    // Cost Structure
+    costOfGoods?: number;
+    costOfService?: number;
+    overheadAllocation?: number;
+    profitMarginPercent?: number;
+    
+    // Pricing Variants
+    tieredPricing?: TieredPrice[];
+    usagePricing?: UsagePricing[];
+    subscriptionPlans?: SubscriptionPlan[];
+    
+    // Inventory
+    inventoryTracked: boolean;
+    quantityOnHand?: number;
+    quantityReserved?: number;
+    quantityAvailable?: number; // Computed
+    reorderPoint?: number;
+    reorderQuantity?: number;
+    
+    // Service Capacity
+    capacityTracked: boolean;
+    capacityUnit?: 'hours' | 'days' | 'projects' | 'seats';
+    capacityTotal?: number;
+    capacityBooked?: number;
+    capacityAvailable?: number; // Computed
+    capacityPeriod?: 'weekly' | 'monthly' | 'quarterly';
+    
+    // Tax & Compliance
+    taxCode?: string;
+    tariffCode?: string;
+    isTaxable: boolean;
+    taxRate?: number;
+    
+    // Metadata
+    tags: string[];
+    documentIds?: string[];
+    imageUrl?: string;
+    externalUrl?: string;
+    
+    // Analytics
+    totalRevenue?: number;
+    totalUnitsSold?: number;
+    averageSaleValue?: number;
+    lastSoldDate?: string;
+    
+    // Custom
+    customFields?: Record<string, any>;
+}
+
+export interface ProductPriceHistory {
+    id: string;
+    productServiceId: string;
+    changedAt: string;
+    changedBy?: string;
+    oldPrice: number;
+    newPrice: number;
+    reason?: 'promotion' | 'cost_increase' | 'market_adjustment' | 'seasonal' | 'other';
+    effectiveFrom?: string;
+    effectiveTo?: string;
+}
+
+export interface ProductServiceBundle {
+    id: string;
+    bundleId: string;
+    componentId: string;
+    quantity: number;
+    discountPercent?: number;
+    isOptional: boolean;
+    displayOrder: number;
 }
 
 export interface MarketingItem {
@@ -141,6 +303,10 @@ export interface MarketingItem {
     calendarEventIds?: string[]; // Linked calendar events
     tags?: string[];
     parentCampaignId?: string; // For sub-campaigns
+    
+    // NEW: Product/Service linking
+    productServiceIds?: string[]; // Can promote multiple products
+    targetRevenue?: number;
 }
 
 export type CalendarTaskEvent = Task & {
@@ -247,6 +413,11 @@ export interface RevenueTransaction {
     currency: string;
     transactionType: 'invoice' | 'payment' | 'refund' | 'recurring';
     status: 'pending' | 'paid' | 'overdue' | 'cancelled';
+    
+    // NEW: Product/Service linking
+    productServiceId?: string;
+    quantity?: number;
+    unitPrice?: number;
     
     // Attribution
     crmItemId?: string;
@@ -541,6 +712,37 @@ export interface BusinessProfile {
     competitors?: string[];
     uniqueDifferentiators?: string;
     
+    // Phase 2.1: Business Context & Positioning
+    targetCustomerProfile?: string;
+    competitiveAdvantages?: string[];
+    keyDifferentiators?: string[];
+    marketPositioning?: string;
+    
+    // Phase 2.1: Monetization & Pricing
+    monetizationModel?: 'subscription' | 'one-time' | 'usage-based' | 'freemium' | 'enterprise' | 'marketplace' | 'advertising' | 'hybrid';
+    pricingTiers?: Array<{
+        name: string;
+        price: number;
+        features: string[];
+        billingCycle: string;
+    }>;
+    dealTypes?: string[];
+    averageDealSize?: number;
+    salesCycleDays?: number;
+    
+    // Phase 2.1: Products & Services
+    coreProducts?: Array<{
+        name: string;
+        description: string;
+        type: string;
+        status: string;
+    }>;
+    serviceOfferings?: Array<{
+        name: string;
+        description: string;
+        pricing: string;
+    }>;
+    
     // Status
     isComplete: boolean;
     completedAt?: number;
@@ -629,7 +831,7 @@ export interface LinkedDoc extends GTMDocMetadata {
 }
 
 export interface DashboardData {
-    platformTasks: Task[];
+    productsServicesTasks: Task[];
     investors: Investor[];
     investorTasks: Task[];
     customers: Customer[];
@@ -657,17 +859,22 @@ export interface DashboardData {
     
     // NEW: Deal/Opportunity tracking
     deals: Deal[];
+    
+    // NEW: Products & Services
+    productsServices: ProductService[];
+    productPriceHistory: ProductPriceHistory[];
+    productBundles: ProductServiceBundle[];
 }
 
 // Types for AI Function Calling
 export type CrmCollectionName = 'investors' | 'customers' | 'partners';
-export type TaskCollectionName = 'platformTasks' | 'investorTasks' | 'customerTasks' | 'partnerTasks' | 'marketingTasks' | 'financialTasks';
+export type TaskCollectionName = 'productsServicesTasks' | 'investorTasks' | 'customerTasks' | 'partnerTasks' | 'marketingTasks' | 'financialTasks';
 export type NoteableCollectionName = CrmCollectionName | TaskCollectionName | 'marketing' | 'contacts' | 'documents' | 'expenses';
 export type DeletableCollectionName = NoteableCollectionName | 'financials';
 
 export interface AppActions {
     createTask: (category: TaskCollectionName, text: string, priority: Priority, crmItemId?: string, contactId?: string, dueDate?: string, assignedTo?: string, dueTime?: string) => Promise<{ success: boolean; message: string; }>;
-    updateTask: (taskId: string, updates: Partial<Pick<Task, 'text' | 'status' | 'priority' | 'dueDate' | 'dueTime' | 'assignedTo' | 'category'>>) => Promise<{ success: boolean; message: string; }>;
+    updateTask: (taskId: string, updates: Partial<Pick<Task, 'text' | 'status' | 'priority' | 'dueDate' | 'dueTime' | 'assignedTo' | 'category' | 'subtasks'>>) => Promise<{ success: boolean; message: string; }>;
     deleteTask: (taskId: string) => Promise<{ success: boolean; message: string; }>;
     addNote: (collection: NoteableCollectionName, itemId: string, noteText: string, crmItemId?: string) => Promise<{ success: boolean; message: string; }>;
     updateNote: (collection: NoteableCollectionName, itemId: string, noteTimestamp: number, newText: string, crmItemId?: string) => Promise<{ success: boolean; message: string; }>;
@@ -726,4 +933,14 @@ export interface AppActions {
     createDeal: (data: Omit<Deal, 'id' | 'createdAt' | 'updatedAt' | 'notes'>) => Promise<{ success: boolean; message: string; dealId?: string; }>;
     updateDeal: (dealId: string, updates: Partial<Deal>) => Promise<{ success: boolean; message: string; }>;
     deleteDeal: (dealId: string) => Promise<{ success: boolean; message: string; }>;
+    
+    // NEW: Products & Services actions
+    createProductService: (data: Omit<ProductService, 'id' | 'createdAt' | 'updatedAt'>) => Promise<{ success: boolean; message: string; id?: string; }>;
+    updateProductService: (id: string, updates: Partial<ProductService>) => Promise<{ success: boolean; message: string; }>;
+    deleteProductService: (id: string) => Promise<{ success: boolean; message: string; }>;
+    updateProductInventory: (id: string, quantityChange: number, reason?: string) => Promise<{ success: boolean; message: string; }>;
+    reserveProductInventory: (id: string, quantity: number) => Promise<{ success: boolean; message: string; }>;
+    releaseProductInventory: (id: string, quantity: number) => Promise<{ success: boolean; message: string; }>;
+    updateServiceCapacity: (id: string, capacityChange: number, period: string) => Promise<{ success: boolean; message: string; }>;
+    calculateProductProfitability: (id: string) => Promise<{ marginPercent: number; marginAmount: number; }>;
 }

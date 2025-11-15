@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { AnyCrmItem, Task, AppActions, CrmCollectionName, TaskCollectionName, Contact, Document, BusinessProfile, WorkspaceMember, Deal } from '../types';
+import { AnyCrmItem, Task, AppActions, CrmCollectionName, TaskCollectionName, Contact, Document, BusinessProfile, WorkspaceMember, Deal, ProductService } from '../types';
 import AccountDetailView from './shared/AccountDetailView';
 import ContactDetailView from './shared/ContactDetailView';
 import TaskManagement from './shared/TaskManagement';
@@ -21,6 +21,7 @@ interface CrmTabProps {
     workspaceMembers?: WorkspaceMember[];
     userId?: string;
     deals?: Deal[];
+    productsServices?: ProductService[];
 }
 
 const CrmTab: React.FC<CrmTabProps> = React.memo(({ 
@@ -34,7 +35,8 @@ const CrmTab: React.FC<CrmTabProps> = React.memo(({
     onUpgradeNeeded,
     workspaceMembers = [],
     userId,
-    deals = []
+    deals = [],
+    productsServices = []
 }) => {
     const { workspace } = useWorkspace();
     const [selectedItem, setSelectedItem] = useState<AnyCrmItem | null>(null);
@@ -265,6 +267,7 @@ const CrmTab: React.FC<CrmTabProps> = React.memo(({
                             <DealsModule
                                 deals={deals}
                                 crmItems={crmItems}
+                                productsServices={productsServices}
                                 actions={actions}
                                 workspaceId={workspaceId || ''}
                                 userId={userId}

@@ -277,8 +277,10 @@ export default function AttributionModule({
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-semibold mb-1">UTM Source</label>
+                <label htmlFor="utm-source" className="block text-sm font-semibold mb-1">UTM Source</label>
                 <input
+                  id="utm-source"
+                  name="utm-source"
                   type="text"
                   value={formData.utmSource}
                   onChange={(e) => setFormData({ ...formData, utmSource: e.target.value })}
@@ -287,8 +289,10 @@ export default function AttributionModule({
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold mb-1">UTM Medium</label>
+                <label htmlFor="utm-medium" className="block text-sm font-semibold mb-1">UTM Medium</label>
                 <input
+                  id="utm-medium"
+                  name="utm-medium"
                   type="text"
                   value={formData.utmMedium}
                   onChange={(e) => setFormData({ ...formData, utmMedium: e.target.value })}
@@ -297,8 +301,10 @@ export default function AttributionModule({
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold mb-1">UTM Campaign</label>
+                <label htmlFor="utm-campaign" className="block text-sm font-semibold mb-1">UTM Campaign</label>
                 <input
+                  id="utm-campaign"
+                  name="utm-campaign"
                   type="text"
                   value={formData.utmCampaign}
                   onChange={(e) => setFormData({ ...formData, utmCampaign: e.target.value })}

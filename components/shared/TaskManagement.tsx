@@ -4,11 +4,11 @@ import Modal from './Modal';
 import NotesManager from './NotesManager';
 import { TaskComments } from './TaskComments';
 import { TASK_TAG_BG_COLORS } from '../../constants';
-import XpBadge from './XpBadge';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { DocLibraryPicker } from '../workspace/DocLibraryPicker';
 import { LinkedDocsDisplay } from '../workspace/LinkedDocsDisplay';
+import { SubtaskManager } from './SubtaskManager';
 
 interface TaskItemProps {
     task: Task;
@@ -54,7 +54,11 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, actions, onEdit, taskCollecti
                         <div className="flex-grow">
                             <span className={`text-black ${task.status === 'Done' ? 'line-through' : ''}`}>{task.text}</span>
                             <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                <XpBadge priority={task.priority} />
+                                {task.subtasks && task.subtasks.length > 0 && (
+                                    <span className="font-mono text-xs bg-purple-50 text-purple-700 px-2 py-0.5 border border-purple-300 rounded">
+                                        📋 {task.subtasks.filter(st => st.completed).length}/{task.subtasks.length}
+                                    </span>
+                                )}
                                 {task.assignedToName && (
                                     <span className="font-mono text-xs bg-blue-50 text-blue-700 px-2 py-0.5 border border-blue-300 rounded">
                                         👤 {task.assignedToName}
@@ -130,7 +134,7 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
     const [showDocPicker, setShowDocPicker] = useState(false);
     const [linkedDocsKey, setLinkedDocsKey] = useState(0); // Force re-render of LinkedDocsDisplay
     
-    const { workspaceMembers, workspace } = useWorkspace();
+    const { workspaceMembers, workspace, canEditTask } = useWorkspace();
     const { user } = useAuth();
 
     useEffect(() => {
@@ -142,13 +146,21 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
         }
     }, [editingTask]);
 
-    // Sync editingTask with external changes
+    // Sync editingTask with external changes (preserve local subtasks edits)
     useEffect(() => {
         if (editingTask) {
             const updatedTask = tasks.find(t => t.id === editingTask.id);
-            setEditingTask(updatedTask || null);
+            if (updatedTask) {
+                // Preserve subtasks that may have been edited locally
+                setEditingTask({
+                    ...updatedTask,
+                    subtasks: editingTask.subtasks // Keep local subtask changes
+                });
+            } else {
+                setEditingTask(null);
+            }
         }
-    }, [tasks, editingTask]);
+    }, [tasks]);
 
 
     const handleAddTask = (e: React.FormEvent) => {
@@ -164,11 +176,13 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
 
     const handleUpdateTask = () => {
         if (editingTask && editText.trim() !== '') {
+            console.log('[TaskManagement] Saving task with subtasks:', editingTask.subtasks);
             actions.updateTask(editingTask.id, { 
                 text: editText, 
                 priority: editPriority, 
                 dueDate: editDueDate,
-                assignedTo: editAssignedTo || undefined
+                assignedTo: editAssignedTo || undefined,
+                subtasks: editingTask.subtasks || []
             });
         }
         setEditingTask(null);
@@ -409,6 +423,17 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
                                 />
                             </div>
                         )}
+
+                        {/* Subtasks Section */}
+                        <div className="border-t-2 border-gray-200 pt-4 mt-4">
+                            <SubtaskManager
+                                subtasks={editingTask.subtasks || []}
+                                onSubtasksChange={(subtasks) => {
+                                    setEditingTask({ ...editingTask, subtasks });
+                                }}
+                                disabled={!canEditTask(editingTask.userId, editingTask.assignedTo)}
+                            />
+                        </div>
 
                         <NotesManager 
                             notes={editingTask.notes} 

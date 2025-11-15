@@ -2,7 +2,6 @@ import React from 'react';
 import { Task, AppActions, Priority } from '../../types';
 import Modal from './Modal';
 import { TASK_TAG_BG_COLORS } from '../../constants';
-import XpBadge from './XpBadge';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 
 interface TaskFocusItemProps {
@@ -31,9 +30,6 @@ const TaskFocusItem: React.FC<TaskFocusItemProps> = ({ task, onUpdateTask, canEd
                         <span className="font-mono text-xs font-semibold text-blue-600">{task.tag}</span>
                         <span className={`text-black truncate ${!canEdit ? 'opacity-50' : ''}`}>{task.text}</span>
                     </label>
-                </div>
-                <div className="shrink-0 ml-2">
-                    <XpBadge priority={task.priority} />
                 </div>
             </div>
         </li>

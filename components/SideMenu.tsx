@@ -50,7 +50,7 @@ const SideMenu: React.FC<SideMenuProps> = ({
         <>
             {/* Backdrop overlay - only shows when menu is open */}
             <div 
-                className={`fixed inset-0 bg-black z-40 transition-opacity ${isOpen ? 'opacity-30 visible' : 'opacity-0 invisible pointer-events-none'}`}
+                className={`fixed inset-0 bg-gray-200 z-40 transition-opacity ${isOpen ? 'opacity-10 visible' : 'opacity-0 invisible pointer-events-none'}`}
                 onClick={onClose}
                 aria-hidden="true"
             />

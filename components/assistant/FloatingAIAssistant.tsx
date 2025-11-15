@@ -71,12 +71,12 @@ export const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({
         case Tab.Financials:
           needsData = data.financials.length === 0 && data.expenses.length === 0;
           break;
-        case Tab.Platform:
-          needsData = data.platformTasks.length === 0;
+        case Tab.ProductsServices:
+          needsData = data.productsServicesTasks.length === 0;
           break;
         case Tab.Calendar:
           // Calendar needs multiple data sources
-          needsData = data.platformTasks.length === 0;
+          needsData = data.productsServicesTasks.length === 0;
           break;
         default:
           needsData = false;
@@ -152,7 +152,7 @@ export const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({
       customers: data.customers?.length || 0,
       partners: data.partners?.length || 0,
       marketing: data.marketing?.length || 0,
-      platformTasks: data.platformTasks?.length || 0,
+      productsServicesTasks: data.productsServicesTasks?.length || 0,
       investorTasks: data.investorTasks?.length || 0,
       customerTasks: data.customerTasks?.length || 0,
       financials: data.financials?.length || 0,

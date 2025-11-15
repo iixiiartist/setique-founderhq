@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { Deal, AnyCrmItem, Contact, AppActions, Priority } from '../../types';
-import { DollarSign, Plus, TrendingUp, Calendar, User, Target, Filter, X, Edit, Trash2 } from 'lucide-react';
+import { Deal, AnyCrmItem, Contact, AppActions, Priority, ProductService } from '../../types';
+import { DollarSign, Plus, TrendingUp, Calendar, User, Target, Filter, X, Edit, Trash2, Package } from 'lucide-react';
 
 interface DealsModuleProps {
   deals: Deal[];
   crmItems: AnyCrmItem[];
+  productsServices: ProductService[];
   actions: AppActions;
   workspaceId: string;
   userId?: string;
@@ -44,6 +45,7 @@ const formatDate = (dateString?: string) => {
 export default function DealsModule({
   deals,
   crmItems,
+  productsServices,
   actions,
   workspaceId,
   userId,
@@ -58,6 +60,10 @@ export default function DealsModule({
     title: '',
     crmItemId: '',
     contactId: '',
+    productServiceId: '',
+    quantity: '1',
+    unitPrice: '',
+    discountPercent: '0',
     value: '',
     currency: 'USD',
     stage: 'lead' as Deal['stage'],
@@ -75,6 +81,39 @@ export default function DealsModule({
     const crmItem = crmItems.find(item => item.id === formData.crmItemId);
     return crmItem?.contacts || [];
   }, [formData.crmItemId, crmItems]);
+
+  // Auto-calculate deal value when product/quantity/discount changes
+  const selectedProduct = useMemo(() => {
+    if (!formData.productServiceId) return null;
+    return productsServices.find(p => p.id === formData.productServiceId);
+  }, [formData.productServiceId, productsServices]);
+
+  const calculatedValue = useMemo(() => {
+    const quantity = parseFloat(formData.quantity) || 1;
+    const unitPrice = parseFloat(formData.unitPrice) || 0;
+    const discountPercent = parseFloat(formData.discountPercent) || 0;
+    
+    const subtotal = quantity * unitPrice;
+    const discountAmount = subtotal * (discountPercent / 100);
+    return subtotal - discountAmount;
+  }, [formData.quantity, formData.unitPrice, formData.discountPercent]);
+
+  // Update unit price when product is selected
+  const handleProductChange = (productId: string) => {
+    const product = productsServices.find(p => p.id === productId);
+    if (product) {
+      setFormData(prev => ({
+        ...prev,
+        productServiceId: productId,
+        unitPrice: product.basePrice.toString(),
+        currency: product.currency,
+        title: prev.title || product.name,
+        value: (parseFloat(prev.quantity || '1') * product.basePrice).toString(),
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, productServiceId: '', unitPrice: '' }));
+    }
+  };
 
   // Calculate metrics
   const metrics = useMemo(() => {
@@ -130,6 +169,13 @@ export default function DealsModule({
 
     const assignedUser = workspaceMembers.find(m => m.id === formData.assignedTo);
     
+    const quantity = parseFloat(formData.quantity) || 1;
+    const unitPrice = parseFloat(formData.unitPrice) || 0;
+    const discountPercent = parseFloat(formData.discountPercent) || 0;
+    const subtotal = quantity * unitPrice;
+    const discountAmount = subtotal * (discountPercent / 100);
+    const totalValue = subtotal - discountAmount;
+
     let result;
     if (editingDeal) {
       // Update existing deal
@@ -137,7 +183,14 @@ export default function DealsModule({
         title: formData.title,
         crmItemId: formData.crmItemId || undefined,
         contactId: formData.contactId || undefined,
-        value: parseFloat(formData.value),
+        productServiceId: formData.productServiceId || undefined,
+        productServiceName: selectedProduct?.name || undefined,
+        quantity: formData.productServiceId ? quantity : undefined,
+        unitPrice: formData.productServiceId ? unitPrice : undefined,
+        discountPercent: formData.productServiceId ? discountPercent : undefined,
+        discountAmount: formData.productServiceId ? discountAmount : undefined,
+        totalValue: formData.productServiceId ? totalValue : undefined,
+        value: parseFloat(formData.value) || totalValue,
         currency: formData.currency,
         stage: formData.stage,
         probability: parseInt(formData.probability),
@@ -155,7 +208,14 @@ export default function DealsModule({
         title: formData.title,
         crmItemId: formData.crmItemId || undefined,
         contactId: formData.contactId || undefined,
-        value: parseFloat(formData.value),
+        productServiceId: formData.productServiceId || undefined,
+        productServiceName: selectedProduct?.name || undefined,
+        quantity: formData.productServiceId ? quantity : undefined,
+        unitPrice: formData.productServiceId ? unitPrice : undefined,
+        discountPercent: formData.productServiceId ? discountPercent : undefined,
+        discountAmount: formData.productServiceId ? discountAmount : undefined,
+        totalValue: formData.productServiceId ? totalValue : undefined,
+        value: parseFloat(formData.value) || totalValue,
         currency: formData.currency,
         stage: formData.stage,
         probability: parseInt(formData.probability),
@@ -175,6 +235,10 @@ export default function DealsModule({
         title: '',
         crmItemId: '',
         contactId: '',
+        productServiceId: '',
+        quantity: '1',
+        unitPrice: '',
+        discountPercent: '0',
         value: '',
         currency: 'USD',
         stage: 'lead',
@@ -196,6 +260,10 @@ export default function DealsModule({
       title: deal.title,
       crmItemId: deal.crmItemId || '',
       contactId: deal.contactId || '',
+      productServiceId: deal.productServiceId || '',
+      quantity: deal.quantity?.toString() || '1',
+      unitPrice: deal.unitPrice?.toString() || '',
+      discountPercent: deal.discountPercent?.toString() || '0',
       value: deal.value.toString(),
       currency: deal.currency,
       stage: deal.stage,
@@ -405,6 +473,81 @@ export default function DealsModule({
                   ))}
                 </select>
               </div>
+            </div>
+
+            {/* Product/Service Selection */}
+            <div className="p-4 bg-blue-50 border-2 border-blue-400">
+              <div className="flex items-center gap-2 mb-3">
+                <Package className="w-5 h-5 text-blue-600" />
+                <h3 className="font-bold text-blue-900">Product/Service (Optional)</h3>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-semibold mb-1">Select Product/Service</label>
+                  <select
+                    value={formData.productServiceId}
+                    onChange={(e) => handleProductChange(e.target.value)}
+                    className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="">No product/service</option>
+                    {productsServices.filter(p => p.status === 'active').map(product => (
+                      <option key={product.id} value={product.id}>
+                        {product.name} - {new Intl.NumberFormat('en-US', { style: 'currency', currency: product.currency }).format(product.basePrice)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {formData.productServiceId && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-semibold mb-1">Quantity</label>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={formData.quantity}
+                        onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                        className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold mb-1">Unit Price</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={formData.unitPrice}
+                        onChange={(e) => setFormData({ ...formData, unitPrice: e.target.value })}
+                        className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold mb-1">Discount %</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={formData.discountPercent}
+                        onChange={(e) => setFormData({ ...formData, discountPercent: e.target.value })}
+                        className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold mb-1">Calculated Total</label>
+                      <div className="w-full p-2 border-2 border-green-500 bg-green-50 font-bold text-green-800">
+                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: formData.currency }).format(calculatedValue)}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+              <p className="text-xs text-gray-600">Select a product/service to auto-fill pricing, or leave blank for custom deal value</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

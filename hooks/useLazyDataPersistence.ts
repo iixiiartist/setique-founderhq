@@ -69,7 +69,7 @@ export const useLazyDataPersistence = () => {
 
     if (!user || !workspace?.id) {
       return {
-        platformTasks: [],
+        productsServicesTasks: [],
         investorTasks: [],
         customerTasks: [],
         partnerTasks: [],
@@ -95,7 +95,7 @@ export const useLazyDataPersistence = () => {
       });
       
       const result = {
-        platformTasks: tasks?.filter(t => t.category === 'platformTasks') || [],
+        productsServicesTasks: tasks?.filter(t => t.category === 'productsServicesTasks') || [],
         investorTasks: tasks?.filter(t => t.category === 'investorTasks') || [],
         customerTasks: tasks?.filter(t => t.category === 'customerTasks') || [],
         partnerTasks: tasks?.filter(t => t.category === 'partnerTasks') || [],
@@ -104,7 +104,7 @@ export const useLazyDataPersistence = () => {
       }
       
       console.log('[useLazyDataPersistence] Filtered results:', {
-        platformTasks: result.platformTasks.length,
+        productsServicesTasks: result.productsServicesTasks.length,
         investorTasks: result.investorTasks.length,
         customerTasks: result.customerTasks.length,
         partnerTasks: result.partnerTasks.length,
@@ -122,7 +122,7 @@ export const useLazyDataPersistence = () => {
       console.error('Error loading tasks:', err)
       setError(err as Error)
       return {
-        platformTasks: [],
+        productsServicesTasks: [],
         investorTasks: [],
         customerTasks: [],
         partnerTasks: [],
@@ -575,13 +575,126 @@ export const useLazyDataPersistence = () => {
 
       return dataToCache
     } catch (err) {
-      logger.error('[useLazyDataPersistence] Error loading deals:', err)
-      setError(err instanceof Error ? err.message : 'Failed to load deals')
+      console.error('[useLazyDataPersistence] Error loading deals:', err)
+      setError(err as Error)
       setDataCache(prev => ({
         ...prev,
         [cacheKey]: { ...prev[cacheKey], isLoading: false }
       }))
       return []
+    }
+  }, [user, workspace?.id, dataCache])
+
+  /**
+   * Load products and services
+   * @param options.force - If true, bypasses cache and fetches fresh data from server
+   * @returns Object containing productsServices and productPriceHistory arrays
+   */
+  const loadProductsServices = useCallback(async (options: LoadOptions = {}) => {
+    const cacheKey = 'productsServices'
+    const cached = dataCache[cacheKey]
+    
+    // Return cached data if still fresh (unless force reload)
+    if (!options.force && cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      return cached.data
+    }
+
+    if (!user || !workspace?.id) {
+      return {
+        productsServices: [],
+        productPriceHistory: [],
+        productBundles: []
+      }
+    }
+
+    try {
+      setDataCache(prev => ({
+        ...prev,
+        [cacheKey]: { ...prev[cacheKey], isLoading: true }
+      }))
+
+      // Load products/services
+      const productsResult = await DatabaseService.getProductsServices(workspace.id)
+      const products = productsResult.data || []
+
+      // Transform database format to frontend format
+      const transformedProducts = products.map(p => ({
+        id: p.id,
+        workspaceId: p.workspace_id,
+        name: p.name,
+        sku: p.sku,
+        description: p.description || undefined,
+        category: p.category,
+        type: p.type,
+        status: p.status,
+        basePrice: parseFloat(p.base_price.toString()),
+        currency: p.currency,
+        pricingModel: p.pricing_model,
+        costOfGoods: p.cost_of_goods ? parseFloat(p.cost_of_goods.toString()) : undefined,
+        costOfService: p.cost_of_service ? parseFloat(p.cost_of_service.toString()) : undefined,
+        isTaxable: p.is_taxable || false,
+        taxRate: p.tax_rate || undefined,
+        inventoryTracking: p.inventory_tracking || false,
+        quantityOnHand: p.quantity_on_hand || undefined,
+        quantityReserved: p.quantity_reserved || undefined,
+        quantityAvailable: p.quantity_available || undefined,
+        reorderPoint: p.reorder_point || undefined,
+        reorderQuantity: p.reorder_quantity || undefined,
+        capacityTracking: p.capacity_tracking || false,
+        capacityTotal: p.capacity_total || undefined,
+        capacityBooked: p.capacity_booked || undefined,
+        capacityAvailable: p.capacity_available || undefined,
+        capacityUnit: p.capacity_unit || undefined,
+        capacityPeriod: p.capacity_period || undefined,
+        imageUrl: p.image_url || undefined,
+        tags: p.tags || [],
+        tieredPricing: p.tiered_pricing || [],
+        usagePricing: p.usage_pricing || [],
+        subscriptionPlans: p.subscription_plans || [],
+        totalRevenue: p.total_revenue ? parseFloat(p.total_revenue.toString()) : 0,
+        unitsSold: p.units_sold || 0,
+        createdAt: new Date(p.created_at).getTime(),
+        updatedAt: new Date(p.updated_at).getTime(),
+      }))
+
+      // Load price history
+      const priceHistoryResult = await DatabaseService.getProductPriceHistory(workspace.id)
+      const priceHistory = priceHistoryResult.data || []
+
+      const transformedPriceHistory = priceHistory.map(ph => ({
+        id: ph.id,
+        productServiceId: ph.product_service_id,
+        oldPrice: parseFloat(ph.old_price.toString()),
+        newPrice: parseFloat(ph.new_price.toString()),
+        changedBy: ph.changed_by,
+        changedAt: new Date(ph.changed_at).getTime(),
+        reason: ph.reason || undefined,
+      }))
+
+      const dataToCache = {
+        productsServices: transformedProducts,
+        productPriceHistory: transformedPriceHistory,
+        productBundles: [] // TODO: Load bundles when needed
+      }
+
+      setDataCache(prev => ({
+        ...prev,
+        [cacheKey]: { data: dataToCache, timestamp: Date.now(), isLoading: false }
+      }))
+
+      return dataToCache
+    } catch (err) {
+      console.error('[useLazyDataPersistence] Error loading products/services:', err)
+      setError(err as Error)
+      setDataCache(prev => ({
+        ...prev,
+        [cacheKey]: { ...prev[cacheKey], isLoading: false }
+      }))
+      return {
+        productsServices: [],
+        productPriceHistory: [],
+        productBundles: []
+      }
     }
   }, [user, workspace?.id, dataCache])
 
@@ -594,6 +707,7 @@ export const useLazyDataPersistence = () => {
     loadDocuments,
     loadDocumentsMetadata,
     loadDeals,
+    loadProductsServices,
     invalidateCache,
     invalidateAllCache,
     isLoading,

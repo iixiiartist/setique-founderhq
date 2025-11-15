@@ -104,7 +104,7 @@ export const useKeyboardShortcuts = (config: KeyboardShortcutsConfig) => {
     // 1-9: Switch tabs (only when not in input)
     const tabShortcuts: Record<string, TabType> = {
       '1': Tab.Dashboard,
-      '2': Tab.Platform,
+      '2': Tab.ProductsServices,
       '3': Tab.Investors,
       '4': Tab.Marketing,
       '5': Tab.Financials,

@@ -120,7 +120,7 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
         }
     }, [formData]);
 
-    const totalSteps = 4;
+    const totalSteps = 7;
 
     const updateField = <K extends keyof BusinessProfile>(key: K, value: BusinessProfile[K] | undefined) => {
         setFormData(prev => ({ ...prev, [key]: value }));
@@ -179,10 +179,12 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
             </div>
 
             <div>
-                <label className="block text-sm font-bold font-mono mb-2">
+                <label htmlFor="company-name" className="block text-sm font-bold font-mono mb-2">
                     Company Name *
                 </label>
                 <input
+                    id="company-name"
+                    name="company-name"
                     type="text"
                     value={formData.companyName || ''}
                     onChange={(e) => updateField('companyName', e.target.value)}
@@ -445,6 +447,195 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
         </div>
     );
 
+    const renderStep5 = () => (
+        <div className="space-y-6">
+            <div>
+                <h2 className="text-2xl font-bold font-mono mb-2">Market Positioning (Optional)</h2>
+                <p className="text-gray-600 font-mono">Define your target market and competitive advantages.</p>
+            </div>
+
+            <div>
+                <label className="block text-sm font-bold font-mono mb-2">
+                    Target Customer Profile
+                </label>
+                <textarea
+                    value={formData.targetCustomerProfile || ''}
+                    onChange={(e) => updateField('targetCustomerProfile', e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600 h-24"
+                    placeholder="Describe your ideal customer (demographics, pain points, behaviors...)"
+                />
+            </div>
+
+            <div>
+                <label className="block text-sm font-bold font-mono mb-2">
+                    Market Positioning
+                </label>
+                <textarea
+                    value={formData.marketPositioning || ''}
+                    onChange={(e) => updateField('marketPositioning', e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600 h-20"
+                    placeholder="How do you position yourself in the market?"
+                />
+            </div>
+
+            <div>
+                <label className="block text-sm font-bold font-mono mb-2">
+                    Competitive Advantages (comma-separated)
+                </label>
+                <input
+                    type="text"
+                    value={formData.competitiveAdvantages?.join(', ') || ''}
+                    onChange={(e) => updateField('competitiveAdvantages', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    placeholder="Better pricing, faster delivery, superior quality..."
+                />
+            </div>
+
+            <div>
+                <label className="block text-sm font-bold font-mono mb-2">
+                    Key Differentiators (comma-separated)
+                </label>
+                <input
+                    type="text"
+                    value={formData.keyDifferentiators?.join(', ') || ''}
+                    onChange={(e) => updateField('keyDifferentiators', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    placeholder="Unique features, proprietary tech, exclusive partnerships..."
+                />
+            </div>
+        </div>
+    );
+
+    const renderStep6 = () => (
+        <div className="space-y-6">
+            <div>
+                <h2 className="text-2xl font-bold font-mono mb-2">Monetization & Pricing (Optional)</h2>
+                <p className="text-gray-600 font-mono">How do you make money?</p>
+            </div>
+
+            <div>
+                <label className="block text-sm font-bold font-mono mb-2">
+                    Monetization Model
+                </label>
+                <select
+                    value={formData.monetizationModel || ''}
+                    onChange={(e) => updateField('monetizationModel', e.target.value as any || undefined)}
+                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600"
+                >
+                    <option value="">Select a model...</option>
+                    <option value="subscription">Subscription (Recurring)</option>
+                    <option value="one-time">One-time Purchase</option>
+                    <option value="usage-based">Usage-based</option>
+                    <option value="freemium">Freemium</option>
+                    <option value="enterprise">Enterprise Sales</option>
+                    <option value="marketplace">Marketplace (Commission)</option>
+                    <option value="advertising">Advertising</option>
+                    <option value="hybrid">Hybrid Model</option>
+                </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-bold font-mono mb-2">
+                        Average Deal Size ($)
+                    </label>
+                    <input
+                        type="number"
+                        value={formData.averageDealSize || ''}
+                        onChange={(e) => updateField('averageDealSize', e.target.value ? Number(e.target.value) : undefined)}
+                        className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        placeholder="0"
+                        min="0"
+                    />
+                </div>
+
+                <div>
+                    <label className="block text-sm font-bold font-mono mb-2">
+                        Sales Cycle (days)
+                    </label>
+                    <input
+                        type="number"
+                        value={formData.salesCycleDays || ''}
+                        onChange={(e) => updateField('salesCycleDays', e.target.value ? Number(e.target.value) : undefined)}
+                        className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        placeholder="30"
+                        min="0"
+                    />
+                </div>
+            </div>
+
+            <div>
+                <label className="block text-sm font-bold font-mono mb-2">
+                    Deal Types (comma-separated)
+                </label>
+                <input
+                    type="text"
+                    value={formData.dealTypes?.join(', ') || 'new_business, expansion, renewal'}
+                    onChange={(e) => updateField('dealTypes', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    placeholder="new_business, expansion, renewal"
+                />
+            </div>
+
+            <div className="bg-yellow-50 border-2 border-black p-4">
+                <p className="text-sm font-mono">
+                    <span className="font-bold">💰 Note:</span> Pricing tiers can be managed later in Settings. This helps the AI understand your revenue model.
+                </p>
+            </div>
+        </div>
+    );
+
+    const renderStep7 = () => (
+        <div className="space-y-6">
+            <div>
+                <h2 className="text-2xl font-bold font-mono mb-2">Products & Tech Stack (Optional)</h2>
+                <p className="text-gray-600 font-mono">What do you build with?</p>
+            </div>
+
+            <div>
+                <label className="block text-sm font-bold font-mono mb-2">
+                    Tech Stack (comma-separated)
+                </label>
+                <input
+                    type="text"
+                    value={formData.techStack?.join(', ') || ''}
+                    onChange={(e) => updateField('techStack', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    placeholder="React, Node.js, PostgreSQL, AWS..."
+                />
+            </div>
+
+            <div>
+                <label className="block text-sm font-bold font-mono mb-2">
+                    Service Offerings (comma-separated)
+                </label>
+                <textarea
+                    value={formData.serviceOfferings?.map(s => `${s.name}: ${s.description}`).join(', ') || ''}
+                    onChange={(e) => {
+                        const services = e.target.value.split(',').map(s => {
+                            const parts = s.trim().split(':');
+                            return {
+                                name: parts[0]?.trim() || '',
+                                description: parts[1]?.trim() || '',
+                                pricing: ''
+                            };
+                        }).filter(s => s.name);
+                        updateField('serviceOfferings', services.length > 0 ? services : undefined);
+                    }}
+                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600 h-24"
+                    placeholder="Consulting: Strategy sessions, Development: Custom apps, Design: Brand identity..."
+                />
+                <p className="text-xs text-gray-500 mt-1 font-mono">Format: Service Name: Description, ...</p>
+            </div>
+
+            <div className="bg-green-50 border-2 border-black p-4">
+                <p className="text-sm font-mono">
+                    <span className="font-bold">🎉 Almost done!</span> This enhanced profile will help the AI provide highly personalized insights and recommendations.
+                </p>
+            </div>
+        </div>
+    );
+
     const canProceed = () => {
         if (step === 1) {
             return !!formData.companyName?.trim();
@@ -455,7 +646,7 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
     return (
         <div 
             className="fixed inset-0 flex items-center justify-center z-[100] p-4"
-            style={{ backgroundColor: 'rgba(0, 0, 0, 0.15)' }}
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
             onClick={(e) => {
                 // Prevent closing when clicking the backdrop
                 e.stopPropagation();
@@ -496,6 +687,9 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
                     {step === 2 && renderStep2()}
                     {step === 3 && renderStep3()}
                     {step === 4 && renderStep4()}
+                    {step === 5 && renderStep5()}
+                    {step === 6 && renderStep6()}
+                    {step === 7 && renderStep7()}
                 </div>
 
                 {/* Footer */}

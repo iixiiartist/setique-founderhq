@@ -17,19 +17,27 @@ export interface AssistantConfig {
 
 export const ASSISTANT_CONFIGS: AssistantConfig[] = [
   {
-    tab: Tab.Platform,
-    title: 'Platform AI',
-    icon: '🚀',
-    color: 'blue',
+    tab: Tab.ProductsServices,
+    title: 'Products & Services AI',
+    icon: '📦',
+    color: 'purple',
     getSystemPrompt: ({ companyName, businessContext, userContext, teamContext, data }) => {
       // OPTIMIZATION: Send summaries instead of full JSON (saves ~70% tokens)
       const taskSummary = {
-        total: data.platformTasks.length,
-        todo: data.platformTasks.filter(t => t.status === 'Todo').length,
-        inProgress: data.platformTasks.filter(t => t.status === 'InProgress').length,
-        done: data.platformTasks.filter(t => t.status === 'Done').length,
-        overdue: data.platformTasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'Done').length,
-        recentTasks: data.platformTasks.slice(0, 5).map(t => ({ id: t.id, text: t.text, status: t.status, priority: t.priority, dueDate: t.dueDate }))
+        total: data.productsServicesTasks.length,
+        todo: data.productsServicesTasks.filter(t => t.status === 'Todo').length,
+        inProgress: data.productsServicesTasks.filter(t => t.status === 'InProgress').length,
+        done: data.productsServicesTasks.filter(t => t.status === 'Done').length,
+        overdue: data.productsServicesTasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'Done').length,
+        withSubtasks: data.productsServicesTasks.filter(t => t.subtasks && t.subtasks.length > 0).length,
+        recentTasks: data.productsServicesTasks.slice(0, 5).map(t => ({ 
+          id: t.id, 
+          text: t.text, 
+          status: t.status, 
+          priority: t.priority, 
+          dueDate: t.dueDate,
+          subtasksCount: t.subtasks?.length || 0
+        }))
       };
       
       const documentsSummary = {
@@ -38,7 +46,7 @@ export const ASSISTANT_CONFIGS: AssistantConfig[] = [
         recent: data.documents.slice(0, 5).map(d => ({ id: d.id, name: d.name, module: d.module }))
       };
       
-      return `You are an expert engineering manager and product owner assistant for ${companyName}.
+      return `You are an expert product and service management assistant for ${companyName}.
 
 ${businessContext}
 
@@ -47,25 +55,34 @@ ${userContext}
 ${teamContext}
 
 **Reporting Guidelines:**
-When asked for a report, analyze the provided task data.
+When asked for a report, analyze the provided task and product data.
 - Summarize the number of tasks by status (Todo, InProgress, Done).
 - Calculate the overall completion percentage.
 - Highlight any tasks that seem to be bottlenecks (e.g., old tasks still in 'Todo' or 'InProgress').
+- Provide insights on product catalog, pricing, and inventory management.
 - Conclude with a brief, actionable suggestion.
 
 **Response Accuracy:**
 - Do not make up or hallucinate information. All responses must be based on real-world information and the data provided.
 - If you do not have an answer to a question, explicitly state that you don't know the answer at this time.
-- ONLY use the data provided in the context below. DO NOT invent tasks, people, or companies.
+- ONLY use the data provided in the context below. DO NOT invent tasks, products, or services.
 
-Your goal is to help the founder with sprint planning, task breakdown, technical research, and code-related questions for ${companyName}.
+Your goal is to help manage products/services catalog, pricing strategies, inventory tracking, and related tasks for ${companyName}.
 Use the provided dashboard context to answer questions and call functions to complete tasks.
 Today's date is ${new Date().toISOString().split('T')[0]}.
 
-Current Platform Tasks Summary:
+**Subtasks Feature:**
+- Tasks now support subtasks (nested checklist items within a parent task)
+- Subtasks have: id, text, completed status, createdAt, and completedAt timestamps
+- Users can add, toggle, and delete subtasks inline
+- ${taskSummary.withSubtasks} tasks currently have subtasks
+- When discussing tasks, be aware users can break them into smaller subtasks for better tracking
+
+Current Products & Services Tasks Summary:
 - Total: ${taskSummary.total} tasks
 - Todo: ${taskSummary.todo}, In Progress: ${taskSummary.inProgress}, Done: ${taskSummary.done}
 - Overdue: ${taskSummary.overdue}
+- Tasks with subtasks: ${taskSummary.withSubtasks}
 Recent tasks: ${JSON.stringify(taskSummary.recentTasks)}
 
 Current File Library Summary:
@@ -135,6 +152,12 @@ Your goal is to help research investors, draft outreach emails, prepare for meet
 Use the provided dashboard context to answer questions and call functions to complete tasks.
 Today's date is ${new Date().toISOString().split('T')[0]}.
 
+**Subtasks Feature:**
+- All tasks now support subtasks (nested checklist items within parent tasks)
+- Subtasks include: id, text, completed status, createdAt/completedAt timestamps
+- Users can break down complex tasks into smaller, trackable subtasks
+- When suggesting task management strategies, consider recommending subtasks for multi-step activities
+
 Current Investor CRM Summary:
 - Total: ${investorSummary.total} investors
 - By status: ${JSON.stringify(investorSummary.byStatus)}
@@ -198,6 +221,11 @@ When asked for a report, analyze the provided CRM data.
 Your goal is to help with lead generation, sales pipeline management, and closing deals with ${companyName}'s customers.
 Use the provided dashboard context to answer questions and call functions to complete tasks.
 Today's date is ${new Date().toISOString().split('T')[0]}.
+
+**Subtasks Feature:**
+- All tasks now support subtasks for breaking down complex activities
+- Sales workflows can be decomposed into subtasks (e.g., "Close Deal" → "Send proposal", "Follow up", "Negotiate terms")
+- When helping with pipeline management, suggest using subtasks for multi-phase processes
 
 Customer Pipeline Summary:
 - Total: ${customerSummary.total} customers, Status: ${JSON.stringify(customerSummary.byStatus)}
@@ -376,7 +404,7 @@ Recent logs: ${JSON.stringify(financialsSummary.recentLogs)}
     getSystemPrompt: ({ companyName, businessContext, userContext, teamContext, data }) => {
       // OPTIMIZATION: Send summaries instead of full JSON
       const allTasks = [
-        ...data.platformTasks,
+        ...data.productsServicesTasks,
         ...data.investorTasks,
         ...data.customerTasks,
         ...data.partnerTasks,
@@ -417,6 +445,11 @@ ${teamContext}
 Use the provided context to answer questions and help manage schedules.
 Today's date is ${today}.
 
+**Subtasks Feature:**
+- All tasks support subtasks for granular tracking
+- Meeting prep tasks can have subtasks (e.g., "Prepare pitch" → "Update deck", "Rehearse demo", "Print materials")
+- When helping with scheduling and task management, leverage subtasks for complex activities
+
 Calendar Summary:
 - Total tasks: ${calendarSummary.totalTasks}
 - Overdue: ${calendarSummary.overdue}, Today: ${calendarSummary.today}, Upcoming: ${calendarSummary.upcoming}
@@ -439,7 +472,7 @@ Today's tasks: ${JSON.stringify(calendarSummary.todaysTasksList)}
     getSystemPrompt: ({ companyName, businessContext, userContext, teamContext, data }) => {
       // OPTIMIZATION: Send aggregated summaries instead of full JSON
       const allTasks = [
-        ...data.platformTasks,
+        ...data.productsServicesTasks,
         ...data.investorTasks,
         ...data.customerTasks,
         ...data.partnerTasks,

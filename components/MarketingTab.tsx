@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { MarketingItem, AppActions, Task, Priority, Document, BusinessProfile, WorkspaceMember, DashboardData } from '../types';
+import { MarketingItem, AppActions, Task, Priority, Document, BusinessProfile, WorkspaceMember, DashboardData, ProductService } from '../types';
 import Modal from './shared/Modal';
 import NotesManager from './shared/NotesManager';
 import { Tab } from '../constants';
@@ -64,14 +64,15 @@ const MarketingTab: React.FC<{
     onUpgradeNeeded?: () => void;
     workspaceMembers?: WorkspaceMember[];
     data?: DashboardData;
-}> = React.memo(({ items, tasks, actions, documents, businessProfile, workspaceId, onUpgradeNeeded, workspaceMembers = [], data }) => {
+    productsServices?: ProductService[];
+}> = React.memo(({ items, tasks, actions, documents, businessProfile, workspaceId, onUpgradeNeeded, workspaceMembers = [], data, productsServices = [] }) => {
     const { workspace } = useWorkspace();
     const [currentView, setCurrentView] = useState<'calendar' | 'analytics' | 'attribution'>('calendar');
     const [form, setForm] = useState<Omit<MarketingItem, 'id'|'createdAt'|'notes'>>({
-        title: '', type: 'Blog Post', status: 'Planned', dueDate: ''
+        title: '', type: 'Blog Post', status: 'Planned', dueDate: '', productServiceIds: []
     });
     const [editingItem, setEditingItem] = useState<MarketingItem | null>(null);
-    const [editForm, setEditForm] = useState<Omit<MarketingItem, 'id'|'createdAt'|'notes'>>({ title: '', type: 'Blog Post', status: 'Planned', dueDate: '', dueTime: '' });
+    const [editForm, setEditForm] = useState<Omit<MarketingItem, 'id'|'createdAt'|'notes'>>({ title: '', type: 'Blog Post', status: 'Planned', dueDate: '', dueTime: '', productServiceIds: [] });
     const modalTriggerRef = useRef<HTMLButtonElement | null>(null);
 
     useEffect(() => {
@@ -81,7 +82,8 @@ const MarketingTab: React.FC<{
                 type: editingItem.type,
                 status: editingItem.status,
                 dueDate: editingItem.dueDate || '',
-                dueTime: editingItem.dueTime || ''
+                dueTime: editingItem.dueTime || '',
+                productServiceIds: editingItem.productServiceIds || []
             });
         }
     }, [editingItem]);
@@ -97,7 +99,7 @@ const MarketingTab: React.FC<{
         e.preventDefault();
         if (form.title.trim() === '') return;
         actions.createMarketingItem(form);
-        setForm({ title: '', type: 'Blog Post', status: 'Planned', dueDate: '' });
+        setForm({ title: '', type: 'Blog Post', status: 'Planned', dueDate: '', productServiceIds: [] });
     };
 
     const handleUpdate = () => {
@@ -108,7 +110,8 @@ const MarketingTab: React.FC<{
                 type: editForm.type,
                 status: editForm.status,
                 dueDate: editForm.dueDate || null,
-                dueTime: editForm.dueTime || null
+                dueTime: editForm.dueTime || null,
+                productServiceIds: editForm.productServiceIds
             });
         }
         setEditingItem(null);
@@ -203,6 +206,49 @@ const MarketingTab: React.FC<{
                                     <input id="mkt-duedate" type="date" value={form.dueDate || ''} onChange={e => setForm(p=>({...p, dueDate: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none h-full"/>
                                 </div>
                             </div>
+                            
+                            {/* Product/Service Multi-Select */}
+                            {productsServices.length > 0 && (
+                                <div className="p-4 bg-orange-50 border-2 border-orange-400">
+                                    <h4 className="font-semibold text-orange-900 mb-2">Promoted Products/Services (Optional)</h4>
+                                    <p className="text-xs text-gray-600 mb-3">Select products/services this campaign will promote</p>
+                                    <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
+                                        {productsServices
+                                            .filter(p => p.status === 'active')
+                                            .map(product => (
+                                                <label key={product.id} className="flex items-start gap-2 p-2 border border-orange-300 bg-white hover:bg-orange-50 cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={(form.productServiceIds || []).includes(product.id)}
+                                                        onChange={(e) => {
+                                                            const currentIds = form.productServiceIds || [];
+                                                            const newIds = e.target.checked
+                                                                ? [...currentIds, product.id]
+                                                                : currentIds.filter(id => id !== product.id);
+                                                            setForm(p => ({ ...p, productServiceIds: newIds }));
+                                                        }}
+                                                        className="mt-1"
+                                                    />
+                                                    <div className="flex-grow">
+                                                        <div className="font-semibold text-sm">{product.name}</div>
+                                                        <div className="text-xs text-gray-600">
+                                                            {product.category} - {product.type === 'product' ? 'Product' : 'Service'}
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-sm font-mono font-semibold text-orange-700">
+                                                        ${product.basePrice.toFixed(2)}
+                                                    </div>
+                                                </label>
+                                            ))}
+                                    </div>
+                                    {(form.productServiceIds || []).length > 0 && (
+                                        <div className="mt-2 text-xs font-semibold text-orange-900">
+                                            {form.productServiceIds!.length} product{form.productServiceIds!.length !== 1 ? 's' : ''} selected
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            
                             <div className="flex justify-end">
                                 <button type="submit" className="font-mono font-semibold bg-black text-white py-2 px-6 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn">Add Item</button>
                             </div>

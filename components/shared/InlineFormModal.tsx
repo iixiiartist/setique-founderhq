@@ -27,7 +27,7 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
 
     // Task form state
     const [taskText, setTaskText] = useState('');
-    const [taskCategory, setTaskCategory] = useState<TaskCollectionName>(formData.category || 'platformTasks');
+    const [taskCategory, setTaskCategory] = useState<TaskCollectionName>(formData.category || 'productsServicesTasks');
     const [taskPriority, setTaskPriority] = useState<'Low' | 'Medium' | 'High'>(formData.priority || 'Medium');
     const [taskDueDate, setTaskDueDate] = useState('');
     const [taskDueTime, setTaskDueTime] = useState('');
@@ -153,7 +153,7 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
                     }
                     // Create as a task for now (calendar events need more integration)
                     result = await actions.createTask(
-                        'platformTasks',
+                        'productsServicesTasks',
                         `${eventType === 'meeting' ? '🤝' : eventType === 'call' ? '📞' : '📅'} ${eventTitle.trim()}`,
                         'High',
                         undefined,
@@ -258,7 +258,7 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
                                     onChange={(e) => setTaskCategory(e.target.value as TaskCollectionName)}
                                     className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
                                 >
-                                    <option value="platformTasks">Platform</option>
+                                    <option value="productsServicesTasks">Products & Services</option>
                                     <option value="investorTasks">Investor</option>
                                     <option value="customerTasks">Customer</option>
                                     <option value="partnerTasks">Partner</option>

@@ -11,7 +11,7 @@ import { setUser as setSentryUser, setWorkspaceContext, trackAction } from './li
 
 // Lazy load heavy tab components for code splitting
 // This reduces initial bundle size and improves first load performance
-const PlatformTab = lazy(() => import('./components/PlatformTab'));
+const ProductsServicesTab = lazy(() => import('./components/products/ProductsServicesTab'));
 const CrmTab = lazy(() => import('./components/CrmTab'));
 const MarketingTab = lazy(() => import('./components/MarketingTab'));
 const FinancialsTab = lazy(() => import('./components/FinancialsTab'));
@@ -56,6 +56,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
         loadDocuments,
         loadDocumentsMetadata,
         loadDeals,
+        loadProductsServices,
         invalidateCache,
         invalidateAllCache,
         isLoading: isDataLoading,
@@ -292,15 +293,27 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         }
                         break;
 
-                    case Tab.Platform:
-                        // Load platform tasks
+                    case Tab.ProductsServices:
+                        // Load products & services tasks
                         if (!loadedTabsRef.current.has('tasks')) {
                             const tasks = await loadTasks();
                             setData(prev => ({ ...prev, ...tasks }));
                             loadedTabsRef.current.add('tasks');
                         }
                         
-                        // Load documents for platform tab
+                        // Load products/services data
+                        if (!loadedTabsRef.current.has('productsServices')) {
+                            const productsData = await loadProductsServices();
+                            setData(prev => ({ 
+                                ...prev, 
+                                productsServices: productsData.productsServices,
+                                productPriceHistory: productsData.productPriceHistory,
+                                productBundles: productsData.productBundles
+                            }));
+                            loadedTabsRef.current.add('productsServices');
+                        }
+                        
+                        // Load documents for products/services tab
                         if (!loadedTabsRef.current.has('documents')) {
                             const documents = await loadDocuments();
                             setData(prev => ({ ...prev, documents }));
@@ -517,12 +530,21 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             switch (activeTab) {
                 case Tab.Dashboard:
                 case Tab.Calendar:
-                case Tab.Platform:
+                case Tab.ProductsServices:
                     const tasks = await loadTasks({ force: true });
                     setData(prev => ({ ...prev, ...tasks }));
                     loadedTabsRef.current.add('tasks');
                     
-                    if (activeTab === Tab.Platform) {
+                    if (activeTab === Tab.ProductsServices) {
+                        const productsData = await loadProductsServices({ force: true });
+                        setData(prev => ({ 
+                            ...prev, 
+                            productsServices: productsData.productsServices,
+                            productPriceHistory: productsData.productPriceHistory,
+                            productBundles: productsData.productBundles
+                        }));
+                        loadedTabsRef.current.add('productsServices');
+                        
                         const documents = await loadDocuments({ force: true });
                         setData(prev => ({ ...prev, documents }));
                         loadedTabsRef.current.add('documents');
@@ -576,11 +598,11 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
         } catch (error) {
             logger.error('Error reloading data:', error);
         }
-    }, [activeTab, loadCoreData, loadTasks, loadCrmItems, loadMarketing, loadFinancials, loadDocuments, invalidateAllCache]);
+    }, [activeTab, loadCoreData, loadTasks, loadCrmItems, loadMarketing, loadFinancials, loadDocuments, loadProductsServices, invalidateAllCache]);
 
     const allTasks = useMemo(() => {
         const taskCollections: { tasks: Task[]; tag: string }[] = [
-            { tasks: data.platformTasks, tag: 'Platform' },
+            { tasks: data.productsServicesTasks, tag: 'Products' },
             { tasks: data.investorTasks, tag: 'Investor' },
             { tasks: data.customerTasks, tag: 'Customer' },
             { tasks: data.partnerTasks, tag: 'Partner' },
@@ -636,9 +658,16 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 await loadTasks({ force: true });
                 break;
             
-            case Tab.Platform:
-                // Load platform tasks with force refresh
+            case Tab.ProductsServices:
+                // Load products & services with force refresh
                 await loadTasks({ force: true });
+                const productsData = await loadProductsServices({ force: true });
+                setData(prev => ({ 
+                    ...prev, 
+                    productsServices: productsData.productsServices,
+                    productPriceHistory: productsData.productPriceHistory,
+                    productBundles: productsData.productBundles
+                }));
                 break;
             
             case Tab.Calendar:
@@ -776,7 +805,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 let taskCategory: TaskCollectionName | undefined;
                 
                 const allTasksFlat = [
-                    ...data.platformTasks,
+                    ...data.productsServicesTasks,
                     ...data.investorTasks,
                     ...data.customerTasks,
                     ...data.partnerTasks,
@@ -786,7 +815,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 task = allTasksFlat.find(t => t.id === taskId);
                 
                 // Find which category this task belongs to
-                if (data.platformTasks.some(t => t.id === taskId)) taskCategory = 'platformTasks';
+                if (data.productsServicesTasks.some(t => t.id === taskId)) taskCategory = 'productsServicesTasks';
                 else if (data.investorTasks.some(t => t.id === taskId)) taskCategory = 'investorTasks';
                 else if (data.customerTasks.some(t => t.id === taskId)) taskCategory = 'customerTasks';
                 else if (data.partnerTasks.some(t => t.id === taskId)) taskCategory = 'partnerTasks';
@@ -830,7 +859,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 // Award XP if task was just completed (not already done)
                 if (wasCompleted && previousStatus !== 'Done') {
                     const allTasksFlat = [
-                        ...data.platformTasks,
+                        ...data.productsServicesTasks,
                         ...data.investorTasks,
                         ...data.customerTasks,
                         ...data.partnerTasks,
@@ -858,7 +887,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 // Find which category this task belongs to
                 let taskCategory: TaskCollectionName | undefined;
                 const allTasksFlat = [
-                    ...data.platformTasks,
+                    ...data.productsServicesTasks,
                     ...data.investorTasks,
                     ...data.customerTasks,
                     ...data.partnerTasks,
@@ -867,7 +896,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 ];
                 const task = allTasksFlat.find(t => t.id === taskId);
                 
-                if (data.platformTasks.some(t => t.id === taskId)) taskCategory = 'platformTasks';
+                if (data.productsServicesTasks.some(t => t.id === taskId)) taskCategory = 'productsServicesTasks';
                 else if (data.investorTasks.some(t => t.id === taskId)) taskCategory = 'investorTasks';
                 else if (data.customerTasks.some(t => t.id === taskId)) taskCategory = 'customerTasks';
                 else if (data.partnerTasks.some(t => t.id === taskId)) taskCategory = 'partnerTasks';
@@ -912,7 +941,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 const userName = user?.user_metadata?.full_name || user?.email;
                 
                 // Determine the table based on collection type
-                if (collection === 'platformTasks' || collection === 'investorTasks' || 
+                if (collection === 'productsServicesTasks' || collection === 'investorTasks' || 
                     collection === 'customerTasks' || collection === 'partnerTasks' || 
                     collection === 'marketingTasks' || collection === 'financialTasks') {
                     await DataPersistenceAdapter.addTaskNote(itemId, noteText, userId, userName);
@@ -954,7 +983,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 } else if (collection === 'contacts') {
                     tableName = 'contacts';
                     actualItemId = crmItemId ? itemId : itemId;
-                } else if (collection === 'investorTasks' || collection === 'customerTasks' || collection === 'partnerTasks' || collection === 'platformTasks') {
+                } else if (collection === 'investorTasks' || collection === 'customerTasks' || collection === 'partnerTasks' || collection === 'productsServicesTasks') {
                     tableName = 'tasks';
                 } else if (collection === 'marketing') {
                     tableName = 'marketing_items';
@@ -1016,7 +1045,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 } else if (collection === 'contacts') {
                     tableName = 'contacts';
                     actualItemId = crmItemId ? itemId : itemId; // If crmItemId provided, itemId is the contact
-                } else if (collection === 'investorTasks' || collection === 'customerTasks' || collection === 'partnerTasks' || collection === 'platformTasks') {
+                } else if (collection === 'investorTasks' || collection === 'customerTasks' || collection === 'partnerTasks' || collection === 'productsServicesTasks') {
                     tableName = 'tasks';
                 } else if (collection === 'marketing') {
                     tableName = 'marketing_items';
@@ -1349,7 +1378,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
             try {
                 // Optimistic UI update - remove item immediately
-                if (['platformTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketingTasks', 'financialTasks'].includes(collection)) {
+                if (['productsServicesTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketingTasks', 'financialTasks'].includes(collection)) {
                     setData(prev => ({
                         ...prev,
                         [collection]: (prev[collection as TaskCollectionName] as Task[]).filter(t => t.id !== itemId)
@@ -1386,7 +1415,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     await DataPersistenceAdapter.deleteMarketingItem(itemId);
                 } else if (['investors', 'customers', 'partners'].includes(collection)) {
                     await DataPersistenceAdapter.deleteCrmItem(itemId);
-                } else if (['platformTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketingTasks', 'financialTasks'].includes(collection)) {
+                } else if (['productsServicesTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketingTasks', 'financialTasks'].includes(collection)) {
                     await DataPersistenceAdapter.deleteTask(itemId);
                 } else if (collection === 'contacts') {
                     await DataPersistenceAdapter.deleteContact(itemId);
@@ -1401,7 +1430,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     invalidateCache('marketing');
                 } else if (['investors', 'customers', 'partners'].includes(collection) || collection === 'contacts') {
                     invalidateCache('crm');
-                } else if (['platformTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketingTasks', 'financialTasks'].includes(collection)) {
+                } else if (['productsServicesTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketingTasks', 'financialTasks'].includes(collection)) {
                     invalidateCache('tasks');
                 } else if (collection === 'documents') {
                     invalidateCache('documents');
@@ -1422,7 +1451,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 } else if (['investors', 'customers', 'partners'].includes(collection) || collection === 'contacts') {
                     const freshCrm = await loadCrmItems({ force: true });
                     setData(prev => ({ ...prev, ...freshCrm }));
-                } else if (['platformTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketingTasks', 'financialTasks'].includes(collection)) {
+                } else if (['productsServicesTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketingTasks', 'financialTasks'].includes(collection)) {
                     const freshTasks = await loadTasks({ force: true });
                     setData(prev => ({ ...prev, ...freshTasks }));
                 } else if (collection === 'documents') {
@@ -1719,6 +1748,13 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
         updateDeal: async (dealId, updates) => {
             try {
+                // Task 29: Fetch current deal state if stage is being updated (for inventory management)
+                let previousDeal: any = null;
+                if (updates.stage !== undefined) {
+                    const { data: currentDeal } = await DatabaseService.getDeal(dealId);
+                    previousDeal = currentDeal;
+                }
+                
                 const dbUpdates: any = {};
                 if (updates.title !== undefined) dbUpdates.title = updates.title;
                 if (updates.crmItemId !== undefined) dbUpdates.crm_item_id = updates.crmItemId;
@@ -1737,10 +1773,117 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
                 if (updates.tags !== undefined) dbUpdates.tags = updates.tags;
                 if (updates.customFields !== undefined) dbUpdates.custom_fields = updates.customFields;
+                
+                // Product/Service fields
+                if (updates.productServiceId !== undefined) dbUpdates.product_service_id = updates.productServiceId;
+                if (updates.productServiceName !== undefined) dbUpdates.product_service_name = updates.productServiceName;
+                if (updates.quantity !== undefined) dbUpdates.quantity = updates.quantity;
+                if (updates.unitPrice !== undefined) dbUpdates.unit_price = updates.unitPrice;
+                if (updates.discountPercent !== undefined) dbUpdates.discount_percent = updates.discountPercent;
+                if (updates.discountAmount !== undefined) dbUpdates.discount_amount = updates.discountAmount;
+                if (updates.totalValue !== undefined) dbUpdates.total_value = updates.totalValue;
 
                 const result = await DatabaseService.updateDeal(dealId, dbUpdates);
                 if (result.error) {
                     throw new Error('Failed to update deal');
+                }
+
+                // Task 29: Inventory Reservation Workflow - manage inventory based on stage changes
+                if (updates.stage !== undefined && result.data && result.data.product_service_id) {
+                    const deal = result.data;
+                    const previousStage = previousDeal?.stage;
+                    const newStage = updates.stage;
+                    const quantity = deal.quantity || 1;
+                    
+                    try {
+                        // Fetch product to check if inventory is tracked
+                        const { data: product } = await DatabaseService.getProductService(deal.product_service_id);
+                        
+                        if (product?.inventoryTracked) {
+                            logger.info(`Inventory stage change: ${previousStage} → ${newStage} for product ${product.name}`);
+                            
+                            // Reserve inventory when moving to proposal stage
+                            if (newStage === 'proposal' && previousStage !== 'proposal') {
+                                const { error: reserveError } = await DatabaseService.reserveInventory(
+                                    deal.product_service_id,
+                                    quantity
+                                );
+                                if (reserveError) {
+                                    logger.warn('Failed to reserve inventory:', reserveError);
+                                    handleToast('Deal updated, but inventory reservation failed', 'info');
+                                } else {
+                                    logger.info(`Reserved ${quantity} units of ${product.name}`);
+                                }
+                            }
+                            
+                            // Release reserved inventory when deal is lost
+                            if (newStage === 'closed_lost' && previousStage === 'proposal') {
+                                const { error: releaseError } = await DatabaseService.releaseInventory(
+                                    deal.product_service_id,
+                                    quantity
+                                );
+                                if (releaseError) {
+                                    logger.warn('Failed to release inventory:', releaseError);
+                                } else {
+                                    logger.info(`Released ${quantity} units of ${product.name}`);
+                                }
+                            }
+                            
+                            // Note: Inventory deduction on closed_won is handled in convertDealToRevenue (Task 28)
+                        }
+                    } catch (error) {
+                        logger.error('Error in inventory reservation workflow:', error);
+                        // Don't fail the deal update if inventory management fails
+                    }
+                }
+
+                // Task 28: Auto-create revenue transaction when deal is closed won
+                if (updates.stage === 'closed_won' && result.data) {
+                    const deal = result.data;
+                    
+                    // Only auto-convert if deal has a linked product/service
+                    if (deal.product_service_id) {
+                        try {
+                            logger.info('Auto-creating revenue transaction for closed deal:', dealId);
+                            
+                            // Import ProductIntegrationService dynamically to avoid circular deps
+                            const { ProductIntegrationService } = await import('./lib/services/productService');
+                            
+                            const revenueResult = await ProductIntegrationService.convertDealToRevenue(
+                                deal,
+                                deal.actual_close_date
+                            );
+                            
+                            if (revenueResult.success) {
+                                logger.info('Revenue transaction auto-created:', revenueResult.transaction?.id);
+                                handleToast('Deal closed and revenue transaction created automatically', 'success');
+                                
+                                // Reload revenue data
+                                invalidateCache('revenueTransactions');
+                                if (useLazyDataPersistenceRef.current?.loadRevenueTransactions) {
+                                    const revenueTransactions = await useLazyDataPersistenceRef.current.loadRevenueTransactions({ force: true });
+                                    setData(prev => ({ ...prev, revenueTransactions }));
+                                }
+                                
+                                // Reload products to update analytics
+                                if (useLazyDataPersistenceRef.current?.loadProductsServices) {
+                                    const { productsServices } = await useLazyDataPersistenceRef.current.loadProductsServices({ force: true });
+                                    setData(prev => ({ ...prev, productsServices }));
+                                }
+                            } else {
+                                logger.warn('Failed to auto-create revenue:', revenueResult.error);
+                                handleToast('Deal closed, but revenue transaction failed to auto-create', 'info');
+                            }
+                        } catch (error) {
+                            logger.error('Error in deal-to-revenue automation:', error);
+                            // Don't fail the deal update if revenue creation fails
+                            handleToast('Deal updated, but revenue automation encountered an error', 'info');
+                        }
+                    } else {
+                        handleToast('Deal closed successfully', 'success');
+                    }
+                } else {
+                    handleToast('Deal updated successfully', 'success');
                 }
 
                 // Reload deals
@@ -1750,7 +1893,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     setData(prev => ({ ...prev, deals }));
                 }
 
-                handleToast('Deal updated successfully', 'success');
                 return { success: true, message: 'Deal updated successfully' };
             } catch (error) {
                 logger.error('Error updating deal:', error);
@@ -1779,6 +1921,194 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 logger.error('Error deleting deal:', error);
                 handleToast('Failed to delete deal', 'info');
                 return { success: false, message: 'Failed to delete deal' };
+            }
+        },
+
+        createProductService: async (productData) => {
+            if (!userId || !supabase) {
+                handleToast('Database not available', 'info');
+                return { success: false, message: 'Database not connected' };
+            }
+
+            if (!workspace?.id) {
+                handleToast('No workspace available', 'info');
+                return { success: false, message: 'No workspace available' };
+            }
+
+            try {
+                handleToast('Creating product/service...', 'info');
+
+                // Transform frontend data to database format
+                const dbData = {
+                    workspace_id: workspace.id,
+                    name: productData.name,
+                    sku: productData.sku,
+                    description: productData.description || null,
+                    category: productData.category,
+                    type: productData.type,
+                    status: productData.status,
+                    base_price: productData.basePrice,
+                    currency: productData.currency || 'USD',
+                    pricing_model: productData.pricingModel,
+                    cost_of_goods: productData.costOfGoods || null,
+                    cost_of_service: productData.costOfService || null,
+                    is_taxable: productData.isTaxable || false,
+                    tax_rate: productData.taxRate || null,
+                    inventory_tracking: productData.inventoryTracking || false,
+                    quantity_on_hand: productData.quantityOnHand || null,
+                    reorder_point: productData.reorderPoint || null,
+                    reorder_quantity: productData.reorderQuantity || null,
+                    capacity_tracking: productData.capacityTracking || false,
+                    capacity_total: productData.capacityTotal || null,
+                    capacity_unit: productData.capacityUnit || null,
+                    capacity_period: productData.capacityPeriod || null,
+                    image_url: productData.imageUrl || null,
+                    tags: productData.tags || [],
+                };
+
+                const result = await DatabaseService.createProductService(dbData as any);
+                
+                if (result.error) {
+                    throw new Error(result.error.message || 'Failed to create product/service');
+                }
+
+                // Optimistically add to state
+                if (result.data) {
+                    const newProduct = {
+                        ...productData,
+                        id: result.data.id,
+                        createdAt: result.data.created_at,
+                        updatedAt: result.data.updated_at,
+                        workspaceId: workspace.id,
+                    };
+                    
+                    setData(prev => ({
+                        ...prev,
+                        productsServices: [...prev.productsServices, newProduct]
+                    }));
+                }
+
+                trackAction('product_service_created', { 
+                    category: productData.category, 
+                    type: productData.type,
+                    pricingModel: productData.pricingModel 
+                });
+
+                handleToast(`${productData.category === 'product' ? 'Product' : 'Service'} "${productData.name}" created successfully`, 'success');
+                return { success: true, message: 'Created successfully', id: result.data?.id };
+            } catch (error) {
+                logger.error('Error creating product/service:', error);
+                const errorMessage = error instanceof Error ? error.message : 'Failed to create';
+                handleToast(errorMessage, 'info');
+                return { success: false, message: errorMessage };
+            }
+        },
+
+        updateProductService: async (productId, updates) => {
+            if (!userId || !supabase) {
+                return { success: false, message: 'Database not connected' };
+            }
+
+            try {
+                // Transform updates to database format
+                const dbUpdates: any = {};
+                if (updates.name !== undefined) dbUpdates.name = updates.name;
+                if (updates.sku !== undefined) dbUpdates.sku = updates.sku;
+                if (updates.description !== undefined) dbUpdates.description = updates.description;
+                if (updates.category !== undefined) dbUpdates.category = updates.category;
+                if (updates.type !== undefined) dbUpdates.type = updates.type;
+                if (updates.status !== undefined) dbUpdates.status = updates.status;
+                if (updates.basePrice !== undefined) dbUpdates.base_price = updates.basePrice;
+                if (updates.currency !== undefined) dbUpdates.currency = updates.currency;
+                if (updates.pricingModel !== undefined) dbUpdates.pricing_model = updates.pricingModel;
+                if (updates.costOfGoods !== undefined) dbUpdates.cost_of_goods = updates.costOfGoods;
+                if (updates.costOfService !== undefined) dbUpdates.cost_of_service = updates.costOfService;
+                if (updates.isTaxable !== undefined) dbUpdates.is_taxable = updates.isTaxable;
+                if (updates.taxRate !== undefined) dbUpdates.tax_rate = updates.taxRate;
+                if (updates.inventoryTracking !== undefined) dbUpdates.inventory_tracking = updates.inventoryTracking;
+                if (updates.quantityOnHand !== undefined) dbUpdates.quantity_on_hand = updates.quantityOnHand;
+                if (updates.quantityReserved !== undefined) dbUpdates.quantity_reserved = updates.quantityReserved;
+                if (updates.quantityAvailable !== undefined) dbUpdates.quantity_available = updates.quantityAvailable;
+                if (updates.reorderPoint !== undefined) dbUpdates.reorder_point = updates.reorderPoint;
+                if (updates.reorderQuantity !== undefined) dbUpdates.reorder_quantity = updates.reorderQuantity;
+                if (updates.capacityTracking !== undefined) dbUpdates.capacity_tracking = updates.capacityTracking;
+                if (updates.capacityTotal !== undefined) dbUpdates.capacity_total = updates.capacityTotal;
+                if (updates.capacityBooked !== undefined) dbUpdates.capacity_booked = updates.capacityBooked;
+                if (updates.capacityAvailable !== undefined) dbUpdates.capacity_available = updates.capacityAvailable;
+                if (updates.capacityUnit !== undefined) dbUpdates.capacity_unit = updates.capacityUnit;
+                if (updates.capacityPeriod !== undefined) dbUpdates.capacity_period = updates.capacityPeriod;
+                if (updates.imageUrl !== undefined) dbUpdates.image_url = updates.imageUrl;
+                if (updates.tags !== undefined) dbUpdates.tags = updates.tags;
+                if (updates.tieredPricing !== undefined) dbUpdates.tiered_pricing = updates.tieredPricing;
+                if (updates.usagePricing !== undefined) dbUpdates.usage_pricing = updates.usagePricing;
+                if (updates.subscriptionPlans !== undefined) dbUpdates.subscription_plans = updates.subscriptionPlans;
+
+                // Optimistically update UI
+                setData(prev => ({
+                    ...prev,
+                    productsServices: prev.productsServices.map(p =>
+                        p.id === productId ? { ...p, ...updates } : p
+                    )
+                }));
+
+                const result = await DatabaseService.updateProductService(productId, dbUpdates);
+                
+                if (result.error) {
+                    throw new Error(result.error.message || 'Failed to update product/service');
+                }
+
+                // Check if base price changed to reload price history
+                if (updates.basePrice !== undefined) {
+                    // Reload to get updated price history from trigger
+                    await reload();
+                }
+
+                trackAction('product_service_updated', { productId });
+
+                handleToast('Product/service updated successfully', 'success');
+                return { success: true, message: 'Updated successfully' };
+            } catch (error) {
+                logger.error('Error updating product/service:', error);
+                const errorMessage = error instanceof Error ? error.message : 'Failed to update';
+                handleToast(errorMessage, 'info');
+                
+                // Revert optimistic update on error
+                await reload();
+                return { success: false, message: errorMessage };
+            }
+        },
+
+        deleteProductService: async (productId) => {
+            if (!userId || !supabase) {
+                return { success: false, message: 'Database not connected' };
+            }
+
+            try {
+                // Optimistically remove from UI
+                const productToDelete = data.productsServices.find(p => p.id === productId);
+                setData(prev => ({
+                    ...prev,
+                    productsServices: prev.productsServices.filter(p => p.id !== productId)
+                }));
+
+                const result = await DatabaseService.deleteProductService(productId);
+                
+                if (result.error) {
+                    throw new Error(result.error.message || 'Failed to delete product/service');
+                }
+
+                trackAction('product_service_deleted', { productId });
+
+                handleToast(`${productToDelete?.name || 'Product/service'} deleted successfully`, 'success');
+                return { success: true, message: 'Deleted successfully' };
+            } catch (error) {
+                logger.error('Error deleting product/service:', error);
+                const errorMessage = error instanceof Error ? error.message : 'Failed to delete';
+                handleToast(errorMessage, 'info');
+                
+                // Revert optimistic delete on error
+                await reload();
+                return { success: false, message: errorMessage };
             }
         },
     }), [userId, supabase, data, reload, handleToast, workspace, invalidateCache, useLazyDataPersistenceRef]);
@@ -1905,12 +2235,17 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         />
                     </Suspense>
                 );
-            case Tab.Platform:
+            case Tab.ProductsServices:
                 return (
                     <Suspense fallback={<TabLoadingFallback />}>
-                        <PlatformTab 
-                            tasks={data.platformTasks} 
+                        <ProductsServicesTab 
+                            workspaceId={workspace?.id || ''}
+                            tasks={data.productsServicesTasks}
+                            productsServices={data.productsServices}
+                            productPriceHistory={data.productPriceHistory}
                             actions={actions}
+                            revenueTransactions={data.revenueTransactions}
+                            deals={data.deals}
                         />
                     </Suspense>
                 );
@@ -1929,6 +2264,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             workspaceMembers={workspaceMembers}
                             userId={user?.id}
                             deals={data.deals}
+                            productsServices={data.productsServices}
                         />
                     </Suspense>
                 );
@@ -1944,6 +2280,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             businessProfile={businessProfile}
                             workspaceId={workspace?.id}
                             onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
+                            productsServices={data.productsServices}
                             workspaceMembers={workspaceMembers}
                             userId={user?.id}
                             deals={data.deals}
@@ -1962,6 +2299,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             businessProfile={businessProfile}
                             workspaceId={workspace?.id}
                             onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
+                            productsServices={data.productsServices}
                             workspaceMembers={workspaceMembers}
                             userId={user?.id}
                             deals={data.deals}
@@ -1981,6 +2319,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             workspaceMembers={workspaceMembers}
                             onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
                             data={data}
+                            productsServices={data.productsServices}
                         />
                     </Suspense>
                 );
@@ -1998,6 +2337,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             workspaceMembers={workspaceMembers}
                             onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
                             data={data}
+                            productsServices={data.productsServices}
                         />
                     </Suspense>
                 );

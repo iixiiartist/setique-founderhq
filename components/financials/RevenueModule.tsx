@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { DashboardData, AppActions } from '../../types';
-import { Plus, DollarSign, TrendingUp, Calendar, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { DashboardData, AppActions, ProductService } from '../../types';
+import { Plus, DollarSign, TrendingUp, Calendar, CheckCircle, Clock, XCircle, Package } from 'lucide-react';
 
 interface RevenueModuleProps {
   data: DashboardData;
   actions: AppActions;
   workspaceId: string;
+  productsServices: ProductService[];
 }
 
 const TRANSACTION_TYPES = ['invoice', 'payment', 'refund', 'recurring'] as const;
@@ -61,6 +62,7 @@ export default function RevenueModule({
   data,
   actions,
   workspaceId,
+  productsServices = [],
 }: RevenueModuleProps) {
   const revenueTransactions = data?.revenueTransactions || [];
   const crmItems = [...(data?.investors || []), ...(data?.customers || []), ...(data?.partners || [])];
@@ -82,7 +84,38 @@ export default function RevenueModule({
     dueDate: '',
     revenueCategory: 'product_sale' as typeof REVENUE_CATEGORIES[number],
     description: '',
+    productServiceId: '',
+    quantity: '1',
+    unitPrice: '',
   });
+
+  // Product selection and auto-fill
+  const selectedProduct = useMemo(() => {
+    return productsServices.find(p => p.id === formData.productServiceId);
+  }, [productsServices, formData.productServiceId]);
+
+  const handleProductChange = (productId: string) => {
+    const product = productsServices.find(p => p.id === productId);
+    if (product) {
+      const quantity = parseFloat(formData.quantity) || 1;
+      const calculatedAmount = product.basePrice * quantity;
+      setFormData(prev => ({
+        ...prev,
+        productServiceId: productId,
+        unitPrice: product.basePrice.toString(),
+        amount: calculatedAmount.toString(),
+        currency: product.currency,
+        revenueCategory: 'product_sale',
+        description: prev.description || `Revenue from ${product.name}`,
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        productServiceId: '',
+        unitPrice: '',
+      }));
+    }
+  };
 
   // Calculate metrics
   const metrics = useMemo(() => {
@@ -137,6 +170,9 @@ export default function RevenueModule({
       return;
     }
 
+    const quantity = formData.productServiceId ? parseFloat(formData.quantity) || 1 : undefined;
+    const unitPrice = formData.productServiceId ? parseFloat(formData.unitPrice) || 0 : undefined;
+
     await actions.createRevenueTransaction({
       workspaceId: workspaceId,
       userId: '', // Will be set by the action handler
@@ -152,6 +188,9 @@ export default function RevenueModule({
       dueDate: formData.dueDate || undefined,
       revenueCategory: formData.revenueCategory,
       description: formData.description || undefined,
+      productServiceId: formData.productServiceId || undefined,
+      quantity: quantity,
+      unitPrice: unitPrice,
       notes: [],
     });
 
@@ -169,6 +208,9 @@ export default function RevenueModule({
       dueDate: '',
       revenueCategory: 'product_sale',
       description: '',
+      productServiceId: '',
+      quantity: '1',
+      unitPrice: '',
     });
     setShowForm(false);
   };
@@ -231,8 +273,10 @@ export default function RevenueModule({
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-semibold mb-1">Transaction Date *</label>
+                <label htmlFor="transaction-date" className="block text-sm font-semibold mb-1">Transaction Date *</label>
                 <input
+                  id="transaction-date"
+                  name="transaction-date"
                   type="date"
                   value={formData.transactionDate}
                   onChange={(e) => setFormData({ ...formData, transactionDate: e.target.value })}
@@ -241,8 +285,10 @@ export default function RevenueModule({
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold mb-1">Amount *</label>
+                <label htmlFor="transaction-amount" className="block text-sm font-semibold mb-1">Amount *</label>
                 <input
+                  id="transaction-amount"
+                  name="transaction-amount"
                   type="number"
                   step="0.01"
                   value={formData.amount}
@@ -339,6 +385,92 @@ export default function RevenueModule({
                     </option>
                   ))}
                 </select>
+              </div>
+            </div>
+
+            {/* Product/Service Selector */}
+            <div className="p-4 bg-purple-50 border-2 border-purple-400">
+              <div className="flex items-center gap-2 mb-3">
+                <Package className="w-5 h-5 text-purple-700" />
+                <h4 className="font-semibold text-purple-900">Product/Service (Optional)</h4>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-semibold mb-1">Select Product/Service</label>
+                  <select
+                    value={formData.productServiceId}
+                    onChange={(e) => handleProductChange(e.target.value)}
+                    className="w-full p-2 border-2 border-purple-600 focus:outline-none focus:border-purple-700 bg-white"
+                  >
+                    <option value="">None - Manual entry</option>
+                    {productsServices
+                      .filter(p => p.status === 'active')
+                      .map(product => (
+                        <option key={product.id} value={product.id}>
+                          {product.name} - {formatCurrency(product.basePrice, product.currency)}
+                        </option>
+                      ))}
+                  </select>
+                  <p className="text-xs text-gray-600 mt-1">
+                    Link this revenue to a product/service for automatic amount calculation
+                  </p>
+                </div>
+
+                {formData.productServiceId && selectedProduct && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-semibold mb-1">Quantity</label>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={formData.quantity}
+                        onChange={(e) => {
+                          const quantity = parseFloat(e.target.value) || 1;
+                          const unitPrice = parseFloat(formData.unitPrice) || 0;
+                          setFormData({
+                            ...formData,
+                            quantity: e.target.value,
+                            amount: (quantity * unitPrice).toString(),
+                          });
+                        }}
+                        className="w-full p-2 border-2 border-purple-600 focus:outline-none focus:border-purple-700"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold mb-1">Unit Price</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={formData.unitPrice}
+                        onChange={(e) => {
+                          const quantity = parseFloat(formData.quantity) || 1;
+                          const unitPrice = parseFloat(e.target.value) || 0;
+                          setFormData({
+                            ...formData,
+                            unitPrice: e.target.value,
+                            amount: (quantity * unitPrice).toString(),
+                          });
+                        }}
+                        className="w-full p-2 border-2 border-purple-600 focus:outline-none focus:border-purple-700"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <div className="p-3 bg-white border-2 border-purple-600 rounded">
+                        <div className="text-xs text-gray-600 mb-1">Calculated Amount</div>
+                        <div className="text-xl font-bold text-purple-900">
+                          {formatCurrency(
+                            (parseFloat(formData.quantity) || 1) * (parseFloat(formData.unitPrice) || 0),
+                            selectedProduct.currency
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-600 mt-1">
+                          {formData.quantity} × {formatCurrency(parseFloat(formData.unitPrice) || 0, selectedProduct.currency)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

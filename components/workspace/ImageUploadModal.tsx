@@ -172,7 +172,7 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000] p-4">
+    <div className="fixed inset-0 bg-gray-200/10 flex items-center justify-center z-[10000] p-4">
       <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-2xl max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="p-4 border-b-4 border-black bg-yellow-300">

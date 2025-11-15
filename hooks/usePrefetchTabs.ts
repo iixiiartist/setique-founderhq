@@ -74,8 +74,8 @@ export const usePrefetchTabs = ({ workspaceId, userId, enabled = true }: UsePref
           ]);
           break;
 
-        case Tab.Platform:
-          // Prefetch platform tasks
+        case Tab.ProductsServices:
+          // Prefetch products & services tasks
           await queryClient.prefetchQuery({
             queryKey: ['tasks', userId, workspaceId],
             queryFn: () => DatabaseService.getTasks(userId, workspaceId),

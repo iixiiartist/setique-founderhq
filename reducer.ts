@@ -32,7 +32,7 @@ export const appReducer = (state: DashboardData, action: AppAction): DashboardDa
         }
         case 'UPDATE_TASK': {
             const { taskId, updates } = action.payload;
-            const taskCollections: TaskCollectionName[] = ['platformTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketingTasks', 'financialTasks'];
+            const taskCollections: TaskCollectionName[] = ['productsServicesTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketingTasks', 'financialTasks'];
             
             let taskBeforeUpdate: Task | undefined;
             for (const collection of taskCollections) {

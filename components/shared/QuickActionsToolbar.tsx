@@ -47,7 +47,7 @@ export const QuickActionsToolbar: React.FC<QuickActionsToolbarProps> = ({
     }, [isExpanded]);
 
     // Task quick actions
-    const handleAddTask = async (category: 'platformTasks' | 'investorTasks' | 'customerTasks' | 'partnerTasks' | 'marketingTasks' | 'financialTasks') => {
+    const handleAddTask = async (category: 'productsServicesTasks' | 'investorTasks' | 'customerTasks' | 'partnerTasks' | 'marketingTasks' | 'financialTasks') => {
         if (onOpenForm) {
             onOpenForm('task', { category });
             setIsExpanded(false);
@@ -111,14 +111,14 @@ export const QuickActionsToolbar: React.FC<QuickActionsToolbarProps> = ({
         const timeStr = window.prompt('Meeting time (HH:MM):', '10:00');
         
         // Need company and contact ID - for now, create as task
-        const result = await actions.createTask('platformTasks', `Meeting: ${title.trim()}`, 'Medium', undefined, undefined, dateStr.trim(), undefined, timeStr || '10:00');
+        const result = await actions.createTask('productsServicesTasks', `Meeting: ${title.trim()}`, 'Medium', undefined, undefined, dateStr.trim(), undefined, timeStr || '10:00');
         onActionComplete?.(result.message);
     };
 
     // Follow-up quick action
     const handleAddFollowUp = async () => {
         if (onOpenForm) {
-            onOpenForm('task', { category: 'platformTasks', priority: 'High' });
+            onOpenForm('task', { category: 'productsServicesTasks', priority: 'High' });
             setIsExpanded(false);
             return;
         }
@@ -129,7 +129,7 @@ export const QuickActionsToolbar: React.FC<QuickActionsToolbarProps> = ({
         const dateStr = window.prompt('Follow-up date (YYYY-MM-DD):', '');
         if (!dateStr?.trim()) return;
 
-        const result = await actions.createTask('platformTasks', text.trim(), 'High', undefined, undefined, dateStr.trim());
+        const result = await actions.createTask('productsServicesTasks', text.trim(), 'High', undefined, undefined, dateStr.trim());
         onActionComplete?.(result.message);
     };
 
@@ -200,7 +200,7 @@ export const QuickActionsToolbar: React.FC<QuickActionsToolbarProps> = ({
 
     const quickActions: QuickAction[] = [
         // Task actions by tab type
-        { id: 'task-platform', label: 'Platform Task', icon: '⚙️', action: () => handleAddTask('platformTasks'), category: 'task' },
+        { id: 'task-platform', label: 'Products & Services Task', icon: '📦', action: () => handleAddTask('productsServicesTasks'), category: 'task' },
         { id: 'task-investor', label: 'Investor Task', icon: '💰', action: () => handleAddTask('investorTasks'), category: 'task' },
         { id: 'task-customer', label: 'Customer Task', icon: '🎯', action: () => handleAddTask('customerTasks'), category: 'task' },
         { id: 'task-partner', label: 'Partner Task', icon: '🤝', action: () => handleAddTask('partnerTasks'), category: 'task' },

@@ -81,7 +81,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, trigger
     return (
         <div 
             className="fixed inset-0 z-[100] flex justify-center items-center p-2 sm:p-4"
-            style={{ backgroundColor: 'rgba(0, 0, 0, 0.15)' }}
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
             onClick={handleBackdropClick}
             aria-modal="true"
             role="dialog"

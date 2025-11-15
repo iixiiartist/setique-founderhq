@@ -527,7 +527,7 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
     const handleGenerateReport = () => {
         const getReportPrompt = (tab: TabType): string => {
             switch(tab) {
-                case Tab.Platform: return "Please generate a performance report for the platform development tasks.";
+                case Tab.ProductsServices: return "Please generate a performance report for products and services management.";
                 case Tab.Investors:
                 case Tab.Customers:
                 case Tab.Partners:

@@ -5,11 +5,11 @@ import { getAiResponse } from '../services/groqService';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { TASK_TAG_BG_COLORS } from '../constants';
-import XpBadge from './shared/XpBadge';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { useAuth } from '../contexts/AuthContext';
 import Modal from './shared/Modal';
 import { TaskComments } from './shared/TaskComments';
+import { SubtaskManager } from './shared/SubtaskManager';
 import KpiCard from './shared/KpiCard';
 
 const TaskItem: React.FC<{ 
@@ -43,7 +43,14 @@ const TaskItem: React.FC<{
                     />
                     <div className="flex flex-col overflow-hidden">
                         <span className="font-mono text-xs font-semibold text-gray-600">{task.tag}</span>
-                        <span className={`text-black truncate ${task.status === 'Done' ? 'line-through' : ''} ${!canEdit ? 'opacity-50' : ''}`}>{task.text}</span>
+                        <div className="flex items-center gap-2">
+                            <span className={`text-black truncate ${task.status === 'Done' ? 'line-through' : ''} ${!canEdit ? 'opacity-50' : ''}`}>{task.text}</span>
+                            {task.subtasks && task.subtasks.length > 0 && (
+                                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded border border-blue-300 shrink-0">
+                                    📋 {task.subtasks.filter(st => st.completed).length}/{task.subtasks.length}
+                                </span>
+                            )}
+                        </div>
                         {task.assignedToName && (
                             <span className="font-mono text-xs text-blue-600 mt-1">
                                 👤 {task.assignedToName}
@@ -53,7 +60,6 @@ const TaskItem: React.FC<{
                 </div>
                 <div className="shrink-0 ml-2 flex items-center gap-2">
                     {isOverdue && <span className="font-mono text-xs font-bold text-red-600">OVERDUE</span>}
-                    <XpBadge priority={task.priority} />
                     <button 
                         onClick={(e) => {
                             e.stopPropagation(); // Prevent triggering card click
@@ -113,6 +119,7 @@ const DashboardTab: React.FC<{
     const [editPriority, setEditPriority] = useState<Priority>('Medium');
     const [editDueDate, setEditDueDate] = useState('');
     const [editAssignedTo, setEditAssignedTo] = useState('');
+    const [editSubtasks, setEditSubtasks] = useState<Task['subtasks']>([]);
 
     const generateBriefing = async () => {
         setIsBriefingLoading(true);
@@ -125,17 +132,40 @@ const DashboardTab: React.FC<{
         if (businessProfile) {
             // Note: Database returns snake_case, not camelCase
             const profile = businessProfile as any;
-            businessContext = `
-**Business Context:**
-- Company: ${profile.company_name || profile.companyName || 'Your Company'}
-- Industry: ${profile.industry || 'Not specified'}
-- Business Model: ${profile.business_model || profile.businessModel || 'Not specified'}
-- Description: ${profile.description || 'Not specified'}
-- Target Market: ${profile.target_market || profile.targetMarket || 'Not specified'}
-- Primary Goal: ${profile.primary_goal || profile.primaryGoal || 'Not specified'}
-- Key Challenges: ${profile.key_challenges || profile.keyChallenges || 'Not specified'}
-- Growth Stage: ${profile.growth_stage || profile.growthStage || 'Not specified'}
-`;
+            const contextParts = [
+                `**Business Context:**`,
+                `- Company: ${profile.company_name || profile.companyName || 'Your Company'}`,
+                `- Industry: ${profile.industry || 'Not specified'}`,
+                `- Business Model: ${profile.business_model || profile.businessModel || 'Not specified'}`,
+                `- Description: ${profile.description || 'Not specified'}`,
+                `- Target Market: ${profile.target_market || profile.targetMarket || 'Not specified'}`,
+                `- Primary Goal: ${profile.primary_goal || profile.primaryGoal || 'Not specified'}`,
+                `- Key Challenges: ${profile.key_challenges || profile.keyChallenges || 'Not specified'}`,
+                `- Growth Stage: ${profile.growth_stage || profile.growthStage || 'Not specified'}`
+            ];
+
+            // Phase 2: Enhanced context fields
+            if (profile.target_customer_profile || profile.targetCustomerProfile) {
+                contextParts.push(`- Target Customer: ${profile.target_customer_profile || profile.targetCustomerProfile}`);
+            }
+            if (profile.market_positioning || profile.marketPositioning) {
+                contextParts.push(`- Market Positioning: ${profile.market_positioning || profile.marketPositioning}`);
+            }
+            if (profile.competitive_advantages || profile.competitiveAdvantages) {
+                const advantages = profile.competitive_advantages || profile.competitiveAdvantages;
+                contextParts.push(`- Competitive Advantages: ${Array.isArray(advantages) ? advantages.join(', ') : advantages}`);
+            }
+            if (profile.monetization_model || profile.monetizationModel) {
+                contextParts.push(`- Monetization Model: ${profile.monetization_model || profile.monetizationModel}`);
+            }
+            if (profile.average_deal_size || profile.averageDealSize) {
+                contextParts.push(`- Avg Deal Size: $${profile.average_deal_size || profile.averageDealSize}`);
+            }
+            if (profile.sales_cycle_days || profile.salesCycleDays) {
+                contextParts.push(`- Sales Cycle: ${profile.sales_cycle_days || profile.salesCycleDays} days`);
+            }
+
+            businessContext = contextParts.join('\n');
         }
         
         // Get company name from either snake_case or camelCase
@@ -151,6 +181,7 @@ ${businessContext}
         - Start with a friendly, encouraging opening that references their business.
         - Highlight any calendar events scheduled for today (meetings, tasks with due dates).
         - Point out any overdue tasks or CRM actions. Be specific.
+        - **Subtask Progress:** When relevant, mention tasks with subtasks and their completion status (e.g., "The 'Launch MVP' task has 3/5 subtasks completed").
         - Mention upcoming calendar events for the next few days.
         - Summarize the number of active items in each key CRM pipeline (Investors, Customers, Partners).
         - Briefly mention the latest financial metrics (MRR, GMV) and any trends if there's enough data.
@@ -165,7 +196,32 @@ ${businessContext}
         - If you do not have an answer to a question, explicitly state that you don't know the answer at this time.
         `;
 
+        // Calculate subtask statistics
+        const allTasksForStats = [
+            ...data.productsServicesTasks,
+            ...data.investorTasks,
+            ...data.customerTasks,
+            ...data.partnerTasks,
+            ...data.marketingTasks,
+            ...data.financialTasks
+        ];
+        
+        const tasksWithSubtasks = allTasksForStats.filter(t => t.subtasks && t.subtasks.length > 0);
+        const totalSubtasks = tasksWithSubtasks.reduce((sum, t) => sum + (t.subtasks?.length || 0), 0);
+        const completedSubtasks = tasksWithSubtasks.reduce((sum, t) => 
+            sum + (t.subtasks?.filter(st => st.completed).length || 0), 0
+        );
+        
+        const subtaskStats = {
+            tasksWithSubtasks: tasksWithSubtasks.length,
+            totalSubtasks,
+            completedSubtasks,
+            percentComplete: totalSubtasks > 0 ? Math.round((completedSubtasks / totalSubtasks) * 100) : 0
+        };
+
         const userPrompt = `Here is the current state of my dashboard. Please provide my daily briefing.
+        
+        **Subtask Progress Summary:** ${subtaskStats.tasksWithSubtasks} tasks have subtasks. Overall subtask completion: ${subtaskStats.completedSubtasks}/${subtaskStats.totalSubtasks} (${subtaskStats.percentComplete}%)
         
         Dashboard Data:
         ${JSON.stringify(data, null, 2)}
@@ -212,7 +268,7 @@ ${businessContext}
     }, [workspace?.planType]); // Re-run if plan changes
 
     const allTasks = useMemo(() => [
-        ...data.platformTasks.map(t => ({ ...t, tag: 'Platform', collection: 'platformTasks' as const })),
+        ...data.productsServicesTasks.map(t => ({ ...t, tag: 'Products & Services', collection: 'productsServicesTasks' as const })),
         ...data.investorTasks.map(t => ({ ...t, tag: 'Investor', collection: 'investorTasks' as const })),
         ...data.customerTasks.map(t => ({ ...t, tag: 'Customer', collection: 'customerTasks' as const })),
         ...data.partnerTasks.map(t => ({ ...t, tag: 'Partner', collection: 'partnerTasks' as const })),
@@ -267,6 +323,7 @@ ${businessContext}
         setEditPriority(task.priority);
         setEditDueDate(task.dueDate || '');
         setEditAssignedTo(task.assignedTo || '');
+        setEditSubtasks(task.subtasks || []);
         setEditingTask(false);
     };
 
@@ -277,6 +334,7 @@ ${businessContext}
                 priority: editPriority,
                 dueDate: editDueDate || null,
                 assignedTo: editAssignedTo || null,
+                subtasks: editSubtasks,
             });
             setEditingTask(false);
         }
@@ -480,9 +538,38 @@ ${businessContext}
                                             </span>
                                         )}
                                     </div>
+                                    
+                                    {/* Subtasks Display in View Mode */}
+                                    {selectedTask.subtasks && selectedTask.subtasks.length > 0 && (
+                                        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
+                                            <h4 className="font-semibold text-sm mb-2">Subtasks ({selectedTask.subtasks.filter(st => st.completed).length}/{selectedTask.subtasks.length} completed)</h4>
+                                            <ul className="space-y-1">
+                                                {selectedTask.subtasks.map((subtask, idx) => (
+                                                    <li key={idx} className="flex items-center gap-2 text-sm">
+                                                        <span className={subtask.completed ? 'text-green-600' : 'text-gray-500'}>
+                                                            {subtask.completed ? '✓' : '○'}
+                                                        </span>
+                                                        <span className={subtask.completed ? 'line-through text-gray-500' : ''}>
+                                                            {subtask.text}
+                                                        </span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
                                 </>
                             )}
                         </div>
+
+                        {/* Subtask Editor in Edit Mode */}
+                        {editingTask && (
+                            <div className="border-t-2 border-gray-200 pt-4">
+                                <SubtaskManager
+                                    subtasks={editSubtasks || []}
+                                    onSubtasksChange={setEditSubtasks}
+                                />
+                            </div>
+                        )}
 
                         {/* Action Buttons */}
                         {canEditSelectedTask && (

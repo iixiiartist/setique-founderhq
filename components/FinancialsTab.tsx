@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
-import { FinancialLog, Expense, ExpenseCategory, PaymentMethod, AppActions, Task, Document, BusinessProfile, WorkspaceMember, DashboardData } from '../types';
+import { FinancialLog, Expense, ExpenseCategory, PaymentMethod, AppActions, Task, Document, BusinessProfile, WorkspaceMember, DashboardData, ProductService } from '../types';
 import { Tab } from '../constants';
 import TaskManagement from './shared/TaskManagement';
 import { useWorkspace } from '../contexts/WorkspaceContext';
@@ -223,7 +223,8 @@ const FinancialsTab: React.FC<{
     onUpgradeNeeded?: () => void;
     workspaceMembers?: WorkspaceMember[];
     data?: DashboardData;
-}> = React.memo(({ items, expenses, tasks, actions, documents, businessProfile, workspaceId, onUpgradeNeeded, workspaceMembers = [], data }) => {
+    productsServices?: ProductService[];
+}> = React.memo(({ items, expenses, tasks, actions, documents, businessProfile, workspaceId, onUpgradeNeeded, workspaceMembers = [], data, productsServices = [] }) => {
     const { workspace } = useWorkspace();
     const [currentView, setCurrentView] = useState<'overview' | 'revenue' | 'cashflow' | 'metrics'>('overview');
     const [form, setForm] = useState<Omit<FinancialLog, 'id'>>({
@@ -450,6 +451,7 @@ const FinancialsTab: React.FC<{
                     data={data}
                     actions={actions}
                     workspaceId={workspaceId}
+                    productsServices={productsServices}
                 />
             )}
 

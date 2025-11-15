@@ -58,7 +58,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
     // Task fields
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
-    const [category, setCategory] = useState<TaskCollectionName>('platformTasks');
+    const [category, setCategory] = useState<TaskCollectionName>('productsServicesTasks');
     const [priority, setPriority] = useState<Priority>('Medium');
     const [assignedTo, setAssignedTo] = useState('');
 
@@ -302,7 +302,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                             className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
                             required
                         >
-                            <option value="platformTasks">Platform</option>
+                            <option value="productsServicesTasks">Products & Services</option>
                             <option value="investorTasks">Investor</option>
                             <option value="customerTasks">Customer</option>
                             <option value="partnerTasks">Partner</option>

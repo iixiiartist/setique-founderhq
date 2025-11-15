@@ -39,6 +39,7 @@ interface DbTask {
   due_date?: string | null;
   due_time?: string | null;
   notes: any[];
+  subtasks?: any[];
   crm_item_id?: string | null;
   contact_id?: string | null;
   user_id?: string;
@@ -138,14 +139,14 @@ interface DbExpense {
 // ============================================================================
 
 const TASK_CATEGORY_MAP: Record<string, TaskCollectionName> = {
-  platformTasks: 'platformTasks',
+  productsServicesTasks: 'productsServicesTasks',
   investorTasks: 'investorTasks',
   customerTasks: 'customerTasks',
   partnerTasks: 'partnerTasks',
   marketingTasks: 'marketingTasks',
   financialTasks: 'financialTasks',
   // Legacy/alternate spellings mapped to current categories
-  platform: 'platformTasks',
+  platform: 'productsServicesTasks',
   investor: 'investorTasks',
   customer: 'customerTasks',
   partner: 'partnerTasks',
@@ -153,7 +154,7 @@ const TASK_CATEGORY_MAP: Record<string, TaskCollectionName> = {
   financial: 'financialTasks',
 };
 
-const DEFAULT_TASK_CATEGORY: TaskCollectionName = 'platformTasks';
+const DEFAULT_TASK_CATEGORY: TaskCollectionName = 'productsServicesTasks';
 
 /**
  * Normalize task category with fallback to default
@@ -187,6 +188,7 @@ export function dbToTask(dbTask: DbTask): Task {
     dueDate: dbTask.due_date || undefined,
     dueTime: dbTask.due_time || undefined,
     notes: dbTask.notes || [],
+    subtasks: dbTask.subtasks || [],
     crmItemId: dbTask.crm_item_id || undefined,
     contactId: dbTask.contact_id || undefined,
     userId: dbTask.user_id,
@@ -332,6 +334,7 @@ export function taskToDb(task: Partial<Task>): Record<string, any> {
   if (task.dueDate !== undefined) dbObject.due_date = task.dueDate || null;
   if (task.dueTime !== undefined) dbObject.due_time = task.dueTime || null;
   if (task.notes !== undefined) dbObject.notes = task.notes;
+  if (task.subtasks !== undefined) dbObject.subtasks = task.subtasks;
   if (task.crmItemId !== undefined) dbObject.crm_item_id = task.crmItemId || null;
   if (task.contactId !== undefined) dbObject.contact_id = task.contactId || null;
   if (task.assignedTo !== undefined) dbObject.assigned_to = task.assignedTo || null;

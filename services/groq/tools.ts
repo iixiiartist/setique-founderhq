@@ -25,7 +25,7 @@ const createTaskTool: GroqTool = {
                 category: {
                     type: 'string',
                     description: 'The category of the task.',
-                    enum: ['platformTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketingTasks', 'financialTasks']
+                    enum: ['productsServicesTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketingTasks', 'financialTasks']
                 },
                 text: { type: 'string', description: 'The content or description of the task.' },
                 priority: {
@@ -86,8 +86,8 @@ const addNoteTool: GroqTool = {
             properties: {
                 collection: {
                     type: 'string',
-                    description: 'The collection where the item exists.',
-                    enum: ['investors', 'customers', 'partners', 'platformTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketing', 'marketingTasks', 'financialTasks', 'documents', 'contacts']
+                    description: 'The collection where the item is stored.',
+                    enum: ['investors', 'customers', 'partners', 'productsServicesTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketing', 'marketingTasks', 'financialTasks', 'documents', 'contacts']
                 },
                 itemId: { type: 'string', description: 'The ID of the item to add the note to.' },
                 noteText: { type: 'string', description: 'The content of the note.' },
@@ -109,7 +109,7 @@ const updateNoteTool: GroqTool = {
                 collection: {
                     type: 'string',
                     description: 'The collection where the item exists.',
-                    enum: ['investors', 'customers', 'partners', 'platformTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketing', 'marketingTasks', 'financialTasks', 'documents', 'contacts']
+                    enum: ['investors', 'customers', 'partners', 'productsServicesTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketing', 'marketingTasks', 'financialTasks', 'documents', 'contacts']
                 },
                 itemId: { type: 'string', description: 'The ID of the item containing the note.' },
                 noteTimestamp: { type: 'number', description: 'The timestamp of the note to update.' },
@@ -132,7 +132,7 @@ const deleteNoteTool: GroqTool = {
                 collection: {
                     type: 'string',
                     description: 'The collection where the item exists.',
-                    enum: ['investors', 'customers', 'partners', 'platformTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketing', 'marketingTasks', 'financialTasks', 'documents', 'contacts']
+                    enum: ['investors', 'customers', 'partners', 'productsServicesTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketing', 'marketingTasks', 'financialTasks', 'documents', 'contacts']
                 },
                 itemId: { type: 'string', description: 'The ID of the item containing the note.' },
                 noteTimestamp: { type: 'number', description: 'The timestamp of the note to delete.' },
@@ -456,7 +456,7 @@ const deleteItemTool: GroqTool = {
             properties: {
                 collection: {
                     type: 'string',
-                    enum: ['investors', 'customers', 'partners', 'platformTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketing', 'marketingTasks', 'financialTasks', 'documents']
+                    enum: ['investors', 'customers', 'partners', 'productsServicesTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketing', 'marketingTasks', 'financialTasks', 'documents']
                 },
                 itemId: { type: 'string' }
             },

@@ -91,6 +91,7 @@ export class DataPersistenceAdapter {
 
   static async updateTask(taskId: string, updates: Partial<Task>, userId?: string, workspaceId?: string) {
     console.log('[DataPersistenceAdapter] updateTask called with:', { taskId, updates });
+    console.log('[DataPersistenceAdapter] Subtasks being updated:', updates.subtasks);
     
     // Store original data for activity logging
     const { data: originalTask } = await DatabaseService.getTaskById(taskId);
@@ -99,6 +100,7 @@ export class DataPersistenceAdapter {
     const dbUpdates = taskToDb(updates);
 
     console.log('[DataPersistenceAdapter] Transformed db updates:', dbUpdates);
+    console.log('[DataPersistenceAdapter] Subtasks in dbUpdates:', dbUpdates.subtasks);
 
     const { data, error } = await DatabaseService.updateTask(taskId, dbUpdates)
     
