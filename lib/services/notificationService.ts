@@ -56,11 +56,54 @@ interface GetNotificationsParams {
 }
 
 /**
+ * Create multiple notifications in batch (e.g., for mentions)
+ */
+export async function createNotificationsBatch(notifications: CreateNotificationParams[]): Promise<{ success: boolean; created: number; error: string | null }> {
+  try {
+    if (notifications.length === 0) {
+      return { success: true, created: 0, error: null };
+    }
+
+    if (process.env.NODE_ENV !== 'production') {
+      logger.debug(`[NotificationService] Creating ${notifications.length} notifications in batch`);
+    }
+
+    const rows = notifications.map(params => ({
+      user_id: params.userId,
+      workspace_id: params.workspaceId,
+      type: params.type,
+      title: params.title,
+      message: params.message,
+      entity_type: params.entityType,
+      entity_id: params.entityId,
+      read: false,
+    }));
+
+    const { data, error } = await supabase
+      .from('notifications')
+      .insert(rows)
+      .select();
+
+    if (error) {
+      logger.error('[NotificationService] Batch creation failed:', error);
+      return { success: false, created: 0, error: error.message };
+    }
+
+    return { success: true, created: data?.length || 0, error: null };
+  } catch (err) {
+    logger.error('[NotificationService] Batch creation unexpected error:', err);
+    return { success: false, created: 0, error: 'Failed to create notifications' };
+  }
+}
+
+/**
  * Create a new notification for a user
  */
 export async function createNotification(params: CreateNotificationParams): Promise<{ notification: Notification | null; error: string | null }> {
   try {
-    logger.info('[NotificationService] Creating notification:', params);
+    if (process.env.NODE_ENV !== 'production') {
+      logger.debug('[NotificationService] Creating notification:', params);
+    }
 
     const { data, error } = await supabase
       .from('notifications')
@@ -82,8 +125,6 @@ export async function createNotification(params: CreateNotificationParams): Prom
       return { notification: null, error: error.message };
     }
 
-    logger.info('[NotificationService] Notification created successfully with ID:', data.id);
-
     // Return the actual notification with real UUID and timestamps from database
     const notification: Notification = {
       id: data.id,
@@ -98,7 +139,6 @@ export async function createNotification(params: CreateNotificationParams): Prom
       createdAt: data.created_at,
     };
 
-    logger.info('[NotificationService] Created notification:', notification.id);
     return { notification, error: null };
   } catch (err) {
     logger.error('[NotificationService] Unexpected error:', err);
@@ -113,7 +153,9 @@ export async function getUserNotifications(params: GetNotificationsParams): Prom
   try {
     const limit = params.limit || 50;
 
-    logger.info('[NotificationService] Fetching notifications for user:', params.userId);
+    if (process.env.NODE_ENV !== 'production') {
+      logger.debug('[NotificationService] Fetching notifications for user:', params.userId);
+    }
 
     let query = supabase
       .from('notifications')
@@ -150,7 +192,6 @@ export async function getUserNotifications(params: GetNotificationsParams): Prom
       createdAt: row.created_at,
     }));
 
-    logger.info('[NotificationService] Loaded notifications:', notifications.length);
     return { notifications, error: null };
   } catch (err) {
     logger.error('[NotificationService] Unexpected error:', err);
@@ -159,23 +200,40 @@ export async function getUserNotifications(params: GetNotificationsParams): Prom
 }
 
 /**
- * Mark a notification as read
+ * Mark a notification as read with tenant safety
  */
-export async function markNotificationAsRead(notificationId: string): Promise<{ success: boolean; error: string | null }> {
+export async function markNotificationAsRead(
+  notificationId: string,
+  userId: string,
+  workspaceId?: string
+): Promise<{ success: boolean; error: string | null }> {
   try {
-    logger.info('[NotificationService] Marking notification as read:', notificationId);
+    if (process.env.NODE_ENV !== 'production') {
+      logger.debug('[NotificationService] Marking notification as read:', notificationId);
+    }
 
-    const { error } = await supabase
+    let query = supabase
       .from('notifications')
       .update({ read: true })
-      .eq('id', notificationId);
+      .eq('id', notificationId)
+      .eq('user_id', userId); // Tenant safety: ensure user owns this notification
+
+    if (workspaceId) {
+      query = query.eq('workspace_id', workspaceId);
+    }
+
+    const { error, count } = await query;
 
     if (error) {
       logger.error('[NotificationService] Failed to mark as read:', error);
       return { success: false, error: error.message };
     }
 
-    logger.info('[NotificationService] Marked as read:', notificationId);
+    if (count === 0) {
+      logger.warn('[NotificationService] No notification found to mark as read:', notificationId);
+      return { success: false, error: 'Notification not found or access denied' };
+    }
+
     return { success: true, error: null };
   } catch (err) {
     logger.error('[NotificationService] Unexpected error:', err);
@@ -188,7 +246,9 @@ export async function markNotificationAsRead(notificationId: string): Promise<{ 
  */
 export async function markAllNotificationsAsRead(userId: string, workspaceId?: string): Promise<{ success: boolean; error: string | null }> {
   try {
-    logger.info('[NotificationService] Marking all notifications as read for user:', userId);
+    if (process.env.NODE_ENV !== 'production') {
+      logger.debug('[NotificationService] Marking all notifications as read for user:', userId);
+    }
 
     let query = supabase
       .from('notifications')
@@ -207,7 +267,6 @@ export async function markAllNotificationsAsRead(userId: string, workspaceId?: s
       return { success: false, error: error.message };
     }
 
-    logger.info('[NotificationService] Marked all as read for user:', userId);
     return { success: true, error: null };
   } catch (err) {
     logger.error('[NotificationService] Unexpected error:', err);
@@ -245,23 +304,40 @@ export async function getUnreadCount(userId: string, workspaceId?: string): Prom
 }
 
 /**
- * Delete a notification
+ * Delete a notification with tenant safety
  */
-export async function deleteNotification(notificationId: string): Promise<{ success: boolean; error: string | null }> {
+export async function deleteNotification(
+  notificationId: string,
+  userId: string,
+  workspaceId?: string
+): Promise<{ success: boolean; error: string | null }> {
   try {
-    logger.info('[NotificationService] Deleting notification:', notificationId);
+    if (process.env.NODE_ENV !== 'production') {
+      logger.debug('[NotificationService] Deleting notification:', notificationId);
+    }
 
-    const { error } = await supabase
+    let query = supabase
       .from('notifications')
       .delete()
-      .eq('id', notificationId);
+      .eq('id', notificationId)
+      .eq('user_id', userId); // Tenant safety: ensure user owns this notification
+
+    if (workspaceId) {
+      query = query.eq('workspace_id', workspaceId);
+    }
+
+    const { error, count } = await query;
 
     if (error) {
       logger.error('[NotificationService] Failed to delete notification:', error);
       return { success: false, error: error.message };
     }
 
-    logger.info('[NotificationService] Deleted notification:', notificationId);
+    if (count === 0) {
+      logger.warn('[NotificationService] No notification found to delete:', notificationId);
+      return { success: false, error: 'Notification not found or access denied' };
+    }
+
     return { success: true, error: null };
   } catch (err) {
     logger.error('[NotificationService] Unexpected error:', err);

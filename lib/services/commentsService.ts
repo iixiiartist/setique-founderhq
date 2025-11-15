@@ -151,32 +151,30 @@ export async function createComment(params: CreateCommentParams): Promise<{ comm
       updatedAt: commentRow.updated_at,
     };
 
-    // Create notifications for mentioned users
+    // Create notifications for mentioned users in batch
     if (mentions.length > 0) {
-      logger.info('[CommentsService] Creating notifications for mentions:', mentions);
+      const { createNotificationsBatch } = await import('./notificationService');
       const commenterName = commentRow.profiles?.full_name || 'Someone';
       const taskName = params.taskName || 'a task';
 
-      for (const mentionedUserId of mentions) {
-        // Don't notify the commenter themselves
-        if (mentionedUserId !== params.userId) {
-          logger.info('[CommentsService] Creating notification for user:', mentionedUserId);
-          const result = await createNotification({
-            userId: mentionedUserId,
-            workspaceId: params.workspaceId,
-            type: 'mention',
-            title: `${commenterName} mentioned you`,
-            message: `${commenterName} mentioned you in a comment on "${taskName}"`,
-            entityType: 'comment',
-            entityId: comment.id,
-          });
-          logger.info('[CommentsService] Notification creation result:', result);
-        } else {
-          logger.info('[CommentsService] Skipping self-notification for:', mentionedUserId);
+      const notificationsToCreate = mentions
+        .filter(mentionedUserId => mentionedUserId !== params.userId)
+        .map(mentionedUserId => ({
+          userId: mentionedUserId,
+          workspaceId: params.workspaceId,
+          type: 'mention' as const,
+          title: `${commenterName} mentioned you`,
+          message: `${commenterName} mentioned you in a comment on "${taskName}"`,
+          entityType: 'comment' as const,
+          entityId: comment.id,
+        }));
+
+      if (notificationsToCreate.length > 0) {
+        const result = await createNotificationsBatch(notificationsToCreate);
+        if (process.env.NODE_ENV !== 'production' && result.success) {
+          logger.debug(`[CommentsService] Created ${result.created} mention notifications`);
         }
       }
-    } else {
-      logger.info('[CommentsService] No mentions found in comment');
     }
 
     // Log activity

@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Bell, Check, CheckCheck, Trash2, X } from 'lucide-react';
+import { RealtimeChannel } from '@supabase/supabase-js';
+import { supabase } from '../../lib/supabase';
 import {
   getUserNotifications,
   markNotificationAsRead,
@@ -8,6 +10,8 @@ import {
   getUnreadCount,
   type Notification,
 } from '../../lib/services/notificationService';
+import { showError, showSuccess } from '../../lib/utils/toast';
+import * as Sentry from '@sentry/react';
 
 interface NotificationBellProps {
   userId: string;
@@ -24,14 +28,96 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [realtimeConnected, setRealtimeConnected] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const channelRef = useRef<RealtimeChannel | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const unreadCountRef = useRef<HTMLSpanElement>(null);
 
-  // Load notifications and unread count
-  useEffect(() => {
-    loadUnreadCount();
-    const interval = setInterval(loadUnreadCount, 30000); // Poll every 30 seconds
-    return () => clearInterval(interval);
+  // Load unread count with error handling
+  const loadUnreadCount = useCallback(async () => {
+    try {
+      const { count, error } = await getUnreadCount(userId, workspaceId);
+      if (error) throw new Error(error);
+      
+      const newCount = count || 0;
+      setUnreadCount(prev => {
+        // Announce to screen readers if count increased
+        if (newCount > prev && unreadCountRef.current) {
+          unreadCountRef.current.setAttribute('aria-label', `${newCount} unread notifications`);
+        }
+        return newCount;
+      });
+    } catch (error) {
+      Sentry.captureException(error, {
+        tags: { component: 'NotificationBell', action: 'loadUnreadCount' },
+        extra: { userId, workspaceId }
+      });
+      // Don't show error toast for background polling
+    }
   }, [userId, workspaceId]);
+
+  // Setup real-time subscription with fallback polling
+  useEffect(() => {
+    // Initial load
+    loadUnreadCount();
+
+    // Setup real-time subscription
+    const channel = supabase
+      .channel(`notifications:${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${userId}${workspaceId ? `,workspace_id=eq.${workspaceId}` : ''}`,
+        },
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            // Increment unread count for new notifications
+            loadUnreadCount();
+            // If dropdown is open, refresh the list
+            if (isOpen) {
+              loadNotifications();
+            }
+          } else if (payload.eventType === 'UPDATE' || payload.eventType === 'DELETE') {
+            // Refresh count and list if open
+            loadUnreadCount();
+            if (isOpen) {
+              loadNotifications();
+            }
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setRealtimeConnected(true);
+          // Clear polling when realtime connects
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+          }
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          setRealtimeConnected(false);
+          // Fallback to polling if realtime fails
+          if (!pollingIntervalRef.current) {
+            pollingIntervalRef.current = setInterval(loadUnreadCount, 30000);
+          }
+        }
+      });
+
+    channelRef.current = channel;
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, [userId, workspaceId, isOpen, loadUnreadCount]);
 
   // Load notifications when dropdown opens
   useEffect(() => {
@@ -59,27 +145,55 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
     setUnreadCount(count || 0);
   };
 
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     setLoading(true);
-    const { notifications: fetchedNotifications } = await getUserNotifications({
-      userId,
-      workspaceId,
-      limit: 20,
-    });
-    setNotifications(fetchedNotifications);
-    setLoading(false);
-  };
+    try {
+      const { notifications: fetchedNotifications, error } = await getUserNotifications({
+        userId,
+        workspaceId,
+        limit: 20,
+      });
+      if (error) throw new Error(error);
+      setNotifications(fetchedNotifications);
+    } catch (error) {
+      Sentry.captureException(error, {
+        tags: { component: 'NotificationBell', action: 'loadNotifications' },
+        extra: { userId, workspaceId }
+      });
+      showError('Failed to load notifications');
+    } finally {
+      setLoading(false);
+    }
+  }, [userId, workspaceId]);
 
-  const handleNotificationClick = async (notification: Notification) => {
+  const handleNotificationClick = useCallback(async (notification: Notification) => {
     // Mark as read
     if (!notification.read) {
-      await markNotificationAsRead(notification.id);
-      setNotifications(
-        notifications.map((n) =>
+      // Optimistic update
+      const prevNotifications = notifications;
+      const prevUnreadCount = unreadCount;
+      
+      setNotifications(prev =>
+        prev.map((n) =>
           n.id === notification.id ? { ...n, read: true } : n
         )
       );
-      setUnreadCount(Math.max(0, unreadCount - 1));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+
+      try {
+        const { success, error } = await markNotificationAsRead(notification.id, userId, workspaceId);
+        if (!success || error) throw new Error(error || 'Failed to mark as read');
+      } catch (error) {
+        // Rollback on failure
+        setNotifications(prevNotifications);
+        setUnreadCount(prevUnreadCount);
+        Sentry.captureException(error, {
+          tags: { component: 'NotificationBell', action: 'markAsRead' },
+          extra: { notificationId: notification.id, userId }
+        });
+        showError('Failed to mark notification as read');
+        return; // Don't proceed if marking failed
+      }
     }
 
     // Call parent handler
@@ -89,27 +203,61 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
 
     // Close dropdown
     setIsOpen(false);
-  };
+  }, [notifications, unreadCount, userId, workspaceId, onNotificationClick]);
 
-  const handleMarkAllAsRead = async () => {
-    await markAllNotificationsAsRead(userId, workspaceId);
-    setNotifications(
-      notifications.map((n) => ({ ...n, read: true }))
-    );
+  const handleMarkAllAsRead = useCallback(async () => {
+    // Optimistic update
+    const prevNotifications = notifications;
+    const prevUnreadCount = unreadCount;
+    
+    setNotifications(prev => prev.map((n) => ({ ...n, read: true })));
     setUnreadCount(0);
-  };
 
-  const handleDeleteNotification = async (notificationId: string, event: React.MouseEvent) => {
+    try {
+      const { success, error } = await markAllNotificationsAsRead(userId, workspaceId);
+      if (!success || error) throw new Error(error || 'Failed to mark all as read');
+      showSuccess('All notifications marked as read');
+    } catch (error) {
+      // Rollback on failure
+      setNotifications(prevNotifications);
+      setUnreadCount(prevUnreadCount);
+      Sentry.captureException(error, {
+        tags: { component: 'NotificationBell', action: 'markAllAsRead' },
+        extra: { userId, workspaceId }
+      });
+      showError('Failed to mark all notifications as read');
+    }
+  }, [notifications, unreadCount, userId, workspaceId]);
+
+  const handleDeleteNotification = useCallback(async (notificationId: string, event: React.MouseEvent) => {
     event.stopPropagation();
-    await deleteNotification(notificationId);
-    setNotifications(notifications.filter((n) => n.id !== notificationId));
+    
+    // Optimistic update
+    const prevNotifications = notifications;
+    const prevUnreadCount = unreadCount;
+    const deletedNotification = notifications.find((n) => n.id === notificationId);
+    
+    setNotifications(prev => prev.filter((n) => n.id !== notificationId));
     
     // Update unread count if deleted notification was unread
-    const deletedNotification = notifications.find((n) => n.id === notificationId);
     if (deletedNotification && !deletedNotification.read) {
-      setUnreadCount(Math.max(0, unreadCount - 1));
+      setUnreadCount(prev => Math.max(0, prev - 1));
     }
-  };
+
+    try {
+      const { success, error } = await deleteNotification(notificationId, userId, workspaceId);
+      if (!success || error) throw new Error(error || 'Failed to delete');
+    } catch (error) {
+      // Rollback on failure
+      setNotifications(prevNotifications);
+      setUnreadCount(prevUnreadCount);
+      Sentry.captureException(error, {
+        tags: { component: 'NotificationBell', action: 'deleteNotification' },
+        extra: { notificationId, userId }
+      });
+      showError('Failed to delete notification');
+    }
+  }, [notifications, unreadCount, userId, workspaceId]);
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
@@ -147,17 +295,26 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
 
   return (
     <div className="relative" ref={dropdownRef}>
+      {/* Aria-live region for screen reader announcements */}
+      <div className="sr-only" aria-live="polite" aria-atomic="true" ref={unreadCountRef}>
+        {unreadCount > 0 ? `${unreadCount} unread notification${unreadCount === 1 ? '' : 's'}` : 'No unread notifications'}
+      </div>
+      
       {/* Bell button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-        aria-label="Notifications"
+        aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+        aria-expanded={isOpen}
       >
         <Bell size={20} />
         {unreadCount > 0 && (
           <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
+        )}
+        {!realtimeConnected && (
+          <span className="absolute -bottom-1 -right-1 w-2 h-2 bg-yellow-500 rounded-full" title="Polling mode (realtime disconnected)" />
         )}
       </button>
 
@@ -222,7 +379,10 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
                             <p className="font-medium text-gray-900 text-sm mb-1">
                               {notification.title}
                             </p>
-                            <p className="text-sm text-gray-600 break-words">
+                            <p 
+                              className="text-sm text-gray-600 break-words line-clamp-2" 
+                              title={notification.message.length > 100 ? notification.message : undefined}
+                            >
                               {notification.message}
                             </p>
                           </div>
@@ -252,10 +412,20 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
 
           {/* Footer */}
           {notifications.length > 0 && (
-            <div className="px-4 py-3 border-t border-gray-200 text-center">
+            <div className="px-4 py-3 border-t border-gray-200 flex justify-between items-center">
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  // TODO: Navigate to dedicated notifications page
+                  // Example: window.location.href = '/notifications';
+                }}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                View All
+              </button>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                className="text-sm text-gray-600 hover:text-gray-700"
               >
                 Close
               </button>
