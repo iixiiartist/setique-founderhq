@@ -465,26 +465,45 @@ export class DataPersistenceAdapter {
   static async createMarketingItem(
     userId: string,
     workspaceId: string,
-    itemData: {
-      title: string
-      type: MarketingItem['type']
-      status?: MarketingItem['status']
-      dueDate?: string
-      assignedTo?: string | null
-      assignedToName?: string | null
-    }
+    itemData: Partial<MarketingItem> & { title: string; type: MarketingItem['type'] }
   ) {
+    // Use centralized transformer for complete field mapping
     const marketing = {
-      title: itemData.title,
-      type: itemData.type,
-      status: itemData.status || 'Planned' as const,
-      due_date: itemData.dueDate || null,
-      assigned_to: itemData.assignedTo || null,
-      assigned_to_name: itemData.assignedToName || null,
-      notes: []
+      ...marketingItemToDb({
+        title: itemData.title,
+        type: itemData.type,
+        status: itemData.status || 'Planned' as const,
+        dueDate: itemData.dueDate,
+        dueTime: itemData.dueTime,
+        assignedTo: itemData.assignedTo,
+        notes: itemData.notes || [],
+        // Campaign details
+        campaignBudget: itemData.campaignBudget,
+        actualSpend: itemData.actualSpend,
+        targetAudience: itemData.targetAudience,
+        channels: itemData.channels,
+        goals: itemData.goals,
+        kpis: itemData.kpis,
+        // Links
+        documentIds: itemData.documentIds,
+        calendarEventIds: itemData.calendarEventIds,
+        tags: itemData.tags,
+        parentCampaignId: itemData.parentCampaignId,
+        // Product/Service linking
+        productServiceIds: itemData.productServiceIds,
+        targetRevenue: itemData.targetRevenue,
+      })
     }
 
+    console.log('[DataPersistenceAdapter] Creating marketing item with complete data:', marketing);
+
     const { data, error } = await DatabaseService.createMarketingItem(userId, workspaceId, marketing)
+    
+    if (error) {
+      console.error('[DataPersistenceAdapter] Error creating marketing item:', error);
+      throw error;
+    }
+    
     return { data, error }
   }
 

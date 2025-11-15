@@ -161,16 +161,29 @@ const MarketingTab: React.FC<{
     const modalTriggerRef = useRef<HTMLButtonElement | null>(null);
     const newCampaignButtonRef = useRef<HTMLButtonElement>(null);
 
-    const handleSaveCampaign = (campaignData: Partial<MarketingItem>) => {
-        if (editingItem) {
-            // Update existing campaign
-            actions.updateMarketingItem(editingItem.id, campaignData);
-        } else {
-            // Create new campaign
-            actions.createMarketingItem(campaignData as Omit<MarketingItem, 'id' | 'createdAt' | 'notes'>);
+    const handleSaveCampaign = async (campaignData: Partial<MarketingItem>) => {
+        try {
+            let result;
+            if (editingItem) {
+                // Update existing campaign
+                result = await actions.updateMarketingItem(editingItem.id, campaignData);
+            } else {
+                // Create new campaign
+                result = await actions.createMarketingItem(campaignData as Omit<MarketingItem, 'id' | 'createdAt' | 'notes'>);
+            }
+            
+            // Only close modal if operation succeeded
+            if (result.success) {
+                setShowCampaignModal(false);
+                setEditingItem(null);
+            } else {
+                // Error is already toasted by the action, but we keep modal open
+                console.error('[MarketingTab] Campaign save failed:', result.message);
+            }
+        } catch (error) {
+            console.error('[MarketingTab] Campaign save error:', error);
+            // Keep modal open so user can retry
         }
-        setShowCampaignModal(false);
-        setEditingItem(null);
     };
 
     const openEditModal = (item: MarketingItem, triggerRef: React.RefObject<HTMLButtonElement>) => {

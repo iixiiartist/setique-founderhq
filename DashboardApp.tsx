@@ -1478,19 +1478,31 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
         createMarketingItem: async (itemData) => {
             if (!userId || !supabase) {
+                handleToast('Database not connected', 'info');
                 return { success: false, message: 'Database not connected' };
             }
 
             if (!workspace?.id) {
+                handleToast('No workspace found', 'info');
                 return { success: false, message: 'No workspace found' };
             }
 
             try {
-                logger.info('[createMarketingItem] Creating:', itemData);
-                await DataPersistenceAdapter.createMarketingItem(userId, workspace.id, itemData);
+                logger.info('[createMarketingItem] Creating with complete data:', itemData);
+                const result = await DataPersistenceAdapter.createMarketingItem(userId, workspace.id, itemData);
+                
+                if (result.error) {
+                    throw new Error(result.error.message || 'Failed to create marketing item');
+                }
                 
                 // Track action in Sentry
-                trackAction('marketing_item_created', { type: itemData.type, status: itemData.status });
+                trackAction('marketing_item_created', { 
+                    type: itemData.type, 
+                    status: itemData.status,
+                    hasBudget: !!itemData.campaignBudget,
+                    hasProducts: !!(itemData.productServiceIds && itemData.productServiceIds.length > 0),
+                    channelCount: itemData.channels?.length || 0
+                });
                 
                 // Reload marketing data immediately
                 invalidateCache('marketing');
@@ -1499,21 +1511,24 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 loadedTabsRef.current.add('marketing');
                 
                 logger.info('[createMarketingItem] Created successfully, reloaded data');
-                handleToast(`Marketing item "${itemData.title}" created.`, 'success');
-                return { success: true, message: `Marketing item "${itemData.title}" created.` };
+                handleToast(`Campaign "${itemData.title}" created successfully.`, 'success');
+                return { success: true, message: `Campaign "${itemData.title}" created.` };
             } catch (error) {
-                logger.error('Error creating marketing item:', error);
-                return { success: false, message: 'Failed to create marketing item' };
+                const errorMessage = error instanceof Error ? error.message : 'Failed to create marketing item';
+                logger.error('[createMarketingItem] Error:', error);
+                handleToast(errorMessage, 'info');
+                return { success: false, message: errorMessage };
             }
         },
 
         updateMarketingItem: async (itemId, updates) => {
             if (!userId || !supabase) {
+                handleToast('Database not connected', 'info');
                 return { success: false, message: 'Database not connected' };
             }
 
             try {
-                logger.info('[updateMarketingItem] Starting update:', { itemId, updates });
+                logger.info('[updateMarketingItem] Starting update with complete data:', { itemId, updates });
                 
                 // Check if marketing item was just published
                 const wasPublished = updates.status === 'Published';
@@ -1525,24 +1540,22 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     previousStatus = item?.status;
                 }
 
-                // Transform camelCase to snake_case for database
-                const dbUpdates: any = {};
-                if (updates.title !== undefined) dbUpdates.title = updates.title;
-                if (updates.type !== undefined) dbUpdates.item_type = updates.type;
-                if (updates.status !== undefined) dbUpdates.status = updates.status;
-                if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate;
-                if (updates.dueTime !== undefined) dbUpdates.due_time = updates.dueTime;
-
-                logger.info('[updateMarketingItem] Transformed updates:', dbUpdates);
-
-                const result = await DataPersistenceAdapter.updateMarketingItem(itemId, dbUpdates);
+                // Use centralized transformer for complete field mapping
+                const result = await DataPersistenceAdapter.updateMarketingItem(itemId, updates);
+                
+                if (result.error) {
+                    throw new Error(result.error.message || 'Failed to update marketing item');
+                }
+                
                 logger.info('[updateMarketingItem] Database result:', result);
 
                 // Track action in Sentry
                 trackAction('marketing_item_updated', { 
                     itemId, 
                     status: updates.status,
-                    wasPublished: wasPublished && previousStatus !== 'Published'
+                    wasPublished: wasPublished && previousStatus !== 'Published',
+                    hasBudget: updates.campaignBudget !== undefined,
+                    hasProducts: updates.productServiceIds !== undefined
                 });
                 
                 // Reload marketing data (important for calendar sync)
@@ -1552,12 +1565,13 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 invalidateCache('marketing');
                 logger.info('[updateMarketingItem] Update complete');
 
-                handleToast('Marketing item updated successfully', 'success');
-                return { success: true, message: 'Marketing item updated.' };
+                handleToast('Campaign updated successfully', 'success');
+                return { success: true, message: 'Campaign updated.' };
             } catch (error) {
+                const errorMessage = error instanceof Error ? error.message : 'Failed to update marketing item';
                 logger.error('[updateMarketingItem] Error:', error);
-                handleToast('Failed to update marketing item', 'info');
-                return { success: false, message: 'Failed to update marketing item' };
+                handleToast(errorMessage, 'info');
+                return { success: false, message: errorMessage };
             }
         },
 
@@ -2232,7 +2246,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
         ];
         
         logger.info('[DashboardApp] Calendar events after filter:', calendarEvents.length, 'events');
-        logger.info('[DashboardApp] Calendar event types:', calendarEvents.map(e => ({ type: e.type, title: e.title || e.text })));
+        logger.info('[DashboardApp] Calendar event types:', calendarEvents.map(e => ({ type: e.type, title: e.title || (e.type === 'task' ? (e as any).text : 'Untitled') })));
 
         switch (activeTab) {
             case Tab.Dashboard:

@@ -5,7 +5,7 @@ import Modal from '../shared/Modal';
 interface CampaignFormModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (campaignData: Partial<MarketingItem>) => void;
+    onSave: (campaignData: Partial<MarketingItem>) => Promise<void>;
     editingCampaign?: MarketingItem | null;
     productsServices?: ProductService[];
     workspaceMembers?: WorkspaceMember[];
@@ -39,6 +39,8 @@ export function CampaignFormModal({
     });
 
     const [newTag, setNewTag] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (editingCampaign) {
@@ -80,11 +82,23 @@ export function CampaignFormModal({
         setNewTag('');
     }, [editingCampaign, isOpen]);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.title?.trim()) return;
-        onSave(formData);
-        onClose();
+        if (!formData.title?.trim()) {
+            setError('Campaign title is required');
+            return;
+        }
+        
+        setIsSubmitting(true);
+        setError(null);
+        
+        try {
+            await onSave(formData);
+            // onSave will close modal on success via handleSaveCampaign
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to save campaign');
+            setIsSubmitting(false);
+        }
     };
 
     const handleChannelToggle = (channel: 'email' | 'social' | 'paid_ads' | 'content' | 'events') => {
@@ -130,6 +144,13 @@ export function CampaignFormModal({
             triggerRef={triggerRef}
         >
             <form onSubmit={handleSubmit} className="space-y-6 max-h-[75vh] overflow-y-auto custom-scrollbar pr-2">
+                {/* Error Message */}
+                {error && (
+                    <div className="p-3 bg-red-100 border-2 border-red-500 text-red-900 text-sm font-semibold">
+                        {error}
+                    </div>
+                )}
+                
                 {/* Basic Information */}
                 <div className="space-y-4">
                     <h3 className="text-lg font-bold border-b-2 border-black pb-2">Basic Information</h3>
@@ -421,14 +442,24 @@ export function CampaignFormModal({
                 <div className="flex gap-3 pt-4 border-t-2 border-gray-300">
                     <button
                         type="submit"
-                        className="flex-1 font-mono font-semibold bg-black text-white py-3 px-6 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+                        disabled={isSubmitting}
+                        className={`flex-1 font-mono font-semibold py-3 px-6 rounded-none transition-all border-2 border-black shadow-neo-btn ${
+                            isSubmitting 
+                                ? 'bg-gray-400 text-gray-700 cursor-not-allowed' 
+                                : 'bg-black text-white cursor-pointer hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
+                        }`}
                     >
-                        {editingCampaign ? 'Save Changes' : 'Create Campaign'}
+                        {isSubmitting ? 'Saving...' : (editingCampaign ? 'Save Changes' : 'Create Campaign')}
                     </button>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="flex-1 font-mono font-semibold bg-white text-black py-3 px-6 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+                        disabled={isSubmitting}
+                        className={`flex-1 font-mono font-semibold bg-white text-black py-3 px-6 rounded-none transition-all border-2 border-black shadow-neo-btn ${
+                            isSubmitting 
+                                ? 'cursor-not-allowed opacity-50' 
+                                : 'cursor-pointer hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
+                        }`}
                     >
                         Cancel
                     </button>
