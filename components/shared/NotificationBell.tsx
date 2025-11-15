@@ -140,11 +140,6 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
     }
   }, [isOpen]);
 
-  const loadUnreadCount = async () => {
-    const { count } = await getUnreadCount(userId, workspaceId);
-    setUnreadCount(count || 0);
-  };
-
   const loadNotifications = useCallback(async () => {
     setLoading(true);
     try {
