@@ -2465,8 +2465,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         <button
                             onClick={async () => {
                                 try {
-                                    const { DatabaseService } = await import('./lib/services/database');
-                                    
                                     // First, ensure profile exists
                                     logger.info('[DashboardApp] Creating profile first...');
                                     await DatabaseService.createProfile({

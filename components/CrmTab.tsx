@@ -24,7 +24,7 @@ interface CrmTabProps {
     productsServices?: ProductService[];
 }
 
-const CrmTabComponent: React.FC<CrmTabProps> = ({ 
+function CrmTabComponent({ 
     title, 
     crmItems, 
     tasks, 
@@ -37,7 +37,7 @@ const CrmTabComponent: React.FC<CrmTabProps> = ({
     userId,
     deals = [],
     productsServices = []
-}) => {
+}: CrmTabProps) {
     const { workspace } = useWorkspace();
     const [selectedItem, setSelectedItem] = useState<AnyCrmItem | null>(null);
     const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
@@ -417,7 +417,7 @@ const CrmTabComponent: React.FC<CrmTabProps> = ({
             </div>
         </div>
     );
-};
+}
 
 const CrmTab = React.memo(CrmTabComponent);
 

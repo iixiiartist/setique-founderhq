@@ -22,7 +22,7 @@ const sizeStyles: Record<ModalSize, string> = {
     full: 'max-w-[95vw] min-h-[90vh]',
 };
 
-const Modal: React.FC<ModalProps> = ({ 
+function Modal({ 
     isOpen, 
     onClose, 
     title, 
@@ -32,7 +32,7 @@ const Modal: React.FC<ModalProps> = ({
     headerActions,
     footer,
     hideCloseButton = false,
-}) => {
+}: ModalProps) {
     const modalRef = useRef<HTMLDivElement>(null);
     const titleIdRef = useRef(`modal-title-${Math.random().toString(36).substring(2, 9)}`);
     const hasInitiallyFocusedRef = useRef(false);

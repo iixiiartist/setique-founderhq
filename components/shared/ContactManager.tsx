@@ -26,14 +26,14 @@ interface CSVImportResult {
     errors: Array<{ row: number; error: string; data: any }>;
 }
 
-export const ContactManager: React.FC<ContactManagerProps> = ({
+export function ContactManager({
     contacts,
     crmItems,
     actions,
     crmType,
     workspaceId,
     onViewContact
-}) => {
+}: ContactManagerProps) {
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);

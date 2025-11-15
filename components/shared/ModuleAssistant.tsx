@@ -44,7 +44,7 @@ interface ModuleAssistantProps {
     crmItems?: AnyCrmItem[]; // For contact form in quick actions
 }
 
-const ModuleAssistant: React.FC<ModuleAssistantProps> = ({ 
+function ModuleAssistant({ 
     title, 
     systemPrompt, 
     actions, 
@@ -59,7 +59,7 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
     teamContext,
     maxFileSizeMB = 5, // Default 5MB for AI chat (base64 encoding adds ~33% overhead)
     crmItems = []
-}) => {
+}: ModuleAssistantProps) {
     // Use conversation history hook for persistence with workspace/user scoping
     const {
         history,

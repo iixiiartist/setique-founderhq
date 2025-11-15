@@ -6,10 +6,10 @@ interface FollowUpsManagerProps {
     userId?: string;
 }
 
-export const FollowUpsManager: React.FC<FollowUpsManagerProps> = ({
+export function FollowUpsManager({
     allCrmItems,
     userId
-}) => {
+}: FollowUpsManagerProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterByPriority, setFilterByPriority] = useState<string>('');
     const [filterOverdue, setFilterOverdue] = useState(false);

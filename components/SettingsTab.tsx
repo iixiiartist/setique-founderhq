@@ -88,7 +88,7 @@ interface SettingsTabProps {
     workspaceId?: string;
 }
 
-const SettingsTab: React.FC<SettingsTabProps> = ({ settings, onUpdateSettings, actions, workspaceId }) => {
+function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: SettingsTabProps) {
     const [localSettings, setLocalSettings] = useState<SettingsData>(settings);
     const [notificationPermission, setNotificationPermission] = useState(
         typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default'
@@ -651,6 +651,6 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ settings, onUpdateSettings, a
             )}
         </div>
     );
-};
+}
 
 export default SettingsTab;

@@ -36,14 +36,14 @@ interface CSVImportResult {
     errors: Array<{ row: number; error: string; data: any }>;
 }
 
-export const AccountManager: React.FC<AccountManagerProps> = ({
+export function AccountManager({
     crmItems,
     actions,
     crmCollection,
     crmType,
     workspaceId,
     onViewAccount
-}) => {
+}: AccountManagerProps) {
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);

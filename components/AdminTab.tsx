@@ -28,7 +28,7 @@ interface SignupStats {
     paidPlan: number;
 }
 
-const AdminTab: React.FC = () => {
+function AdminTab() {
     const [users, setUsers] = useState<UserSignup[]>([]);
     const [stats, setStats] = useState<SignupStats | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -490,6 +490,6 @@ const AdminTab: React.FC = () => {
             </div>
         </div>
     );
-};
+}
 
 export default AdminTab;

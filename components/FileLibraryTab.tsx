@@ -27,7 +27,7 @@ interface FileLibraryTabProps {
     contacts: (Contact & { companyName: string })[];
 }
 
-const FileLibraryTab: React.FC<FileLibraryTabProps> = ({ documents, actions, companies, contacts }) => {
+function FileLibraryTab({ documents, actions, companies, contacts }: FileLibraryTabProps) {
     const [fileToUpload, setFileToUpload] = useState<File | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [notesModalDoc, setNotesModalDoc] = useState<Document | null>(null);
@@ -180,6 +180,6 @@ const FileLibraryTab: React.FC<FileLibraryTabProps> = ({ documents, actions, com
             )}
         </div>
     );
-};
+}
 
 export default FileLibraryTab;
