@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Contact, Task, AppActions, CrmCollectionName, TaskCollectionName, Note, AnyCrmItem, Priority, NoteableCollectionName, WorkspaceMember } from '../../types';
+import { Contact, Task, AppActions, CrmCollectionName, TaskCollectionName, Note, AnyCrmItem, Priority, NoteableCollectionName, WorkspaceMember, Subtask } from '../../types';
 import { AssignmentDropdown } from './AssignmentDropdown';
 import Modal from './Modal';
 import NotesManager from './NotesManager';
 import { TASK_TAG_BG_COLORS } from '../../constants';
 import MeetingsManager from './MeetingsManager';
+import { SubtaskManager } from './SubtaskManager';
 
 interface ContactDetailViewProps {
     contact: Contact;
@@ -67,6 +68,7 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
     const [newTaskText, setNewTaskText] = useState('');
     const [newTaskPriority, setNewTaskPriority] = useState<Priority>('Medium');
     const [newTaskDueDate, setNewTaskDueDate] = useState('');
+    const [newTaskSubtasks, setNewTaskSubtasks] = useState<Subtask[]>([]);
 
     const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [editText, setEditText] = useState('');
@@ -144,10 +146,11 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
     const handleAddTask = (e: React.FormEvent) => {
         e.preventDefault();
         if (newTaskText.trim() === '') return;
-        actions.createTask(taskCollection, newTaskText, newTaskPriority, contact.crmItemId, contact.id, newTaskDueDate);
+        actions.createTask(taskCollection, newTaskText, newTaskPriority, contact.crmItemId, contact.id, newTaskDueDate, undefined, undefined, newTaskSubtasks);
         setNewTaskText('');
         setNewTaskPriority('Medium');
         setNewTaskDueDate('');
+        setNewTaskSubtasks([]);
     };
 
     const openEditTaskModal = (task: Task, triggerRef: React.RefObject<HTMLButtonElement>) => {
@@ -307,6 +310,16 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
                                     />
                                 </div>
                             </div>
+                            
+                            {/* Subtasks section */}
+                            <div className="border-t-2 border-gray-200 pt-3 mt-3">
+                                <label className="block text-xs font-mono text-gray-600 mb-2">SUBTASKS (OPTIONAL)</label>
+                                <SubtaskManager 
+                                    subtasks={newTaskSubtasks}
+                                    onSubtasksChange={setNewTaskSubtasks}
+                                />
+                            </div>
+                            
                             <button type="submit" className="w-full font-mono font-semibold bg-black text-white py-3 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800">
                                 Add Task
                             </button>

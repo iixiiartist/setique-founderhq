@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Priority, TaskCollectionName, CrmCollectionName, BaseCrmItem, Contact, WorkspaceMember } from '../../types';
+import { Priority, TaskCollectionName, CrmCollectionName, BaseCrmItem, Contact, WorkspaceMember, Subtask } from '../../types';
+import { SubtaskManager } from '../shared/SubtaskManager';
 
 interface CalendarEventFormProps {
     eventType: 'task' | 'meeting' | 'crm-action';
@@ -22,6 +23,7 @@ export interface CalendarEventFormData {
     category?: TaskCollectionName;
     priority?: Priority;
     assignedTo?: string;
+    subtasks?: Subtask[];
     // Meeting fields
     crmCollection?: CrmCollectionName;
     crmItemId?: string;
@@ -61,6 +63,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
     const [category, setCategory] = useState<TaskCollectionName>('productsServicesTasks');
     const [priority, setPriority] = useState<Priority>('Medium');
     const [assignedTo, setAssignedTo] = useState('');
+    const [subtasks, setSubtasks] = useState<Subtask[]>([]);
 
     // Meeting fields
     const [crmCollection, setCrmCollection] = useState<CrmCollectionName>('investors');
@@ -199,6 +202,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                 formData.category = category;
                 formData.priority = priority;
                 formData.assignedTo = assignedTo || undefined;
+                formData.subtasks = subtasks;
             } else if (eventType === 'meeting') {
                 formData.crmCollection = crmCollection;
                 formData.crmItemId = crmItemId;
@@ -355,6 +359,17 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                             </p>
                         </div>
                     )}
+                    
+                    {/* Subtasks section */}
+                    <div className="border-t-2 border-gray-200 pt-3 mt-3">
+                        <label className="block font-mono text-sm font-semibold text-black mb-2">
+                            Subtasks (Optional)
+                        </label>
+                        <SubtaskManager 
+                            subtasks={subtasks}
+                            onSubtasksChange={setSubtasks}
+                        />
+                    </div>
                 </>
             )}
 

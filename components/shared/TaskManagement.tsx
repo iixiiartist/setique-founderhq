@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Task, AppActions, Priority, TaskCollectionName, NoteableCollectionName } from '../../types';
+import { Task, AppActions, Priority, TaskCollectionName, NoteableCollectionName, Subtask } from '../../types';
 import Modal from './Modal';
 import NotesManager from './NotesManager';
 import { TaskComments } from './TaskComments';
@@ -121,6 +121,7 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
     const [newTaskDueDate, setNewTaskDueDate] = useState('');
     const [newTaskDueTime, setNewTaskDueTime] = useState('');
     const [newTaskAssignedTo, setNewTaskAssignedTo] = useState('');
+    const [newTaskSubtasks, setNewTaskSubtasks] = useState<Subtask[]>([]);
     const [sortOption, setSortOption] = useState<'newest' | 'oldest'>('newest');
     const [filterStatus, setFilterStatus] = useState<'all' | 'incomplete' | 'completed'>('all');
     const [filterAssignment, setFilterAssignment] = useState<'all' | 'assigned-to-me' | 'unassigned' | 'created-by-me'>('all');
@@ -166,12 +167,13 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
     const handleAddTask = (e: React.FormEvent) => {
         e.preventDefault();
         if (newTaskText.trim() === '') return;
-        actions.createTask(taskCollectionName, newTaskText, newTaskPriority, undefined, undefined, newTaskDueDate, newTaskAssignedTo || undefined, newTaskDueTime);
+        actions.createTask(taskCollectionName, newTaskText, newTaskPriority, undefined, undefined, newTaskDueDate, newTaskAssignedTo || undefined, newTaskDueTime, newTaskSubtasks);
         setNewTaskText('');
         setNewTaskPriority('Medium');
         setNewTaskDueDate('');
         setNewTaskDueTime('');
         setNewTaskAssignedTo('');
+        setNewTaskSubtasks([]);
     };
 
     const handleUpdateTask = () => {
@@ -298,6 +300,15 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
                         <div className="md:self-end">
                             <button type="submit" className="w-full h-full font-mono font-semibold bg-black text-white py-2 px-6 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn">Add Task</button>
                         </div>
+                    </div>
+                    
+                    {/* Subtasks section */}
+                    <div className="border-t-2 border-gray-200 pt-4 mt-4">
+                        <label className="block font-mono text-sm font-semibold text-black mb-2">Subtasks (Optional)</label>
+                        <SubtaskManager 
+                            subtasks={newTaskSubtasks}
+                            onSubtasksChange={setNewTaskSubtasks}
+                        />
                     </div>
                 </form>
 

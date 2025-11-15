@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { AnyCrmItem, Task, AppActions, CrmCollectionName, TaskCollectionName, Investor, Customer, Partner, Priority, Note, Contact, WorkspaceMember } from '../../types';
+import { AnyCrmItem, Task, AppActions, CrmCollectionName, TaskCollectionName, Investor, Customer, Partner, Priority, Note, Contact, WorkspaceMember, Subtask } from '../../types';
 import Modal from './Modal';
 import NotesManager from './NotesManager';
 import { TASK_TAG_BG_COLORS } from '../../constants';
 import { AssignmentDropdown } from './AssignmentDropdown';
+import { SubtaskManager } from './SubtaskManager';
 
 interface AccountDetailViewProps {
     item: AnyCrmItem;
@@ -104,6 +105,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
     const [newTaskText, setNewTaskText] = useState('');
     const [newTaskPriority, setNewTaskPriority] = useState<Priority>('Medium');
     const [newTaskDueDate, setNewTaskDueDate] = useState('');
+    const [newTaskSubtasks, setNewTaskSubtasks] = useState<Subtask[]>([]);
     const [showAddContact, setShowAddContact] = useState(false);
 
     const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -173,10 +175,11 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
     const handleAddTask = (e: React.FormEvent) => {
         e.preventDefault();
         if (newTaskText.trim() === '') return;
-        actions.createTask(taskCollection, newTaskText, newTaskPriority, item.id, undefined, newTaskDueDate);
+        actions.createTask(taskCollection, newTaskText, newTaskPriority, item.id, undefined, newTaskDueDate, undefined, undefined, newTaskSubtasks);
         setNewTaskText('');
         setNewTaskPriority('Medium');
         setNewTaskDueDate('');
+        setNewTaskSubtasks([]);
     };
 
     const openEditTaskModal = (task: Task, triggerRef: React.RefObject<HTMLButtonElement>) => {
@@ -432,6 +435,16 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                                     />
                                 </div>
                             </div>
+                            
+                            {/* Subtasks section */}
+                            <div className="border-t-2 border-gray-200 pt-3 mt-3">
+                                <label className="block text-xs font-mono text-gray-600 mb-2">SUBTASKS (OPTIONAL)</label>
+                                <SubtaskManager 
+                                    subtasks={newTaskSubtasks}
+                                    onSubtasksChange={setNewTaskSubtasks}
+                                />
+                            </div>
+                            
                             <button type="submit" className="w-full font-mono font-semibold bg-black text-white py-3 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800">
                                 Add Task
                             </button>

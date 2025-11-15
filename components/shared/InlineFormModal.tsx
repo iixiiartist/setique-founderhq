@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { AppActions, CrmCollectionName, TaskCollectionName, AnyCrmItem, Contact } from '../../types';
+import { AppActions, CrmCollectionName, TaskCollectionName, AnyCrmItem, Contact, Subtask } from '../../types';
+import { SubtaskManager } from './SubtaskManager';
 
 interface InlineFormModalProps {
     formType: 'task' | 'crm' | 'contact' | 'event' | 'expense' | 'document';
@@ -31,6 +32,7 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
     const [taskPriority, setTaskPriority] = useState<'Low' | 'Medium' | 'High'>(formData.priority || 'Medium');
     const [taskDueDate, setTaskDueDate] = useState('');
     const [taskDueTime, setTaskDueTime] = useState('');
+    const [taskSubtasks, setTaskSubtasks] = useState<Subtask[]>([]);
 
     // CRM form state
     const [crmCompany, setCrmCompany] = useState('');
@@ -88,7 +90,8 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
                         undefined,
                         taskDueDate || undefined,
                         undefined,
-                        taskDueTime || undefined
+                        taskDueTime || undefined,
+                        taskSubtasks
                     );
                     break;
 
@@ -307,6 +310,17 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
                                     className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
                                 />
                             </div>
+                        </div>
+                        
+                        {/* Subtasks section */}
+                        <div className="border-t-2 border-gray-200 pt-3 mt-3">
+                            <label className="block font-mono text-sm font-semibold text-black mb-2">
+                                Subtasks (Optional)
+                            </label>
+                            <SubtaskManager 
+                                subtasks={taskSubtasks}
+                                onSubtasksChange={setTaskSubtasks}
+                            />
                         </div>
                     </div>
                 );

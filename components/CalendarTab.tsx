@@ -630,7 +630,8 @@ const CalendarTab: React.FC<CalendarTabProps> = ({
                     undefined, // contactId
                     formData.dueDate,
                     formData.assignedTo,
-                    formData.dueTime
+                    formData.dueTime,
+                    formData.subtasks
                 );
             } else if (formData.type === 'meeting' && formData.crmItemId && formData.contactId) {
                 // Create meeting - convert date/time to Unix timestamp
