@@ -141,9 +141,7 @@ export const getAiResponse = async (
 
         // Check AI usage limit if workspaceId is provided
         if (workspaceId) {
-            console.log('[Groq] Checking AI limit for workspace:', workspaceId);
             const limitCheck = await DatabaseService.checkAILimit(workspaceId);
-            console.log('[Groq] Limit check result:', limitCheck);
             
             if (!limitCheck.allowed) {
                 throw new AILimitError(
@@ -153,7 +151,7 @@ export const getAiResponse = async (
                     limitCheck.planType
                 );
             }
-        } else {
+        } else if (process.env.NODE_ENV === 'development') {
             console.warn('[Groq] No workspaceId provided, skipping limit check');
         }
 
@@ -165,10 +163,6 @@ export const getAiResponse = async (
             role: 'system',
             content: systemPrompt
         }, ...convertedMessages];
-
-        console.log('[Groq] Sending request with', messages.length, 'messages');
-        console.log('[Groq] Last message:', JSON.stringify(messages[messages.length - 1], null, 2));
-        console.log('[Groq] All messages:', JSON.stringify(messages, null, 2));
 
         // Prepare request body
         const requestBody: any = {
@@ -183,7 +177,6 @@ export const getAiResponse = async (
             const tools = currentTab ? getRelevantTools(currentTab) : groqTools;
             requestBody.tools = tools;
             requestBody.tool_choice = 'auto';
-            console.log(`[Groq] Using ${tools.length} tools for tab: ${currentTab || 'default'}`);
         }
 
         // Call the secure Edge Function
@@ -191,10 +184,7 @@ export const getAiResponse = async (
             body: requestBody,
         });
 
-        console.log('[Groq] Edge Function response:', { data, error });
-
         if (error) {
-            console.error('[Groq] Edge Function error:', error);
             throw new Error(`Failed to get AI response: ${error.message}`);
         }
 
@@ -212,9 +202,6 @@ export const getAiResponse = async (
             
             throw new Error(data.error);
         }
-
-        console.log('[Groq] Response text:', data?.response);
-        console.log('[Groq] Function calls:', data?.functionCalls);
 
         // Increment AI usage after successful response (if workspaceId provided)
         if (workspaceId && session?.user?.id) {

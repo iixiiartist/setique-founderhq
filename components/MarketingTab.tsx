@@ -8,23 +8,58 @@ import { useWorkspace } from '../contexts/WorkspaceContext';
 import { CampaignAnalyticsModule, AttributionModule } from './marketing';
 import CampaignFormModal from './marketing/CampaignFormModal';
 
-const MarketingItemCard: React.FC<{ 
-    item: MarketingItem; 
-    actions: AppActions; 
+const MarketingItemCard: React.FC<{
+    item: MarketingItem;
+    actions: AppActions;
     onEdit: (item: MarketingItem, triggerRef: React.RefObject<HTMLButtonElement>) => void;
     productsServices?: ProductService[];
 }> = ({ item, actions, onEdit, productsServices = [] }) => {
-    const lastNote = item.notes?.length > 0 ? [...item.notes].sort((a,b) => b.timestamp - a.timestamp)[0] : null;
     const editButtonRef = useRef<HTMLButtonElement>(null);
-    const isOverdue = item.status !== 'Published' && item.status !== 'Cancelled' && item.status !== 'Completed' && item.dueDate && item.dueDate < new Date().toISOString().split('T')[0];
-    
-    const linkedProducts = (item.productServiceIds || [])
-        .map(id => productsServices.find(p => p.id === id))
-        .filter(Boolean) as ProductService[];
-    
-    const budgetUtilization = item.campaignBudget && item.campaignBudget > 0 
-        ? ((item.actualSpend || 0) / item.campaignBudget * 100)
-        : 0;
+    const lastNote = useMemo(() => {
+        if (!item.notes?.length) {
+            return null;
+        }
+
+        return item.notes.reduce((latest, current) => {
+            if (!latest || current.timestamp > latest.timestamp) {
+                return current;
+            }
+            return latest;
+        }, item.notes[0]);
+    }, [item.notes]);
+
+    const isOverdue = useMemo(() => {
+        if (!item.dueDate) {
+            return false;
+        }
+
+        const parsedDueDate = Date.parse(`${item.dueDate}T23:59:59Z`);
+        if (Number.isNaN(parsedDueDate)) {
+            return false;
+        }
+
+        const isComplete = item.status === 'Published' || item.status === 'Cancelled' || item.status === 'Completed';
+        return !isComplete && parsedDueDate < Date.now();
+    }, [item.dueDate, item.status]);
+
+    const linkedProducts = useMemo(() => {
+        if (!item.productServiceIds?.length || productsServices.length === 0) {
+            return [] as ProductService[];
+        }
+
+        const productLookup = new Map(productsServices.map(product => [product.id, product] as const));
+        return item.productServiceIds
+            .map(productId => productLookup.get(productId))
+            .filter(Boolean) as ProductService[];
+    }, [item.productServiceIds, productsServices]);
+
+    const budgetUtilization = useMemo(() => {
+        if (!item.campaignBudget || item.campaignBudget <= 0) {
+            return 0;
+        }
+
+        return ((item.actualSpend || 0) / item.campaignBudget) * 100;
+    }, [item.actualSpend, item.campaignBudget]);
 
     return (
         <li className={`p-4 bg-white border-2 shadow-neo ${isOverdue ? 'border-red-500' : 'border-black'}`}>
@@ -90,7 +125,7 @@ const MarketingItemCard: React.FC<{
                         <div>
                             <div className="font-mono text-gray-600 uppercase">Launch Date</div>
                             <div className="font-semibold">
-                                {new Date(item.dueDate + 'T00:00:00').toLocaleDateString(undefined, { timeZone: 'UTC' })}
+                                {new Date(`${item.dueDate}T00:00:00Z`).toLocaleDateString(undefined, { timeZone: 'UTC' })}
                                 {isOverdue && <span className="ml-1 font-mono text-xs font-bold text-red-600">⚠</span>}
                             </div>
                         </div>
@@ -160,6 +195,29 @@ const MarketingTab: React.FC<{
     const [editingItem, setEditingItem] = useState<MarketingItem | null>(null);
     const modalTriggerRef = useRef<HTMLButtonElement | null>(null);
     const newCampaignButtonRef = useRef<HTMLButtonElement>(null);
+
+    const effectiveWorkspaceId = useMemo(() => workspaceId ?? workspace?.id ?? '', [workspaceId, workspace?.id]);
+
+    const sortedItems = useMemo(() => {
+        return [...items].sort((a, b) => {
+            const dueA = a.dueDate ? Date.parse(`${a.dueDate}T00:00:00Z`) : Number.POSITIVE_INFINITY;
+            const dueB = b.dueDate ? Date.parse(`${b.dueDate}T00:00:00Z`) : Number.POSITIVE_INFINITY;
+
+            if (!Number.isNaN(dueA) && !Number.isNaN(dueB) && dueA !== dueB) {
+                return dueA - dueB;
+            }
+
+            if (Number.isNaN(dueA) && !Number.isNaN(dueB)) {
+                return 1;
+            }
+
+            if (!Number.isNaN(dueA) && Number.isNaN(dueB)) {
+                return -1;
+            }
+
+            return b.createdAt - a.createdAt;
+        });
+    }, [items]);
 
     const handleSaveCampaign = async (campaignData: Partial<MarketingItem>) => {
         let result;
@@ -235,7 +293,7 @@ const MarketingTab: React.FC<{
                 <CampaignAnalyticsModule
                     data={data}
                     actions={actions}
-                    workspaceId={workspaceId}
+                    workspaceId={effectiveWorkspaceId}
                 />
             )}
 
@@ -243,7 +301,7 @@ const MarketingTab: React.FC<{
                 <AttributionModule
                     data={data}
                     actions={actions}
-                    workspaceId={workspaceId}
+                    workspaceId={effectiveWorkspaceId}
                 />
             )}
 
@@ -262,7 +320,7 @@ const MarketingTab: React.FC<{
                     </button>
                 </div>
                 
-                {items.length === 0 ? (
+                {sortedItems.length === 0 ? (
                     <div className="text-center py-12 border-2 border-dashed border-gray-300">
                         <p className="text-gray-500 mb-4">No campaigns yet. Create your first marketing campaign!</p>
                         <button
@@ -274,10 +332,10 @@ const MarketingTab: React.FC<{
                     </div>
                 ) : (
                     <ul className="space-y-4">
-                        {items.map(item => (
-                            <MarketingItemCard 
-                                key={item.id} 
-                                item={item} 
+                        {sortedItems.map(item => (
+                            <MarketingItemCard
+                                key={item.id}
+                                item={item}
                                 actions={actions} 
                                 onEdit={openEditModal}
                                 productsServices={productsServices}

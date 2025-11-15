@@ -541,6 +541,7 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
                             const { DatabaseService } = await import('../lib/services/database');
                             const { error } = await DatabaseService.linkDocToEntity(
                                 doc.id,
+                                workspace.id,
                                 isMeeting ? 'event' : 'task',
                                 event.id
                             );

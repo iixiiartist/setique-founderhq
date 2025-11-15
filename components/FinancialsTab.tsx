@@ -31,6 +31,23 @@ const PAYMENT_METHOD_OPTIONS: PaymentMethod[] = [
     'Other'
 ];
 
+const currencyFormatterNoCents = new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0
+});
+
+const currencyFormatter = new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+});
+
+const numberFormatter = new Intl.NumberFormat(undefined, {
+    maximumFractionDigits: 0
+});
+
 const formatDateLabel = (isoDate: string) =>
     new Date(`${isoDate}T00:00:00Z`).toLocaleDateString(undefined, {
         timeZone: 'UTC',
@@ -48,15 +65,85 @@ const monthKeyToLabel = (key: string) =>
         year: 'numeric'
     });
 
-const formatCurrency = (value?: number | null) => `$${(value ?? 0).toLocaleString()}`;
-const formatNumber = (value?: number | null) => `${(value ?? 0).toLocaleString()}`;
+const formatCurrency = (value?: number | null) => currencyFormatterNoCents.format(value ?? 0);
+const formatNumber = (value?: number | null) => numberFormatter.format(value ?? 0);
 const formatDelta = (value: number, isCurrency = false) => {
     if (value === 0) {
-        return isCurrency ? '±$0' : '±0';
+        return isCurrency ? `±${currencyFormatter.format(0)}` : '±0';
     }
-    const absolute = Math.abs(value);
+    const formattedAbsolute = isCurrency
+        ? currencyFormatter.format(Math.abs(value))
+        : numberFormatter.format(Math.abs(value));
     const prefix = value > 0 ? '+' : '-';
-    return `${prefix}${isCurrency ? '$' : ''}${absolute.toLocaleString()}`;
+    return `${prefix}${formattedAbsolute}`;
+};
+
+const formatSpend = (value: number) =>
+    value === 0 ? currencyFormatter.format(0) : currencyFormatter.format(-Math.abs(value));
+
+const getDefaultFinancialLogForm = (): Omit<FinancialLog, 'id'> => ({
+    date: new Date().toISOString().split('T')[0],
+    mrr: 0,
+    gmv: 0,
+    signups: 0
+});
+
+const getDefaultExpenseForm = (): Omit<Expense, 'id' | 'notes'> => ({
+    date: new Date().toISOString().split('T')[0],
+    category: 'Software/SaaS' as ExpenseCategory,
+    amount: 0,
+    description: '',
+    vendor: '',
+    paymentMethod: undefined
+});
+
+const sanitizeExpenseInput = (expense: Omit<Expense, 'id' | 'notes'>): Omit<Expense, 'id' | 'notes'> => {
+    const trimmedDescription = expense.description.trim();
+    const trimmedVendor = expense.vendor?.trim();
+
+    return {
+        ...expense,
+        amount: Number.isFinite(expense.amount) ? Math.max(0, expense.amount) : 0,
+        description: trimmedDescription || 'Expense',
+        vendor: trimmedVendor ? trimmedVendor : undefined,
+        paymentMethod: expense.paymentMethod || undefined
+    };
+};
+
+const sanitizeExpenseUpdates = (
+    updates: Partial<Omit<Expense, 'id' | 'notes'>>
+): Partial<Omit<Expense, 'id' | 'notes'>> => {
+    const sanitized: Partial<Omit<Expense, 'id' | 'notes'>> = {};
+
+    if (typeof updates.date === 'string') {
+        sanitized.date = updates.date;
+    }
+
+    if (updates.category) {
+        sanitized.category = updates.category;
+    }
+
+    if (typeof updates.amount === 'number') {
+        sanitized.amount = Number.isFinite(updates.amount) ? Math.max(0, updates.amount) : 0;
+    }
+
+    if (typeof updates.description === 'string') {
+        const trimmedDescription = updates.description.trim();
+        if (trimmedDescription) {
+            sanitized.description = trimmedDescription;
+        }
+    }
+
+    if (typeof updates.vendor === 'string') {
+        const trimmedVendor = updates.vendor.trim();
+        sanitized.vendor = trimmedVendor ? trimmedVendor : undefined;
+    }
+
+    if ('paymentMethod' in updates) {
+        sanitized.paymentMethod = updates.paymentMethod || undefined;
+    }
+
+    return sanitized;
 };
 
 const FinancialLogItem: React.FC<{ item: FinancialLog; onDelete: () => void; }> = ({ item, onDelete }) => (
@@ -64,9 +151,9 @@ const FinancialLogItem: React.FC<{ item: FinancialLog; onDelete: () => void; }> 
         <div className="flex-grow">
             <p className="font-semibold">{new Date(item.date + 'T00:00:00').toLocaleDateString(undefined, { timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric' })}</p>
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 mt-1">
-                <span>MRR: <strong className="text-black">${item.mrr.toLocaleString()}</strong></span>
-                <span>GMV: <strong className="text-black">${item.gmv.toLocaleString()}</strong></span>
-                <span>Signups: <strong className="text-black">{item.signups.toLocaleString()}</strong></span>
+                <span>MRR: <strong className="text-black">{currencyFormatterNoCents.format(item.mrr)}</strong></span>
+                <span>GMV: <strong className="text-black">{currencyFormatterNoCents.format(item.gmv)}</strong></span>
+                <span>Signups: <strong className="text-black">{numberFormatter.format(item.signups)}</strong></span>
             </div>
         </div>
         <button onClick={onDelete} className="text-xl font-bold hover:text-red-500 transition-colors shrink-0 ml-4" aria-label={`Delete financial log for ${item.date}`}>&times;</button>
@@ -89,7 +176,10 @@ const ExpenseItem: React.FC<{
     });
 
     const handleSave = () => {
-        onUpdate(editForm);
+        const sanitizedUpdates = sanitizeExpenseUpdates(editForm);
+        if (Object.keys(sanitizedUpdates).length > 0) {
+            onUpdate(sanitizedUpdates);
+        }
         setIsEditing(false);
     };
 
@@ -115,20 +205,25 @@ const ExpenseItem: React.FC<{
                         onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                         className="w-full p-2 border-2 border-black font-semibold"
                         placeholder="Description"
+                        required
                     />
                     <div className="grid grid-cols-2 gap-2">
                         <input
                             type="number"
-                            value={editForm.amount || 0}
-                            onChange={(e) => setEditForm({ ...editForm, amount: parseFloat(e.target.value) })}
+                            min={0}
+                            step="0.01"
+                            value={editForm.amount ?? 0}
+                            onChange={(e) => setEditForm({ ...editForm, amount: Math.max(0, Number(e.target.value)) })}
                             className="p-2 border-2 border-black font-mono"
                             placeholder="Amount"
+                            required
                         />
                         <input
                             type="date"
                             value={editForm.date || ''}
                             onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
                             className="p-2 border-2 border-black"
+                            required
                         />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
@@ -155,7 +250,7 @@ const ExpenseItem: React.FC<{
                     <input
                         type="text"
                         value={editForm.vendor || ''}
-                        onChange={(e) => setEditForm({ ...editForm, vendor: e.target.value || undefined })}
+                        onChange={(e) => setEditForm({ ...editForm, vendor: e.target.value })}
                         className="w-full p-2 border-2 border-black"
                         placeholder="Vendor (optional)"
                     />
@@ -183,7 +278,7 @@ const ExpenseItem: React.FC<{
             <div className="flex-grow">
                 <div className="flex items-center justify-between mb-1">
                     <p className="font-semibold">{item.description}</p>
-                    <span className="font-mono font-bold text-lg text-red-600">-${item.amount.toLocaleString()}</span>
+                    <span className="font-mono font-bold text-lg text-red-600">{currencyFormatter.format(-Math.abs(item.amount))}</span>
                 </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
                     <span>{new Date(item.date + 'T00:00:00').toLocaleDateString(undefined, { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' })}</span>
@@ -227,18 +322,9 @@ const FinancialsTab: React.FC<{
 }> = React.memo(({ items, expenses, tasks, actions, documents, businessProfile, workspaceId, onUpgradeNeeded, workspaceMembers = [], data, productsServices = [] }) => {
     const { workspace } = useWorkspace();
     const [currentView, setCurrentView] = useState<'overview' | 'revenue' | 'cashflow' | 'metrics'>('overview');
-    const [form, setForm] = useState<Omit<FinancialLog, 'id'>>({
-        date: new Date().toISOString().split('T')[0], mrr: 0, gmv: 0, signups: 0
-    });
-    
-    const [expenseForm, setExpenseForm] = useState<Omit<Expense, 'id' | 'notes'>>({
-        date: new Date().toISOString().split('T')[0],
-        category: 'Software/SaaS' as ExpenseCategory,
-        amount: 0,
-        description: '',
-        vendor: '',
-        paymentMethod: undefined
-    });
+    const [form, setForm] = useState<Omit<FinancialLog, 'id'>>(getDefaultFinancialLogForm);
+
+    const [expenseForm, setExpenseForm] = useState<Omit<Expense, 'id' | 'notes'>>(getDefaultExpenseForm);
 
     const [expenseFilter, setExpenseFilter] = useState<ExpenseCategory | 'All'>('All');
     const [expenseSortBy, setExpenseSortBy] = useState<'date' | 'amount'>('date');
@@ -258,21 +344,22 @@ const FinancialsTab: React.FC<{
 
     const handleLog = (e: React.FormEvent) => {
         e.preventDefault();
-        actions.logFinancials(form);
-        setForm({ date: new Date().toISOString().split('T')[0], mrr: 0, gmv: 0, signups: 0 });
+        const sanitizedForm: Omit<FinancialLog, 'id'> = {
+            date: form.date,
+            mrr: Math.max(0, Number.isFinite(form.mrr) ? form.mrr : 0),
+            gmv: Math.max(0, Number.isFinite(form.gmv) ? form.gmv : 0),
+            signups: Math.max(0, Number.isFinite(form.signups) ? Math.round(form.signups) : 0)
+        };
+
+        actions.logFinancials(sanitizedForm);
+        setForm(getDefaultFinancialLogForm());
     };
 
     const handleExpense = (e: React.FormEvent) => {
         e.preventDefault();
-        actions.createExpense(expenseForm);
-        setExpenseForm({
-            date: new Date().toISOString().split('T')[0],
-            category: 'Software/SaaS' as ExpenseCategory,
-            amount: 0,
-            description: '',
-            vendor: '',
-            paymentMethod: undefined
-        });
+        const sanitizedExpense = sanitizeExpenseInput(expenseForm);
+        actions.createExpense(sanitizedExpense);
+        setExpenseForm(getDefaultExpenseForm());
     };
 
     // Expense calculations
@@ -342,8 +429,6 @@ const FinancialsTab: React.FC<{
     const latestMrr = latestFinancials?.mrr ?? 0;
     const latestGmv = latestFinancials?.gmv ?? 0;
 
-    const formatSpend = (value: number) => (value === 0 ? '$0' : `-$${value.toLocaleString()}`);
-
     const snapshotDescription = latestFinancials
         ? `Latest entry: ${latestLogDateLabel}`
         : 'Log your first financial snapshot to unlock insights';
@@ -403,42 +488,50 @@ const FinancialsTab: React.FC<{
             <div className="bg-white p-4 border-2 border-black shadow-neo">
                 <div className="flex flex-wrap gap-2">
                     <button
+                        type="button"
                         onClick={() => setCurrentView('overview')}
                         className={`px-4 py-2 border-2 border-black font-mono font-semibold transition-all ${
                             currentView === 'overview'
                                 ? 'bg-black text-white shadow-neo-btn'
                                 : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
                         }`}
+                        aria-pressed={currentView === 'overview'}
                     >
                         Overview
                     </button>
                     <button
+                        type="button"
                         onClick={() => setCurrentView('revenue')}
                         className={`px-4 py-2 border-2 border-black font-mono font-semibold transition-all ${
                             currentView === 'revenue'
                                 ? 'bg-black text-white shadow-neo-btn'
                                 : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
                         }`}
+                        aria-pressed={currentView === 'revenue'}
                     >
                         Revenue
                     </button>
                     <button
+                        type="button"
                         onClick={() => setCurrentView('cashflow')}
                         className={`px-4 py-2 border-2 border-black font-mono font-semibold transition-all ${
                             currentView === 'cashflow'
                                 ? 'bg-black text-white shadow-neo-btn'
                                 : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
                         }`}
+                        aria-pressed={currentView === 'cashflow'}
                     >
                         Cash Flow
                     </button>
                     <button
+                        type="button"
                         onClick={() => setCurrentView('metrics')}
                         className={`px-4 py-2 border-2 border-black font-mono font-semibold transition-all ${
                             currentView === 'metrics'
                                 ? 'bg-black text-white shadow-neo-btn'
                                 : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
                         }`}
+                        aria-pressed={currentView === 'metrics'}
                     >
                         Metrics
                     </button>
@@ -523,13 +616,13 @@ const FinancialsTab: React.FC<{
                                         tickFormatter={(value: string) => new Date(`${value}T00:00:00Z`).toLocaleDateString(undefined, { timeZone: 'UTC', month: 'short', day: 'numeric' })}
                                     />
                                     <YAxis
-                                        tickFormatter={(value: number) => `$${Number(value).toLocaleString()}`}
+                                        tickFormatter={(value: number) => currencyFormatterNoCents.format(Number(value))}
                                         tick={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10 }}
                                     />
                                     <Tooltip
                                         contentStyle={{ fontFamily: "'Inter', sans-serif" }}
                                         labelFormatter={(value) => formatDateLabel(String(value))}
-                                        formatter={(value: number, name: string) => [`$${Number(value).toLocaleString()}`, name]}
+                                        formatter={(value: number, name: string) => [currencyFormatter.format(Number(value)), name]}
                                     />
                                     <Legend wrapperStyle={{ fontFamily: "'IBM Plex Mono', monospace" }} />
                                     <Line type="monotone" dataKey="mrr" name="MRR" stroke="#3b82f6" strokeWidth={2} />
@@ -552,13 +645,13 @@ const FinancialsTab: React.FC<{
                                             cx="50%"
                                             cy="50%"
                                             outerRadius={80}
-                                            label={(entry) => `$${entry.value.toLocaleString()}`}
+                                            label={(entry: any) => currencyFormatter.format(Number(entry.value))}
                                         >
                                             {expensesByCategory.map((entry, index) => (
                                                 <Cell key={`cell-${index}`} fill={EXPENSE_COLORS[index % EXPENSE_COLORS.length]} />
                                             ))}
                                         </Pie>
-                                        <Tooltip formatter={(value: number) => `$${value.toLocaleString()}`} />
+                                        <Tooltip formatter={(value: number) => currencyFormatter.format(Number(value))} />
                                     </PieChart>
                                 </ResponsiveContainer>
                                 <div className="mt-2 text-xs space-y-1">
@@ -568,7 +661,7 @@ const FinancialsTab: React.FC<{
                                                 <div className="w-3 h-3 border border-black" style={{ backgroundColor: EXPENSE_COLORS[idx] }}></div>
                                                 {cat.name}
                                             </span>
-                                            <span className="font-bold">${cat.value.toLocaleString()}</span>
+                                            <span className="font-bold">{currencyFormatter.format(cat.value)}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -586,50 +679,54 @@ const FinancialsTab: React.FC<{
                         <form onSubmit={handleLog} className="space-y-3">
                             <div>
                                 <label htmlFor="log-date" className="block font-mono text-sm font-semibold text-black mb-1">Date</label>
-                                <input 
+                                <input
                                     id="log-date"
-                                    type="date" 
-                                    value={form.date || ''} 
-                                    onChange={e => setForm(p=>({...p, date: e.target.value}))} 
-                                    required 
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
+                                    type="date"
+                                    value={form.date || ''}
+                                    onChange={e => setForm(p=>({...p, date: e.target.value}))}
+                                    required
+                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label htmlFor="log-mrr" className="block font-mono text-xs font-semibold text-black mb-1">MRR ($)</label>
-                                    <input 
+                                    <input
                                         id="log-mrr"
-                                        type="number" 
-                                        value={form.mrr || ''} 
-                                        onChange={e => setForm(p=>({...p, mrr: Number(e.target.value)}))} 
-                                        placeholder="1000" 
-                                        required 
+                                        type="number"
+                                        min={0}
+                                        value={form.mrr || ''}
+                                        onChange={e => setForm(p=>({...p, mrr: Math.max(0, Number(e.target.value))}))}
+                                        placeholder="1000"
+                                        required
                                         className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 text-sm"
                                     />
                                 </div>
                                 <div>
                                     <label htmlFor="log-gmv" className="block font-mono text-xs font-semibold text-black mb-1">GMV ($)</label>
-                                    <input 
+                                    <input
                                         id="log-gmv"
-                                        type="number" 
-                                        value={form.gmv || ''} 
-                                        onChange={e => setForm(p=>({...p, gmv: Number(e.target.value)}))} 
-                                        placeholder="10000" 
-                                        required 
-                                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 text-sm" 
+                                        type="number"
+                                        min={0}
+                                        value={form.gmv || ''}
+                                        onChange={e => setForm(p=>({...p, gmv: Math.max(0, Number(e.target.value))}))}
+                                        placeholder="10000"
+                                        required
+                                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 text-sm"
                                     />
                                 </div>
                             </div>
                             <div>
                                 <label htmlFor="log-signups" className="block font-mono text-sm font-semibold text-black mb-1">New Signups</label>
-                                <input 
+                                <input
                                     id="log-signups"
-                                    type="number" 
-                                    value={form.signups || ''} 
-                                    onChange={e => setForm(p=>({...p, signups: Number(e.target.value)}))} 
-                                    placeholder="100" 
-                                    required 
+                                    type="number"
+                                    min={0}
+                                    step={1}
+                                    value={form.signups || ''}
+                                    onChange={e => setForm(p=>({...p, signups: Math.max(0, Math.round(Number(e.target.value)))}))}
+                                    placeholder="100"
+                                    required
                                     className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
                                 />
                             </div>
@@ -646,25 +743,26 @@ const FinancialsTab: React.FC<{
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label htmlFor="expense-date" className="block font-mono text-xs font-semibold text-black mb-1">Date</label>
-                                    <input 
+                                    <input
                                         id="expense-date"
-                                        type="date" 
-                                        value={expenseForm.date || ''} 
-                                        onChange={e => setExpenseForm(p=>({...p, date: e.target.value}))} 
-                                        required 
-                                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 text-sm" 
+                                        type="date"
+                                        value={expenseForm.date || ''}
+                                        onChange={e => setExpenseForm(p=>({...p, date: e.target.value}))}
+                                        required
+                                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 text-sm"
                                     />
                                 </div>
                                 <div>
                                     <label htmlFor="expense-amount" className="block font-mono text-xs font-semibold text-black mb-1">Amount ($)</label>
-                                    <input 
+                                    <input
                                         id="expense-amount"
-                                        type="number" 
+                                        type="number"
                                         step="0.01"
-                                        value={expenseForm.amount || ''} 
-                                        onChange={e => setExpenseForm(p=>({...p, amount: Number(e.target.value)}))} 
-                                        placeholder="0.00" 
-                                        required 
+                                        min={0}
+                                        value={expenseForm.amount || ''}
+                                        onChange={e => setExpenseForm(p=>({...p, amount: Math.max(0, Number(e.target.value))}))}
+                                        placeholder="0.00"
+                                        required
                                         className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 text-sm"
                                     />
                                 </div>
@@ -698,15 +796,29 @@ const FinancialsTab: React.FC<{
                                 </div>
                                 <div>
                                     <label htmlFor="expense-vendor" className="block font-mono text-xs font-semibold text-black mb-1">Vendor</label>
-                                    <input 
+                                    <input
                                         id="expense-vendor"
-                                        type="text" 
-                                        value={expenseForm.vendor || ''} 
-                                        onChange={e => setExpenseForm(p=>({...p, vendor: e.target.value}))} 
-                                        placeholder="Optional" 
+                                        type="text"
+                                        value={expenseForm.vendor || ''}
+                                        onChange={e => setExpenseForm(p=>({...p, vendor: e.target.value}))}
+                                        placeholder="Optional"
                                         className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 text-sm"
                                     />
                                 </div>
+                            </div>
+                            <div>
+                                <label htmlFor="expense-payment-method" className="block font-mono text-xs font-semibold text-black mb-1">Payment Method</label>
+                                <select
+                                    id="expense-payment-method"
+                                    value={expenseForm.paymentMethod ?? ''}
+                                    onChange={e => setExpenseForm(p => ({...p, paymentMethod: e.target.value ? e.target.value as PaymentMethod : undefined}))}
+                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 text-sm"
+                                >
+                                    <option value="">Select</option>
+                                    {PAYMENT_METHOD_OPTIONS.map(method => (
+                                        <option key={method} value={method}>{method}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div className="flex justify-end pt-2">
                                 <button type="submit" className="font-mono font-semibold bg-red-600 text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-red-700 text-sm">Log</button>

@@ -86,6 +86,7 @@
     }
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
     "@sentry/react": "^10.23.0",
     "@stripe/stripe-js": "^8.2.0",
     "@tanstack/react-query": "^5.90.7",
@@ -125,6 +126,7 @@
     "react-colorful": "^5.6.1",
     "react-dom": "^19.2.0",
     "react-dropzone": "^14.3.8",
+    "react-hook-form": "^7.66.0",
     "react-hot-toast": "^2.6.0",
     "react-image-crop": "^11.0.10",
     "react-markdown": "^9.0.1",
@@ -133,7 +135,8 @@
     "remark-gfm": "^4.0.0",
     "stripe": "^19.2.0",
     "turndown": "^7.2.2",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@playwright/experimental-ct-react": "^1.56.1",

@@ -44,9 +44,6 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
 
   const { signIn, signUp, resetPassword } = useAuth()
 
-  // Debug logging
-  console.log('LoginForm render - error:', error, 'message:', message, 'loading:', loading)
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -64,9 +61,35 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
       const normalizedEmail = normalizeEmail(email)
       const trimmedName = fullName.trim()
       
+      // Validate password strength for sign-up
+      if (isSignUp) {
+        if (password.length < 8) {
+          setError('Password must be at least 8 characters long');
+          setLoading(false);
+          return;
+        }
+        if (!/[a-z]/.test(password)) {
+          setError('Password must contain at least one lowercase letter');
+          setLoading(false);
+          return;
+        }
+        if (!/[A-Z]/.test(password)) {
+          setError('Password must contain at least one uppercase letter');
+          setLoading(false);
+          return;
+        }
+        if (!/[0-9]/.test(password)) {
+          setError('Password must contain at least one number');
+          setLoading(false);
+          return;
+        }
+      }
+      
       if (isSignUp) {
         const { data, error } = await signUp(normalizedEmail, password, trimmedName)
-        console.log('SignUp result:', { data, error })
+        if (process.env.NODE_ENV === 'development') {
+          console.log('SignUp result:', { data, error })
+        }
         if (error) {
           // Use sanitized error messages
           const errorMsg = sanitizeAuthError(error)
@@ -83,7 +106,9 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
         }
       } else {
         const { data, error } = await signIn(normalizedEmail, password)
-        console.log('SignIn result:', { data, error })
+        if (process.env.NODE_ENV === 'development') {
+          console.log('SignIn result:', { data, error })
+        }
         if (error) {
           // Use sanitized error messages
           const errorMsg = sanitizeAuthError(error)
@@ -93,14 +118,13 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
             setAwaitingConfirmation(true)
           }
           
-          console.log('Setting error message:', errorMsg)
           setError(errorMsg)
           sessionStorage.setItem('auth_error', errorMsg)
-          console.log('Setting loading to false')
           setLoading(false)
-          console.log('Error state should now be set')
         } else {
-          console.log('Sign in successful, showing success message')
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Sign in successful')
+          }
           const successMsg = 'Sign in successful! Loading your dashboard...'
           setMessage(successMsg)
           sessionStorage.setItem('auth_message', successMsg)
@@ -246,7 +270,7 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
                 autoComplete="current-password"
                 required
                 className="w-full px-4 py-3 border-2 border-black focus:outline-none focus:border-yellow-400 font-mono text-sm"
-                placeholder={isSignUp ? "Min. 6 characters" : "Enter your password"}
+                placeholder={isSignUp ? "Min. 8 chars, mixed case, numbers" : "Enter your password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />

@@ -214,12 +214,13 @@ export class DatabaseService {
     }
   }
 
-  static async getCrmItemById(itemId: string) {
+  static async getCrmItemById(itemId: string, workspaceId: string) {
     try {
       const { data, error } = await supabase
         .from('crm_items')
         .select('*')
         .eq('id', itemId)
+        .eq('workspace_id', workspaceId)
         .single()
 
       if (error) throw error
@@ -265,20 +266,33 @@ export class DatabaseService {
 
   static async deleteCrmItem(itemId: string) {
     try {
-      // Also delete related contacts and meetings
-      await supabase.from('meetings').delete().eq('contact_id', itemId)
-      await supabase.from('contacts').delete().eq('crm_item_id', itemId)
+      // First, get all contact IDs for this CRM item
+      const { data: contacts } = await supabase
+        .from('contacts')
+        .select('id')
+        .eq('crm_item_id', itemId);
       
+      const contactIds = (contacts || []).map(c => c.id);
+      
+      // Delete meetings tied to these contacts (not the CRM item directly)
+      if (contactIds.length > 0) {
+        await supabase.from('meetings').delete().in('contact_id', contactIds);
+      }
+      
+      // Delete contacts
+      await supabase.from('contacts').delete().eq('crm_item_id', itemId);
+      
+      // Finally delete the CRM item
       const { error } = await supabase
         .from('crm_items')
         .delete()
-        .eq('id', itemId)
+        .eq('id', itemId);
 
-      if (error) throw error
-      return { error: null }
+      if (error) throw error;
+      return { error: null };
     } catch (error) {
-      logger.error('Error deleting CRM item:', error)
-      return { error }
+      logger.error('Error deleting CRM item:', error);
+      return { error };
     }
   }
 
@@ -2104,12 +2118,13 @@ export class DatabaseService {
     }
   }
 
-  static async loadGTMDocById(docId: string) {
+  static async loadGTMDocById(docId: string, workspaceId: string) {
     try {
       const { data, error } = await supabase
         .from('gtm_docs')
         .select('*')
         .eq('id', docId)
+        .eq('workspace_id', workspaceId)
         .single()
 
       if (error) throw error
@@ -2195,13 +2210,15 @@ export class DatabaseService {
     }
   }
 
-  static async updateGTMDoc(docId: string, updates: {
+  static async updateGTMDoc(docId: string, workspaceId: string, updates: {
     title?: string,
     docType?: string,
     contentJson?: any,
     contentPlain?: string,
     visibility?: 'private' | 'team',
-    tags?: string[]
+    tags?: string[],
+    isTemplate?: boolean,
+    templateCategory?: string | null
   }) {
     try {
       const updateData: any = {
@@ -2214,11 +2231,14 @@ export class DatabaseService {
       if (updates.contentPlain !== undefined) updateData.content_plain = updates.contentPlain
       if (updates.visibility !== undefined) updateData.visibility = updates.visibility
       if (updates.tags !== undefined) updateData.tags = updates.tags
+      if (updates.isTemplate !== undefined) updateData.is_template = updates.isTemplate
+      if (updates.templateCategory !== undefined) updateData.template_category = updates.templateCategory
 
       const { data, error } = await supabase
         .from('gtm_docs')
         .update(updateData)
         .eq('id', docId)
+        .eq('workspace_id', workspaceId)
         .select()
         .single()
 
@@ -2249,12 +2269,13 @@ export class DatabaseService {
     }
   }
 
-  static async deleteGTMDoc(docId: string) {
+  static async deleteGTMDoc(docId: string, workspaceId: string) {
     try {
       const { error } = await supabase
         .from('gtm_docs')
         .delete()
         .eq('id', docId)
+        .eq('workspace_id', workspaceId)
 
       if (error) throw error
 
@@ -2322,8 +2343,20 @@ export class DatabaseService {
     }
   }
 
-  static async linkDocToEntity(docId: string, entityType: 'task' | 'event' | 'crm' | 'chat' | 'contact', entityId: string) {
+  static async linkDocToEntity(docId: string, workspaceId: string, entityType: 'task' | 'event' | 'crm' | 'chat' | 'contact', entityId: string) {
     try {
+      // Verify doc belongs to workspace before linking
+      const { data: doc } = await supabase
+        .from('gtm_docs')
+        .select('workspace_id')
+        .eq('id', docId)
+        .eq('workspace_id', workspaceId)
+        .single()
+      
+      if (!doc) {
+        throw new Error('Document not found or access denied')
+      }
+
       const { data, error } = await supabase
         .from('gtm_doc_links')
         .insert({
@@ -2336,25 +2369,24 @@ export class DatabaseService {
 
       if (error) throw error
 
-      logger.info('[Database] Linked GTM doc:', { docId, entityType, entityId })
-      return { data: true, error: null }
+      logger.info('[Database] Linked GTM doc:', { docId, entityType, entityId, workspaceId })
+      return { data: { linkId: data.id }, error: null }
     } catch (error) {
       logger.error('Error linking GTM doc:', error)
       return { data: false, error }
     }
   }
 
-  static async unlinkDocFromEntity(docId: string, entityId: string) {
+  static async unlinkDocFromEntity(linkId: string) {
     try {
       const { error } = await supabase
         .from('gtm_doc_links')
         .delete()
-        .eq('doc_id', docId)
-        .eq('linked_entity_id', entityId)
+        .eq('id', linkId)
 
       if (error) throw error
 
-      logger.info('[Database] Unlinked GTM doc:', { docId, entityId })
+      logger.info('[Database] Unlinked GTM doc:', { linkId })
       return { data: true, error: null }
     } catch (error) {
       logger.error('Error unlinking GTM doc:', error)
@@ -2417,18 +2449,14 @@ export class DatabaseService {
 
   static async seedGTMTemplates(workspaceId: string, userId: string) {
     try {
-      // Check if templates already exist
+      // Get existing templates by title
       const { data: existing } = await supabase
         .from('gtm_docs')
-        .select('id')
+        .select('title')
         .eq('workspace_id', workspaceId)
         .eq('is_template', true)
-        .limit(1)
 
-      if (existing && existing.length > 0) {
-        logger.info('[Database] Templates already exist for workspace:', { workspaceId })
-        return { data: { message: 'Templates already exist', count: existing.length }, error: null }
-      }
+      const existingTitles = new Set((existing || []).map(t => t.title))
 
       const templates = [
         {
@@ -2468,8 +2496,16 @@ export class DatabaseService {
         },
       ];
 
+      // Filter out templates that already exist
+      const templatesToCreate = templates.filter(t => !existingTitles.has(t.title))
+      
+      if (templatesToCreate.length === 0) {
+        logger.info('[Database] All templates already exist for workspace:', { workspaceId })
+        return { data: { message: 'All templates already exist', count: existingTitles.size }, error: null }
+      }
+
       const results = await Promise.all(
-        templates.map(template =>
+        templatesToCreate.map(template =>
           supabase
             .from('gtm_docs')
             .insert({

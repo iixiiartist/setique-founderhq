@@ -39,9 +39,11 @@ const CLEANUP_AFTER_DAYS = 30;
  * - Auto-cleanup of old conversations
  * - Efficient storage (removes large file data after processing)
  * - Separate history per context (Platform, CRM, Marketing, etc.)
+ * - Scoped by workspace and user to prevent cross-contamination
  */
-export const useConversationHistory = (context: TabType) => {
-  const storageKey = `${STORAGE_KEY_PREFIX}${context}`;
+export const useConversationHistory = (context: TabType, workspaceId?: string, userId?: string) => {
+  // Include workspace and user in key to prevent cross-workspace/user bleeding
+  const storageKey = `${STORAGE_KEY_PREFIX}${context}_${workspaceId || 'default'}_${userId || 'anonymous'}`;
   
   const [history, setHistory] = useState<Content[]>(() => {
     return loadHistory(storageKey);

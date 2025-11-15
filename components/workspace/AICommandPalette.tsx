@@ -144,24 +144,28 @@ CRITICAL: You have NO business data available. Write strategically without inven
     // Build data availability summary for AI awareness
     const dataAvailability: string[] = [];
     
-    // Token-optimized context summaries - only include if data exists
-    const investorContext = data.investors?.length > 0
-      ? `Investors: ${data.investors.slice(0, 3).map(i => i.company).join(', ')}${data.investors.length > 3 ? ` (+${data.investors.length - 3} more)` : ''}`
+    // Token-optimized context summaries - compact counts only, no full data dumps
+    const investorCount = data.investors?.length || 0;
+    const investorContext = investorCount > 0
+      ? `${investorCount} investor${investorCount !== 1 ? 's' : ''} tracked`
       : '';
     if (investorContext) dataAvailability.push('investors');
     
-    const customerContext = data.customers?.length > 0
-      ? `Key Customers: ${data.customers.slice(0, 3).map(c => c.company).join(', ')}${data.customers.length > 3 ? ` (+${data.customers.length - 3} more)` : ''}`
+    const customerCount = data.customers?.length || 0;
+    const customerContext = customerCount > 0
+      ? `${customerCount} customer${customerCount !== 1 ? 's' : ''} tracked`
       : '';
     if (customerContext) dataAvailability.push('customers');
     
-    const partnerContext = data.partners?.length > 0
-      ? `Partners: ${data.partners.slice(0, 3).map(p => p.company).join(', ')}${data.partners.length > 3 ? ` (+${data.partners.length - 3} more)` : ''}`
+    const partnerCount = data.partners?.length || 0;
+    const partnerContext = partnerCount > 0
+      ? `${partnerCount} partner${partnerCount !== 1 ? 's' : ''} tracked`
       : '';
     if (partnerContext) dataAvailability.push('partners');
     
-    const marketingContext = data.marketing?.length > 0
-      ? `Recent Marketing: ${data.marketing.slice(0, 2).map(m => m.title).join(', ')}`
+    const marketingCount = data.marketing?.length || 0;
+    const marketingContext = marketingCount > 0
+      ? `${marketingCount} marketing campaign${marketingCount !== 1 ? 's' : ''} tracked`
       : '';
     if (marketingContext) dataAvailability.push('marketing campaigns');
     
@@ -215,7 +219,8 @@ CRITICAL GROUNDING RULES:
 7. When real data IS provided above, use it accurately and cite it properly
 
 CHART GENERATION CAPABILITY:
-If the user requests a chart, graph, or data visualization, you can generate one by responding with a JSON object:
+If the user requests a chart, graph, or data visualization, respond with:
+\`\`\`chart-config
 {
   "chartType": "line" | "bar" | "pie" | "area",
   "title": "Chart Title",
@@ -228,6 +233,7 @@ If the user requests a chart, graph, or data visualization, you can generate one
   "showLegend": true,
   "showGrid": true
 }
+\`\`\`
 
 Chart type guidance:
 - "line": For trends over time (revenue growth, signups over months)
@@ -283,36 +289,24 @@ Important: Only return the content to insert/replace. Do not include explanation
       
       console.log('AI Response:', responseText);
       
-      // Check if response contains JSON (chart configuration)
-      // Look for JSON pattern anywhere in the response
+      // Check if response contains chart JSON in fenced code block
+      // Use stricter sentinel to avoid false positives from prose containing braces
       try {
-        // Remove markdown code blocks if present
-        let cleanedResponse = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        
-        // Try to extract JSON from the response
-        const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const chartConfig = JSON.parse(jsonMatch[0]);
-          
-          console.log('Parsed chart config:', chartConfig);
+        // Look for ```chart-config fenced code block
+        const chartMatch = responseText.match(/```chart-config\s*\n([\s\S]*?)\n```/);
+        if (chartMatch) {
+          const chartConfig = JSON.parse(chartMatch[1]);;
           
           // Validate chart config has required fields
           if (chartConfig.chartType && chartConfig.data && chartConfig.dataKeys) {
-            console.log('Valid chart config detected, inserting chart');
             // Insert chart using editor command
             editor.chain().focus().insertChart(chartConfig).run();
             onClose();
             return;
-          } else {
-            console.log('JSON found but missing required chart fields:', {
-              hasChartType: !!chartConfig.chartType,
-              hasData: !!chartConfig.data,
-              hasDataKeys: !!chartConfig.dataKeys
-            });
           }
         }
       } catch (parseError) {
-        console.log('JSON parse error, treating as regular content:', parseError);
+        // Treat as regular content if chart parsing fails
       }
       
       // Remove markdown code blocks if present

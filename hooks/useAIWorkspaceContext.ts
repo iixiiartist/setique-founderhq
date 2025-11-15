@@ -44,36 +44,48 @@ export function useAIWorkspaceContext(
       // Fetch business profile - this is the key context for GTM writing
       const { data: businessProfile } = await DatabaseService.getBusinessProfile(workspaceId);
 
-      // Only fetch related docs if we have a docId (no need for tasks/CRM data dump)
+      // Only fetch current doc and related docs if we have a docId
+      let currentDocType: string | undefined = undefined;
       let relatedDocs: GTMDocMetadata[] = [];
       
       if (docId) {
-        const docsRes = await DatabaseService.loadGTMDocs(workspaceId, { filter: 'team' });
-        const allDocs = docsRes.data || [];
-        
-        // Find related docs (same doc type or shared tags, excluding current doc)
-        const currentDoc = allDocs.find(d => d.id === docId);
-        relatedDocs = allDocs
-          .filter(d => 
-            d.id !== docId && 
-            d.visibility === 'team' &&
-            (
-              d.docType === currentDoc?.docType ||
-              d.tags.some(tag => currentDoc?.tags.includes(tag))
+        // Load only the current doc to get its type
+        const { data: currentDoc } = await DatabaseService.loadGTMDocById(docId, workspaceId);
+        if (currentDoc) {
+          currentDocType = currentDoc.docType;
+          
+          // Use scoped query to find related docs (same type, team visibility)
+          const docsRes = await DatabaseService.loadGTMDocs(workspaceId, { 
+            filter: 'team',
+            userId: userId 
+          });
+          const allDocs = docsRes.data || [];
+          
+          // Find related docs (same doc type or shared tags, excluding current doc)
+          relatedDocs = allDocs
+            .filter(d => 
+              d.id !== docId && 
+              d.visibility === 'team' &&
+              (
+                d.docType === currentDocType ||
+                d.tags.some(tag => currentDoc.tags?.includes(tag))
+              )
             )
-          )
-          .slice(0, 3); // Limit to 3 most relevant for context
+            .slice(0, 3); // Limit to 3 most relevant for context
+        }
       }
 
       setContext({
         businessProfile: businessProfile || null,
-        currentDocType: docId ? undefined : undefined,
+        currentDocType,
         relatedDocs,
         workspaceId,
       });
     } catch (err) {
-      console.error('Failed to fetch AI workspace context:', err);
-      setError(err as Error);
+      const error = err as Error;
+      console.error('Failed to fetch AI workspace context:', error);
+      setError(error);
+      setContext(null); // Clear context on error
     } finally {
       setLoading(false);
     }

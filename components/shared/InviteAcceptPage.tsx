@@ -43,25 +43,18 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
             setStatus('loading');
             setMessage('Accepting invitation...');
 
-            const functionsUrl = `${APP_CONFIG.api.supabase.url}/functions/v1`;
-            const response = await fetch(`${functionsUrl}/accept-invitation`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${APP_CONFIG.api.supabase.anonKey}`,
-                },
-                body: JSON.stringify({ token })
+            // Use Supabase SDK for edge function calls (automatically handles auth headers)
+            const { data: result, error: invokeError } = await supabase.functions.invoke<InviteAcceptResult>('accept-invitation', {
+                body: { token }
             });
 
-            console.log('Accept invitation response status:', response.status);
-            
-            const result: InviteAcceptResult = await response.json();
-            console.log('Accept invitation response body:', result);
-            console.log('Error details:', result.error, result.success);
+            if (process.env.NODE_ENV === 'development') {
+                console.log('Accept invitation response:', result);
+            }
 
-            if (!response.ok || !result.success) {
+            if (invokeError || !result?.success) {
                 setStatus('error');
-                setMessage(result.error || `Failed to accept invitation (Status: ${response.status})`);
+                setMessage(result?.error || invokeError?.message || 'Failed to accept invitation');
                 return;
             }
 
@@ -69,7 +62,9 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
 
             if (result.isNewUser && result.tempPassword && result.email) {
                 // New user created - log them in with temp password first
-                console.log('New user detected, logging in with temporary password...');
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('New user detected, logging in with temporary password');
+                }
                 
                 try {
                     const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -78,20 +73,22 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
                     });
                     
                     if (signInError) {
-                        console.error('Error signing in:', signInError);
+                        if (process.env.NODE_ENV === 'development') {
+                            console.error('Error signing in:', signInError);
+                        }
                         throw signInError;
                     }
-                    
-                    console.log('✅ Session established, showing password setup form');
                     // Now show the password setup form with the user logged in
                     setStatus('setup_password');
                 } catch (err: any) {
-                    console.error('Error logging in new user:', err);
+                    if (process.env.NODE_ENV === 'development') {
+                        console.error('Error logging in new user:', err);
+                    }
                     setStatus('error');
                     setMessage(sanitizeAuthError(err));
                 }
             } else if (result.needsAuth) {
-                // Existing user needs to log in - prefill their email
+                // Existing user needs to log in - prefill their email and persist token
                 setStatus('needs_login');
                 setMessage(`You already have an account! Please log in with ${result.email} to access the workspace.`);
                 
@@ -100,6 +97,10 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
                     sessionStorage.setItem('auth_prefill_email', result.email);
                     sessionStorage.setItem('auth_message', `Logging in to join ${result.workspace_name || 'workspace'}`);
                 }
+                
+                // CRITICAL: Persist the invite token so AcceptInviteNotification can complete acceptance after login
+                const { setInvitationToken } = await import('../../lib/utils/tokenStorage');
+                setInvitationToken(token);
             } else {
                 // Success - already logged in
                 setStatus('success');
@@ -114,7 +115,9 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
             }
 
         } catch (error: any) {
-            console.error('Error accepting invitation:', error);
+            if (process.env.NODE_ENV === 'development') {
+                console.error('Error accepting invitation:', error);
+            }
             
             // Try to get the actual error message from the function response
             let errorMessage = 'Failed to accept invitation';
@@ -134,7 +137,6 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
             // Sanitize the error message to remove technical details
             errorMessage = sanitizeAuthError({ message: errorMessage });
             
-            console.error('Final error message:', errorMessage);
             setStatus('error');
             setMessage(errorMessage);
         }
@@ -193,7 +195,7 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
                     <h2 className="text-2xl font-bold mb-4">Success!</h2>
                     <p className="text-gray-600 whitespace-pre-line mb-6">{message}</p>
                     
-                    {inviteData?.isNewUser && (
+                    {(inviteData?.isNewUser || inviteData?.passwordResetSent) && (
                         <div className="bg-blue-50 border-2 border-blue-600 p-4 mb-4 text-left">
                             <h3 className="font-bold mb-2">📧 Next Steps:</h3>
                             <ol className="list-decimal list-inside space-y-1 text-sm">
@@ -202,6 +204,11 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
                                 <li>Set your new password</li>
                                 <li>Log in and start collaborating!</li>
                             </ol>
+                            {inviteData?.passwordResetSent && (
+                                <p className="mt-3 text-xs text-blue-700 border-t border-blue-300 pt-2">
+                                    💡 We sent you a password reset email to complete your account setup. If you don't receive it within a few minutes, check your spam folder.
+                                </p>
+                            )}
                         </div>
                     )}
                     

@@ -86,7 +86,7 @@ export const DocsList: React.FC<DocsListProps> = ({
             const { DatabaseService } = await import('../../lib/services/database');
             
             // Load full doc content
-            const { data: fullDoc, error: loadError } = await DatabaseService.loadGTMDocById(doc.id);
+            const { data: fullDoc, error: loadError } = await DatabaseService.loadGTMDocById(doc.id, workspaceId);
             if (loadError || !fullDoc) {
                 alert('Failed to load document content');
                 return;
@@ -131,7 +131,7 @@ export const DocsList: React.FC<DocsListProps> = ({
 
         try {
             const { DatabaseService } = await import('../../lib/services/database');
-            const { error } = await DatabaseService.deleteGTMDoc(docId);
+            const { error } = await DatabaseService.deleteGTMDoc(docId, workspaceId);
             
             if (error) {
                 console.error('Error deleting doc:', error);

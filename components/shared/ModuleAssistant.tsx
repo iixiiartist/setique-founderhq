@@ -59,7 +59,7 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
     maxFileSizeMB = 5, // Default 5MB for AI chat (base64 encoding adds ~33% overhead)
     crmItems = []
 }) => {
-    // Use conversation history hook for persistence
+    // Use conversation history hook for persistence with workspace/user scoping
     const {
         history,
         addMessage,
@@ -67,7 +67,7 @@ const ModuleAssistant: React.FC<ModuleAssistantProps> = ({
         clearHistory: clearPersistedHistory,
         messageCount,
         exportAsText
-    } = useConversationHistory(currentTab);
+    } = useConversationHistory(currentTab, workspaceId, user?.id);
     
     // Fullscreen mode management
     const { isFullscreen, toggleFullscreen, exitFullscreen, isMobileDevice } = useFullscreenChat();
@@ -914,7 +914,7 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                         onSelect={async (doc) => {
                             // Load full doc content for AI context
                             const { DatabaseService } = await import('../../lib/services/database');
-                            const { data: fullDoc } = await DatabaseService.loadGTMDocById(doc.id);
+                            const { data: fullDoc } = await DatabaseService.loadGTMDocById(doc.id, workspaceId);
                             if (fullDoc) {
                                 // Add contentPreview from contentPlain for AI
                                 const docWithContent = {
@@ -948,7 +948,7 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                     onSelect={async (doc) => {
                         // Load full doc content for AI context
                         const { DatabaseService } = await import('../../lib/services/database');
-                        const { data: fullDoc } = await DatabaseService.loadGTMDocById(doc.id);
+                        const { data: fullDoc } = await DatabaseService.loadGTMDocById(doc.id, workspaceId);
                         if (fullDoc) {
                             // Add contentPreview from contentPlain for AI
                             const docWithContent = {

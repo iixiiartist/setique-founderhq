@@ -17,7 +17,7 @@ export const LinkedDocsDisplay: React.FC<LinkedDocsDisplayProps> = ({
     onAttach,
     compact = false
 }) => {
-    const [linkedDocs, setLinkedDocs] = useState<GTMDocMetadata[]>([]);
+    const [linkedDocs, setLinkedDocs] = useState<LinkedDoc[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
@@ -48,15 +48,12 @@ export const LinkedDocsDisplay: React.FC<LinkedDocsDisplayProps> = ({
         }
     };
 
-    const handleUnlink = async (docId: string) => {
+    const handleUnlink = async (linkId: string) => {
         if (!window.confirm('Remove this document link?')) return;
 
         try {
             const { DatabaseService } = await import('../../lib/services/database');
-            const { error } = await DatabaseService.unlinkDocFromEntity(
-                docId,
-                entityId
-            );
+            const { error } = await DatabaseService.unlinkDocFromEntity(linkId);
 
             if (error) {
                 console.error('Error unlinking doc:', error);
@@ -129,7 +126,7 @@ export const LinkedDocsDisplay: React.FC<LinkedDocsDisplayProps> = ({
                                 </div>
                             </div>
                             <button
-                                onClick={() => handleUnlink(doc.id)}
+                                onClick={() => handleUnlink(doc.linkId!)}
                                 className={`ml-2 font-bold text-red-600 hover:text-red-800 ${
                                     compact ? 'text-sm' : 'text-lg'
                                 }`}

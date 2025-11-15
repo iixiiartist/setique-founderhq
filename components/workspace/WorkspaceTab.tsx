@@ -88,6 +88,11 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId,
                         docId={selectedDoc?.id}
                         onClose={handleCloseEditor}
                         onSave={(doc) => {
+                            // Capture created doc to prevent duplicate creates
+                            if (!selectedDoc) {
+                                setSelectedDoc(doc);
+                                setIsCreatingNew(false);
+                            }
                             // Refresh list after save to show updated doc
                             handleReloadDocs();
                         }}

@@ -50,24 +50,49 @@ export default function CampaignAnalyticsModule({
 
   // Load campaign-specific metrics
   useEffect(() => {
+    if (marketingItems.length === 0) {
+      setCampaignMetrics({});
+      return;
+    }
+
+    let isCancelled = false;
+
     const loadCampaignMetrics = async () => {
-      const metricsMap: { [key: string]: any } = {};
-      
-      for (const campaign of marketingItems) {
-        const summary = await MarketingService.getCampaignAnalyticsSummary(campaign.id);
-        const roi = await MarketingService.calculateCampaignROI(campaign.id);
-        
-        metricsMap[campaign.id] = {
-          ...summary,
-          ...roi,
-        };
+      try {
+        const metricsEntries = await Promise.all(
+          marketingItems.map(async campaign => {
+            const [summary, roi] = await Promise.all([
+              MarketingService.getCampaignAnalyticsSummary(campaign.id),
+              MarketingService.calculateCampaignROI(campaign.id),
+            ]);
+
+            return [campaign.id, { ...summary, ...roi }] as const;
+          })
+        );
+
+        if (!isCancelled) {
+          setCampaignMetrics(Object.fromEntries(metricsEntries));
+        }
+      } catch (error) {
+        console.error('Failed to load campaign metrics', error);
+        if (!isCancelled) {
+          setCampaignMetrics({});
+        }
       }
-      
-      setCampaignMetrics(metricsMap);
     };
 
     loadCampaignMetrics();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [marketingItems]);
+
+  useEffect(() => {
+    if (selectedCampaign !== 'all' && !marketingItems.some(campaign => campaign.id === selectedCampaign)) {
+      setSelectedCampaign('all');
+    }
+  }, [marketingItems, selectedCampaign]);
 
   // Filter analytics by time range
   const filteredAnalytics = useMemo(() => {
@@ -344,7 +369,7 @@ export default function CampaignAnalyticsModule({
                         className="w-3 h-3 border border-black"
                         style={{ backgroundColor: CHANNEL_COLORS[channel.channel] || '#6b7280' }}
                       />
-                      <span className="font-semibold capitalize">{channel.channel.replace('_', ' ')}</span>
+                      <span className="font-semibold capitalize">{channel.channel.replace(/_/g, ' ')}</span>
                     </div>
                     <div className="text-right">
                       <div className="font-mono text-xs">{formatCurrency(channel.spend)}</div>

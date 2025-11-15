@@ -5,7 +5,7 @@ import { DatabaseService } from '../lib/services/database'
 import { DashboardData, Task, MarketingItem, FinancialLog, Expense, Document, Investor, Customer, Partner, Deal, Priority } from '../types'
 import { EMPTY_DASHBOARD_DATA } from '../constants'
 import { supabase } from '../lib/supabase'
-import { dbToMarketingItem } from '../lib/utils/fieldTransformers'
+import { dbToMarketingItem, dbToCrmItem, dbToContact } from '../lib/utils/fieldTransformers'
 
 type TabDataCache = {
   [key: string]: {
@@ -168,52 +168,28 @@ export const useLazyDataPersistence = () => {
       const allContacts = contactsResult.data || []
       const allMeetings = meetingsResult.data || []
 
-      // Transform CRM items with contacts and meetings
+      // Transform CRM items with contacts and meetings using shared transformers
       const transformedCrmItems = crmItems.map(item => {
         const itemContacts = allContacts
           .filter(c => c.crm_item_id === item.id)
           .map(contact => {
             const contactMeetings = allMeetings.filter(m => m.contact_id === contact.id)
-            return {
-              id: contact.id,
-              crmItemId: contact.crm_item_id,
-              name: contact.name,
-              email: contact.email,
-              phone: contact.phone || undefined,
-              title: contact.title || undefined,
-              linkedin: contact.linkedin,
-              notes: contact.notes || [],
-              tags: contact.tags || [],
-              assignedTo: contact.assigned_to || undefined,
-              assignedToName: contact.assigned_to_name || undefined,
-              createdByName: contact.created_by_name || undefined,
-              meetings: contactMeetings.map(m => ({
-                id: m.id,
-                timestamp: new Date(m.timestamp).getTime(),
-                title: m.title,
-                attendees: m.attendees,
-                summary: m.summary
-              }))
-            }
-          })
+            const transformedContact = dbToContact(contact);
+            // Add meetings to contact
+            transformedContact.meetings = contactMeetings.map(m => ({
+              id: m.id,
+              timestamp: new Date(m.timestamp).getTime(),
+              title: m.title,
+              attendees: m.attendees,
+              summary: m.summary
+            }));
+            return transformedContact;
+          });
 
-        return {
-          id: item.id,
-          company: item.company,
-          contacts: itemContacts, // Always an array, even if empty
-          priority: item.priority,
-          status: item.status,
-          nextAction: item.next_action || undefined,
-          nextActionDate: item.next_action_date || undefined,
-          createdAt: new Date(item.created_at).getTime(),
-          notes: item.notes || [],
-          checkSize: item.check_size || undefined,
-          dealValue: item.deal_value || undefined,
-          opportunity: item.opportunity || undefined,
-          assignedTo: item.assigned_to || undefined,
-          assignedToName: item.assigned_to_name || undefined,
-          type: item.type // Keep type for filtering
-        }
+        const transformedItem = dbToCrmItem(item);
+        transformedItem.contacts = itemContacts; // Merge contacts
+        transformedItem.type = item.type; // Keep type for filtering
+        return transformedItem;
       })
 
       const result = {

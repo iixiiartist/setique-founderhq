@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { DashboardData, AppActions } from '../../types';
 import { Link2, TrendingUp, DollarSign, Users, Filter } from 'lucide-react';
 
@@ -30,8 +30,11 @@ export default function AttributionModule({
 }: AttributionModuleProps) {
   const campaignAttributions = data?.campaignAttributions || [];
   const marketingItems = data?.marketing || [];
-  const crmItems = [...(data?.investors || []), ...(data?.customers || []), ...(data?.partners || [])];
-  const contacts = crmItems.flatMap(item => item.contacts || []);
+  const investors = data?.investors || [];
+  const customers = data?.customers || [];
+  const partners = data?.partners || [];
+  const crmItems = useMemo(() => [...investors, ...customers, ...partners], [investors, customers, partners]);
+  const contacts = useMemo(() => crmItems.flatMap(item => item.contacts || []), [crmItems]);
   const [filterType, setFilterType] = useState<string>('all');
   const [filterCampaign, setFilterCampaign] = useState<string>('all');
   const [showForm, setShowForm] = useState(false);
@@ -45,19 +48,23 @@ export default function AttributionModule({
     utmCampaign: '',
   });
 
+  useEffect(() => {
+    if (filterCampaign !== 'all' && !marketingItems.some(item => item.id === filterCampaign)) {
+      setFilterCampaign('all');
+    }
+  }, [filterCampaign, marketingItems]);
+
   // Filter attributions
   const filteredAttributions = useMemo(() => {
-    let filtered = campaignAttributions;
+    const byType = filterType === 'all'
+      ? campaignAttributions
+      : campaignAttributions.filter(attr => attr.attributionType === filterType);
 
-    if (filterType !== 'all') {
-      filtered = filtered.filter(attr => attr.attributionType === filterType);
-    }
+    const byCampaign = filterCampaign === 'all'
+      ? byType
+      : byType.filter(attr => attr.marketingItemId === filterCampaign);
 
-    if (filterCampaign !== 'all') {
-      filtered = filtered.filter(attr => attr.marketingItemId === filterCampaign);
-    }
-
-    return filtered.sort((a, b) => 
+    return [...byCampaign].sort((a, b) =>
       new Date(b.interactionDate).getTime() - new Date(a.interactionDate).getTime()
     );
   }, [campaignAttributions, filterType, filterCampaign]);
@@ -106,32 +113,44 @@ export default function AttributionModule({
       return;
     }
 
-    await actions.createCampaignAttribution({
-      workspaceId: workspaceId,
-      marketingItemId: formData.marketingItemId,
-      crmItemId: formData.crmItemId,
-      contactId: formData.contactId || undefined,
-      attributionType: formData.attributionType,
-      attributionWeight: 1.0, // Default weight
-      interactionDate: Date.now(),
-      revenueAttributed: 0, // Will be calculated later
-      utmSource: formData.utmSource || undefined,
-      utmMedium: formData.utmMedium || undefined,
-      utmCampaign: formData.utmCampaign || undefined,
-    });
+    try {
+      const result = await actions.createCampaignAttribution({
+        workspaceId: workspaceId,
+        marketingItemId: formData.marketingItemId,
+        crmItemId: formData.crmItemId,
+        contactId: formData.contactId || undefined,
+        attributionType: formData.attributionType,
+        attributionWeight: 1.0, // Default weight
+        interactionDate: new Date().toISOString(),
+        revenueAttributed: 0, // Will be calculated later
+        utmSource: formData.utmSource || undefined,
+        utmMedium: formData.utmMedium || undefined,
+        utmCampaign: formData.utmCampaign || undefined,
+      });
 
-    // Reset form
-    setFormData({
-      marketingItemId: '',
-      crmItemId: '',
-      contactId: '',
-      attributionType: 'first_touch',
-      utmSource: '',
-      utmMedium: '',
-      utmCampaign: '',
-    });
-    setShowForm(false);
+      if (!result.success) {
+        alert(result.message || 'Failed to create attribution');
+        return;
+      }
+
+      // Reset form
+      setFormData({
+        marketingItemId: '',
+        crmItemId: '',
+        contactId: '',
+        attributionType: 'first_touch',
+        utmSource: '',
+        utmMedium: '',
+        utmCampaign: '',
+      });
+      setShowForm(false);
+    } catch (error) {
+      console.error('Failed to create campaign attribution', error);
+      alert('Failed to create attribution');
+    }
   };
+
+  const canCreateAttribution = Boolean(workspaceId) && marketingItems.length > 0 && crmItems.length > 0;
 
   return (
     <div className="space-y-6">
@@ -142,12 +161,23 @@ export default function AttributionModule({
           <h2 className="text-2xl font-bold">Campaign Attribution</h2>
         </div>
         <button
-          onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 border-2 border-black shadow-neo-btn hover:bg-purple-700 transition-colors font-semibold"
+          onClick={() => canCreateAttribution && setShowForm(!showForm)}
+          className={`flex items-center gap-2 px-4 py-2 border-2 border-black shadow-neo-btn font-semibold transition-colors ${
+            canCreateAttribution
+              ? 'bg-purple-600 text-white hover:bg-purple-700'
+              : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+          }`}
+          disabled={!canCreateAttribution}
+          aria-disabled={!canCreateAttribution}
         >
           <Link2 className="w-4 h-4" />
           Link Deal to Campaign
         </button>
+        {!canCreateAttribution && (
+          <p className="text-xs text-gray-500 mt-2">
+            Create at least one campaign and CRM deal to link attribution.
+          </p>
+        )}
       </div>
 
       {/* Metrics */}

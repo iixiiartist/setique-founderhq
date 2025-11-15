@@ -115,6 +115,7 @@ interface DbContact {
   linkedin: string;
   notes: any[];
   meetings: any[];
+  tags?: string[] | null;
   assigned_to?: string | null;
   assigned_to_name?: string | null;
   created_by_name?: string | null;
@@ -299,6 +300,7 @@ export function dbToContact(dbContact: DbContact): Contact {
     linkedin: dbContact.linkedin,
     notes: dbContact.notes || [],
     meetings: dbContact.meetings || [],
+    tags: dbContact.tags || [],
     assignedTo: dbContact.assigned_to || undefined,
     assignedToName: dbContact.assigned_to_name || undefined,
     createdByName: dbContact.created_by_name || undefined,

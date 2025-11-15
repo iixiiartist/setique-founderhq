@@ -491,8 +491,9 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
                             const { DatabaseService } = await import('../../lib/services/database');
                             const { error } = await DatabaseService.linkDocToEntity(
                                 doc.id,
+                                workspaceId,
                                 'task',
-                                editingTask.id
+                                taskId
                             );
 
                             if (error) {

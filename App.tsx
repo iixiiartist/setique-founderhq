@@ -5,6 +5,7 @@ import { WorkspaceProvider } from './contexts/WorkspaceContext'
 import { QueryProvider } from './lib/providers/QueryProvider'
 import { Toaster } from './lib/utils/toast'
 import { LoginForm } from './components/auth/LoginForm'
+import { ResetPassword } from './components/auth/ResetPassword'
 import { FullPageLoading } from './components/shared/Loading'
 import { InviteAcceptPage } from './components/shared/InviteAcceptPage'
 import { LandingPage } from './components/LandingPage'
@@ -51,6 +52,9 @@ const App: React.FC = () => {
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/terms" element={<TermsOfServicePage />} />
           
+          {/* Password reset (no auth required) */}
+          <Route path="/reset-password" element={<ResetPasswordRoute />} />
+          
           {/* App routes (requires auth) */}
           <Route path="/app/*" element={<AppRoutes />} />
           
@@ -61,6 +65,11 @@ const App: React.FC = () => {
       </QueryProvider>
     </ErrorBoundary>
   )
+}
+
+// Password reset route (public)
+function ResetPasswordRoute() {
+  return <ResetPassword onSuccess={() => window.location.href = '/app'} />;
 }
 
 // Protected app routes

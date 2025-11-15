@@ -958,7 +958,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     collection === 'marketingTasks' || collection === 'financialTasks') {
                     await DataPersistenceAdapter.addTaskNote(itemId, noteText, userId, userName);
                 } else if (collection === 'investors' || collection === 'customers' || collection === 'partners') {
-                    await DataPersistenceAdapter.addCrmNote(itemId, noteText, userId, userName);
+                    await DataPersistenceAdapter.addCrmNote(itemId, noteText, userId, userName, workspace?.id);
                 } else if (collection === 'contacts') {
                     await DataPersistenceAdapter.addContactNote(itemId, noteText, userId, userName);
                 } else if (collection === 'marketing') {

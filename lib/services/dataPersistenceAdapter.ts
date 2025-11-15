@@ -188,8 +188,8 @@ export class DataPersistenceAdapter {
     return { data, error };
   }
 
-  static async addCrmNote(crmItemId: string, noteText: string, userId?: string, userName?: string) {
-    const { data: item } = await DatabaseService.getCrmItemById(crmItemId);
+  static async addCrmNote(crmItemId: string, noteText: string, userId?: string, userName?: string, workspaceId?: string) {
+    const { data: item } = await DatabaseService.getCrmItemById(crmItemId, workspaceId!);
     if (!item) {
       return { data: null, error: new Error('CRM item not found') };
     }
@@ -380,16 +380,21 @@ export class DataPersistenceAdapter {
       phone?: string
       title?: string
       linkedin: string
+      tags?: string[]
+      assignedTo?: string
+      assignedToName?: string
     }
   ) {
     const contact = {
-      // id: removed - let database generate
       crm_item_id: crmItemId,
       name: contactData.name,
       email: contactData.email,
       phone: contactData.phone || '',
       title: contactData.title || '',
       linkedin: contactData.linkedin,
+      tags: contactData.tags || [],
+      assigned_to: contactData.assignedTo || null,
+      assigned_to_name: contactData.assignedToName || null,
       notes: []
     }
 
@@ -400,15 +405,16 @@ export class DataPersistenceAdapter {
   static async updateContact(contactId: string, updates: Partial<Contact>) {
     const dbUpdates: any = {}
     
-    if (updates.name) dbUpdates.name = updates.name
-    if (updates.email) dbUpdates.email = updates.email
-    if (updates.phone !== undefined) dbUpdates.phone = updates.phone
-    if (updates.title !== undefined) dbUpdates.title = updates.title
-    if (updates.linkedin !== undefined) dbUpdates.linkedin = updates.linkedin
-    if (updates.notes) dbUpdates.notes = updates.notes
-    if (updates.tags !== undefined) dbUpdates.tags = updates.tags
-  if (updates.assignedTo !== undefined) dbUpdates.assigned_to = updates.assignedTo
-  if (updates.assignedToName !== undefined) dbUpdates.assigned_to_name = updates.assignedToName
+    // Use explicit 'in' checks to allow clearing values (setting to empty string/null)
+    if ('name' in updates) dbUpdates.name = updates.name
+    if ('email' in updates) dbUpdates.email = updates.email
+    if ('phone' in updates) dbUpdates.phone = updates.phone || null
+    if ('title' in updates) dbUpdates.title = updates.title || null
+    if ('linkedin' in updates) dbUpdates.linkedin = updates.linkedin
+    if ('notes' in updates) dbUpdates.notes = updates.notes
+    if ('tags' in updates) dbUpdates.tags = updates.tags || []
+    if ('assignedTo' in updates) dbUpdates.assigned_to = updates.assignedTo || null
+    if ('assignedToName' in updates) dbUpdates.assigned_to_name = updates.assignedToName || null
 
     const { data, error } = await DatabaseService.updateContact(contactId, dbUpdates)
     return { data, error }

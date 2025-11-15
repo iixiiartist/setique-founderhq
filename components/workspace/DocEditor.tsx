@@ -225,10 +225,13 @@ export const DocEditor: React.FC<DocEditorProps> = ({
         setIsLoading(true);
         try {
             const { DatabaseService } = await import('../../lib/services/database');
-            const { data, error } = await DatabaseService.loadGTMDocById(docId!);
+            const { data, error } = await DatabaseService.loadGTMDocById(docId!, workspaceId);
             
             if (error) {
                 console.error('Error loading doc:', error);
+                alert('Failed to load document. It may have been deleted or you may not have access.\n\nError: ' + (error as Error).message);
+                // Keep loading state to prevent editing stale data
+                return;
             } else if (data) {
                 setTitle(data.title);
                 setDocType(data.docType as DocType);
@@ -243,10 +246,12 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                     editor.commands.setContent(data.contentPlain);
                 }
             }
+            // Only clear loading state on success
+            setIsLoading(false);
         } catch (error) {
             console.error('Error loading doc:', error);
-        } finally {
-            setIsLoading(false);
+            alert('Unexpected error loading document. Please try again.');
+            // Keep loading state to prevent editing
         }
     };
 
@@ -332,19 +337,13 @@ export const DocEditor: React.FC<DocEditorProps> = ({
         editor.commands.focus();
     };
 
-    const handleSendToAI = () => {
+    // Removed handleSendToAI - use AI Command Palette (Cmd+K) instead
+    const handleOpenAIPalette = () => {
         if (!editor) return;
-        
-        const contentText = editor.getText();
-        const docInfo = `Document: ${title}\nType: ${DOC_TYPE_LABELS[docType]}\nVisibility: ${visibility}\n\n${contentText}`;
-        
-        // Copy to clipboard
-        navigator.clipboard.writeText(docInfo).then(() => {
-            alert('Document content copied to clipboard!\n\nNow:\n1. Click the AI Assistant button (💬) at the bottom right\n2. Paste the content into the chat\n3. Ask the AI to help with your GTM document');
-        }).catch(err => {
-            console.error('Failed to copy:', err);
-            alert('Unable to copy to clipboard. Please select and copy the document content manually.');
-        });
+        const { view } = editor;
+        const coords = view.coordsAtPos(view.state.selection.from);
+        setAIPalettePosition({ top: coords.top + window.scrollY + 30, left: coords.left + window.scrollX });
+        setShowAICommandPalette(true);
     };
 
     const handleSave = async () => {
@@ -360,7 +359,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             
             if (docId) {
                 // Update existing doc
-                const { data, error } = await DatabaseService.updateGTMDoc(docId, {
+                const { data, error } = await DatabaseService.updateGTMDoc(docId, workspaceId, {
                     title,
                     docType,
                     visibility,
@@ -371,6 +370,8 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                 
                 if (error) {
                     console.error('Error updating doc:', error);
+                    alert('Failed to save document. Please try again.');
+                    return;
                 } else if (data) {
                     onSave(data as GTMDoc);
                 }
@@ -389,6 +390,8 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                 
                 if (error) {
                     console.error('Error creating doc:', error);
+                    alert('Failed to create document. Please try again.');
+                    return;
                 } else if (data) {
                     onSave(data as GTMDoc);
                 }
@@ -974,13 +977,18 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                 </div>
                                 
                                 {/* AI Assistant Button - Always visible */}
-                                <button onClick={() => {
-                                    if (!editor) return;
-                                    const { view } = editor;
-                                    const coords = view.coordsAtPos(view.state.selection.from);
-                                    setAIPalettePosition({ top: coords.top + window.scrollY + 30, left: coords.left + window.scrollX });
-                                    setShowAICommandPalette(true);
-                                }} disabled={!workspaceContext || contextLoading} className="px-4 py-2 text-sm font-bold border-2 border-black bg-purple-500 text-white hover:bg-purple-600 disabled:bg-gray-300 disabled:text-gray-500" title="AI Writing Assistant (Cmd+K)">🤖 AI</button>
+                                <button 
+                                    onClick={handleOpenAIPalette}
+                                    disabled={!workspaceContext || contextLoading || !!contextError} 
+                                    className="px-4 py-2 text-sm font-bold border-2 border-black bg-purple-500 text-white hover:bg-purple-600 disabled:bg-gray-300 disabled:text-gray-500 relative" 
+                                    title={
+                                        contextError ? `AI unavailable: ${contextError.message}` :
+                                        contextLoading ? 'Loading AI context...' :
+                                        'AI Writing Assistant (Cmd+K)'
+                                    }
+                                >
+                                    {contextLoading ? '⏳' : '🤖'} AI
+                                </button>
                             </div>
                         </div>
                     )}
@@ -1260,11 +1268,16 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                     {/* Actions */}
                     <div className="space-y-2 mb-4">
                         <button
-                            onClick={handleSendToAI}
-                            disabled={!editor}
-                            className="w-full px-3 py-2 bg-blue-500 text-white font-bold border-2 border-black shadow-neo-btn hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                            onClick={handleOpenAIPalette}
+                            disabled={!editor || contextLoading || !!contextError}
+                            className="w-full px-3 py-2 bg-purple-500 text-white font-bold border-2 border-black shadow-neo-btn hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                            title={
+                                contextError ? `AI unavailable: ${contextError.message}` :
+                                contextLoading ? 'Loading AI context...' :
+                                'Open AI Writing Assistant'
+                            }
                         >
-                            📨 Send to AI Chat
+                            {contextLoading ? '⏳ Loading AI...' : '🤖 AI Writing Assistant'}
                         </button>
                         <div className="relative">
                             <button

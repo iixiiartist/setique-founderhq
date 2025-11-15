@@ -59,9 +59,21 @@ export const DocLibraryPicker: React.FC<DocLibraryPickerProps> = ({
     };
 
     const filteredDocs = docs.filter(doc => {
+        // Filter by doc type
         if (docTypeFilter !== 'all' && doc.docType !== docTypeFilter) {
             return false;
         }
+        
+        // Filter by search query (search in title and tags)
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            const titleMatch = doc.title.toLowerCase().includes(query);
+            const tagMatch = doc.tags?.some(tag => tag.toLowerCase().includes(query));
+            if (!titleMatch && !tagMatch) {
+                return false;
+            }
+        }
+        
         return true;
     });
 
@@ -84,10 +96,7 @@ export const DocLibraryPicker: React.FC<DocLibraryPickerProps> = ({
                         type="text"
                         placeholder="Search docs..."
                         value={searchQuery}
-                        onChange={(e) => {
-                            setSearchQuery(e.target.value);
-                            loadDocs();
-                        }}
+                        onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full px-3 py-2 border-2 border-black font-mono text-sm"
                     />
                     <select
