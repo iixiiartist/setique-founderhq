@@ -4,6 +4,7 @@ import { SubscriptionBanner } from './SubscriptionBanner';
 import { PricingPage } from './PricingPage';
 import { InviteTeamMemberModal } from './shared/InviteTeamMemberModal';
 import { ProfileSettings } from './shared/ProfileSettings';
+import { AutomationSettings } from './settings/AutomationSettings';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { AuthService } from '../lib/services/auth';
@@ -606,6 +607,16 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                             )}
                         </div>
                     </fieldset>
+
+                    {/* Automation Settings */}
+                    {workspace?.id && (
+                        <fieldset className="border-2 border-dashed border-black p-4">
+                            <legend className="text-lg font-mono font-semibold px-2">⚙️ Automation Settings</legend>
+                            <div className="mt-4">
+                                <AutomationSettings workspaceId={workspace.id} />
+                            </div>
+                        </fieldset>
+                    )}
 
                     <fieldset className="border-2 border-dashed border-red-600 p-4 bg-red-50">
                         <legend className="text-lg font-mono font-semibold px-2 text-red-800">Danger Zone</legend>
