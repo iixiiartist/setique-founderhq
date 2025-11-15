@@ -567,13 +567,13 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
     );
 };
 
-const CalendarTab: React.FC<CalendarTabProps> = ({ 
+function CalendarTab({ 
     events, 
     actions,
     workspace,
     workspaceMembers = [],
     crmItems
-}) => {
+}: CalendarTabProps) {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [viewMode, setViewMode] = useState<ViewMode>('month');
     const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
@@ -990,6 +990,6 @@ const CalendarTab: React.FC<CalendarTabProps> = ({
             </Modal>
         </div>
     );
-};
+}
 
 export default CalendarTab;

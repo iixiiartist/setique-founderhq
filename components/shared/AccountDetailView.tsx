@@ -88,7 +88,7 @@ const ContactForm: React.FC<{ crmItemId: string, collection: CrmCollectionName, 
 };
 
 
-const AccountDetailView: React.FC<AccountDetailViewProps> = ({ 
+function AccountDetailView({ 
     item, 
     tasks, 
     actions, 
@@ -99,7 +99,7 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
     taskCollection,
     workspaceMembers = [],
     onAssignCompany
-}) => {
+}: AccountDetailViewProps) {
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState<AnyCrmItem>(item);
     const [newTaskText, setNewTaskText] = useState('');
@@ -744,6 +744,6 @@ const AccountDetailView: React.FC<AccountDetailViewProps> = ({
             </Modal>
         </div>
     );
-};
+}
 
 export default AccountDetailView;

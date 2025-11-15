@@ -24,7 +24,7 @@ interface CrmTabProps {
     productsServices?: ProductService[];
 }
 
-const CrmTab: React.FC<CrmTabProps> = React.memo(({ 
+const CrmTabComponent: React.FC<CrmTabProps> = ({ 
     title, 
     crmItems, 
     tasks, 
@@ -417,6 +417,8 @@ const CrmTab: React.FC<CrmTabProps> = React.memo(({
             </div>
         </div>
     );
-});
+};
+
+const CrmTab = React.memo(CrmTabComponent);
 
 export default CrmTab;

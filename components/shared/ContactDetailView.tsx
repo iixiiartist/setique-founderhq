@@ -62,7 +62,7 @@ const ContactTaskItem: React.FC<{ task: Task; onEdit: (task: Task, triggerRef: R
     );
 };
 
-const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentItem, tasks, actions, onBack, crmCollection, taskCollection, workspaceMembers = [], onAssignContact }) => {
+function ContactDetailView({ contact, parentItem, tasks, actions, onBack, crmCollection, taskCollection, workspaceMembers = [], onAssignContact }: ContactDetailViewProps) {
     const [isEditing, setIsEditing] = useState(false);
     const [newTaskText, setNewTaskText] = useState('');
     const [newTaskPriority, setNewTaskPriority] = useState<Priority>('Medium');
@@ -458,6 +458,6 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
             </Modal>
         </div>
     );
-};
+}
 
 export default ContactDetailView;
