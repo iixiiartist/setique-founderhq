@@ -34,13 +34,15 @@ export class DataPersistenceAdapter {
     dueDate?: string,
     workspaceId: string = '',
     assignedTo?: string,
-    dueTime?: string
+    dueTime?: string,
+    subtasks?: any[]
   ) {
     if (!workspaceId) {
       throw new Error('workspaceId is required to create a task');
     }
     
     console.log('[DataPersistenceAdapter] Creating task with assignedTo:', assignedTo);
+    console.log('[DataPersistenceAdapter] Creating task with subtasks:', subtasks);
     console.log('[DataPersistenceAdapter] workspaceId:', workspaceId);
     console.log('[DataPersistenceAdapter] category input:', category);
     console.log('[DataPersistenceAdapter] category after conversion:', categoryToDbFormat(category));
@@ -56,7 +58,8 @@ export class DataPersistenceAdapter {
         crmItemId,
         contactId,
         notes: [],
-        assignedTo
+        assignedTo,
+        subtasks
       }),
       category: categoryToDbFormat(category),
     } as any; // Type assertion needed due to Record<string, any> return type

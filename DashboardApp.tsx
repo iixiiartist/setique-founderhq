@@ -721,7 +721,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
     }, [allCompanies]);
 
     const actions: AppActions = useMemo(() => ({
-        createTask: async (category, text, priority, crmItemId, contactId, dueDate, assignedTo, dueTime) => {
+        createTask: async (category, text, priority, crmItemId, contactId, dueDate, assignedTo, dueTime, subtasks) => {
             if (!userId || !supabase) {
                 handleToast('Database not available', 'info');
                 return { success: false, message: 'Database not connected' };
@@ -749,7 +749,8 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     dueDate, 
                     workspace.id, 
                     assignedTo, 
-                    dueTime
+                    dueTime,
+                    subtasks
                 );
 
                 if (result.error) {
