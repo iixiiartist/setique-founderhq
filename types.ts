@@ -1,4 +1,4 @@
-import { TabType } from './constants';
+import type { TabType } from './constants';
 
 // Re-export TabType to resolve import errors in other components.
 export type { TabType };

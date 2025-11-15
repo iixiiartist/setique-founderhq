@@ -1,4 +1,4 @@
-import { DashboardData } from './types';
+import type { DashboardData } from './types';
 
 export const Tab = {
     Dashboard: 'dashboard',
