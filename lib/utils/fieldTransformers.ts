@@ -57,6 +57,27 @@ interface DbMarketingItem {
   notes: any[];
   due_date?: string | null;
   due_time?: string | null;
+  assigned_to?: string | null;
+  assigned_to_name?: string | null;
+  workspace_id: string;
+  
+  // Campaign details
+  campaign_budget?: number | null;
+  actual_spend?: number | null;
+  target_audience?: string | null;
+  channels?: string[] | null;
+  goals?: string | null;
+  kpis?: any | null;
+  
+  // Links
+  document_ids?: string[] | null;
+  calendar_event_ids?: string[] | null;
+  tags?: string[] | null;
+  parent_campaign_id?: string | null;
+  
+  // Product/Service linking
+  product_service_ids?: string[] | null;
+  target_revenue?: number | null;
 }
 
 interface DbCrmItem {
@@ -210,6 +231,27 @@ export function dbToMarketingItem(dbItem: DbMarketingItem): MarketingItem {
     notes: dbItem.notes || [],
     dueDate: dbItem.due_date || undefined,
     dueTime: dbItem.due_time || undefined,
+    assignedTo: dbItem.assigned_to || undefined,
+    assignedToName: dbItem.assigned_to_name || undefined,
+    workspaceId: dbItem.workspace_id,
+    
+    // Campaign details
+    campaignBudget: dbItem.campaign_budget || undefined,
+    actualSpend: dbItem.actual_spend || undefined,
+    targetAudience: dbItem.target_audience || undefined,
+    channels: dbItem.channels || undefined,
+    goals: dbItem.goals || undefined,
+    kpis: dbItem.kpis || undefined,
+    
+    // Links
+    documentIds: dbItem.document_ids || undefined,
+    calendarEventIds: dbItem.calendar_event_ids || undefined,
+    tags: dbItem.tags || undefined,
+    parentCampaignId: dbItem.parent_campaign_id || undefined,
+    
+    // Product/Service linking
+    productServiceIds: dbItem.product_service_ids || undefined,
+    targetRevenue: dbItem.target_revenue || undefined,
   };
 }
 
@@ -354,6 +396,25 @@ export function marketingItemToDb(item: Partial<MarketingItem>): Record<string, 
   if (item.notes !== undefined) dbObject.notes = item.notes;
   if (item.dueDate !== undefined) dbObject.due_date = item.dueDate || null;
   if (item.dueTime !== undefined) dbObject.due_time = item.dueTime || null;
+  if (item.assignedTo !== undefined) dbObject.assigned_to = item.assignedTo || null;
+  
+  // Campaign details
+  if (item.campaignBudget !== undefined) dbObject.campaign_budget = item.campaignBudget;
+  if (item.actualSpend !== undefined) dbObject.actual_spend = item.actualSpend;
+  if (item.targetAudience !== undefined) dbObject.target_audience = item.targetAudience || null;
+  if (item.channels !== undefined) dbObject.channels = item.channels;
+  if (item.goals !== undefined) dbObject.goals = item.goals || null;
+  if (item.kpis !== undefined) dbObject.kpis = item.kpis;
+  
+  // Links
+  if (item.documentIds !== undefined) dbObject.document_ids = item.documentIds;
+  if (item.calendarEventIds !== undefined) dbObject.calendar_event_ids = item.calendarEventIds;
+  if (item.tags !== undefined) dbObject.tags = item.tags;
+  if (item.parentCampaignId !== undefined) dbObject.parent_campaign_id = item.parentCampaignId || null;
+  
+  // Product/Service linking
+  if (item.productServiceIds !== undefined) dbObject.product_service_ids = item.productServiceIds;
+  if (item.targetRevenue !== undefined) dbObject.target_revenue = item.targetRevenue;
 
   return dbObject;
 }

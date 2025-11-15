@@ -2211,23 +2211,28 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
         logger.info('[DashboardApp] Marketing items:', data.marketing.length, 'total');
         logger.info('[DashboardApp] Marketing with dates:', data.marketing.filter(m => m.dueDate).map(m => ({ id: m.id, title: m.title, dueDate: m.dueDate, dueTime: m.dueTime })));
         
+        const marketingEvents = data.marketing
+            .filter(m => m.dueDate)
+            .map(({ type: marketingCategory, ...marketing }) => ({
+                ...marketing,
+                type: 'marketing' as const,
+                tag: 'Marketing',
+                contentType: marketingCategory,
+            }));
+        
+        logger.info('[DashboardApp] Marketing events for calendar:', marketingEvents.length, 'events', marketingEvents);
+        
         const calendarEvents: CalendarEvent[] = [
             ...allTasks
                 .filter(t => t.dueDate)
                 .map(t => ({ ...t, type: 'task' as const, title: t.text })),
-            ...data.marketing
-                .filter(m => m.dueDate)
-                .map(({ type: marketingCategory, ...marketing }) => ({
-                    ...marketing,
-                    type: 'marketing' as const,
-                    tag: 'Marketing',
-                    contentType: marketingCategory,
-                })),
+            ...marketingEvents,
             ...allMeetings,
             ...crmNextActions,
         ];
         
         logger.info('[DashboardApp] Calendar events after filter:', calendarEvents.length, 'events');
+        logger.info('[DashboardApp] Calendar event types:', calendarEvents.map(e => ({ type: e.type, title: e.title || e.text })));
 
         switch (activeTab) {
             case Tab.Dashboard:
