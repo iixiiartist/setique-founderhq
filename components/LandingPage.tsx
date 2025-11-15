@@ -124,54 +124,36 @@ export function LandingPage() {
           <div className="max-w-3xl mx-auto text-center">
             <div className="inline-block mb-4 px-4 py-2 bg-purple-300 border-2 border-black shadow-neo font-mono text-sm font-bold flex items-center gap-2">
               <Sparkles className="w-4 h-4" />
-              AI-POWERED INSIGHTS
+              CONTEXT-AWARE AI
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">AI That Actually Knows Your Business</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">AI That Knows Your Pipeline</h2>
             <p className="text-lg text-gray-700 mb-6 leading-relaxed">
-              Unlike generic ChatGPT, our AI assistants have full context on your deals, contacts, tasks, and metrics. Get actionable insights specific to your GTM motion—not generic advice. Each module has a dedicated AI trained for that function.
+              Unlike generic ChatGPT, our AI has full context on your investor conversations, customer deals, and partnership discussions. Get actionable coaching on your actual GTM motion—not generic startup advice.
             </p>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 text-left">
-              <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <Code className="w-5 h-5" />
-                  <h3 className="font-bold">Platform AI</h3>
+            <div className="grid md:grid-cols-3 gap-6 text-left">
+              <div className="bg-white p-6 border-2 border-black shadow-neo">
+                <div className="flex items-center gap-2 mb-3">
+                  <BarChart3 className="w-6 h-6" />
+                  <h3 className="font-bold text-lg">Fundraising AI</h3>
                 </div>
-                <p className="text-sm text-gray-600">Get technical guidance, prioritize features, and manage your product development roadmap.</p>
+                <p className="text-gray-700 mb-4">Research investors matching your profile. Draft personalized outreach emails. Get coaching on pitch strategy and objection handling.</p>
+                <div className="text-sm text-gray-600 italic">"Which Series A investors have backed similar SaaS companies?"</div>
               </div>
-              <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <BarChart3 className="w-5 h-5" />
-                  <h3 className="font-bold">Fundraising AI</h3>
+              <div className="bg-white p-6 border-2 border-black shadow-neo">
+                <div className="flex items-center gap-2 mb-3">
+                  <Briefcase className="w-6 h-6" />
+                  <h3 className="font-bold text-lg">Sales AI</h3>
                 </div>
-                <p className="text-sm text-gray-600">Research investors, draft outreach emails, and manage your fundraising pipeline.</p>
+                <p className="text-gray-700 mb-4">Generate deal-specific proposals. Get coaching on deal progression. AI suggests next steps based on your CRM history and win patterns.</p>
+                <div className="text-sm text-gray-600 italic">"Draft a follow-up for Acme Corp based on our last meeting."</div>
               </div>
-              <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <Briefcase className="w-5 h-5" />
-                  <h3 className="font-bold">Sales AI</h3>
+              <div className="bg-white p-6 border-2 border-black shadow-neo">
+                <div className="flex items-center gap-2 mb-3">
+                  <Handshake className="w-6 h-6" />
+                  <h3 className="font-bold text-lg">Partnership AI</h3>
                 </div>
-                <p className="text-sm text-gray-600">Generate proposals, track customer conversations, and get deal-closing strategies.</p>
-              </div>
-              <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <Handshake className="w-5 h-5" />
-                  <h3 className="font-bold">Partnerships AI</h3>
-                </div>
-                <p className="text-sm text-gray-600">Identify partnership opportunities, structure deals, and manage strategic relationships.</p>
-              </div>
-              <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <Megaphone className="w-5 h-5" />
-                  <h3 className="font-bold">Marketing AI</h3>
-                </div>
-                <p className="text-sm text-gray-600">Plan campaigns, generate content ideas, and optimize your marketing strategy.</p>
-              </div>
-              <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <DollarSign className="w-5 h-5" />
-                  <h3 className="font-bold">Financials AI</h3>
-                </div>
-                <p className="text-sm text-gray-600">Analyze expenses, forecast revenue, and get insights on your financial performance.</p>
+                <p className="text-gray-700 mb-4">Identify strategic partnership opportunities. Structure co-marketing campaigns. Generate partnership proposals and track relationship health.</p>
+                <div className="text-sm text-gray-600 italic">"What partners serve similar customers we could co-sell with?"</div>
               </div>
             </div>
           </div>
