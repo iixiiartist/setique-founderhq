@@ -621,13 +621,14 @@ Recent: ${JSON.stringify(documentsSummary.recent)}
 ];
 
 // Fallback config for any tab without a specific config
-const DEFAULT_CONFIG: AssistantConfig = {
-  tab: Tab.Dashboard,
-  title: 'AI Assistant',
-  icon: '✨',
-  color: 'blue',
-  getSystemPrompt: ({ companyName, businessContext, teamContext, data }) =>
-    `You are ${companyName}'s AI assistant.
+function getDefaultConfig(): AssistantConfig {
+  return {
+    tab: Tab.Dashboard,
+    title: 'AI Assistant',
+    icon: '✨',
+    color: 'blue',
+    getSystemPrompt: ({ companyName, businessContext, teamContext, data }) =>
+      `You are ${companyName}'s AI assistant.
 
 **Expertise:** General business support, task management, strategic guidance.
 
@@ -640,10 +641,11 @@ ${teamContext}
 
 I'm here to help with any questions about your business operations.
 Today's date is ${new Date().toISOString().split('T')[0]}.`,
-};
+  };
+}
 
 export const getAssistantConfig = (tab: TabType): AssistantConfig => {
-  return ASSISTANT_CONFIGS.find(config => config.tab === tab) || DEFAULT_CONFIG;
+  return ASSISTANT_CONFIGS.find(config => config.tab === tab) || getDefaultConfig();
 };
 
 export const getAssistantTitle = (tab: TabType): string => {
