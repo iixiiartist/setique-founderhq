@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { z } from 'zod';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
@@ -8,6 +9,10 @@ import TaskManagement from './shared/TaskManagement';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import KpiCard from './shared/KpiCard';
 import { RevenueModule, CashFlowModule, MetricsModule } from './financials';
+import { Form } from './forms/Form';
+import { FormField } from './forms/FormField';
+import { SelectField } from './forms/SelectField';
+import { Button } from './ui/Button';
 
 const EXPENSE_CATEGORY_OPTIONS: ExpenseCategory[] = [
     'Software/SaaS',
@@ -145,6 +150,26 @@ const sanitizeExpenseUpdates = (
 
     return sanitized;
 };
+
+// Zod schemas for financial forms
+const financialLogSchema = z.object({
+    date: z.string().min(1, 'Date is required'),
+    mrr: z.number().min(0, 'MRR must be positive').default(0),
+    gmv: z.number().min(0, 'GMV must be positive').default(0),
+    signups: z.number().int().min(0, 'Signups must be positive').default(0),
+});
+
+const expenseSchema = z.object({
+    date: z.string().min(1, 'Date is required'),
+    amount: z.number().min(0, 'Amount must be positive'),
+    description: z.string().min(1, 'Description is required').max(500),
+    category: z.enum(EXPENSE_CATEGORY_OPTIONS as [string, ...string[]]),
+    vendor: z.string().max(200).optional(),
+    paymentMethod: z.enum(PAYMENT_METHOD_OPTIONS as [string, ...string[]]).optional(),
+});
+
+type FinancialLogFormData = z.infer<typeof financialLogSchema>;
+type ExpenseFormData = z.infer<typeof expenseSchema>;
 
 const FinancialLogItem: React.FC<{ item: FinancialLog; onDelete: () => void; }> = ({ item, onDelete }) => (
     <li className="flex items-center justify-between p-3 bg-white border-2 border-black shadow-neo">
@@ -322,10 +347,6 @@ const FinancialsTab: React.FC<{
 }> = React.memo(({ items, expenses, tasks, actions, documents, businessProfile, workspaceId, onUpgradeNeeded, workspaceMembers = [], data, productsServices = [] }) => {
     const { workspace } = useWorkspace();
     const [currentView, setCurrentView] = useState<'overview' | 'revenue' | 'cashflow' | 'metrics'>('overview');
-    const [form, setForm] = useState<Omit<FinancialLog, 'id'>>(getDefaultFinancialLogForm);
-
-    const [expenseForm, setExpenseForm] = useState<Omit<Expense, 'id' | 'notes'>>(getDefaultExpenseForm);
-
     const [expenseFilter, setExpenseFilter] = useState<ExpenseCategory | 'All'>('All');
     const [expenseSortBy, setExpenseSortBy] = useState<'date' | 'amount'>('date');
 
@@ -342,24 +363,26 @@ const FinancialsTab: React.FC<{
     const currentMonthLabel = useMemo(() => monthKeyToLabel(currentMonthKey), [currentMonthKey]);
     const previousMonthLabel = useMemo(() => monthKeyToLabel(previousMonthKey), [previousMonthKey]);
 
-    const handleLog = (e: React.FormEvent) => {
-        e.preventDefault();
-        const sanitizedForm: Omit<FinancialLog, 'id'> = {
-            date: form.date,
-            mrr: Math.max(0, Number.isFinite(form.mrr) ? form.mrr : 0),
-            gmv: Math.max(0, Number.isFinite(form.gmv) ? form.gmv : 0),
-            signups: Math.max(0, Number.isFinite(form.signups) ? Math.round(form.signups) : 0)
+    const handleLog = (data: FinancialLogFormData) => {
+        const financialLog: Omit<FinancialLog, 'id'> = {
+            date: data.date,
+            mrr: data.mrr,
+            gmv: data.gmv,
+            signups: data.signups,
         };
-
-        actions.logFinancials(sanitizedForm);
-        setForm(getDefaultFinancialLogForm());
+        actions.logFinancials(financialLog);
     };
 
-    const handleExpense = (e: React.FormEvent) => {
-        e.preventDefault();
-        const sanitizedExpense = sanitizeExpenseInput(expenseForm);
-        actions.createExpense(sanitizedExpense);
-        setExpenseForm(getDefaultExpenseForm());
+    const handleExpense = (data: ExpenseFormData) => {
+        const expense: Omit<Expense, 'id' | 'notes'> = {
+            date: data.date,
+            amount: data.amount,
+            description: data.description,
+            category: data.category as ExpenseCategory,
+            vendor: data.vendor || '',
+            paymentMethod: data.paymentMethod as PaymentMethod | undefined,
+        };
+        actions.createExpense(expense);
     };
 
     // Expense calculations
@@ -474,13 +497,6 @@ const FinancialsTab: React.FC<{
             direction: monthlyExpenseDelta < 0 ? 'down' : monthlyExpenseDelta === 0 ? 'flat' : 'up'
         } as const
         : undefined;
-
-    const calculatedXp = useMemo(() => {
-        const BASE_XP = 10;
-        const XP_PER_SIGNUP = 2;
-        const signups = Number(form.signups) || 0;
-        return BASE_XP + (signups * XP_PER_SIGNUP);
-    }, [form.signups]);
 
     return (
         <div className="space-y-6">
@@ -676,154 +692,139 @@ const FinancialsTab: React.FC<{
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-white p-6 border-2 border-black shadow-neo">
                         <h2 className="text-xl font-semibold text-black mb-4">Log Financial Snapshot</h2>
-                        <form onSubmit={handleLog} className="space-y-3">
-                            <div>
-                                <label htmlFor="log-date" className="block font-mono text-sm font-semibold text-black mb-1">Date</label>
-                                <input
-                                    id="log-date"
-                                    type="date"
-                                    value={form.date || ''}
-                                    onChange={e => setForm(p=>({...p, date: e.target.value}))}
-                                    required
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label htmlFor="log-mrr" className="block font-mono text-xs font-semibold text-black mb-1">MRR ($)</label>
-                                    <input
-                                        id="log-mrr"
-                                        type="number"
-                                        min={0}
-                                        value={form.mrr || ''}
-                                        onChange={e => setForm(p=>({...p, mrr: Math.max(0, Number(e.target.value))}))}
-                                        placeholder="1000"
-                                        required
-                                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 text-sm"
-                                    />
-                                </div>
-                                <div>
-                                    <label htmlFor="log-gmv" className="block font-mono text-xs font-semibold text-black mb-1">GMV ($)</label>
-                                    <input
-                                        id="log-gmv"
-                                        type="number"
-                                        min={0}
-                                        value={form.gmv || ''}
-                                        onChange={e => setForm(p=>({...p, gmv: Math.max(0, Number(e.target.value))}))}
-                                        placeholder="10000"
-                                        required
-                                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 text-sm"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label htmlFor="log-signups" className="block font-mono text-sm font-semibold text-black mb-1">New Signups</label>
-                                <input
-                                    id="log-signups"
-                                    type="number"
-                                    min={0}
-                                    step={1}
-                                    value={form.signups || ''}
-                                    onChange={e => setForm(p=>({...p, signups: Math.max(0, Math.round(Number(e.target.value)))}))}
-                                    placeholder="100"
-                                    required
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                                />
-                            </div>
-                            <div className="flex justify-end items-center gap-3 pt-2">
-                                <span className="font-mono text-sm font-semibold text-green-600">+{calculatedXp} XP</span>
-                                <button type="submit" className="font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn text-sm">Log</button>
-                            </div>
-                        </form>
+                        <Form
+                            schema={financialLogSchema}
+                            defaultValues={{
+                                date: new Date().toISOString().split('T')[0],
+                                mrr: 0,
+                                gmv: 0,
+                                signups: 0,
+                            }}
+                            onSubmit={handleLog}
+                            className="space-y-3"
+                        >
+                            {({ watch, formState }) => {
+                                const signups = watch('signups') || 0;
+                                const calculatedXp = 10 + (signups * 2);
+                                
+                                return (
+                                    <>
+                                        <FormField
+                                            name="date"
+                                            label="Date"
+                                            type="date"
+                                            required
+                                        />
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <FormField
+                                                name="mrr"
+                                                label="MRR ($)"
+                                                type="number"
+                                                min={0}
+                                                placeholder="1000"
+                                                required
+                                            />
+                                            <FormField
+                                                name="gmv"
+                                                label="GMV ($)"
+                                                type="number"
+                                                min={0}
+                                                placeholder="10000"
+                                                required
+                                            />
+                                        </div>
+                                        <FormField
+                                            name="signups"
+                                            label="New Signups"
+                                            type="number"
+                                            min={0}
+                                            step={1}
+                                            placeholder="100"
+                                            required
+                                        />
+                                        <div className="flex justify-end items-center gap-3 pt-2">
+                                            <span className="font-mono text-sm font-semibold text-green-600">+{calculatedXp} XP</span>
+                                            <Button type="submit" loading={formState.isSubmitting}>
+                                                Log
+                                            </Button>
+                                        </div>
+                                    </>
+                                );
+                            }}
+                        </Form>
                     </div>
 
                     <div className="bg-white p-6 border-2 border-black shadow-neo">
                         <h2 className="text-xl font-semibold text-black mb-4">Log Expense</h2>
-                        <form onSubmit={handleExpense} className="space-y-3">
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label htmlFor="expense-date" className="block font-mono text-xs font-semibold text-black mb-1">Date</label>
-                                    <input
-                                        id="expense-date"
-                                        type="date"
-                                        value={expenseForm.date || ''}
-                                        onChange={e => setExpenseForm(p=>({...p, date: e.target.value}))}
-                                        required
-                                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 text-sm"
-                                    />
-                                </div>
-                                <div>
-                                    <label htmlFor="expense-amount" className="block font-mono text-xs font-semibold text-black mb-1">Amount ($)</label>
-                                    <input
-                                        id="expense-amount"
-                                        type="number"
-                                        step="0.01"
-                                        min={0}
-                                        value={expenseForm.amount || ''}
-                                        onChange={e => setExpenseForm(p=>({...p, amount: Math.max(0, Number(e.target.value))}))}
-                                        placeholder="0.00"
-                                        required
-                                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 text-sm"
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label htmlFor="expense-description" className="block font-mono text-sm font-semibold text-black mb-1">Description</label>
-                                <input 
-                                    id="expense-description"
-                                    type="text" 
-                                    value={expenseForm.description || ''} 
-                                    onChange={e => setExpenseForm(p=>({...p, description: e.target.value}))} 
-                                    placeholder="AWS hosting" 
-                                    required 
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 text-sm"
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label htmlFor="expense-category" className="block font-mono text-xs font-semibold text-black mb-1">Category</label>
-                                    <select
-                                        id="expense-category"
-                                        value={expenseForm.category || 'Other'}
-                                        onChange={e => setExpenseForm(p=>({...p, category: e.target.value as ExpenseCategory}))}
-                                        required
-                                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 text-sm"
-                                    >
-                                        {EXPENSE_CATEGORY_OPTIONS.map(category => (
-                                            <option key={category} value={category}>{category}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label htmlFor="expense-vendor" className="block font-mono text-xs font-semibold text-black mb-1">Vendor</label>
-                                    <input
-                                        id="expense-vendor"
+                        <Form
+                            schema={expenseSchema}
+                            defaultValues={{
+                                date: new Date().toISOString().split('T')[0],
+                                amount: 0,
+                                description: '',
+                                category: 'Other' as ExpenseCategory,
+                                vendor: '',
+                                paymentMethod: undefined,
+                            }}
+                            onSubmit={handleExpense}
+                            className="space-y-3"
+                        >
+                            {({ formState }) => (
+                                <>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <FormField
+                                            name="date"
+                                            label="Date"
+                                            type="date"
+                                            required
+                                        />
+                                        <FormField
+                                            name="amount"
+                                            label="Amount ($)"
+                                            type="number"
+                                            step="0.01"
+                                            min={0}
+                                            placeholder="0.00"
+                                            required
+                                        />
+                                    </div>
+                                    <FormField
+                                        name="description"
+                                        label="Description"
                                         type="text"
-                                        value={expenseForm.vendor || ''}
-                                        onChange={e => setExpenseForm(p=>({...p, vendor: e.target.value}))}
-                                        placeholder="Optional"
-                                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 text-sm"
+                                        placeholder="AWS hosting"
+                                        required
                                     />
-                                </div>
-                            </div>
-                            <div>
-                                <label htmlFor="expense-payment-method" className="block font-mono text-xs font-semibold text-black mb-1">Payment Method</label>
-                                <select
-                                    id="expense-payment-method"
-                                    value={expenseForm.paymentMethod ?? ''}
-                                    onChange={e => setExpenseForm(p => ({...p, paymentMethod: e.target.value ? e.target.value as PaymentMethod : undefined}))}
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 text-sm"
-                                >
-                                    <option value="">Select</option>
-                                    {PAYMENT_METHOD_OPTIONS.map(method => (
-                                        <option key={method} value={method}>{method}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="flex justify-end pt-2">
-                                <button type="submit" className="font-mono font-semibold bg-red-600 text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-red-700 text-sm">Log</button>
-                            </div>
-                        </form>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <SelectField
+                                            name="category"
+                                            label="Category"
+                                            required
+                                            options={EXPENSE_CATEGORY_OPTIONS.map(cat => ({ value: cat, label: cat }))}
+                                        />
+                                        <FormField
+                                            name="vendor"
+                                            label="Vendor"
+                                            type="text"
+                                            placeholder="Optional"
+                                        />
+                                    </div>
+                                    <SelectField
+                                        name="paymentMethod"
+                                        label="Payment Method"
+                                        options={[
+                                            { value: '', label: 'Select' },
+                                            ...PAYMENT_METHOD_OPTIONS.map(method => ({ value: method, label: method }))
+                                        ]}
+                                    />
+                                    <div className="flex justify-end pt-2">
+                                        <Button type="submit" variant="danger" loading={formState.isSubmitting}>
+                                            Log
+                                        </Button>
+                                    </div>
+                                </>
+                            )}
+                        </Form>
                     </div>
                 </div>
 
