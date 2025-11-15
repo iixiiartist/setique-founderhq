@@ -1864,50 +1864,50 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     }
                 }
 
-                // Task 28: Auto-create revenue transaction when deal is closed won
-                if (updates.stage === 'closed_won' && result.data) {
-                    const deal = result.data;
-                    
-                    // Only auto-convert if deal has a linked product/service
-                    if (deal.product_service_id) {
-                        try {
-                            logger.info('Auto-creating revenue transaction for closed deal:', dealId);
+                // Trigger automation engine for deal stage changes
+                if (result.data) {
+                    try {
+                        const { automationEngine } = await import('./lib/services/automationService');
+                        
+                        const automationResult = await automationEngine.trigger('deal_stage_change', {
+                            workspaceId: workspace!.id,
+                            userId: user!.id,
+                            entityType: 'deal',
+                            entityId: dealId,
+                            data: result.data,
+                            previousData: { stage: deals.find(d => d.id === dealId)?.stage }
+                        });
+
+                        if (automationResult.executedRules > 0) {
+                            logger.info(`Executed ${automationResult.executedRules} automation rules for deal stage change`);
                             
-                            // Import ProductIntegrationService dynamically to avoid circular deps
-                            const { ProductIntegrationService } = await import('./lib/services/productService');
-                            
-                            const revenueResult = await ProductIntegrationService.convertDealToRevenue(
-                                deal,
-                                deal.actual_close_date
-                            );
-                            
-                            if (revenueResult.success) {
-                                logger.info('Revenue transaction auto-created:', revenueResult.transaction?.id);
-                                handleToast('Deal closed and revenue transaction created automatically', 'success');
-                                
-                                // Reload revenue data
+                            // Reload affected data
+                            if (updates.stage === 'closed_won') {
                                 invalidateCache('revenueTransactions');
                                 if (useLazyDataPersistenceRef.current?.loadRevenueTransactions) {
                                     const revenueTransactions = await useLazyDataPersistenceRef.current.loadRevenueTransactions({ force: true });
                                     setData(prev => ({ ...prev, revenueTransactions }));
                                 }
                                 
-                                // Reload products to update analytics
                                 if (useLazyDataPersistenceRef.current?.loadProductsServices) {
                                     const { productsServices } = await useLazyDataPersistenceRef.current.loadProductsServices({ force: true });
                                     setData(prev => ({ ...prev, productsServices }));
                                 }
+                                
+                                handleToast('Deal closed and automations executed successfully', 'success');
                             } else {
-                                logger.warn('Failed to auto-create revenue:', revenueResult.error);
-                                handleToast('Deal closed, but revenue transaction failed to auto-create', 'info');
+                                handleToast('Deal updated successfully', 'success');
                             }
-                        } catch (error) {
-                            logger.error('Error in deal-to-revenue automation:', error);
-                            // Don't fail the deal update if revenue creation fails
-                            handleToast('Deal updated, but revenue automation encountered an error', 'info');
+                        } else {
+                            handleToast(updates.stage === 'closed_won' ? 'Deal closed successfully' : 'Deal updated successfully', 'success');
                         }
-                    } else {
-                        handleToast('Deal closed successfully', 'success');
+
+                        if (automationResult.errors.length > 0) {
+                            logger.warn('Some automations failed:', automationResult.errors);
+                        }
+                    } catch (error) {
+                        logger.error('Failed to trigger automation engine:', error);
+                        handleToast('Deal updated, but automation execution encountered an error', 'info');
                     }
                 } else {
                     handleToast('Deal updated successfully', 'success');
