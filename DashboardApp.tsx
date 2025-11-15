@@ -535,6 +535,17 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     setData(prev => ({ ...prev, ...tasks }));
                     loadedTabsRef.current.add('tasks');
                     
+                    // Calendar tab needs marketing data for calendar events
+                    if (activeTab === Tab.Calendar) {
+                        const marketing = await loadMarketing({ force: true });
+                        setData(prev => ({ ...prev, ...marketing }));
+                        loadedTabsRef.current.add('marketing');
+                        
+                        const crm = await loadCrmItems({ force: true });
+                        setData(prev => ({ ...prev, ...crm }));
+                        loadedTabsRef.current.add('crm');
+                    }
+                    
                     if (activeTab === Tab.ProductsServices) {
                         const productsData = await loadProductsServices({ force: true });
                         setData(prev => ({ 
@@ -1533,9 +1544,10 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     wasPublished: wasPublished && previousStatus !== 'Published'
                 });
                 
-                // Single reload and cache invalidation after all updates
-                logger.info('[updateMarketingItem] Reloading data...');
-                await reload();
+                // Reload marketing data (important for calendar sync)
+                logger.info('[updateMarketingItem] Reloading marketing data...');
+                const marketingData = await loadMarketing({ force: true });
+                setData(prev => ({ ...prev, ...marketingData }));
                 invalidateCache('marketing');
                 logger.info('[updateMarketingItem] Update complete');
 
