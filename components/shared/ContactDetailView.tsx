@@ -64,7 +64,6 @@ const ContactTaskItem: React.FC<{ task: Task; onEdit: (task: Task, triggerRef: R
 
 const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentItem, tasks, actions, onBack, crmCollection, taskCollection, workspaceMembers = [], onAssignContact }) => {
     const [isEditing, setIsEditing] = useState(false);
-    const [editForm, setEditForm] = useState<Contact>(contact);
     const [newTaskText, setNewTaskText] = useState('');
     const [newTaskPriority, setNewTaskPriority] = useState<Priority>('Medium');
     const [newTaskDueDate, setNewTaskDueDate] = useState('');
@@ -77,13 +76,6 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
     
     const editContactModalTriggerRef = useRef<HTMLButtonElement | null>(null);
     const editTaskModalTriggerRef = useRef<HTMLButtonElement | null>(null);
-
-    // Initialize editForm only when modal opens
-    useEffect(() => {
-        if (isEditing) {
-            setEditForm(contact);
-        }
-    }, [isEditing]);
 
     useEffect(() => {
         if (editingTask) {
@@ -111,17 +103,20 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
         setEditingTask(null);
     }, []);
 
-    const handleUpdate = useCallback(async () => {
-        const result = await actions.updateContact(crmCollection, contact.crmItemId, editForm.id, editForm);
+    const handleUpdate = useCallback(async (data: ContactEditFormData) => {
+        const updatedContact: Contact = {
+            ...contact,
+            name: data.name.trim(),
+            email: data.email.trim(),
+            phone: data.phone?.trim() || '',
+            title: data.title?.trim() || '',
+            linkedin: data.linkedin?.trim() || '',
+        };
+        const result = await actions.updateContact(crmCollection, contact.crmItemId, contact.id, updatedContact);
         if (result.success) {
             setIsEditing(false);
         }
-    }, [actions, crmCollection, contact.crmItemId, editForm]);
-
-    // Use a single handler for all form field changes
-    const handleFormChange = useCallback((field: keyof Contact, value: string) => {
-        setEditForm(prev => ({ ...prev, [field]: value }));
-    }, []);
+    }, [actions, crmCollection, contact]);
 
     // Stable handlers for NotesManager to prevent re-renders
     const handleAddNote = useCallback((collection: NoteableCollectionName, itemId: string, noteText: string) => {
@@ -341,92 +336,71 @@ const ContactDetailView: React.FC<ContactDetailViewProps> = ({ contact, parentIt
                 </div>
             </div>
              <Modal isOpen={isEditing} onClose={closeEditModal} title="Edit Contact" triggerRef={editContactModalTriggerRef}>
-                 <div className="space-y-4">
-                    <div>
-                        <label htmlFor="edit-contact-name" className="block font-mono text-sm font-semibold text-black mb-1">Name *</label>
-                        <input 
-                            id="edit-contact-name" 
-                            name="name"
-                            type="text"
-                            value={editForm.name} 
-                            onChange={(e) => handleFormChange('name', e.target.value)}
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="edit-contact-email" className="block font-mono text-sm font-semibold text-black mb-1">Email *</label>
-                        <input 
-                            id="edit-contact-email"
-                            name="email"
-                            type="email"
-                            value={editForm.email} 
-                            onChange={(e) => handleFormChange('email', e.target.value)}
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="edit-contact-phone" className="block font-mono text-sm font-semibold text-black mb-1">Phone</label>
-                        <input 
-                            id="edit-contact-phone"
-                            name="phone"
-                            type="tel"
-                            value={editForm.phone || ''} 
-                            onChange={(e) => handleFormChange('phone', e.target.value)}
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                            placeholder="e.g., +1 (555) 123-4567"
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="edit-contact-title" className="block font-mono text-sm font-semibold text-black mb-1">Title</label>
-                        <input 
-                            id="edit-contact-title"
-                            name="title"
-                            type="text"
-                            value={editForm.title || ''} 
-                            onChange={(e) => handleFormChange('title', e.target.value)}
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
-                            placeholder="e.g., CEO, VP Sales, Product Manager"
-                        />
-                    </div>
-                     <div>
-                        <label htmlFor="edit-contact-linkedin" className="block font-mono text-sm font-semibold text-black mb-1">LinkedIn Profile</label>
-                        <input 
-                            id="edit-contact-linkedin"
-                            name="linkedin"
-                            type="url"
-                            value={editForm.linkedin || ''} 
-                            onChange={(e) => handleFormChange('linkedin', e.target.value)}
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                            placeholder="https://linkedin.com/in/username"
-                        />
-                    </div>
-                    <div className="pt-4 border-t border-gray-200">
-                        <NotesManager 
-                            notes={editForm.notes} 
-                            itemId={editForm.id} 
-                            collection='contacts'
-                            addNoteAction={handleAddNote}
-                            updateNoteAction={handleUpdateNote}
-                            deleteNoteAction={handleDeleteNote}
-                        />
-                    </div>
-                    <div className="flex gap-4 pt-4">
-                        <button 
-                            onClick={handleUpdate} 
-                            className="font-mono w-full bg-black border-2 border-black text-white cursor-pointer text-sm py-3 px-4 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-gray-800"
-                        >
-                            Save Changes
-                        </button>
-                        <button 
-                            onClick={closeEditModal} 
-                            className="font-mono w-full bg-white border-2 border-black text-black cursor-pointer text-sm py-3 px-4 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-gray-100"
-                        >
-                            Cancel
-                        </button>
-                    </div>
-                </div>
+                 <Form
+                     key={contact.id}
+                     schema={contactEditSchema}
+                     defaultValues={{
+                         name: contact.name,
+                         email: contact.email,
+                         phone: contact.phone || '',
+                         title: contact.title || '',
+                         linkedin: contact.linkedin || '',
+                     }}
+                     onSubmit={handleUpdate}
+                 >
+                     {() => (
+                         <div className="space-y-4">
+                             <FormField
+                                 name="name"
+                                 label="Name *"
+                                 type="text"
+                                 required
+                             />
+                             <FormField
+                                 name="email"
+                                 label="Email *"
+                                 type="email"
+                                 required
+                             />
+                             <FormField
+                                 name="phone"
+                                 label="Phone"
+                                 type="tel"
+                                 placeholder="e.g., +1 (555) 123-4567"
+                             />
+                             <FormField
+                                 name="title"
+                                 label="Title"
+                                 type="text"
+                                 placeholder="e.g., CEO, VP Sales, Product Manager"
+                             />
+                             <FormField
+                                 name="linkedin"
+                                 label="LinkedIn Profile"
+                                 type="url"
+                                 placeholder="https://linkedin.com/in/username"
+                             />
+                             <div className="pt-4 border-t border-gray-200">
+                                 <NotesManager 
+                                     notes={contact.notes} 
+                                     itemId={contact.id} 
+                                     collection='contacts'
+                                     addNoteAction={handleAddNote}
+                                     updateNoteAction={handleUpdateNote}
+                                     deleteNoteAction={handleDeleteNote}
+                                 />
+                             </div>
+                             <div className="flex gap-4 pt-4">
+                                 <Button type="submit" className="w-full">
+                                     Save Changes
+                                 </Button>
+                                 <Button type="button" variant="secondary" onClick={closeEditModal} className="w-full">
+                                     Cancel
+                                 </Button>
+                             </div>
+                         </div>
+                     )}
+                 </Form>
             </Modal>
              <Modal isOpen={!!editingTask} onClose={closeEditTaskModal} title="Edit Task" triggerRef={editTaskModalTriggerRef}>
                 {editingTask && (

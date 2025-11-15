@@ -1,8 +1,22 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { z } from 'zod';
 import { Meeting, CrmCollectionName, AppActions } from '../../types';
 import Modal from './Modal';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Form } from '../forms/Form';
+import { FormField } from '../forms/FormField';
+import { Button } from '../ui/Button';
+
+const meetingFormSchema = z.object({
+    title: z.string().min(1, 'Title is required').max(200),
+    date: z.string().min(1, 'Date is required'),
+    time: z.string().min(1, 'Time is required'),
+    attendees: z.string().max(500).optional(),
+    summary: z.string().min(1, 'Summary is required').max(5000),
+});
+
+type MeetingFormData = z.infer<typeof meetingFormSchema>;
 
 interface MeetingsManagerProps {
     meetings: Meeting[];
@@ -29,38 +43,25 @@ const MeetingsManager: React.FC<MeetingsManagerProps> = ({ meetings, contactId, 
         return `${hours}:${minutes}`;
     };
 
-    const initialFormState = { 
-        title: '', 
-        attendees: '', 
-        summary: '', 
-        date: formatDateForInput(Date.now()), 
-        time: formatTimeForInput(Date.now()) 
-    };
-
-    const [form, setForm] = useState(initialFormState);
-
-    useEffect(() => {
-        if (isModalOpen) {
-            if (editingMeeting) {
-                setForm({
-                    title: editingMeeting.title,
-                    attendees: editingMeeting.attendees,
-                    summary: editingMeeting.summary,
-                    date: formatDateForInput(editingMeeting.timestamp),
-                    time: formatTimeForInput(editingMeeting.timestamp),
-                });
-            } else {
-                const now = Date.now();
-                setForm({
-                    title: '',
-                    attendees: '',
-                    summary: '',
-                    date: formatDateForInput(now),
-                    time: formatTimeForInput(now),
-                });
-            }
+    const getDefaultValues = useCallback((): MeetingFormData => {
+        if (editingMeeting) {
+            return {
+                title: editingMeeting.title,
+                attendees: editingMeeting.attendees || '',
+                summary: editingMeeting.summary,
+                date: formatDateForInput(editingMeeting.timestamp),
+                time: formatTimeForInput(editingMeeting.timestamp),
+            };
         }
-    }, [isModalOpen, editingMeeting]);
+        const now = Date.now();
+        return {
+            title: '',
+            attendees: '',
+            summary: '',
+            date: formatDateForInput(now),
+            time: formatTimeForInput(now),
+        };
+    }, [editingMeeting]);
 
     const openModalForNew = (triggerRef: React.RefObject<HTMLButtonElement>) => {
         setEditingMeeting(null);
@@ -79,14 +80,12 @@ const MeetingsManager: React.FC<MeetingsManagerProps> = ({ meetings, contactId, 
         setEditingMeeting(null);
     }, []);
 
-    const handleSave = useCallback(() => {
-        if (form.title.trim() === '' || form.summary.trim() === '') return;
-
-        const meetingTimestamp = new Date(`${form.date}T${form.time || '00:00'}`).getTime();
+    const handleSave = useCallback((data: MeetingFormData) => {
+        const meetingTimestamp = new Date(`${data.date}T${data.time}`).getTime();
         const meetingData = {
-            title: form.title,
-            attendees: form.attendees,
-            summary: form.summary,
+            title: data.title.trim(),
+            attendees: data.attendees?.trim() || '',
+            summary: data.summary.trim(),
             timestamp: meetingTimestamp
         };
         
@@ -96,7 +95,7 @@ const MeetingsManager: React.FC<MeetingsManagerProps> = ({ meetings, contactId, 
             actions.createMeeting(crmCollection, crmItemId, contactId, meetingData);
         }
         closeModal();
-    }, [form, editingMeeting, actions, crmCollection, crmItemId, contactId, closeModal]);
+    }, [editingMeeting, actions, crmCollection, crmItemId, contactId, closeModal]);
 
 
     const handleDelete = (meetingId: string) => {
@@ -145,44 +144,70 @@ const MeetingsManager: React.FC<MeetingsManagerProps> = ({ meetings, contactId, 
             </ul>
 
             <Modal isOpen={isModalOpen} onClose={closeModal} title={editingMeeting ? 'Edit Meeting Note' : 'Add Meeting Note'} triggerRef={modalTriggerRef}>
-                <div className="space-y-4">
-                    <div>
-                        <label htmlFor="meeting-title" className="block font-mono text-sm font-semibold text-black mb-1">Title</label>
-                        <input id="meeting-title" value={form.title || ''} onChange={e => setForm(p=>({...p, title: e.target.value}))} placeholder="e.g., Q3 Check-in" className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label htmlFor="meeting-date" className="block font-mono text-sm font-semibold text-black mb-1">Date</label>
-                            <input id="meeting-date" type="date" value={form.date || ''} onChange={e => setForm(p=>({...p, date: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
-                        </div>
-                        <div>
-                            <label htmlFor="meeting-time" className="block font-mono text-sm font-semibold text-black mb-1">Time</label>
-                            <input id="meeting-time" type="time" value={form.time || ''} onChange={e => setForm(p=>({...p, time: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
-                        </div>
-                    </div>
-                     <div>
-                        <label htmlFor="meeting-attendees" className="block font-mono text-sm font-semibold text-black mb-1">Attendees</label>
-                        <input id="meeting-attendees" value={form.attendees || ''} onChange={e => setForm(p=>({...p, attendees: e.target.value}))} placeholder="e.g., Jane Doe, John Smith" className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
-                    </div>
-                    <div>
-                        <label htmlFor="meeting-summary" className="block font-mono text-sm font-semibold text-black mb-1">Summary</label>
-                        <textarea id="meeting-summary" value={form.summary || ''} onChange={e => setForm(p=>({...p, summary: e.target.value}))} className="w-full bg-white border-2 border-black text-black p-2 rounded-none min-h-[150px]" placeholder="Use Markdown for formatting..." />
-                    </div>
-                     {editingMeeting && (
-                        <div>
-                             <h4 className="text-md font-semibold font-mono mb-2">Summary Preview</h4>
-                             <div className="bg-gray-50 border-2 border-dashed border-black p-4 max-h-48 overflow-y-auto custom-scrollbar">
-                                <ReactMarkdown className="markdown-content" remarkPlugins={[remarkGfm]}>
-                                    {form.summary}
-                                </ReactMarkdown>
-                             </div>
-                        </div>
-                    )}
-                    <div className="flex gap-2 mt-4">
-                        <button onClick={handleSave} className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none border-2 border-black shadow-neo-btn">Save</button>
-                        <button onClick={closeModal} className="w-full font-mono font-semibold bg-gray-200 text-black py-2 px-4 rounded-none border-2 border-black shadow-neo-btn">Cancel</button>
-                    </div>
-                </div>
+                <Form
+                    key={editingMeeting?.id || 'new'}
+                    schema={meetingFormSchema}
+                    defaultValues={getDefaultValues()}
+                    onSubmit={handleSave}
+                >
+                    {({ watch }) => {
+                        const summary = watch('summary') || '';
+                        
+                        return (
+                            <div className="space-y-4">
+                                <FormField
+                                    name="title"
+                                    label="Title"
+                                    type="text"
+                                    placeholder="e.g., Q3 Check-in"
+                                    required
+                                />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <FormField
+                                        name="date"
+                                        label="Date"
+                                        type="date"
+                                        required
+                                    />
+                                    <FormField
+                                        name="time"
+                                        label="Time"
+                                        type="time"
+                                        required
+                                    />
+                                </div>
+                                <FormField
+                                    name="attendees"
+                                    label="Attendees"
+                                    type="text"
+                                    placeholder="e.g., Jane Doe, John Smith"
+                                />
+                                <FormField
+                                    name="summary"
+                                    label="Summary"
+                                    type="textarea"
+                                    placeholder="Use Markdown for formatting..."
+                                    required
+                                    rows={6}
+                                />
+                                {editingMeeting && (
+                                    <div>
+                                        <h4 className="text-md font-semibold font-mono mb-2">Summary Preview</h4>
+                                        <div className="bg-gray-50 border-2 border-dashed border-black p-4 max-h-48 overflow-y-auto custom-scrollbar">
+                                            <ReactMarkdown className="markdown-content" remarkPlugins={[remarkGfm]}>
+                                                {summary}
+                                            </ReactMarkdown>
+                                        </div>
+                                    </div>
+                                )}
+                                <div className="flex gap-2 mt-4">
+                                    <Button type="submit" className="w-full">Save</Button>
+                                    <Button type="button" variant="secondary" onClick={closeModal} className="w-full">Cancel</Button>
+                                </div>
+                            </div>
+                        );
+                    }}
+                </Form>
             </Modal>
         </div>
     );
