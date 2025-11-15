@@ -23,7 +23,7 @@ const formatDate = (date: string | number) => {
   });
 };
 
-export default function AttributionModule({
+function AttributionModule({
   data,
   actions,
   workspaceId,
@@ -494,3 +494,5 @@ export default function AttributionModule({
     </div>
   );
 }
+
+export default AttributionModule;

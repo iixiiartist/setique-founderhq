@@ -16,7 +16,7 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
-export default function CashFlowModule({
+function CashFlowModule({
   data,
 }: CashFlowModuleProps) {
   const revenueTransactions = data?.revenueTransactions || [];
@@ -348,3 +348,5 @@ export default function CashFlowModule({
     </div>
   );
 }
+
+export default CashFlowModule;

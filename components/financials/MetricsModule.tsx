@@ -24,7 +24,7 @@ const formatNumber = (value: number) => {
   }).format(value);
 };
 
-export default function MetricsModule({
+function MetricsModule({
   data,
   workspaceId,
 }: MetricsModuleProps) {
@@ -426,3 +426,5 @@ export default function MetricsModule({
     </div>
   );
 }
+
+export default MetricsModule;

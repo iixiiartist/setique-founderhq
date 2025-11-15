@@ -37,7 +37,7 @@ const formatNumber = (value: number) => {
   return value.toString();
 };
 
-export default function CampaignAnalyticsModule({
+function CampaignAnalyticsModule({
   data,
   actions,
   workspaceId,
@@ -464,3 +464,5 @@ export default function CampaignAnalyticsModule({
     </div>
   );
 }
+
+export default CampaignAnalyticsModule;

@@ -20,7 +20,7 @@ const formatPercent = (value: number) => {
     return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
 };
 
-export default function ProductAnalyticsDashboard({
+function ProductAnalyticsDashboard({
     productsServices,
     revenueTransactions,
     deals,
@@ -379,6 +379,8 @@ export default function ProductAnalyticsDashboard({
                     </table>
                 </div>
             </div>
-        </div>
-    );
+    </div>
+  );
 }
+
+export default ProductAnalyticsDashboard;

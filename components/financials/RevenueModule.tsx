@@ -58,7 +58,7 @@ const getStatusColor = (status: string) => {
   }
 };
 
-export default function RevenueModule({
+function RevenueModule({
   data,
   actions,
   workspaceId,
@@ -642,3 +642,5 @@ export default function RevenueModule({
     </div>
   );
 }
+
+export default RevenueModule;
