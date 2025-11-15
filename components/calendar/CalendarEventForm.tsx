@@ -1,6 +1,53 @@
 import React, { useState } from 'react';
+import { z } from 'zod';
 import { Priority, TaskCollectionName, CrmCollectionName, BaseCrmItem, Contact, WorkspaceMember, Subtask } from '../../types';
 import { SubtaskManager } from '../shared/SubtaskManager';
+import { Form } from '../forms/Form';
+import { FormField } from '../forms/FormField';
+import { SelectField } from '../forms/SelectField';
+import { Button } from '../ui/Button';
+
+// Zod schemas for each event type
+const taskSchema = z.object({
+    type: z.literal('task'),
+    title: z.string().min(1, 'Task title is required').max(200),
+    description: z.string().max(1000).optional(),
+    category: z.enum(['productsServicesTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketingTasks', 'financialTasks']),
+    priority: z.enum(['Low', 'Medium', 'High']),
+    dueDate: z.string().min(1, 'Date is required'),
+    dueTime: z.string().optional(),
+    assignedTo: z.string().optional(),
+});
+
+const meetingSchema = z.object({
+    type: z.literal('meeting'),
+    crmCollection: z.enum(['investors', 'customers', 'partners']),
+    crmItemId: z.string().min(1, 'Please select a CRM item'),
+    contactId: z.string().optional(),
+    meetingTitle: z.string().min(1, 'Meeting title is required').max(200),
+    attendees: z.string().min(1, 'Attendees are required').max(500),
+    meetingSummary: z.string().max(2000).optional(),
+    dueDate: z.string().min(1, 'Date is required'),
+    dueTime: z.string().optional(),
+});
+
+const crmActionSchema = z.object({
+    type: z.literal('crm-action'),
+    crmCollection: z.enum(['investors', 'customers', 'partners']),
+    crmItemId: z.string().min(1, 'Please select a CRM item'),
+    nextAction: z.string().min(1, 'Next action is required').max(1000),
+    dueDate: z.string().min(1, 'Date is required'),
+    dueTime: z.string().optional(),
+});
+
+// Discriminated union of all event types
+const calendarEventSchema = z.discriminatedUnion('type', [
+    taskSchema,
+    meetingSchema,
+    crmActionSchema,
+]);
+
+type CalendarEventData = z.infer<typeof calendarEventSchema>;
 
 interface CalendarEventFormProps {
     eventType: 'task' | 'meeting' | 'crm-action';
@@ -11,29 +58,25 @@ interface CalendarEventFormProps {
     onSubmit: (data: CalendarEventFormData) => Promise<void>;
     onCancel: () => void;
     planType?: string;
-    onCreateCrmItem?: (collection: CrmCollectionName, company: string) => Promise<string>; // Returns new item ID
-    onCreateContact?: (collection: CrmCollectionName, itemId: string, name: string, email: string) => Promise<string>; // Returns new contact ID
+    onCreateCrmItem?: (collection: CrmCollectionName, company: string) => Promise<string>;
+    onCreateContact?: (collection: CrmCollectionName, itemId: string, name: string, email: string) => Promise<string>;
 }
 
 export interface CalendarEventFormData {
     type: 'task' | 'meeting' | 'crm-action';
-    // Task fields
     title?: string;
     description?: string;
     category?: TaskCollectionName;
     priority?: Priority;
     assignedTo?: string;
     subtasks?: Subtask[];
-    // Meeting fields
     crmCollection?: CrmCollectionName;
     crmItemId?: string;
     contactId?: string;
     meetingTitle?: string;
     attendees?: string;
     meetingSummary?: string;
-    // CRM action fields
     nextAction?: string;
-    // Shared fields
     dueDate: string;
     dueTime?: string;
 }
@@ -50,40 +93,19 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
     onCreateCrmItem,
     onCreateContact
 }) => {
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    // Shared fields
-    const [dueDate, setDueDate] = useState(initialDate);
-    const [dueTime, setDueTime] = useState(initialTime);
-
-    // Task fields
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [category, setCategory] = useState<TaskCollectionName>('productsServicesTasks');
-    const [priority, setPriority] = useState<Priority>('Medium');
-    const [assignedTo, setAssignedTo] = useState('');
+    // Non-form state (subtasks, quick-add UI, CRM collection tracking)
     const [subtasks, setSubtasks] = useState<Subtask[]>([]);
-
-    // Meeting fields
-    const [crmCollection, setCrmCollection] = useState<CrmCollectionName>('investors');
-    const [crmItemId, setCrmItemId] = useState('');
-    const [contactId, setContactId] = useState('');
-    const [meetingTitle, setMeetingTitle] = useState('');
-    const [attendees, setAttendees] = useState('');
-    const [meetingSummary, setMeetingSummary] = useState('');
-
-    // CRM action fields
-    const [nextAction, setNextAction] = useState('');
-    const [crmActionCollection, setCrmActionCollection] = useState<CrmCollectionName>('investors');
-    const [crmActionItemId, setCrmActionItemId] = useState('');
-
-    // Quick-add states
     const [showQuickAddCrm, setShowQuickAddCrm] = useState(false);
     const [quickAddCrmName, setQuickAddCrmName] = useState('');
     const [showQuickAddContact, setShowQuickAddContact] = useState(false);
     const [quickAddContactName, setQuickAddContactName] = useState('');
     const [quickAddContactEmail, setQuickAddContactEmail] = useState('');
+    const [globalError, setGlobalError] = useState<string | null>(null);
+    const [isQuickAdding, setIsQuickAdding] = useState(false);
+    
+    // Track CRM collection for meeting/crm-action forms (outside schema)
+    const [crmCollection, setCrmCollection] = useState<CrmCollectionName>('investors');
+    const [crmItemId, setCrmItemId] = useState('');
 
     const isTeamPlan = planType?.startsWith('team');
     const canAssignTasks = isTeamPlan && workspaceMembers.length > 1;
@@ -92,558 +114,463 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
     const selectedCrmItem = crmItems?.[crmCollection]?.find(item => item.id === crmItemId);
     const availableContacts = selectedCrmItem?.contacts || [];
 
-    const validateForm = (): string | null => {
-        if (!dueDate) {
-            return 'Please select a date';
-        }
+    // Prepare default values based on event type
+    const getDefaultValues = (): any => {
+        const base = {
+            type: eventType,
+            dueDate: initialDate,
+            dueTime: initialTime,
+        };
 
         if (eventType === 'task') {
-            if (!title.trim()) {
-                return 'Please enter a task title';
-            }
-            if (!category) {
-                return 'Please select a task category';
-            }
+            return {
+                ...base,
+                title: '',
+                description: '',
+                category: 'productsServicesTasks' as TaskCollectionName,
+                priority: 'Medium' as Priority,
+                assignedTo: '',
+            };
+        } else if (eventType === 'meeting') {
+            return {
+                ...base,
+                crmCollection: 'investors' as CrmCollectionName,
+                crmItemId: '',
+                contactId: '',
+                meetingTitle: '',
+                attendees: '',
+                meetingSummary: '',
+            };
+        } else {
+            return {
+                ...base,
+                crmCollection: 'investors' as CrmCollectionName,
+                crmItemId: '',
+                nextAction: '',
+            };
         }
-
-        if (eventType === 'meeting') {
-            if (!crmItemId) {
-                return 'Please select a CRM item for the meeting';
-            }
-            if (!contactId) {
-                return 'Please select a contact for the meeting';
-            }
-            if (!meetingTitle.trim()) {
-                return 'Please enter a meeting title';
-            }
-            if (!attendees.trim()) {
-                return 'Please enter meeting attendees';
-            }
-        }
-
-        if (eventType === 'crm-action') {
-            if (!crmActionItemId) {
-                return 'Please select a CRM item for the action';
-            }
-            if (!nextAction.trim()) {
-                return 'Please enter the next action';
-            }
-        }
-
-        return null;
     };
 
     const handleQuickAddCrm = async () => {
-        if (!quickAddCrmName.trim() || !onCreateCrmItem) {
-            return;
-        }
+        if (!quickAddCrmName.trim() || !onCreateCrmItem) return;
 
         try {
-            setIsSubmitting(true);
-            setError(null);
+            setIsQuickAdding(true);
+            setGlobalError(null);
             const newItemId = await onCreateCrmItem(crmCollection, quickAddCrmName.trim());
             setCrmItemId(newItemId);
             setShowQuickAddCrm(false);
             setQuickAddCrmName('');
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to create CRM item');
+            setGlobalError(err instanceof Error ? err.message : 'Failed to create CRM item');
         } finally {
-            setIsSubmitting(false);
+            setIsQuickAdding(false);
         }
     };
 
     const handleQuickAddContact = async () => {
-        if (!quickAddContactName.trim() || !crmItemId || !onCreateContact) {
-            return;
-        }
+        if (!quickAddContactName.trim() || !crmItemId || !onCreateContact) return;
 
         try {
-            setIsSubmitting(true);
-            setError(null);
+            setIsQuickAdding(true);
+            setGlobalError(null);
             const newContactId = await onCreateContact(
                 crmCollection,
                 crmItemId,
                 quickAddContactName.trim(),
                 quickAddContactEmail.trim()
             );
-            setContactId(newContactId);
+            // Update the form field
             setShowQuickAddContact(false);
             setQuickAddContactName('');
             setQuickAddContactEmail('');
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to create contact');
+            setGlobalError(err instanceof Error ? err.message : 'Failed to create contact');
         } finally {
-            setIsSubmitting(false);
+            setIsQuickAdding(false);
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        
-        const validationError = validateForm();
-        if (validationError) {
-            setError(validationError);
-            return;
-        }
-
-        setIsSubmitting(true);
-        setError(null);
-
+    const handleFormSubmit = async (data: CalendarEventData) => {
         try {
+            setGlobalError(null);
+            
+            // Transform form data to match CalendarEventFormData interface
             const formData: CalendarEventFormData = {
-                type: eventType,
-                dueDate,
-                dueTime: dueTime || undefined,
+                type: data.type,
+                dueDate: data.dueDate,
+                dueTime: data.dueTime || undefined,
             };
 
-            if (eventType === 'task') {
-                formData.title = title;
-                formData.description = description || undefined;
-                formData.category = category;
-                formData.priority = priority;
-                formData.assignedTo = assignedTo || undefined;
+            if (data.type === 'task') {
+                formData.title = data.title;
+                formData.description = data.description || undefined;
+                formData.category = data.category;
+                formData.priority = data.priority;
+                formData.assignedTo = data.assignedTo || undefined;
                 formData.subtasks = subtasks;
-            } else if (eventType === 'meeting') {
-                formData.crmCollection = crmCollection;
-                formData.crmItemId = crmItemId;
-                formData.contactId = contactId || undefined;
-                formData.meetingTitle = meetingTitle;
-                formData.attendees = attendees;
-                formData.meetingSummary = meetingSummary || undefined;
-            } else if (eventType === 'crm-action') {
-                formData.crmCollection = crmActionCollection;
-                formData.crmItemId = crmActionItemId;
-                formData.nextAction = nextAction;
+            } else if (data.type === 'meeting') {
+                formData.crmCollection = data.crmCollection;
+                formData.crmItemId = data.crmItemId;
+                formData.contactId = data.contactId || undefined;
+                formData.meetingTitle = data.meetingTitle;
+                formData.attendees = data.attendees;
+                formData.meetingSummary = data.meetingSummary || undefined;
+            } else if (data.type === 'crm-action') {
+                formData.crmCollection = data.crmCollection;
+                formData.crmItemId = data.crmItemId;
+                formData.nextAction = data.nextAction;
             }
 
             await onSubmit(formData);
         } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : 'Failed to create event';
-            setError(errorMessage);
-        } finally {
-            setIsSubmitting(false);
+            setGlobalError(err instanceof Error ? err.message : 'Failed to create event');
+            throw err; // Re-throw so form knows submission failed
         }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Error Message */}
-            {error && (
-                <div className="p-3 bg-red-100 border-2 border-red-500 text-red-900 text-sm">
-                    {error}
-                </div>
-            )}
+        <Form
+            schema={calendarEventSchema}
+            defaultValues={getDefaultValues()}
+            onSubmit={handleFormSubmit}
+        >
+            {({ formState, watch }) => {
+                // Watch CRM fields to update local state for contact lookup
+                const watchedCrmCollection = watch('crmCollection' as any);
+                const watchedCrmItemId = watch('crmItemId' as any);
 
-            {/* Date and Time (Required for all types) */}
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label htmlFor="event-date" className="block font-mono text-sm font-semibold text-black mb-1">
-                        Date <span className="text-red-600">*</span>
-                    </label>
-                    <input
-                        id="event-date"
-                        type="date"
-                        value={dueDate}
-                        onChange={(e) => setDueDate(e.target.value)}
-                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        required
-                    />
-                </div>
-                <div>
-                    <label htmlFor="event-time" className="block font-mono text-sm font-semibold text-black mb-1">
-                        Time
-                    </label>
-                    <input
-                        id="event-time"
-                        type="time"
-                        value={dueTime}
-                        onChange={(e) => setDueTime(e.target.value)}
-                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                </div>
-            </div>
+                // Sync watched values to local state for contact filtering
+                React.useEffect(() => {
+                    if (watchedCrmCollection && watchedCrmCollection !== crmCollection) {
+                        setCrmCollection(watchedCrmCollection);
+                    }
+                }, [watchedCrmCollection]);
 
-            {/* Task-specific fields */}
-            {eventType === 'task' && (
-                <>
-                    <div>
-                        <label htmlFor="task-title" className="block font-mono text-sm font-semibold text-black mb-1">
-                            Task Title <span className="text-red-600">*</span>
-                        </label>
-                        <input
-                            id="task-title"
-                            type="text"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            placeholder="Enter task title..."
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                        />
-                    </div>
+                React.useEffect(() => {
+                    if (watchedCrmItemId && watchedCrmItemId !== crmItemId) {
+                        setCrmItemId(watchedCrmItemId);
+                    }
+                }, [watchedCrmItemId]);
 
-                    <div>
-                        <label htmlFor="task-description" className="block font-mono text-sm font-semibold text-black mb-1">
-                            Description
-                        </label>
-                        <textarea
-                            id="task-description"
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            placeholder="Add details..."
-                            rows={3}
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
-
-                    <div>
-                        <label htmlFor="task-category" className="block font-mono text-sm font-semibold text-black mb-1">
-                            Category <span className="text-red-600">*</span>
-                        </label>
-                        <select
-                            id="task-category"
-                            value={category}
-                            onChange={(e) => setCategory(e.target.value as TaskCollectionName)}
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                        >
-                            <option value="productsServicesTasks">Products & Services</option>
-                            <option value="investorTasks">Investor</option>
-                            <option value="customerTasks">Customer</option>
-                            <option value="partnerTasks">Partner</option>
-                            <option value="marketingTasks">Marketing</option>
-                            <option value="financialTasks">Financial</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label htmlFor="task-priority" className="block font-mono text-sm font-semibold text-black mb-1">
-                            Priority
-                        </label>
-                        <select
-                            id="task-priority"
-                            value={priority}
-                            onChange={(e) => setPriority(e.target.value as Priority)}
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="Low">Low</option>
-                            <option value="Medium">Medium</option>
-                            <option value="High">High</option>
-                        </select>
-                    </div>
-
-                    {canAssignTasks && (
-                        <div>
-                            <label htmlFor="task-assignee" className="block font-mono text-sm font-semibold text-black mb-1">
-                                Assign To
-                            </label>
-                            <select
-                                id="task-assignee"
-                                value={assignedTo}
-                                onChange={(e) => setAssignedTo(e.target.value)}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value="">Unassigned</option>
-                                {workspaceMembers.map(member => (
-                                    <option key={member.userId} value={member.userId}>
-                                        {member.fullName || member.email}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
-
-                    {!canAssignTasks && workspaceMembers.length > 1 && (
-                        <div className="p-3 bg-yellow-50 border-2 border-yellow-300 text-sm">
-                            <p className="font-mono text-yellow-900">
-                                💡 Upgrade to a Team plan to assign tasks to team members
-                            </p>
-                        </div>
-                    )}
-                    
-                    {/* Subtasks section */}
-                    <div className="border-t-2 border-gray-200 pt-3 mt-3">
-                        <label className="block font-mono text-sm font-semibold text-black mb-2">
-                            Subtasks (Optional)
-                        </label>
-                        <SubtaskManager 
-                            subtasks={subtasks}
-                            onSubtasksChange={setSubtasks}
-                        />
-                    </div>
-                </>
-            )}
-
-            {/* Meeting-specific fields */}
-            {eventType === 'meeting' && crmItems && (
-                <>
-                    <div>
-                        <label htmlFor="meeting-collection" className="block font-mono text-sm font-semibold text-black mb-1">
-                            CRM Type <span className="text-red-600">*</span>
-                        </label>
-                        <select
-                            id="meeting-collection"
-                            value={crmCollection}
-                            onChange={(e) => {
-                                setCrmCollection(e.target.value as CrmCollectionName);
-                                setCrmItemId(''); // Reset item when collection changes
-                                setContactId('');
-                            }}
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="investors">Investor</option>
-                            <option value="customers">Customer</option>
-                            <option value="partners">Partner</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <div className="flex items-center justify-between mb-1">
-                            <label htmlFor="meeting-crm-item" className="font-mono text-sm font-semibold text-black">
-                                Select {crmCollection.slice(0, -1).charAt(0).toUpperCase() + crmCollection.slice(1, -1)} <span className="text-red-600">*</span>
-                            </label>
-                            {onCreateCrmItem && (
-                                <button
-                                    type="button"
-                                    onClick={() => setShowQuickAddCrm(!showQuickAddCrm)}
-                                    className="text-xs font-mono font-semibold text-blue-600 hover:text-blue-800"
-                                >
-                                    {showQuickAddCrm ? '✕ Cancel' : '+ New'}
-                                </button>
-                            )}
-                        </div>
-                        
-                        {showQuickAddCrm ? (
-                            <div className="space-y-2 p-3 border-2 border-blue-300 bg-blue-50">
-                                <input
-                                    type="text"
-                                    value={quickAddCrmName}
-                                    onChange={(e) => setQuickAddCrmName(e.target.value)}
-                                    placeholder={`Company name...`}
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    autoFocus
-                                />
-                                <button
-                                    type="button"
-                                    onClick={handleQuickAddCrm}
-                                    disabled={!quickAddCrmName.trim() || isSubmitting}
-                                    className="w-full py-2 px-4 font-mono font-semibold bg-blue-600 text-white border-2 border-blue-700 hover:bg-blue-700 disabled:bg-gray-300 disabled:border-gray-400 disabled:cursor-not-allowed"
-                                >
-                                    {isSubmitting ? 'Creating...' : 'Create & Select'}
-                                </button>
+                return (
+                    <div className="space-y-4">
+                        {/* Global Error */}
+                        {globalError && (
+                            <div className="p-3 bg-red-100 border-2 border-red-500 text-red-900 text-sm">
+                                {globalError}
                             </div>
-                        ) : (
-                            <select
-                                id="meeting-crm-item"
-                                value={crmItemId}
-                                onChange={(e) => {
-                                    setCrmItemId(e.target.value);
-                                    setContactId(''); // Reset contact when CRM item changes
-                                }}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                required
-                            >
-                                <option value="">-- Select --</option>
-                                {crmItems[crmCollection]?.map(item => (
-                                    <option key={item.id} value={item.id}>
-                                        {item.company || 'Unnamed'}
-                                    </option>
-                                ))}
-                            </select>
                         )}
-                    </div>
 
-                    <div>
-                        <div className="flex items-center justify-between mb-1">
-                            <label htmlFor="meeting-contact" className="font-mono text-sm font-semibold text-black">
-                                Contact <span className="text-red-600">*</span>
-                            </label>
-                            {onCreateContact && crmItemId && (
-                                <button
-                                    type="button"
-                                    onClick={() => setShowQuickAddContact(!showQuickAddContact)}
-                                    className="text-xs font-mono font-semibold text-blue-600 hover:text-blue-800"
-                                >
-                                    {showQuickAddContact ? '✕ Cancel' : '+ New Contact'}
-                                </button>
-                            )}
+                        {/* Date and Time (Required for all types) */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                                name="dueDate"
+                                label="Date"
+                                type="date"
+                                required
+                            />
+                            <FormField
+                                name="dueTime"
+                                label="Time"
+                                type="time"
+                            />
                         </div>
-                        
-                        {showQuickAddContact ? (
-                            <div className="space-y-2 p-3 border-2 border-blue-300 bg-blue-50">
-                                <input
-                                    type="text"
-                                    value={quickAddContactName}
-                                    onChange={(e) => setQuickAddContactName(e.target.value)}
-                                    placeholder="Contact name..."
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    autoFocus
-                                />
-                                <input
-                                    type="email"
-                                    value={quickAddContactEmail}
-                                    onChange={(e) => setQuickAddContactEmail(e.target.value)}
-                                    placeholder="Email (optional)..."
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={handleQuickAddContact}
-                                    disabled={!quickAddContactName.trim() || isSubmitting}
-                                    className="w-full py-2 px-4 font-mono font-semibold bg-blue-600 text-white border-2 border-blue-700 hover:bg-blue-700 disabled:bg-gray-300 disabled:border-gray-400 disabled:cursor-not-allowed"
-                                >
-                                    {isSubmitting ? 'Creating...' : 'Create & Select'}
-                                </button>
-                            </div>
-                        ) : (
+
+                        {/* Task-specific fields */}
+                        {eventType === 'task' && (
                             <>
-                                <select
-                                    id="meeting-contact"
-                                    value={contactId}
-                                    onChange={(e) => setContactId(e.target.value)}
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                <FormField
+                                    name="title"
+                                    label="Task Title"
+                                    placeholder="Enter task title..."
                                     required
-                                    disabled={!crmItemId}
-                                >
-                                    <option value="">-- Select Contact --</option>
-                                    {availableContacts.map(contact => (
-                                        <option key={contact.id} value={contact.id}>
-                                            {contact.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                {crmItemId && availableContacts.length === 0 && !showQuickAddContact && (
-                                    <p className="text-xs text-gray-600 mt-1">
-                                        No contacts found. Click "+ New Contact" above to add one.
-                                    </p>
+                                />
+
+                                <FormField
+                                    name="description"
+                                    label="Description"
+                                    type="text"
+                                    placeholder="Add details..."
+                                    helpText="Optional task description"
+                                />
+
+                                <SelectField
+                                    name="category"
+                                    label="Category"
+                                    required
+                                    options={[
+                                        { value: 'productsServicesTasks', label: 'Products & Services' },
+                                        { value: 'investorTasks', label: 'Investor' },
+                                        { value: 'customerTasks', label: 'Customer' },
+                                        { value: 'partnerTasks', label: 'Partner' },
+                                        { value: 'marketingTasks', label: 'Marketing' },
+                                        { value: 'financialTasks', label: 'Financial' },
+                                    ]}
+                                />
+
+                                <SelectField
+                                    name="priority"
+                                    label="Priority"
+                                    options={[
+                                        { value: 'Low', label: 'Low' },
+                                        { value: 'Medium', label: 'Medium' },
+                                        { value: 'High', label: 'High' },
+                                    ]}
+                                />
+
+                                {canAssignTasks && (
+                                    <SelectField
+                                        name="assignedTo"
+                                        label="Assign To"
+                                        options={[
+                                            { value: '', label: 'Unassigned' },
+                                            ...workspaceMembers.map(member => ({
+                                                value: member.userId,
+                                                label: member.fullName || member.email || 'Unknown'
+                                            }))
+                                        ]}
+                                    />
                                 )}
+
+                                {!canAssignTasks && workspaceMembers.length > 1 && (
+                                    <div className="p-3 bg-yellow-50 border-2 border-yellow-300 text-sm">
+                                        <p className="font-mono text-yellow-900">
+                                            💡 Upgrade to a Team plan to assign tasks to team members
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Subtasks section */}
+                                <div className="border-t-2 border-gray-200 pt-3 mt-3">
+                                    <label className="block font-mono text-sm font-semibold text-black mb-2">
+                                        Subtasks (Optional)
+                                    </label>
+                                    <SubtaskManager
+                                        subtasks={subtasks}
+                                        onSubtasksChange={setSubtasks}
+                                    />
+                                </div>
                             </>
                         )}
-                    </div>
 
-                    <div>
-                        <label htmlFor="meeting-title" className="block font-mono text-sm font-semibold text-black mb-1">
-                            Meeting Title <span className="text-red-600">*</span>
-                        </label>
-                        <input
-                            id="meeting-title"
-                            type="text"
-                            value={meetingTitle}
-                            onChange={(e) => setMeetingTitle(e.target.value)}
-                            placeholder="e.g., Q4 Planning Session"
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                        />
-                    </div>
+                        {/* Meeting-specific fields */}
+                        {eventType === 'meeting' && crmItems && (
+                            <>
+                                <SelectField
+                                    name="crmCollection"
+                                    label="CRM Type"
+                                    required
+                                    options={[
+                                        { value: 'investors', label: 'Investor' },
+                                        { value: 'customers', label: 'Customer' },
+                                        { value: 'partners', label: 'Partner' },
+                                    ]}
+                                />
 
-                    <div>
-                        <label htmlFor="meeting-attendees" className="block font-mono text-sm font-semibold text-black mb-1">
-                            Attendees <span className="text-red-600">*</span>
-                        </label>
-                        <input
-                            id="meeting-attendees"
-                            type="text"
-                            value={attendees}
-                            onChange={(e) => setAttendees(e.target.value)}
-                            placeholder="e.g., John Smith, Jane Doe"
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                        />
-                    </div>
+                                <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <label className="font-mono text-sm font-semibold text-black">
+                                            Select {crmCollection.slice(0, -1).charAt(0).toUpperCase() + crmCollection.slice(1, -1)} <span className="text-red-600">*</span>
+                                        </label>
+                                        {onCreateCrmItem && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setShowQuickAddCrm(!showQuickAddCrm)}
+                                            >
+                                                {showQuickAddCrm ? '✕ Cancel' : '+ New'}
+                                            </Button>
+                                        )}
+                                    </div>
 
-                    <div>
-                        <label htmlFor="meeting-summary" className="block font-mono text-sm font-semibold text-black mb-1">
-                            Meeting Notes
-                        </label>
-                        <textarea
-                            id="meeting-summary"
-                            value={meetingSummary}
-                            onChange={(e) => setMeetingSummary(e.target.value)}
-                            placeholder="Meeting agenda or notes..."
-                            rows={3}
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
-                </>
-            )}
+                                    {showQuickAddCrm ? (
+                                        <div className="space-y-2 p-3 border-2 border-blue-300 bg-blue-50">
+                                            <input
+                                                type="text"
+                                                value={quickAddCrmName}
+                                                onChange={(e) => setQuickAddCrmName(e.target.value)}
+                                                placeholder="Company name..."
+                                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                autoFocus
+                                            />
+                                            <Button
+                                                type="button"
+                                                onClick={handleQuickAddCrm}
+                                                disabled={!quickAddCrmName.trim() || isQuickAdding}
+                                                className="w-full"
+                                            >
+                                                {isQuickAdding ? 'Creating...' : 'Create & Select'}
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <SelectField
+                                            name="crmItemId"
+                                            label=""
+                                            required
+                                            options={[
+                                                { value: '', label: '-- Select --' },
+                                                ...(crmItems[crmCollection]?.map(item => ({
+                                                    value: item.id,
+                                                    label: item.company || 'Unnamed'
+                                                })) || [])
+                                            ]}
+                                        />
+                                    )}
+                                </div>
 
-            {/* CRM Action-specific fields */}
-            {eventType === 'crm-action' && crmItems && (
-                <>
-                    <div>
-                        <label htmlFor="crm-action-collection" className="block font-mono text-sm font-semibold text-black mb-1">
-                            CRM Type <span className="text-red-600">*</span>
-                        </label>
-                        <select
-                            id="crm-action-collection"
-                            value={crmActionCollection}
-                            onChange={(e) => {
-                                setCrmActionCollection(e.target.value as CrmCollectionName);
-                                setCrmActionItemId(''); // Reset item when collection changes
-                            }}
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="investors">Investor</option>
-                            <option value="customers">Customer</option>
-                            <option value="partners">Partner</option>
-                        </select>
-                    </div>
+                                <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                        <label className="font-mono text-sm font-semibold text-black">
+                                            Contact <span className="text-red-600">*</span>
+                                        </label>
+                                        {onCreateContact && crmItemId && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setShowQuickAddContact(!showQuickAddContact)}
+                                            >
+                                                {showQuickAddContact ? '✕ Cancel' : '+ New Contact'}
+                                            </Button>
+                                        )}
+                                    </div>
 
-                    <div>
-                        <label htmlFor="crm-action-item" className="block font-mono text-sm font-semibold text-black mb-1">
-                            Select {crmActionCollection.slice(0, -1).charAt(0).toUpperCase() + crmActionCollection.slice(1, -1)} <span className="text-red-600">*</span>
-                        </label>
-                        <select
-                            id="crm-action-item"
-                            value={crmActionItemId}
-                            onChange={(e) => setCrmActionItemId(e.target.value)}
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                        >
-                            <option value="">-- Select --</option>
-                            {crmItems[crmActionCollection]?.map(item => (
-                                <option key={item.id} value={item.id}>
-                                    {item.company || 'Unnamed'}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                                    {showQuickAddContact ? (
+                                        <div className="space-y-2 p-3 border-2 border-blue-300 bg-blue-50">
+                                            <input
+                                                type="text"
+                                                value={quickAddContactName}
+                                                onChange={(e) => setQuickAddContactName(e.target.value)}
+                                                placeholder="Contact name..."
+                                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                autoFocus
+                                            />
+                                            <input
+                                                type="email"
+                                                value={quickAddContactEmail}
+                                                onChange={(e) => setQuickAddContactEmail(e.target.value)}
+                                                placeholder="Email (optional)..."
+                                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                            <Button
+                                                type="button"
+                                                onClick={handleQuickAddContact}
+                                                disabled={!quickAddContactName.trim() || isQuickAdding}
+                                                className="w-full"
+                                            >
+                                                {isQuickAdding ? 'Creating...' : 'Create & Select'}
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <SelectField
+                                                name="contactId"
+                                                label=""
+                                                disabled={!crmItemId}
+                                                options={[
+                                                    { value: '', label: '-- Select Contact --' },
+                                                    ...availableContacts.map(contact => ({
+                                                        value: contact.id!,
+                                                        label: contact.name
+                                                    }))
+                                                ]}
+                                            />
+                                            {crmItemId && availableContacts.length === 0 && !showQuickAddContact && (
+                                                <p className="text-xs text-gray-600 mt-1">
+                                                    No contacts found. Click "+ New Contact" above to add one.
+                                                </p>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
 
-                    <div>
-                        <label htmlFor="next-action" className="block font-mono text-sm font-semibold text-black mb-1">
-                            Next Action <span className="text-red-600">*</span>
-                        </label>
-                        <textarea
-                            id="next-action"
-                            value={nextAction}
-                            onChange={(e) => setNextAction(e.target.value)}
-                            placeholder="Describe the follow-up action..."
-                            rows={3}
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                        />
-                    </div>
-                </>
-            )}
+                                <FormField
+                                    name="meetingTitle"
+                                    label="Meeting Title"
+                                    placeholder="e.g., Q4 Planning Session"
+                                    required
+                                />
 
-            {/* Action Buttons */}
-            <div className="flex gap-2 pt-2">
-                <button
-                    type="button"
-                    onClick={onCancel}
-                    disabled={isSubmitting}
-                    className="flex-1 font-mono font-semibold bg-gray-200 text-black py-2 px-4 rounded-none border-2 border-black shadow-neo-btn hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    Cancel
-                </button>
-                <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="flex-1 font-mono font-semibold bg-blue-600 text-white py-2 px-4 rounded-none border-2 border-black shadow-neo-btn hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    {isSubmitting ? 'Creating...' : 'Create Event'}
-                </button>
-            </div>
-        </form>
+                                <FormField
+                                    name="attendees"
+                                    label="Attendees"
+                                    placeholder="e.g., John Smith, Jane Doe"
+                                    required
+                                />
+
+                                <FormField
+                                    name="meetingSummary"
+                                    label="Meeting Notes"
+                                    type="text"
+                                    placeholder="Meeting agenda or notes..."
+                                />
+                            </>
+                        )}
+
+                        {/* CRM Action-specific fields */}
+                        {eventType === 'crm-action' && crmItems && (
+                            <>
+                                <SelectField
+                                    name="crmCollection"
+                                    label="CRM Type"
+                                    required
+                                    options={[
+                                        { value: 'investors', label: 'Investor' },
+                                        { value: 'customers', label: 'Customer' },
+                                        { value: 'partners', label: 'Partner' },
+                                    ]}
+                                />
+
+                                <SelectField
+                                    name="crmItemId"
+                                    label={`Select ${crmCollection.slice(0, -1).charAt(0).toUpperCase() + crmCollection.slice(1, -1)}`}
+                                    required
+                                    options={[
+                                        { value: '', label: '-- Select --' },
+                                        ...(crmItems[crmCollection]?.map(item => ({
+                                            value: item.id,
+                                            label: item.company || 'Unnamed'
+                                        })) || [])
+                                    ]}
+                                />
+
+                                <FormField
+                                    name="nextAction"
+                                    label="Next Action"
+                                    type="text"
+                                    placeholder="Describe the follow-up action..."
+                                    required
+                                />
+                            </>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-2 pt-2">
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={onCancel}
+                                disabled={formState.isSubmitting || isQuickAdding}
+                                className="flex-1"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                variant="primary"
+                                loading={formState.isSubmitting}
+                                disabled={isQuickAdding}
+                                className="flex-1"
+                            >
+                                Create Event
+                            </Button>
+                        </div>
+                    </div>
+                );
+            }}
+        </Form>
     );
 };
 
