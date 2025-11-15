@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useDebounce } from '../lib/hooks/usePerformance';
+import { AutomationMonitor } from './admin/AutomationMonitor';
+import { useWorkspace } from '../contexts/WorkspaceContext';
 
 interface UserSignup {
     id: string;
@@ -29,6 +31,8 @@ interface SignupStats {
 }
 
 function AdminTab() {
+    const { workspace } = useWorkspace();
+    const [activeTab, setActiveTab] = useState<'users' | 'automations'>('users');
     const [users, setUsers] = useState<UserSignup[]>([]);
     const [stats, setStats] = useState<SignupStats | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -253,9 +257,35 @@ function AdminTab() {
                     🔐 ADMIN DASHBOARD
                 </h1>
                 <p className="text-white font-mono text-sm mt-1">
-                    User Signups & Analytics
+                    User Signups, Analytics & Automation Monitoring
                 </p>
             </div>
+
+            {/* Tab Navigation */}
+            <div className="flex gap-2 border-b-2 border-black">
+                <button
+                    onClick={() => setActiveTab('users')}
+                    className={`font-mono px-4 py-2 border-2 border-black font-semibold ${
+                        activeTab === 'users' ? 'bg-black text-white' : 'bg-white text-black'
+                    }`}
+                >
+                    👥 Users
+                </button>
+                <button
+                    onClick={() => setActiveTab('automations')}
+                    className={`font-mono px-4 py-2 border-2 border-black font-semibold ${
+                        activeTab === 'automations' ? 'bg-black text-white' : 'bg-white text-black'
+                    }`}
+                >
+                    ⚙️ Automations
+                </button>
+            </div>
+
+            {/* Tab Content */}
+            {activeTab === 'automations' ? (
+                workspace && <AutomationMonitor workspaceId={workspace.id} />
+            ) : (
+                <>
 
             {/* Stats Grid */}
                         {/* Stats Grid */}
@@ -482,12 +512,14 @@ function AdminTab() {
                 )}
             </div>
 
-            {/* Footer Info */}
-            <div className="bg-gray-50 p-4 border-2 border-black text-center">
-                <p className="text-sm font-mono text-gray-600">
-                    Showing {filteredUsers.length} of {users.length} users
-                </p>
-            </div>
+                {/* Footer Info */}
+                <div className="bg-gray-50 p-4 border-2 border-black text-center">
+                    <p className="text-sm font-mono text-gray-600">
+                        Showing {filteredUsers.length} of {users.length} users
+                    </p>
+                </div>
+            </>
+            )}
         </div>
     );
 }
