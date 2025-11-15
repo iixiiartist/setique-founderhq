@@ -1,6 +1,60 @@
 import React, { useState, useEffect } from 'react';
+import { z } from 'zod';
 import { AppActions, CrmCollectionName, TaskCollectionName, AnyCrmItem, Contact, Subtask } from '../../types';
 import { SubtaskManager } from './SubtaskManager';
+import { Form } from '../forms/Form';
+import { FormField } from '../forms/FormField';
+import { SelectField } from '../forms/SelectField';
+import { Button } from '../ui/Button';
+
+// Zod schemas for inline forms
+const taskFormSchema = z.object({
+    text: z.string().min(1, 'Task description is required').max(500),
+    category: z.enum(['productsServicesTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketingTasks', 'financialTasks'] as const),
+    priority: z.enum(['Low', 'Medium', 'High'] as const),
+    dueDate: z.string().optional(),
+    dueTime: z.string().optional(),
+});
+
+const crmFormSchema = z.object({
+    company: z.string().min(1, 'Company name is required').max(200),
+    collection: z.enum(['investors', 'customers', 'partners'] as const),
+    nextAction: z.string().max(500).optional(),
+    nextActionDate: z.string().optional(),
+    nextActionTime: z.string().optional(),
+});
+
+const contactFormSchema = z.object({
+    name: z.string().min(1, 'Name is required').max(200),
+    email: z.string().email('Invalid email address'),
+    phone: z.string().max(50).optional(),
+    title: z.string().max(200).optional(),
+    linkedCrmId: z.string().optional(),
+    newAccountName: z.string().max(200).optional(),
+    crmType: z.enum(['investors', 'customers', 'partners'] as const),
+});
+
+const eventFormSchema = z.object({
+    title: z.string().min(1, 'Title is required').max(200),
+    date: z.string().min(1, 'Date is required'),
+    time: z.string().default('10:00'),
+    duration: z.string().default('60'),
+    description: z.string().max(1000).optional(),
+    type: z.enum(['meeting', 'call', 'event'] as const),
+});
+
+const expenseFormSchema = z.object({
+    amount: z.number().min(0, 'Amount must be positive'),
+    category: z.string().min(1, 'Category is required'),
+    description: z.string().min(1, 'Description is required').max(500),
+    date: z.string().min(1, 'Date is required'),
+});
+
+type TaskFormData = z.infer<typeof taskFormSchema>;
+type CrmFormData = z.infer<typeof crmFormSchema>;
+type ContactFormData = z.infer<typeof contactFormSchema>;
+type EventFormData = z.infer<typeof eventFormSchema>;
+type ExpenseFormData = z.infer<typeof expenseFormSchema>;
 
 interface InlineFormModalProps {
     formType: 'task' | 'crm' | 'contact' | 'event' | 'expense' | 'document';
@@ -26,46 +80,117 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Task form state
-    const [taskText, setTaskText] = useState('');
-    const [taskCategory, setTaskCategory] = useState<TaskCollectionName>(formData.category || 'productsServicesTasks');
-    const [taskPriority, setTaskPriority] = useState<'Low' | 'Medium' | 'High'>(formData.priority || 'Medium');
-    const [taskDueDate, setTaskDueDate] = useState('');
-    const [taskDueTime, setTaskDueTime] = useState('');
+    // Task subtasks state (still needed by SubtaskManager)
     const [taskSubtasks, setTaskSubtasks] = useState<Subtask[]>([]);
-
-    // CRM form state
-    const [crmCompany, setCrmCompany] = useState('');
-    const [crmCollection, setCrmCollection] = useState<CrmCollectionName>(formData.collection || 'customers');
-    const [crmNextAction, setCrmNextAction] = useState('');
-    const [crmNextActionDate, setCrmNextActionDate] = useState('');
-    const [crmNextActionTime, setCrmNextActionTime] = useState('');
-
-    // Contact form state
-    const [contactName, setContactName] = useState('');
-    const [contactEmail, setContactEmail] = useState('');
-    const [contactPhone, setContactPhone] = useState('');
-    const [contactTitle, setContactTitle] = useState('');
-    const [contactLinkedCrmId, setContactLinkedCrmId] = useState('');
-    const [contactNewAccountName, setContactNewAccountName] = useState('');
-    const [contactCrmType, setContactCrmType] = useState<CrmCollectionName>('customers');
-
-    // Event form state
-    const [eventTitle, setEventTitle] = useState('');
-    const [eventDate, setEventDate] = useState('');
-    const [eventTime, setEventTime] = useState('10:00');
-    const [eventDuration, setEventDuration] = useState('60');
-    const [eventDescription, setEventDescription] = useState('');
-    const [eventType, setEventType] = useState<'meeting' | 'call' | 'event'>(formData.type || 'meeting');
-
-    // Expense form state
-    const [expenseAmount, setExpenseAmount] = useState('');
-    const [expenseCategory, setExpenseCategory] = useState('Other');
-    const [expenseDescription, setExpenseDescription] = useState('');
-    const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
 
     // Document form state
     const [documentFile, setDocumentFile] = useState<File | null>(null);
+
+    // Typed form submission handlers
+    const handleTaskSubmit = async (data: TaskFormData) => {
+        const result = await actions.createTask(
+            data.category,
+            data.text.trim(),
+            data.priority,
+            undefined,
+            undefined,
+            data.dueDate || undefined,
+            undefined,
+            data.dueTime || undefined,
+            taskSubtasks
+        );
+        if (result.success) {
+            onSuccess?.(result.message);
+            onClose();
+        } else {
+            setError(result.message);
+        }
+    };
+
+    const handleCrmSubmit = async (data: CrmFormData) => {
+        const result = await actions.createCrmItem(data.collection, {
+            company: data.company.trim(),
+            nextAction: data.nextAction?.trim() || undefined,
+            nextActionDate: data.nextActionDate || undefined,
+            nextActionTime: data.nextActionTime || undefined
+        });
+        if (result.success) {
+            onSuccess?.(result.message);
+            onClose();
+        } else {
+            setError(result.message);
+        }
+    };
+
+    const handleContactSubmit = async (data: ContactFormData) => {
+        let crmItemId = data.linkedCrmId;
+
+        // Create new CRM account if specified
+        if (!crmItemId && data.newAccountName?.trim()) {
+            const crmResult = await actions.createCrmItem(data.crmType, {
+                company: data.newAccountName.trim()
+            });
+            
+            if (crmResult.success && crmResult.itemId) {
+                crmItemId = crmResult.itemId;
+            }
+        }
+
+        if (!crmItemId) {
+            setError('Please select or create a CRM account for this contact');
+            return;
+        }
+
+        const result = await actions.createContact(
+            data.crmType,
+            crmItemId,
+            data.name.trim(),
+            data.email.trim(),
+            data.phone?.trim() || undefined,
+            data.title?.trim() || undefined
+        );
+
+        if (result.success) {
+            onSuccess?.(result.message);
+            onClose();
+        } else {
+            setError(result.message);
+        }
+    };
+
+    const handleEventSubmit = async (data: EventFormData) => {
+        const result = await actions.createCalendarEvent(
+            data.title.trim(),
+            data.date,
+            data.time,
+            parseInt(data.duration),
+            data.description?.trim() || undefined,
+            data.type
+        );
+        if (result.success) {
+            onSuccess?.(result.message);
+            onClose();
+        } else {
+            setError(result.message);
+        }
+    };
+
+    const handleExpenseSubmit = async (data: ExpenseFormData) => {
+        const result = await actions.createExpense({
+            date: data.date,
+            amount: data.amount,
+            description: data.description.trim(),
+            category: data.category as any,
+            vendor: '',
+            paymentMethod: undefined
+        });
+        if (result.success) {
+            onSuccess?.(result.message);
+            onClose();
+        } else {
+            setError(result.message);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -235,443 +360,424 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
         switch (formType) {
             case 'task':
                 return (
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block font-mono text-sm font-semibold text-black mb-1">
-                                Task Description *
-                            </label>
-                            <textarea
-                                value={taskText}
-                                onChange={(e) => setTaskText(e.target.value)}
-                                placeholder="e.g., Follow up with client about proposal"
-                                required
-                                rows={3}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                                autoFocus
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <label className="block font-mono text-sm font-semibold text-black mb-1">
-                                    Category
-                                </label>
-                                <select
-                                    value={taskCategory}
-                                    onChange={(e) => setTaskCategory(e.target.value as TaskCollectionName)}
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                                >
-                                    <option value="productsServicesTasks">Products & Services</option>
-                                    <option value="investorTasks">Investor</option>
-                                    <option value="customerTasks">Customer</option>
-                                    <option value="partnerTasks">Partner</option>
-                                    <option value="marketingTasks">Marketing</option>
-                                    <option value="financialTasks">Financial</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block font-mono text-sm font-semibold text-black mb-1">
-                                    Priority
-                                </label>
-                                <select
-                                    value={taskPriority}
-                                    onChange={(e) => setTaskPriority(e.target.value as any)}
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                                >
-                                    <option value="Low">Low</option>
-                                    <option value="Medium">Medium</option>
-                                    <option value="High">High</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <label className="block font-mono text-sm font-semibold text-black mb-1">
-                                    Due Date
-                                </label>
-                                <input
-                                    type="date"
-                                    value={taskDueDate}
-                                    onChange={(e) => setTaskDueDate(e.target.value)}
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                    <Form
+                        schema={taskFormSchema}
+                        defaultValues={{
+                            text: '',
+                            category: formData.category || 'productsServicesTasks',
+                            priority: formData.priority || 'Medium',
+                            dueDate: '',
+                            dueTime: '',
+                        }}
+                        onSubmit={handleTaskSubmit}
+                    >
+                        {() => (
+                            <div className="space-y-4">
+                                <FormField
+                                    name="text"
+                                    label="Task Description *"
+                                    type="textarea"
+                                    placeholder="e.g., Follow up with client about proposal"
+                                    required
+                                    rows={3}
+                                    autoFocus
                                 />
-                            </div>
 
-                            <div>
-                                <label className="block font-mono text-sm font-semibold text-black mb-1">
-                                    Due Time
-                                </label>
-                                <input
-                                    type="time"
-                                    value={taskDueTime}
-                                    onChange={(e) => setTaskDueTime(e.target.value)}
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                                />
+                                <div className="grid grid-cols-2 gap-3">
+                                    <SelectField
+                                        name="category"
+                                        label="Category"
+                                        options={[
+                                            { value: 'productsServicesTasks', label: 'Products & Services' },
+                                            { value: 'investorTasks', label: 'Investor' },
+                                            { value: 'customerTasks', label: 'Customer' },
+                                            { value: 'partnerTasks', label: 'Partner' },
+                                            { value: 'marketingTasks', label: 'Marketing' },
+                                            { value: 'financialTasks', label: 'Financial' },
+                                        ]}
+                                    />
+
+                                    <SelectField
+                                        name="priority"
+                                        label="Priority"
+                                        options={[
+                                            { value: 'Low', label: 'Low' },
+                                            { value: 'Medium', label: 'Medium' },
+                                            { value: 'High', label: 'High' },
+                                        ]}
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <FormField
+                                        name="dueDate"
+                                        label="Due Date"
+                                        type="date"
+                                    />
+
+                                    <FormField
+                                        name="dueTime"
+                                        label="Due Time"
+                                        type="time"
+                                    />
+                                </div>
+                                
+                                {/* Subtasks section */}
+                                <div className="border-t-2 border-gray-200 pt-3 mt-3">
+                                    <label className="block font-mono text-sm font-semibold text-black mb-2">
+                                        Subtasks (Optional)
+                                    </label>
+                                    <SubtaskManager 
+                                        subtasks={taskSubtasks}
+                                        onSubtasksChange={setTaskSubtasks}
+                                    />
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex gap-3 mt-6 pt-4 border-t-2 border-gray-200">
+                                    <Button type="submit" variant="success" className="flex-1">
+                                        ✓ Create
+                                    </Button>
+                                    <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
+                                        Cancel
+                                    </Button>
+                                </div>
                             </div>
-                        </div>
-                        
-                        {/* Subtasks section */}
-                        <div className="border-t-2 border-gray-200 pt-3 mt-3">
-                            <label className="block font-mono text-sm font-semibold text-black mb-2">
-                                Subtasks (Optional)
-                            </label>
-                            <SubtaskManager 
-                                subtasks={taskSubtasks}
-                                onSubtasksChange={setTaskSubtasks}
-                            />
-                        </div>
-                    </div>
+                        )}
+                    </Form>
                 );
 
             case 'crm':
                 return (
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block font-mono text-sm font-semibold text-black mb-1">
-                                Type
-                            </label>
-                            <select
-                                value={crmCollection}
-                                onChange={(e) => setCrmCollection(e.target.value as CrmCollectionName)}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                            >
-                                <option value="investors">Investor</option>
-                                <option value="customers">Customer</option>
-                                <option value="partners">Partner</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block font-mono text-sm font-semibold text-black mb-1">
-                                Company Name *
-                            </label>
-                            <input
-                                type="text"
-                                value={crmCompany}
-                                onChange={(e) => setCrmCompany(e.target.value)}
-                                placeholder="e.g., Acme Corp"
-                                required
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                                autoFocus
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block font-mono text-sm font-semibold text-black mb-1">
-                                Next Action
-                            </label>
-                            <input
-                                type="text"
-                                value={crmNextAction}
-                                onChange={(e) => setCrmNextAction(e.target.value)}
-                                placeholder="e.g., Send follow-up email"
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <label className="block font-mono text-sm font-semibold text-black mb-1">
-                                    Next Action Date
-                                </label>
-                                <input
-                                    type="date"
-                                    value={crmNextActionDate}
-                                    onChange={(e) => setCrmNextActionDate(e.target.value)}
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                    <Form
+                        schema={crmFormSchema}
+                        defaultValues={{
+                            collection: formData.collection || 'customers',
+                            company: '',
+                            nextAction: '',
+                            nextActionDate: '',
+                            nextActionTime: '',
+                        }}
+                        onSubmit={handleCrmSubmit}
+                    >
+                        {() => (
+                            <div className="space-y-4">
+                                <SelectField
+                                    name="collection"
+                                    label="Type"
+                                    options={[
+                                        { value: 'investors', label: 'Investor' },
+                                        { value: 'customers', label: 'Customer' },
+                                        { value: 'partners', label: 'Partner' },
+                                    ]}
                                 />
-                            </div>
 
-                            <div>
-                                <label className="block font-mono text-sm font-semibold text-black mb-1">
-                                    Time
-                                </label>
-                                <input
-                                    type="time"
-                                    value={crmNextActionTime}
-                                    onChange={(e) => setCrmNextActionTime(e.target.value)}
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                <FormField
+                                    name="company"
+                                    label="Company Name *"
+                                    type="text"
+                                    placeholder="e.g., Acme Corp"
+                                    required
+                                    autoFocus
                                 />
+
+                                <FormField
+                                    name="nextAction"
+                                    label="Next Action"
+                                    type="text"
+                                    placeholder="e.g., Send follow-up email"
+                                />
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <FormField
+                                        name="nextActionDate"
+                                        label="Next Action Date"
+                                        type="date"
+                                    />
+
+                                    <FormField
+                                        name="nextActionTime"
+                                        label="Time"
+                                        type="time"
+                                    />
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex gap-3 mt-6 pt-4 border-t-2 border-gray-200">
+                                    <Button type="submit" variant="success" className="flex-1">
+                                        ✓ Create
+                                    </Button>
+                                    <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
+                                        Cancel
+                                    </Button>
+                                </div>
                             </div>
-                        </div>
-                    </div>
+                        )}
+                    </Form>
                 );
 
             case 'contact':
                 return (
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block font-mono text-sm font-semibold text-black mb-1">
-                                Account Type
-                            </label>
-                            <select
-                                value={contactCrmType}
-                                onChange={(e) => setContactCrmType(e.target.value as CrmCollectionName)}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                            >
-                                <option value="investors">Investor</option>
-                                <option value="customers">Customer</option>
-                                <option value="partners">Partner</option>
-                            </select>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <label className="block font-mono text-sm font-semibold text-black mb-1">
-                                    Contact Name *
-                                </label>
-                                <input
-                                    type="text"
-                                    value={contactName}
-                                    onChange={(e) => setContactName(e.target.value)}
-                                    placeholder="e.g., John Smith"
-                                    required
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                                    autoFocus
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block font-mono text-sm font-semibold text-black mb-1">
-                                    Job Title
-                                </label>
-                                <input
-                                    type="text"
-                                    value={contactTitle}
-                                    onChange={(e) => setContactTitle(e.target.value)}
-                                    placeholder="e.g., CEO"
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <label className="block font-mono text-sm font-semibold text-black mb-1">
-                                    Email *
-                                </label>
-                                <input
-                                    type="email"
-                                    value={contactEmail}
-                                    onChange={(e) => setContactEmail(e.target.value)}
-                                    placeholder="john@example.com"
-                                    required
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block font-mono text-sm font-semibold text-black mb-1">
-                                    Phone
-                                </label>
-                                <input
-                                    type="tel"
-                                    value={contactPhone}
-                                    onChange={(e) => setContactPhone(e.target.value)}
-                                    placeholder="(555) 123-4567"
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="border-t-2 border-gray-300 pt-4">
-                            <label className="block font-mono text-sm font-semibold text-black mb-2">
-                                Link to Account
-                            </label>
-                            <select
-                                value={contactLinkedCrmId}
-                                onChange={(e) => setContactLinkedCrmId(e.target.value)}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 mb-2"
-                            >
-                                <option value="">-- Select existing or create new --</option>
-                                {crmItems
-                                    .filter(item => {
-                                        // Filter by CRM type
-                                        if (contactCrmType === 'investors') return 'checkSize' in item;
-                                        if (contactCrmType === 'customers') return 'dealValue' in item;
-                                        if (contactCrmType === 'partners') return 'opportunity' in item;
-                                        return false;
-                                    })
-                                    .map(item => (
-                                        <option key={item.id} value={item.id}>
-                                            {item.company}
-                                        </option>
-                                    ))}
-                            </select>
-
-                            {!contactLinkedCrmId && (
-                                <div>
-                                    <label className="block font-mono text-xs text-gray-600 mb-1">
-                                        Or create new account:
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={contactNewAccountName}
-                                        onChange={(e) => setContactNewAccountName(e.target.value)}
-                                        placeholder="New Company Name"
-                                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                    <Form
+                        schema={contactFormSchema}
+                        defaultValues={{
+                            crmType: 'customers',
+                            name: '',
+                            title: '',
+                            email: '',
+                            phone: '',
+                            linkedCrmId: '',
+                            newAccountName: '',
+                        }}
+                        onSubmit={handleContactSubmit}
+                    >
+                        {({ watch }) => {
+                            const linkedCrmId = watch('linkedCrmId');
+                            const crmType = watch('crmType');
+                            
+                            return (
+                                <div className="space-y-4">
+                                    <SelectField
+                                        name="crmType"
+                                        label="Account Type"
+                                        options={[
+                                            { value: 'investors', label: 'Investor' },
+                                            { value: 'customers', label: 'Customer' },
+                                            { value: 'partners', label: 'Partner' },
+                                        ]}
                                     />
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <FormField
+                                            name="name"
+                                            label="Contact Name *"
+                                            type="text"
+                                            placeholder="e.g., John Smith"
+                                            required
+                                            autoFocus
+                                        />
+
+                                        <FormField
+                                            name="title"
+                                            label="Job Title"
+                                            type="text"
+                                            placeholder="e.g., CEO"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <FormField
+                                            name="email"
+                                            label="Email *"
+                                            type="email"
+                                            placeholder="john@example.com"
+                                            required
+                                        />
+
+                                        <FormField
+                                            name="phone"
+                                            label="Phone"
+                                            type="tel"
+                                            placeholder="(555) 123-4567"
+                                        />
+                                    </div>
+
+                                    <div className="border-t-2 border-gray-300 pt-4">
+                                        <label className="block font-mono text-sm font-semibold text-black mb-2">
+                                            Link to Account
+                                        </label>
+                                        <SelectField
+                                            name="linkedCrmId"
+                                            label=""
+                                            options={[
+                                                { value: '', label: '-- Select existing or create new --' },
+                                                ...crmItems
+                                                    .filter(item => {
+                                                        // Filter by CRM type
+                                                        if (crmType === 'investors') return 'checkSize' in item;
+                                                        if (crmType === 'customers') return 'dealValue' in item;
+                                                        if (crmType === 'partners') return 'opportunity' in item;
+                                                        return false;
+                                                    })
+                                                    .map(item => ({ value: item.id, label: item.company }))
+                                            ]}
+                                        />
+
+                                        {!linkedCrmId && (
+                                            <div className="mt-2">
+                                                <label className="block font-mono text-xs text-gray-600 mb-1">
+                                                    Or create new account:
+                                                </label>
+                                                <FormField
+                                                    name="newAccountName"
+                                                    label=""
+                                                    type="text"
+                                                    placeholder="New Company Name"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div className="flex gap-3 mt-6 pt-4 border-t-2 border-gray-200">
+                                        <Button type="submit" variant="success" className="flex-1">
+                                            ✓ Create
+                                        </Button>
+                                        <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
+                                            Cancel
+                                        </Button>
+                                    </div>
                                 </div>
-                            )}
-                        </div>
-                    </div>
+                            );
+                        }}
+                    </Form>
                 );
 
             case 'event':
                 return (
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block font-mono text-sm font-semibold text-black mb-1">
-                                Event Type
-                            </label>
-                            <select
-                                value={eventType}
-                                onChange={(e) => setEventType(e.target.value as any)}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                            >
-                                <option value="meeting">Meeting</option>
-                                <option value="call">Phone Call</option>
-                                <option value="event">Event</option>
-                            </select>
-                        </div>
+                    <Form
+                        schema={eventFormSchema}
+                        defaultValues={{
+                            type: formData.type || 'meeting',
+                            title: '',
+                            date: '',
+                            time: '10:00',
+                            duration: '60',
+                            description: '',
+                        }}
+                        onSubmit={handleEventSubmit}
+                    >
+                        {() => (
+                            <div className="space-y-4">
+                                <SelectField
+                                    name="type"
+                                    label="Event Type"
+                                    options={[
+                                        { value: 'meeting', label: 'Meeting' },
+                                        { value: 'call', label: 'Phone Call' },
+                                        { value: 'event', label: 'Event' },
+                                    ]}
+                                />
 
-                        <div>
-                            <label className="block font-mono text-sm font-semibold text-black mb-1">
-                                Title *
-                            </label>
-                            <input
-                                type="text"
-                                value={eventTitle}
-                                onChange={(e) => setEventTitle(e.target.value)}
-                                placeholder="e.g., Client Meeting"
-                                required
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                                autoFocus
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-3">
-                            <div>
-                                <label className="block font-mono text-sm font-semibold text-black mb-1">
-                                    Date *
-                                </label>
-                                <input
-                                    type="date"
-                                    value={eventDate}
-                                    onChange={(e) => setEventDate(e.target.value)}
+                                <FormField
+                                    name="title"
+                                    label="Title *"
+                                    type="text"
+                                    placeholder="e.g., Client Meeting"
                                     required
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                    autoFocus
                                 />
-                            </div>
 
-                            <div>
-                                <label className="block font-mono text-sm font-semibold text-black mb-1">
-                                    Time
-                                </label>
-                                <input
-                                    type="time"
-                                    value={eventTime}
-                                    onChange={(e) => setEventTime(e.target.value)}
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                <div className="grid grid-cols-3 gap-3">
+                                    <FormField
+                                        name="date"
+                                        label="Date *"
+                                        type="date"
+                                        required
+                                    />
+
+                                    <FormField
+                                        name="time"
+                                        label="Time"
+                                        type="time"
+                                    />
+
+                                    <FormField
+                                        name="duration"
+                                        label="Duration (min)"
+                                        type="number"
+                                        placeholder="60"
+                                    />
+                                </div>
+
+                                <FormField
+                                    name="description"
+                                    label="Description"
+                                    type="textarea"
+                                    placeholder="Additional details..."
+                                    rows={3}
                                 />
-                            </div>
 
-                            <div>
-                                <label className="block font-mono text-sm font-semibold text-black mb-1">
-                                    Duration (min)
-                                </label>
-                                <input
-                                    type="number"
-                                    value={eventDuration}
-                                    onChange={(e) => setEventDuration(e.target.value)}
-                                    placeholder="60"
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                                />
+                                {/* Actions */}
+                                <div className="flex gap-3 mt-6 pt-4 border-t-2 border-gray-200">
+                                    <Button type="submit" variant="success" className="flex-1">
+                                        ✓ Create
+                                    </Button>
+                                    <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
+                                        Cancel
+                                    </Button>
+                                </div>
                             </div>
-                        </div>
-
-                        <div>
-                            <label className="block font-mono text-sm font-semibold text-black mb-1">
-                                Description
-                            </label>
-                            <textarea
-                                value={eventDescription}
-                                onChange={(e) => setEventDescription(e.target.value)}
-                                placeholder="Additional details..."
-                                rows={3}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                            />
-                        </div>
-                    </div>
+                        )}
+                    </Form>
                 );
 
             case 'expense':
                 return (
-                    <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <label className="block font-mono text-sm font-semibold text-black mb-1">
-                                    Amount ($) *
-                                </label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    value={expenseAmount}
-                                    onChange={(e) => setExpenseAmount(e.target.value)}
-                                    placeholder="0.00"
-                                    required
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                                    autoFocus
+                    <Form
+                        schema={expenseFormSchema}
+                        defaultValues={{
+                            amount: 0,
+                            category: 'Other',
+                            date: new Date().toISOString().split('T')[0],
+                            description: '',
+                        }}
+                        onSubmit={handleExpenseSubmit}
+                    >
+                        {() => (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <FormField
+                                        name="amount"
+                                        label="Amount ($) *"
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        required
+                                        autoFocus
+                                    />
+
+                                    <SelectField
+                                        name="category"
+                                        label="Category"
+                                        options={[
+                                            { value: 'Software', label: 'Software' },
+                                            { value: 'Marketing', label: 'Marketing' },
+                                            { value: 'Travel', label: 'Travel' },
+                                            { value: 'Equipment', label: 'Equipment' },
+                                            { value: 'Office', label: 'Office' },
+                                            { value: 'Other', label: 'Other' },
+                                        ]}
+                                    />
+                                </div>
+
+                                <FormField
+                                    name="date"
+                                    label="Date"
+                                    type="date"
                                 />
+
+                                <FormField
+                                    name="description"
+                                    label="Description *"
+                                    type="textarea"
+                                    placeholder="e.g., Figma subscription, Lunch meeting with client"
+                                    required
+                                    rows={3}
+                                />
+
+                                {/* Actions */}
+                                <div className="flex gap-3 mt-6 pt-4 border-t-2 border-gray-200">
+                                    <Button type="submit" variant="success" className="flex-1">
+                                        ✓ Create
+                                    </Button>
+                                    <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
+                                        Cancel
+                                    </Button>
+                                </div>
                             </div>
-
-                            <div>
-                                <label className="block font-mono text-sm font-semibold text-black mb-1">
-                                    Category
-                                </label>
-                                <select
-                                    value={expenseCategory}
-                                    onChange={(e) => setExpenseCategory(e.target.value)}
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                                >
-                                    <option value="Software">Software</option>
-                                    <option value="Marketing">Marketing</option>
-                                    <option value="Travel">Travel</option>
-                                    <option value="Equipment">Equipment</option>
-                                    <option value="Office">Office</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block font-mono text-sm font-semibold text-black mb-1">
-                                Date
-                            </label>
-                            <input
-                                type="date"
-                                value={expenseDate}
-                                onChange={(e) => setExpenseDate(e.target.value)}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block font-mono text-sm font-semibold text-black mb-1">
-                                Description *
-                            </label>
-                            <textarea
-                                value={expenseDescription}
-                                onChange={(e) => setExpenseDescription(e.target.value)}
-                                placeholder="e.g., Figma subscription, Lunch meeting with client"
-                                required
-                                rows={3}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                            />
-                        </div>
-                    </div>
+                        )}
+                    </Form>
                 );
 
             case 'document':
@@ -751,7 +857,7 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
                 </div>
 
                 {/* Form */}
-                <form onSubmit={handleSubmit} className="p-6">
+                <div className="p-6">
                     {error && (
                         <div className="mb-4 p-3 bg-red-100 border-2 border-red-500 text-red-700 text-sm">
                             <strong>Error:</strong> {error}
@@ -760,25 +866,28 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
 
                     {renderForm()}
 
-                    {/* Actions */}
-                    <div className="flex gap-3 mt-6 pt-4 border-t-2 border-gray-200">
-                        <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="flex-1 font-mono font-semibold bg-green-500 text-white py-3 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {isSubmitting ? '⏳ Creating...' : '✓ Create'}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            disabled={isSubmitting}
-                            className="flex-1 font-mono font-semibold bg-white text-black py-3 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-100 disabled:opacity-50"
-                        >
-                            Cancel
-                        </button>
-                    </div>
-                </form>
+                    {/* Actions for document upload (non-Form component) */}
+                    {formType === 'document' && (
+                        <div className="flex gap-3 mt-6 pt-4 border-t-2 border-gray-200">
+                            <button
+                                type="submit"
+                                onClick={handleSubmit}
+                                disabled={isSubmitting}
+                                className="flex-1 font-mono font-semibold bg-green-500 text-white py-3 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isSubmitting ? '⏳ Uploading...' : '✓ Upload'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                disabled={isSubmitting}
+                                className="flex-1 font-mono font-semibold bg-white text-black py-3 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-100 disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
