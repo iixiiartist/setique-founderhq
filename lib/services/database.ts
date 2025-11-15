@@ -873,11 +873,11 @@ export class DatabaseService {
         role: m.role,
         joined_at: m.joined_at,
         invited_by: m.invited_by,
-        profiles: m.profile_id ? {
-          id: m.profile_id,
-          email: m.profile_email,
-          full_name: m.profile_full_name,
-          avatar_url: m.profile_avatar_url
+        profiles: m.user_id ? {
+          id: m.user_id,
+          email: m.email,
+          full_name: m.full_name,
+          avatar_url: null // Not returned by function, would need to add if needed
         } : null
       }));
       
