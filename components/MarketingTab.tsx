@@ -162,27 +162,22 @@ const MarketingTab: React.FC<{
     const newCampaignButtonRef = useRef<HTMLButtonElement>(null);
 
     const handleSaveCampaign = async (campaignData: Partial<MarketingItem>) => {
-        try {
-            let result;
-            if (editingItem) {
-                // Update existing campaign
-                result = await actions.updateMarketingItem(editingItem.id, campaignData);
-            } else {
-                // Create new campaign
-                result = await actions.createMarketingItem(campaignData as Omit<MarketingItem, 'id' | 'createdAt' | 'notes'>);
-            }
-            
-            // Only close modal if operation succeeded
-            if (result.success) {
-                setShowCampaignModal(false);
-                setEditingItem(null);
-            } else {
-                // Error is already toasted by the action, but we keep modal open
-                console.error('[MarketingTab] Campaign save failed:', result.message);
-            }
-        } catch (error) {
-            console.error('[MarketingTab] Campaign save error:', error);
-            // Keep modal open so user can retry
+        let result;
+        if (editingItem) {
+            // Update existing campaign
+            result = await actions.updateMarketingItem(editingItem.id, campaignData);
+        } else {
+            // Create new campaign
+            result = await actions.createMarketingItem(campaignData as Omit<MarketingItem, 'id' | 'createdAt' | 'notes'>);
+        }
+        
+        // Only close modal if operation succeeded
+        if (result.success) {
+            setShowCampaignModal(false);
+            setEditingItem(null);
+        } else {
+            // Throw error so modal's catch block handles it (keeps modal open, resets isSubmitting)
+            throw new Error(result.message || 'Failed to save campaign');
         }
     };
 

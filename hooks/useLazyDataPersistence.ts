@@ -5,6 +5,7 @@ import { DatabaseService } from '../lib/services/database'
 import { DashboardData, Task, MarketingItem, FinancialLog, Expense, Document, Investor, Customer, Partner, Deal, Priority } from '../types'
 import { EMPTY_DASHBOARD_DATA } from '../constants'
 import { supabase } from '../lib/supabase'
+import { dbToMarketingItem } from '../lib/utils/fieldTransformers'
 
 type TabDataCache = {
   [key: string]: {
@@ -275,8 +276,11 @@ export const useLazyDataPersistence = () => {
         DatabaseService.getMarketingCalendarLinks(workspace.id)
       ])
 
+      // Transform raw database rows to application models (snake_case → camelCase)
+      const transformedMarketing = (marketingRes.data || []).map(dbToMarketingItem);
+
       const result = {
-        marketing: marketingRes.data || [],
+        marketing: transformedMarketing,
         campaignAttributions: attributionsRes.data || [],
         marketingAnalytics: analyticsRes.data || [],
         marketingCalendarLinks: calendarLinksRes.data || []
