@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { GTMDocMetadata, LinkedDoc } from '../../types';
 import { DOC_TYPE_ICONS, DOC_TYPE_LABELS } from '../../constants';
+import { DatabaseService } from '../../lib/services/database';
 
 interface LinkedDocsDisplayProps {
     entityType: 'task' | 'event' | 'crm' | 'chat' | 'contact';
@@ -29,7 +30,6 @@ export const LinkedDocsDisplay: React.FC<LinkedDocsDisplayProps> = ({
         
         setIsLoading(true);
         try {
-            const { DatabaseService } = await import('../../lib/services/database');
             const { data, error} = await DatabaseService.getLinkedDocs(
                 entityType,
                 entityId
@@ -52,7 +52,6 @@ export const LinkedDocsDisplay: React.FC<LinkedDocsDisplayProps> = ({
         if (!window.confirm('Remove this document link?')) return;
 
         try {
-            const { DatabaseService } = await import('../../lib/services/database');
             const { error } = await DatabaseService.unlinkDocFromEntity(linkId);
 
             if (error) {

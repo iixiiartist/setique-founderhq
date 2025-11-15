@@ -14,6 +14,7 @@ import { TaskItem } from '@tiptap/extension-task-item';
 import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
+import { DatabaseService } from '../../lib/services/database';
 import { TableHeader } from '@tiptap/extension-table-header';
 import { Link } from '@tiptap/extension-link';
 import { FontFamily } from '@tiptap/extension-font-family';
@@ -224,7 +225,6 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     const loadDoc = async () => {
         setIsLoading(true);
         try {
-            const { DatabaseService } = await import('../../lib/services/database');
             const { data, error } = await DatabaseService.loadGTMDocById(docId!, workspaceId);
             
             if (error) {
@@ -351,8 +351,6 @@ export const DocEditor: React.FC<DocEditorProps> = ({
         
         setIsSaving(true);
         try {
-            const { DatabaseService } = await import('../../lib/services/database');
-            
             // Extract content from editor
             const contentJson = editor.getJSON();
             const contentPlain = editor.getText();
@@ -416,8 +414,6 @@ export const DocEditor: React.FC<DocEditorProps> = ({
         if (!confirmed) return;
 
         try {
-            const { DatabaseService } = await import('../../lib/services/database');
-            
             // Get the HTML content
             const htmlContent = editor.getHTML();
             

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { GTMDocMetadata, DocType } from '../../types';
 import { DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '../../constants';
+import { DatabaseService } from '../../lib/services/database';
 
 interface DocsListProps {
     workspaceId: string;
@@ -33,7 +34,6 @@ export const DocsList: React.FC<DocsListProps> = ({
     const loadDocs = async () => {
         setIsLoading(true);
         try {
-            const { DatabaseService } = await import('../../lib/services/database');
             const { data, error } = await DatabaseService.loadGTMDocs(workspaceId, {
                 filter,
                 docType: docTypeFilter === 'all' ? undefined : docTypeFilter,
@@ -57,7 +57,6 @@ export const DocsList: React.FC<DocsListProps> = ({
     const handleSeedTemplates = async () => {
         setIsSeeding(true);
         try {
-            const { DatabaseService } = await import('../../lib/services/database');
             const { data, error } = await DatabaseService.seedGTMTemplates(workspaceId, userId);
             
             if (error) {
@@ -83,8 +82,6 @@ export const DocsList: React.FC<DocsListProps> = ({
         }
 
         try {
-            const { DatabaseService } = await import('../../lib/services/database');
-            
             // Load full doc content
             const { data: fullDoc, error: loadError } = await DatabaseService.loadGTMDocById(doc.id, workspaceId);
             if (loadError || !fullDoc) {
@@ -130,7 +127,6 @@ export const DocsList: React.FC<DocsListProps> = ({
         }
 
         try {
-            const { DatabaseService } = await import('../../lib/services/database');
             const { error } = await DatabaseService.deleteGTMDoc(docId, workspaceId);
             
             if (error) {

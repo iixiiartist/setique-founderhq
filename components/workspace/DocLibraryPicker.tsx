@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { GTMDocMetadata, DocType } from '../../types';
 import { DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '../../constants';
 import Modal from '../shared/Modal';
+import { DatabaseService } from '../../lib/services/database';
 
 interface DocLibraryPickerProps {
     isOpen: boolean;
@@ -36,7 +37,6 @@ export const DocLibraryPicker: React.FC<DocLibraryPickerProps> = ({
     const loadDocs = async () => {
         setIsLoading(true);
         try {
-            const { DatabaseService } = await import('../../lib/services/database');
             const { data, error } = await DatabaseService.loadGTMDocs(
                 workspaceId,
                 {

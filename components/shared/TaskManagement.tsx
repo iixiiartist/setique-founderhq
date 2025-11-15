@@ -9,6 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { DocLibraryPicker } from '../workspace/DocLibraryPicker';
 import { LinkedDocsDisplay } from '../workspace/LinkedDocsDisplay';
 import { SubtaskManager } from './SubtaskManager';
+import { DatabaseService } from '../../lib/services/database';
 
 interface TaskItemProps {
     task: Task;
@@ -488,7 +489,6 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
                     onClose={() => setShowDocPicker(false)}
                     onSelect={async (doc) => {
                         try {
-                            const { DatabaseService } = await import('../../lib/services/database');
                             const { error } = await DatabaseService.linkDocToEntity(
                                 doc.id,
                                 workspaceId,

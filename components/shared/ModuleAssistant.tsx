@@ -12,6 +12,7 @@ import { DocLibraryPicker } from '../workspace/DocLibraryPicker';
 import { useAuth } from '../../contexts/AuthContext';
 import { QuickActionsToolbar } from './QuickActionsToolbar';
 import { InlineFormModal } from './InlineFormModal';
+import { DatabaseService } from '../../lib/services/database';
 
 // Keep using Content format for compatibility
 interface Part {
@@ -913,7 +914,6 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                         userId={user.id}
                         onSelect={async (doc) => {
                             // Load full doc content for AI context
-                            const { DatabaseService } = await import('../../lib/services/database');
                             const { data: fullDoc } = await DatabaseService.loadGTMDocById(doc.id, workspaceId);
                             if (fullDoc) {
                                 // Add contentPreview from contentPlain for AI
@@ -947,7 +947,6 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                     userId={user.id}
                     onSelect={async (doc) => {
                         // Load full doc content for AI context
-                        const { DatabaseService } = await import('../../lib/services/database');
                         const { data: fullDoc } = await DatabaseService.loadGTMDocById(doc.id, workspaceId);
                         if (fullDoc) {
                             // Add contentPreview from contentPlain for AI

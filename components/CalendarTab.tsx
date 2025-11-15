@@ -8,6 +8,7 @@ import remarkGfm from 'remark-gfm';
 import { DocLibraryPicker } from './workspace/DocLibraryPicker';
 import { LinkedDocsDisplay } from './workspace/LinkedDocsDisplay';
 import { useAuth } from '../contexts/AuthContext';
+import { DatabaseService } from '../lib/services/database';
 
 interface CalendarTabProps {
     events: CalendarEvent[];
@@ -538,7 +539,6 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
                     onClose={() => setShowDocPicker(false)}
                     onSelect={async (doc) => {
                         try {
-                            const { DatabaseService } = await import('../lib/services/database');
                             const { error } = await DatabaseService.linkDocToEntity(
                                 doc.id,
                                 workspace.id,
