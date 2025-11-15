@@ -51,7 +51,7 @@ interface DbTask {
 interface DbMarketingItem {
   id: string;
   title: string;
-  item_type: string;
+  type: string;
   status: string;
   created_at: string;
   notes: any[];
@@ -225,7 +225,7 @@ export function dbToMarketingItem(dbItem: DbMarketingItem): MarketingItem {
   return {
     id: dbItem.id,
     title: dbItem.title,
-    type: dbItem.item_type as MarketingItem['type'],
+    type: dbItem.type as MarketingItem['type'],
     status: dbItem.status as MarketingItem['status'],
     createdAt: new Date(dbItem.created_at).getTime(),
     notes: dbItem.notes || [],
@@ -239,7 +239,7 @@ export function dbToMarketingItem(dbItem: DbMarketingItem): MarketingItem {
     campaignBudget: dbItem.campaign_budget || undefined,
     actualSpend: dbItem.actual_spend || undefined,
     targetAudience: dbItem.target_audience || undefined,
-    channels: dbItem.channels || undefined,
+    channels: (dbItem.channels as MarketingItem['channels']) || undefined,
     goals: dbItem.goals || undefined,
     kpis: dbItem.kpis || undefined,
     
@@ -391,7 +391,7 @@ export function marketingItemToDb(item: Partial<MarketingItem>): Record<string, 
   const dbObject: Record<string, any> = {};
 
   if (item.title !== undefined) dbObject.title = item.title;
-  if (item.type !== undefined) dbObject.item_type = item.type;
+  if (item.type !== undefined) dbObject.type = item.type;
   if (item.status !== undefined) dbObject.status = item.status;
   if (item.notes !== undefined) dbObject.notes = item.notes;
   if (item.dueDate !== undefined) dbObject.due_date = item.dueDate || null;
