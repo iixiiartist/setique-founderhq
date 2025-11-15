@@ -93,7 +93,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     const toolbarMenuRef = useRef<HTMLDivElement>(null);
     
     // Fetch workspace context for AI
-    const { context: workspaceContext, loading: contextLoading } = useAIWorkspaceContext(
+    const { context: workspaceContext, loading: contextLoading, error: contextError } = useAIWorkspaceContext(
         docId,
         workspaceId,
         userId
