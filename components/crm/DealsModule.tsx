@@ -42,7 +42,7 @@ const formatDate = (dateString?: string) => {
   });
 };
 
-export default function DealsModule({
+function DealsModule({
   deals,
   crmItems,
   productsServices,
@@ -779,3 +779,5 @@ export default function DealsModule({
     </div>
   );
 }
+
+export default DealsModule;
