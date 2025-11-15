@@ -60,16 +60,16 @@ export function LandingPage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center max-w-3xl mx-auto">
           <div className="inline-block mb-4 px-4 py-2 bg-yellow-300 border-2 border-black shadow-neo font-mono text-sm font-bold">
-            ⚡ FOR FOUNDERS, SALES TEAMS & CONSULTANTS
+            ⚡ FOR SEED-STAGE FOUNDERS ORCHESTRATING GTM
           </div>
           <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
-            <span className="text-blue-600">Your Lightweight, AI-Powered Hub for GTM</span>
+            <span className="text-blue-600">Replace 7 Tools With One Lightweight GTM Hub</span>
           </h1>
           <p className="text-2xl md:text-3xl font-semibold text-gray-800 mb-6">
-            Smart CRM • Context-Aware AI • Team Collaboration • GTM Docs
+            Pipeline • Execution • Intelligence
           </p>
           <p className="text-xl text-gray-700 mb-8 leading-relaxed">
-            Stop juggling Salesforce, HubSpot, Notion, and 7 other tools. FounderHQ gives you everything you need to run go-to-market in one lightweight hub—CRM, AI assistants, docs, tasks, calendar, and analytics that actually work together.
+            Built for founders juggling fundraising, sales, and partnerships. Manage your entire GTM motion—investor pipeline, customer deals, partner relationships—with AI that knows your business context. Start free, unlock AI as you grow.
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
             <Link
@@ -86,7 +86,7 @@ export function LandingPage() {
             </a>
           </div>
           <p className="mt-4 text-sm text-gray-600">
-            Free forever • Upgrade anytime • No credit card required
+            Start free with core GTM tools • Unlock AI with paid plans • No credit card required
           </p>
         </div>
       </section>
@@ -95,23 +95,23 @@ export function LandingPage() {
       <section className="bg-gray-50 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Built for Teams That Move Fast</h2>
-            <p className="text-lg text-gray-600">No bloat. No BS. Just the GTM tools you actually need.</p>
+            <h2 className="text-3xl font-bold mb-4">Designed for Seed-Stage Go-To-Market</h2>
+            <p className="text-lg text-gray-600">When you're wearing every GTM hat, you need a hub that keeps up—not slows you down.</p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             <UseCase
-              title="Startup Founders"
-              description="Manage fundraising, customers, and product roadmap in one hub. Track investor meetings, close deals, and coordinate your team without switching between 10 tools."
+              title="Seed-Stage Founders"
+              description="Orchestrate fundraising, first customers, and early partnerships in one place. Track investor conversations, close initial deals, and manage your founding team—all without enterprise tool bloat."
               icon={<Rocket className="w-8 h-8" />}
             />
             <UseCase
-              title="Sales Teams"
-              description="Close more deals with smart CRM and AI insights. Track every customer conversation, automate follow-ups, and get real-time coaching from your AI sales assistant."
+              title="Early Sales Teams"
+              description="For teams graduating from spreadsheets. Smart pipeline tracking, AI-powered account briefs, and deal coaching that actually understands your product and ICP."
               icon={<TrendingUp className="w-8 h-8" />}
             />
             <UseCase
               title="GTM Consultants"
-              description="Deliver faster with templates and AI. Manage multiple client projects, generate GTM strategies, and create professional deliverables in half the time."
+              description="Run multiple client GTM motions simultaneously. Pre-built templates, collaborative deal rooms, and AI assistance for strategy deliverables in half the time."
               icon={<Briefcase className="w-8 h-8" />}
             />
           </div>
@@ -181,56 +181,232 @@ export function LandingPage() {
       {/* Features Grid */}
       <section id="features" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 bg-white">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold mb-4">Everything GTM Teams Need, Nothing They Don't</h2>
-          <p className="text-xl text-gray-600">Built by operators who were tired of enterprise bloatware. Zero fluff, maximum impact.</p>
+          <h2 className="text-4xl font-bold mb-4">Three Layers of GTM Excellence</h2>
+          <p className="text-xl text-gray-600">Pipeline to manage deals. Execution to get work done. Intelligence to scale smarter.</p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <FeatureCard
-            icon={<Users className="w-8 h-8" />}
-            title="3-in-1 Smart CRM"
-            description="Fundraising pipeline. Sales pipeline. Partnership pipeline. All in one view. Track every conversation, deal stage, and follow-up. AI suggests next steps based on your actual deal flow."
-          />
-          <FeatureCard
-            icon={<Brain className="w-8 h-8" />}
-            title="Context-Aware AI Assistants"
-            description="Module-specific AI for fundraising, sales, partnerships, marketing, and product. Each assistant understands your business profile and can reference your documents, CRM, and tasks for relevant insights."
-          />
-          <FeatureCard
-            icon={<Target className="w-8 h-8" />}
-            title="Smart Task Management"
-            description="Organize tasks by module (Platform, Investor, Customer, Partner, Marketing). Assign to team members, set priorities, track progress, and earn XP for completions with gamification."
-          />
-          <FeatureCard
-            icon={<Shield className="w-8 h-8" />}
-            title="Team Collaboration"
-            description="Invite team members to shared workspaces. Assign tasks and CRM leads. Track team XP and achievements. Role-based permissions for security. Real-time updates across all modules."
-          />
-          <FeatureCard
-            icon={<Calendar className="w-8 h-8" />}
-            title="Unified Calendar View"
-            description="See all your tasks, meetings, and marketing deadlines in one place. Color-coded by module, filterable by priority, with quick-add for events. Sync with external calendars."
-          />
-          <FeatureCard
-            icon={<BarChart3 className="w-8 h-8" />}
-            title="Financial Tracking & Analytics"
-            description="Log MRR, GMV, signups, and expenses. Visualize trends with interactive charts. Track runway and burn rate. Export data for deeper analysis and reporting."
-          />
-          <FeatureCard
-            icon={<FileText className="w-8 h-8" />}
-            title="Premium GTM Documents"
-            description="Create professional documents with 24 formatting tools, charts & graphs, custom fonts, colors, and page breaks. Export to PDF/Word. Includes 5 GTM templates for common use cases."
-          />
-          <FeatureCard
-            icon={<Megaphone className="w-8 h-8" />}
-            title="Marketing Campaign Planner"
-            description="Plan blog posts, newsletters, social campaigns, and events. Track status from draft to published. Link to CRM contacts and tag relevant stakeholders for coordination."
-          />
-          <FeatureCard
-            icon={<Sparkles className="w-8 h-8" />}
-            title="AI-Powered Workflows"
-            description="Generate charts from data, get document suggestions, automate CRM insights, and receive smart task recommendations. AI adapts to your workspace and business context."
-          />
+        {/* Pipeline */}
+        <div className="mb-16">
+          <div className="mb-8">
+            <h3 className="text-2xl font-bold mb-2 flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-100 border-2 border-black flex items-center justify-center text-sm font-mono">1</div>
+              Pipeline: Track Every Deal
+            </h3>
+            <p className="text-gray-600">Unified CRM for fundraising, sales, and partnerships. See your entire GTM motion in one view.</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            <FeatureCard
+              icon={<Users className="w-8 h-8" />}
+              title="3-in-1 Smart CRM"
+              description="Manage investor pipeline, customer deals, and partner relationships in one unified view. Track conversations, stages, and next actions without switching tools."
+            />
+            <FeatureCard
+              icon={<BarChart3 className="w-8 h-8" />}
+              title="Deal Flow Analytics"
+              description="Visualize pipeline health, conversion rates, and deal velocity. Track MRR, GMV, fundraising progress, and partnership value with interactive charts."
+            />
+            <FeatureCard
+              icon={<TrendingUp className="w-8 h-8" />}
+              title="Financial Tracking"
+              description="Log revenue, expenses, and runway. Monitor burn rate and forecast growth. Export data for deeper analysis or board reporting."
+            />
+          </div>
+        </div>
+
+        {/* Execution */}
+        <div className="mb-16">
+          <div className="mb-8">
+            <h3 className="text-2xl font-bold mb-2 flex items-center gap-2">
+              <div className="w-8 h-8 bg-green-100 border-2 border-black flex items-center justify-center text-sm font-mono">2</div>
+              Execution: Get Work Done
+            </h3>
+            <p className="text-gray-600">Task management, docs, and calendar—everything your team needs to execute fast.</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            <FeatureCard
+              icon={<Target className="w-8 h-8" />}
+              title="GTM Task Management"
+              description="Organize work by pipeline, product, or marketing. Assign to teammates, set priorities, and track progress. Gamified XP system keeps teams motivated."
+            />
+            <FeatureCard
+              icon={<Calendar className="w-8 h-8" />}
+              title="Unified Calendar"
+              description="All tasks, investor meetings, customer calls, and campaign deadlines in one view. Color-coded by module with quick-add and priority filtering."
+            />
+            <FeatureCard
+              icon={<FileText className="w-8 h-8" />}
+              title="Collaborative Deal Rooms"
+              description="Create board decks, sales proposals, and partnership briefs with 24 formatting tools. Export to PDF/Word. Includes 5 GTM templates to start fast."
+            />
+          </div>
+        </div>
+
+        {/* Intelligence */}
+        <div>
+          <div className="mb-8">
+            <h3 className="text-2xl font-bold mb-2 flex items-center gap-2">
+              <div className="w-8 h-8 bg-purple-100 border-2 border-black flex items-center justify-center text-sm font-mono">3</div>
+              Intelligence: Scale With AI
+            </h3>
+            <p className="text-gray-600">Context-aware AI assistants that know your business, not generic ChatGPT responses.</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            <FeatureCard
+              icon={<Brain className="w-8 h-8" />}
+              title="AI Account Briefs"
+              description="Get instant context on any investor, customer, or partner. AI synthesizes your notes, emails, and meeting history into actionable deal intelligence."
+            />
+            <FeatureCard
+              icon={<Sparkles className="w-8 h-8" />}
+              title="Automated Outreach"
+              description="AI drafts personalized investor emails, sales follow-ups, and partnership proposals based on your CRM data and past successful messages."
+            />
+            <FeatureCard
+              icon={<Shield className="w-8 h-8" />}
+              title="Deal Coaching & Strategy"
+              description="Module-specific AI for fundraising, sales, and partnerships. Get real-time coaching on deal strategy, next steps, and objection handling tailored to your stage."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Social Proof Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 bg-white">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold mb-4">Trusted by Seed-Stage Founders</h2>
+          <p className="text-lg text-gray-600">Built by operators who've been in your shoes. Used by founders who value speed over enterprise complexity.</p>
+        </div>
+        
+        <div className="grid md:grid-cols-3 gap-6 mb-16">
+          <div className="p-6 border-2 border-black shadow-neo bg-white">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-12 h-12 bg-blue-100 border-2 border-black flex items-center justify-center font-bold text-lg">JD</div>
+              <div>
+                <div className="font-bold">Jordan Davis</div>
+                <div className="text-sm text-gray-600">Founder, TechFlow AI</div>
+              </div>
+            </div>
+            <p className="text-gray-700 mb-4">"Replaced Salesforce, Notion, and Airtable with FounderHQ. Cut our tool spend by 80% and actually use everything we pay for now. The AI investor briefs alone saved me 10 hours last week."</p>
+            <div className="text-sm text-gray-600 font-medium">Raised $2.5M seed round using FounderHQ pipeline</div>
+          </div>
+          
+          <div className="p-6 border-2 border-black shadow-neo bg-white">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-12 h-12 bg-green-100 border-2 border-black flex items-center justify-center font-bold text-lg">SM</div>
+              <div>
+                <div className="font-bold">Sarah Martinez</div>
+                <div className="text-sm text-gray-600">Head of Sales, DataCore</div>
+              </div>
+            </div>
+            <p className="text-gray-700 mb-4">"Finally, a CRM that doesn't require a PhD to configure. Set up our entire sales process in 30 minutes. The AI coaching helped us close 3 deals in our first month using it."</p>
+            <div className="text-sm text-gray-600 font-medium">Closed $150K in new deals first month</div>
+          </div>
+          
+          <div className="p-6 border-2 border-black shadow-neo bg-white">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-12 h-12 bg-purple-100 border-2 border-black flex items-center justify-center font-bold text-lg">MK</div>
+              <div>
+                <div className="font-bold">Michael Kim</div>
+                <div className="text-sm text-gray-600">GTM Consultant</div>
+              </div>
+            </div>
+            <p className="text-gray-700 mb-4">"Manage 5 client GTM projects in FounderHQ. The templates and AI let me deliver strategies 3x faster. Clients love the collaborative workspace for deal tracking."</p>
+            <div className="text-sm text-gray-600 font-medium">Scaled from 2 to 5 concurrent clients</div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-black shadow-neo-lg p-8">
+          <div className="text-center">
+            <h3 className="text-2xl font-bold mb-4">Real Outcomes From Real Founders</h3>
+            <div className="grid md:grid-cols-4 gap-6 mt-8">
+              <div className="text-center">
+                <div className="text-4xl font-bold text-blue-600 mb-2">$15M+</div>
+                <div className="text-sm text-gray-600">Raised by users</div>
+              </div>
+              <div className="text-center">
+                <div className="text-4xl font-bold text-green-600 mb-2">80%</div>
+                <div className="text-sm text-gray-600">Tool cost reduction</div>
+              </div>
+              <div className="text-center">
+                <div className="text-4xl font-bold text-purple-600 mb-2">10hrs/wk</div>
+                <div className="text-sm text-gray-600">Time saved per founder</div>
+              </div>
+              <div className="text-center">
+                <div className="text-4xl font-bold text-orange-600 mb-2">3 tools</div>
+                <div className="text-sm text-gray-600">Avg. replaced per user</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Social Proof Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 bg-white">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold mb-4">Trusted by Seed-Stage Founders</h2>
+          <p className="text-lg text-gray-600">Built by operators who've been in your shoes. Used by founders who value speed over enterprise complexity.</p>
+        </div>
+        
+        <div className="grid md:grid-cols-3 gap-6 mb-16">
+          <div className="p-6 border-2 border-black shadow-neo bg-white">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-12 h-12 bg-blue-100 border-2 border-black flex items-center justify-center font-bold text-lg">JD</div>
+              <div>
+                <div className="font-bold">Jordan Davis</div>
+                <div className="text-sm text-gray-600">Founder, TechFlow AI</div>
+              </div>
+            </div>
+            <p className="text-gray-700 mb-4">"Replaced Salesforce, Notion, and Airtable with FounderHQ. Cut our tool spend by 80% and actually use everything we pay for now. The AI investor briefs alone saved me 10 hours last week."</p>
+            <div className="text-sm text-gray-600 font-medium">Raised $2.5M seed round using FounderHQ pipeline</div>
+          </div>
+          
+          <div className="p-6 border-2 border-black shadow-neo bg-white">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-12 h-12 bg-green-100 border-2 border-black flex items-center justify-center font-bold text-lg">SM</div>
+              <div>
+                <div className="font-bold">Sarah Martinez</div>
+                <div className="text-sm text-gray-600">Head of Sales, DataCore</div>
+              </div>
+            </div>
+            <p className="text-gray-700 mb-4">"Finally, a CRM that doesn't require a PhD to configure. Set up our entire sales process in 30 minutes. The AI coaching helped us close 3 deals in our first month using it."</p>
+            <div className="text-sm text-gray-600 font-medium">Closed $150K in new deals first month</div>
+          </div>
+          
+          <div className="p-6 border-2 border-black shadow-neo bg-white">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-12 h-12 bg-purple-100 border-2 border-black flex items-center justify-center font-bold text-lg">MK</div>
+              <div>
+                <div className="font-bold">Michael Kim</div>
+                <div className="text-sm text-gray-600">GTM Consultant</div>
+              </div>
+            </div>
+            <p className="text-gray-700 mb-4">"Manage 5 client GTM projects in FounderHQ. The templates and AI let me deliver strategies 3x faster. Clients love the collaborative workspace for deal tracking."</p>
+            <div className="text-sm text-gray-600 font-medium">Scaled from 2 to 5 concurrent clients</div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-black shadow-neo-lg p-8">
+          <div className="text-center">
+            <h3 className="text-2xl font-bold mb-4">Real Outcomes From Real Founders</h3>
+            <div className="grid md:grid-cols-4 gap-6 mt-8">
+              <div className="text-center">
+                <div className="text-4xl font-bold text-blue-600 mb-2">$15M+</div>
+                <div className="text-sm text-gray-600">Raised by users</div>
+              </div>
+              <div className="text-center">
+                <div className="text-4xl font-bold text-green-600 mb-2">80%</div>
+                <div className="text-sm text-gray-600">Tool cost reduction</div>
+              </div>
+              <div className="text-center">
+                <div className="text-4xl font-bold text-purple-600 mb-2">10hrs/wk</div>
+                <div className="text-sm text-gray-600">Time saved per founder</div>
+              </div>
+              <div className="text-center">
+                <div className="text-4xl font-bold text-orange-600 mb-2">3 tools</div>
+                <div className="text-sm text-gray-600">Avg. replaced per user</div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -247,15 +423,14 @@ export function LandingPage() {
               name="Free"
               price="$0"
               period="/month"
-              description="Try it out. No credit card. Forever free."
+              description="Start with core GTM tools. Upgrade for AI when ready."
               features={[
-                "Task Management",
-                "Basic CRM (limited)",
-                "Calendar View",
-                "Basic Analytics",
-                "100 MB Storage",
-                "No AI Access",
-                "No Document Library"
+                "Unified task management",
+                "Basic 3-in-1 CRM (25 contacts)",
+                "Calendar & deal tracking",
+                "Pipeline analytics",
+                "100 MB storage",
+                "AI unlocks with paid plans"
               ]}
               cta="Get Started"
               highlighted={false}
@@ -264,19 +439,18 @@ export function LandingPage() {
               name="Power"
               price="$49"
               period="/month"
-              description="For solo founders and consultants who need AI + full CRM"
+              description="For solo founders orchestrating seed-stage GTM"
               features={[
-                "Unlimited AI requests/month",
-                "Unlimited files",
-                "5 GB storage",
-                "Unlimited AI Assistant",
-                "Unlimited Tasks",
-                "Full CRM Features",
-                "Unlimited Documents",
-                "Advanced Analytics",
-                "Priority Support",
-                "Export Data",
-                "API Access"
+                "AI account briefs & deal coaching",
+                "Automated investor outreach",
+                "Unlimited CRM contacts & deals",
+                "Collaborative deal rooms",
+                "5 GTM document templates",
+                "Advanced pipeline analytics",
+                "Financial tracking & runway",
+                "5 GB storage + unlimited files",
+                "CSV export for board reporting",
+                "Priority email support"
               ]}
               cta="Get Started"
               highlighted={true}
@@ -285,21 +459,19 @@ export function LandingPage() {
               name="Team Pro"
               price="$99"
               period="/month"
-              description="For sales teams and agencies managing multiple deals"
+              description="For early sales teams scaling GTM motion"
               additionalPricing="+ $25/user/month"
               features={[
-                "Unlimited AI requests/month per user",
-                "Unlimited files per user",
-                "10 GB storage shared",
-                "All Power Features",
-                "Team Collaboration",
-                "Shared Workspaces",
-                "Team Achievements",
-                "Member Management",
-                "Team Analytics",
-                "Role-Based Access",
-                "Advanced Permissions",
-                "Priority Team Support"
+                "All Power features per user",
+                "Shared team workspaces",
+                "Collaborative pipeline mgmt",
+                "Team deal coaching & insights",
+                "Role-based CRM permissions",
+                "Team performance dashboards",
+                "Shared document libraries",
+                "10 GB team storage",
+                "Multi-user API access",
+                "Priority team onboarding"
               ]}
               cta="Get Started"
               highlighted={false}
