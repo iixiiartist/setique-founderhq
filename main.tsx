@@ -33,14 +33,27 @@ try {
 }
 
 // Try to initialize Supabase early to catch configuration errors
-let supabaseInitError: Error | null = null
-try {
-  // Import supabase to trigger initialization and validation
-  await import('./lib/supabase')
-} catch (error) {
-  console.error('Supabase initialization error:', error)
-  supabaseInitError = error as Error
-}
+// Wrapped in async IIFE for broader browser compatibility (avoids top-level await)
+let supabaseInitError: Error | null = null;
+
+(async () => {
+  try {
+    // Import supabase to trigger initialization and validation
+    await import('./lib/supabase')
+  } catch (error) {
+    console.error('Supabase initialization error:', error)
+    supabaseInitError = error as Error
+    
+    // Re-render if initialization failed after initial render
+    if (container && root) {
+      root.render(
+        <React.StrictMode>
+          <SupabaseErrorFallback error={supabaseInitError} />
+        </React.StrictMode>
+      )
+    }
+  }
+})()
 
 // Disable verbose console logs in production
 disableProductionLogs()

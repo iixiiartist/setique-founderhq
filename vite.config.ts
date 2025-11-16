@@ -46,7 +46,7 @@ export default defineConfig(({ mode }) => {
         ]
       },
       build: {
-        target: 'esnext',
+        target: 'es2020', // Changed from esnext for broader browser compatibility
         minify: 'terser',
         outDir: 'dist',
         sourcemap: mode === 'production' ? 'hidden' : true, // Enable source maps for debugging
