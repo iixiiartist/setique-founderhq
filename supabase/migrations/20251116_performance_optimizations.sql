@@ -7,15 +7,10 @@ CREATE INDEX IF NOT EXISTS idx_crm_items_workspace_priority_status
     ON crm_items(workspace_id, priority, status)
     WHERE priority IS NOT NULL AND status IS NOT NULL;
 
--- Partial index for items with next actions
-CREATE INDEX IF NOT EXISTS idx_crm_items_upcoming_actions
+-- Index for items with next action dates (no date-based predicate to allow queries flexibility)
+CREATE INDEX IF NOT EXISTS idx_crm_items_next_action_date_lookup
     ON crm_items(workspace_id, next_action_date)
-    WHERE next_action_date >= CURRENT_DATE;
-
--- Partial index for overdue actions
-CREATE INDEX IF NOT EXISTS idx_crm_items_overdue_actions
-    ON crm_items(workspace_id, next_action_date)
-    WHERE next_action_date < CURRENT_DATE;
+    WHERE next_action_date IS NOT NULL;
 
 -- GIN index for tags array
 CREATE INDEX IF NOT EXISTS idx_crm_items_tags
@@ -49,11 +44,8 @@ ANALYZE audit_logs;
 COMMENT ON INDEX idx_crm_items_workspace_priority_status IS 
 'Composite index for filtering by priority and status within a workspace';
 
-COMMENT ON INDEX idx_crm_items_upcoming_actions IS 
-'Partial index for efficiently finding upcoming actions';
-
-COMMENT ON INDEX idx_crm_items_overdue_actions IS 
-'Partial index for efficiently finding overdue actions';
+COMMENT ON INDEX idx_crm_items_next_action_date_lookup IS 
+'Index for efficiently finding items with next action dates (supports both upcoming and overdue queries)';
 
 -- Create view for slow queries monitoring
 CREATE OR REPLACE VIEW slow_queries AS
