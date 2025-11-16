@@ -72,6 +72,146 @@ function buildSafeSystemPrompt(
 
 export const ASSISTANT_CONFIGS: AssistantConfig[] = [
   {
+    tab: Tab.Accounts,
+    title: 'Accounts AI',
+    icon: '💼',
+    color: 'blue',
+    getSystemPrompt: ({ companyName, businessContext, userContext, teamContext, data }) => {
+      // UNIFIED ACCOUNTS: Support all CRM types in one interface
+      const crmItems = data.crmItems || [];
+      const crmTasks = data.crmTasks || [];
+      
+      // Aggregate by type
+      const byType = {
+        investor: crmItems.filter(item => item.type === 'investor'),
+        customer: crmItems.filter(item => item.type === 'customer'),
+        partner: crmItems.filter(item => item.type === 'partner')
+      };
+      
+      const accountsSummary = {
+        total: crmItems.length,
+        investors: byType.investor.length,
+        customers: byType.customer.length,
+        partners: byType.partner.length,
+        byStatus: crmItems.reduce((acc, item) => { 
+          acc[item.status] = (acc[item.status] || 0) + 1; 
+          return acc; 
+        }, {} as Record<string, number>),
+        byPriority: crmItems.reduce((acc, item) => { 
+          acc[item.priority] = (acc[item.priority] || 0) + 1; 
+          return acc; 
+        }, {} as Record<string, number>),
+        withNextAction: crmItems.filter(item => item.nextActionDate).length,
+        overdue: crmItems.filter(item => item.nextActionDate && new Date(item.nextActionDate) < new Date()).length,
+        recentByType: {
+          investors: byType.investor.slice(0, 2).map(i => ({ 
+            id: i.id, company: i.company, status: i.status, checkSize: i.checkSize 
+          })),
+          customers: byType.customer.slice(0, 2).map(c => ({ 
+            id: c.id, company: c.company, status: c.status, dealValue: c.dealValue 
+          })),
+          partners: byType.partner.slice(0, 2).map(p => ({ 
+            id: p.id, company: p.company, status: p.status, opportunity: p.opportunity 
+          }))
+        }
+      };
+      
+      const taskSummary = {
+        total: crmTasks.length,
+        todo: crmTasks.filter(t => t.status === 'Todo').length,
+        inProgress: crmTasks.filter(t => t.status === 'InProgress').length,
+        done: crmTasks.filter(t => t.status === 'Done').length,
+        byType: {
+          investor: crmTasks.filter(t => t.crmType === 'investor').length,
+          customer: crmTasks.filter(t => t.crmType === 'customer').length,
+          partner: crmTasks.filter(t => t.crmType === 'partner').length
+        }
+      };
+      
+      return `You are an expert CRM and relationship management assistant for ${companyName}, supporting all account types: investors, customers, and partners.
+
+${businessContext}
+
+${userContext}
+
+${teamContext}
+
+**Unified Accounts View:**
+You have access to ALL CRM accounts across all types in a unified interface. Users can filter by type, search across all accounts, and manage relationships seamlessly.
+
+**Account Types & Context Switching:**
+- **Investors (💰):** Focus on fundraising, pitch decks, check sizes, and investment stages
+- **Customers (🛒):** Focus on sales pipeline, deal values, revenue, and customer success
+- **Partners (🤝):** Focus on strategic alliances, co-marketing, and partnership opportunities
+
+When responding, maintain awareness of the specific account type:
+- Use appropriate language (e.g., "investment" vs "deal" vs "partnership")
+- Reference type-specific fields (checkSize for investors, dealValue for customers, opportunity for partners)
+- Tailor recommendations to the relationship type
+
+**Reporting Guidelines:**
+When asked for a report, analyze the unified CRM data:
+- Summarize the pipeline by status across all types or filtered by specific type
+- Break down metrics by account type (investors, customers, partners)
+- List any accounts with overdue next actions
+- Provide actionable insights based on priorities and statuses
+- Conclude with type-specific recommendations
+
+**Filtering & Search:**
+When users ask to "show investors" or "list customers", filter the unified data by type:
+- "Show me all investors" → Filter where type = 'investor'
+- "List active customers" → Filter where type = 'customer' AND status = 'Active'
+- "Find partners in healthcare" → Search partners by industry
+
+**Response Accuracy:**
+- Do not make up or hallucinate information. All responses must be based on real-world information and the data provided.
+- If you do not have an answer to a question, explicitly state that you don't know the answer at this time.
+- ONLY use the unified CRM data provided in the context below. DO NOT invent accounts, companies, or contact information.
+
+Your goal is to help manage relationships, track pipeline across all account types, and provide unified insights for ${companyName}.
+Use the provided dashboard context to answer questions and call functions to complete tasks.
+Today's date is ${new Date().toISOString().split('T')[0]}.
+
+**Subtasks Feature:**
+- All tasks now support subtasks (nested checklist items within parent tasks)
+- Complex CRM workflows can be broken down into subtasks
+- When suggesting task management, recommend subtasks for multi-step activities
+
+**Current Unified Accounts Summary:**
+- **Total Accounts:** ${accountsSummary.total}
+  - 💰 Investors: ${accountsSummary.investors}
+  - 🛒 Customers: ${accountsSummary.customers}
+  - 🤝 Partners: ${accountsSummary.partners}
+- **By Status:** ${JSON.stringify(accountsSummary.byStatus)}
+- **By Priority:** ${JSON.stringify(accountsSummary.byPriority)}
+- **With Next Actions:** ${accountsSummary.withNextAction}, **Overdue:** ${accountsSummary.overdue}
+
+**Recent Accounts by Type:**
+- Investors: ${JSON.stringify(accountsSummary.recentByType.investors)}
+- Customers: ${JSON.stringify(accountsSummary.recentByType.customers)}
+- Partners: ${JSON.stringify(accountsSummary.recentByType.partners)}
+
+**Tasks Summary:**
+- **Total:** ${taskSummary.total} (Todo: ${taskSummary.todo}, In Progress: ${taskSummary.inProgress}, Done: ${taskSummary.done})
+- **By Type:** Investor tasks: ${taskSummary.byType.investor}, Customer tasks: ${taskSummary.byType.customer}, Partner tasks: ${taskSummary.byType.partner}
+
+**GTM Document Linking:**
+- All CRM accounts can have linked documents (pitch decks, proposals, case studies, partnership agreements)
+- When preparing for meetings or deals, suggest attaching relevant GTM documents
+- Documents provide context for relationship management and decision-making
+
+**Available Functions:**
+Use the provided functions to:
+- Create/update/delete accounts (specify type: investor, customer, or partner)
+- Filter accounts by type, status, priority, or custom criteria
+- Manage contacts within any account type
+- Create and track tasks linked to specific accounts
+- Link documents and deals to accounts
+
+**Note:** For detailed account information, use the available functions to query specific accounts. Always maintain context awareness of the account type when providing recommendations.`;
+    },
+  },
+  {
     tab: Tab.ProductsServices,
     title: 'Products & Services AI',
     icon: '📦',
@@ -161,13 +301,17 @@ Recent files: ${JSON.stringify(documentsSummary.recent)}
     color: 'blue',
     getSystemPrompt: ({ companyName, businessContext, userContext, teamContext, data }) => {
       // OPTIMIZATION: Send summaries instead of full JSON (saves ~70% tokens)
+      // Use unified crmItems if available, otherwise fall back to legacy investors array
+      const investors = data.crmItems?.filter(item => item.type === 'investor') || data.investors || [];
+      const tasks = data.crmTasks?.filter(t => t.crmType === 'investor') || data.investorTasks || [];
+      
       const investorSummary = {
-        total: data.investors?.length || 0,
-        byStatus: data.investors?.reduce((acc, inv) => { acc[inv.status] = (acc[inv.status] || 0) + 1; return acc; }, {} as Record<string, number>) || {},
-        byPriority: data.investors?.reduce((acc, inv) => { acc[inv.priority] = (acc[inv.priority] || 0) + 1; return acc; }, {} as Record<string, number>) || {},
-        withNextAction: data.investors?.filter(inv => inv.nextActionDate).length || 0,
-        overdue: data.investors?.filter(inv => inv.nextActionDate && new Date(inv.nextActionDate) < new Date()).length || 0,
-        recent: data.investors?.slice(0, 3).map(inv => ({ 
+        total: investors.length,
+        byStatus: investors.reduce((acc, inv) => { acc[inv.status] = (acc[inv.status] || 0) + 1; return acc; }, {} as Record<string, number>),
+        byPriority: investors.reduce((acc, inv) => { acc[inv.priority] = (acc[inv.priority] || 0) + 1; return acc; }, {} as Record<string, number>),
+        withNextAction: investors.filter(inv => inv.nextActionDate).length,
+        overdue: investors.filter(inv => inv.nextActionDate && new Date(inv.nextActionDate) < new Date()).length,
+        recent: investors.slice(0, 3).map(inv => ({ 
           id: inv.id, 
           company: inv.company, 
           status: inv.status, 
@@ -175,14 +319,14 @@ Recent files: ${JSON.stringify(documentsSummary.recent)}
           nextAction: inv.nextAction,
           nextActionDate: inv.nextActionDate,
           contactCount: inv.contacts?.length || 0
-        })) || []
+        }))
       };
       
       const taskSummary = {
-        total: data.investorTasks?.length || 0,
-        todo: data.investorTasks?.filter(t => t.status === 'Todo').length || 0,
-        inProgress: data.investorTasks?.filter(t => t.status === 'InProgress').length || 0,
-        done: data.investorTasks?.filter(t => t.status === 'Done').length || 0
+        total: tasks.length,
+        todo: tasks.filter(t => t.status === 'Todo').length,
+        inProgress: tasks.filter(t => t.status === 'InProgress').length,
+        done: tasks.filter(t => t.status === 'Done').length
       };
       
       return `You are an expert fundraising and investor relations assistant for ${companyName}.
@@ -239,19 +383,23 @@ Tasks Summary:
     color: 'indigo',
     getSystemPrompt: ({ companyName, businessContext, userContext, teamContext, data }) => {
       // OPTIMIZATION: Send summaries instead of full JSON
+      // Use unified crmItems if available, otherwise fall back to legacy customers array
+      const customers = data.crmItems?.filter(item => item.type === 'customer') || data.customers || [];
+      const tasks = data.crmTasks?.filter(t => t.crmType === 'customer') || data.customerTasks || [];
+      
       const customerSummary = {
-        total: data.customers?.length || 0,
-        byStatus: data.customers?.reduce((acc, c) => { acc[c.status] = (acc[c.status] || 0) + 1; return acc; }, {} as Record<string, number>) || {},
-        totalDealValue: data.customers?.reduce((sum, c) => sum + (c.dealValue || 0), 0) || 0,
-        overdue: data.customers?.filter(c => c.nextActionDate && new Date(c.nextActionDate) < new Date()).length || 0,
-        recent: data.customers?.slice(0, 3).map(c => ({ 
+        total: customers.length,
+        byStatus: customers.reduce((acc, c) => { acc[c.status] = (acc[c.status] || 0) + 1; return acc; }, {} as Record<string, number>),
+        totalDealValue: customers.reduce((sum, c) => sum + (c.dealValue || 0), 0),
+        overdue: customers.filter(c => c.nextActionDate && new Date(c.nextActionDate) < new Date()).length,
+        recent: customers.slice(0, 3).map(c => ({ 
           id: c.id, company: c.company, status: c.status, priority: c.priority, dealValue: c.dealValue
-        })) || []
+        }))
       };
       
       const taskSummary = {
-        total: data.customerTasks?.length || 0,
-        todo: data.customerTasks?.filter(t => t.status === 'Todo').length || 0
+        total: tasks.length,
+        todo: tasks.filter(t => t.status === 'Todo').length
       };
       
       return `You are an expert sales and business development assistant for ${companyName}.
@@ -305,13 +453,22 @@ Tasks: ${taskSummary.total} (Todo: ${taskSummary.todo})
     color: 'teal',
     getSystemPrompt: ({ companyName, businessContext, userContext, teamContext, data }) => {
       // OPTIMIZATION: Send summaries instead of full JSON
+      // Use unified crmItems if available, otherwise fall back to legacy partners array
+      const partners = data.crmItems?.filter(item => item.type === 'partner') || data.partners || [];
+      const tasks = data.crmTasks?.filter(t => t.crmType === 'partner') || data.partnerTasks || [];
+      
       const partnerSummary = {
-        total: data.partners?.length || 0,
-        byStatus: data.partners?.reduce((acc, p) => { acc[p.status] = (acc[p.status] || 0) + 1; return acc; }, {} as Record<string, number>) || {},
-        overdue: data.partners?.filter(p => p.nextActionDate && new Date(p.nextActionDate) < new Date()).length || 0,
-        recent: data.partners?.slice(0, 3).map(p => ({ 
+        total: partners.length,
+        byStatus: partners.reduce((acc, p) => { acc[p.status] = (acc[p.status] || 0) + 1; return acc; }, {} as Record<string, number>),
+        overdue: partners.filter(p => p.nextActionDate && new Date(p.nextActionDate) < new Date()).length,
+        recent: partners.slice(0, 3).map(p => ({ 
           id: p.id, company: p.company, status: p.status, opportunity: p.opportunity
-        })) || []
+        }))
+      };
+      
+      const taskSummary = {
+        total: tasks.length,
+        todo: tasks.filter(t => t.status === 'Todo').length
       };
       
       return `You are an expert partnerships and strategic alliances assistant for ${companyName}.
@@ -340,6 +497,8 @@ Today's date is ${new Date().toISOString().split('T')[0]}.
 Partner Pipeline Summary:
 - Total: ${partnerSummary.total} partners, Status: ${JSON.stringify(partnerSummary.byStatus)}, Overdue: ${partnerSummary.overdue}
 Recent: ${JSON.stringify(partnerSummary.recent)}
+
+Tasks: ${taskSummary.total} (Todo: ${taskSummary.todo})
 
 **GTM Document Linking:**
 - Partner CRM items can have linked documents like partnership proposals and case studies
@@ -459,13 +618,18 @@ Recent logs: ${JSON.stringify(financialsSummary.recentLogs)}
     color: 'orange',
     getSystemPrompt: ({ companyName, businessContext, userContext, teamContext, data }) => {
       // OPTIMIZATION: Send summaries instead of full JSON
+      // Use unified crmTasks if available, otherwise fall back to legacy split arrays
+      const crmTasks = data.crmTasks || [
+        ...(data.investorTasks || []),
+        ...(data.customerTasks || []),
+        ...(data.partnerTasks || [])
+      ];
+      
       const allTasks = [
-        ...data.productsServicesTasks,
-        ...data.investorTasks,
-        ...data.customerTasks,
-        ...data.partnerTasks,
-        ...data.marketingTasks,
-        ...data.financialTasks
+        ...(data.productsServicesTasks || []),
+        ...crmTasks,
+        ...(data.marketingTasks || []),
+        ...(data.financialTasks || [])
       ];
       const today = new Date().toISOString().split('T')[0];
       const overdueTasks = allTasks.filter(t => t.dueDate && t.dueDate < today && t.status !== 'Done');
@@ -527,11 +691,16 @@ Today's tasks: ${JSON.stringify(calendarSummary.todaysTasksList)}
     color: 'blue',
     getSystemPrompt: ({ companyName, businessContext, userContext, teamContext, data }) => {
       // OPTIMIZATION: Send aggregated summaries instead of full JSON
-      const allTasks = [
-        ...(data.productsServicesTasks || []),
+      // Use unified crmTasks if available, otherwise fall back to legacy split arrays
+      const crmTasks = data.crmTasks || [
         ...(data.investorTasks || []),
         ...(data.customerTasks || []),
-        ...(data.partnerTasks || []),
+        ...(data.partnerTasks || [])
+      ];
+      
+      const allTasks = [
+        ...(data.productsServicesTasks || []),
+        ...crmTasks,
         ...(data.marketingTasks || []),
         ...(data.financialTasks || [])
       ];
@@ -543,9 +712,10 @@ Today's tasks: ${JSON.stringify(calendarSummary.todaysTasksList)}
           recent: allTasks.slice(0, 5).map(t => ({ id: t.id, text: t.text, status: t.status }))
         },
         crm: {
-          investors: data.investors?.length || 0,
-          customers: data.customers?.length || 0,
-          partners: data.partners?.length || 0
+          total: data.crmItems?.length || (data.investors?.length || 0) + (data.customers?.length || 0) + (data.partners?.length || 0),
+          investors: data.crmItems?.filter(i => i.type === 'investor').length || data.investors?.length || 0,
+          customers: data.crmItems?.filter(i => i.type === 'customer').length || data.customers?.length || 0,
+          partners: data.crmItems?.filter(i => i.type === 'partner').length || data.partners?.length || 0
         },
         marketing: {
           campaigns: data.marketing?.length || 0
@@ -574,7 +744,7 @@ Today's date is ${new Date().toISOString().split('T')[0]}.
 
 Dashboard Overview:
 - Tasks: ${dashboardSummary.tasks.total} (${JSON.stringify(dashboardSummary.tasks.byStatus)})
-- CRM: ${dashboardSummary.crm.investors} investors, ${dashboardSummary.crm.customers} customers, ${dashboardSummary.crm.partners} partners
+- CRM: ${dashboardSummary.crm.total} total accounts (${dashboardSummary.crm.investors} investors, ${dashboardSummary.crm.customers} customers, ${dashboardSummary.crm.partners} partners)
 - Marketing: ${dashboardSummary.marketing.campaigns} campaigns
 - Financials: ${dashboardSummary.financials.logs} logs, ${dashboardSummary.financials.expenses} expenses
 Recent tasks: ${JSON.stringify(dashboardSummary.tasks.recent)}
