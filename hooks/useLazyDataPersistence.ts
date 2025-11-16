@@ -61,11 +61,24 @@ export const useLazyDataPersistence = () => {
    */
   const loadTasks = useCallback(async (options: LoadOptions = {}) => {
     const cacheKey = 'tasks'
-    const cached = dataCache[cacheKey]
     
-    // Return cached data if still fresh (unless force reload)
-    if (!options.force && cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      return cached.data
+    // Check cache using the most current state (not closure)
+    let shouldUseCached = false
+    let cachedData: any = null
+    
+    if (!options.force) {
+      setDataCache(prev => {
+        const cached = prev[cacheKey]
+        if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+          shouldUseCached = true
+          cachedData = cached.data
+        }
+        return prev // Don't actually update state, just read it
+      })
+    }
+    
+    if (shouldUseCached && cachedData) {
+      return cachedData
     }
 
     if (!user || !workspace?.id) {
@@ -137,7 +150,7 @@ export const useLazyDataPersistence = () => {
         financialTasks: []
       }
     }
-  }, [user, workspace?.id, dataCache])
+  }, [user, workspace?.id])
 
   /**
    * Load CRM items (investors, customers, partners)
@@ -146,11 +159,24 @@ export const useLazyDataPersistence = () => {
    */
   const loadCrmItems = useCallback(async (options: LoadOptions = {}) => {
     const cacheKey = 'crm'
-    const cached = dataCache[cacheKey]
     
-    // Return cached data if still fresh (unless force reload)
-    if (!options.force && cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      return cached.data
+    // Check cache using the most current state (not closure)
+    let shouldUseCached = false
+    let cachedData: any = null
+    
+    if (!options.force) {
+      setDataCache(prev => {
+        const cached = prev[cacheKey]
+        if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+          shouldUseCached = true
+          cachedData = cached.data
+        }
+        return prev // Don't actually update state, just read it
+      })
+    }
+    
+    if (shouldUseCached && cachedData) {
+      return cachedData
     }
 
     if (!user || !workspace?.id) {
@@ -227,7 +253,7 @@ export const useLazyDataPersistence = () => {
       setError(err as Error)
       return { investors: [], customers: [], partners: [] }
     }
-  }, [user, workspace?.id, dataCache])
+  }, [user, workspace?.id])
 
   /**
    * Load marketing items
@@ -520,11 +546,24 @@ export const useLazyDataPersistence = () => {
    */
   const loadDeals = useCallback(async (options: LoadOptions = {}) => {
     const cacheKey = 'deals'
-    const cached = dataCache[cacheKey]
     
-    // Return cached data if still fresh (unless force reload)
-    if (!options.force && cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      return cached.data
+    // Check cache using the most current state (not closure)
+    let shouldUseCached = false
+    let cachedData: any = null
+    
+    if (!options.force) {
+      setDataCache(prev => {
+        const cached = prev[cacheKey]
+        if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+          shouldUseCached = true
+          cachedData = cached.data
+        }
+        return prev // Don't actually update state, just read it
+      })
+    }
+    
+    if (shouldUseCached && cachedData) {
+      return cachedData
     }
 
     if (!user || !workspace?.id) {
@@ -581,7 +620,7 @@ export const useLazyDataPersistence = () => {
       }))
       return []
     }
-  }, [user, workspace?.id, dataCache])
+  }, [user, workspace?.id])
 
   /**
    * Load products and services
