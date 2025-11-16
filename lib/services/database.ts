@@ -1294,12 +1294,12 @@ export class DatabaseService {
         .from('business_profile')
         .select('*')
         .eq('workspace_id', workspaceId)
-        .maybeSingle()
 
       logger.info('[DatabaseService] Business profile query result:', { data, error });
 
       if (error) throw error
-      return { data, error: null }
+      // Return array format for consistency with hook expectations
+      return { data: data || [], error: null }
     } catch (error) {
       logger.error('Error fetching business profile:', error)
       return { data: null, error }
