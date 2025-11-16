@@ -1308,28 +1308,25 @@ export class DatabaseService {
 
   static async createBusinessProfile(profileData: Tables['business_profile']['Insert']) {
     try {
+      // Use upsert instead of insert to handle race conditions at database level
+      // This prevents 409 Conflict errors when profile already exists
       const { data, error } = await supabase
         .from('business_profile')
-        .insert({
+        .upsert({
           ...profileData,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'workspace_id',  // Unique constraint on workspace_id
+          ignoreDuplicates: false       // Update on conflict instead of ignoring
         })
         .select()
         .single()
 
-      if (error) {
-        // If duplicate key error (23505), try to update instead
-        if (error.code === '23505' && profileData.workspace_id) {
-          logger.info('Business profile already exists, updating instead:', profileData.workspace_id)
-          const { workspace_id, ...updates } = profileData
-          return await this.updateBusinessProfile(workspace_id, updates)
-        }
-        throw error
-      }
+      if (error) throw error
       return { data, error: null }
     } catch (error) {
-      logger.error('Error creating business profile:', error)
+      logger.error('Error creating/updating business profile:', error)
       return { data: null, error }
     }
   }

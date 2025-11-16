@@ -189,16 +189,16 @@ export function useSaveBusinessProfile() {
         completed_at: profileData.completedAt ? new Date(profileData.completedAt).toISOString() : null
       };
 
-      if (existingProfile) {
-        // Update existing profile
-        await DatabaseService.updateBusinessProfile(workspaceId, dbData as any);
-      } else {
-        // Create new profile (will auto-update if already exists due to race condition)
-        const result = await DatabaseService.createBusinessProfile({ workspace_id: workspaceId, ...dbData } as any);
-        if (result.error) {
-          logger.error('[useSaveBusinessProfile] Error from createBusinessProfile:', result.error);
-          throw result.error;
-        }
+      // Use createBusinessProfile which uses upsert internally
+      // This handles both create and update cases, preventing 409 conflicts
+      const result = await DatabaseService.createBusinessProfile({ 
+        workspace_id: workspaceId, 
+        ...dbData 
+      } as any);
+      
+      if (result.error) {
+        logger.error('[useSaveBusinessProfile] Error saving business profile:', result.error);
+        throw result.error;
       }
 
       // Update workspace name to match business name if company name is provided
