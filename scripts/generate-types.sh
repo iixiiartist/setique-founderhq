@@ -7,11 +7,8 @@ set -e  # Exit on any error
 
 echo "🔄 Generating Supabase TypeScript types..."
 
-# Check if Supabase CLI is installed
-if ! command -v supabase &> /dev/null; then
-    echo "❌ Supabase CLI not found. Installing..."
-    npm install -g supabase
-fi
+# Note: Using npx to invoke Supabase CLI from pinned devDependency version
+# This ensures reproducible builds without mutating global toolchain
 
 # Check if .env file exists
 if [ ! -f ".env" ]; then

@@ -206,10 +206,11 @@ export async function uploadToSupabase(
   // Compress image
   const compressedFile = await compressImage(file);
 
-  // Generate unique filename
+  // Generate unique filename with cryptographically secure random UUID
   const timestamp = Date.now();
   const extension = file.name.split('.').pop() || 'jpg';
-  const filename = `${timestamp}-${Math.random().toString(36).substring(7)}.${extension}`;
+  const uuid = crypto.randomUUID();
+  const filename = `${timestamp}-${uuid}.${extension}`;
 
   // Build storage path
   const path = docId
