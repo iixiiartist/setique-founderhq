@@ -30,6 +30,9 @@ export type FeatureFlagKey =
     | 'ai.document-analysis'
     | 'ai.conversation-history'
     
+    // UI features
+    | 'ui.unified-accounts'
+    
     // Experimental features
     | 'experimental.new-dashboard'
     | 'experimental.advanced-charts';
@@ -114,6 +117,14 @@ const DEFAULT_FLAGS: FeatureFlagConfig[] = [
         key: 'ai.conversation-history',
         enabled: true,
         description: 'Persist AI conversation history'
+    },
+    
+    // UI features
+    {
+        key: 'ui.unified-accounts',
+        enabled: true,
+        description: 'Show unified Accounts tab (combines Investors, Customers, Partners)',
+        envVar: 'VITE_UNIFIED_ACCOUNTS'
     },
     
     // Experimental

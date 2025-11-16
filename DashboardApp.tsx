@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import { logger } from './lib/logger'
 import { Tab, EMPTY_DASHBOARD_DATA, NAV_ITEMS } from './constants';
+import { featureFlags } from './lib/featureFlags';
 import { DashboardData, AppActions, Task, TaskCollectionName, CrmCollectionName, NoteableCollectionName, AnyCrmItem, FinancialLog, Note, BaseCrmItem, MarketingItem, SettingsData, Document, Contact, TabType, Priority, CalendarEvent, Meeting, TaskStatus } from './types';
 import SideMenu from './components/SideMenu';
 import DashboardTab from './components/DashboardTab';
@@ -17,6 +18,7 @@ import InAppNotificationsPanel from './components/shared/InAppNotificationsPanel
 // This reduces initial bundle size and improves first load performance
 const ProductsServicesTab = lazy(() => import('./components/products/ProductsServicesTab'));
 const CrmTab = lazy(() => import('./components/CrmTab'));
+const AccountsTab = lazy(() => import('./components/AccountsTab')); // NEW: Unified CRM view
 const MarketingTab = lazy(() => import('./components/MarketingTab'));
 const FinancialsTab = lazy(() => import('./components/FinancialsTab'));
 const SettingsTab = lazy(() => import('./components/SettingsTab'));
@@ -241,10 +243,11 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         }
                         break;
 
+                    case Tab.Accounts:
                     case Tab.Investors:
                     case Tab.Customers:
                     case Tab.Partners:
-                        // Load CRM items
+                        // Load CRM items (loadCrmItems returns both split and unified formats)
                         if (!loadedTabsRef.current.has('crm')) {
                             const crm = await loadCrmItems();
                             setData(prev => ({ ...prev, ...crm }));
@@ -570,6 +573,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     }
                     break;
 
+                case Tab.Accounts:
                 case Tab.Investors:
                 case Tab.Customers:
                 case Tab.Partners:
@@ -653,6 +657,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
         console.log(`[DashboardApp] AI requested data load for tab: ${tab}`);
         
         switch (tab) {
+            case Tab.Accounts:
             case Tab.Investors:
             case Tab.Customers:
             case Tab.Partners:
@@ -2392,6 +2397,26 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             revenueTransactions={data.revenueTransactions}
                             deals={data.deals}
                         />
+                        </Suspense>
+                    </SectionBoundary>
+                );
+            case Tab.Accounts:
+                return (
+                    <SectionBoundary sectionName="Accounts">
+                        <Suspense fallback={<TabLoadingFallback />}>
+                            <AccountsTab 
+                                crmItems={data.crmItems || []}
+                                tasks={data.crmTasks || []}
+                                actions={actions}
+                                documents={data.documents}
+                                businessProfile={businessProfile}
+                                workspaceId={workspace?.id}
+                                onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
+                                productsServices={data.productsServices}
+                                workspaceMembers={workspaceMembers}
+                                userId={user?.id}
+                                deals={data.deals}
+                            />
                         </Suspense>
                     </SectionBoundary>
                 );

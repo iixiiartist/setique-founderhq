@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { NAV_ITEMS, TabType, Tab } from '../constants';
 import { PlanType } from '../types';
 import { usePrefetchTabs } from '../hooks/usePrefetchTabs';
+import { featureFlags } from '../lib/featureFlags';
 
 interface SideMenuProps {
     isOpen: boolean;
@@ -36,12 +37,22 @@ const SideMenu: React.FC<SideMenuProps> = ({
     const activeClass = "text-blue-500 border-black bg-gray-100";
     const inactiveClass = "text-gray-600 border-transparent";
     
-    // Filter out Documents tab for free users and Admin tab for non-admins
+    // Filter out Documents tab for free users, Admin tab for non-admins,
+    // and conditionally show/hide Accounts or legacy CRM tabs based on feature flag
+    const isUnifiedAccountsEnabled = featureFlags.isEnabled('ui.unified-accounts');
     const filteredNavItems = NAV_ITEMS.filter(item => {
         if (item.id === Tab.Documents && workspacePlan === 'free') {
             return false;
         }
         if (item.id === Tab.Admin && !isAdmin) {
+            return false;
+        }
+        // If unified accounts is enabled, hide the old 3 CRM tabs
+        if (isUnifiedAccountsEnabled && [Tab.Investors, Tab.Customers, Tab.Partners].includes(item.id)) {
+            return false;
+        }
+        // If unified accounts is disabled, hide the new Accounts tab
+        if (!isUnifiedAccountsEnabled && item.id === Tab.Accounts) {
             return false;
         }
         return true;
