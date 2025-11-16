@@ -42,18 +42,5 @@ COMMENT ON INDEX idx_crm_items_workspace_priority_status IS
 COMMENT ON INDEX idx_crm_items_next_action_date_lookup IS 
 'Index for efficiently finding items with next action dates (supports both upcoming and overdue queries)';
 
--- Create view for slow queries monitoring
-CREATE OR REPLACE VIEW slow_queries AS
-SELECT
-    query,
-    calls,
-    total_time / 1000 as total_seconds,
-    mean_time / 1000 as mean_seconds,
-    max_time / 1000 as max_seconds
-FROM pg_stat_statements
-WHERE mean_time > 1000 -- queries taking more than 1 second on average
-ORDER BY mean_time DESC
-LIMIT 20;
-
-COMMENT ON VIEW slow_queries IS 
-'Monitor slow queries for performance optimization';
+-- Note: pg_stat_statements extension may need to be enabled for query monitoring
+-- Run this separately if needed: CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
