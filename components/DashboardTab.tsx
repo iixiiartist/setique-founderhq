@@ -103,7 +103,8 @@ const DashboardTab: React.FC<{
     actions: AppActions; 
     businessProfile?: BusinessProfile | null;
     settings?: SettingsData;
-}> = ({ data, actions, businessProfile, settings }) => {
+    onViewAllActivity?: () => void;
+}> = ({ data, actions, businessProfile, settings, onViewAllActivity }) => {
     const { canEditTask, canCompleteTask, workspaceMembers, workspace } = useWorkspace();
     const { user } = useAuth();
     const [sortOption, setSortOption] = useState<'createdAt' | 'tag'>('createdAt');
@@ -458,6 +459,7 @@ ${businessContext}
                             workspaceId={workspace.id}
                             limit={15}
                             showFilters={true}
+                            onViewAllActivity={onViewAllActivity}
                         />
                     )}
                     

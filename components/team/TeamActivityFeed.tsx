@@ -19,6 +19,7 @@ interface TeamActivityFeedProps {
   limit?: number;
   showFilters?: boolean;
   className?: string;
+  onViewAllActivity?: () => void;
 }
 
 export const TeamActivityFeed: React.FC<TeamActivityFeedProps> = ({
@@ -26,6 +27,7 @@ export const TeamActivityFeed: React.FC<TeamActivityFeedProps> = ({
   limit = 20,
   showFilters = true,
   className = '',
+  onViewAllActivity,
 }) => {
   const [activities, setActivities] = useState<ActivityEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -227,7 +229,10 @@ export const TeamActivityFeed: React.FC<TeamActivityFeedProps> = ({
       {activities.length > 0 && (
         <div className="border-t-2 border-black p-3 bg-gray-50 text-center">
           <button
-            onClick={() => logger.info('[TeamActivityFeed] View all clicked')}
+            onClick={() => {
+              logger.info('[TeamActivityFeed] View all clicked');
+              onViewAllActivity?.();
+            }}
             className="text-sm font-semibold text-blue-600 hover:text-blue-700"
           >
             View All Activity →

@@ -2352,7 +2352,13 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             case Tab.Dashboard:
                 return (
                     <SectionBoundary sectionName="Dashboard">
-                        <DashboardTab data={data} actions={actions} businessProfile={businessProfile} settings={data.settings} />
+                        <DashboardTab 
+                            data={data} 
+                            actions={actions} 
+                            businessProfile={businessProfile} 
+                            settings={data.settings}
+                            onViewAllActivity={() => setIsNotificationsPanelOpen(true)}
+                        />
                     </SectionBoundary>
                 );
             case Tab.Calendar:
