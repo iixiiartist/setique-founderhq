@@ -1,9 +1,10 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { Document, AppActions, TabType, AnyCrmItem, Contact } from '../types';
 import { NAV_ITEMS } from '../constants';
 import DocumentUploadModal from './shared/DocumentUploadModal';
 import Modal from './shared/Modal';
 import NotesManager from './shared/NotesManager';
+import { useAuth } from '../contexts/AuthContext';
 
 // Helper to get a representative icon or char
 const getFileIcon = (mimeType: string | undefined) => {
@@ -28,10 +29,15 @@ interface FileLibraryTabProps {
 }
 
 function FileLibraryTab({ documents, actions, companies, contacts }: FileLibraryTabProps) {
+    const { user } = useAuth();
     const [fileToUpload, setFileToUpload] = useState<File | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [notesModalDoc, setNotesModalDoc] = useState<Document | null>(null);
     const notesModalTriggerRef = useRef<HTMLButtonElement | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [moduleFilter, setModuleFilter] = useState<TabType | 'all'>('all');
+    const [uploaderFilter, setUploaderFilter] = useState<'all' | 'mine'>('all');
+    const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
     const handleFileSelect = (selectedFile: File | null) => {
         if (selectedFile) {
@@ -55,19 +61,21 @@ function FileLibraryTab({ documents, actions, companies, contacts }: FileLibrary
     const handleFileInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files[0]) {
             handleFileSelect(event.target.files[0]);
-             // Reset file input to allow uploading the same file again
-            if(fileInputRef.current) {
+            // Reset file input to allow uploading the same file again
+            if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }
         }
     };
 
     const handleView = (doc: Document) => {
+        const mimeType = doc.mimeType || 'application/octet-stream';
         // Create a data URL from the base64 content
-        const dataUrl = `data:${doc.mimeType};base64,${doc.content}`;
-        
+        const dataUrl = `data:${mimeType};base64,${doc.content}`;
+
+        const canOpenInline = mimeType.includes('pdf') || mimeType.includes('image');
         // For PDFs and images, open in new tab
-        if (doc.mimeType.includes('pdf') || doc.mimeType.includes('image')) {
+        if (canOpenInline) {
             window.open(dataUrl, '_blank');
         } else {
             // For other files, trigger download
@@ -80,9 +88,68 @@ function FileLibraryTab({ documents, actions, companies, contacts }: FileLibrary
         }
     };
     
-    const sortedDocuments = Array.isArray(documents) 
-        ? [...documents].sort((a,b) => b.uploadedAt - a.uploadedAt)
-        : [];
+    const sortedDocuments = useMemo(() => {
+        if (!Array.isArray(documents)) {
+            return [];
+        }
+
+        const docs = [...documents];
+        return docs.sort((a, b) => (sortOrder === 'desc' ? b.uploadedAt - a.uploadedAt : a.uploadedAt - b.uploadedAt));
+    }, [documents, sortOrder]);
+
+    const availableModules = useMemo(() => {
+        const unique = new Set<TabType>();
+        sortedDocuments.forEach(doc => {
+            if (doc.module) {
+                unique.add(doc.module);
+            }
+        });
+        return Array.from(unique);
+    }, [sortedDocuments]);
+
+    const filteredDocuments = useMemo(() => {
+        const lowerSearch = searchTerm.trim().toLowerCase();
+        return sortedDocuments.filter(doc => {
+            if (moduleFilter !== 'all' && doc.module !== moduleFilter) {
+                return false;
+            }
+
+            if (uploaderFilter === 'mine' && user?.id && doc.uploadedBy !== user.id) {
+                return false;
+            }
+
+            if (lowerSearch.length === 0) {
+                return true;
+            }
+
+            const company = doc.companyId ? companies.find(c => c.id === doc.companyId) : null;
+            const contact = doc.contactId ? contacts.find(c => c.id === doc.contactId) : null;
+            const searchableText = [
+                doc.name,
+                doc.uploadedByName,
+                company?.company,
+                contact?.name,
+                formatModuleName(doc.module),
+            ]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase();
+
+            return searchableText.includes(lowerSearch);
+        });
+    }, [sortedDocuments, moduleFilter, uploaderFilter, user?.id, searchTerm, companies, contacts]);
+
+    const hasActiveFilters = searchTerm.trim().length > 0 || moduleFilter !== 'all' || uploaderFilter !== 'all';
+
+    const handleDelete = useCallback(
+        (doc: Document) => {
+            const confirmed = window.confirm(`Delete "${doc.name}" from the File Library? This cannot be undone.`);
+            if (confirmed) {
+                actions.deleteDocument(doc.id);
+            }
+        },
+        [actions]
+    );
     
     return (
         <div className="bg-white p-6 border-2 border-black shadow-neo">
@@ -94,7 +161,7 @@ function FileLibraryTab({ documents, actions, companies, contacts }: FileLibrary
                 companies={companies}
                 contacts={contacts}
             />
-             <Modal 
+            <Modal
                 isOpen={!!notesModalDoc} 
                 onClose={() => setNotesModalDoc(null)} 
                 title={`Notes for ${notesModalDoc?.name}`} 
@@ -112,6 +179,80 @@ function FileLibraryTab({ documents, actions, companies, contacts }: FileLibrary
                 )}
             </Modal>
             <h2 className="text-2xl font-semibold text-black mb-4">File Library</h2>
+
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mb-6">
+                <label className="flex flex-col text-sm font-semibold text-black">
+                    <span className="mb-1 font-mono text-xs uppercase tracking-wider">Search</span>
+                    <input
+                        type="text"
+                        className="border-2 border-black px-3 py-2 font-mono text-sm focus:outline-none focus:border-blue-500"
+                        placeholder="Search by name, uploader, company or module"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </label>
+                <label className="flex flex-col text-sm font-semibold text-black">
+                    <span className="mb-1 font-mono text-xs uppercase tracking-wider">Module</span>
+                    <select
+                        className="border-2 border-black px-3 py-2 font-mono text-sm bg-white focus:outline-none focus:border-blue-500"
+                        value={moduleFilter}
+                        onChange={(e) => setModuleFilter(e.target.value as TabType | 'all')}
+                    >
+                        <option value="all">All modules</option>
+                        {availableModules.map(module => (
+                            <option key={module} value={module}>
+                                {formatModuleName(module)}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+                <label className="flex flex-col text-sm font-semibold text-black">
+                    <span className="mb-1 font-mono text-xs uppercase tracking-wider">Uploader</span>
+                    <select
+                        className="border-2 border-black px-3 py-2 font-mono text-sm bg-white focus:outline-none focus:border-blue-500"
+                        value={uploaderFilter}
+                        onChange={(e) => setUploaderFilter(e.target.value as 'all' | 'mine')}
+                        aria-disabled={!user?.id}
+                    >
+                        <option value="all">All uploads</option>
+                        <option value="mine" disabled={!user?.id}>
+                            Uploaded by me
+                        </option>
+                    </select>
+                    {!user?.id && (
+                        <span className="text-xs font-normal text-gray-500 mt-1">Sign in to filter by uploader.</span>
+                    )}
+                </label>
+                <label className="flex flex-col text-sm font-semibold text-black">
+                    <span className="mb-1 font-mono text-xs uppercase tracking-wider">Sort</span>
+                    <select
+                        className="border-2 border-black px-3 py-2 font-mono text-sm bg-white focus:outline-none focus:border-blue-500"
+                        value={sortOrder}
+                        onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
+                    >
+                        <option value="desc">Newest first</option>
+                        <option value="asc">Oldest first</option>
+                    </select>
+                </label>
+            </div>
+
+            <div className="flex items-center justify-between flex-wrap gap-2 text-xs font-mono text-gray-600 mb-4">
+                <span>
+                    Showing {filteredDocuments.length} of {sortedDocuments.length} file{sortedDocuments.length === 1 ? '' : 's'}
+                </span>
+                {hasActiveFilters && (
+                    <button
+                        onClick={() => {
+                            setSearchTerm('');
+                            setModuleFilter('all');
+                            setUploaderFilter('all');
+                        }}
+                        className="underline text-blue-600 hover:text-blue-800"
+                    >
+                        Clear filters
+                    </button>
+                )}
+            </div>
 
             <div
                 className="relative block w-full border-2 border-black border-dashed p-12 text-center hover:border-gray-400 mb-8 cursor-pointer"
@@ -131,9 +272,9 @@ function FileLibraryTab({ documents, actions, companies, contacts }: FileLibrary
                 <input ref={fileInputRef} id="file-upload" name="file-upload" type="file" className="sr-only" onChange={handleFileInputChange} />
             </div>
 
-            {sortedDocuments.length > 0 ? (
+            {filteredDocuments.length > 0 ? (
                 <ul className="space-y-4">
-                    {sortedDocuments.map(doc => {
+                    {filteredDocuments.map(doc => {
                         const company = doc.companyId ? companies.find(c => c.id === doc.companyId) : null;
                         const contact = doc.contactId ? contacts.find(c => c.id === doc.contactId) : null;
 
@@ -171,14 +312,28 @@ function FileLibraryTab({ documents, actions, companies, contacts }: FileLibrary
                                     >
                                         {(doc.mimeType?.includes('pdf') || doc.mimeType?.includes('image')) ? 'View' : 'Download'}
                                     </button>
-                                    <button onClick={() => actions.deleteDocument(doc.id)} className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-red-100">Delete</button>
+                                    <button
+                                        onClick={() => handleDelete(doc)}
+                                        className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-red-100"
+                                    >
+                                        Delete
+                                    </button>
                                 </div>
                             </li>
                         );
                     })}
                 </ul>
             ) : (
-                <p className="text-gray-500 italic text-center py-8">Your file library is empty.</p>
+                <div className="text-center py-8 text-gray-600">
+                    {sortedDocuments.length === 0 ? (
+                        <p className="italic">Your file library is empty. Upload your first document to get started.</p>
+                    ) : (
+                        <div className="space-y-2">
+                            <p className="font-semibold">No files match your filters.</p>
+                            <p className="text-sm">Try clearing filters or adjusting your search.</p>
+                        </div>
+                    )}
+                </div>
             )}
         </div>
     );
