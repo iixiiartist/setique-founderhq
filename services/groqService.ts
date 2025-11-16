@@ -75,18 +75,31 @@ const convertContentToMessages = (history: Content[]): Message[] => {
             return {
                 role: 'assistant' as const,
                 content: textParts || '',
-                tool_calls: functionCallParts.map(tc => ({
-                    id: tc.functionCall?.id || (typeof crypto !== 'undefined' && 'randomUUID' in crypto
-                        ? crypto.randomUUID()
-                        : `call_${Math.random().toString(36).slice(2)}`),
-                    type: 'function' as const,
-                    function: {
-                        name: tc.functionCall.name,
-                        arguments: typeof tc.functionCall.args === 'string'
-                            ? tc.functionCall.args
-                            : JSON.stringify(tc.functionCall.args ?? {}),
-                    },
-                })),
+                tool_calls: functionCallParts.map((tc, index) => {
+                    // Generate deterministic ID for traceability
+                    let callId = tc.functionCall?.id;
+                    
+                    if (!callId) {
+                        // Use crypto.randomUUID if available, otherwise deterministic fallback
+                        if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+                            callId = crypto.randomUUID();
+                        } else {
+                            // Deterministic ID based on timestamp and index
+                            callId = `call_${Date.now()}_${index}_${tc.functionCall.name}`;
+                        }
+                    }
+                    
+                    return {
+                        id: callId,
+                        type: 'function' as const,
+                        function: {
+                            name: tc.functionCall.name,
+                            arguments: typeof tc.functionCall.args === 'string'
+                                ? tc.functionCall.args
+                                : JSON.stringify(tc.functionCall.args ?? {}),
+                        },
+                    };
+                }),
             };
         }
 
@@ -179,28 +192,66 @@ export const getAiResponse = async (
             requestBody.tool_choice = 'auto';
         }
 
-        // Call the secure Edge Function
-        const { data, error } = await supabase.functions.invoke<EdgeFunctionResponse>('groq-chat', {
-            body: requestBody,
-        });
-
-        if (error) {
-            throw new Error(`Failed to get AI response: ${error.message}`);
-        }
-
-        if (data?.error) {
-            console.error('[Groq] API error:', data.details);
+        // Call the secure Edge Function with timeout
+        const requestStartTime = Date.now();
+        const timeout = 60000; // 60 second timeout
+        
+        // Create abort controller for timeout
+        const abortController = new AbortController();
+        const timeoutId = setTimeout(() => abortController.abort(), timeout);
+        
+        try {
+            const { data, error } = await supabase.functions.invoke<EdgeFunctionResponse>('groq-chat', {
+                body: requestBody,
+            });
             
-            // Check if it's a rate limit error
-            if ((data as any).isRateLimit) {
-                const retryAfter = (data as any).retryAfter;
-                const message = retryAfter 
-                    ? `Rate limit exceeded. Please wait ${retryAfter} seconds before trying again.`
-                    : 'Rate limit exceeded. Please wait a moment before trying again.';
-                throw new Error(message);
+            clearTimeout(timeoutId);
+            const requestDuration = Date.now() - requestStartTime;
+            
+            // Log request duration for monitoring
+            if (requestDuration > 10000) {
+                console.warn(`[Groq] Slow request: ${requestDuration}ms`);
+            }
+
+            if (error) {
+                console.error('[Groq] Edge Function error:', {
+                    message: error.message,
+                    duration: requestDuration,
+                });
+                throw new Error(`Failed to get AI response: ${error.message}`);
+            }
+
+            if (data?.error) {
+                console.error('[Groq] API error:', {
+                    error: data.error,
+                    details: data.details,
+                    duration: requestDuration,
+                });
+                
+                // Check if it's a rate limit error
+                if ((data as any).isRateLimit) {
+                    const retryAfter = (data as any).retryAfter;
+                    const message = retryAfter 
+                        ? `Rate limit exceeded. Please wait ${retryAfter} seconds before trying again.`
+                        : 'Rate limit exceeded. Please wait a moment before trying again.';
+                    throw new Error(message);
+                }
+                
+                // Provide structured error information
+                const errorMessage = data.details 
+                    ? `AI service error: ${data.error} - ${data.details}`
+                    : `AI service error: ${data.error}`;
+                throw new Error(errorMessage);
+            }
+        } catch (error: any) {
+            clearTimeout(timeoutId);
+            
+            if (error.name === 'AbortError') {
+                console.error('[Groq] Request timeout after', timeout, 'ms');
+                throw new Error('AI request timed out. Please try again.');
             }
             
-            throw new Error(data.error);
+            throw error;
         }
 
         // Increment AI usage after successful response (if workspaceId provided)

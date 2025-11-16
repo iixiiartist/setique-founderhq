@@ -18,6 +18,15 @@
 const fs = require('fs');
 const path = require('path');
 
+// Import shared environment configuration
+const {
+  REQUIRED_ENV_VARS,
+  PRODUCTION_REQUIRED_ENV_VARS,
+  IMPORTANT_ENV_VARS,
+  RECOMMENDED_ENV_VARS,
+  validateEnvVar: sharedValidateEnvVar,
+} = require('../lib/config/envConfig.shared.js');
+
 // ANSI color codes for terminal output
 const colors = {
   reset: '\x1b[0m',
@@ -28,72 +37,10 @@ const colors = {
   blue: '\x1b[34m',
 };
 
-// Required environment variables
-const REQUIRED_VARS = [
-  'VITE_SUPABASE_URL',
-  'VITE_SUPABASE_ANON_KEY',
-  'VITE_STRIPE_PUBLISHABLE_KEY',
-  'VITE_APP_URL',
-];
-
-// Optional but important variables (will warn if missing)
-const IMPORTANT_VARS = [
-  // Note: Groq API key (GROQ_API_KEY) is server-side only in Supabase secrets
-  'VITE_STRIPE_PRICE_POWER_INDIVIDUAL',
-  'VITE_STRIPE_PRICE_TEAM_PRO_BASE',
-  'VITE_STRIPE_PRICE_TEAM_PRO_SEAT',
-  'VITE_APP_NAME',
-  'VITE_APP_VERSION',
-  'VITE_ENVIRONMENT',
-];
-
-// Optional but recommended
-const RECOMMENDED_VARS = [
-  'VITE_SENTRY_DSN',
-  'VITE_GROQ_ENABLED',
-  'VITE_GROQ_MODEL',
-];
-
-// Validation rules
-const VALIDATION_RULES = {
-  VITE_SUPABASE_URL: (value) => {
-    if (!value.startsWith('https://') && !value.startsWith('http://')) {
-      return 'Must start with https:// or http://';
-    }
-    if (!value.includes('.supabase.co')) {
-      return 'Must be a valid Supabase domain';
-    }
-    return null;
-  },
-  
-  VITE_STRIPE_PUBLISHABLE_KEY: (value) => {
-    if (!value.startsWith('pk_test_') && !value.startsWith('pk_live_')) {
-      return 'Must start with pk_test_ or pk_live_';
-    }
-    if (process.env.VITE_ENVIRONMENT === 'production' && value.startsWith('pk_test_')) {
-      return 'Production build requires live Stripe key (pk_live_)';
-    }
-    return null;
-  },
-  
-  VITE_ENVIRONMENT: (value) => {
-    const validEnvs = ['development', 'staging', 'production'];
-    if (!validEnvs.includes(value)) {
-      return `Must be one of: ${validEnvs.join(', ')}`;
-    }
-    return null;
-  },
-  
-  VITE_APP_URL: (value) => {
-    if (!value.startsWith('http://') && !value.startsWith('https://')) {
-      return 'Must start with http:// or https://';
-    }
-    if (process.env.VITE_ENVIRONMENT === 'production' && !value.startsWith('https://')) {
-      return 'Production build requires HTTPS URL';
-    }
-    return null;
-  },
-};
+// Re-export from shared config for consistency
+const REQUIRED_VARS = REQUIRED_ENV_VARS;
+const IMPORTANT_VARS = IMPORTANT_ENV_VARS;
+const RECOMMENDED_VARS = RECOMMENDED_ENV_VARS;
 
 /**
  * Load environment variables from .env file if exists
@@ -123,39 +70,21 @@ function log(message, color = colors.reset) {
 }
 
 /**
- * Validate a single environment variable
+ * Validate a single environment variable using shared validation logic
  */
 function validateVar(varName, required = true) {
   const value = process.env[varName];
-  const errors = [];
-  const warnings = [];
+  const isProduction = process.env.VITE_ENVIRONMENT === 'production';
   
-  // Check if exists
-  if (!value || value.trim() === '') {
-    if (required) {
-      errors.push(`${varName} is not set`);
-    } else {
-      warnings.push(`${varName} is not set (optional but recommended)`);
-    }
-    return { errors, warnings };
+  // Use shared validation logic
+  const result = sharedValidateEnvVar(varName, value, required, isProduction);
+  
+  // Add "optional but recommended" warning if not required and not set
+  if (!required && (!value || value.trim() === '') && result.warnings.length === 0) {
+    result.warnings.push(`${varName} is not set (optional but recommended)`);
   }
   
-  // Check for placeholder values
-  if (value.includes('your_') || value.includes('xxx')) {
-    errors.push(`${varName} contains placeholder value`);
-    return { errors, warnings };
-  }
-  
-  // Run custom validation
-  const validator = VALIDATION_RULES[varName];
-  if (validator) {
-    const error = validator(value);
-    if (error) {
-      errors.push(`${varName}: ${error}`);
-    }
-  }
-  
-  return { errors, warnings };
+  return result;
 }
 
 /**
@@ -208,6 +137,27 @@ function validate() {
     
     allWarnings.push(...warnings);
   });
+  
+  // Validate production-required variables
+  const isProduction = environment === 'production';
+  if (isProduction) {
+    log('\nProduction-Required Variables:', colors.bright);
+    PRODUCTION_REQUIRED_ENV_VARS.forEach((varName) => {
+      const { errors, warnings } = validateVar(varName, true);
+      
+      if (errors.length > 0) {
+        log(`  ❌ ${varName}`, colors.red);
+        errors.forEach((err) => log(`     ${err}`, colors.red));
+        allErrors.push(...errors);
+      } else {
+        const value = process.env[varName];
+        const displayValue = value.length > 20 ? `${value.substring(0, 20)}...` : value;
+        log(`  ✅ ${varName}: ${displayValue}`, colors.green);
+      }
+      
+      allWarnings.push(...warnings);
+    });
+  }
   
   // Validate important variables
   log('\nImportant Variables:', colors.bright);

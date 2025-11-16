@@ -1,14 +1,26 @@
 /**
- * Environment Variable Validation
+ * Environment Variable Validation (Runtime)
  * 
  * This module validates that all required environment variables are present
  * and properly configured before the application starts.
+ * 
+ * Uses shared configuration from envConfig.shared.js to ensure consistency
+ * with build-time validation.
  * 
  * Usage:
  * - Import at app entry point (main.tsx)
  * - Validates in development and production
  * - Throws descriptive errors for missing variables
  */
+
+// Import shared configuration (provides single source of truth)
+import {
+  REQUIRED_ENV_VARS as REQUIRED_VARS,
+  PRODUCTION_REQUIRED_ENV_VARS as PRODUCTION_REQUIRED_VARS,
+  IMPORTANT_ENV_VARS,
+  RECOMMENDED_ENV_VARS,
+  validateEnvVar as sharedValidateEnvVar,
+} from './envConfig.shared.js';
 
 interface EnvConfig {
   // Required - Critical for app functionality
@@ -32,96 +44,21 @@ interface EnvConfig {
   VITE_ANALYTICS_ID?: string;
 }
 
-/**
- * Required environment variables for the application to function
- * These are critical and will block startup if missing
- * Note: VITE_STRIPE_PUBLISHABLE_KEY is required in production but optional in development
- */
-const REQUIRED_ENV_VARS: (keyof EnvConfig)[] = [
-  'VITE_SUPABASE_URL',
-  'VITE_SUPABASE_ANON_KEY',
-  'VITE_APP_URL',
-];
+// Use shared configuration
+const REQUIRED_ENV_VARS = REQUIRED_VARS as (keyof EnvConfig)[];
+const PRODUCTION_REQUIRED_ENV_VARS = PRODUCTION_REQUIRED_VARS as (keyof EnvConfig)[];
+const OPTIONAL_ENV_VARS = [...IMPORTANT_ENV_VARS, ...RECOMMENDED_ENV_VARS] as (keyof EnvConfig)[];
 
 /**
- * Required only in production (optional in development)
+ * Validate a single environment variable using shared validation logic
  */
-const PRODUCTION_REQUIRED_ENV_VARS: (keyof EnvConfig)[] = [
-  'VITE_STRIPE_PUBLISHABLE_KEY',
-];
-
-/**
- * Optional environment variables (won't block startup)
- */
-const OPTIONAL_ENV_VARS: (keyof EnvConfig)[] = [
-  'VITE_GROQ_ENABLED',
-  'VITE_GROQ_MODEL',
-  'VITE_STRIPE_PRICE_POWER_INDIVIDUAL',
-  'VITE_STRIPE_PRICE_TEAM_PRO_BASE',
-  'VITE_STRIPE_PRICE_TEAM_PRO_SEAT',
-  'VITE_APP_NAME',
-  'VITE_APP_VERSION',
-  'VITE_ENVIRONMENT',
-  'VITE_SENTRY_DSN',
-  'VITE_ANALYTICS_ID',
-];
-
-/**
- * Environment-specific validation rules
- */
-const ENV_VALIDATION_RULES = {
-  VITE_SUPABASE_URL: (value: string) => {
-    if (!value.startsWith('https://') && !value.startsWith('http://')) {
-      return 'Supabase URL must start with https:// or http://';
-    }
-    if (!value.includes('.supabase.co')) {
-      return 'Supabase URL must be a valid Supabase domain';
-    }
-    return null;
-  },
+function validateEnvVar(key: string, value: string | undefined, required: boolean, isProduction: boolean): string | null {
+  // Use shared validation
+  const result = sharedValidateEnvVar(key, value, required, isProduction);
   
-  VITE_STRIPE_PUBLISHABLE_KEY: (value: string) => {
-    if (!value.startsWith('pk_test_') && !value.startsWith('pk_live_')) {
-      return 'Stripe publishable key must start with pk_test_ or pk_live_';
-    }
-    return null;
-  },
-  
-  VITE_ENVIRONMENT: (value: string) => {
-    const validEnvs = ['development', 'staging', 'production'];
-    if (!validEnvs.includes(value)) {
-      return `Environment must be one of: ${validEnvs.join(', ')}`;
-    }
-    return null;
-  },
-  
-  VITE_APP_URL: (value: string) => {
-    if (!value.startsWith('http://') && !value.startsWith('https://')) {
-      return 'App URL must start with http:// or https://';
-    }
-    return null;
-  },
-};
-
-/**
- * Validate a single environment variable
- */
-function validateEnvVar(key: string, value: string | undefined, required: boolean): string | null {
-  // Check if value exists
-  if (!value || value.trim() === '') {
-    if (required) {
-      return `Missing required environment variable: ${key}`;
-    }
-    return null; // Optional variable not set
-  }
-  
-  // Run custom validation if exists
-  const validator = ENV_VALIDATION_RULES[key as keyof typeof ENV_VALIDATION_RULES];
-  if (validator) {
-    const error = validator(value);
-    if (error) {
-      return `Invalid ${key}: ${error}`;
-    }
+  // Return first error if any
+  if (result.errors.length > 0) {
+    return result.errors[0];
   }
   
   return null;
@@ -161,21 +98,23 @@ export function validateEnvironment(): void {
   const warnings: string[] = [];
   const env = getEnvConfig();
   
+  // Determine if production environment
+  const isProduction = env.VITE_ENVIRONMENT === 'production' || !import.meta.env.DEV;
+  
   // Validate required variables
   REQUIRED_ENV_VARS.forEach((key) => {
     const value = env[key];
-    const error = validateEnvVar(key, value as string, true);
+    const error = validateEnvVar(key, value as string, true, isProduction);
     if (error) {
       errors.push(error);
     }
   });
   
-  // Validate production-required variables (only in production environment)
-  const isProduction = env.VITE_ENVIRONMENT === 'production' || !import.meta.env.DEV;
+  // Validate production-required variables
   if (isProduction) {
     PRODUCTION_REQUIRED_ENV_VARS.forEach((key) => {
       const value = env[key];
-      const error = validateEnvVar(key, value as string, true);
+      const error = validateEnvVar(key, value as string, true, isProduction);
       if (error) {
         errors.push(error);
       }
@@ -190,11 +129,11 @@ export function validateEnvironment(): void {
     });
   }
   
-  // Validate optional variables (only check validity if set, don't warn if missing)
+  // Validate optional variables (only check validity if set)
   OPTIONAL_ENV_VARS.forEach((key) => {
     const value = env[key];
     if (value) {
-      const error = validateEnvVar(key, value as string, false);
+      const error = validateEnvVar(key, value as string, false, isProduction);
       if (error) {
         warnings.push(error);
       }

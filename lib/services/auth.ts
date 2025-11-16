@@ -114,25 +114,60 @@ export class AuthService {
     }
   }
 
-  // Delete account
+  /**
+   * Delete user account
+   * 
+   * SECURITY CRITICAL: This function calls a database RPC that must:
+   * 1. Verify the user is authenticated (via RLS)
+   * 2. Only allow users to delete their own account
+   * 3. Cascade delete all user data (workspaces, profiles, etc.)
+   * 
+   * The RPC function 'delete_user_account' must be defined with:
+   * - SECURITY DEFINER to access auth.users
+   * - Proper authorization checks (user can only delete self)
+   * - Transaction wrapping for data integrity
+   * - Audit logging for compliance
+   * 
+   * @returns {Promise<{error: Error | null}>}
+   */
   static async deleteAccount() {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('No user logged in')
+      const { data: { user }, error: getUserError } = await supabase.auth.getUser()
+      
+      if (getUserError) {
+        console.error('[Auth] Failed to get user for account deletion:', getUserError)
+        throw new Error('Authentication required to delete account')
+      }
+      
+      if (!user) {
+        throw new Error('No user logged in')
+      }
 
-      // Call Supabase Admin API to delete user
-      // Note: This requires the service_role key or a custom edge function
-      // For now, we'll use the auth.admin.deleteUser API
+      console.log('[Auth] Initiating account deletion for user:', user.id)
+
+      // Call secure RPC function that enforces authorization
+      // This RPC must verify that the calling user matches the user being deleted
       const { error } = await supabase.rpc('delete_user_account')
       
-      if (error) throw error
+      if (error) {
+        console.error('[Auth] RPC delete_user_account failed:', error)
+        
+        // Provide user-friendly error messages
+        if (error.code === 'PGRST116') {
+          throw new Error('Account deletion is not available. Please contact support.')
+        }
+        
+        throw new Error(`Failed to delete account: ${error.message}`)
+      }
+
+      console.log('[Auth] Account deleted successfully, signing out...')
 
       // Sign out after deletion
       await this.signOut()
       
       return { error: null }
     } catch (error) {
-      console.error('Error deleting account:', error)
+      console.error('[Auth] Error deleting account:', error)
       return { error: error as Error }
     }
   }
