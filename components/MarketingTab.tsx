@@ -155,6 +155,44 @@ const MarketingItemCard: React.FC<{
                     )}
                 </div>
 
+                {/* Campaign Performance KPIs */}
+                {item.kpis && (item.kpis.impressions > 0 || item.kpis.clicks > 0 || item.kpis.conversions > 0) && (
+                    <div className="pt-2 border-t border-gray-300">
+                        <div className="font-mono text-xs text-gray-600 uppercase mb-1">Performance Metrics</div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                            {item.kpis.impressions > 0 && (
+                                <div className="bg-blue-50 border border-blue-200 p-2 rounded">
+                                    <div className="text-gray-600">Impressions</div>
+                                    <div className="font-bold text-blue-700">{item.kpis.impressions.toLocaleString()}</div>
+                                </div>
+                            )}
+                            {item.kpis.clicks > 0 && (
+                                <div className="bg-green-50 border border-green-200 p-2 rounded">
+                                    <div className="text-gray-600">Clicks</div>
+                                    <div className="font-bold text-green-700">{item.kpis.clicks.toLocaleString()}</div>
+                                    {item.kpis.impressions > 0 && (
+                                        <div className="text-xs text-gray-600">
+                                            CTR: {((item.kpis.clicks / item.kpis.impressions) * 100).toFixed(2)}%
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            {item.kpis.engagements > 0 && (
+                                <div className="bg-purple-50 border border-purple-200 p-2 rounded">
+                                    <div className="text-gray-600">Engagements</div>
+                                    <div className="font-bold text-purple-700">{item.kpis.engagements.toLocaleString()}</div>
+                                </div>
+                            )}
+                            {item.kpis.conversions > 0 && (
+                                <div className="bg-orange-50 border border-orange-200 p-2 rounded">
+                                    <div className="text-gray-600">Conversions</div>
+                                    <div className="font-bold text-orange-700">{item.kpis.conversions.toLocaleString()}</div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {/* Tags */}
                 {item.tags && item.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 pt-2">
@@ -372,6 +410,7 @@ const MarketingTab: React.FC<{
                 editingCampaign={editingItem}
                 productsServices={productsServices}
                 workspaceMembers={workspaceMembers}
+                crmItems={data.crm || []}
                 triggerRef={modalTriggerRef}
             />
         </div>

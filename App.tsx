@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
 import { WorkspaceProvider } from './contexts/WorkspaceContext'
 import { QueryProvider } from './lib/providers/QueryProvider'
@@ -11,14 +11,19 @@ import { InviteAcceptPage } from './components/shared/InviteAcceptPage'
 import { LandingPage } from './components/LandingPage'
 import { PrivacyPolicyPage } from './components/PrivacyPolicyPage'
 import { TermsOfServicePage } from './components/TermsOfServicePage'
+import { CheckoutSuccessPage } from './components/CheckoutSuccessPage'
 import DashboardApp from './DashboardApp'
 import { initializeSentry, ErrorBoundary, ErrorFallback } from './lib/sentry.tsx'
+import { analytics } from './lib/services/analytics'
+import { usePageTracking, useUserTracking } from './hooks/useAnalytics'
 
-// Initialize Sentry as early as possible
+// Initialize Sentry and Analytics as early as possible
 initializeSentry();
+analytics.initialize();
 
 // Component to handle both landing page and invite acceptance from root URL
 function LandingOrInvite() {
+  const navigate = useNavigate()
   const [inviteToken] = useState<string | null>(() => {
     const params = new URLSearchParams(window.location.search)
     return params.get('token')
@@ -29,7 +34,7 @@ function LandingOrInvite() {
       <InviteAcceptPage 
         token={inviteToken} 
         onComplete={() => {
-          window.location.href = '/app'
+          navigate('/app', { replace: true })
         }}
       />
     )
@@ -43,6 +48,7 @@ const App: React.FC = () => {
     <ErrorBoundary fallback={ErrorFallback} showDialog>
       <QueryProvider>
         <Router>
+          <AnalyticsIntegration />
           <Toaster />
           <Routes>
           {/* Public landing page (also handles invite tokens) */}
@@ -51,6 +57,9 @@ const App: React.FC = () => {
           {/* Legal pages */}
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/terms" element={<TermsOfServicePage />} />
+          
+          {/* Stripe checkout success */}
+          <Route path="/success" element={<CheckoutSuccessPage />} />
           
           {/* Password reset (no auth required) */}
           <Route path="/reset-password" element={<ResetPasswordRoute />} />
@@ -69,7 +78,8 @@ const App: React.FC = () => {
 
 // Password reset route (public)
 function ResetPasswordRoute() {
-  return <ResetPassword onSuccess={() => window.location.href = '/app'} />;
+  const navigate = useNavigate()
+  return <ResetPassword onSuccess={() => navigate('/app', { replace: true })} />;
 }
 
 // Protected app routes
@@ -95,6 +105,8 @@ function AppRoutes() {
     }
   }, [])
 
+  const navigate = useNavigate()
+
   // If there's an invite token, show the invite acceptance page
   if (inviteToken) {
     return (
@@ -102,7 +114,7 @@ function AppRoutes() {
         token={inviteToken} 
         onComplete={() => {
           setInviteToken(null)
-          window.location.href = '/app' // Reload to app
+          navigate('/app', { replace: true })
         }}
       />
     )
@@ -121,6 +133,13 @@ function AppRoutes() {
       <DashboardApp subscribePlan={subscribePlan || sessionStorage.getItem('pending_subscription')} />
     </WorkspaceProvider>
   )
+}
+
+// Component to integrate analytics tracking hooks
+function AnalyticsIntegration() {
+  usePageTracking();  // Auto-track page views on route changes
+  useUserTracking();  // Auto-identify users on login/logout
+  return null;
 }
 
 export default App

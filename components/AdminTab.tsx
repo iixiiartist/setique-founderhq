@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase';
 import { useDebounce } from '../lib/hooks/usePerformance';
 import { AutomationMonitor } from './admin/AutomationMonitor';
 import { useWorkspace } from '../contexts/WorkspaceContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface UserSignup {
     id: string;
@@ -31,7 +33,9 @@ interface SignupStats {
 }
 
 function AdminTab() {
-    const { workspace } = useWorkspace();
+    const { workspace, refreshWorkspace } = useWorkspace();
+    const { user } = useAuth();
+    const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState<'users' | 'automations'>('users');
     const [users, setUsers] = useState<UserSignup[]>([]);
     const [stats, setStats] = useState<SignupStats | null>(null);
@@ -55,6 +59,8 @@ function AdminTab() {
         try {
             setIsUpdatingPlan(true);
             
+            console.log('[AdminTab] Updating plan for user:', userId, 'to:', newPlan, 'seats:', seats);
+            
             const { data, error } = await supabase
                 .rpc('admin_update_user_plan', {
                     target_user_id: userId,
@@ -62,21 +68,35 @@ function AdminTab() {
                     new_seats: newPlan === 'team-pro' ? seats : null
                 });
 
+            console.log('[AdminTab] Update response:', { data, error });
+
             if (error) throw error;
 
             const result = data as { success: boolean; message: string };
             
             if (!result.success) {
                 alert(`Error: ${result.message}`);
+                console.error('[AdminTab] Update failed:', result.message);
                 return;
             }
 
+            console.log('[AdminTab] Plan updated successfully');
             const seatsMsg = newPlan === 'team-pro' ? ` with ${seats} seats` : '';
             alert(`Plan updated successfully to ${newPlan}${seatsMsg}!`);
             setEditingPlanFor(null);
             
             // Reload user data to reflect changes
+            console.log('[AdminTab] Reloading user data...');
             await loadUserData();
+            
+            // If updating own plan, invalidate workspace cache and refresh
+            if (userId === user?.id) {
+                console.log('[AdminTab] Invalidating workspace cache for current user');
+                // Invalidate all workspace queries to force refetch
+                await queryClient.invalidateQueries({ queryKey: ['workspaces'] });
+                refreshWorkspace();
+                console.log('[AdminTab] Workspace cache invalidated');
+            }
             
         } catch (error) {
             console.error('Error updating user plan:', error);
@@ -170,7 +190,7 @@ function AdminTab() {
                 workspaceId: user.workspace_id || '',
                 workspaceName: user.workspace_name || (user.has_profile ? 'No workspace' : '⚠️ Missing profile'),
                 lastSignIn: user.last_sign_in_at,
-                isAdmin: user.is_admin || false
+                isAdmin: user.user_is_admin || false
             }));
 
             setUsers(transformedUsers);

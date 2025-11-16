@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AuthService } from '../../lib/services/auth';
 import { sanitizeAuthError } from '../../lib/utils/errorMessages';
 
@@ -23,6 +24,7 @@ const validatePassword = (password: string): { valid: boolean; error?: string } 
 };
 
 export const ResetPassword: React.FC<ResetPasswordProps> = ({ onSuccess }) => {
+    const navigate = useNavigate();
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -68,7 +70,7 @@ export const ResetPassword: React.FC<ResetPasswordProps> = ({ onSuccess }) => {
                 if (onSuccess) {
                     onSuccess();
                 } else {
-                    window.location.href = '/app';
+                    navigate('/app', { replace: true });
                 }
             }, 2000);
         } catch (err) {

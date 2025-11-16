@@ -16,12 +16,43 @@ const campaignSchema = z.object({
     status: z.enum(['Planned', 'In Progress', 'Completed', 'Published', 'Cancelled']),
     dueDate: z.string().optional(),
     dueTime: z.string().optional(),
-    campaignBudget: z.number().min(0, 'Budget must be positive').optional(),
-    actualSpend: z.number().min(0, 'Spend must be positive').optional(),
+    campaignBudget: z.preprocess(
+        (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
+        z.number().min(0, 'Budget must be positive').optional()
+    ),
+    actualSpend: z.preprocess(
+        (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
+        z.number().min(0, 'Spend must be positive').optional()
+    ),
     targetAudience: z.string().max(500).optional(),
     channels: z.array(z.enum(['email', 'social', 'paid_ads', 'content', 'events'])).optional(),
     goals: z.string().max(1000).optional(),
-    targetRevenue: z.number().min(0, 'Revenue target must be positive').optional(),
+    targetRevenue: z.preprocess(
+        (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
+        z.number().min(0, 'Revenue target must be positive').optional()
+    ),
+    kpis: z.object({
+        impressions: z.preprocess(
+            (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
+            z.number().min(0).optional()
+        ),
+        clicks: z.preprocess(
+            (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
+            z.number().min(0).optional()
+        ),
+        engagements: z.preprocess(
+            (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
+            z.number().min(0).optional()
+        ),
+        conversions: z.preprocess(
+            (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
+            z.number().min(0).optional()
+        ),
+        revenue: z.preprocess(
+            (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
+            z.number().min(0).optional()
+        ),
+    }).optional(),
     productServiceIds: z.array(z.string()).optional(),
     assignedTo: z.string().optional(),
     tags: z.array(z.string()).optional(),
@@ -36,6 +67,7 @@ interface CampaignFormModalProps {
     editingCampaign?: MarketingItem | null;
     productsServices?: ProductService[];
     workspaceMembers?: WorkspaceMember[];
+    crmItems?: any[]; // Add CRM items for account/deal linking
     triggerRef?: React.RefObject<HTMLElement>;
 }
 
@@ -46,6 +78,7 @@ export function CampaignFormModal({
     editingCampaign,
     productsServices = [],
     workspaceMembers = [],
+    crmItems = [],
     triggerRef
 }: CampaignFormModalProps) {
     // Local state for multi-selects and tags (not in form)
@@ -68,6 +101,13 @@ export function CampaignFormModal({
         channels: editingCampaign?.channels || [],
         goals: editingCampaign?.goals || '',
         targetRevenue: editingCampaign?.targetRevenue || 0,
+        kpis: {
+            impressions: editingCampaign?.kpis?.impressions || 0,
+            clicks: editingCampaign?.kpis?.clicks || 0,
+            engagements: editingCampaign?.kpis?.engagements || 0,
+            conversions: editingCampaign?.kpis?.conversions || 0,
+            revenue: editingCampaign?.kpis?.revenue || 0,
+        },
         productServiceIds: editingCampaign?.productServiceIds || [],
         assignedTo: editingCampaign?.assignedTo || '',
         tags: editingCampaign?.tags || [],
@@ -384,6 +424,102 @@ export function CampaignFormModal({
                                     )}
                                 </FormSection>
                             )}
+
+                            {/* Campaign Performance Metrics */}
+                            <FormSection
+                                title="Campaign Performance Tracking"
+                                description="Update these metrics as your campaign progresses"
+                            >
+                                <div className="p-3 bg-yellow-50 border-2 border-yellow-300 text-sm text-yellow-900 mb-3">
+                                    <strong>📊 Track Campaign Progress:</strong> Update these metrics regularly to monitor performance
+                                </div>
+                                
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <FormField
+                                        name="kpis.impressions"
+                                        label="Impressions"
+                                        type="number"
+                                        min={0}
+                                        placeholder="0"
+                                        helpText="Total views/impressions"
+                                    />
+                                    <FormField
+                                        name="kpis.clicks"
+                                        label="Clicks"
+                                        type="number"
+                                        min={0}
+                                        placeholder="0"
+                                        helpText="Total clicks received"
+                                    />
+                                    <FormField
+                                        name="kpis.engagements"
+                                        label="Engagements"
+                                        type="number"
+                                        min={0}
+                                        placeholder="0"
+                                        helpText="Likes, shares, comments"
+                                    />
+                                    <FormField
+                                        name="kpis.conversions"
+                                        label="Conversions"
+                                        type="number"
+                                        min={0}
+                                        placeholder="0"
+                                        helpText="Completed actions/goals"
+                                    />
+                                </div>
+                            </FormSection>
+
+                            {/* Linked Accounts/Deals */}
+                            <FormSection
+                                title="Linked Accounts & Deals"
+                                description="Link this campaign to specific accounts or opportunities for direct attribution"
+                            >
+                                <div className="p-3 bg-blue-50 border-2 border-blue-300 text-sm text-blue-900 mb-3">
+                                    <strong>ℹ️ Two Ways to Track Attribution:</strong>
+                                    <ul className="mt-2 ml-4 space-y-1 list-disc">
+                                        <li><strong>Automatic:</strong> Contacts created with "Source" field matching this campaign name</li>
+                                        <li><strong>Manual:</strong> Select accounts/deals below to link them directly to this campaign</li>
+                                    </ul>
+                                </div>
+                                
+                                {crmItems.length > 0 ? (
+                                    <div className="space-y-3">
+                                        <div>
+                                            <label className="block font-mono text-sm font-semibold text-black mb-2">
+                                                Link to Accounts/Deals
+                                            </label>
+                                            <div className="max-h-48 overflow-y-auto border-2 border-gray-300 bg-white p-2 space-y-1">
+                                                {crmItems.map(item => (
+                                                    <label
+                                                        key={item.id}
+                                                        className="flex items-center gap-2 p-2 hover:bg-gray-50 cursor-pointer"
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            className="w-4 h-4"
+                                                            // TODO: Implement CRM linking state management
+                                                        />
+                                                        <div className="flex-grow">
+                                                            <div className="font-semibold text-sm">{item.company}</div>
+                                                            <div className="text-xs text-gray-600">
+                                                                {item.status} • {item.priority}
+                                                            </div>
+                                                        </div>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                            <p className="text-xs text-gray-600 mt-1 italic">
+                                                Note: Manual linking feature coming in next update. For now, use the automatic attribution method above.
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-sm text-gray-600 italic">
+                                        No accounts created yet. Add accounts in the CRM tabs (Investors, Customers, Partnerships) to link them here.
+                                    </div>
+                                )}
+                            </FormSection>
 
                             {/* Tags */}
                             <FormSection title="Tags" description="Add tags to organize and filter campaigns">

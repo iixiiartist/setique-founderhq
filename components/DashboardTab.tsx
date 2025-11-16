@@ -11,6 +11,7 @@ import Modal from './shared/Modal';
 import { TaskComments } from './shared/TaskComments';
 import { SubtaskManager } from './shared/SubtaskManager';
 import KpiCard from './shared/KpiCard';
+import TeamActivityFeed from './team/TeamActivityFeed';
 
 const TaskItem: React.FC<{ 
     task: Task & { tag: string; collection: string }; 
@@ -451,6 +452,15 @@ ${businessContext}
                     </div>
                 </div>
                 <div className="lg:col-span-1 space-y-8">
+                    {/* Team Activity Feed */}
+                    {workspace && (
+                        <TeamActivityFeed 
+                            workspaceId={workspace.id}
+                            limit={15}
+                            showFilters={true}
+                        />
+                    )}
+                    
                     {settings?.quickLinks && settings.quickLinks.length > 0 && (
                         <div className="bg-white p-6 border-2 border-black shadow-neo">
                             <h2 className="text-xl font-semibold text-black mb-4">Quick Links</h2>

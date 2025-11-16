@@ -279,6 +279,7 @@ export class DataPersistenceAdapter {
       status: string
       nextAction?: string
       nextActionDate?: string
+      nextActionTime?: string
       checkSize?: number
       dealValue?: number
       opportunity?: string
@@ -298,6 +299,7 @@ export class DataPersistenceAdapter {
       status: itemData.status || 'Active',
       next_action: itemData.nextAction || null,
       next_action_date: itemData.nextActionDate || null,
+      next_action_time: itemData.nextActionTime || null,
       check_size: itemData.checkSize || null,
       deal_value: itemData.dealValue || null,
       opportunity: itemData.opportunity || null,

@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { AuthService } from '../lib/services/auth'
+import { logger } from '../lib/logger'
+import { SecureStorage, StorageKeys } from '../lib/utils/secureStorage'
 
 interface AuthContextType {
   user: User | null
@@ -41,7 +43,7 @@ export const AuthProvider: React.FC<Props> = ({ children }) => {
           setUser(session.user)
         }
       } catch (error) {
-        console.error('Error getting initial session:', error)
+        logger.error('Failed to get initial session', { error: error instanceof Error ? error.message : 'Unknown error' })
       } finally {
         setLoading(false)
       }
@@ -52,7 +54,12 @@ export const AuthProvider: React.FC<Props> = ({ children }) => {
     // Listen for auth changes
     const { data: { subscription } } = AuthService.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session)
+        logger.info('Auth state changed', { 
+          event, 
+          userId: session?.user?.id, 
+          hasSession: !!session,
+          expiresAt: session?.expires_at 
+        })
         setSession(session)
         setUser(session?.user ?? null)
         setLoading(false)
@@ -79,6 +86,22 @@ export const AuthProvider: React.FC<Props> = ({ children }) => {
   const signOut = async () => {
     setLoading(true)
     try {
+      // Clear all sensitive localStorage before sign out
+      SecureStorage.removeItem(StorageKeys.BUSINESS_PROFILE_DRAFT);
+      SecureStorage.removeItem(StorageKeys.ASSISTANT_STATE);
+      
+      // Clear all conversation history
+      SecureStorage.clearPrefix(StorageKeys.CONVERSATION_HISTORY);
+      
+      // Clear any onboarding dismissal flags
+      Object.keys(localStorage).forEach(key => {
+        if (key.includes('onboarding_dismissed_')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      logger.debug('Sensitive storage cleared on logout');
+      
       const result = await AuthService.signOut()
       return result
     } finally {

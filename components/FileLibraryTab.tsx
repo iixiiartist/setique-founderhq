@@ -80,7 +80,9 @@ function FileLibraryTab({ documents, actions, companies, contacts }: FileLibrary
         }
     };
     
-    const sortedDocuments = [...documents].sort((a,b) => b.uploadedAt - a.uploadedAt);
+    const sortedDocuments = Array.isArray(documents) 
+        ? [...documents].sort((a,b) => b.uploadedAt - a.uploadedAt)
+        : [];
     
     return (
         <div className="bg-white p-6 border-2 border-black shadow-neo">

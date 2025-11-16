@@ -8,9 +8,21 @@ export type NotificationType =
   | 'task_completed' 
   | 'comment_reply'
   | 'task_updated'
-  | 'team_invitation';
+  | 'task_reassigned'
+  | 'task_deadline_changed'
+  | 'task_due_soon'
+  | 'task_overdue'
+  | 'team_invitation'
+  | 'deal_won'
+  | 'deal_lost'
+  | 'deal_stage_changed'
+  | 'crm_contact_added'
+  | 'document_shared'
+  | 'document_comment'
+  | 'workspace_role_changed'
+  | 'achievement_unlocked';
 
-export type NotificationEntityType = 'task' | 'comment' | 'workspace' | 'document';
+export type NotificationEntityType = 'task' | 'comment' | 'workspace' | 'document' | 'deal' | 'contact' | 'achievement';
 
 export interface Notification {
   id: string;

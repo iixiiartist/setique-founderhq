@@ -61,14 +61,27 @@ export class DatabaseService {
   }
 
   // Task operations
-  static async getTasks(userId: string, workspaceId?: string) {
+  static async getTasks(
+    userId: string, 
+    workspaceId?: string,
+    options?: {
+      page?: number
+      limit?: number
+      category?: string
+      status?: string
+      assignedTo?: string
+      priority?: string
+    }
+  ) {
     try {
+      const { page = 1, limit = 50, category, status, assignedTo, priority } = options || {}
+      
       let query = supabase
         .from('tasks')
         .select(`
           *,
           assigned_to_profile:profiles!tasks_assigned_to_fkey(full_name)
-        `)
+        `, { count: 'exact' })
       
       // If workspaceId provided, fetch all tasks in the workspace
       // Otherwise, fetch user's personal tasks (backwards compatibility)
@@ -77,8 +90,28 @@ export class DatabaseService {
       } else {
         query = query.eq('user_id', userId)
       }
+
+      // Push filtering to database for performance
+      if (category) {
+        query = query.eq('category', category)
+      }
+      if (status) {
+        query = query.eq('status', status)
+      }
+      if (assignedTo) {
+        query = query.eq('assigned_to', assignedTo)
+      }
+      if (priority) {
+        query = query.eq('priority', priority)
+      }
       
-      const { data, error } = await query.order('created_at', { ascending: false })
+      // Apply pagination and ordering
+      const from = (page - 1) * limit
+      const to = from + limit - 1
+      
+      const { data, error, count } = await query
+        .order('created_at', { ascending: false })
+        .range(from, to)
 
       if (error) throw error
       
@@ -102,10 +135,21 @@ export class DatabaseService {
         subtasks: dbTask.subtasks || [],
       })) || []
       
-      return { data: transformedData, error: null }
+      // Return data with pagination metadata
+      return { 
+        data: transformedData, 
+        error: null,
+        pagination: {
+          page,
+          limit,
+          total: count || 0,
+          totalPages: Math.ceil((count || 0) / limit),
+          hasMore: count ? (page * limit) < count : false
+        }
+      }
     } catch (error) {
       logger.error('Error fetching tasks:', error)
-      return { data: [], error }
+      return { data: [], error, pagination: { page: 1, limit: 50, total: 0, totalPages: 0, hasMore: false } }
     }
   }
 
@@ -198,19 +242,59 @@ export class DatabaseService {
   }
 
   // CRM Items operations
-  static async getCrmItems(workspaceId: string) {
+  static async getCrmItems(
+    workspaceId: string,
+    options?: {
+      page?: number
+      limit?: number
+      type?: string
+      stage?: string
+      assignedTo?: string
+    }
+  ) {
     try {
-      const { data, error } = await supabase
+      const { page = 1, limit = 50, type, stage, assignedTo } = options || {}
+      
+      let query = supabase
         .from('crm_items')
-        .select('*')
+        .select('*', { count: 'exact' })
         .eq('workspace_id', workspaceId)
+
+      // Push filtering to database for performance
+      if (type) {
+        query = query.eq('type', type)
+      }
+      if (stage) {
+        query = query.eq('stage', stage)
+      }
+      if (assignedTo) {
+        query = query.eq('assigned_to', assignedTo)
+      }
+
+      // Apply pagination and ordering
+      const from = (page - 1) * limit
+      const to = from + limit - 1
+      
+      const { data, error, count } = await query
         .order('created_at', { ascending: false })
+        .range(from, to)
 
       if (error) throw error
-      return { data, error: null }
+      
+      return { 
+        data, 
+        error: null,
+        pagination: {
+          page,
+          limit,
+          total: count || 0,
+          totalPages: Math.ceil((count || 0) / limit),
+          hasMore: count ? (page * limit) < count : false
+        }
+      }
     } catch (error) {
       logger.error('Error fetching CRM items:', error)
-      return { data: [], error }
+      return { data: [], error, pagination: { page: 1, limit: 50, total: 0, totalPages: 0, hasMore: false } }
     }
   }
 

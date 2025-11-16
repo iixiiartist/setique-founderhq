@@ -85,33 +85,39 @@ export const useLazyDataPersistence = () => {
         [cacheKey]: { ...prev[cacheKey], isLoading: true }
       }))
 
-      const { data: tasks } = await DatabaseService.getTasks(user.id, workspace.id)
-      
-      console.log('[useLazyDataPersistence] Raw tasks from DB:', tasks);
-      console.log('[useLazyDataPersistence] Task categories:', tasks?.map(t => ({ id: t.id, category: t.category, text: t.text })));
-      
-      // Log each task's category for debugging
-      tasks?.forEach(t => {
-        console.log(`[useLazyDataPersistence] Task "${t.text}" has category: "${t.category}" (type: ${typeof t.category})`);
-      });
-      
-      const result = {
-        productsServicesTasks: tasks?.filter(t => t.category === 'productsServicesTasks') || [],
-        investorTasks: tasks?.filter(t => t.category === 'investorTasks') || [],
-        customerTasks: tasks?.filter(t => t.category === 'customerTasks') || [],
-        partnerTasks: tasks?.filter(t => t.category === 'partnerTasks') || [],
-        marketingTasks: tasks?.filter(t => t.category === 'marketingTasks') || [],
-        financialTasks: tasks?.filter(t => t.category === 'financialTasks') || []
-      }
-      
-      console.log('[useLazyDataPersistence] Filtered results:', {
-        productsServicesTasks: result.productsServicesTasks.length,
-        investorTasks: result.investorTasks.length,
-        customerTasks: result.customerTasks.length,
-        partnerTasks: result.partnerTasks.length,
-        marketingTasks: result.marketingTasks.length,
-        financialTasks: result.financialTasks.length
-      });
+      // Fetch each category separately with database-level filtering
+      // This pushes filtering to the database for better performance
+      const categories = [
+        'productsServicesTasks',
+        'investorTasks', 
+        'customerTasks',
+        'partnerTasks',
+        'marketingTasks',
+        'financialTasks'
+      ] as const
+
+      const categoryResults = await Promise.all(
+        categories.map(async (category) => {
+          const { data } = await DatabaseService.getTasks(user.id, workspace.id, { 
+            category,
+            limit: 1000 // Load up to 1000 tasks per category
+          })
+          return { category, data }
+        })
+      )
+
+      // Transform parallel results into categorized object
+      const result = categoryResults.reduce((acc, { category, data }) => ({
+        ...acc,
+        [category]: data || []
+      }), {} as {
+        productsServicesTasks: any[]
+        investorTasks: any[]
+        customerTasks: any[]
+        partnerTasks: any[]
+        marketingTasks: any[]
+        financialTasks: any[]
+      })
 
       setDataCache(prev => ({
         ...prev,
@@ -157,45 +163,57 @@ export const useLazyDataPersistence = () => {
         [cacheKey]: { ...prev[cacheKey], isLoading: true }
       }))
 
-      // Load CRM items with their related contacts and meetings
-      const [crmItemsResult, contactsResult, meetingsResult] = await Promise.all([
-        DatabaseService.getCrmItems(workspace.id),
+      // Load contacts and meetings first (needed for all CRM types)
+      const [contactsResult, meetingsResult] = await Promise.all([
         DatabaseService.getContacts(workspace.id),
         DatabaseService.getMeetings(workspace.id)
       ])
 
-      const crmItems = crmItemsResult.data || []
       const allContacts = contactsResult.data || []
       const allMeetings = meetingsResult.data || []
 
-      // Transform CRM items with contacts and meetings using shared transformers
-      const transformedCrmItems = crmItems.map(item => {
-        const itemContacts = allContacts
-          .filter(c => c.crm_item_id === item.id)
-          .map(contact => {
-            const contactMeetings = allMeetings.filter(m => m.contact_id === contact.id)
-            const transformedContact = dbToContact(contact);
-            // Add meetings to contact
-            transformedContact.meetings = contactMeetings.map(m => ({
-              id: m.id,
-              timestamp: new Date(m.timestamp).getTime(),
-              title: m.title,
-              attendees: m.attendees,
-              summary: m.summary
-            }));
-            return transformedContact;
-          });
+      // Fetch each CRM type separately with database-level filtering
+      const crmTypes = ['investor', 'customer', 'partner'] as const
+      
+      const crmResults = await Promise.all(
+        crmTypes.map(async (type) => {
+          const { data: crmItems } = await DatabaseService.getCrmItems(workspace.id, { 
+            type,
+            limit: 1000 // Load up to 1000 items per type
+          })
+          
+          // Transform CRM items with contacts and meetings using shared transformers
+          const transformedItems = (crmItems || []).map(item => {
+            const itemContacts = allContacts
+              .filter(c => c.crm_item_id === item.id)
+              .map(contact => {
+                const contactMeetings = allMeetings.filter(m => m.contact_id === contact.id)
+                const transformedContact = dbToContact(contact);
+                // Add meetings to contact
+                transformedContact.meetings = contactMeetings.map(m => ({
+                  id: m.id,
+                  timestamp: new Date(m.timestamp).getTime(),
+                  title: m.title,
+                  attendees: m.attendees,
+                  summary: m.summary
+                }));
+                return transformedContact;
+              });
 
-        const transformedItem = dbToCrmItem(item);
-        transformedItem.contacts = itemContacts; // Merge contacts
-        transformedItem.type = item.type; // Keep type for filtering
-        return transformedItem;
-      })
+            const transformedItem = dbToCrmItem(item);
+            transformedItem.contacts = itemContacts;
+            return transformedItem;
+          })
+          
+          return { type, data: transformedItems }
+        })
+      )
 
+      // Transform parallel results into typed object
       const result = {
-        investors: transformedCrmItems.filter(item => item.type === 'investor'),
-        customers: transformedCrmItems.filter(item => item.type === 'customer'),
-        partners: transformedCrmItems.filter(item => item.type === 'partner')
+        investors: crmResults.find(r => r.type === 'investor')?.data || [],
+        customers: crmResults.find(r => r.type === 'customer')?.data || [],
+        partners: crmResults.find(r => r.type === 'partner')?.data || []
       }
 
       setDataCache(prev => ({
@@ -614,13 +632,13 @@ export const useLazyDataPersistence = () => {
         costOfService: p.cost_of_service ? parseFloat(p.cost_of_service.toString()) : undefined,
         isTaxable: p.is_taxable || false,
         taxRate: p.tax_rate || undefined,
-        inventoryTracking: p.inventory_tracking || false,
+        inventoryTracking: p.inventory_tracked || false,
         quantityOnHand: p.quantity_on_hand || undefined,
         quantityReserved: p.quantity_reserved || undefined,
         quantityAvailable: p.quantity_available || undefined,
         reorderPoint: p.reorder_point || undefined,
         reorderQuantity: p.reorder_quantity || undefined,
-        capacityTracking: p.capacity_tracking || false,
+        capacityTracking: p.capacity_tracked || false,
         capacityTotal: p.capacity_total || undefined,
         capacityBooked: p.capacity_booked || undefined,
         capacityAvailable: p.capacity_available || undefined,

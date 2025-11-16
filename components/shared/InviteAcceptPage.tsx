@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { APP_CONFIG } from '../../lib/config';
 import { clearInvitationToken } from '../../lib/utils/tokenStorage';
 import { PasswordSetupForm } from './PasswordSetupForm';
@@ -25,6 +26,7 @@ interface InviteAcceptResult {
 }
 
 export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onComplete }) => {
+    const navigate = useNavigate();
     const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'needs_login' | 'setup_password'>('loading');
     const [message, setMessage] = useState('');
     const [inviteData, setInviteData] = useState<InviteAcceptResult | null>(null);
@@ -176,7 +178,7 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
                     <p className="text-gray-600 mb-6">{message}</p>
                     <button
                         onClick={() => {
-                            window.location.href = '/app';
+                            navigate('/app', { replace: true });
                         }}
                         className="w-full bg-blue-600 text-white border-4 border-black p-4 font-bold text-lg shadow-neo-btn hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-none transition-all"
                     >
@@ -213,7 +215,7 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
                     )}
                     
                     <button
-                        onClick={() => window.location.href = '/app'}
+                        onClick={() => navigate('/app', { replace: true })}
                         className="w-full bg-green-600 text-white border-4 border-black p-4 font-bold text-lg shadow-neo-btn hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-none transition-all"
                     >
                         {inviteData?.isNewUser ? 'Go to Login' : 'Continue to App'} →
@@ -241,7 +243,7 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
                     Try Again →
                 </button>
                 <button
-                    onClick={() => window.location.href = '/'}
+                    onClick={() => navigate('/', { replace: true })}
                     className="w-full bg-gray-600 text-white border-4 border-black p-4 font-bold text-lg shadow-neo-btn hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-none transition-all"
                 >
                     Go to Home

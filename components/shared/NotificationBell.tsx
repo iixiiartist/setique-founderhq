@@ -281,8 +281,32 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
         return '💬';
       case 'task_updated':
         return '📝';
+      case 'task_reassigned':
+        return '🔄';
+      case 'task_deadline_changed':
+        return '📅';
+      case 'task_due_soon':
+        return '⏰';
+      case 'task_overdue':
+        return '🚨';
       case 'team_invitation':
         return '👥';
+      case 'deal_won':
+        return '🎉';
+      case 'deal_lost':
+        return '😢';
+      case 'deal_stage_changed':
+        return '📊';
+      case 'crm_contact_added':
+        return '👤';
+      case 'document_shared':
+        return '📄';
+      case 'document_comment':
+        return '💭';
+      case 'workspace_role_changed':
+        return '🔑';
+      case 'achievement_unlocked':
+        return '🏆';
       default:
         return '🔔';
     }

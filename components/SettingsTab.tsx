@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { AuthService } from '../lib/services/auth';
 import { DatabaseService } from '../lib/services/database';
+import { stripeEdgeFunctions } from '../src/services/stripeEdgeFunctions';
 
 // Quick Link Editor component with local state and manual save button
 interface QuickLinkEditorProps {
@@ -113,6 +114,10 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
     // Get plan type from workspace (already mapped to camelCase by WorkspaceContext)
     const workspacePlanType = workspace?.planType || 'free';
     const isTeamPlan = workspacePlanType.startsWith('team');
+    
+    // Debug logging
+    console.log('[SettingsTab] Workspace:', workspace);
+    console.log('[SettingsTab] Plan Type:', workspacePlanType);
 
     // Fetch real usage data
     useEffect(() => {
@@ -492,14 +497,35 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                         ? 'You have unlimited access to all features.' 
                                         : 'Upgrade to unlock more AI requests, storage, and premium features.'}
                                 </p>
-                                {workspacePlanType !== 'team-pro' && workspacePlanType !== 'power-individual' && (
-                                    <button
-                                        onClick={() => setShowPricingPage(true)}
-                                        className="font-mono bg-blue-600 border-2 border-black text-white cursor-pointer py-2 px-6 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-blue-700 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
-                                    >
-                                        Upgrade Plan
-                                    </button>
-                                )}
+                                <div className="flex gap-3">
+                                    {workspacePlanType !== 'team-pro' && workspacePlanType !== 'power-individual' && (
+                                        <button
+                                            onClick={() => setShowPricingPage(true)}
+                                            className="font-mono bg-blue-600 border-2 border-black text-white cursor-pointer py-2 px-6 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-blue-700 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+                                        >
+                                            Upgrade Plan
+                                        </button>
+                                    )}
+                                    {workspace?.stripeCustomerId && (
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    const { url } = await stripeEdgeFunctions.createPortalSession({
+                                                        customerId: workspace.stripeCustomerId!,
+                                                        returnUrl: window.location.href,
+                                                    });
+                                                    window.location.href = url;
+                                                } catch (error) {
+                                                    console.error('Failed to open customer portal:', error);
+                                                    alert('Failed to open customer portal. Please try again.');
+                                                }
+                                            }}
+                                            className="font-mono bg-gray-800 border-2 border-black text-white cursor-pointer py-2 px-6 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-gray-900 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+                                        >
+                                            Manage Subscription
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </fieldset>

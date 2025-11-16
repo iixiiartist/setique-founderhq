@@ -9,6 +9,9 @@ import TaskManagement from './shared/TaskManagement';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import KpiCard from './shared/KpiCard';
 import { RevenueModule, CashFlowModule, MetricsModule } from './financials';
+import FinancialForecastingModule from './financials/FinancialForecastingModule';
+import RevenueAnalyticsDashboard from './financials/RevenueAnalyticsDashboard';
+import MarketingAttributionDashboard from './marketing/MarketingAttributionDashboard';
 import { Form } from './forms/Form';
 import { FormField } from './forms/FormField';
 import { SelectField } from './forms/SelectField';
@@ -346,7 +349,7 @@ const FinancialsTab: React.FC<{
     productsServices?: ProductService[];
 }> = React.memo(({ items, expenses, tasks, actions, documents, businessProfile, workspaceId, onUpgradeNeeded, workspaceMembers = [], data, productsServices = [] }) => {
     const { workspace } = useWorkspace();
-    const [currentView, setCurrentView] = useState<'overview' | 'revenue' | 'cashflow' | 'metrics'>('overview');
+    const [currentView, setCurrentView] = useState<'overview' | 'revenue' | 'cashflow' | 'metrics' | 'forecasting' | 'analytics' | 'marketing'>('overview');
     const [expenseFilter, setExpenseFilter] = useState<ExpenseCategory | 'All'>('All');
     const [expenseSortBy, setExpenseSortBy] = useState<'date' | 'amount'>('date');
 
@@ -551,6 +554,42 @@ const FinancialsTab: React.FC<{
                     >
                         Metrics
                     </button>
+                    <button
+                        type="button"
+                        onClick={() => setCurrentView('forecasting')}
+                        className={`px-4 py-2 border-2 border-black font-mono font-semibold transition-all ${
+                            currentView === 'forecasting'
+                                ? 'bg-black text-white shadow-neo-btn'
+                                : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
+                        }`}
+                        aria-pressed={currentView === 'forecasting'}
+                    >
+                        📊 Forecasting
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setCurrentView('analytics')}
+                        className={`px-4 py-2 border-2 border-black font-mono font-semibold transition-all ${
+                            currentView === 'analytics'
+                                ? 'bg-black text-white shadow-neo-btn'
+                                : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
+                        }`}
+                        aria-pressed={currentView === 'analytics'}
+                    >
+                        💰 Analytics
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setCurrentView('marketing')}
+                        className={`px-4 py-2 border-2 border-black font-mono font-semibold transition-all ${
+                            currentView === 'marketing'
+                                ? 'bg-black text-white shadow-neo-btn'
+                                : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
+                        }`}
+                        aria-pressed={currentView === 'marketing'}
+                    >
+                        🎯 Marketing
+                    </button>
                 </div>
             </div>
 
@@ -577,6 +616,18 @@ const FinancialsTab: React.FC<{
                     actions={actions}
                     workspaceId={workspaceId}
                 />
+            )}
+
+            {currentView === 'forecasting' && (
+                <FinancialForecastingModule />
+            )}
+
+            {currentView === 'analytics' && (
+                <RevenueAnalyticsDashboard />
+            )}
+
+            {currentView === 'marketing' && (
+                <MarketingAttributionDashboard />
             )}
 
             {currentView === 'overview' && (
@@ -623,7 +674,7 @@ const FinancialsTab: React.FC<{
                     <div className="bg-white p-6 border-2 border-black shadow-neo">
                         <h2 className="text-xl font-semibold text-black mb-4">Revenue Trends</h2>
                         <div className="h-64">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height={256}>
                                 <LineChart data={chartData}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
                                     <XAxis
@@ -652,7 +703,7 @@ const FinancialsTab: React.FC<{
                         <h2 className="text-xl font-semibold text-black mb-4">Expenses by Category</h2>
                         {expensesByCategory.length > 0 ? (
                             <div className="h-64">
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ResponsiveContainer width="100%" height={256}>
                                     <PieChart>
                                         <Pie
                                             data={expensesByCategory}

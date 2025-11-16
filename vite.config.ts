@@ -50,6 +50,13 @@ export default defineConfig(({ mode }) => {
         minify: 'terser',
         outDir: 'dist',
         sourcemap: mode === 'production' ? 'hidden' : true, // Enable source maps for debugging
+        terserOptions: {
+          compress: {
+            drop_console: mode === 'production', // Strip all console.* in production
+            drop_debugger: true,
+            pure_funcs: mode === 'production' ? ['console.log', 'console.info', 'console.debug'] : []
+          }
+        },
         rollupOptions: {
           output: {
             // SIMPLIFIED: Keep all node_modules in ONE vendor chunk

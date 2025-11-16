@@ -60,6 +60,8 @@ function ModuleAssistant({
     maxFileSizeMB = 5, // Default 5MB for AI chat (base64 encoding adds ~33% overhead)
     crmItems = []
 }: ModuleAssistantProps) {
+    const { user } = useAuth();
+    
     // Use conversation history hook for persistence with workspace/user scoping
     const {
         history,
@@ -72,8 +74,6 @@ function ModuleAssistant({
     
     // Fullscreen mode management
     const { isFullscreen, toggleFullscreen, exitFullscreen, isMobileDevice } = useFullscreenChat();
-    
-    const { user } = useAuth();
     const [userInput, setUserInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [file, setFile] = useState<File | null>(null);

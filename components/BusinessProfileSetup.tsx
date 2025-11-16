@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { BusinessProfile, CompanySize, BusinessModel, PrimaryGoal, GrowthStage, RemotePolicy } from '../types';
+import { logger } from '../lib/logger';
+import { SecureStorage, StorageKeys, StorageTTL } from '../lib/utils/secureStorage';
+import { useDebounce } from '../hooks/useDebounce';
+import { validateStep } from '../lib/validation/businessProfileSchema';
+import { useAnalytics } from '../hooks/useAnalytics';
 
 interface BusinessProfileSetupProps {
     onComplete: (profile: Partial<BusinessProfile>) => void;
@@ -60,17 +65,20 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
     onSkip,
     initialData = {}
 }) => {
+    const { track } = useAnalytics()
+    
     // Load draft from localStorage if available
     const loadDraft = (): Partial<BusinessProfile> => {
         try {
-            const draft = localStorage.getItem(DRAFT_STORAGE_KEY);
+            const draft = SecureStorage.getItem<Partial<BusinessProfile>>(
+                StorageKeys.BUSINESS_PROFILE_DRAFT
+            );
             if (draft) {
-                const parsed = JSON.parse(draft);
-                console.log('[BusinessProfileSetup] Loaded draft from localStorage:', parsed);
-                return parsed;
+                logger.debug('Business profile draft loaded from secure storage');
+                return draft;
             }
         } catch (error) {
-            console.error('[BusinessProfileSetup] Error loading draft:', error);
+            logger.error('Failed to load business profile draft', { error: error instanceof Error ? error.message : 'Unknown error' });
         }
         return {};
     };
@@ -79,6 +87,7 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
     const hasExistingData = initialData.isComplete || Object.keys(initialData).length > 1;
     
     const [step, setStep] = useState(1);
+    const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
     const [formData, setFormData] = useState<Partial<BusinessProfile>>({
         companyName: '',
         industry: undefined,
@@ -103,22 +112,34 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
     useEffect(() => {
         if (hasExistingData) {
             try {
-                localStorage.removeItem(DRAFT_STORAGE_KEY);
-                console.log('[BusinessProfileSetup] Cleared draft - editing existing profile');
+                SecureStorage.removeItem(StorageKeys.BUSINESS_PROFILE_DRAFT);
+                logger.debug('Business profile draft cleared - editing existing profile');
             } catch (error) {
-                console.error('[BusinessProfileSetup] Error clearing draft:', error);
+                logger.error('Failed to clear business profile draft', { error: error instanceof Error ? error.message : 'Unknown error' });
             }
         }
     }, [hasExistingData]);
 
-    // Save draft to localStorage whenever formData changes
-    useEffect(() => {
+    // Debounced save function - saves 2 seconds after last change
+    const debouncedSave = useDebounce((data: Partial<BusinessProfile>) => {
         try {
-            localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(formData));
+            SecureStorage.setItem(
+                StorageKeys.BUSINESS_PROFILE_DRAFT,
+                data,
+                StorageTTL.ONE_WEEK // Auto-expire after 7 days
+            );
+            logger.debug('Business profile draft saved to secure storage (debounced)');
         } catch (error) {
-            console.error('[BusinessProfileSetup] Error saving draft:', error);
+            logger.error('Failed to save business profile draft', { error: error instanceof Error ? error.message : 'Unknown error' });
         }
-    }, [formData]);
+    }, 2000); // 2 second delay
+
+    // Save draft to encrypted storage with debouncing to reduce localStorage writes
+    useEffect(() => {
+        if (!hasExistingData) {
+            debouncedSave(formData);
+        }
+    }, [formData, hasExistingData, debouncedSave]);
 
     const totalSteps = 7;
 
@@ -127,6 +148,20 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
     };
 
     const nextStep = () => {
+        // Validate current step before proceeding
+        const validation = validateStep(step, formData);
+        
+        if (!validation.success) {
+            setValidationErrors(validation.errors);
+            logger.debug('Validation failed for step', { step, errors: validation.errors });
+            track('business_profile_validation_error', { step, errors: Object.keys(validation.errors) })
+            return;
+        }
+        
+        // Clear validation errors on successful validation
+        setValidationErrors({});
+        track('business_profile_step_completed', { step, data_fields: Object.keys(formData) })
+        
         if (step < totalSteps) {
             setStep(step + 1);
         } else {
@@ -139,6 +174,12 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
     };
 
     const handleComplete = () => {
+        track('business_profile_completed', { 
+            total_fields: Object.keys(formData).length,
+            has_company_name: !!formData.companyName,
+            has_industry: !!formData.industry,
+            has_mrr: !!formData.currentMrr
+        })
         onComplete({
             ...formData,
             isComplete: true,
@@ -147,10 +188,10 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
         
         // Clear draft after successful completion
         try {
-            localStorage.removeItem(DRAFT_STORAGE_KEY);
-            console.log('[BusinessProfileSetup] Draft cleared after completion');
+            SecureStorage.removeItem(StorageKeys.BUSINESS_PROFILE_DRAFT);
+            logger.debug('Business profile draft cleared after completion');
         } catch (error) {
-            console.error('[BusinessProfileSetup] Error clearing draft:', error);
+            logger.error('Failed to clear business profile draft after completion', { error: error instanceof Error ? error.message : 'Unknown error' });
         }
     };
 
@@ -171,6 +212,19 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
         </div>
     );
 
+    // Helper to render field error
+    const renderFieldError = (fieldName: string) => {
+        const error = validationErrors[fieldName];
+        if (!error) return null;
+        
+        return (
+            <div className="mt-1 text-sm text-red-600 font-mono flex items-center gap-1">
+                <span>⚠️</span>
+                <span>{error}</span>
+            </div>
+        );
+    };
+
     const renderStep1 = () => (
         <div className="space-y-6">
             <div>
@@ -187,11 +241,22 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
                     name="company-name"
                     type="text"
                     value={formData.companyName || ''}
-                    onChange={(e) => updateField('companyName', e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    onChange={(e) => {
+                        updateField('companyName', e.target.value);
+                        // Clear error on change
+                        if (validationErrors.companyName) {
+                            setValidationErrors(prev => ({ ...prev, companyName: '' }));
+                        }
+                    }}
+                    className={`w-full px-4 py-3 border-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-600 ${
+                        validationErrors.companyName ? 'border-red-600' : 'border-black'
+                    }`}
                     placeholder="Acme Inc."
                     required
+                    aria-invalid={!!validationErrors.companyName}
+                    aria-describedby={validationErrors.companyName ? 'company-name-error' : undefined}
                 />
+                {renderFieldError('companyName')}
             </div>
 
             <div>

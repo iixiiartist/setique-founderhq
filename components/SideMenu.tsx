@@ -32,6 +32,7 @@ const SideMenu: React.FC<SideMenuProps> = ({
     
     // Track hover timeouts to clean up on unmount
     const hoverTimeoutRef = useRef<(() => void) | null>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
     const activeClass = "text-blue-500 border-black bg-gray-100";
     const inactiveClass = "text-gray-600 border-transparent";
     
@@ -45,6 +46,48 @@ const SideMenu: React.FC<SideMenuProps> = ({
         }
         return true;
     });
+
+    // Keyboard navigation for tabs
+    React.useEffect(() => {
+        if (!isOpen) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            const currentIndex = filteredNavItems.findIndex(item => item.id === activeTab);
+            
+            switch (e.key) {
+                case 'ArrowDown':
+                case 'j': // Vim-style navigation
+                    e.preventDefault();
+                    const nextIndex = (currentIndex + 1) % filteredNavItems.length;
+                    onSwitchTab(filteredNavItems[nextIndex].id);
+                    break;
+                
+                case 'ArrowUp':
+                case 'k': // Vim-style navigation
+                    e.preventDefault();
+                    const prevIndex = (currentIndex - 1 + filteredNavItems.length) % filteredNavItems.length;
+                    onSwitchTab(filteredNavItems[prevIndex].id);
+                    break;
+                
+                case 'Escape':
+                    e.preventDefault();
+                    onClose();
+                    break;
+                
+                case 'Enter':
+                case ' ': // Space key
+                    // Tab is already active, just close menu
+                    if (e.target === menuRef.current) {
+                        e.preventDefault();
+                        onClose();
+                    }
+                    break;
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, activeTab, filteredNavItems, onSwitchTab, onClose]);
     
     return (
         <>
@@ -57,13 +100,27 @@ const SideMenu: React.FC<SideMenuProps> = ({
             
             {/* Menu content - slides in from left */}
             <div 
+                ref={menuRef}
                 id="menu-content" 
                 className={`fixed top-0 left-0 w-4/5 max-w-sm sm:max-w-md lg:max-w-lg h-full bg-white border-r-2 border-black shadow-neo-lg z-50 transition-transform duration-300 ease-in-out p-4 sm:p-6 flex flex-col overflow-y-auto custom-scrollbar ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
                 onClick={(e) => e.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+                aria-label="Navigation menu"
             >
                 <div className="flex justify-between items-center mb-6 sm:mb-8">
                     <h2 className="text-xl sm:text-2xl font-bold">Menu</h2>
                     <button onClick={onClose} className="text-3xl hover:text-gray-600 transition-colors" aria-label="Close menu">&times;</button>
+                </div>
+                
+                {/* Keyboard shortcuts hint */}
+                <div className="bg-gray-50 border-2 border-black p-3 mb-4 text-xs font-mono">
+                    <div className="font-bold mb-2">⌨️ Keyboard Shortcuts:</div>
+                    <div className="space-y-1 text-gray-600">
+                        <div><kbd className="px-1 bg-white border border-gray-300">↑</kbd> / <kbd className="px-1 bg-white border border-gray-300">k</kbd> - Previous tab</div>
+                        <div><kbd className="px-1 bg-white border border-gray-300">↓</kbd> / <kbd className="px-1 bg-white border border-gray-300">j</kbd> - Next tab</div>
+                        <div><kbd className="px-1 bg-white border border-gray-300">Esc</kbd> - Close menu</div>
+                    </div>
                 </div>
                 <nav className="flex-grow overflow-y-auto custom-scrollbar pr-2 -mr-2" role="navigation" aria-label="Main navigation">
                     {filteredNavItems.map(item => (

@@ -9,6 +9,7 @@ import { DocLibraryPicker } from './workspace/DocLibraryPicker';
 import { LinkedDocsDisplay } from './workspace/LinkedDocsDisplay';
 import { useAuth } from '../contexts/AuthContext';
 import { DatabaseService } from '../lib/services/database';
+import TeamCalendarView from './team/TeamCalendarView';
 
 interface CalendarTabProps {
     events: CalendarEvent[];
@@ -27,12 +28,14 @@ type ViewMode = 'month' | 'week' | 'day';
 const CalendarHeader: React.FC<{
     currentDate: Date;
     viewMode: ViewMode;
+    calendarMode: 'personal' | 'team';
     onPrev: () => void;
     onNext: () => void;
     onToday: () => void;
     onViewChange: (view: ViewMode) => void;
+    onCalendarModeChange: (mode: 'personal' | 'team') => void;
     onNewEvent: () => void;
-}> = ({ currentDate, viewMode, onPrev, onNext, onToday, onViewChange, onNewEvent }) => {
+}> = ({ currentDate, viewMode, calendarMode, onPrev, onNext, onToday, onViewChange, onCalendarModeChange, onNewEvent }) => {
     const formatHeaderDate = () => {
         switch (viewMode) {
             case 'month':
@@ -57,6 +60,20 @@ const CalendarHeader: React.FC<{
                     <button onClick={onNext} className="p-2 hover:bg-gray-100" aria-label="Next period">&rarr;</button>
                 </div>
                 <h2 className="text-2xl font-semibold text-black">{formatHeaderDate()}</h2>
+                <div className="flex border-2 border-black">
+                    <button
+                        onClick={() => onCalendarModeChange('personal')}
+                        className={`py-1 px-3 font-mono text-sm font-semibold ${calendarMode === 'personal' ? 'bg-black text-white' : 'bg-white text-black'}`}
+                    >
+                        Personal
+                    </button>
+                    <button
+                        onClick={() => onCalendarModeChange('team')}
+                        className={`py-1 px-3 font-mono text-sm font-semibold border-l-2 border-black ${calendarMode === 'team' ? 'bg-black text-white' : 'bg-white text-black'}`}
+                    >
+                        Team
+                    </button>
+                </div>
             </div>
             <div className="flex items-center gap-4">
                 <button
@@ -576,6 +593,7 @@ function CalendarTab({
 }: CalendarTabProps) {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [viewMode, setViewMode] = useState<ViewMode>('month');
+    const [calendarMode, setCalendarMode] = useState<'personal' | 'team'>('personal');
     const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
     const modalTriggerRef = useRef<HTMLButtonElement | null>(null);
     
@@ -900,16 +918,26 @@ function CalendarTab({
             <CalendarHeader 
                 currentDate={currentDate}
                 viewMode={viewMode}
+                calendarMode={calendarMode}
                 onPrev={handlePrev}
                 onNext={handleNext}
                 onToday={handleToday}
                 onViewChange={setViewMode}
+                onCalendarModeChange={setCalendarMode}
                 onNewEvent={handleOpenNewEventModal}
             />
             
-            {viewMode === 'month' && renderMonthView()}
-            {viewMode === 'week' && renderWeekView()}
-            {viewMode === 'day' && renderDayView()}
+            {calendarMode === 'team' ? (
+                <TeamCalendarView 
+                    onEventClick={(event, ref) => openEventModal(event, ref)}
+                />
+            ) : (
+                <>
+                    {viewMode === 'month' && renderMonthView()}
+                    {viewMode === 'week' && renderWeekView()}
+                    {viewMode === 'day' && renderDayView()}
+                </>
+            )}
 
             <Modal isOpen={!!selectedEvent} onClose={() => setSelectedEvent(null)} title="Event Details" triggerRef={modalTriggerRef}>
                 {selectedEvent && (

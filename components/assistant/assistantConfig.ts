@@ -40,10 +40,11 @@ export const ASSISTANT_CONFIGS: AssistantConfig[] = [
         }))
       };
       
+      const docs = Array.isArray(data.documents) ? data.documents : [];
       const documentsSummary = {
-        total: data.documents.length,
-        byModule: data.documents.reduce((acc, d) => { acc[d.module] = (acc[d.module] || 0) + 1; return acc; }, {} as Record<string, number>),
-        recent: data.documents.slice(0, 5).map(d => ({ id: d.id, name: d.name, module: d.module }))
+        total: docs.length,
+        byModule: docs.reduce((acc, d) => { acc[d.module] = (acc[d.module] || 0) + 1; return acc; }, {} as Record<string, number>),
+        recent: docs.slice(0, 5).map(d => ({ id: d.id, name: d.name, module: d.module }))
       };
       
       return `You are an expert product and service management assistant for ${companyName}.
@@ -533,10 +534,11 @@ Recent tasks: ${JSON.stringify(dashboardSummary.tasks.recent)}
     color: 'gray',
     getSystemPrompt: ({ companyName, businessContext, userContext, teamContext, data }) => {
       // OPTIMIZATION: Send summaries instead of full JSON
+      const docs = Array.isArray(data.documents) ? data.documents : [];
       const documentsSummary = {
-        total: data.documents.length,
-        byModule: data.documents.reduce((acc, d) => { acc[d.module] = (acc[d.module] || 0) + 1; return acc; }, {} as Record<string, number>),
-        recent: data.documents.slice(0, 5).map(d => ({ id: d.id, name: d.name, module: d.module }))
+        total: docs.length,
+        byModule: docs.reduce((acc, d) => { acc[d.module] = (acc[d.module] || 0) + 1; return acc; }, {} as Record<string, number>),
+        recent: docs.slice(0, 5).map(d => ({ id: d.id, name: d.name, module: d.module }))
       };
       
       return `You are ${companyName}'s AI assistant for workspace management.
@@ -576,15 +578,16 @@ Recent: ${JSON.stringify(documentsSummary.recent)}
     color: 'blue',
     getSystemPrompt: ({ companyName, businessContext, userContext, teamContext, data }) => {
       // OPTIMIZATION: Send summaries instead of full JSON
+      const docs = Array.isArray(data.documents) ? data.documents : [];
       const documentsSummary = {
-        total: data.documents.length,
-        byModule: data.documents.reduce((acc, d) => { acc[d.module] = (acc[d.module] || 0) + 1; return acc; }, {} as Record<string, number>),
-        byType: data.documents.reduce((acc, d) => { 
+        total: docs.length,
+        byModule: docs.reduce((acc, d) => { acc[d.module] = (acc[d.module] || 0) + 1; return acc; }, {} as Record<string, number>),
+        byType: docs.reduce((acc, d) => { 
           const ext = d.mimeType?.split('/')[1] || 'other';
           acc[ext] = (acc[ext] || 0) + 1; 
           return acc; 
         }, {} as Record<string, number>),
-        recent: data.documents.slice(0, 5).map(d => ({ id: d.id, name: d.name, module: d.module, mimeType: d.mimeType }))
+        recent: docs.slice(0, 5).map(d => ({ id: d.id, name: d.name, module: d.module, mimeType: d.mimeType }))
       };
       
       return `You are ${companyName}'s AI assistant for document management.

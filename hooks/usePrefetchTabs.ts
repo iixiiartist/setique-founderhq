@@ -8,6 +8,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { TabType, Tab } from '../constants';
 import { DatabaseService } from '../lib/services/database';
+import { taskKeys } from './useTaskQueries';
+import { crmKeys } from './useCrmQueries';
 
 interface UsePrefetchTabsOptions {
   workspaceId?: string;
@@ -22,16 +24,19 @@ export const usePrefetchTabs = ({ workspaceId, userId, enabled = true }: UsePref
     async (tab: TabType) => {
       if (!enabled || !workspaceId || !userId) return;
 
-      // Prefetch data based on tab type
+      // Prefetch data based on tab type using consistent query keys
       switch (tab) {
         case Tab.Investors:
         case Tab.Customers:
         case Tab.Partners:
-          // Prefetch CRM items
+          // Prefetch CRM items using consistent query keys
           await queryClient.prefetchQuery({
-            queryKey: ['crm-items', workspaceId],
-            queryFn: () => DatabaseService.getCrmItems(workspaceId),
-            staleTime: 5 * 60 * 1000, // Consider fresh for 5 minutes
+            queryKey: crmKeys.workspace(workspaceId),
+            queryFn: async () => {
+              const { data } = await DatabaseService.getCrmItems(workspaceId);
+              return data;
+            },
+            staleTime: 5 * 60 * 1000,
           });
           break;
 
@@ -39,36 +44,53 @@ export const usePrefetchTabs = ({ workspaceId, userId, enabled = true }: UsePref
           // Prefetch marketing items
           await queryClient.prefetchQuery({
             queryKey: ['marketing-items', workspaceId],
-            queryFn: () => DatabaseService.getMarketingItems(workspaceId),
+            queryFn: async () => {
+              const { data } = await DatabaseService.getMarketingItems(workspaceId);
+              return data;
+            },
             staleTime: 5 * 60 * 1000,
           });
           break;
 
         case Tab.Financials:
           // Prefetch financial data
-          await queryClient.prefetchQuery({
-            queryKey: ['financial-logs', workspaceId],
-            queryFn: () => DatabaseService.getFinancialLogs(workspaceId),
-            staleTime: 5 * 60 * 1000,
-          });
-          await queryClient.prefetchQuery({
-            queryKey: ['expenses', workspaceId],
-            queryFn: () => DatabaseService.getExpenses(workspaceId),
-            staleTime: 5 * 60 * 1000,
-          });
-          break;
-
-        case Tab.Calendar:
-          // Prefetch tasks and CRM items for calendar
           await Promise.all([
             queryClient.prefetchQuery({
-              queryKey: ['tasks', userId, workspaceId],
-              queryFn: () => DatabaseService.getTasks(userId, workspaceId),
+              queryKey: ['financial-logs', workspaceId],
+              queryFn: async () => {
+                const { data } = await DatabaseService.getFinancialLogs(workspaceId);
+                return data;
+              },
               staleTime: 5 * 60 * 1000,
             }),
             queryClient.prefetchQuery({
-              queryKey: ['crm-items', workspaceId],
-              queryFn: () => DatabaseService.getCrmItems(workspaceId),
+              queryKey: ['expenses', workspaceId],
+              queryFn: async () => {
+                const { data } = await DatabaseService.getExpenses(workspaceId);
+                return data;
+              },
+              staleTime: 5 * 60 * 1000,
+            }),
+          ]);
+          break;
+
+        case Tab.Calendar:
+          // Prefetch tasks and CRM items for calendar using consistent keys
+          await Promise.all([
+            queryClient.prefetchQuery({
+              queryKey: taskKeys.workspace(workspaceId),
+              queryFn: async () => {
+                const { data } = await DatabaseService.getTasks(userId, workspaceId);
+                return data;
+              },
+              staleTime: 5 * 60 * 1000,
+            }),
+            queryClient.prefetchQuery({
+              queryKey: crmKeys.workspace(workspaceId),
+              queryFn: async () => {
+                const { data } = await DatabaseService.getCrmItems(workspaceId);
+                return data;
+              },
               staleTime: 5 * 60 * 1000,
             }),
           ]);
@@ -77,8 +99,11 @@ export const usePrefetchTabs = ({ workspaceId, userId, enabled = true }: UsePref
         case Tab.ProductsServices:
           // Prefetch products & services tasks
           await queryClient.prefetchQuery({
-            queryKey: ['tasks', userId, workspaceId],
-            queryFn: () => DatabaseService.getTasks(userId, workspaceId),
+            queryKey: taskKeys.workspace(workspaceId),
+            queryFn: async () => {
+              const { data } = await DatabaseService.getTasks(userId, workspaceId);
+              return data;
+            },
             staleTime: 5 * 60 * 1000,
           });
           break;
@@ -87,7 +112,10 @@ export const usePrefetchTabs = ({ workspaceId, userId, enabled = true }: UsePref
           // Prefetch documents
           await queryClient.prefetchQuery({
             queryKey: ['documents', workspaceId],
-            queryFn: () => DatabaseService.getDocuments(workspaceId),
+            queryFn: async () => {
+              const { data } = await DatabaseService.getDocuments(workspaceId);
+              return data;
+            },
             staleTime: 5 * 60 * 1000,
           });
           break;

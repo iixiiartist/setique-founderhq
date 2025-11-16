@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { normalizeEmail } from '../../lib/utils/emailHelpers'
 import { supabase } from '../../lib/supabase'
 import { sanitizeAuthError } from '../../lib/utils/errorMessages'
+import { useAnalytics } from '../../hooks/useAnalytics'
 
 interface Props {
   onSuccess?: () => void
@@ -43,6 +44,7 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false)
 
   const { signIn, signUp, resetPassword } = useAuth()
+  const { track, trackError } = useAnalytics()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -86,6 +88,7 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
       }
       
       if (isSignUp) {
+        track('signup_attempt', { method: 'email' })
         const { data, error } = await signUp(normalizedEmail, password, trimmedName)
         if (process.env.NODE_ENV === 'development') {
           console.log('SignUp result:', { data, error })
@@ -96,15 +99,19 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
           setError(errorMsg)
           sessionStorage.setItem('auth_error', errorMsg)
           setLoading(false)
+          track('signup_failed', { error: errorMsg })
+          trackError(error, { context: 'signup', email: normalizedEmail })
         } else {
           setAwaitingConfirmation(true)
           const successMsg = 'Account created! Check your email and click the confirmation link to complete your signup. The email should arrive within a few minutes.'
           setMessage(successMsg)
           sessionStorage.setItem('auth_message', successMsg)
           setLoading(false)
+          track('signup_success', { method: 'email' })
           // Keep them on signup view but disable switching
         }
       } else {
+        track('login_attempt', { method: 'email' })
         const { data, error } = await signIn(normalizedEmail, password)
         if (process.env.NODE_ENV === 'development') {
           console.log('SignIn result:', { data, error })
@@ -121,6 +128,8 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
           setError(errorMsg)
           sessionStorage.setItem('auth_error', errorMsg)
           setLoading(false)
+          track('login_failed', { error: errorMsg })
+          trackError(error, { context: 'login', email: normalizedEmail })
         } else {
           if (process.env.NODE_ENV === 'development') {
             console.log('Sign in successful')
@@ -128,6 +137,7 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
           const successMsg = 'Sign in successful! Loading your dashboard...'
           setMessage(successMsg)
           sessionStorage.setItem('auth_message', successMsg)
+          track('login_success', { method: 'email' })
           // Small delay to show success message
           await new Promise(resolve => setTimeout(resolve, 800))
           setLoading(false)

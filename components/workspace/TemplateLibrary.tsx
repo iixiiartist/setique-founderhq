@@ -1,0 +1,310 @@
+import React, { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { useWorkspace } from '../../contexts/WorkspaceContext';
+import { WORKSPACE_TEMPLATES, applyTemplate, WorkspaceTemplate } from '../../lib/services/templateService';
+import { Rocket, Building2, Palette, Box, ShoppingCart, CheckCircle2, AlertCircle } from 'lucide-react';
+
+interface TemplateLibraryProps {
+    onTemplateApplied: () => void;
+}
+
+const TEMPLATE_ICONS = {
+    tech_startup: Rocket,
+    saas: Building2,
+    agency: Palette,
+    ecommerce: ShoppingCart,
+    consulting: Box,
+    custom: Box,
+};
+
+const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onTemplateApplied }) => {
+    const { user } = useAuth();
+    const { workspace } = useWorkspace();
+    const [selectedTemplate, setSelectedTemplate] = useState<WorkspaceTemplate | null>(null);
+    const [applying, setApplying] = useState(false);
+    const [success, setSuccess] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleApplyTemplate = async () => {
+        if (!selectedTemplate || !workspace || !user) return;
+
+        if (!confirm(`Apply "${selectedTemplate.name}" template? This will add:\n\n• ${selectedTemplate.tasks.length} tasks\n• ${selectedTemplate.contacts.length} CRM contacts\n• ${selectedTemplate.documents.length} documents\n\nExisting data will not be affected.`)) {
+            return;
+        }
+
+        setApplying(true);
+        setError(null);
+
+        const result = await applyTemplate(
+            workspace.id,
+            user.id,
+            user.email?.split('@')[0] || 'User',
+            selectedTemplate.id
+        );
+
+        setApplying(false);
+
+        if (result.success) {
+            setSuccess(true);
+            setTimeout(() => {
+                onTemplateApplied();
+            }, 2000);
+        } else {
+            setError(result.error || 'Failed to apply template');
+        }
+    };
+
+    if (success) {
+        return (
+            <div className="bg-white p-8 border-2 border-black shadow-neo text-center">
+                <CheckCircle2 size={64} className="mx-auto mb-4 text-green-600" />
+                <h2 className="font-mono font-bold text-2xl mb-2">Template Applied!</h2>
+                <p className="font-mono text-gray-600 mb-4">
+                    Your workspace has been populated with sample data.
+                </p>
+                <p className="font-mono text-sm text-gray-500">
+                    Redirecting to your workspace...
+                </p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="bg-white border-2 border-black shadow-neo">
+            {/* Header */}
+            <div className="p-6 bg-black text-white">
+                <h2 className="font-mono font-bold text-2xl mb-2">Workspace Templates</h2>
+                <p className="font-mono text-sm text-gray-300">
+                    Jumpstart your workspace with pre-built templates for different business types
+                </p>
+            </div>
+
+            <div className="flex" style={{ minHeight: '600px' }}>
+                {/* Templates list */}
+                <div className="w-2/5 border-r-2 border-black overflow-y-auto">
+                    <div className="divide-y-2 divide-gray-200">
+                        {WORKSPACE_TEMPLATES.map((template) => {
+                            const IconComponent = TEMPLATE_ICONS[template.category];
+                            const isSelected = selectedTemplate?.id === template.id;
+
+                            return (
+                                <button
+                                    key={template.id}
+                                    onClick={() => setSelectedTemplate(template)}
+                                    className={`w-full p-6 text-left hover:bg-gray-50 transition-colors ${
+                                        isSelected ? 'bg-blue-50 border-l-4 border-blue-600' : ''
+                                    }`}
+                                >
+                                    <div className="flex items-start gap-4">
+                                        <div className="flex-shrink-0">
+                                            <div className="w-12 h-12 bg-black text-white rounded flex items-center justify-center text-2xl">
+                                                {template.icon}
+                                            </div>
+                                        </div>
+                                        <div className="flex-1">
+                                            <h3 className="font-mono font-bold text-lg mb-1">
+                                                {template.name}
+                                            </h3>
+                                            <p className="font-mono text-sm text-gray-600 mb-3">
+                                                {template.description}
+                                            </p>
+                                            <div className="flex flex-wrap gap-2">
+                                                <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-mono rounded">
+                                                    {template.tasks.length} tasks
+                                                </span>
+                                                <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-mono rounded">
+                                                    {template.contacts.length} contacts
+                                                </span>
+                                                <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-mono rounded">
+                                                    {template.documents.length} docs
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Template details */}
+                <div className="flex-1 overflow-y-auto">
+                    {selectedTemplate ? (
+                        <div className="p-8">
+                            {/* Template header */}
+                            <div className="flex items-start justify-between mb-6">
+                                <div className="flex items-start gap-4">
+                                    <div className="w-16 h-16 bg-black text-white rounded flex items-center justify-center text-3xl flex-shrink-0">
+                                        {selectedTemplate.icon}
+                                    </div>
+                                    <div>
+                                        <h2 className="font-mono font-bold text-2xl mb-2">
+                                            {selectedTemplate.name}
+                                        </h2>
+                                        <p className="font-mono text-gray-600">
+                                            {selectedTemplate.description}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Error message */}
+                            {error && (
+                                <div className="mb-6 p-4 bg-red-50 border-2 border-red-600 rounded flex items-start gap-3">
+                                    <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+                                    <div>
+                                        <div className="font-mono font-semibold text-red-900 mb-1">
+                                            Failed to Apply Template
+                                        </div>
+                                        <div className="font-mono text-sm text-red-800">{error}</div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Apply button */}
+                            <div className="mb-8">
+                                <button
+                                    onClick={handleApplyTemplate}
+                                    disabled={applying}
+                                    className="w-full py-3 bg-black text-white font-mono font-bold text-lg border-2 border-black shadow-neo-btn hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    {applying ? 'Applying Template...' : `Apply ${selectedTemplate.name} Template`}
+                                </button>
+                                <p className="font-mono text-xs text-gray-500 mt-2 text-center">
+                                    This will add sample data to your workspace without removing existing content
+                                </p>
+                            </div>
+
+                            {/* What's included */}
+                            <div className="space-y-6">
+                                {/* Tasks */}
+                                <div>
+                                    <h3 className="font-mono font-bold text-lg mb-3 flex items-center gap-2">
+                                        <div className="w-6 h-6 bg-black text-white rounded text-sm flex items-center justify-center">
+                                            {selectedTemplate.tasks.length}
+                                        </div>
+                                        Sample Tasks
+                                    </h3>
+                                    <div className="space-y-2">
+                                        {selectedTemplate.tasks.slice(0, 5).map((task, index) => (
+                                            <div key={index} className="p-3 bg-gray-50 border border-gray-300 rounded">
+                                                <div className="flex items-start justify-between">
+                                                    <div className="flex-1">
+                                                        <div className="font-mono text-sm font-semibold">{task.text}</div>
+                                                        <div className="font-mono text-xs text-gray-500 mt-1">
+                                                            {task.category} • {task.priority} Priority
+                                                            {task.dueOffset && ` • Due in ${task.dueOffset} days`}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {selectedTemplate.tasks.length > 5 && (
+                                            <div className="p-2 text-center text-xs font-mono text-gray-500">
+                                                +{selectedTemplate.tasks.length - 5} more tasks
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* CRM Contacts */}
+                                {selectedTemplate.contacts.length > 0 && (
+                                    <div>
+                                        <h3 className="font-mono font-bold text-lg mb-3 flex items-center gap-2">
+                                            <div className="w-6 h-6 bg-black text-white rounded text-sm flex items-center justify-center">
+                                                {selectedTemplate.contacts.length}
+                                            </div>
+                                            Sample CRM Contacts
+                                        </h3>
+                                        <div className="space-y-2">
+                                            {selectedTemplate.contacts.map((contact, index) => (
+                                                <div key={index} className="p-3 bg-gray-50 border border-gray-300 rounded">
+                                                    <div className="flex items-start justify-between">
+                                                        <div>
+                                                            <div className="font-mono text-sm font-semibold">{contact.name}</div>
+                                                            <div className="font-mono text-xs text-gray-500">
+                                                                {contact.role} at {contact.company}
+                                                            </div>
+                                                        </div>
+                                                        <span className="px-2 py-1 bg-black text-white text-xs font-mono rounded">
+                                                            {contact.collection}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Documents */}
+                                {selectedTemplate.documents.length > 0 && (
+                                    <div>
+                                        <h3 className="font-mono font-bold text-lg mb-3 flex items-center gap-2">
+                                            <div className="w-6 h-6 bg-black text-white rounded text-sm flex items-center justify-center">
+                                                {selectedTemplate.documents.length}
+                                            </div>
+                                            Sample Documents
+                                        </h3>
+                                        <div className="space-y-2">
+                                            {selectedTemplate.documents.map((doc, index) => (
+                                                <div key={index} className="p-3 bg-gray-50 border border-gray-300 rounded">
+                                                    <div className="font-mono text-sm font-semibold mb-1">{doc.title}</div>
+                                                    <div className="font-mono text-xs text-gray-500 mb-2">
+                                                        Type: {doc.docType}
+                                                    </div>
+                                                    <div className="font-mono text-xs text-gray-700 line-clamp-2">
+                                                        {doc.content.substring(0, 100)}...
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Financial Structure */}
+                                {selectedTemplate.financial_structure && (
+                                    <div>
+                                        <h3 className="font-mono font-bold text-lg mb-3">Financial Structure</h3>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="p-3 bg-green-50 border border-green-300 rounded">
+                                                <div className="font-mono text-xs font-semibold text-green-900 mb-2">
+                                                    Revenue Categories
+                                                </div>
+                                                <ul className="font-mono text-xs text-green-800 space-y-1">
+                                                    {selectedTemplate.financial_structure.revenue_categories.map((cat, i) => (
+                                                        <li key={i}>• {cat}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                            <div className="p-3 bg-red-50 border border-red-300 rounded">
+                                                <div className="font-mono text-xs font-semibold text-red-900 mb-2">
+                                                    Expense Categories
+                                                </div>
+                                                <ul className="font-mono text-xs text-red-800 space-y-1">
+                                                    {selectedTemplate.financial_structure.expense_categories.map((cat, i) => (
+                                                        <li key={i}>• {cat}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-center h-full p-8 text-center">
+                            <div>
+                                <Box size={64} className="mx-auto mb-4 text-gray-300" />
+                                <p className="font-mono text-gray-500">
+                                    Select a template to see details and apply it to your workspace
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default TemplateLibrary;

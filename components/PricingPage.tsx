@@ -10,7 +10,7 @@ import {
     isTeamPlan,
     PlanType
 } from '../lib/subscriptionConstants';
-import { StripeService } from '../lib/services/stripe';
+import { stripeEdgeFunctions } from '../src/services/stripeEdgeFunctions';
 
 interface PricingPageProps {
     currentPlan?: PlanType;
@@ -31,12 +31,15 @@ export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', 
         
         setIsLoading(true);
         try {
-            
-            await StripeService.redirectToCheckout({
+            const { url } = await stripeEdgeFunctions.createCheckoutSession({
                 workspaceId,
                 planType,
-                ...(isTeamPlan(planType) && { seatCount: teamSeats })
+                seatCount: isTeamPlan(planType) ? teamSeats : 1,
+                successUrl: `${window.location.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
+                cancelUrl: window.location.href,
             });
+            
+            window.location.href = url;
         } catch (error) {
             console.error('Failed to create checkout session:', error);
             alert('Failed to start checkout. Please try again.');

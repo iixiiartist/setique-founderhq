@@ -29,7 +29,7 @@ function CrmTabComponent({
     crmItems, 
     tasks, 
     actions, 
-    documents, 
+    documents = [], 
     businessProfile,
     workspaceId,
     onUpgradeNeeded,
@@ -53,7 +53,7 @@ function CrmTabComponent({
         };
     }, [title]);
 
-    const documentsMetadata = useMemo(() => documents.map(({ id, name, mimeType, module, uploadedAt }) => ({ id, name, mimeType, module, uploadedAt })), [documents]);
+    const documentsMetadata = useMemo(() => (Array.isArray(documents) ? documents : []).map(({ id, name, mimeType, module, uploadedAt }) => ({ id, name, mimeType, module, uploadedAt })), [documents]);
 
     useEffect(() => {
         if (selectedItem && !isUpdatingRef.current) {

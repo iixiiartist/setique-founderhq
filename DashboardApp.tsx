@@ -8,6 +8,10 @@ import Toast from './components/shared/Toast';
 import TaskFocusModal from './components/shared/TaskFocusModal';
 import { TabLoadingFallback } from './components/shared/TabLoadingFallback';
 import { setUser as setSentryUser, setWorkspaceContext, trackAction } from './lib/sentry.tsx';
+import { useAnalytics } from './hooks/useAnalytics';
+import { notifyTaskReassigned, notifyDeadlineChanged } from './lib/services/taskReminderService';
+import { notifyDealWon, notifyDealLost, notifyDealStageChanged, notifyDealReassigned } from './lib/services/dealNotificationService';
+import InAppNotificationsPanel from './components/shared/InAppNotificationsPanel';
 
 // Lazy load heavy tab components for code splitting
 // This reduces initial bundle size and improves first load performance
@@ -27,14 +31,16 @@ import { FloatingAIAssistant } from './components/assistant/FloatingAIAssistant'
 import { useAuth } from './contexts/AuthContext';
 import { useWorkspace } from './contexts/WorkspaceContext';
 import { LoadingSpinner } from './components/shared/Loading';
-import { useLazyDataPersistence } from './hooks/useLazyDataPersistence';
+import { useQueryDataPersistence } from './hooks/useQueryDataPersistence';
 import { DataPersistenceAdapter } from './lib/services/dataPersistenceAdapter';
 import { DatabaseService } from './lib/services/database';
 import { supabase } from './lib/supabase';
+import { SectionBoundary } from './lib/errorBoundaries';
 
 const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePlan }) => {
     const { user, signOut } = useAuth();
     const { workspace, businessProfile, showOnboarding, saveBusinessProfile, dismissOnboarding, isLoadingWorkspace, refreshWorkspace, canEditTask, workspaceMembers, isWorkspaceOwner } = useWorkspace();
+    const { track } = useAnalytics();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showBusinessProfileModal, setShowBusinessProfileModal] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
@@ -45,8 +51,8 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
         return (savedTab as TabType) || Tab.Dashboard;
     });
     
-    // Use lazy loading for better performance
-    const lazyDataPersistence = useLazyDataPersistence();
+    // Use React Query for data fetching (improved caching and performance)
+    const lazyDataPersistence = useQueryDataPersistence();
     const {
         loadCoreData,
         loadTasks,
@@ -79,6 +85,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
     const [sentNotifications, setSentNotifications] = useState<Set<string>>(new Set());
     const [lastNotificationCheckDate, setLastNotificationCheckDate] = useState<string | null>(null);
     const [isTaskFocusModalOpen, setIsTaskFocusModalOpen] = useState(false);
+    const [isNotificationsPanelOpen, setIsNotificationsPanelOpen] = useState(false);
 
     // Refs for notification permission tracking (prevents duplicate warnings)
     const notificationPermissionRequestRef = useRef(false);
@@ -508,6 +515,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
 
     const switchTab = (tab: TabType) => {
+        track('tab_switched', { from: activeTab, to: tab });
         setActiveTab(tab);
         setIsMenuOpen(false);
     };
@@ -783,8 +791,9 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     }));
                 }
                 
-                // Track action in Sentry
+                // Track action in Sentry and Analytics
                 trackAction('task_created', { category, priority, hasDate: !!dueDate });
+                track('task_created', { category, priority, has_due_date: !!dueDate, has_assignee: !!assignedTo });
                 
                 handleToast(`Task "${text}" created.`, 'success');
                 return { success: true, message: `Task "${text}" created.` };
@@ -856,12 +865,48 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
                 await DataPersistenceAdapter.updateTask(taskId, updates, user?.id, workspace?.id);
                 
-                // Track action in Sentry
+                // Track action in Sentry and Analytics
                 trackAction('task_updated', { 
                     taskId, 
                     status: updates.status,
                     wasCompleted: wasCompleted && previousStatus !== 'Done'
                 });
+                track('task_updated', {
+                    status: updates.status,
+                    was_completed: wasCompleted && previousStatus !== 'Done',
+                    category: taskCategory
+                });
+
+                // Send notifications for important changes
+                if (task && workspace?.id) {
+                    // Task reassignment notification
+                    if (updates.assignedTo && updates.assignedTo !== task.assignedTo) {
+                        await notifyTaskReassigned({
+                            taskId: task.id,
+                            taskText: task.text,
+                            fromUserId: task.assignedTo || task.userId,
+                            toUserId: updates.assignedTo,
+                            reassignedByName: user?.user_metadata?.full_name || 'A team member',
+                            workspaceId: workspace.id,
+                        });
+                    }
+
+                    // Deadline change notification
+                    if (updates.dueDate !== undefined && updates.dueDate !== task.dueDate) {
+                        const targetUserId = task.assignedTo || task.userId;
+                        if (targetUserId && targetUserId !== userId) {
+                            await notifyDeadlineChanged({
+                                taskId: task.id,
+                                taskText: task.text,
+                                userId: targetUserId,
+                                oldDate: task.dueDate,
+                                newDate: updates.dueDate || undefined,
+                                changedByName: user?.user_metadata?.full_name || 'A team member',
+                                workspaceId: workspace.id,
+                            });
+                        }
+                    }
+                }
                 
                 // Reload tasks to get fresh data
                 invalidateCache('tasks');
@@ -925,8 +970,9 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     return { success: false, message: 'Permission denied' };
                 }
 
-                // Track action in Sentry
+                // Track action in Sentry and Analytics
                 trackAction('task_deleted', { taskId, category: taskCategory });
+                track('task_deleted', { category: taskCategory });
                 
                 // Use the existing deleteItem method
                 return await actions.deleteItem(taskCategory, taskId);
@@ -1864,6 +1910,60 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     }
                 }
 
+                // Send deal notifications for stage changes and reassignment
+                const currentDeal = deals.find(d => d.id === dealId);
+                
+                // Deal reassignment notification
+                if (updates.assignedTo !== undefined && updates.assignedTo !== currentDeal?.assignedTo) {
+                    await notifyDealReassigned({
+                        dealId: dealId,
+                        dealName: updates.title || currentDeal?.title || 'Deal',
+                        fromUserId: currentDeal?.assignedTo || currentDeal?.userId || '',
+                        toUserId: updates.assignedTo,
+                        reassignedByName: user?.user_metadata?.full_name || 'A team member',
+                        workspaceId: workspace!.id,
+                    });
+                }
+                
+                // Deal stage change notifications
+                if (updates.stage !== undefined && updates.stage !== currentDeal?.stage) {
+                    const dealName = updates.title || currentDeal?.title || 'Deal';
+                    const dealValue = updates.value || currentDeal?.value;
+                    const targetUserId = updates.assignedTo || currentDeal?.assignedTo || currentDeal?.userId || user!.id;
+                    
+                    if (updates.stage === 'closed_won') {
+                        // Notify deal won - optionally team-wide for celebration
+                        await notifyDealWon({
+                            dealId: dealId,
+                            dealName: dealName,
+                            dealValue: dealValue,
+                            userId: targetUserId,
+                            workspaceId: workspace!.id,
+                            teamMembers: [], // Could fetch team members for team-wide celebration
+                        });
+                    } else if (updates.stage === 'closed_lost') {
+                        // Notify deal lost
+                        await notifyDealLost({
+                            dealId: dealId,
+                            dealName: dealName,
+                            userId: targetUserId,
+                            workspaceId: workspace!.id,
+                            reason: updates.notes || undefined,
+                        });
+                    } else {
+                        // Notify general stage change
+                        await notifyDealStageChanged({
+                            dealId: dealId,
+                            dealName: dealName,
+                            oldStage: currentDeal?.stage || 'unknown',
+                            newStage: updates.stage,
+                            userId: targetUserId,
+                            workspaceId: workspace!.id,
+                            changedByName: user?.user_metadata?.full_name || 'A team member',
+                        });
+                    }
+                }
+
                 // Trigger automation engine for deal stage changes
                 if (result.data) {
                     try {
@@ -1981,11 +2081,11 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     cost_of_service: productData.costOfService || null,
                     is_taxable: productData.isTaxable || false,
                     tax_rate: productData.taxRate || null,
-                    inventory_tracking: productData.inventoryTracking || false,
+                    inventory_tracked: productData.inventoryTracking || false,
                     quantity_on_hand: productData.quantityOnHand || null,
                     reorder_point: productData.reorderPoint || null,
                     reorder_quantity: productData.reorderQuantity || null,
-                    capacity_tracking: productData.capacityTracking || false,
+                    capacity_tracked: productData.capacityTracking || false,
                     capacity_total: productData.capacityTotal || null,
                     capacity_unit: productData.capacityUnit || null,
                     capacity_period: productData.capacityPeriod || null,
@@ -2052,13 +2152,13 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 if (updates.costOfService !== undefined) dbUpdates.cost_of_service = updates.costOfService;
                 if (updates.isTaxable !== undefined) dbUpdates.is_taxable = updates.isTaxable;
                 if (updates.taxRate !== undefined) dbUpdates.tax_rate = updates.taxRate;
-                if (updates.inventoryTracking !== undefined) dbUpdates.inventory_tracking = updates.inventoryTracking;
+                if (updates.inventoryTracking !== undefined) dbUpdates.inventory_tracked = updates.inventoryTracking;
                 if (updates.quantityOnHand !== undefined) dbUpdates.quantity_on_hand = updates.quantityOnHand;
                 if (updates.quantityReserved !== undefined) dbUpdates.quantity_reserved = updates.quantityReserved;
                 if (updates.quantityAvailable !== undefined) dbUpdates.quantity_available = updates.quantityAvailable;
                 if (updates.reorderPoint !== undefined) dbUpdates.reorder_point = updates.reorderPoint;
                 if (updates.reorderQuantity !== undefined) dbUpdates.reorder_quantity = updates.reorderQuantity;
-                if (updates.capacityTracking !== undefined) dbUpdates.capacity_tracking = updates.capacityTracking;
+                if (updates.capacityTracking !== undefined) dbUpdates.capacity_tracked = updates.capacityTracking;
                 if (updates.capacityTotal !== undefined) dbUpdates.capacity_total = updates.capacityTotal;
                 if (updates.capacityBooked !== undefined) dbUpdates.capacity_booked = updates.capacityBooked;
                 if (updates.capacityAvailable !== undefined) dbUpdates.capacity_available = updates.capacityAvailable;
@@ -2250,11 +2350,16 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
         switch (activeTab) {
             case Tab.Dashboard:
-                return <DashboardTab data={data} actions={actions} businessProfile={businessProfile} settings={data.settings} />;
+                return (
+                    <SectionBoundary sectionName="Dashboard">
+                        <DashboardTab data={data} actions={actions} businessProfile={businessProfile} settings={data.settings} />
+                    </SectionBoundary>
+                );
             case Tab.Calendar:
                 return (
-                    <Suspense fallback={<TabLoadingFallback />}>
-                        <CalendarTab 
+                    <SectionBoundary sectionName="Calendar">
+                        <Suspense fallback={<TabLoadingFallback />}>
+                            <CalendarTab 
                             events={calendarEvents} 
                             actions={actions}
                             workspace={workspace}
@@ -2265,12 +2370,14 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                                 partners: data.partners || []
                             }}
                         />
-                    </Suspense>
+                        </Suspense>
+                    </SectionBoundary>
                 );
             case Tab.ProductsServices:
                 return (
-                    <Suspense fallback={<TabLoadingFallback />}>
-                        <ProductsServicesTab 
+                    <SectionBoundary sectionName="ProductsServices">
+                        <Suspense fallback={<TabLoadingFallback />}>
+                            <ProductsServicesTab 
                             workspaceId={workspace?.id || ''}
                             tasks={data.productsServicesTasks}
                             productsServices={data.productsServices}
@@ -2279,12 +2386,14 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             revenueTransactions={data.revenueTransactions}
                             deals={data.deals}
                         />
-                    </Suspense>
+                        </Suspense>
+                    </SectionBoundary>
                 );
             case Tab.Investors:
                 return (
-                    <Suspense fallback={<TabLoadingFallback />}>
-                        <CrmTab 
+                    <SectionBoundary sectionName="Investors">
+                        <Suspense fallback={<TabLoadingFallback />}>
+                            <CrmTab 
                             title="Investor" 
                             crmItems={data.investors} 
                             tasks={data.investorTasks} 
@@ -2298,12 +2407,14 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             deals={data.deals}
                             productsServices={data.productsServices}
                         />
-                    </Suspense>
+                        </Suspense>
+                    </SectionBoundary>
                 );
             case Tab.Customers:
                 return (
-                    <Suspense fallback={<TabLoadingFallback />}>
-                        <CrmTab 
+                    <SectionBoundary sectionName="Customers">
+                        <Suspense fallback={<TabLoadingFallback />}>
+                            <CrmTab 
                             title="Customer" 
                             crmItems={data.customers} 
                             tasks={data.customerTasks} 
@@ -2317,12 +2428,14 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             userId={user?.id}
                             deals={data.deals}
                         />
-                    </Suspense>
+                        </Suspense>
+                    </SectionBoundary>
                 );
             case Tab.Partners:
                 return (
-                    <Suspense fallback={<TabLoadingFallback />}>
-                        <CrmTab 
+                    <SectionBoundary sectionName="Partners">
+                        <Suspense fallback={<TabLoadingFallback />}>
+                            <CrmTab 
                             title="Partner" 
                             crmItems={data.partners} 
                             tasks={data.partnerTasks} 
@@ -2336,12 +2449,14 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             userId={user?.id}
                             deals={data.deals}
                         />
-                    </Suspense>
+                        </Suspense>
+                    </SectionBoundary>
                 );
             case Tab.Marketing:
                 return (
-                    <Suspense fallback={<TabLoadingFallback />}>
-                        <MarketingTab 
+                    <SectionBoundary sectionName="Marketing">
+                        <Suspense fallback={<TabLoadingFallback />}>
+                            <MarketingTab 
                             items={data.marketing} 
                             tasks={data.marketingTasks} 
                             actions={actions} 
@@ -2354,11 +2469,13 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             productsServices={data.productsServices}
                         />
                     </Suspense>
+                    </SectionBoundary>
                 );
             case Tab.Financials:
                 return (
-                    <Suspense fallback={<TabLoadingFallback />}>
-                        <FinancialsTab 
+                    <SectionBoundary sectionName="Financials">
+                        <Suspense fallback={<TabLoadingFallback />}>
+                            <FinancialsTab 
                             items={data.financials} 
                             expenses={data.expenses} 
                             tasks={data.financialTasks} 
@@ -2372,6 +2489,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             productsServices={data.productsServices}
                         />
                     </Suspense>
+                    </SectionBoundary>
                 );
             case Tab.Workspace:
                 // GTM Docs - available for all paid plans
@@ -2435,9 +2553,11 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 );
             case Tab.Settings:
                 return (
+                    <SectionBoundary sectionName="Settings">
                     <Suspense fallback={<TabLoadingFallback />}>
                         <SettingsTab settings={data.settings} onUpdateSettings={actions.updateSettings} actions={actions} workspaceId={workspace?.id} />
                     </Suspense>
+                    </SectionBoundary>
                 );
             case Tab.Admin:
                 return isAdmin ? (
@@ -2594,10 +2714,16 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-end">
                         {/* Notification Bell */}
                         {user && workspace && (
-                            <NotificationBell 
-                                userId={user.id}
-                                workspaceId={workspace.id}
-                            />
+                            <>
+                                <NotificationBell 
+                                    userId={user.id}
+                                    workspaceId={workspace.id}
+                                />
+                                <InAppNotificationsPanel
+                                    isOpen={isNotificationsPanelOpen}
+                                    onClose={() => setIsNotificationsPanelOpen(false)}
+                                />
+                            </>
                         )}
                         <div className="flex items-center gap-2">
                             <span className="text-xs sm:text-sm text-gray-600 hidden md:inline truncate max-w-[150px]">{user?.email}</span>
