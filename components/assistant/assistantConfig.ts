@@ -473,12 +473,12 @@ Today's tasks: ${JSON.stringify(calendarSummary.todaysTasksList)}
     getSystemPrompt: ({ companyName, businessContext, userContext, teamContext, data }) => {
       // OPTIMIZATION: Send aggregated summaries instead of full JSON
       const allTasks = [
-        ...data.productsServicesTasks,
-        ...data.investorTasks,
-        ...data.customerTasks,
-        ...data.partnerTasks,
-        ...data.marketingTasks,
-        ...data.financialTasks
+        ...(data.productsServicesTasks || []),
+        ...(data.investorTasks || []),
+        ...(data.customerTasks || []),
+        ...(data.partnerTasks || []),
+        ...(data.marketingTasks || []),
+        ...(data.financialTasks || [])
       ];
       
       const dashboardSummary = {
@@ -488,16 +488,16 @@ Today's tasks: ${JSON.stringify(calendarSummary.todaysTasksList)}
           recent: allTasks.slice(0, 5).map(t => ({ id: t.id, text: t.text, status: t.status }))
         },
         crm: {
-          investors: data.investors.length,
-          customers: data.customers.length,
-          partners: data.partners.length
+          investors: data.investors?.length || 0,
+          customers: data.customers?.length || 0,
+          partners: data.partners?.length || 0
         },
         marketing: {
-          campaigns: data.marketing.length
+          campaigns: data.marketing?.length || 0
         },
         financials: {
-          logs: data.financials.length,
-          expenses: data.expenses.length
+          logs: data.financials?.length || 0,
+          expenses: data.expenses?.length || 0
         }
       };
       
