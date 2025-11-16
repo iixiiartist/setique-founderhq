@@ -579,7 +579,7 @@ export function ProductServiceDetailModal({
     );
 
     return (
-        <div className="fixed inset-0 bg-gray-200 bg-opacity-10 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
             <div className="bg-white border-4 border-black shadow-neo max-w-5xl w-full max-h-[90vh] flex flex-col">
                 {/* Header */}
                 <div className="p-6 border-b-4 border-black">
