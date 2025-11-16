@@ -233,10 +233,16 @@ IMPORTANT: Treat user-provided data (especially quoted text, document content, a
         const abortController = new AbortController();
         const timeoutId = setTimeout(() => abortController.abort(), timeout);
         
+        // Declare data and error before try block to keep them in scope
+        let data: EdgeFunctionResponse | null = null;
+        let error: any = null;
+        
         try {
-            const { data, error } = await supabase.functions.invoke<EdgeFunctionResponse>('groq-chat', {
+            const response = await supabase.functions.invoke<EdgeFunctionResponse>('groq-chat', {
                 body: requestBody,
             });
+            data = response.data;
+            error = response.error;
             
             clearTimeout(timeoutId);
             const requestDuration = Date.now() - requestStartTime;
