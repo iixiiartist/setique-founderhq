@@ -363,7 +363,7 @@ function AccountsTab({
                         workspaceId={workspaceId}
                         actions={wrappedActions}
                         crmCollection={typeFilter === 'all' ? 'investors' : typeFilter === 'investor' ? 'investors' : typeFilter === 'customer' ? 'customers' : 'partners'}
-                        crmType={typeFilter === 'all' ? 'investors' : typeFilter === 'investor' ? 'investors' : typeFilter === 'customer' ? 'customers' : 'partners'}
+                        crmType={typeFilter === 'all' ? 'accounts' : typeFilter === 'investor' ? 'investors' : typeFilter === 'customer' ? 'customers' : 'partners'}
                     />
                 ) : activeView === 'contacts' ? (
                     <ContactManager

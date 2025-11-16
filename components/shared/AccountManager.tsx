@@ -6,7 +6,7 @@ interface AccountManagerProps {
     crmItems: AnyCrmItem[];
     actions: AppActions;
     crmCollection: CrmCollectionName;
-    crmType: 'investors' | 'customers' | 'partners';
+    crmType: 'investors' | 'customers' | 'partners' | 'accounts';
     workspaceId?: string;
     onViewAccount?: (item: AnyCrmItem) => void;
 }
@@ -221,6 +221,7 @@ export function AccountManager({
             case 'investors': return 'Investor';
             case 'customers': return 'Customer';
             case 'partners': return 'Partner';
+            case 'accounts': return 'Account';
             default: return 'Account';
         }
     };
@@ -864,7 +865,7 @@ export function AccountManager({
                             onClick={() => setShowAddModal(true)}
                             className="mt-2 text-blue-600 hover:underline"
                         >
-                            Add your first {crmType.slice(0, -1)}
+                            Add your first {crmType === 'accounts' ? 'account' : crmType.slice(0, -1)}
                         </button>
                     </div>
                 ) : (
