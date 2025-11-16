@@ -194,16 +194,8 @@ function CrmTabComponent({
             });
         },
         createCrmItem: async (collection: CrmCollectionName, item: Partial<AnyCrmItem>) => {
-            isUpdatingRef.current = true;
-            try {
-                const result = await actions.createCrmItem(collection, item);
-                // Reset flag BEFORE returning so effect can process new data
-                isUpdatingRef.current = false;
-                return result;
-            } catch (error) {
-                isUpdatingRef.current = false;
-                throw error;
-            }
+            // Don't use isUpdatingRef for creates - we want the UI to update immediately
+            return actions.createCrmItem(collection, item);
         },
         updateContact: (collection: CrmCollectionName, itemId: string, contactId: string, updates: Partial<Contact>) => {
             isUpdatingRef.current = true;
