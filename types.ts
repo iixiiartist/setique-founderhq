@@ -35,7 +35,7 @@ export interface Task {
     text: string;
     status: TaskStatus;
     priority: Priority;
-    category: 'productsServicesTasks' | 'investorTasks' | 'customerTasks' | 'partnerTasks' | 'marketingTasks' | 'financialTasks'; // Required category for organizing tasks
+    category: 'productsServicesTasks' | 'investorTasks' | 'customerTasks' | 'partnerTasks' | 'marketingTasks' | 'financialTasks' | 'crmTasks'; // Required category for organizing tasks
     createdAt: number;
     completedAt?: number;
     dueDate?: string; // YYYY-MM-DD
@@ -44,6 +44,7 @@ export interface Task {
     subtasks?: Subtask[]; // Nested subtasks for sophisticated task management
     crmItemId?: string;
     contactId?: string;
+    crmType?: 'investor' | 'customer' | 'partner'; // NEW: For unified CRM task filtering
     userId?: string; // User who created the task (for permission checks)
     assignedTo?: string; // User ID this task is assigned to
     assignedToName?: string; // Name of assigned user (for display)
@@ -80,19 +81,46 @@ export interface BaseCrmItem {
     assignedToName?: string | null;
 }
 
+// CRM Type discriminator
+export type CrmType = 'investor' | 'customer' | 'partner';
+
+// Type-specific interfaces (keep for backwards compatibility and type safety)
 export interface Investor extends BaseCrmItem {
+    type: 'investor';
     checkSize: number;
+    investmentStage?: string;
 }
 
 export interface Customer extends BaseCrmItem {
+    type: 'customer';
     dealValue: number;
+    dealStage?: string;
 }
 
 export interface Partner extends BaseCrmItem {
+    type: 'partner';
     opportunity: string;
+    partnerType?: string;
 }
 
+// Union of specific types (backwards compatible)
 export type AnyCrmItem = Investor | Customer | Partner;
+
+// NEW: Unified CRM item with optional type-specific fields
+export interface CrmItem extends BaseCrmItem {
+    type: CrmType;
+    
+    // Type-specific fields (optional for unified interface)
+    checkSize?: number;        // investors only
+    investmentStage?: string;  // investors only
+    dealValue?: number;        // customers only
+    dealStage?: string;        // customers only
+    opportunity?: string;      // partners only
+    partnerType?: string;      // partners only
+}
+
+// Helper type for unified account handling
+export type AnyAccountItem = CrmItem;
 
 export interface Deal {
     id: string;
@@ -832,12 +860,19 @@ export interface LinkedDoc extends GTMDocMetadata {
 
 export interface DashboardData {
     productsServicesTasks: Task[];
+    
+    // CRM Data - Legacy split format (keep for backwards compatibility)
     investors: Investor[];
     investorTasks: Task[];
     customers: Customer[];
     customerTasks: Task[];
     partners: Partner[];
     partnerTasks: Task[];
+    
+    // CRM Data - NEW unified format
+    crmItems?: CrmItem[];      // Unified array of all CRM accounts
+    crmTasks?: Task[];         // Unified CRM tasks with type annotation
+    
     marketing: MarketingItem[];
     marketingTasks: Task[];
     financials: FinancialLog[];

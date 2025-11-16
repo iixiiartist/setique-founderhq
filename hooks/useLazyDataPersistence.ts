@@ -131,13 +131,25 @@ export const useLazyDataPersistence = () => {
         marketingTasks: any[]
         financialTasks: any[]
       })
+      
+      // NEW: Create unified CRM tasks array with type annotation
+      const crmTasks = [
+        ...(result.investorTasks || []).map(t => ({ ...t, crmType: 'investor' as const, category: 'crmTasks' as const })),
+        ...(result.customerTasks || []).map(t => ({ ...t, crmType: 'customer' as const, category: 'crmTasks' as const })),
+        ...(result.partnerTasks || []).map(t => ({ ...t, crmType: 'partner' as const, category: 'crmTasks' as const }))
+      ]
+
+      const finalResult = {
+        ...result,
+        crmTasks // Add unified CRM tasks
+      }
 
       setDataCache(prev => ({
         ...prev,
-        [cacheKey]: { data: result, timestamp: Date.now(), isLoading: false }
+        [cacheKey]: { data: finalResult, timestamp: Date.now(), isLoading: false }
       }))
 
-      return result
+      return finalResult
     } catch (err) {
       console.error('Error loading tasks:', err)
       setError(err as Error)
@@ -147,7 +159,8 @@ export const useLazyDataPersistence = () => {
         customerTasks: [],
         partnerTasks: [],
         marketingTasks: [],
-        financialTasks: []
+        financialTasks: [],
+        crmTasks: []
       }
     }
   }, [user, workspace?.id])
@@ -235,11 +248,26 @@ export const useLazyDataPersistence = () => {
         })
       )
 
-      // Transform parallel results into typed object
+      // Extract split arrays by type (backwards compatibility)
+      const investors = crmResults.find(r => r.type === 'investor')?.data || []
+      const customers = crmResults.find(r => r.type === 'customer')?.data || []
+      const partners = crmResults.find(r => r.type === 'partner')?.data || []
+      
+      // Flatten into unified array with type property
+      const allCrmItems = [
+        ...investors.map(item => ({ ...item, type: 'investor' as const })),
+        ...customers.map(item => ({ ...item, type: 'customer' as const })),
+        ...partners.map(item => ({ ...item, type: 'partner' as const }))
+      ]
+      
       const result = {
-        investors: crmResults.find(r => r.type === 'investor')?.data || [],
-        customers: crmResults.find(r => r.type === 'customer')?.data || [],
-        partners: crmResults.find(r => r.type === 'partner')?.data || []
+        // Legacy split format (backwards compatibility)
+        investors,
+        customers,
+        partners,
+        
+        // NEW: Unified format
+        crmItems: allCrmItems
       }
 
       setDataCache(prev => ({
@@ -251,7 +279,12 @@ export const useLazyDataPersistence = () => {
     } catch (err) {
       console.error('Error loading CRM items:', err)
       setError(err as Error)
-      return { investors: [], customers: [], partners: [] }
+      return { 
+        investors: [], 
+        customers: [], 
+        partners: [],
+        crmItems: []
+      }
     }
   }, [user, workspace?.id])
 

@@ -42,12 +42,19 @@ export const EMPTY_DASHBOARD_DATA: DashboardData = {
     productsServices: [],
     productPriceHistory: [],
     productBundles: [],
+    
+    // Legacy split format (backwards compatibility)
     investors: [],
     investorTasks: [],
     customers: [],
     customerTasks: [],
     partners: [],
     partnerTasks: [],
+    
+    // NEW: Unified format
+    crmItems: [],
+    crmTasks: [],
+    
     marketing: [],
     marketingTasks: [],
     financials: [],
