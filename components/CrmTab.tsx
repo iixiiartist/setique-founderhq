@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { AnyCrmItem, Task, AppActions, CrmCollectionName, TaskCollectionName, Contact, Document, BusinessProfile, WorkspaceMember, Deal, ProductService, Meeting } from '../types';
 import AccountDetailView from './shared/AccountDetailView';
 import ContactDetailView from './shared/ContactDetailView';
 import TaskManagement from './shared/TaskManagement';
-import { useWorkspace } from '../contexts/WorkspaceContext';
 import { ContactManager } from './shared/ContactManager';
 import { AccountManager } from './shared/AccountManager';
 import { FollowUpsManager } from './shared/FollowUpsManager';
 import { DealsModule } from './crm';
+import { logger } from '../lib/logger';
 
 interface CrmTabProps {
     title: string;
@@ -38,10 +38,10 @@ function CrmTabComponent({
     deals = [],
     productsServices = []
 }: CrmTabProps) {
-    const { workspace } = useWorkspace();
     const [selectedItem, setSelectedItem] = useState<AnyCrmItem | null>(null);
     const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
     const [activeView, setActiveView] = useState<'accounts' | 'contacts' | 'followups' | 'deals'>('accounts');
+    const [showDeletedToast, setShowDeletedToast] = useState(false);
     const isUpdatingRef = useRef(false);
 
     interface ContactWithParent {
@@ -65,88 +65,145 @@ function CrmTabComponent({
         };
     }, [title]);
 
-    const documentsMetadata = useMemo(() => (Array.isArray(documents) ? documents : []).map(({ id, name, mimeType, module, uploadedAt }) => ({ id, name, mimeType, module, uploadedAt })), [documents]);
+    // O(1) lookup maps for deleted entity detection
+    const crmItemsById = useMemo(() => {
+        const map = new Map<string, AnyCrmItem>();
+        crmItems.forEach(item => map.set(item.id, item));
+        return map;
+    }, [crmItems]);
+
+    const contactsById = useMemo(() => {
+        const map = new Map<string, { contact: Contact; parentItem: AnyCrmItem }>();
+        crmItems.forEach(item => {
+            (item.contacts || []).forEach(contact => {
+                map.set(contact.id, { contact, parentItem: item });
+            });
+        });
+        return map;
+    }, [crmItems]);
 
     useEffect(() => {
         if (selectedItem && !isUpdatingRef.current) {
-            const updatedItem = crmItems.find(item => item.id === selectedItem.id);
+            const updatedItem = crmItemsById.get(selectedItem.id);
             if (updatedItem) {
+                // Sync to latest version
                 setSelectedItem(updatedItem);
                 if (selectedContact) {
-                    const updatedContact = (updatedItem.contacts || []).find(c => c.id === selectedContact.id);
-                    setSelectedContact(updatedContact || null);
+                    const contactData = contactsById.get(selectedContact.id);
+                    if (contactData && contactData.parentItem.id === updatedItem.id) {
+                        setSelectedContact(contactData.contact);
+                    } else {
+                        // Contact was deleted or moved
+                        setSelectedContact(null);
+                        setShowDeletedToast(true);
+                        setTimeout(() => setShowDeletedToast(false), 3000);
+                    }
                 }
+            } else {
+                // Item was deleted
+                setSelectedItem(null);
+                setSelectedContact(null);
+                setShowDeletedToast(true);
+                setTimeout(() => setShowDeletedToast(false), 3000);
             }
-            // Don't set to null here - let the component handle deletion explicitly
-            // The item might temporarily not be found during updates
         }
         // Reset updating flag after sync
         if (isUpdatingRef.current) {
             isUpdatingRef.current = false;
         }
-    }, [crmItems, selectedItem, selectedContact]);
+    }, [crmItems, selectedItem, selectedContact, crmItemsById, contactsById]);
 
-    const handleAssignCompany = async (companyId: string, assignedUserId: string | null, assignedUserName: string | null) => {
+    const handleAssignCompany = useCallback(async (companyId: string, assignedUserId: string | null, assignedUserName: string | null) => {
         if (!workspaceId || !userId) {
-            console.warn('[CrmTab] Cannot assign: missing workspaceId or userId', { workspaceId, userId });
+            logger.warn('[CrmTab] Cannot assign: missing workspaceId or userId', { workspaceId, userId });
             return;
         }
         
-        console.log('[CrmTab] Assigning company:', { companyId, assignedUserId, assignedUserName, collection: crmCollection });
+        const previousItem = crmItemsById.get(companyId);
+        if (!previousItem) {
+            logger.warn('[CrmTab] Company not found for assignment', { companyId });
+            return;
+        }
+
+        const rollback = {
+            assignedTo: previousItem.assignedTo,
+            assignedToName: previousItem.assignedToName
+        };
         
         isUpdatingRef.current = true;
         
-        // Update in database
-        await actions.updateCrmItem(crmCollection, companyId, { 
-            assignedTo: assignedUserId, 
-            assignedToName: assignedUserName 
-        });
-        
-        console.log('[CrmTab] Assignment update completed');
-        
-        // Log activity (optional - could be done in reducer)
-        // TODO: Add activity logging when activityService is available
-    };
-
-    const handleAssignContact = async (contactId: string, assignedUserId: string | null, assignedUserName: string | null) => {
-        if (!workspaceId || !userId) {
-            console.warn('[CrmTab] Cannot assign contact: missing workspaceId or userId', { workspaceId, userId });
-            return;
-        }
-
         try {
-            console.log('[CrmTab] Assigning contact:', { contactId, assignedUserId, assignedUserName });
-            isUpdatingRef.current = true;
-            // Update contact via actions (assumes actions.updateContact(collection, crmItemId, contactId, updates))
-            // We need crmItemId - attempt to find it from crmItems
-            const contactOwner = crmItems.find(item => item.contacts?.some(c => c.id === contactId));
-            const crmItemId = contactOwner ? contactOwner.id : undefined;
-            if (!crmItemId) {
-                console.warn('[CrmTab] Could not find parent CRM item for contact', { contactId });
-                return;
-            }
-
-            await actions.updateContact(crmCollection, crmItemId, contactId, {
-                assignedTo: assignedUserId,
-                assignedToName: assignedUserName || null
-            } as any);
-
-            console.log('[CrmTab] Contact assignment update completed');
-        } catch (err) {
-            console.error('[CrmTab] Error assigning contact', err);
+            await actions.updateCrmItem(crmCollection, companyId, { 
+                assignedTo: assignedUserId, 
+                assignedToName: assignedUserName 
+            });
+            logger.info('[CrmTab] Company assignment updated', { companyId, assignedUserId });
+        } catch (error) {
+            logger.error('[CrmTab] Failed to assign company', error);
+            // Rollback optimistic update would happen here if we had optimistic state
+            throw error;
         } finally {
             isUpdatingRef.current = false;
         }
-    };
+    }, [workspaceId, userId, crmCollection, crmItemsById, actions]);
+
+    const handleAssignContact = useCallback(async (contactId: string, assignedUserId: string | null, assignedUserName: string | null) => {
+        if (!workspaceId || !userId) {
+            logger.warn('[CrmTab] Cannot assign contact: missing workspaceId or userId', { workspaceId, userId });
+            return;
+        }
+
+        const contactData = contactsById.get(contactId);
+        if (!contactData) {
+            logger.warn('[CrmTab] Contact not found for assignment', { contactId });
+            return;
+        }
+
+        const { parentItem } = contactData;
+        isUpdatingRef.current = true;
+
+        try {
+            await actions.updateContact(crmCollection, parentItem.id, contactId, {
+                assignedTo: assignedUserId,
+                assignedToName: assignedUserName || null
+            } as any);
+            logger.info('[CrmTab] Contact assignment updated', { contactId, assignedUserId });
+        } catch (error) {
+            logger.error('[CrmTab] Failed to assign contact', error);
+            throw error;
+        } finally {
+            isUpdatingRef.current = false;
+        }
+    }, [workspaceId, userId, crmCollection, contactsById, actions]);
 
 
 
-    // Wrap updateCrmItem to set updating flag
+    // Wrap all mutation methods for consistent instrumentation
     const wrappedActions = useMemo(() => ({
         ...actions,
         updateCrmItem: (collection: CrmCollectionName, itemId: string, updates: Partial<AnyCrmItem>) => {
             isUpdatingRef.current = true;
-            return actions.updateCrmItem(collection, itemId, updates);
+            return actions.updateCrmItem(collection, itemId, updates).finally(() => {
+                isUpdatingRef.current = false;
+            });
+        },
+        deleteItem: (collection: CrmCollectionName, itemId: string) => {
+            isUpdatingRef.current = true;
+            return actions.deleteItem(collection, itemId).finally(() => {
+                isUpdatingRef.current = false;
+            });
+        },
+        createCrmItem: (collection: CrmCollectionName, item: Partial<AnyCrmItem>) => {
+            isUpdatingRef.current = true;
+            return actions.createCrmItem(collection, item).finally(() => {
+                isUpdatingRef.current = false;
+            });
+        },
+        updateContact: (collection: CrmCollectionName, itemId: string, contactId: string, updates: Partial<Contact>) => {
+            isUpdatingRef.current = true;
+            return actions.updateContact(collection, itemId, contactId, updates).finally(() => {
+                isUpdatingRef.current = false;
+            });
         }
     }), [actions]);
 
@@ -154,16 +211,38 @@ function CrmTabComponent({
 
     const assignedAccounts = useMemo(() => {
         if (!userId) return [];
-        return crmItems.filter(item => item.assignedTo === userId);
+        const statusPriority: Record<string, number> = {
+            'overdue': 0,
+            'hot': 1,
+            'warm': 2,
+            'active': 3,
+            'cold': 4,
+            'inactive': 5
+        };
+        return crmItems
+            .filter(item => item.assignedTo === userId)
+            .sort((a, b) => {
+                const aPriority = statusPriority[a.status?.toLowerCase() || ''] ?? 99;
+                const bPriority = statusPriority[b.status?.toLowerCase() || ''] ?? 99;
+                return aPriority - bPriority;
+            });
     }, [crmItems, userId]);
 
     const assignedContacts = useMemo<ContactWithParent[]>(() => {
         if (!userId) return [];
-        return crmItems.flatMap(item =>
-            (item.contacts || [])
-                .filter(contact => contact.assignedTo === userId)
-                .map(contact => ({ contact, parentItem: item }))
-        );
+        return crmItems
+            .flatMap(item =>
+                (item.contacts || [])
+                    .filter(contact => contact.assignedTo === userId)
+                    .map(contact => ({ contact, parentItem: item }))
+            )
+            .sort((a, b) => {
+                // Sort by number of meetings (more active contacts first), then alphabetically
+                const aMeetings = a.contact.meetings?.length || 0;
+                const bMeetings = b.contact.meetings?.length || 0;
+                if (aMeetings !== bMeetings) return bMeetings - aMeetings;
+                return a.contact.name.localeCompare(b.contact.name);
+            });
     }, [crmItems, userId]);
 
     const recentMeetings = useMemo<MeetingWithContext[]>(() => {
@@ -183,6 +262,14 @@ function CrmTabComponent({
             .sort((a, b) => b.timestamp - a.timestamp)
             .slice(0, 5);
     }, [crmItems, userId]);
+
+    // Memoize workspaceMembers mapping to prevent child re-renders
+    const mappedWorkspaceMembers = useMemo(() => 
+        workspaceMembers.map(m => ({
+            id: m.userId,
+            name: m.fullName || m.email || 'Unknown'
+        })), 
+    [workspaceMembers]);
     
     if (selectedContact && selectedItem) {
         return (
@@ -231,8 +318,19 @@ function CrmTabComponent({
     };
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
+        <>
+            {/* Deleted entity toast notification */}
+            {showDeletedToast && (
+                <div className="fixed top-4 right-4 z-50 bg-red-500 text-white px-6 py-3 border-2 border-black shadow-neo animate-slide-in">
+                    <div className="flex items-center gap-2">
+                        <span className="text-xl">⚠️</span>
+                        <span className="font-semibold">Item was deleted</span>
+                    </div>
+                </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 space-y-6">
                 {/* View Navigation Tabs */}
                 <div className="bg-white border-2 border-black shadow-neo">
                     <div className="flex border-b-2 border-black">
@@ -315,10 +413,7 @@ function CrmTabComponent({
                                 actions={actions}
                                 workspaceId={workspaceId || ''}
                                 userId={userId}
-                                workspaceMembers={workspaceMembers.map(m => ({
-                                    id: m.userId,
-                                    name: m.fullName || m.email || 'Unknown'
-                                }))}
+                                workspaceMembers={mappedWorkspaceMembers}
                             />
                         )}
                     </div>
@@ -369,8 +464,9 @@ function CrmTabComponent({
                                                 <button
                                                     key={contact.id}
                                                     onClick={() => {
+                                                        // Set both states atomically to avoid setTimeout hack
                                                         setSelectedItem(parentItem);
-                                                        setTimeout(() => setSelectedContact(contact), 100);
+                                                        setSelectedContact(contact);
                                                     }}
                                                     className="w-full text-left p-3 bg-green-50 border-2 border-black hover:bg-green-100 hover:shadow-neo-sm transition-all text-sm group"
                                                 >
@@ -395,8 +491,9 @@ function CrmTabComponent({
                                                 <button
                                                     key={meeting.id}
                                                     onClick={() => {
+                                                        // Set both states atomically to avoid setTimeout hack
                                                         setSelectedItem(meeting.parentItem);
-                                                        setTimeout(() => setSelectedContact(meeting.parentContact), 100);
+                                                        setSelectedContact(meeting.parentContact);
                                                     }}
                                                     className="w-full text-left p-3 bg-yellow-50 border-2 border-black hover:bg-yellow-100 hover:shadow-neo-sm transition-all text-sm group"
                                                 >
@@ -423,6 +520,7 @@ function CrmTabComponent({
                 />
             </div>
         </div>
+        </>
     );
 }
 
