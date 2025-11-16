@@ -33,7 +33,6 @@ BEGIN
     INTO v_total_count
     FROM crm_items
     WHERE workspace_id = p_workspace_id
-        AND deleted_at IS NULL
         AND (p_type IS NULL OR type = p_type)
         AND (p_status IS NULL OR status = p_status)
         AND (p_priority IS NULL OR priority = p_priority)
@@ -43,7 +42,6 @@ BEGIN
              EXISTS (
                  SELECT 1 FROM contacts c 
                  WHERE c.crm_item_id = crm_items.id 
-                 AND c.deleted_at IS NULL
                  AND c.name ILIKE '%' || p_search || '%'
              ));
     
@@ -77,10 +75,10 @@ BEGIN
                     'opportunity', ci.opportunity,
                     'partnerType', ci.partner_type,
                     -- Aggregated counts
-                    'contactCount', (SELECT COUNT(*) FROM contacts WHERE crm_item_id = ci.id AND deleted_at IS NULL),
-                    'taskCount', (SELECT COUNT(*) FROM tasks WHERE crm_item_id = ci.id AND status != 'Done' AND deleted_at IS NULL),
+                    'contactCount', (SELECT COUNT(*) FROM contacts WHERE crm_item_id = ci.id),
+                    'taskCount', (SELECT COUNT(*) FROM tasks WHERE crm_item_id = ci.id AND status != 'Done'),
                     'noteCount', COALESCE(array_length(ci.notes, 1), 0),
-                    'documentCount', (SELECT COUNT(*) FROM documents WHERE crm_item_id = ci.id AND deleted_at IS NULL),
+                    'documentCount', (SELECT COUNT(*) FROM documents WHERE crm_item_id = ci.id),
                     -- Contacts (if requested)
                     'contacts', CASE WHEN p_include_contacts THEN (
                         SELECT COALESCE(json_agg(json_build_object(
@@ -96,14 +94,13 @@ BEGIN
                         )), '[]'::json)
                         FROM contacts c
                         LEFT JOIN profiles cu ON cu.id = c.assigned_to
-                        WHERE c.crm_item_id = ci.id AND c.deleted_at IS NULL
+                        WHERE c.crm_item_id = ci.id
                     ) ELSE NULL END
                 )
             ), '[]'::json)
             FROM crm_items ci
             LEFT JOIN profiles u ON u.id = ci.assigned_to
             WHERE ci.workspace_id = p_workspace_id
-                AND ci.deleted_at IS NULL
                 AND (p_type IS NULL OR ci.type = p_type)
                 AND (p_status IS NULL OR ci.status = p_status)
                 AND (p_priority IS NULL OR ci.priority = p_priority)
@@ -113,7 +110,6 @@ BEGIN
                      EXISTS (
                          SELECT 1 FROM contacts c 
                          WHERE c.crm_item_id = ci.id 
-                         AND c.deleted_at IS NULL
                          AND c.name ILIKE '%' || p_search || '%'
                      ))
             ORDER BY 
@@ -146,7 +142,6 @@ BEGIN
                         SELECT status, COUNT(*) as count
                         FROM crm_items
                         WHERE workspace_id = p_workspace_id
-                            AND deleted_at IS NULL
                             AND (p_type IS NULL OR type = p_type)
                         GROUP BY status
                     ) s
@@ -157,7 +152,6 @@ BEGIN
                         SELECT priority, COUNT(*) as count
                         FROM crm_items
                         WHERE workspace_id = p_workspace_id
-                            AND deleted_at IS NULL
                             AND (p_type IS NULL OR type = p_type)
                         GROUP BY priority
                     ) p
@@ -168,7 +162,6 @@ BEGIN
                         SELECT type, COUNT(*) as count
                         FROM crm_items
                         WHERE workspace_id = p_workspace_id
-                            AND deleted_at IS NULL
                         GROUP BY type
                     ) t
                 ),
@@ -176,26 +169,22 @@ BEGIN
                     SELECT COALESCE(SUM(COALESCE(check_size, 0) + COALESCE(deal_value, 0)), 0)
                     FROM crm_items
                     WHERE workspace_id = p_workspace_id
-                        AND deleted_at IS NULL
                         AND (p_type IS NULL OR type = p_type)
                 ),
                 'withContacts', (
                     SELECT COUNT(DISTINCT ci.id)
                     FROM crm_items ci
                     WHERE ci.workspace_id = p_workspace_id
-                        AND ci.deleted_at IS NULL
                         AND (p_type IS NULL OR ci.type = p_type)
                         AND EXISTS (
                             SELECT 1 FROM contacts c 
-                            WHERE c.crm_item_id = ci.id 
-                            AND c.deleted_at IS NULL
+                            WHERE c.crm_item_id = ci.id
                         )
                 ),
                 'overdueCount', (
                     SELECT COUNT(*)
                     FROM crm_items
                     WHERE workspace_id = p_workspace_id
-                        AND deleted_at IS NULL
                         AND (p_type IS NULL OR type = p_type)
                         AND next_action_date IS NOT NULL
                         AND next_action_date < CURRENT_DATE
@@ -214,28 +203,24 @@ GRANT EXECUTE ON FUNCTION get_crm_items_paginated TO authenticated;
 
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_crm_items_workspace_type_status 
-    ON crm_items(workspace_id, type, status) 
-    WHERE deleted_at IS NULL;
+    ON crm_items(workspace_id, type, status);
 
 CREATE INDEX IF NOT EXISTS idx_crm_items_workspace_assigned 
     ON crm_items(workspace_id, assigned_to) 
-    WHERE deleted_at IS NULL AND assigned_to IS NOT NULL;
+    WHERE assigned_to IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_crm_items_search 
-    ON crm_items USING gin(to_tsvector('english', company)) 
-    WHERE deleted_at IS NULL;
+    ON crm_items USING gin(to_tsvector('english', company));
 
 CREATE INDEX IF NOT EXISTS idx_crm_items_next_action_date 
     ON crm_items(workspace_id, next_action_date) 
-    WHERE deleted_at IS NULL AND next_action_date IS NOT NULL;
+    WHERE next_action_date IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_contacts_crm_item 
-    ON contacts(crm_item_id) 
-    WHERE deleted_at IS NULL;
+    ON contacts(crm_item_id);
 
 CREATE INDEX IF NOT EXISTS idx_contacts_search 
-    ON contacts USING gin(to_tsvector('english', name)) 
-    WHERE deleted_at IS NULL;
+    ON contacts USING gin(to_tsvector('english', name));
 
 -- Add comment
 COMMENT ON FUNCTION get_crm_items_paginated IS 

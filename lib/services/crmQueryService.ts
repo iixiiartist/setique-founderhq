@@ -9,6 +9,7 @@ import { useQuery, useMutation, useQueryClient, UseQueryOptions, QueryClient } f
 import { supabase } from '../supabase';
 import { CrmItem, CrmType } from '../../types';
 import { logger } from '../logger';
+import { showSuccess, showError, showLoading, updateToast, showWithUndo } from '../utils/toast';
 
 export interface CrmQueryFilters {
     type?: CrmType | 'all';
@@ -245,34 +246,47 @@ export function useCreateCrmItem() {
     const queryClient = useQueryClient();
 
     return useMutation({
+        retry: 2, // Retry failed mutations up to 2 times
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
         mutationFn: async (item: Partial<CrmItem> & { workspaceId: string }) => {
             logger.info('[CrmQueryService] Creating CRM item', { company: item.company });
+            const toastId = showLoading(`Creating ${item.company || 'account'}...`);
             
-            const { data, error } = await supabase
-                .from('crm_items')
-                .insert({
-                    ...item,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                })
-                .select()
-                .single();
+            try {
+                const { data, error } = await supabase
+                    .from('crm_items')
+                    .insert({
+                        ...item,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    })
+                    .select()
+                    .single();
 
-            if (error) {
-                logger.error('[CrmQueryService] Failed to create CRM item', error);
+                if (error) {
+                    logger.error('[CrmQueryService] Failed to create CRM item', error);
+                    updateToast(toastId, `Failed to create ${item.company || 'account'}`, 'error');
+                    throw error;
+                }
+                
+                logger.info('[CrmQueryService] CRM item created successfully', { id: data.id });
+                updateToast(toastId, `${data.company} created successfully!`, 'success');
+                return data;
+            } catch (error) {
                 throw error;
             }
-            
-            logger.info('[CrmQueryService] CRM item created successfully', { id: data.id });
-            return data;
         },
         onSuccess: () => {
             // Invalidate all CRM queries to refetch
             queryClient.invalidateQueries({ queryKey: crmQueryKeys.lists() });
             queryClient.invalidateQueries({ queryKey: crmQueryKeys.all });
         },
-        onError: (error) => {
+        onError: (error: any) => {
             logger.error('[CrmQueryService] Create mutation failed', error);
+            // Additional error handling for specific cases
+            if (error?.code === '23505') {
+                showError('An account with this name already exists');
+            }
         }
     });
 }
@@ -289,6 +303,8 @@ export function useUpdateCrmItem() {
     const queryClient = useQueryClient();
 
     return useMutation({
+        retry: 2, // Retry failed mutations up to 2 times
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
         mutationFn: async ({ id, updates }: { id: string; updates: Partial<CrmItem> }) => {
             logger.info('[CrmQueryService] Updating CRM item', { id, updates });
             
@@ -311,6 +327,9 @@ export function useUpdateCrmItem() {
             return data;
         },
         onMutate: async ({ id, updates }) => {
+            // Show loading toast for significant updates
+            const toastId = showLoading('Updating account...');
+            
             // Cancel outgoing refetches
             await queryClient.cancelQueries({ queryKey: crmQueryKeys.lists() });
 
@@ -331,10 +350,19 @@ export function useUpdateCrmItem() {
                 }
             );
 
-            return { previousData };
+            return { previousData, toastId };
+        },
+        onSuccess: (data, variables, context) => {
+            if (context?.toastId) {
+                updateToast(context.toastId, 'Account updated successfully!', 'success');
+            }
         },
         onError: (err, variables, context) => {
             logger.error('[CrmQueryService] Update mutation failed, rolling back', err);
+            
+            if (context?.toastId) {
+                updateToast(context.toastId, 'Failed to update account', 'error');
+            }
             
             // Rollback on error
             if (context?.previousData) {
@@ -351,19 +379,21 @@ export function useUpdateCrmItem() {
 }
 
 /**
- * Mutation for deleting CRM item
+ * Mutation for deleting CRM item with undo support
  */
 export function useDeleteCrmItem() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (id: string) => {
+        retry: 1, // Only retry deletes once
+        retryDelay: 1000,
+        mutationFn: async ({ id, skipUndo = false }: { id: string; skipUndo?: boolean }) => {
             logger.info('[CrmQueryService] Deleting CRM item', { id });
             
-            // Soft delete by setting deleted_at
+            // Hard delete (no deleted_at column exists)
             const { error } = await supabase
                 .from('crm_items')
-                .update({ deleted_at: new Date().toISOString() })
+                .delete()
                 .eq('id', id);
 
             if (error) {
@@ -372,13 +402,76 @@ export function useDeleteCrmItem() {
             }
             
             logger.info('[CrmQueryService] CRM item deleted successfully', { id });
+            return { id, skipUndo };
         },
-        onSuccess: () => {
+        onMutate: async ({ id }) => {
+            // Cancel outgoing refetches
+            await queryClient.cancelQueries({ queryKey: crmQueryKeys.lists() });
+
+            // Snapshot the deleted item
+            const previousData = queryClient.getQueriesData({ queryKey: crmQueryKeys.lists() });
+            let deletedItem: CrmItem | null = null;
+
+            // Find and optimistically remove from cache
+            queryClient.setQueriesData(
+                { queryKey: crmQueryKeys.lists() },
+                (old: PaginatedCrmResponse | undefined) => {
+                    if (!old) return old;
+                    deletedItem = old.items.find(item => item.id === id) || null;
+                    return {
+                        ...old,
+                        items: old.items.filter(item => item.id !== id),
+                        pagination: {
+                            ...old.pagination,
+                            totalItems: old.pagination.totalItems - 1,
+                        },
+                    };
+                }
+            );
+
+            return { previousData, deletedItem };
+        },
+        onSuccess: (result, variables, context) => {
+            const itemName = context?.deletedItem?.company || 'Account';
+            
+            // Show undo toast if not skipped
+            if (!result.skipUndo && context?.deletedItem) {
+                showWithUndo(
+                    `${itemName} deleted`,
+                    async () => {
+                        // Restore the item
+                        try {
+                            const { error } = await supabase
+                                .from('crm_items')
+                                .insert(context.deletedItem);
+                            
+                            if (error) throw error;
+                            
+                            queryClient.invalidateQueries({ queryKey: crmQueryKeys.lists() });
+                            showSuccess(`${itemName} restored`);
+                        } catch (error) {
+                            logger.error('[CrmQueryService] Failed to restore item', error);
+                            showError('Failed to restore item');
+                        }
+                    }
+                );
+            } else {
+                showSuccess(`${itemName} deleted`);
+            }
+
             queryClient.invalidateQueries({ queryKey: crmQueryKeys.lists() });
             queryClient.invalidateQueries({ queryKey: crmQueryKeys.all });
         },
-        onError: (error) => {
+        onError: (error, variables, context) => {
             logger.error('[CrmQueryService] Delete mutation failed', error);
+            showError('Failed to delete account');
+            
+            // Rollback on error
+            if (context?.previousData) {
+                context.previousData.forEach(([queryKey, data]) => {
+                    queryClient.setQueryData(queryKey, data);
+                });
+            }
         }
     });
 }
