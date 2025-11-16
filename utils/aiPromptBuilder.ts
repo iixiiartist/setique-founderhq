@@ -1,6 +1,7 @@
 import { DocType } from '../types';
 import { DOC_TYPE_LABELS } from '../constants';
 import { AIWorkspaceContext } from '../hooks/useAIWorkspaceContext';
+import { PromptSanitizer } from '../lib/security/promptSanitizer';
 
 export type AIAction = 
   | 'generate'
@@ -26,6 +27,7 @@ export type AIAction =
 
 /**
  * Builds context-aware AI prompts with business profile and workspace data
+ * SECURITY: Sanitizes all untrusted inputs (selection, customPrompt) to prevent prompt injection
  */
 export function buildEmbeddedAIPrompt(
   action: AIAction,
@@ -35,6 +37,32 @@ export function buildEmbeddedAIPrompt(
   context: AIWorkspaceContext,
   customPrompt?: string
 ): string {
+  // SECURITY: Sanitize untrusted user inputs before prompt interpolation
+  const sanitized = PromptSanitizer.sanitizeEmbeddedInput({
+    selectedText: selection || '',
+    customPrompt: customPrompt || '',
+    documentTitle: '', // Add if available
+    metadata: { action, docType }
+  });
+
+  // Block critical threats (e.g., jailbreak attempts in custom prompts)
+  if (sanitized.sanitizationReport.shouldBlock) {
+    console.error('[EmbeddedAI] BLOCKED critical prompt injection:', sanitized.sanitizationReport);
+    throw new Error('Your input contains suspicious patterns. Please remove special instructions and try again.');
+  }
+
+  // Warn on medium/high risk
+  if (sanitized.sanitizationReport.highestRiskLevel === 'high' || 
+      sanitized.sanitizationReport.highestRiskLevel === 'medium') {
+    console.warn('[EmbeddedAI] Detected potential injection attempt:', {
+      riskLevel: sanitized.sanitizationReport.highestRiskLevel,
+      threats: sanitized.sanitizationReport.totalThreats
+    });
+  }
+
+  // Use sanitized values (wrapped in JSON data blocks for additional safety)
+  const safeSelection = sanitized.selectedText;
+  const safeCustomPrompt = sanitized.customPrompt;
   let prompt = `You are an embedded AI writing assistant for GTM (Go-To-Market) documents.
 
 CRITICAL GROUNDING RULES - FOLLOW STRICTLY:
@@ -91,8 +119,7 @@ DO NOT generate generic example content.
     case 'improve':
       prompt += `The user has selected text and wants you to improve it. Make it more professional, clear, and compelling while preserving the core message. Use the business context above to ensure alignment with company positioning.
 
-Selected Text:
-${selection}
+${safeSelection}
 
 IMPORTANT: Return ONLY the improved text with proper formatting. Use markdown for formatting:
 - **bold** for emphasis
@@ -106,8 +133,7 @@ Improved Version:`;
     case 'expand':
       prompt += `The user wants to expand on this section. Add relevant details, examples, and insights based on the document type and business context. Draw from the linked tasks, CRM data, and business profile to make it specific and actionable.
 
-Selected Text:
-${selection}
+${safeSelection}
 
 Return formatted content using markdown (headings, lists, bold). Be specific and reference the business context when relevant.
 
@@ -117,8 +143,7 @@ Expanded Version:`;
     case 'summarize':
       prompt += `Summarize the selected text concisely while preserving key points.
 
-Selected Text:
-${selection}
+${safeSelection}
 
 Summary:`;
       break;
@@ -126,15 +151,14 @@ Summary:`;
     case 'rewrite':
       prompt += `Rewrite the selected text with fresh wording while maintaining the same message.
 
-Selected Text:
-${selection}
+${safeSelection}
 
 Rewritten Version:`;
       break;
 
     case 'generate':
-      if (customPrompt) {
-        prompt += `User Request: ${customPrompt}
+      if (safeCustomPrompt && safeCustomPrompt.trim()) {
+        prompt += `${safeCustomPrompt}
 
 Based on the business context, linked data, and document type, generate relevant content. Use markdown formatting. Be specific and actionable.
 
@@ -304,17 +328,24 @@ ${context.tasks.length > 0 ? `- Tasks: ${context.tasks.length} tasks by status a
 - Purple: #8b5cf6
 - Pink: #ec4899
 
-User Request: ${customPrompt || 'Create a relevant chart based on available data'}
+User Request: ${safeCustomPrompt || 'Create a relevant chart based on available data'}
 
 Generate chart configuration JSON:`;
       break;
 
     default:
-      if (customPrompt) {
-        prompt += `User Request: ${customPrompt}
+      if (safeCustomPrompt && safeCustomPrompt.trim()) {
+        prompt += `${safeCustomPrompt}
 
 Generated Content:`;
       }
+  }
+
+  // SECURITY: Final validation before returning prompt
+  const validation = PromptSanitizer.validateSystemPrompt(prompt);
+  if (!validation.isValid) {
+    console.error('[EmbeddedAI] Final prompt validation failed:', validation);
+    throw new Error('Unable to generate safe prompt. Please simplify your request and try again.');
   }
 
   return prompt;

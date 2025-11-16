@@ -1,5 +1,6 @@
 import { Tab, TabType } from '../../constants';
 import { DashboardData } from '../../types';
+import { PromptSanitizer } from '../../lib/security/promptSanitizer';
 
 export interface AssistantConfig {
   tab: TabType;
@@ -13,6 +14,60 @@ export interface AssistantConfig {
     teamContext: string;
     data: DashboardData;
   }) => string;
+}
+
+/**
+ * Defensive wrapper for getSystemPrompt that sanitizes untrusted context
+ * Prevents prompt injection attacks via businessContext, userContext, teamContext
+ */
+function buildSafeSystemPrompt(
+  promptBuilder: (sanitizedContext: {
+    companyName: string;
+    businessContext: string;
+    userContext: string;
+    teamContext: string;
+    data: DashboardData;
+  }) => string,
+  rawContext: {
+    companyName: string;
+    businessContext: string;
+    userContext: string;
+    teamContext: string;
+    data: DashboardData;
+  }
+): string {
+  // Sanitize all untrusted fields
+  const sanitized = PromptSanitizer.sanitizeAssistantContext({
+    companyName: rawContext.companyName,
+    businessContext: rawContext.businessContext,
+    userContext: rawContext.userContext,
+    teamContext: rawContext.teamContext,
+  });
+
+  // Block critical threats
+  if (sanitized.sanitizationReport.highestRiskLevel === 'critical') {
+    console.error('[AssistantConfig] BLOCKED critical prompt injection attempt:', 
+      sanitized.sanitizationReport);
+    throw new Error('Suspicious content detected. Please review your workspace settings and try again.');
+  }
+
+  // Build prompt with sanitized context
+  const prompt = promptBuilder({
+    companyName: sanitized.companyName,
+    businessContext: sanitized.businessContext,
+    userContext: sanitized.userContext,
+    teamContext: sanitized.teamContext,
+    data: rawContext.data, // data is from database queries, trusted
+  });
+
+  // Final validation before return
+  const validation = PromptSanitizer.validateSystemPrompt(prompt);
+  if (!validation.isValid) {
+    console.error('[AssistantConfig] Final prompt validation failed:', validation);
+    throw new Error('Unable to generate safe prompt. Please contact support.');
+  }
+
+  return prompt;
 }
 
 export const ASSISTANT_CONFIGS: AssistantConfig[] = [
@@ -648,7 +703,13 @@ Today's date is ${new Date().toISOString().split('T')[0]}.`,
 }
 
 export const getAssistantConfig = (tab: TabType): AssistantConfig => {
-  return ASSISTANT_CONFIGS.find(config => config.tab === tab) || getDefaultConfig();
+  const rawConfig = ASSISTANT_CONFIGS.find(config => config.tab === tab) || getDefaultConfig();
+  
+  // Return config with sanitized getSystemPrompt wrapper
+  return {
+    ...rawConfig,
+    getSystemPrompt: (context) => buildSafeSystemPrompt(rawConfig.getSystemPrompt, context)
+  };
 };
 
 export const getAssistantTitle = (tab: TabType): string => {
