@@ -193,8 +193,12 @@ export function useSaveBusinessProfile() {
         // Update existing profile
         await DatabaseService.updateBusinessProfile(workspaceId, dbData as any);
       } else {
-        // Create new profile
-        await DatabaseService.createBusinessProfile({ workspace_id: workspaceId, ...dbData } as any);
+        // Create new profile (will auto-update if already exists due to race condition)
+        const result = await DatabaseService.createBusinessProfile({ workspace_id: workspaceId, ...dbData } as any);
+        if (result.error) {
+          logger.error('[useSaveBusinessProfile] Error from createBusinessProfile:', result.error);
+          throw result.error;
+        }
       }
 
       // Update workspace name to match business name if company name is provided

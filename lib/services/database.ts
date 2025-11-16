@@ -1318,7 +1318,15 @@ export class DatabaseService {
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        // If duplicate key error (23505), try to update instead
+        if (error.code === '23505' && profileData.workspace_id) {
+          logger.info('Business profile already exists, updating instead:', profileData.workspace_id)
+          const { workspace_id, ...updates } = profileData
+          return await this.updateBusinessProfile(workspace_id, updates)
+        }
+        throw error
+      }
       return { data, error: null }
     } catch (error) {
       logger.error('Error creating business profile:', error)
