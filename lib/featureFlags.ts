@@ -32,6 +32,7 @@ export type FeatureFlagKey =
     
     // UI features
     | 'ui.unified-accounts'
+    | 'ui.paginated-crm'
     
     // Experimental features
     | 'experimental.new-dashboard'
@@ -125,6 +126,12 @@ const DEFAULT_FLAGS: FeatureFlagConfig[] = [
         enabled: true,
         description: 'Show unified Accounts tab (combines Investors, Customers, Partners)',
         envVar: 'VITE_UNIFIED_ACCOUNTS'
+    },
+    {
+        key: 'ui.paginated-crm',
+        enabled: false, // Start disabled for testing
+        description: 'Use server-side pagination and virtualized lists for CRM (scalability)',
+        envVar: 'VITE_PAGINATED_CRM'
     },
     
     // Experimental

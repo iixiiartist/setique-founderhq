@@ -5,9 +5,11 @@ import ContactDetailView from './shared/ContactDetailView';
 import TaskManagement from './shared/TaskManagement';
 import { ContactManager } from './shared/ContactManager';
 import { AccountManager } from './shared/AccountManager';
+import { PaginatedAccountManager } from './shared/PaginatedAccountManager';
 import { FollowUpsManager } from './shared/FollowUpsManager';
 import { DealsModule } from './crm';
 import { logger } from '../lib/logger';
+import { featureFlags } from '../lib/featureFlags';
 
 interface AccountsTabProps {
     crmItems: CrmItem[];
@@ -43,6 +45,9 @@ function AccountsTab({
     const [searchQuery, setSearchQuery] = useState('');
     const [showDeletedToast, setShowDeletedToast] = useState(false);
     const isUpdatingRef = useRef(false);
+
+    // Check if paginated CRM is enabled
+    const isPaginatedCrmEnabled = featureFlags.isEnabled('ui.paginated-crm');
 
     // O(1) lookup maps for deleted entity detection
     const crmItemsById = useMemo(() => {
@@ -357,14 +362,25 @@ function AccountsTab({
                         onAssignCompany={(userId, userName) => handleAssignCompany(selectedItem.id, userId, userName)}
                     />
                 ) : activeView === 'accounts' ? (
-                    <AccountManager
-                        crmItems={filteredItems as AnyCrmItem[]}
-                        onViewAccount={setSelectedItem}
-                        workspaceId={workspaceId}
-                        actions={wrappedActions}
-                        crmCollection={typeFilter === 'all' ? 'investors' : typeFilter === 'investor' ? 'investors' : typeFilter === 'customer' ? 'customers' : 'partners'}
-                        crmType={typeFilter === 'all' ? 'accounts' : typeFilter === 'investor' ? 'investors' : typeFilter === 'customer' ? 'customers' : 'partners'}
-                    />
+                    isPaginatedCrmEnabled && workspaceId ? (
+                        <PaginatedAccountManager
+                            workspaceId={workspaceId}
+                            typeFilter={typeFilter}
+                            actions={wrappedActions}
+                            crmCollection={typeFilter === 'all' ? 'investors' : typeFilter === 'investor' ? 'investors' : typeFilter === 'customer' ? 'customers' : 'partners'}
+                            crmType={typeFilter === 'all' ? 'accounts' : typeFilter === 'investor' ? 'investors' : typeFilter === 'customer' ? 'customers' : 'partners'}
+                            onViewAccount={setSelectedItem}
+                        />
+                    ) : (
+                        <AccountManager
+                            crmItems={filteredItems as AnyCrmItem[]}
+                            onViewAccount={setSelectedItem}
+                            workspaceId={workspaceId}
+                            actions={wrappedActions}
+                            crmCollection={typeFilter === 'all' ? 'investors' : typeFilter === 'investor' ? 'investors' : typeFilter === 'customer' ? 'customers' : 'partners'}
+                            crmType={typeFilter === 'all' ? 'accounts' : typeFilter === 'investor' ? 'investors' : typeFilter === 'customer' ? 'customers' : 'partners'}
+                        />
+                    )
                 ) : activeView === 'contacts' ? (
                     <ContactManager
                         contacts={filteredItems.flatMap(item => 
