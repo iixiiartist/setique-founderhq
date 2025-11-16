@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { AnyCrmItem, Task, AppActions, CrmCollectionName, TaskCollectionName, Contact, Document, BusinessProfile, WorkspaceMember, Deal, ProductService } from '../types';
+import { AnyCrmItem, Task, AppActions, CrmCollectionName, TaskCollectionName, Contact, Document, BusinessProfile, WorkspaceMember, Deal, ProductService, Meeting } from '../types';
 import AccountDetailView from './shared/AccountDetailView';
 import ContactDetailView from './shared/ContactDetailView';
 import TaskManagement from './shared/TaskManagement';
@@ -24,7 +24,7 @@ interface CrmTabProps {
     productsServices?: ProductService[];
 }
 
-function CrmTabComponent({ 
+function CrmTabComponent({
     title, 
     crmItems, 
     tasks, 
@@ -43,6 +43,18 @@ function CrmTabComponent({
     const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
     const [activeView, setActiveView] = useState<'accounts' | 'contacts' | 'followups' | 'deals'>('accounts');
     const isUpdatingRef = useRef(false);
+
+    interface ContactWithParent {
+        contact: Contact;
+        parentItem: AnyCrmItem;
+    }
+
+    interface MeetingWithContext extends Meeting {
+        contactName: string;
+        companyName: string;
+        parentItem: AnyCrmItem;
+        parentContact: Contact;
+    }
 
     const { crmCollection, taskCollection, tag } = useMemo(() => {
         const lowerTitle = title.toLowerCase();
@@ -139,6 +151,38 @@ function CrmTabComponent({
     }), [actions]);
 
     const generalTasks = useMemo(() => tasks.filter(t => !t.crmItemId), [tasks]);
+
+    const assignedAccounts = useMemo(() => {
+        if (!userId) return [];
+        return crmItems.filter(item => item.assignedTo === userId);
+    }, [crmItems, userId]);
+
+    const assignedContacts = useMemo<ContactWithParent[]>(() => {
+        if (!userId) return [];
+        return crmItems.flatMap(item =>
+            (item.contacts || [])
+                .filter(contact => contact.assignedTo === userId)
+                .map(contact => ({ contact, parentItem: item }))
+        );
+    }, [crmItems, userId]);
+
+    const recentMeetings = useMemo<MeetingWithContext[]>(() => {
+        if (!userId) return [];
+        return crmItems
+            .flatMap(item =>
+                (item.contacts || []).flatMap(contact =>
+                    (contact.meetings || []).map(meeting => ({
+                        ...meeting,
+                        contactName: contact.name,
+                        companyName: item.company,
+                        parentItem: item,
+                        parentContact: contact
+                    }))
+                )
+            )
+            .sort((a, b) => b.timestamp - a.timestamp)
+            .slice(0, 5);
+    }, [crmItems, userId]);
     
     if (selectedContact && selectedItem) {
         return (
@@ -150,10 +194,10 @@ function CrmTabComponent({
                 onBack={() => setSelectedContact(null)}
                 crmCollection={crmCollection}
                 taskCollection={taskCollection}
-                    workspaceMembers={workspaceMembers}
-                    onAssignContact={(userId, userName, contactId) => handleAssignContact(contactId, userId, userName)}
+                workspaceMembers={workspaceMembers}
+                onAssignContact={(userId, userName, contactId) => handleAssignContact(contactId, userId, userName)}
             />
-        )
+        );
     }
 
     if (selectedItem) {
@@ -293,9 +337,8 @@ function CrmTabComponent({
                                     <span>📋</span> MY ACCOUNTS
                                 </h3>
                                 <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
-                                    {crmItems.filter(item => item.assignedTo === userId).length > 0 ? (
-                                        crmItems
-                                            .filter(item => item.assignedTo === userId)
+                                    {assignedAccounts.length > 0 ? (
+                                        assignedAccounts
                                             .slice(0, 5)
                                             .map(item => (
                                                 <button
@@ -319,29 +362,20 @@ function CrmTabComponent({
                                     <span>👤</span> MY CONTACTS
                                 </h3>
                                 <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
-                                    {crmItems.flatMap(item => 
-                                        (item.contacts || [])
-                                            .filter(contact => contact.assignedTo === userId)
-                                            .map(contact => ({ ...contact, companyName: item.company, companyId: item.id }))
-                                    ).length > 0 ? (
-                                        crmItems
-                                            .flatMap(item => 
-                                                (item.contacts || [])
-                                                    .filter(contact => contact.assignedTo === userId)
-                                                    .map(contact => ({ ...contact, companyName: item.company, companyId: item.id, parentItem: item }))
-                                            )
+                                    {assignedContacts.length > 0 ? (
+                                        assignedContacts
                                             .slice(0, 5)
-                                            .map(contact => (
+                                            .map(({ contact, parentItem }) => (
                                                 <button
                                                     key={contact.id}
                                                     onClick={() => {
-                                                        setSelectedItem(contact.parentItem);
+                                                        setSelectedItem(parentItem);
                                                         setTimeout(() => setSelectedContact(contact), 100);
                                                     }}
                                                     className="w-full text-left p-3 bg-green-50 border-2 border-black hover:bg-green-100 hover:shadow-neo-sm transition-all text-sm group"
                                                 >
                                                     <div className="font-semibold truncate group-hover:text-green-600">{contact.name}</div>
-                                                    <div className="text-xs text-gray-600 mt-1">{contact.companyName}</div>
+                                                    <div className="text-xs text-gray-600 mt-1">{parentItem.company}</div>
                                                 </button>
                                             ))
                                     ) : (
@@ -356,35 +390,8 @@ function CrmTabComponent({
                                     <span>📅</span> RECENT MEETINGS
                                 </h3>
                                 <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
-                                    {crmItems
-                                        .flatMap(item => 
-                                            (item.contacts || []).flatMap(contact => 
-                                                (contact.meetings || []).map(meeting => ({
-                                                    ...meeting,
-                                                    contactName: contact.name,
-                                                    companyName: item.company,
-                                                    parentItem: item,
-                                                    parentContact: contact
-                                                }))
-                                            )
-                                        )
-                                        .sort((a, b) => b.timestamp - a.timestamp)
-                                        .slice(0, 5).length > 0 ? (
-                                        crmItems
-                                            .flatMap(item => 
-                                                (item.contacts || []).flatMap(contact => 
-                                                    (contact.meetings || []).map(meeting => ({
-                                                        ...meeting,
-                                                        contactName: contact.name,
-                                                        companyName: item.company,
-                                                        parentItem: item,
-                                                        parentContact: contact
-                                                    }))
-                                                )
-                                            )
-                                            .sort((a, b) => b.timestamp - a.timestamp)
-                                            .slice(0, 5)
-                                            .map(meeting => (
+                                    {recentMeetings.length > 0 ? (
+                                        recentMeetings.map(meeting => (
                                                 <button
                                                     key={meeting.id}
                                                     onClick={() => {
