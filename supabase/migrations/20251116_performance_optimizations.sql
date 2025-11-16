@@ -12,11 +12,6 @@ CREATE INDEX IF NOT EXISTS idx_crm_items_next_action_date_lookup
     ON crm_items(workspace_id, next_action_date)
     WHERE next_action_date IS NOT NULL;
 
--- GIN index for tags array
-CREATE INDEX IF NOT EXISTS idx_crm_items_tags
-    ON crm_items USING GIN(tags)
-    WHERE tags IS NOT NULL AND array_length(tags, 1) > 0;
-
 -- Index for contacts by assignment
 CREATE INDEX IF NOT EXISTS idx_contacts_assigned
     ON contacts(crm_item_id, assigned_to)
