@@ -27,7 +27,7 @@ export const NAV_ITEMS: NavItem[] = [
     { id: Tab.Dashboard, label: 'Dashboard' },
     { id: Tab.Calendar, label: 'Calendar' },
     { id: Tab.ProductsServices, label: 'Products & Services' },
-    { id: Tab.Accounts, label: '✨ Accounts' }, // NEW: Unified CRM view
+    { id: Tab.Accounts, label: 'Accounts' }, // NEW: Unified CRM view
     { id: Tab.Investors, label: 'Investor CRM' },
     { id: Tab.Customers, label: 'Customer CRM' },
     { id: Tab.Partners, label: 'Partnerships' },

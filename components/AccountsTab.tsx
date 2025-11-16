@@ -24,8 +24,8 @@ interface AccountsTabProps {
 }
 
 function AccountsTab({
-    crmItems,
-    crmTasks,
+    crmItems = [],
+    crmTasks = [],
     actions,
     documents = [],
     businessProfile,

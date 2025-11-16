@@ -26,8 +26,8 @@ interface CrmTabProps {
 
 function CrmTabComponent({
     title, 
-    crmItems, 
-    tasks, 
+    crmItems = [], 
+    tasks = [], 
     actions, 
     documents = [], 
     businessProfile,

@@ -2406,7 +2406,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         <Suspense fallback={<TabLoadingFallback />}>
                             <AccountsTab 
                                 crmItems={data.crmItems || []}
-                                tasks={data.crmTasks || []}
+                                crmTasks={data.crmTasks || []}
                                 actions={actions}
                                 documents={data.documents}
                                 businessProfile={businessProfile}

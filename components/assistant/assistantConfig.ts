@@ -78,8 +78,8 @@ export const ASSISTANT_CONFIGS: AssistantConfig[] = [
     color: 'blue',
     getSystemPrompt: ({ companyName, businessContext, userContext, teamContext, data }) => {
       // UNIFIED ACCOUNTS: Support all CRM types in one interface
-      const crmItems = data.crmItems || [];
-      const crmTasks = data.crmTasks || [];
+      const crmItems = Array.isArray(data.crmItems) ? data.crmItems : [];
+      const crmTasks = Array.isArray(data.crmTasks) ? data.crmTasks : [];
       
       // Aggregate by type
       const byType = {
