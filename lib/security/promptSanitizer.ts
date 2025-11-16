@@ -243,9 +243,9 @@ export function sanitizeAssistantContext(
   
   return {
     companyName: results.companyName.sanitized,
-    businessContext: encodeAsData('businessContext', results.businessContext.sanitized),
-    userContext: encodeAsData('userContext', results.userContext.sanitized),
-    teamContext: encodeAsData('teamContext', results.teamContext.sanitized),
+    businessContext: results.businessContext.sanitized,
+    userContext: results.userContext.sanitized,
+    teamContext: results.teamContext.sanitized,
     metadata: results.metadata.sanitized,
     sanitizationReport: {
       totalThreats,
