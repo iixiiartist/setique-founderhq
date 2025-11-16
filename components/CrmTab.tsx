@@ -193,11 +193,17 @@ function CrmTabComponent({
                 isUpdatingRef.current = false;
             });
         },
-        createCrmItem: (collection: CrmCollectionName, item: Partial<AnyCrmItem>) => {
+        createCrmItem: async (collection: CrmCollectionName, item: Partial<AnyCrmItem>) => {
             isUpdatingRef.current = true;
-            return actions.createCrmItem(collection, item).finally(() => {
+            try {
+                const result = await actions.createCrmItem(collection, item);
+                // Reset flag BEFORE returning so effect can process new data
                 isUpdatingRef.current = false;
-            });
+                return result;
+            } catch (error) {
+                isUpdatingRef.current = false;
+                throw error;
+            }
         },
         updateContact: (collection: CrmCollectionName, itemId: string, contactId: string, updates: Partial<Contact>) => {
             isUpdatingRef.current = true;
