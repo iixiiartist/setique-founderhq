@@ -11,6 +11,7 @@ import { CrmItem, CrmType } from '../../types';
 import { logger } from '../logger';
 import { showSuccess, showError, showLoading, updateToast, showWithUndo } from '../utils/toast';
 import { optimizeCrmUpdate, calculatePatchSavings } from './jsonPatchService';
+import { performanceMonitor } from './performanceMonitor';
 
 export interface CrmQueryFilters {
     type?: CrmType | 'all';
@@ -83,20 +84,24 @@ export async function fetchCrmItems(
             search
         });
 
-        const { data, error } = await supabase.rpc('get_crm_items_paginated', {
-            p_workspace_id: workspaceId,
-            p_type: type === 'all' ? null : type,
-            p_status: status,
-            p_priority: priority,
-            p_search: search,
-            p_assigned_to: assignedTo,
-            p_sort_by: sortBy,
-            p_sort_order: sortOrder,
-            p_page: page,
-            p_page_size: pageSize,
-            p_include_contacts: includeContacts,
-            p_include_stats: includeStats
-        });
+        const { data, error } = await performanceMonitor.measure(
+            'crm_fetch_paginated',
+            async () => supabase.rpc('get_crm_items_paginated', {
+                p_workspace_id: workspaceId,
+                p_type: type === 'all' ? null : type,
+                p_status: status,
+                p_priority: priority,
+                p_search: search,
+                p_assigned_to: assignedTo,
+                p_sort_by: sortBy,
+                p_sort_order: sortOrder,
+                p_page: page,
+                p_page_size: pageSize,
+                p_include_contacts: includeContacts,
+                p_include_stats: includeStats
+            }),
+            { page, pageSize, hasFilters: !!(search || status || priority) }
+        );
 
         if (error) {
             logger.error('[CrmQueryService] RPC call failed', error);
