@@ -10,6 +10,7 @@ import { supabase } from '../supabase';
 import { CrmItem, CrmType } from '../../types';
 import { logger } from '../logger';
 import { showSuccess, showError, showLoading, updateToast, showWithUndo } from '../utils/toast';
+import { optimizeCrmUpdate, calculatePatchSavings } from './jsonPatchService';
 
 export interface CrmQueryFilters {
     type?: CrmType | 'all';
@@ -305,13 +306,36 @@ export function useUpdateCrmItem() {
     return useMutation({
         retry: 2, // Retry failed mutations up to 2 times
         retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
-        mutationFn: async ({ id, updates }: { id: string; updates: Partial<CrmItem> }) => {
+        mutationFn: async ({ id, updates, original }: { 
+            id: string; 
+            updates: Partial<CrmItem>;
+            original?: CrmItem;
+        }) => {
             logger.info('[CrmQueryService] Updating CRM item', { id, updates });
+            
+            // Use JSON Patch for efficiency if original is provided
+            let optimizedUpdates = updates;
+            if (original) {
+                const optimization = optimizeCrmUpdate(original, updates);
+                if (optimization.method === 'patch' && optimization.savings) {
+                    logger.info('[CrmQueryService] Using JSON Patch', {
+                        savings: `${optimization.savings}%`
+                    });
+                }
+                // For now, still use full update (Supabase doesn't natively support JSON Patch)
+                // But log the potential savings
+                const savings = calculatePatchSavings(original, { ...original, ...updates });
+                logger.info('[CrmQueryService] Potential savings with JSON Patch', {
+                    fullSize: savings.fullSize,
+                    patchSize: savings.patchSize,
+                    saved: `${savings.savedPercent}% (${savings.savedBytes} bytes)`
+                });
+            }
             
             const { data, error } = await supabase
                 .from('crm_items')
                 .update({
-                    ...updates,
+                    ...optimizedUpdates,
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', id)

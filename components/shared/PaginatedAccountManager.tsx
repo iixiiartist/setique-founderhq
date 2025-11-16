@@ -10,6 +10,7 @@ import { CrmType, AppActions, CrmCollectionName, AnyCrmItem } from '../../types'
 import { useCrmItems, useCrmStats, usePrefetchNextPage } from '../../lib/services/crmQueryService';
 import { VirtualizedAccountList } from '../crm/VirtualizedAccountList';
 import { PaginationControls } from './PaginationControls';
+import { CsvExportButton } from '../crm/CsvExportButton';
 import { logger } from '../../lib/logger';
 
 interface PaginatedAccountManagerProps {
@@ -192,6 +193,18 @@ export function PaginatedAccountManager({
                     📊 {getCrmTypeLabel()} Management ({pagination.totalItems.toLocaleString()})
                 </h3>
                 <div className="flex gap-2 flex-wrap">
+                    {/* CSV Export Button */}
+                    <CsvExportButton
+                        workspaceId={workspaceId}
+                        options={{
+                            type: typeFilter === 'all' ? undefined : typeFilter,
+                            status: filterByStatus || undefined,
+                            priority: filterByPriority || undefined,
+                            search: searchQuery || undefined,
+                            includeContacts: true
+                        }}
+                        className="font-mono"
+                    />
                     <button
                         onClick={toggleBulkSelect}
                         className={`font-mono border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn transition-all ${
