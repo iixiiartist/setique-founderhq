@@ -14,7 +14,7 @@
 
 import React, { useMemo, useCallback } from 'react';
 // @ts-ignore
-import { FixedSizeList } from 'react-window';
+import { List } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { CrmItem } from '../../types';
 
@@ -226,16 +226,15 @@ export function VirtualizedAccountList({
     return (
         <AutoSizer>
             {({ height, width }) => (
-                <FixedSizeList
+                <List
                     height={height}
-                    itemCount={items.length}
-                    itemSize={ITEM_HEIGHT}
+                    rowCount={items.length}
+                    rowHeight={ITEM_HEIGHT}
                     width={width}
                     overscanCount={OVERSCAN_COUNT}
                     className="border-2 border-black"
-                >
-                    {Row}
-                </FixedSizeList>
+                    rowComponent={Row}
+                />
             )}
         </AutoSizer>
     );
