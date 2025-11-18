@@ -23,6 +23,7 @@ import type {
   Document,
   TaskCollectionName,
   Expense,
+  AnyCrmItem,
 } from '../../types';
 
 // ============================================================================
@@ -259,8 +260,8 @@ export function dbToMarketingItem(dbItem: DbMarketingItem): MarketingItem {
 /**
  * Transform database CRM item record to application BaseCrmItem model
  */
-export function dbToCrmItem(dbItem: DbCrmItem): BaseCrmItem {
-  const base: any = {
+export function dbToCrmItem(dbItem: DbCrmItem): AnyCrmItem {
+  const base = {
     id: dbItem.id,
     company: dbItem.company,
     contacts: [], // Contacts are loaded separately and merged
@@ -273,17 +274,45 @@ export function dbToCrmItem(dbItem: DbCrmItem): BaseCrmItem {
     notes: dbItem.notes || [],
     assignedTo: dbItem.assigned_to || undefined,
     assignedToName: dbItem.assigned_to_name || undefined,
+    // Add deal flow management fields
+    website: dbItem.website || undefined,
+    industry: dbItem.industry || undefined,
+    description: dbItem.description || undefined,
   };
   
-  // Add deal flow management fields
-  if (dbItem.website) base.website = dbItem.website;
-  if (dbItem.industry) base.industry = dbItem.industry;
-  if (dbItem.description) base.description = dbItem.description;
-  if (dbItem.investment_stage) base.stage = dbItem.investment_stage; // Map to 'stage' for app
-  if (dbItem.deal_stage) base.dealStage = dbItem.deal_stage;
-  if (dbItem.partner_type) base.partnerType = dbItem.partner_type;
+  if (dbItem.type === 'investor') {
+    return {
+      ...base,
+      type: 'investor',
+      checkSize: dbItem.check_size || 0,
+      investmentStage: dbItem.investment_stage || undefined,
+    } as AnyCrmItem;
+  }
   
-  return base;
+  if (dbItem.type === 'customer') {
+    return {
+      ...base,
+      type: 'customer',
+      dealValue: dbItem.deal_value || 0,
+      dealStage: dbItem.deal_stage || undefined,
+    } as AnyCrmItem;
+  }
+  
+  if (dbItem.type === 'partner') {
+    return {
+      ...base,
+      type: 'partner',
+      opportunity: dbItem.opportunity || '',
+      partnerType: dbItem.partner_type || undefined,
+    } as AnyCrmItem;
+  }
+
+  // Fallback for unknown types (should not happen if DB is consistent)
+  return {
+    ...base,
+    type: 'partner', // Default to partner to satisfy type system
+    opportunity: '',
+  } as AnyCrmItem;
 }
 
 /**
@@ -481,7 +510,7 @@ export function dbToMarketingItems(dbItems: DbMarketingItem[]): MarketingItem[] 
 /**
  * Transform array of database CRM item records to application BaseCrmItem models
  */
-export function dbToCrmItems(dbItems: DbCrmItem[]): BaseCrmItem[] {
+export function dbToCrmItems(dbItems: DbCrmItem[]): AnyCrmItem[] {
   return dbItems.map(dbToCrmItem);
 }
 

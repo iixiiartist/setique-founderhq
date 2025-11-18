@@ -5,7 +5,6 @@
 
 import React, { useMemo } from 'react';
 import { TaskCollectionName, Priority, TaskStatus, WorkspaceMember } from '../../types';
-import type { TaskFiltersState } from '../TasksTab';
 
 const MODULE_OPTIONS: Array<{ value: TaskCollectionName; label: string; icon: string }> = [
     { value: 'productsServicesTasks', label: 'Products & Services', icon: '📦' },
@@ -31,6 +30,17 @@ const PRIORITY_OPTIONS: Array<{ value: Priority; label: string }> = [
 const ALL_CATEGORY_VALUES = MODULE_OPTIONS.map(option => option.value);
 const ALL_STATUS_VALUES = STATUS_OPTIONS.map(option => option.value);
 const ALL_PRIORITY_VALUES = PRIORITY_OPTIONS.map(option => option.value);
+
+export interface TaskFiltersState {
+    categories: TaskCollectionName[];
+    statuses: TaskStatus[];
+    priorities: Priority[];
+    assignedTo: 'all' | 'me' | 'team' | 'unassigned' | string;
+    dateFilter: 'all' | 'today' | 'week' | 'overdue' | 'no-date';
+    search: string;
+    sortBy: 'dueDate' | 'priority' | 'createdAt' | 'status' | 'assignee';
+    sortOrder: 'asc' | 'desc';
+}
 
 interface TaskFiltersProps {
     filters: TaskFiltersState;

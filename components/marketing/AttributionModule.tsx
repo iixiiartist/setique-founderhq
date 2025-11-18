@@ -121,7 +121,7 @@ function AttributionModule({
         contactId: formData.contactId || undefined,
         attributionType: formData.attributionType,
         attributionWeight: 1.0, // Default weight
-        interactionDate: new Date().toISOString(),
+        interactionDate: Date.now(),
         revenueAttributed: 0, // Will be calculated later
         utmSource: formData.utmSource || undefined,
         utmMedium: formData.utmMedium || undefined,

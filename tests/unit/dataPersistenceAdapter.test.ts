@@ -605,7 +605,7 @@ describe('DataPersistenceAdapter - Marketing Operations', () => {
       const mockItem = {
         id: 'marketing-123',
         title: 'Launch Campaign',
-        item_type: 'Campaign',
+        item_type: 'Product Launch',
         status: 'Planned',
       };
 
@@ -619,7 +619,7 @@ describe('DataPersistenceAdapter - Marketing Operations', () => {
         'workspace-001',
         {
           title: 'Launch Campaign',
-          type: 'Campaign',
+          type: 'Product Launch',
           status: 'Planned',
           dueDate: '2024-02-15',
           assignedTo: 'user-002',
@@ -633,7 +633,7 @@ describe('DataPersistenceAdapter - Marketing Operations', () => {
         'workspace-001',
         expect.objectContaining({
           title: 'Launch Campaign',
-          type: 'Campaign',
+          type: 'Product Launch',
           status: 'Planned',
           due_date: '2024-02-15',
           assigned_to: 'user-002',
@@ -650,7 +650,7 @@ describe('DataPersistenceAdapter - Marketing Operations', () => {
 
       await DataPersistenceAdapter.createMarketingItem('user-123', 'workspace-001', {
         title: 'Item',
-        type: 'Content',
+        type: 'Blog Post',
       });
 
       expect(DatabaseService.DatabaseService.createMarketingItem).toHaveBeenCalledWith(
@@ -666,12 +666,12 @@ describe('DataPersistenceAdapter - Marketing Operations', () => {
   describe('updateMarketingItem', () => {
     it('should update marketing item with field transformations', async () => {
       vi.mocked(DatabaseService.DatabaseService.updateMarketingItem).mockResolvedValue({
-        data: { id: 'marketing-123', status: 'Active' },
+        data: { id: 'marketing-123', status: 'In Progress' },
         error: null,
       });
 
       const updates: Partial<MarketingItem> = {
-        status: 'Active',
+        status: 'In Progress',
         dueDate: '2024-03-01',
         dueTime: '10:00',
       };
@@ -682,7 +682,7 @@ describe('DataPersistenceAdapter - Marketing Operations', () => {
       expect(DatabaseService.DatabaseService.updateMarketingItem).toHaveBeenCalledWith(
         'marketing-123',
         expect.objectContaining({
-          status: 'Active',
+          status: 'In Progress',
           due_date: '2024-03-01',
           due_time: '10:00',
         })

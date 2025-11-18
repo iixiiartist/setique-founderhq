@@ -13,7 +13,7 @@
  */
 
 import React, { useMemo, useCallback } from 'react';
-import { List } from 'react-window';
+import { List, ListChildComponentProps } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { CrmItem } from '../../types';
 
@@ -42,7 +42,7 @@ export function VirtualizedAccountList({
      * Memoized row renderer
      * This function is called for each visible row
      */
-    const Row = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
+    const Row = useCallback(({ index, style }: ListChildComponentProps) => {
         const item = items[index];
         if (!item) return null;
         
@@ -50,6 +50,10 @@ export function VirtualizedAccountList({
         const isBulkSelected = selectedItemIds.has(item.id);
         const todayStr = new Date().toISOString().split('T')[0];
         const isOverdue = item.nextActionDate && item.nextActionDate < todayStr;
+        const contactCount = item.contactCount ?? item.contacts?.length ?? 0;
+        const taskCount = item.taskCount ?? 0;
+        const noteCount = item.noteCount ?? item.notes?.length ?? 0;
+        const documentCount = item.documentCount ?? 0;
 
         const handleClick = (e: React.MouseEvent) => {
             if (bulkSelectMode && onToggleSelection) {
@@ -60,11 +64,13 @@ export function VirtualizedAccountList({
             }
         };
 
-        const handleCheckboxClick = (e: React.MouseEvent) => {
-            e.stopPropagation();
-            if (onToggleSelection) {
-                onToggleSelection(item.id);
-            }
+        const handleCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+            event.stopPropagation();
+            onToggleSelection?.(item.id);
+        };
+
+        const handleCheckboxClick = (event: React.MouseEvent<HTMLInputElement>) => {
+            event.stopPropagation();
         };
 
         return (
@@ -86,8 +92,8 @@ export function VirtualizedAccountList({
                             <input
                                 type="checkbox"
                                 checked={isBulkSelected}
-                                onChange={handleCheckboxClick}
-                                onClick={handleCheckboxClick}
+                                        onChange={handleCheckboxChange}
+                                        onClick={handleCheckboxClick}
                                 className="w-5 h-5 cursor-pointer accent-orange-500"
                             />
                         </div>
@@ -107,9 +113,9 @@ export function VirtualizedAccountList({
                                 <h3 className="text-sm font-bold text-gray-900 truncate font-mono">
                                     {item.company}
                                 </h3>
-                                {item.contactCount > 0 && (
+                                {contactCount > 0 && (
                                     <p className="text-xs text-gray-600 truncate mt-0.5">
-                                        👤 {item.contactCount} contact{item.contactCount !== 1 ? 's' : ''}
+                                        👤 {contactCount} contact{contactCount !== 1 ? 's' : ''}
                                     </p>
                                 )}
                                 
@@ -139,14 +145,14 @@ export function VirtualizedAccountList({
 
                                 {/* Stats Row */}
                                 <div className="flex items-center gap-3 mt-2 text-xs text-gray-600">
-                                    {item.taskCount > 0 && (
-                                        <span>✓ {item.taskCount} task{item.taskCount !== 1 ? 's' : ''}</span>
+                                    {taskCount > 0 && (
+                                        <span>✓ {taskCount} task{taskCount !== 1 ? 's' : ''}</span>
                                     )}
-                                    {item.noteCount > 0 && (
-                                        <span>📝 {item.noteCount} note{item.noteCount !== 1 ? 's' : ''}</span>
+                                    {noteCount > 0 && (
+                                        <span>📝 {noteCount} note{noteCount !== 1 ? 's' : ''}</span>
                                     )}
-                                    {item.documentCount > 0 && (
-                                        <span>📄 {item.documentCount} doc{item.documentCount !== 1 ? 's' : ''}</span>
+                                    {documentCount > 0 && (
+                                        <span>📄 {documentCount} doc{documentCount !== 1 ? 's' : ''}</span>
                                     )}
                                 </div>
                             </div>

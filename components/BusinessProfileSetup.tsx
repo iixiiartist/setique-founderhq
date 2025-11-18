@@ -154,13 +154,23 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
         if (!validation.success) {
             setValidationErrors(validation.errors);
             logger.debug('Validation failed for step', { step, errors: validation.errors });
-            track('business_profile_validation_error', { step, errors: Object.keys(validation.errors) })
+            const errorFields = Object.keys(validation.errors);
+            track('business_profile_validation_error', {
+                step,
+                error_fields: errorFields.join(','),
+                error_count: errorFields.length,
+            })
             return;
         }
         
         // Clear validation errors on successful validation
         setValidationErrors({});
-        track('business_profile_step_completed', { step, data_fields: Object.keys(formData) })
+        const fieldKeys = Object.keys(formData);
+        track('business_profile_step_completed', {
+            step,
+            data_fields: fieldKeys.join(','),
+            field_count: fieldKeys.length,
+        })
         
         if (step < totalSteps) {
             setStep(step + 1);

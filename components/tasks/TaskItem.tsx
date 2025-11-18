@@ -3,8 +3,8 @@
  * Individual task card with color coding and quick actions
  */
 
-import React from 'react';
-import { Task, AppActions, TaskCollectionName } from '../../types';
+import React, { useCallback, useMemo, useState } from 'react';
+import { Task, AppActions, TaskCollectionName, TaskStatus, Priority } from '../../types';
 import { TASK_TAG_BG_COLORS } from '../../constants';
 
 interface TaskItemProps {
@@ -15,6 +15,8 @@ interface TaskItemProps {
     onClick: () => void;
     actions: AppActions;
     linkedEntityName: string | null;
+    onLinkedEntityNavigate?: (task: Task) => void;
+    onCategoryNavigate?: (task: Task) => void;
 }
 
 const MODULE_LABELS: Record<TaskCollectionName, string> = {
@@ -38,6 +40,9 @@ const STATUS_COLORS = {
     Done: 'text-green-600'
 };
 
+const STATUS_OPTIONS: TaskStatus[] = ['Todo', 'InProgress', 'Done'];
+const PRIORITY_OPTIONS: Priority[] = ['High', 'Medium', 'Low'];
+
 export function TaskItem({
     task,
     isSelected,
@@ -45,11 +50,18 @@ export function TaskItem({
     onSelect,
     onClick,
     actions,
-    linkedEntityName
+    linkedEntityName,
+    onLinkedEntityNavigate,
+    onCategoryNavigate
 }: TaskItemProps) {
     const moduleLabel = MODULE_LABELS[task.category as TaskCollectionName] || 'Task';
     const tagColorClass = TASK_TAG_BG_COLORS[moduleLabel] || 'bg-gray-300';
     const isOverdue = task.dueDate && task.dueDate < new Date().toISOString().split('T')[0] && task.status !== 'Done';
+    const [isEditing, setIsEditing] = useState(false);
+    const [draftTitle, setDraftTitle] = useState(task.text || '');
+    const [isSaving, setIsSaving] = useState(false);
+
+    const isDirty = useMemo(() => draftTitle.trim() !== (task.text || '').trim(), [draftTitle, task.text]);
 
     const handleCheckboxClick = async (e: React.ChangeEvent<HTMLInputElement>) => {
         e.stopPropagation();
@@ -57,6 +69,52 @@ export function TaskItem({
             await actions.updateTask(task.id, { status: e.target.checked ? 'Done' : 'Todo' });
         }
     };
+
+    const handleStatusChange = useCallback(async (nextStatus: TaskStatus) => {
+        if (nextStatus === task.status) return;
+        setIsSaving(true);
+        try {
+            await actions.updateTask(task.id, { status: nextStatus });
+        } finally {
+            setIsSaving(false);
+        }
+    }, [actions, task.id, task.status]);
+
+    const handlePriorityChange = useCallback(async (nextPriority: Priority) => {
+        if (nextPriority === task.priority) return;
+        setIsSaving(true);
+        try {
+            await actions.updateTask(task.id, { priority: nextPriority });
+        } finally {
+            setIsSaving(false);
+        }
+    }, [actions, task.id, task.priority]);
+
+    const handleToggleEdit = useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        setDraftTitle(task.text || '');
+        setIsEditing(prev => !prev);
+    }, [task.text]);
+
+    const handleSaveTitle = useCallback(async (e?: React.MouseEvent) => {
+        e?.stopPropagation();
+        if (!isDirty || !draftTitle.trim()) {
+            setIsEditing(false);
+            return;
+        }
+        setIsSaving(true);
+        try {
+            await actions.updateTask(task.id, { text: draftTitle.trim() });
+            setIsEditing(false);
+        } finally {
+            setIsSaving(false);
+        }
+    }, [actions, draftTitle, isDirty, task.id]);
+
+    const handleCategoryNavigate = useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        onCategoryNavigate?.(task);
+    }, [onCategoryNavigate, task]);
 
     return (
         <div
@@ -102,9 +160,50 @@ export function TaskItem({
 
                     {/* Task info */}
                     <div className="flex-1 min-w-0">
-                        <div className="font-mono font-medium text-black mb-2">
-                            {task.status === 'Done' && <span className="line-through">{task.text}</span>}
-                            {task.status !== 'Done' && task.text}
+                        <div className="flex items-start gap-2 mb-2">
+                            {isEditing ? (
+                                <div className="flex-1">
+                                    <textarea
+                                        value={draftTitle}
+                                        onChange={(event) => setDraftTitle(event.target.value)}
+                                        className="w-full border border-gray-300 rounded-sm p-2 text-sm font-mono"
+                                        rows={2}
+                                        autoFocus
+                                    />
+                                    <div className="mt-2 flex gap-2 text-xs">
+                                        <button
+                                            type="button"
+                                            onClick={handleSaveTitle}
+                                            disabled={isSaving || !isDirty}
+                                            className={`px-3 py-1 border rounded ${isDirty ? 'bg-black text-white border-black' : 'text-gray-400 border-gray-200 cursor-not-allowed'}`}
+                                        >
+                                            Save
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setIsEditing(false);
+                                                setDraftTitle(task.text || '');
+                                            }}
+                                            className="px-3 py-1 border border-gray-300 rounded"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex-1 font-mono font-medium text-black">
+                                    {task.status === 'Done' ? <span className="line-through">{task.text}</span> : task.text}
+                                </div>
+                            )}
+                            <button
+                                type="button"
+                                onClick={handleToggleEdit}
+                                className="text-xs font-semibold border border-gray-300 px-2 py-1 rounded hover:border-gray-500"
+                            >
+                                {isEditing ? 'Close' : 'Edit'}
+                            </button>
                         </div>
 
                         {/* Tags */}
@@ -147,9 +246,17 @@ export function TaskItem({
 
                             {/* Linked entity */}
                             {linkedEntityName && (
-                                <span className="font-mono px-2 py-0.5 text-teal-600 bg-teal-50 border border-teal-300">
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onLinkedEntityNavigate?.(task);
+                                    }}
+                                    className="font-mono px-2 py-0.5 text-teal-600 bg-teal-50 border border-teal-300 rounded-sm hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                                    title="Open linked record"
+                                >
                                     🔗 {linkedEntityName}
-                                </span>
+                                </button>
                             )}
 
                             {/* Notes indicator */}
@@ -158,6 +265,58 @@ export function TaskItem({
                                     💬 {task.notes.length}
                                 </span>
                             )}
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
+                            <label className="flex items-center gap-1">
+                                <span className="font-mono uppercase text-gray-500">Status</span>
+                                <select
+                                    value={task.status}
+                                    onChange={(event) => handleStatusChange(event.target.value as TaskStatus)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="border border-gray-300 rounded px-2 py-1 text-xs"
+                                    disabled={isSaving}
+                                >
+                                    {STATUS_OPTIONS.map(option => (
+                                        <option key={option} value={option}>
+                                            {option === 'InProgress' ? 'In Progress' : option}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                            <label className="flex items-center gap-1">
+                                <span className="font-mono uppercase text-gray-500">Priority</span>
+                                <select
+                                    value={task.priority}
+                                    onChange={(event) => handlePriorityChange(event.target.value as Priority)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="border border-gray-300 rounded px-2 py-1 text-xs"
+                                    disabled={isSaving}
+                                >
+                                    {PRIORITY_OPTIONS.map(option => (
+                                        <option key={option} value={option}>
+                                            {option}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                            <button
+                                type="button"
+                                onClick={handleCategoryNavigate}
+                                className="px-3 py-1 border border-gray-300 rounded font-semibold hover:border-gray-500"
+                            >
+                                Open module
+                            </button>
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onClick();
+                                }}
+                                className="px-3 py-1 border border-gray-300 rounded font-semibold hover:border-gray-500"
+                            >
+                                View details
+                            </button>
                         </div>
                     </div>
                 </div>

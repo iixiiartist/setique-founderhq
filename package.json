@@ -119,7 +119,6 @@
     "@tiptap/extension-youtube": "^3.10.7",
     "@tiptap/react": "^3.10.5",
     "@tiptap/starter-kit": "^3.10.5",
-    "@types/react-window": "^2.0.0",
     "crypto-js": "^4.2.0",
     "date-fns": "^4.1.0",
     "emoji-picker-react": "^4.15.0",

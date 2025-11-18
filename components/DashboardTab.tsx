@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { DashboardData, BusinessProfile, SettingsData } from '../types';
+import { DashboardData, BusinessProfile, SettingsData, AppActions } from '../types';
 import type { QuickLink } from '../types';
 import { getAiResponse } from '../services/groqService';
 import ReactMarkdown from 'react-markdown';

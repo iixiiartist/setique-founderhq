@@ -490,10 +490,10 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
                     onSelect={async (doc) => {
                         try {
                             const { error } = await DatabaseService.linkDocToEntity(
+                                workspace.id,
                                 doc.id,
-                                workspaceId,
                                 'task',
-                                taskId
+                                editingTask.id
                             );
 
                             if (error) {
@@ -502,7 +502,6 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
                                 return;
                             }
 
-                            // Refresh the linked docs display
                             setLinkedDocsKey(prev => prev + 1);
                             setShowDocPicker(false);
                         } catch (error) {

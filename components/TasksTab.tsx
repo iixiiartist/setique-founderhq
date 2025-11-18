@@ -1,17 +1,77 @@
 /**
  * Tasks Tab - Clean & Simple
- * 
+ *
  * Single source of truth with dumb UI and smart filter logic.
  * Empty arrays mean "show all" - no auto-rechecking madness.
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
-import { Task, AppActions, TaskCollectionName, Priority, TaskStatus, AnyCrmItem, WorkspaceMember } from '../types';
-import { VirtualizedTaskList } from './tasks/VirtualizedTaskList';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import AutoSizer from 'react-virtualized-auto-sizer';
+import { List, type RowComponentProps } from 'react-window';
+import { Tab, type TabType } from '../constants';
+import { Task, AppActions, TaskCollectionName, Priority, TaskStatus, AnyCrmItem, WorkspaceMember, CrmType } from '../types';
 import { logger } from '../lib/logger';
+import { TaskItem } from './tasks/TaskItem';
+import { TaskCreationModal } from './tasks/TaskCreationModal';
+import { TaskDetailPanel } from './tasks/TaskDetailPanel';
 
 // Ensure these match your DB values exactly
 type TaskCategory = TaskCollectionName;
+
+const VIRTUALIZATION_THRESHOLD = 80;
+const TASK_ROW_HEIGHT = 240;
+
+const CATEGORY_TAB_TARGET: Record<TaskCategory, TabType> = {
+    productsServicesTasks: Tab.ProductsServices,
+    investorTasks: Tab.Investors,
+    customerTasks: Tab.Customers,
+    partnerTasks: Tab.Partners,
+    marketingTasks: Tab.Marketing,
+    financialTasks: Tab.Financials
+};
+
+const ENTITY_TAB_TARGET: Record<string, TabType> = {
+    account: Tab.Accounts,
+    product: Tab.ProductsServices,
+    marketing: Tab.Marketing,
+    financial: Tab.Financials
+};
+
+const CRM_TAB_TARGET: Record<CrmType, TabType> = {
+    investor: Tab.Investors,
+    customer: Tab.Customers,
+    partner: Tab.Partners
+};
+
+const STATUS_COLUMNS: Array<{
+    id: TaskStatus;
+    title: string;
+    description: string;
+    accent: string;
+    emptyMessage: string;
+}> = [
+    {
+        id: 'Todo',
+        title: 'Backlog',
+        description: 'Ready to be picked up next',
+        accent: 'from-sky-50 via-white to-sky-100',
+        emptyMessage: 'Nothing waiting – add a task or adjust filters.'
+    },
+    {
+        id: 'InProgress',
+        title: 'In Progress',
+        description: 'Actively being worked right now',
+        accent: 'from-amber-50 via-white to-amber-100',
+        emptyMessage: 'No active work. Reassign or pull from backlog.'
+    },
+    {
+        id: 'Done',
+        title: 'Completed',
+        description: 'Recently delivered wins',
+        accent: 'from-emerald-50 via-white to-emerald-100',
+        emptyMessage: 'No recent completions yet.'
+    }
+];
 
 interface TasksTabProps {
     data: {
@@ -29,17 +89,11 @@ interface TasksTabProps {
     actions: AppActions;
     workspaceMembers: WorkspaceMember[];
     userId: string;
-    workspaceId: string;
-    onNavigateToTab: (tab: string) => void;
+    workspaceId?: string;
+    onNavigateToTab?: (tab: string) => void;
 }
 
-export function TasksTab({
-    data,
-    actions,
-    workspaceMembers,
-    userId,
-}: TasksTabProps) {
-
+export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateToTab }: TasksTabProps) {
     // 1. FLATTEN DATA IMMEDIATELY - Single source of truth
     const allTasks: Task[] = useMemo(() => {
         const tasks = [
@@ -75,8 +129,10 @@ export function TasksTab({
     const [searchTerm, setSearchTerm] = useState('');
 
     // 3. STATE: LIST SELECTION
-    const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+    const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(() => new Set());
     const [bulkSelectMode, setBulkSelectMode] = useState(false);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [activeTask, setActiveTask] = useState<Task | null>(null);
 
     // 4. HANDLERS: FILTER TOGGLING - Pure toggle, no magic
     const toggleCategory = useCallback((category: TaskCategory) => {
@@ -142,10 +198,11 @@ export function TasksTab({
         // E. Search
         if (searchTerm.trim()) {
             const q = searchTerm.toLowerCase();
-            result = result.filter(task => 
-                (task.text || '').toLowerCase().includes(q) || 
-                (task.description || '').toLowerCase().includes(q)
-            );
+            result = result.filter(task => {
+                const textMatch = (task.text || '').toLowerCase().includes(q);
+                const description = ((task as { description?: string }).description || '').toLowerCase();
+                return textMatch || description.includes(q);
+            });
         }
 
         logger.info('[TasksTab] Filtered tasks', { 
@@ -157,22 +214,71 @@ export function TasksTab({
 
         return result;
     }, [allTasks, selectedCategories, selectedStatuses, selectedPriorities, onlyMyTasks, highPriorityOnly, searchTerm, userId]);
+    const groupedTasks = useMemo(() => {
+        return filteredTasks.reduce<Record<TaskStatus, Task[]>>((acc, task) => {
+            if (!acc[task.status]) {
+                acc[task.status] = [] as Task[];
+            }
+            acc[task.status].push(task);
+            return acc;
+        }, { Todo: [] as Task[], InProgress: [] as Task[], Done: [] as Task[] });
+    }, [filteredTasks]);
 
     // 6. HANDLERS: TASK INTERACTION
     const handleTaskSelect = useCallback((taskId: string) => {
         setSelectedTaskIds(prev => {
             const next = new Set(prev);
-            if (next.has(taskId)) next.delete(taskId);
-            else next.add(taskId);
+            if (next.has(taskId)) {
+                next.delete(taskId);
+            } else {
+                next.add(taskId);
+            }
             return next;
         });
     }, []);
 
     const handleTaskClick = useCallback((task: Task) => {
-        actions.tasks.openTaskDetails(task);
-    }, [actions]);
+        logger.info('[TasksTab] Task clicked', { taskId: task.id, status: task.status });
+        setActiveTask(task);
+    }, [setActiveTask]);
 
-    // Get linked entity name
+    const handleCloseDetail = useCallback(() => {
+        setActiveTask(null);
+    }, [setActiveTask]);
+
+    const handleOpenTaskModule = useCallback((task: Task) => {
+        if (!onNavigateToTab) return;
+        const targetTab = CATEGORY_TAB_TARGET[task.category as TaskCategory] || Tab.Accounts;
+        onNavigateToTab(targetTab);
+    }, [onNavigateToTab]);
+
+    const handleLinkedEntityNavigate = useCallback((task: Task) => {
+        if (!onNavigateToTab || !task.crmType) return;
+        const targetTab = CRM_TAB_TARGET[task.crmType] || Tab.Accounts;
+        onNavigateToTab(targetTab);
+        setActiveTask(null);
+    }, [onNavigateToTab]);
+
+    const handleNavigateToEntity = useCallback((entityType: string) => {
+        if (!onNavigateToTab) return;
+        const targetTab = ENTITY_TAB_TARGET[entityType] || Tab.Accounts;
+        onNavigateToTab(targetTab);
+        setActiveTask(null);
+    }, [onNavigateToTab]);
+
+    const toggleBulkSelect = useCallback(() => {
+        setBulkSelectMode(prev => {
+            if (prev) {
+                setSelectedTaskIds(new Set());
+            }
+            return !prev;
+        });
+    }, []);
+
+    const clearSelection = useCallback(() => {
+        setSelectedTaskIds(new Set());
+    }, []);
+
     const getLinkedEntityName = useCallback((task: Task): string | null => {
         if (task.crmItemId && data.crmItems) {
             const account = data.crmItems.find(item => item.id === task.crmItemId);
@@ -186,13 +292,15 @@ export function TasksTab({
     const todoCount = allTasks.filter(t => t.status === 'Todo').length;
     const inProgressCount = allTasks.filter(t => t.status === 'InProgress').length;
     const doneCount = allTasks.filter(t => t.status === 'Done').length;
+    const selectionCount = selectedTaskIds.size;
+    const hasResults = filteredTasks.length > 0;
 
     // 7. RENDER
     return (
+        <>
         <div className="flex h-full bg-white">
             {/* SIDEBAR */}
             <aside className="w-64 border-r border-gray-200 p-4 flex flex-col gap-6 overflow-y-auto">
-                
                 <div className="flex justify-between items-center">
                     <h2 className="font-mono text-sm font-bold uppercase text-gray-500">Filters</h2>
                     <button 
@@ -213,16 +321,15 @@ export function TasksTab({
                             { id: 'customerTasks', label: 'Customers' },
                             { id: 'partnerTasks', label: 'Partners' },
                             { id: 'marketingTasks', label: 'Marketing' },
-                            { id: 'financialTasks', label: 'Financials' },
-                        ].map(option => (
-                            <label key={option.id} className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-gray-900">
+                            { id: 'financialTasks', label: 'Financials' }
+                        ].map(category => (
+                            <label key={category.id} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
                                 <input
                                     type="checkbox"
-                                    className="rounded border-gray-300 text-black focus:ring-black"
-                                    checked={selectedCategories.includes(option.id as TaskCategory)}
-                                    onChange={() => toggleCategory(option.id as TaskCategory)}
+                                    checked={selectedCategories.includes(category.id as TaskCategory)}
+                                    onChange={() => toggleCategory(category.id as TaskCategory)}
                                 />
-                                {option.label}
+                                {category.label}
                             </label>
                         ))}
                     </div>
@@ -235,16 +342,15 @@ export function TasksTab({
                         {[
                             { id: 'Todo', label: 'To Do' },
                             { id: 'InProgress', label: 'In Progress' },
-                            { id: 'Done', label: 'Done' },
-                        ].map(option => (
-                            <label key={option.id} className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-gray-900">
+                            { id: 'Done', label: 'Done' }
+                        ].map(status => (
+                            <label key={status.id} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
                                 <input
                                     type="checkbox"
-                                    className="rounded border-gray-300 text-black focus:ring-black"
-                                    checked={selectedStatuses.includes(option.id as TaskStatus)}
-                                    onChange={() => toggleStatus(option.id as TaskStatus)}
+                                    checked={selectedStatuses.includes(status.id as TaskStatus)}
+                                    onChange={() => toggleStatus(status.id as TaskStatus)}
                                 />
-                                {option.label}
+                                {status.label}
                             </label>
                         ))}
                     </div>
@@ -257,30 +363,29 @@ export function TasksTab({
                         {[
                             { id: 'High', label: 'High' },
                             { id: 'Medium', label: 'Medium' },
-                            { id: 'Low', label: 'Low' },
-                        ].map(option => (
-                            <label key={option.id} className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-gray-900">
+                            { id: 'Low', label: 'Low' }
+                        ].map(priority => (
+                            <label key={priority.id} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
                                 <input
                                     type="checkbox"
-                                    className="rounded border-gray-300 text-black focus:ring-black"
-                                    checked={selectedPriorities.includes(option.id as Priority)}
-                                    onChange={() => togglePriority(option.id as Priority)}
+                                    checked={selectedPriorities.includes(priority.id as Priority)}
+                                    onChange={() => togglePriority(priority.id as Priority)}
                                 />
-                                {option.label}
+                                {priority.label}
                             </label>
                         ))}
                     </div>
                 </div>
 
                 {/* Toggles */}
-                <div className="space-y-1 pt-2 border-t">
+                <div className="space-y-2">
                     <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
                         <input
                             type="checkbox"
                             checked={onlyMyTasks}
                             onChange={(e) => setOnlyMyTasks(e.target.checked)}
                         />
-                        My tasks only
+                        Assigned to me
                     </label>
                     <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
                         <input
@@ -306,33 +411,100 @@ export function TasksTab({
 
             {/* MAIN CONTENT */}
             <div className="flex-1 flex flex-col min-w-0">
-                
                 {/* Stats Bar */}
-                <div className="grid grid-cols-4 gap-4 p-4 border-b border-gray-200 bg-gray-50/50">
-                   <StatCard label="Total Tasks" value={totalCount} />
-                   <StatCard label="Showing" value={filteredTasks.length} />
-                   <StatCard label="To Do" value={todoCount} />
-                   <StatCard label="Done" value={doneCount} />
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 border-b border-gray-200 bg-gray-50/50">
+                    <StatCard label="Total Tasks" value={totalCount} />
+                    <StatCard label="Showing" value={filteredTasks.length} />
+                    <StatCard label="To Do" value={todoCount} />
+                    <StatCard label="Done" value={doneCount} />
                 </div>
 
-                {/* Virtualized List */}
-                <div className="flex-1 min-h-0 relative" style={{ minHeight: '400px' }}>
-                    <VirtualizedTaskList
-                        tasks={filteredTasks}
-                        selectedTaskIds={selectedTaskIds}
-                        bulkSelectMode={bulkSelectMode}
-                        onTaskSelect={handleTaskSelect}
-                        onTaskClick={handleTaskClick}
-                        actions={actions}
-                        getLinkedEntityName={getLinkedEntityName}
-                    />
+                <div className="border-b border-gray-200 bg-white px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <p className="text-sm font-semibold text-gray-900">Working set</p>
+                        <p className="text-xs text-gray-500">Filtered view out of {totalCount} total workspace tasks</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            onClick={() => setIsCreateModalOpen(true)}
+                            className="text-xs font-semibold border px-3 py-1 rounded bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+                        >
+                            New task
+                        </button>
+                        <button
+                            onClick={toggleBulkSelect}
+                            className={`text-xs font-semibold border px-3 py-1 rounded ${bulkSelectMode ? 'bg-black text-white border-black' : 'border-gray-300 text-gray-700 hover:border-gray-500'}`}
+                        >
+                            {bulkSelectMode ? 'Bulk select enabled' : 'Enable bulk select'}
+                        </button>
+                        <button
+                            onClick={clearSelection}
+                            disabled={selectionCount === 0}
+                            className={`text-xs font-semibold border px-3 py-1 rounded ${selectionCount === 0 ? 'text-gray-400 border-gray-200 cursor-not-allowed' : 'text-gray-700 border-gray-300 hover:border-gray-500'}`}
+                        >
+                            Clear selection ({selectionCount})
+                        </button>
+                    </div>
+                </div>
+
+                <div className="flex-1 overflow-hidden">
+                    {hasResults ? (
+                        <div className="h-full overflow-y-auto bg-gray-50">
+                            <div className="grid gap-4 p-4 lg:grid-cols-2 xl:grid-cols-3 auto-rows-min" style={{ gridAutoRows: 'minmax(0, 1fr)' }}>
+                                {STATUS_COLUMNS.map(column => (
+                                    <TaskColumn
+                                        key={column.id}
+                                        column={column}
+                                        tasks={groupedTasks[column.id] || []}
+                                        selectedTaskIds={selectedTaskIds}
+                                        bulkSelectMode={bulkSelectMode}
+                                        onTaskSelect={handleTaskSelect}
+                                        onTaskClick={handleTaskClick}
+                                        actions={actions}
+                                        getLinkedEntityName={getLinkedEntityName}
+                                        onLinkedEntityNavigate={handleLinkedEntityNavigate}
+                                        onCategoryNavigate={handleOpenTaskModule}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <EmptyState clearAllFilters={clearAllFilters} totalCount={totalCount} />
+                    )}
                 </div>
             </div>
         </div>
+
+        {activeTask && (
+            <div className="fixed inset-0 z-40 flex justify-end bg-black/40">
+                <div className="h-full w-full max-w-2xl bg-white shadow-2xl">
+                    <TaskDetailPanel
+                        task={activeTask}
+                        actions={actions}
+                        onClose={handleCloseDetail}
+                        onNavigateToEntity={handleNavigateToEntity}
+                        workspaceMembers={workspaceMembers}
+                        linkedEntityName={getLinkedEntityName(activeTask)}
+                    />
+                </div>
+            </div>
+        )}
+
+        {isCreateModalOpen && (
+            <TaskCreationModal
+                onClose={() => setIsCreateModalOpen(false)}
+                actions={actions}
+                workspaceMembers={workspaceMembers}
+                crmItems={data.crmItems || []}
+            />
+        )}
+        </>
     );
 }
 
-function StatCard({ label, value }: { label: string, value: number }) {
+export default TasksTab;
+
+function StatCard({ label, value }: { label: string; value: number }) {
     return (
         <div className="flex flex-col">
             <span className="text-xs font-mono uppercase text-gray-500">{label}</span>
@@ -341,4 +513,224 @@ function StatCard({ label, value }: { label: string, value: number }) {
     );
 }
 
-export default TasksTab;
+interface TaskColumnProps {
+    column: typeof STATUS_COLUMNS[number];
+    tasks: Task[];
+    selectedTaskIds: Set<string>;
+    bulkSelectMode: boolean;
+    onTaskSelect: (taskId: string) => void;
+    onTaskClick: (task: Task) => void;
+    actions: AppActions;
+    getLinkedEntityName: (task: Task) => string | null;
+    onLinkedEntityNavigate: (task: Task) => void;
+    onCategoryNavigate: (task: Task) => void;
+}
+
+function TaskColumn({
+    column,
+    tasks,
+    selectedTaskIds,
+    bulkSelectMode,
+    onTaskSelect,
+    onTaskClick,
+    actions,
+    getLinkedEntityName,
+    onLinkedEntityNavigate,
+    onCategoryNavigate
+}: TaskColumnProps) {
+    const hasTasks = tasks.length > 0;
+
+    return (
+        <section className="flex flex-col h-full border-2 border-gray-900 shadow-neo bg-white rounded-lg overflow-hidden">
+            <div className={`px-4 py-3 border-b border-gray-200 bg-gradient-to-r ${column.accent}`}>
+                <p className="text-xs font-mono uppercase text-gray-500">{column.title}</p>
+                <p className="text-sm text-gray-900 font-semibold">{tasks.length} task{tasks.length === 1 ? '' : 's'}</p>
+                <p className="text-xs text-gray-500">{column.description}</p>
+            </div>
+            <div className="flex-1 min-h-[200px]">
+                {hasTasks ? (
+                    <TaskColumnList
+                        tasks={tasks}
+                        selectedTaskIds={selectedTaskIds}
+                        bulkSelectMode={bulkSelectMode}
+                        onTaskSelect={onTaskSelect}
+                        onTaskClick={onTaskClick}
+                        actions={actions}
+                        getLinkedEntityName={getLinkedEntityName}
+                        onLinkedEntityNavigate={onLinkedEntityNavigate}
+                        onCategoryNavigate={onCategoryNavigate}
+                    />
+                ) : (
+                    <p className="text-xs text-gray-500 italic p-4">{column.emptyMessage}</p>
+                )}
+            </div>
+        </section>
+    );
+}
+
+interface TaskColumnListProps {
+    tasks: Task[];
+    selectedTaskIds: Set<string>;
+    bulkSelectMode: boolean;
+    onTaskSelect: (taskId: string) => void;
+    onTaskClick: (task: Task) => void;
+    actions: AppActions;
+    getLinkedEntityName: (task: Task) => string | null;
+    onLinkedEntityNavigate: (task: Task) => void;
+    onCategoryNavigate: (task: Task) => void;
+}
+
+function TaskColumnList(props: TaskColumnListProps) {
+    if (props.tasks.length <= VIRTUALIZATION_THRESHOLD) {
+        return <StaticTaskList {...props} />;
+    }
+    return <TaskColumnVirtualizedList {...props} />;
+}
+
+const StaticTaskList = ({
+    tasks,
+    selectedTaskIds,
+    bulkSelectMode,
+    onTaskSelect,
+    onTaskClick,
+    actions,
+    getLinkedEntityName,
+    onLinkedEntityNavigate,
+    onCategoryNavigate
+}: TaskColumnListProps) => (
+    <div className="h-full overflow-y-auto p-4 space-y-3">
+        {tasks.map(task => (
+            <TaskItem
+                key={task.id}
+                task={task}
+                isSelected={selectedTaskIds.has(task.id)}
+                bulkSelectMode={bulkSelectMode}
+                onSelect={() => onTaskSelect(task.id)}
+                onClick={() => onTaskClick(task)}
+                actions={actions}
+                linkedEntityName={getLinkedEntityName(task)}
+                onLinkedEntityNavigate={onLinkedEntityNavigate}
+                onCategoryNavigate={onCategoryNavigate}
+            />
+        ))}
+    </div>
+);
+
+type VirtualizedRowData = TaskColumnListProps;
+
+function VirtualizedTaskRow({
+    ariaAttributes,
+    index,
+    style,
+    tasks,
+    selectedTaskIds,
+    bulkSelectMode,
+    onTaskSelect,
+    onTaskClick,
+    actions,
+    getLinkedEntityName,
+    onLinkedEntityNavigate,
+    onCategoryNavigate
+}: RowComponentProps<VirtualizedRowData>) {
+    const task = tasks[index];
+    if (!task) {
+        return null;
+    }
+
+    return (
+        <div {...ariaAttributes} style={style}>
+            <div className="px-4 py-2">
+                <TaskItem
+                    task={task}
+                    isSelected={selectedTaskIds.has(task.id)}
+                    bulkSelectMode={bulkSelectMode}
+                    onSelect={() => onTaskSelect(task.id)}
+                    onClick={() => onTaskClick(task)}
+                    actions={actions}
+                    linkedEntityName={getLinkedEntityName(task)}
+                    onLinkedEntityNavigate={onLinkedEntityNavigate}
+                    onCategoryNavigate={onCategoryNavigate}
+                />
+            </div>
+        </div>
+    );
+}
+
+function TaskColumnVirtualizedList(props: TaskColumnListProps) {
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+    const rowProps = useMemo<VirtualizedRowData>(() => ({
+        tasks: props.tasks,
+        selectedTaskIds: props.selectedTaskIds,
+        bulkSelectMode: props.bulkSelectMode,
+        onTaskSelect: props.onTaskSelect,
+        onTaskClick: props.onTaskClick,
+        actions: props.actions,
+        getLinkedEntityName: props.getLinkedEntityName,
+        onLinkedEntityNavigate: props.onLinkedEntityNavigate,
+        onCategoryNavigate: props.onCategoryNavigate
+    }), [
+        props.tasks,
+        props.selectedTaskIds,
+        props.bulkSelectMode,
+        props.onTaskSelect,
+        props.onTaskClick,
+        props.actions,
+        props.getLinkedEntityName,
+        props.onLinkedEntityNavigate,
+        props.onCategoryNavigate
+    ]);
+
+    if (!isClient) {
+        return <StaticTaskList {...props} />;
+    }
+
+    return (
+        <div className="h-full">
+            <AutoSizer>
+                {({ height, width }) => {
+                    if (!height || !width) {
+                        logger.warn('[TasksTab] Virtualized column missing dimensions', { height, width });
+                        return <StaticTaskList {...props} />;
+                    }
+
+                    return (
+                        <List
+                            style={{ height, width }}
+                            rowCount={props.tasks.length}
+                            rowHeight={TASK_ROW_HEIGHT}
+                            rowComponent={VirtualizedTaskRow}
+                            rowProps={rowProps}
+                            overscanCount={10}
+                        />
+                    );
+                }}
+            </AutoSizer>
+        </div>
+    );
+}
+
+function EmptyState({ clearAllFilters, totalCount }: { clearAllFilters: () => void; totalCount: number }) {
+    return (
+        <div className="flex flex-col items-center justify-center h-full text-center gap-4 p-8 bg-white">
+            <div>
+                <p className="text-lg font-semibold text-gray-900">No tasks match the current filters</p>
+                <p className="text-sm text-gray-500">
+                    {totalCount === 0
+                        ? 'This workspace does not have tasks yet. Create one to get started.'
+                        : 'Try clearing filters or searching for a different keyword.'}
+                </p>
+            </div>
+            <button
+                onClick={clearAllFilters}
+                className="px-4 py-2 rounded border border-gray-900 bg-black text-white text-sm font-semibold"
+            >
+                Reset filters
+            </button>
+        </div>
+    );
+}

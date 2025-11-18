@@ -206,7 +206,7 @@ export function TaskCreationModal({
                             <option value="">No linked deal</option>
                             {deals.map(deal => (
                                 <option key={deal.id} value={deal.id}>
-                                    {deal.title} - ${deal.amount?.toLocaleString() || '0'}
+                                    {deal.title} - ${typeof deal.value === 'number' ? deal.value.toLocaleString() : '0'}
                                 </option>
                             ))}
                         </select>

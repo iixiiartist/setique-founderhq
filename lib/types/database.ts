@@ -940,6 +940,101 @@ export interface Database {
           updated_at?: string
         }
       }
+      deals: {
+        Row: {
+          id: string
+          workspace_id: string
+          title: string
+          crm_item_id: string | null
+          contact_id: string | null
+          value: number
+          currency: string
+          stage: string
+          probability: number
+          expected_close_date: string | null
+          actual_close_date: string | null
+          source: string | null
+          category: string
+          priority: string
+          assigned_to: string | null
+          assigned_to_name: string | null
+          created_at: string
+          updated_at: string
+          notes: Json | null
+          tags: string[] | null
+          custom_fields: Json | null
+          product_service_id: string | null
+          product_service_name: string | null
+          quantity: number | null
+          unit_price: number | null
+          discount_percent: number | null
+          discount_amount: number | null
+          tax_amount: number | null
+          total_value: number | null
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          title: string
+          crm_item_id?: string | null
+          contact_id?: string | null
+          value: number
+          currency?: string
+          stage: string
+          probability?: number
+          expected_close_date?: string | null
+          actual_close_date?: string | null
+          source?: string | null
+          category: string
+          priority?: string
+          assigned_to?: string | null
+          assigned_to_name?: string | null
+          created_at?: string
+          updated_at?: string
+          notes?: Json | null
+          tags?: string[] | null
+          custom_fields?: Json | null
+          product_service_id?: string | null
+          product_service_name?: string | null
+          quantity?: number | null
+          unit_price?: number | null
+          discount_percent?: number | null
+          discount_amount?: number | null
+          tax_amount?: number | null
+          total_value?: number | null
+        }
+        Update: {
+          id?: string
+          workspace_id?: string
+          title?: string
+          crm_item_id?: string | null
+          contact_id?: string | null
+          value?: number
+          currency?: string
+          stage?: string
+          probability?: number
+          expected_close_date?: string | null
+          actual_close_date?: string | null
+          source?: string | null
+          category?: string
+          priority?: string
+          assigned_to?: string | null
+          assigned_to_name?: string | null
+          created_at?: string
+          updated_at?: string
+          notes?: Json | null
+          tags?: string[] | null
+          custom_fields?: Json | null
+          product_service_id?: string | null
+          product_service_name?: string | null
+          quantity?: number | null
+          unit_price?: number | null
+          discount_percent?: number | null
+          discount_amount?: number | null
+          tax_amount?: number | null
+          total_value?: number | null
+        }
+      }
     }
     Views: {
       [_ in never]: never

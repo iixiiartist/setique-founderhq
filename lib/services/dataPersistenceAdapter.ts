@@ -2,8 +2,9 @@ import { DatabaseService } from './database'
 import { logActivity } from './activityService'
 import { 
   Task, AnyCrmItem, Contact, Meeting, MarketingItem, 
-  FinancialLog, Document, SettingsData,
-  TaskCollectionName, CrmCollectionName, Priority, TaskStatus
+  FinancialLog, Document, SettingsData, Deal, ProductService,
+  TaskCollectionName, CrmCollectionName, Priority, TaskStatus,
+  CampaignAttribution, MarketingAnalytics
 } from '../../types'
 import { taskToDb, marketingItemToDb, crmItemToDb, contactToDb } from '../utils/fieldTransformers'
 
@@ -811,6 +812,25 @@ export class DataPersistenceAdapter {
     return { data, error }
   }
 
+  static async updateFinancialForecast(forecastId: string, updates: any) {
+    // Map camelCase to snake_case
+    const dbUpdates: any = {};
+    if (updates.forecastMonth) dbUpdates.forecast_month = updates.forecastMonth;
+    if (updates.forecastType) dbUpdates.forecast_type = updates.forecastType;
+    if (updates.forecastedAmount) dbUpdates.forecasted_amount = updates.forecastedAmount;
+    if (updates.confidenceLevel) dbUpdates.confidence_level = updates.confidenceLevel;
+    if (updates.basedOnDeals) dbUpdates.based_on_deals = updates.basedOnDeals;
+    if (updates.assumptions) dbUpdates.assumptions = updates.assumptions;
+
+    const { data, error } = await DatabaseService.updateFinancialForecast(forecastId, dbUpdates)
+    return { data, error }
+  }
+
+  static async deleteFinancialForecast(forecastId: string) {
+    const { data, error } = await DatabaseService.deleteFinancialForecast(forecastId)
+    return { data, error }
+  }
+
   static async createBudgetPlan(
     userId: string,
     workspaceId: string,
@@ -874,6 +894,11 @@ export class DataPersistenceAdapter {
     return { data, error }
   }
 
+  static async deleteBudgetPlan(budgetId: string) {
+    const { data, error } = await DatabaseService.deleteBudgetPlan(budgetId)
+    return { data, error }
+  }
+
   // ============================================================================
   // MARKETING ENHANCEMENTS
   // ============================================================================
@@ -887,8 +912,8 @@ export class DataPersistenceAdapter {
       contactId?: string
       attributionType: 'first_touch' | 'last_touch' | 'multi_touch'
       attributionWeight?: number
-      interactionDate?: string
-      conversionDate?: string
+      interactionDate?: number
+      conversionDate?: number
       revenueAttributed?: number
       utmSource?: string
       utmMedium?: string
@@ -896,6 +921,9 @@ export class DataPersistenceAdapter {
       utmContent?: string
     }
   ) {
+    const serializeDate = (value?: number | null) =>
+      value !== undefined && value !== null ? new Date(value).toISOString() : null;
+
     const attribution = {
       workspace_id: workspaceId,
       marketing_item_id: attributionData.marketingItemId,
@@ -903,8 +931,8 @@ export class DataPersistenceAdapter {
       contact_id: attributionData.contactId || null,
       attribution_type: attributionData.attributionType,
       attribution_weight: attributionData.attributionWeight || 1.0,
-      interaction_date: attributionData.interactionDate || new Date().toISOString(),
-      conversion_date: attributionData.conversionDate || null,
+      interaction_date: serializeDate(attributionData.interactionDate) || new Date().toISOString(),
+      conversion_date: serializeDate(attributionData.conversionDate),
       revenue_attributed: attributionData.revenueAttributed || 0,
       utm_source: attributionData.utmSource || null,
       utm_medium: attributionData.utmMedium || null,
@@ -928,40 +956,6 @@ export class DataPersistenceAdapter {
       });
     }
     
-    return { data, error }
-  }
-
-  static async createMarketingAnalytics(
-    workspaceId: string,
-    userId: string,
-    analyticsData: {
-      marketingItemId: string
-      analyticsDate: string
-      impressions?: number
-      clicks?: number
-      engagements?: number
-      conversions?: number
-      leadsGenerated?: number
-      revenueGenerated?: number
-      adSpend?: number
-      channel?: 'email' | 'social' | 'paid_ads' | 'content' | 'events' | 'other'
-    }
-  ) {
-    const analytics = {
-      workspace_id: workspaceId,
-      marketing_item_id: analyticsData.marketingItemId,
-      analytics_date: analyticsData.analyticsDate,
-      impressions: analyticsData.impressions || 0,
-      clicks: analyticsData.clicks || 0,
-      engagements: analyticsData.engagements || 0,
-      conversions: analyticsData.conversions || 0,
-      leads_generated: analyticsData.leadsGenerated || 0,
-      revenue_generated: analyticsData.revenueGenerated || 0,
-      ad_spend: analyticsData.adSpend || 0,
-      channel: analyticsData.channel || null,
-    }
-
-    const { data, error } = await DatabaseService.createMarketingAnalytics(analytics)
     return { data, error }
   }
 
@@ -1037,6 +1031,188 @@ export class DataPersistenceAdapter {
     const { data, error } = await DatabaseService.updateUserProfile(userId, {
       settings: settings as any
     })
+    return { data, error }
+  }
+
+  // Deal operations
+  static async createDeal(
+    userId: string,
+    workspaceId: string,
+    deal: Omit<Deal, 'id' | 'createdAt' | 'updatedAt' | 'notes'>
+  ) {
+    const dealData = {
+      workspace_id: workspaceId,
+      title: deal.title,
+      crm_item_id: deal.crmItemId,
+      contact_id: deal.contactId,
+      value: deal.value,
+      currency: deal.currency,
+      stage: deal.stage,
+      probability: deal.probability,
+      expected_close_date: deal.expectedCloseDate,
+      actual_close_date: deal.actualCloseDate,
+      source: deal.source,
+      category: deal.category,
+      priority: deal.priority,
+      assigned_to: deal.assignedTo,
+      tags: deal.tags,
+      custom_fields: deal.customFields
+    }
+
+    const { data, error } = await DatabaseService.createDeal(dealData as any)
+    
+    if (data && workspaceId) {
+      await logActivity({
+        workspaceId,
+        userId,
+        actionType: 'deal_created', // Need to check if this exists in ActivityActionType
+        entityType: 'deal', // Need to check if this exists in ActivityEntityType
+        entityId: data.id,
+        metadata: {
+          title: deal.title,
+          value: deal.value
+        },
+      });
+    }
+    
+    return { data, error }
+  }
+
+  static async updateDeal(dealId: string, updates: Partial<Deal>, userId?: string, workspaceId?: string) {
+    const dealUpdates: any = {}
+    if (updates.title !== undefined) dealUpdates.title = updates.title
+    if (updates.value !== undefined) dealUpdates.value = updates.value
+    if (updates.stage !== undefined) dealUpdates.stage = updates.stage
+    if (updates.probability !== undefined) dealUpdates.probability = updates.probability
+    if (updates.expectedCloseDate !== undefined) dealUpdates.expected_close_date = updates.expectedCloseDate
+    if (updates.actualCloseDate !== undefined) dealUpdates.actual_close_date = updates.actualCloseDate
+    if (updates.priority !== undefined) dealUpdates.priority = updates.priority
+    if (updates.assignedTo !== undefined) dealUpdates.assigned_to = updates.assignedTo
+    
+    const { data, error } = await DatabaseService.updateDeal(dealId, dealUpdates)
+    
+    if (data && workspaceId && userId) {
+      await logActivity({
+        workspaceId,
+        userId,
+        actionType: 'deal_updated',
+        entityType: 'deal',
+        entityId: dealId,
+        metadata: {
+          updates: Object.keys(updates)
+        },
+      });
+    }
+
+    return { data, error }
+  }
+
+  static async deleteDeal(dealId: string) {
+    const { data, error } = await DatabaseService.deleteDeal(dealId)
+    return { data, error }
+  }
+
+  // Product/Service operations
+  static async createProductService(
+    userId: string,
+    workspaceId: string,
+    product: Omit<ProductService, 'id' | 'createdAt' | 'updatedAt'>
+  ) {
+    const productData = {
+      workspace_id: workspaceId,
+      name: product.name,
+      description: product.description,
+      type: product.type,
+      pricing_model: product.pricingModel,
+      base_price: product.basePrice,
+      currency: product.currency,
+      billing_period: (product as any).billingPeriod, // Cast to any if missing
+      is_active: product.status === 'active',
+      category: product.category,
+      tags: product.tags,
+      sku: product.sku,
+      tax_code: product.taxCode,
+      inventory_track: product.inventoryTracked,
+      inventory_quantity: product.quantityOnHand,
+      inventory_low_threshold: product.reorderPoint,
+      service_capacity_track: product.capacityTracked,
+      service_capacity_per_period: product.capacityTotal,
+      service_capacity_period: product.capacityPeriod
+    }
+
+    const { data, error } = await DatabaseService.createProductService(productData)
+    return { data, error }
+  }
+
+  static async updateProductService(id: string, updates: Partial<ProductService>) {
+    const productUpdates: any = {}
+    if (updates.name !== undefined) productUpdates.name = updates.name
+    if (updates.basePrice !== undefined) productUpdates.base_price = updates.basePrice
+    if (updates.status !== undefined) productUpdates.status = updates.status
+    
+    const { data, error } = await DatabaseService.updateProductService(id, productUpdates)
+    return { data, error }
+  }
+
+  static async deleteProductService(id: string) {
+    const { data, error } = await DatabaseService.deleteProductService(id)
+    return { data, error }
+  }
+
+  static async updateCampaignAttribution(
+    attributionId: string,
+    updates: Partial<CampaignAttribution>
+  ) {
+    const dbUpdates: any = {};
+    if (updates.attributionType) dbUpdates.attribution_type = updates.attributionType;
+    if (updates.attributionWeight !== undefined) dbUpdates.attribution_weight = updates.attributionWeight;
+    if (updates.revenueAttributed !== undefined) dbUpdates.revenue_attributed = updates.revenueAttributed;
+    
+    const { data, error } = await DatabaseService.updateCampaignAttribution(attributionId, dbUpdates);
+    return { data, error };
+  }
+
+  static async deleteCampaignAttribution(attributionId: string) {
+    const { data, error } = await DatabaseService.deleteCampaignAttribution(attributionId);
+    return { data, error };
+  }
+
+  static async deleteMarketingAnalytics(analyticsId: string) {
+    const { data, error } = await DatabaseService.deleteMarketingAnalytics(analyticsId);
+    return { data, error };
+  }
+
+  static async createMarketingAnalytics(
+    workspaceId: string,
+    userId: string,
+    analyticsData: {
+      marketingItemId: string
+      analyticsDate: string
+      impressions?: number
+      clicks?: number
+      engagements?: number
+      conversions?: number
+      leadsGenerated?: number
+      revenueGenerated?: number
+      adSpend?: number
+      channel?: 'email' | 'social' | 'paid_ads' | 'content' | 'events' | 'other'
+    }
+  ) {
+    const analytics = {
+      workspace_id: workspaceId,
+      marketing_item_id: analyticsData.marketingItemId,
+      analytics_date: analyticsData.analyticsDate,
+      impressions: analyticsData.impressions || 0,
+      clicks: analyticsData.clicks || 0,
+      engagements: analyticsData.engagements || 0,
+      conversions: analyticsData.conversions || 0,
+      leads_generated: analyticsData.leadsGenerated || 0,
+      revenue_generated: analyticsData.revenueGenerated || 0,
+      ad_spend: analyticsData.adSpend || 0,
+      channel: analyticsData.channel || null,
+    }
+
+    const { data, error } = await DatabaseService.createMarketingAnalytics(analytics)
     return { data, error }
   }
 }

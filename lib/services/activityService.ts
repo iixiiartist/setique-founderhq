@@ -42,16 +42,31 @@ export type ActivityActionType =
   | 'calendar_event_created'
   | 'calendar_meeting_invited'
   // Note actions
-  | 'note_added';
+  | 'note_added'
+  // New actions
+  | 'revenue_created'
+  | 'payment_received'
+  | 'budget_created'
+  | 'attribution_created'
+  | 'calendar_linked'
+  | 'deal_created'
+  | 'deal_updated';
 
 export type ActivityEntityType = 
   | 'task' 
   | 'comment' 
   | 'crm_company'
-  | 'crm_contact' 
-  | 'document' 
-  | 'meeting' 
+  | 'crm_contact'
+  | 'meeting'
+  | 'marketing'
+  | 'financial'
+  | 'document'
+  | 'calendar'
   | 'note'
+  | 'revenue'
+  | 'budget'
+  | 'attribution'
+  | 'deal'
   | 'marketing_campaign'
   | 'financial_log'
   | 'expense'

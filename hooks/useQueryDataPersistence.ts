@@ -110,7 +110,7 @@ export const useQueryDataPersistence = () => {
    */
   const loadMarketing = useCallback(async (options: LoadOptions = {}) => {
     if (!userId || !workspaceId) {
-      return { marketing: [] };
+      return [];
     }
 
     try {
@@ -120,10 +120,10 @@ export const useQueryDataPersistence = () => {
       const { dbToMarketingItem } = await import('../lib/utils/fieldTransformers');
       const transformedMarketing = (data || []).map(dbToMarketingItem);
       
-      return { marketing: transformedMarketing };
+      return transformedMarketing;
     } catch (err) {
       console.error('Error loading marketing:', err);
-      return { marketing: [] };
+      return [];
     }
   }, [userId, workspaceId]);
 
@@ -135,7 +135,7 @@ export const useQueryDataPersistence = () => {
       return {
         revenueTransactions: [],
         expenses: [],
-        financialLogs: []
+        financials: []
       };
     }
 
@@ -149,14 +149,14 @@ export const useQueryDataPersistence = () => {
       return {
         revenueTransactions: revenueResult.data || [],
         expenses: expensesResult.data || [],
-        financialLogs: logsResult.data || []
+        financials: logsResult.data || []
       };
     } catch (err) {
       console.error('Error loading financials:', err);
       return {
         revenueTransactions: [],
         expenses: [],
-        financialLogs: []
+        financials: []
       };
     }
   }, [userId, workspaceId]);
@@ -166,15 +166,15 @@ export const useQueryDataPersistence = () => {
    */
   const loadDocuments = useCallback(async (options: LoadOptions = {}) => {
     if (!userId || !workspaceId) {
-      return { documents: [] };
+      return [];
     }
 
     try {
       const { data } = await DatabaseService.getDocuments(workspaceId);
-      return { documents: data || [] };
+      return data || [];
     } catch (err) {
       console.error('Error loading documents:', err);
-      return { documents: [] };
+      return [];
     }
   }, [userId, workspaceId]);
 
@@ -183,15 +183,15 @@ export const useQueryDataPersistence = () => {
    */
   const loadDocumentsMetadata = useCallback(async (options: LoadOptions = {}) => {
     if (!userId || !workspaceId) {
-      return { documentsMetadata: [] };
+      return [];
     }
 
     try {
       const { data } = await DatabaseService.getDocuments(workspaceId);
-      return { documentsMetadata: data || [] };
+      return data || [];
     } catch (err) {
       console.error('Error loading documents metadata:', err);
-      return { documentsMetadata: [] };
+      return [];
     }
   }, [userId, workspaceId]);
 
@@ -200,15 +200,32 @@ export const useQueryDataPersistence = () => {
    */
   const loadDeals = useCallback(async (options: LoadOptions = {}) => {
     if (!userId || !workspaceId) {
-      return { deals: [] };
+      return [];
     }
 
     try {
       const { data } = await DatabaseService.getDeals(workspaceId);
-      return { deals: data || [] };
+      return data || [];
     } catch (err) {
       console.error('Error loading deals:', err);
-      return { deals: [] };
+      return [];
+    }
+  }, [userId, workspaceId]);
+
+  /**
+   * Load revenue transactions
+   */
+  const loadRevenueTransactions = useCallback(async (options: LoadOptions = {}) => {
+    if (!userId || !workspaceId) {
+      return [];
+    }
+
+    try {
+      const { data } = await DatabaseService.getRevenueTransactions(workspaceId);
+      return data || [];
+    } catch (err) {
+      console.error('Error loading revenue transactions:', err);
+      return [];
     }
   }, [userId, workspaceId]);
 
@@ -274,6 +291,7 @@ export const useQueryDataPersistence = () => {
     loadDocuments,
     loadDocumentsMetadata,
     loadDeals,
+    loadRevenueTransactions,
     loadProductsServices,
     invalidateCache,
     invalidateAllCache,

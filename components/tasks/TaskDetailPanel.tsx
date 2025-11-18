@@ -268,15 +268,16 @@ export function TaskDetailPanel({
         </div>
 
         {/* DocLibrary Picker Modal */}
-        {showDocPicker && workspace && (
+        {showDocPicker && workspace && user && (
             <DocLibraryPicker
-                isOpen={true}
+                isOpen={showDocPicker}
                 onClose={() => setShowDocPicker(false)}
-                onDocSelected={async (docId: string) => {
-                    await DatabaseService.linkDocToEntity(workspace.id, docId, 'task', task.id);
+                onSelect={async (doc) => {
+                    await DatabaseService.linkDocToEntity(workspace.id, doc.id, 'task', task.id);
                     handleDocAttached();
                 }}
                 workspaceId={workspace.id}
+                userId={user.id}
             />
         )}
     </>

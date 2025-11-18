@@ -17,6 +17,8 @@ import {
 } from '../../lib/utils/fieldTransformers';
 import type { Task, MarketingItem, Contact, BaseCrmItem, FinancialLog } from '../../types';
 
+const MOCK_TIMESTAMP = 1705320000000;
+
 describe('Field Transformers - Database to Application', () => {
   describe('dbToTask', () => {
     it('should transform complete database task to application model', () => {
@@ -109,12 +111,13 @@ describe('Field Transformers - Database to Application', () => {
       const dbItem = {
         id: 'marketing-123',
         title: 'Launch Campaign',
-        item_type: 'Campaign',
-        status: 'Active',
+        type: 'Product Launch',
+        status: 'In Progress',
         created_at: '2024-01-15T10:00:00.000Z',
-        notes: [{ text: 'Campaign notes' }],
+        notes: [{ text: 'Campaign notes', timestamp: MOCK_TIMESTAMP }],
         due_date: '2024-02-01',
         due_time: '09:00',
+        workspace_id: 'workspace-001',
       };
 
       const result = dbToMarketingItem(dbItem);
@@ -122,12 +125,13 @@ describe('Field Transformers - Database to Application', () => {
       expect(result).toEqual({
         id: 'marketing-123',
         title: 'Launch Campaign',
-        type: 'Campaign',
-        status: 'Active',
+        type: 'Product Launch',
+        status: 'In Progress',
         createdAt: new Date('2024-01-15T10:00:00.000Z').getTime(),
-        notes: [{ text: 'Campaign notes' }],
+        notes: [{ text: 'Campaign notes', timestamp: MOCK_TIMESTAMP }],
         dueDate: '2024-02-01',
         dueTime: '09:00',
+        workspaceId: 'workspace-001',
       });
     });
 
@@ -135,12 +139,13 @@ describe('Field Transformers - Database to Application', () => {
       const dbItem = {
         id: 'marketing-123',
         title: 'Item',
-        item_type: 'Content',
+        type: 'Blog Post',
         status: 'Planned',
         created_at: '2024-01-15T10:00:00.000Z',
         notes: [],
         due_date: null,
         due_time: null,
+        workspace_id: 'workspace-001',
       };
 
       const result = dbToMarketingItem(dbItem);
@@ -155,13 +160,15 @@ describe('Field Transformers - Database to Application', () => {
       const dbItem = {
         id: 'crm-123',
         company: 'Acme Corp',
+        type: 'investor',
+        type: 'investor',
         priority: 'High',
         status: 'Active',
         next_action: 'Follow up call',
         next_action_date: '2024-02-01',
         next_action_time: '14:00',
         created_at: '2024-01-15T10:00:00.000Z',
-        notes: [{ text: 'Meeting notes' }],
+        notes: [{ text: 'Meeting notes', timestamp: MOCK_TIMESTAMP }],
         assigned_to: 'user-002',
         assigned_to_name: 'Jane Smith',
       };
@@ -178,7 +185,7 @@ describe('Field Transformers - Database to Application', () => {
         nextActionDate: '2024-02-01',
         nextActionTime: '14:00',
         createdAt: new Date('2024-01-15T10:00:00.000Z').getTime(),
-        notes: [{ text: 'Meeting notes' }],
+        notes: [{ text: 'Meeting notes', timestamp: MOCK_TIMESTAMP }],
         assignedTo: 'user-002',
         assignedToName: 'Jane Smith',
       });
@@ -188,6 +195,7 @@ describe('Field Transformers - Database to Application', () => {
       const dbItem = {
         id: 'crm-123',
         company: 'Test Inc',
+        type: 'customer',
         priority: 'Medium',
         status: 'Active',
         created_at: '2024-01-15T10:00:00.000Z',
@@ -219,8 +227,16 @@ describe('Field Transformers - Database to Application', () => {
         phone: '+1234567890',
         title: 'CEO',
         linkedin: 'https://linkedin.com/in/johndoe',
-        notes: [{ text: 'Contact note' }],
-        meetings: [{ title: 'Initial meeting' }],
+        notes: [{ text: 'Contact note', timestamp: MOCK_TIMESTAMP }],
+        meetings: [
+          {
+            id: 'meeting-1',
+            timestamp: MOCK_TIMESTAMP,
+            title: 'Initial meeting',
+            attendees: 'John Doe',
+            summary: 'Discuss product fit',
+          },
+        ],
         assigned_to: 'user-002',
         assigned_to_name: 'Jane Smith',
         created_by_name: 'Admin User',
@@ -236,8 +252,16 @@ describe('Field Transformers - Database to Application', () => {
         phone: '+1234567890',
         title: 'CEO',
         linkedin: 'https://linkedin.com/in/johndoe',
-        notes: [{ text: 'Contact note' }],
-        meetings: [{ title: 'Initial meeting' }],
+        notes: [{ text: 'Contact note', timestamp: MOCK_TIMESTAMP }],
+        meetings: [
+          {
+            id: 'meeting-1',
+            timestamp: MOCK_TIMESTAMP,
+            title: 'Initial meeting',
+            attendees: 'John Doe',
+            summary: 'Discuss product fit',
+          },
+        ],
         assignedTo: 'user-002',
         assignedToName: 'Jane Smith',
         createdByName: 'Admin User',
@@ -376,9 +400,9 @@ describe('Field Transformers - Application to Database', () => {
     it('should transform complete application marketing item to database object', () => {
       const item: Partial<MarketingItem> = {
         title: 'Launch Campaign',
-        type: 'Campaign',
-        status: 'Active',
-        notes: [{ text: 'Note' }],
+        type: 'Product Launch',
+        status: 'In Progress',
+        notes: [{ text: 'Note', timestamp: MOCK_TIMESTAMP }],
         dueDate: '2024-02-01',
         dueTime: '09:00',
       };
@@ -387,9 +411,9 @@ describe('Field Transformers - Application to Database', () => {
 
       expect(result).toEqual({
         title: 'Launch Campaign',
-        item_type: 'Campaign',
-        status: 'Active',
-        notes: [{ text: 'Note' }],
+        item_type: 'Product Launch',
+        status: 'In Progress',
+        notes: [{ text: 'Note', timestamp: MOCK_TIMESTAMP }],
         due_date: '2024-02-01',
         due_time: '09:00',
       });
@@ -418,7 +442,7 @@ describe('Field Transformers - Application to Database', () => {
         nextAction: 'Follow up',
         nextActionDate: '2024-02-01',
         nextActionTime: '14:00',
-        notes: [{ text: 'Note' }],
+        notes: [{ text: 'Note', timestamp: MOCK_TIMESTAMP }],
         assignedTo: 'user-002',
         assignedToName: 'Jane Smith',
       };
@@ -432,7 +456,7 @@ describe('Field Transformers - Application to Database', () => {
         next_action: 'Follow up',
         next_action_date: '2024-02-01',
         next_action_time: '14:00',
-        notes: [{ text: 'Note' }],
+        notes: [{ text: 'Note', timestamp: MOCK_TIMESTAMP }],
         assigned_to: 'user-002',
         assigned_to_name: 'Jane Smith',
       });
@@ -461,8 +485,16 @@ describe('Field Transformers - Application to Database', () => {
         phone: '+1234567890',
         title: 'CEO',
         linkedin: 'https://linkedin.com/in/johndoe',
-        notes: [{ text: 'Note' }],
-        meetings: [{ title: 'Meeting' }],
+        notes: [{ text: 'Note', timestamp: MOCK_TIMESTAMP }],
+        meetings: [
+          {
+            id: 'meeting-1',
+            timestamp: MOCK_TIMESTAMP,
+            title: 'Meeting',
+            attendees: 'John Doe',
+            summary: 'Review roadmap',
+          },
+        ],
         assignedTo: 'user-002',
         assignedToName: 'Jane Smith',
       };
@@ -476,8 +508,16 @@ describe('Field Transformers - Application to Database', () => {
         phone: '+1234567890',
         title: 'CEO',
         linkedin: 'https://linkedin.com/in/johndoe',
-        notes: [{ text: 'Note' }],
-        meetings: [{ title: 'Meeting' }],
+        notes: [{ text: 'Note', timestamp: MOCK_TIMESTAMP }],
+        meetings: [
+          {
+            id: 'meeting-1',
+            timestamp: MOCK_TIMESTAMP,
+            title: 'Meeting',
+            attendees: 'John Doe',
+            summary: 'Review roadmap',
+          },
+        ],
         assigned_to: 'user-002',
         assigned_to_name: 'Jane Smith',
       });
@@ -539,26 +579,28 @@ describe('Field Transformers - Batch Operations', () => {
         {
           id: 'marketing-1',
           title: 'Item 1',
-          item_type: 'Campaign',
-          status: 'Active',
+          type: 'Product Launch',
+          status: 'In Progress',
           created_at: '2024-01-15T10:00:00.000Z',
           notes: [],
+          workspace_id: 'workspace-001',
         },
         {
           id: 'marketing-2',
           title: 'Item 2',
-          item_type: 'Content',
+          type: 'Blog Post',
           status: 'Planned',
           created_at: '2024-01-16T10:00:00.000Z',
           notes: [],
+          workspace_id: 'workspace-002',
         },
       ];
 
       const result = dbToMarketingItems(dbItems);
 
       expect(result).toHaveLength(2);
-      expect(result[0].type).toBe('Campaign');
-      expect(result[1].type).toBe('Content');
+      expect(result[0].type).toBe('Product Launch');
+      expect(result[1].type).toBe('Blog Post');
     });
   });
 
@@ -568,6 +610,7 @@ describe('Field Transformers - Batch Operations', () => {
         {
           id: 'crm-1',
           company: 'Company 1',
+          type: 'investor',
           priority: 'High',
           status: 'Active',
           created_at: '2024-01-15T10:00:00.000Z',
@@ -576,6 +619,7 @@ describe('Field Transformers - Batch Operations', () => {
         {
           id: 'crm-2',
           company: 'Company 2',
+          type: 'customer',
           priority: 'Medium',
           status: 'Active',
           created_at: '2024-01-16T10:00:00.000Z',

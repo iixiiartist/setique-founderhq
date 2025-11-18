@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { CRMItem, Contact } from '../../types';
+import { CrmItem, Contact } from '../../types';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import Modal from '../shared/Modal';
 
 export interface CRMContactSelectorProps {
   label?: string;
-  crmItems?: CRMItem[];
+  crmItems?: CrmItem[];
   contacts?: Contact[];
   selectedContactIds: string[];
   onSelectContacts: (ids: string[]) => void;

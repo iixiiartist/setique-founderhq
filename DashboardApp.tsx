@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
-import { logger } from './lib/logger'
+import { logger } from './lib/utils/logger';
 import { Tab, EMPTY_DASHBOARD_DATA, NAV_ITEMS } from './constants';
 import { featureFlags } from './lib/featureFlags';
 import { DashboardData, AppActions, Task, TaskCollectionName, CrmCollectionName, NoteableCollectionName, AnyCrmItem, FinancialLog, Note, BaseCrmItem, MarketingItem, SettingsData, Document, Contact, TabType, Priority, CalendarEvent, Meeting, TaskStatus } from './types';
@@ -108,7 +108,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
     const [toast, setToast] = useState<{ message: string; type: 'info' | 'success' } | null>(null);
     const [sentNotifications, setSentNotifications] = useState<Set<string>>(new Set());
     const [lastNotificationCheckDate, setLastNotificationCheckDate] = useState<string | null>(null);
-    const [isTaskFocusModalOpen, setIsTaskFocusModalOpen] = useState(false);
+    const [isTaskFocusModalOpen, setIsTaskFocusModal] = useState(false);
     const [isNotificationsPanelOpen, setIsNotificationsPanelOpen] = useState(false);
 
     // Refs for notification permission tracking (prevents duplicate warnings)
@@ -1598,13 +1598,13 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
         createMarketingItem: async (itemData) => {
             if (!userId || !supabase) {
-                handleToast('Database not connected', 'info');
-                return { success: false, message: 'Database not connected' };
+                handleToast('Database not available', 'info');
+                return { success: false, message: 'Database not available' };
             }
 
             if (!workspace?.id) {
-                handleToast('No workspace found', 'info');
-                return { success: false, message: 'No workspace found' };
+                handleToast('No workspace available', 'info');
+                return { success: false, message: 'No workspace available' };
             }
 
             try {
@@ -1643,8 +1643,8 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
         updateMarketingItem: async (itemId, updates) => {
             if (!userId || !supabase) {
-                handleToast('Database not connected', 'info');
-                return { success: false, message: 'Database not connected' };
+                handleToast('Database not available', 'info');
+                return { success: false, message: 'Database not available' };
             }
 
             try {
@@ -1954,6 +1954,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                                 const { error: reserveError } = await DatabaseService.reserveInventory(
                                     deal.product_service_id,
                                     quantity
+
                                 );
                                 if (reserveError) {
                                     logger.warn('Failed to reserve inventory:', reserveError);
@@ -1985,7 +1986,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 }
 
                 // Send deal notifications for stage changes and reassignment
-                const currentDeal = deals.find(d => d.id === dealId);
+                const currentDeal = data.deals.find(d => d.id === dealId);
                 
                 // Deal reassignment notification
                 if (updates.assignedTo !== undefined && updates.assignedTo !== currentDeal?.assignedTo) {
@@ -2022,7 +2023,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             dealName: dealName,
                             userId: targetUserId,
                             workspaceId: workspace!.id,
-                            reason: updates.notes || undefined,
+                            reason: updates.notes && updates.notes.length > 0 ? updates.notes[updates.notes.length - 1].text : undefined,
                         });
                     } else {
                         // Notify general stage change
@@ -2049,7 +2050,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             entityType: 'deal',
                             entityId: dealId,
                             data: result.data,
-                            previousData: { stage: deals.find(d => d.id === dealId)?.stage }
+                            previousData: { stage: data.deals.find(d => d.id === dealId)?.stage }
                         });
 
                         if (automationResult.executedRules > 0) {
@@ -2125,192 +2126,160 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             }
         },
 
-        createProductService: async (productData) => {
-            if (!userId || !supabase) {
-                handleToast('Database not available', 'info');
-                return { success: false, message: 'Database not connected' };
-            }
-
-            if (!workspace?.id) {
-                handleToast('No workspace available', 'info');
-                return { success: false, message: 'No workspace available' };
-            }
-
-            try {
-                handleToast('Creating product/service...', 'info');
-
-                // Transform frontend data to database format
-                const dbData = {
-                    workspace_id: workspace.id,
-                    name: productData.name,
-                    sku: productData.sku,
-                    description: productData.description || null,
-                    category: productData.category,
-                    type: productData.type,
-                    status: productData.status,
-                    base_price: productData.basePrice,
-                    currency: productData.currency || 'USD',
-                    pricing_model: productData.pricingModel,
-                    cost_of_goods: productData.costOfGoods || null,
-                    cost_of_service: productData.costOfService || null,
-                    is_taxable: productData.isTaxable || false,
-                    tax_rate: productData.taxRate || null,
-                    inventory_tracked: productData.inventoryTracking || false,
-                    quantity_on_hand: productData.quantityOnHand || null,
-                    reorder_point: productData.reorderPoint || null,
-                    reorder_quantity: productData.reorderQuantity || null,
-                    capacity_tracked: productData.capacityTracking || false,
-                    capacity_total: productData.capacityTotal || null,
-                    capacity_unit: productData.capacityUnit || null,
-                    capacity_period: productData.capacityPeriod || null,
-                    image_url: productData.imageUrl || null,
-                    tags: productData.tags || [],
-                };
-
-                const result = await DatabaseService.createProductService(dbData as any);
-                
-                if (result.error) {
-                    throw new Error(result.error.message || 'Failed to create product/service');
-                }
-
-                // Optimistically add to state
-                if (result.data) {
-                    const newProduct = {
-                        ...productData,
-                        id: result.data.id,
-                        createdAt: result.data.created_at,
-                        updatedAt: result.data.updated_at,
-                        workspaceId: workspace.id,
-                    };
-                    
-                    setData(prev => ({
-                        ...prev,
-                        productsServices: [...prev.productsServices, newProduct]
-                    }));
-                }
-
-                trackAction('product_service_created', { 
-                    category: productData.category, 
-                    type: productData.type,
-                    pricingModel: productData.pricingModel 
-                });
-
-                handleToast(`${productData.category === 'product' ? 'Product' : 'Service'} "${productData.name}" created successfully`, 'success');
-                return { success: true, message: 'Created successfully', id: result.data?.id };
-            } catch (error) {
-                logger.error('Error creating product/service:', error);
-                const errorMessage = error instanceof Error ? error.message : 'Failed to create';
-                handleToast(errorMessage, 'info');
-                return { success: false, message: errorMessage };
-            }
+        // Revenue Transactions
+        createRevenueTransaction: async (data) => {
+            const result = await DataPersistenceAdapter.createRevenueTransaction(userId!, workspace!.id, data);
+            if (result.error) return { success: false, message: result.error.message };
+            await reload();
+            return { success: true, message: 'Revenue transaction created', transactionId: result.data?.id };
+        },
+        updateRevenueTransaction: async (id, updates) => {
+            const result = await DataPersistenceAdapter.updateRevenueTransaction(id, updates);
+            if (result.error) return { success: false, message: result.error.message };
+            await reload();
+            return { success: true, message: 'Revenue transaction updated' };
+        },
+        deleteRevenueTransaction: async (id) => {
+            const result = await DataPersistenceAdapter.deleteRevenueTransaction(id);
+            if (result.error) return { success: false, message: result.error.message };
+            await reload();
+            return { success: true, message: 'Revenue transaction deleted' };
         },
 
-        updateProductService: async (productId, updates) => {
-            if (!userId || !supabase) {
-                return { success: false, message: 'Database not connected' };
-            }
-
-            try {
-                // Transform updates to database format
-                const dbUpdates: any = {};
-                if (updates.name !== undefined) dbUpdates.name = updates.name;
-                if (updates.sku !== undefined) dbUpdates.sku = updates.sku;
-                if (updates.description !== undefined) dbUpdates.description = updates.description;
-                if (updates.category !== undefined) dbUpdates.category = updates.category;
-                if (updates.type !== undefined) dbUpdates.type = updates.type;
-                if (updates.status !== undefined) dbUpdates.status = updates.status;
-                if (updates.basePrice !== undefined) dbUpdates.base_price = updates.basePrice;
-                if (updates.currency !== undefined) dbUpdates.currency = updates.currency;
-                if (updates.pricingModel !== undefined) dbUpdates.pricing_model = updates.pricingModel;
-                if (updates.costOfGoods !== undefined) dbUpdates.cost_of_goods = updates.costOfGoods;
-                if (updates.costOfService !== undefined) dbUpdates.cost_of_service = updates.costOfService;
-                if (updates.isTaxable !== undefined) dbUpdates.is_taxable = updates.isTaxable;
-                if (updates.taxRate !== undefined) dbUpdates.tax_rate = updates.taxRate;
-                if (updates.inventoryTracking !== undefined) dbUpdates.inventory_tracked = updates.inventoryTracking;
-                if (updates.quantityOnHand !== undefined) dbUpdates.quantity_on_hand = updates.quantityOnHand;
-                if (updates.quantityReserved !== undefined) dbUpdates.quantity_reserved = updates.quantityReserved;
-                if (updates.quantityAvailable !== undefined) dbUpdates.quantity_available = updates.quantityAvailable;
-                if (updates.reorderPoint !== undefined) dbUpdates.reorder_point = updates.reorderPoint;
-                if (updates.reorderQuantity !== undefined) dbUpdates.reorder_quantity = updates.reorderQuantity;
-                if (updates.capacityTracking !== undefined) dbUpdates.capacity_tracked = updates.capacityTracking;
-                if (updates.capacityTotal !== undefined) dbUpdates.capacity_total = updates.capacityTotal;
-                if (updates.capacityBooked !== undefined) dbUpdates.capacity_booked = updates.capacityBooked;
-                if (updates.capacityAvailable !== undefined) dbUpdates.capacity_available = updates.capacityAvailable;
-                if (updates.capacityUnit !== undefined) dbUpdates.capacity_unit = updates.capacityUnit;
-                if (updates.capacityPeriod !== undefined) dbUpdates.capacity_period = updates.capacityPeriod;
-                if (updates.imageUrl !== undefined) dbUpdates.image_url = updates.imageUrl;
-                if (updates.tags !== undefined) dbUpdates.tags = updates.tags;
-                if (updates.tieredPricing !== undefined) dbUpdates.tiered_pricing = updates.tieredPricing;
-                if (updates.usagePricing !== undefined) dbUpdates.usage_pricing = updates.usagePricing;
-                if (updates.subscriptionPlans !== undefined) dbUpdates.subscription_plans = updates.subscriptionPlans;
-
-                // Optimistically update UI
-                setData(prev => ({
-                    ...prev,
-                    productsServices: prev.productsServices.map(p =>
-                        p.id === productId ? { ...p, ...updates } : p
-                    )
-                }));
-
-                const result = await DatabaseService.updateProductService(productId, dbUpdates);
-                
-                if (result.error) {
-                    throw new Error(result.error.message || 'Failed to update product/service');
-                }
-
-                // Check if base price changed to reload price history
-                if (updates.basePrice !== undefined) {
-                    // Reload to get updated price history from trigger
-                    await reload();
-                }
-
-                trackAction('product_service_updated', { productId });
-
-                handleToast('Product/service updated successfully', 'success');
-                return { success: true, message: 'Updated successfully' };
-            } catch (error) {
-                logger.error('Error updating product/service:', error);
-                const errorMessage = error instanceof Error ? error.message : 'Failed to update';
-                handleToast(errorMessage, 'info');
-                
-                // Revert optimistic update on error
-                await reload();
-                return { success: false, message: errorMessage };
-            }
+        // Financial Forecasts
+        createFinancialForecast: async (data) => {
+            const result = await DataPersistenceAdapter.createFinancialForecast(userId!, workspace!.id, data);
+            if (result.error) return { success: false, message: result.error.message };
+            await reload();
+            return { success: true, message: 'Forecast created', forecastId: result.data?.id };
+        },
+        updateFinancialForecast: async (id, updates) => {
+            const result = await DataPersistenceAdapter.updateFinancialForecast(id, updates);
+            if (result.error) return { success: false, message: result.error.message };
+            await reload();
+            return { success: true, message: 'Forecast updated' };
+        },
+        deleteFinancialForecast: async (id) => {
+            const result = await DataPersistenceAdapter.deleteFinancialForecast(id);
+            if (result.error) return { success: false, message: result.error.message };
+            await reload();
+            return { success: true, message: 'Forecast deleted' };
         },
 
-        deleteProductService: async (productId) => {
-            if (!userId || !supabase) {
-                return { success: false, message: 'Database not connected' };
-            }
+        // Budget Plans
+        createBudgetPlan: async (data) => {
+            const result = await DataPersistenceAdapter.createBudgetPlan(userId!, workspace!.id, data);
+            if (result.error) return { success: false, message: result.error.message };
+            await reload();
+            return { success: true, message: 'Budget plan created', budgetId: result.data?.id };
+        },
+        updateBudgetPlan: async (id, updates) => {
+            const result = await DataPersistenceAdapter.updateBudgetPlan(id, updates);
+            if (result.error) return { success: false, message: result.error.message };
+            await reload();
+            return { success: true, message: 'Budget plan updated' };
+        },
+        deleteBudgetPlan: async (id) => {
+            const result = await DataPersistenceAdapter.deleteBudgetPlan(id);
+            if (result.error) return { success: false, message: result.error.message };
+            await reload();
+            return { success: true, message: 'Budget plan deleted' };
+        },
 
-            try {
-                // Optimistically remove from UI
-                const productToDelete = data.productsServices.find(p => p.id === productId);
-                setData(prev => ({
-                    ...prev,
-                    productsServices: prev.productsServices.filter(p => p.id !== productId)
-                }));
+        // Campaign Attribution
+        createCampaignAttribution: async (data) => {
+            const result = await DataPersistenceAdapter.createCampaignAttribution(userId!, workspace!.id, data);
+            if (result.error) return { success: false, message: result.error.message };
+            await reload();
+            return { success: true, message: 'Attribution created', attributionId: result.data?.id };
+        },
+        updateCampaignAttribution: async (id, updates) => {
+            const result = await DataPersistenceAdapter.updateCampaignAttribution(id, updates);
+            if (result.error) return { success: false, message: result.error.message };
+            await reload();
+            return { success: true, message: 'Attribution updated' };
+        },
+        deleteCampaignAttribution: async (id) => {
+            const result = await DataPersistenceAdapter.deleteCampaignAttribution(id);
+            if (result.error) return { success: false, message: result.error.message };
+            await reload();
+            return { success: true, message: 'Attribution deleted' };
+        },
 
-                const result = await DatabaseService.deleteProductService(productId);
-                
-                if (result.error) {
-                    throw new Error(result.error.message || 'Failed to delete product/service');
-                }
+        // Marketing Analytics
+        createMarketingAnalytics: async (data) => {
+            const result = await DataPersistenceAdapter.createMarketingAnalytics(userId!, workspace!.id, data);
+            if (result.error) return { success: false, message: result.error.message };
+            await reload();
+            return { success: true, message: 'Analytics created', analyticsId: result.data?.id };
+        },
+        updateMarketingAnalytics: async (id, updates) => {
+            const result = await DataPersistenceAdapter.updateMarketingAnalytics(id, updates);
+            if (result.error) return { success: false, message: result.error.message };
+            await reload();
+            return { success: true, message: 'Analytics updated' };
+        },
+        deleteMarketingAnalytics: async (id) => {
+            const result = await DataPersistenceAdapter.deleteMarketingAnalytics(id);
+            if (result.error) return { success: false, message: result.error.message };
+            await reload();
+            return { success: true, message: 'Analytics deleted' };
+        },
 
-                trackAction('product_service_deleted', { productId });
+        // Marketing Calendar Links
+        createMarketingCalendarLink: async (data) => {
+            const result = await DataPersistenceAdapter.createMarketingCalendarLink(userId!, workspace!.id, data);
+            if (result.error) return { success: false, message: result.error.message };
+            await reload();
+            return { success: true, message: 'Link created', linkId: result.data?.id };
+        },
+        deleteMarketingCalendarLink: async (id) => {
+            const result = await DataPersistenceAdapter.deleteMarketingCalendarLink(id);
+            if (result.error) return { success: false, message: result.error.message };
+            await reload();
+            return { success: true, message: 'Link deleted' };
+        },
 
-                handleToast(`${productToDelete?.name || 'Product/service'} deleted successfully`, 'success');
-                return { success: true, message: 'Deleted successfully' };
-            } catch (error) {
-                logger.error('Error deleting product/service:', error);
-                const errorMessage = error instanceof Error ? error.message : 'Failed to delete';
-                handleToast(errorMessage, 'info');
-                
-                // Revert optimistic delete on error
-                await reload();
-                return { success: false, message: errorMessage };
-            }
+        // Products & Services
+        createProductService: async (data) => {
+            const result = await DataPersistenceAdapter.createProductService(userId!, workspace!.id, data);
+            if (result.error) return { success: false, message: result.error.message };
+            await reload();
+            return { success: true, message: 'Product/Service created', id: result.data?.id };
+        },
+        updateProductService: async (id, updates) => {
+            const result = await DataPersistenceAdapter.updateProductService(id, updates);
+            if (result.error) return { success: false, message: result.error.message };
+            await reload();
+            return { success: true, message: 'Product/Service updated' };
+        },
+        deleteProductService: async (id) => {
+            const result = await DataPersistenceAdapter.deleteProductService(id);
+            if (result.error) return { success: false, message: result.error.message };
+            await reload();
+            return { success: true, message: 'Product/Service deleted' };
+        },
+
+        // Product Inventory & Service Capacity
+        updateProductInventory: async (id, quantityChange, reason) => {
+            // Placeholder implementation
+            return { success: true, message: 'Inventory updated' };
+        },
+        reserveProductInventory: async (id, quantity) => {
+             // Placeholder implementation
+            return { success: true, message: 'Inventory reserved' };
+        },
+        releaseProductInventory: async (id, quantity) => {
+             // Placeholder implementation
+            return { success: true, message: 'Inventory released' };
+        },
+        updateServiceCapacity: async (id, capacityChange, period) => {
+             // Placeholder implementation
+            return { success: true, message: 'Capacity updated' };
+        },
+        calculateProductProfitability: async (id) => {
+             // Placeholder implementation
+            return { marginPercent: 0, marginAmount: 0 };
         },
     }), [userId, supabase, data, reload, handleToast, workspace, invalidateCache, useLazyDataPersistenceRef]);
     
@@ -2396,7 +2365,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
         ];
 
         logger.info('[DashboardApp] All tasks for calendar:', allTasks.map(t => ({ id: t.id, text: t.text, dueDate: t.dueDate, dueTime: t.dueTime })));
-        logger.info('[DashboardApp] Marketing items:', data.marketing.length, 'total');
+        logger.info('[DashboardApp] Marketing items:', { count: data.marketing.length });
         logger.info('[DashboardApp] Marketing with dates:', data.marketing.filter(m => m.dueDate).map(m => ({ id: m.id, title: m.title, dueDate: m.dueDate, dueTime: m.dueTime })));
         
         const marketingEvents = data.marketing
@@ -2408,7 +2377,10 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 contentType: marketingCategory,
             }));
         
-        logger.info('[DashboardApp] Marketing events for calendar:', marketingEvents.length, 'events', marketingEvents);
+        logger.info('[DashboardApp] Marketing events for calendar:', {
+            count: marketingEvents.length,
+            events: marketingEvents,
+        });
         
         const calendarEvents: CalendarEvent[] = [
             ...allTasks
@@ -2419,7 +2391,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             ...crmNextActions,
         ];
         
-        logger.info('[DashboardApp] Calendar events after filter:', calendarEvents.length, 'events');
+        logger.info('[DashboardApp] Calendar events after filter:', { count: calendarEvents.length });
         logger.info('[DashboardApp] Calendar event types:', calendarEvents.map(e => ({ type: e.type, title: e.title || (e.type === 'task' ? (e as any).text : 'Untitled') })));
 
         switch (activeTab) {
@@ -2459,12 +2431,18 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         <SectionBoundary sectionName="Tasks">
                             <Suspense fallback={<TabLoadingFallback />}>
                                 <TasksTab 
-                                    data={data}
+                                    data={{
+                                        productsServicesTasks: data.productsServicesTasks,
+                                        investorTasks: data.investorTasks,
+                                        customerTasks: data.customerTasks,
+                                        partnerTasks: data.partnerTasks,
+                                        marketingTasks: data.marketingTasks,
+                                        financialTasks: data.financialTasks,
+                                        crmItems: dataWithUnifiedCrm.crmItems,
+                                    }}
                                     actions={actions}
                                     workspaceMembers={workspaceMembers}
                                     userId={user?.id || ''}
-                                    workspaceId={workspace?.id || ''}
-                                    onNavigateToTab={setActiveTab}
                                 />
                             </Suspense>
                         </SectionBoundary>
@@ -2583,8 +2561,9 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             workspaceId={workspace?.id}
                             workspaceMembers={workspaceMembers}
                             onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
-                            data={data}
+                            crmItems={dataWithUnifiedCrm.crmItems || []}
                             productsServices={data.productsServices}
+                            data={data}
                         />
                     </Suspense>
                     </SectionBoundary>

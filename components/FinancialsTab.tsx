@@ -605,14 +605,12 @@ const FinancialsTab: React.FC<{
             {currentView === 'cashflow' && data && (
                 <CashFlowModule
                     data={data}
-                    actions={actions}
                 />
             )}
 
             {currentView === 'metrics' && data && (
                 <MetricsModule
                     data={data}
-                    actions={actions}
                     workspaceId={workspaceId}
                 />
             )}

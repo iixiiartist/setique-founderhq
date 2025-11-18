@@ -73,9 +73,9 @@ export function useWorkspaceCrm(workspaceId: string | undefined) {
       );
 
       return {
-        investors: crmResults.find(r => r.type === 'investor')?.data || [],
-        customers: crmResults.find(r => r.type === 'customer')?.data || [],
-        partners: crmResults.find(r => r.type === 'partner')?.data || []
+        investors: (crmResults.find(r => r.type === 'investor')?.data || []) as Investor[],
+        customers: (crmResults.find(r => r.type === 'customer')?.data || []) as Customer[],
+        partners: (crmResults.find(r => r.type === 'partner')?.data || []) as Partner[]
       };
     },
     enabled: !!workspaceId,

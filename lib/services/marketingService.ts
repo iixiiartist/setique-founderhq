@@ -121,7 +121,7 @@ export async function attributeLeadToCampaign(
     contactId,
     attributionType,
     attributionWeight: 1.0,
-    interactionDate: new Date().toISOString(),
+    interactionDate: Date.now(),
     utmSource: utmParams?.source,
     utmMedium: utmParams?.medium,
     utmCampaign: utmParams?.campaign,
@@ -137,7 +137,7 @@ export async function recordConversion(
   revenueAttributed: number
 ): Promise<CampaignAttribution | null> {
   return updateCampaignAttribution(attributionId, {
-    conversionDate: new Date().toISOString(),
+    conversionDate: Date.now(),
     revenueAttributed,
   });
 }

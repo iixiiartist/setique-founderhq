@@ -79,6 +79,10 @@ export interface BaseCrmItem {
     notes: Note[];
     assignedTo?: string | null;
     assignedToName?: string | null;
+    contactCount?: number;
+    noteCount?: number;
+    taskCount?: number;
+    documentCount?: number;
 }
 
 // CRM Type discriminator
@@ -582,6 +586,7 @@ export interface Workspace {
     name: string;
     planType: PlanType;
     ownerId: string;
+    stripeCustomerId?: string | null;
     createdAt: number;
     seatCount: number;
     aiUsageCount: number;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { MarketingItem, AppActions, Task, Priority, Document, BusinessProfile, WorkspaceMember, DashboardData, ProductService } from '../types';
+import { MarketingItem, AppActions, Task, Priority, Document, BusinessProfile, WorkspaceMember, ProductService, AnyCrmItem, DashboardData } from '../types';
 import Modal from './shared/Modal';
 import NotesManager from './shared/NotesManager';
 import { Tab } from '../constants';
@@ -223,9 +223,10 @@ const MarketingTab: React.FC<{
     workspaceId?: string;
     onUpgradeNeeded?: () => void;
     workspaceMembers?: WorkspaceMember[];
-    data?: DashboardData;
+    crmItems?: AnyCrmItem[];
     productsServices?: ProductService[];
-}> = React.memo(({ items, tasks, actions, documents, businessProfile, workspaceId, onUpgradeNeeded, workspaceMembers = [], data, productsServices = [] }) => {
+    data: DashboardData;
+}> = React.memo(({ items, tasks, actions, documents, businessProfile, workspaceId, onUpgradeNeeded, workspaceMembers = [], crmItems = [], productsServices = [], data }) => {
     const { workspace } = useWorkspace();
     const [currentView, setCurrentView] = useState<'calendar' | 'analytics' | 'attribution'>('calendar');
     const [showCampaignModal, setShowCampaignModal] = useState(false);
@@ -394,7 +395,7 @@ const MarketingTab: React.FC<{
                 editingCampaign={editingItem}
                 productsServices={productsServices}
                 workspaceMembers={workspaceMembers}
-                crmItems={data.crm || []}
+                crmItems={crmItems}
                 triggerRef={modalTriggerRef}
             />
         </div>
