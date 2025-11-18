@@ -185,7 +185,7 @@ export const appReducer = (state: DashboardData, action: AppAction): DashboardDa
             const itemIndex = state[collection].findIndex(item => item.id === itemId);
             if (itemIndex > -1) {
                 const newItems = [...state[collection]];
-                newItems[itemIndex] = { ...newItems[itemIndex], ...updates };
+                newItems[itemIndex] = { ...newItems[itemIndex], ...updates } as any;
                 const newState = { ...state, [collection]: newItems };
                 if (updates.status === 'Won') {
                     return newState;

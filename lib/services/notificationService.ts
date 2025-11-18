@@ -20,7 +20,10 @@ export type NotificationType =
   | 'document_shared'
   | 'document_comment'
   | 'workspace_role_changed'
-  | 'achievement_unlocked';
+  | 'achievement_unlocked'
+  | 'task_assigned'
+  | 'comment_added'
+  | 'subtask_completed';
 
 export type NotificationEntityType = 'task' | 'comment' | 'workspace' | 'document' | 'deal' | 'contact' | 'achievement';
 
@@ -45,7 +48,7 @@ interface NotificationRow {
   title: string;
   message: string;
   entity_type?: string;
-  entity_id?: string;
+  entity_id: string;
   read: boolean;
   created_at: string;
 }

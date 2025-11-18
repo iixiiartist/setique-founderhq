@@ -33,7 +33,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', 
         try {
             const { url } = await stripeEdgeFunctions.createCheckoutSession({
                 workspaceId,
-                planType,
+                planType: planType as 'power-individual' | 'team-pro',
                 seatCount: isTeamPlan(planType) ? teamSeats : 1,
                 successUrl: `${window.location.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
                 cancelUrl: window.location.href,

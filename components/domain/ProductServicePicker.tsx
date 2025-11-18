@@ -368,7 +368,7 @@ export function ProductServicePicker({
                         <span className="font-mono font-bold text-blue-700">
                           {formatPrice(item.basePrice)}
                         </span>
-                        {item.pricingModel !== 'one_time' && (
+                        {item.pricingModel !== 'flat_rate' && (
                           <>
                             <span>•</span>
                             <span>{item.pricingModel.replace('_', ' ')}</span>

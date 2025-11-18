@@ -21,7 +21,7 @@ export function Form<TSchema extends ZodTypeAny, TValues extends FieldValues = T
   id,
 }: FormProps<TSchema, TValues>) {
   const methods = useForm<TValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(schema) as any,
     defaultValues,
     mode: 'onBlur', // Validate on blur for better UX
   });
@@ -33,7 +33,7 @@ export function Form<TSchema extends ZodTypeAny, TValues extends FieldValues = T
     <FormProvider {...methods}>
       <form
         id={id}
-        onSubmit={handleSubmit(onSubmit)}
+        onSubmit={handleSubmit(onSubmit as any)}
         className={className}
         noValidate // We handle validation with Zod
       >

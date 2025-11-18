@@ -506,7 +506,7 @@ export class DataPersistenceAdapter {
 
     console.log('[DataPersistenceAdapter] Creating marketing item with complete data:', marketing);
 
-    const { data, error } = await DatabaseService.createMarketingItem(userId, workspaceId, marketing)
+    const { data, error } = await DatabaseService.createMarketingItem(userId, workspaceId, marketing as any)
     
     if (error) {
       console.error('[DataPersistenceAdapter] Error creating marketing item:', error);

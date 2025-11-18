@@ -76,18 +76,8 @@ export const TeamCalendarView: React.FC<TeamCalendarViewProps> = ({ onEventClick
           end: new Date(task.due_date + 'T23:59:59'),
           type: 'task' as const,
           assignedTo: task.assigned_to,
-          assignedToName: task.profiles?.full_name || 'Unassigned',
+          assignedToName: Array.isArray(task.profiles) ? task.profiles[0]?.full_name : (task.profiles as any)?.full_name || 'Unassigned',
           color: '#3B82F6', // Blue
-        })),
-        ...(calendarEvents || []).map((event) => ({
-          id: `event-${event.id}`,
-          title: event.title,
-          description: event.description,
-          start: new Date(event.start_time),
-          end: new Date(event.end_time),
-          type: 'event' as const,
-          assignedTo: event.attendees?.[0],
-          color: '#10B981', // Green
         })),
         ...(deals || []).map((deal) => ({
           id: `deal-${deal.id}`,
@@ -96,7 +86,7 @@ export const TeamCalendarView: React.FC<TeamCalendarViewProps> = ({ onEventClick
           end: new Date(deal.expected_close_date + 'T23:59:59'),
           type: 'deal' as const,
           assignedTo: deal.assigned_to,
-          assignedToName: deal.profiles?.full_name || 'Unassigned',
+          assignedToName: Array.isArray(deal.profiles) ? deal.profiles[0]?.full_name : (deal.profiles as any)?.full_name || 'Unassigned',
           color: '#F59E0B', // Amber
         })),
       ];

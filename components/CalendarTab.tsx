@@ -929,7 +929,7 @@ function CalendarTab({
             
             {calendarMode === 'team' ? (
                 <TeamCalendarView 
-                    onEventClick={(event, ref) => openEventModal(event, ref)}
+                    onEventClick={(event) => openEventModal(event as any, { current: null })}
                 />
             ) : (
                 <>

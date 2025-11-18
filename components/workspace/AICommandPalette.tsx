@@ -207,7 +207,7 @@ For Chart Generation - Available Data Counts:
 - Expenses: ${data.expenses?.length || 0} entries
 - CRM Items: ${(data.investors?.length || 0) + (data.customers?.length || 0) + (data.partners?.length || 0)} total (${data.investors?.length || 0} investors, ${data.customers?.length || 0} customers, ${data.partners?.length || 0} partners)
 - Marketing Campaigns: ${data.marketing?.length || 0} campaigns
-- Tasks: ${data.tasks?.length || 0} tasks
+- Tasks: ${(data.productsServicesTasks?.length || 0) + (data.investorTasks?.length || 0) + (data.customerTasks?.length || 0) + (data.partnerTasks?.length || 0) + (data.marketingTasks?.length || 0) + (data.financialTasks?.length || 0)} tasks
 
 CRITICAL GROUNDING RULES:
 1. ONLY use data explicitly provided in the Business Context and Workspace Data Context above

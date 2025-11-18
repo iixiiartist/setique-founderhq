@@ -13,9 +13,18 @@
  */
 
 import React, { useMemo, useCallback } from 'react';
-import { List, ListChildComponentProps } from 'react-window';
+// @ts-ignore
+import { FixedSizeList } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { CrmItem } from '../../types';
+
+// Define props manually if missing
+type ListChildComponentProps = {
+  index: number;
+  style: React.CSSProperties;
+  data?: any;
+  isScrolling?: boolean;
+};
 
 interface VirtualizedAccountListProps {
     items: CrmItem[];
@@ -217,7 +226,7 @@ export function VirtualizedAccountList({
     return (
         <AutoSizer>
             {({ height, width }) => (
-                <List
+                <FixedSizeList
                     height={height}
                     itemCount={items.length}
                     itemSize={ITEM_HEIGHT}
@@ -226,7 +235,7 @@ export function VirtualizedAccountList({
                     className="border-2 border-black"
                 >
                     {Row}
-                </List>
+                </FixedSizeList>
             )}
         </AutoSizer>
     );

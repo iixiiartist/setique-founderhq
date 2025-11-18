@@ -302,6 +302,10 @@ function DealsModule({
       category: 'customer_deal',
       priority: 'Medium',
       assignedTo: '',
+      productServiceId: '',
+      quantity: '1',
+      unitPrice: '',
+      discountPercent: '0',
     });
   };
 

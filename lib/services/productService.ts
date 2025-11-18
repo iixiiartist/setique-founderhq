@@ -369,7 +369,7 @@ export class ProductIntegrationService {
             const { error } = await DatabaseService.updateMarketingItem(campaignId, {
                 productServiceIds: productIds,
                 targetRevenue
-            });
+            } as any);
             
             if (error) {
                 return { success: false, error };
@@ -385,19 +385,20 @@ export class ProductIntegrationService {
      * Calculate campaign attribution (revenue from campaign-linked products)
      */
     static async calculateCampaignAttribution(
+        workspaceId: string,
         campaignId: string,
         startDate: string,
         endDate: string
     ): Promise<{ revenue: number; units: number; deals: number }> {
         try {
             // Get campaign
-            const { data: campaign } = await DatabaseService.getMarketingItem(campaignId);
+            const { data: campaign } = await DatabaseService.getMarketingItemById(campaignId);
             if (!campaign?.productServiceIds) {
                 return { revenue: 0, units: 0, deals: 0 };
             }
             
             // Get revenue transactions for these products in date range
-            const { data: transactions } = await DatabaseService.getRevenueTransactions({
+            const { data: transactions } = await DatabaseService.getRevenueTransactions(workspaceId, {
                 productServiceIds: campaign.productServiceIds,
                 startDate,
                 endDate

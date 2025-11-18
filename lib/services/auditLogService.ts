@@ -5,7 +5,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from './supabase';
+import { supabase } from '../supabase';
 import { logger } from '../utils/logger';
 
 export interface AuditLog {

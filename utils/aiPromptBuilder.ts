@@ -303,11 +303,7 @@ CRITICAL CHART GENERATION RULES:
 }
 
 2. Available workspace data you can reference:
-${context.financialLogs.length > 0 ? `- Financial Logs: ${context.financialLogs.length} entries with MRR, GMV, signups data` : ''}
-${context.expenses.length > 0 ? `- Expenses: ${context.expenses.length} entries by category` : ''}
-${context.crmItems.length > 0 ? `- CRM Items: ${context.crmItems.length} deals across investor/customer/partner pipelines` : ''}
-${context.marketingCampaigns.length > 0 ? `- Marketing: ${context.marketingCampaigns.length} campaigns by type` : ''}
-${context.tasks.length > 0 ? `- Tasks: ${context.tasks.length} tasks by status and priority` : ''}
+
 
 3. Chart type selection:
 - Use "line" for trends over time (revenue, signups, growth metrics)

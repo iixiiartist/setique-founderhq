@@ -126,6 +126,7 @@ export async function attributeLeadToCampaign(
     utmMedium: utmParams?.medium,
     utmCampaign: utmParams?.campaign,
     utmContent: utmParams?.content,
+    revenueAttributed: 0,
   });
 }
 

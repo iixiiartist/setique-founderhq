@@ -1993,7 +1993,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     await notifyDealReassigned({
                         dealId: dealId,
                         dealName: updates.title || currentDeal?.title || 'Deal',
-                        fromUserId: currentDeal?.assignedTo || currentDeal?.userId || '',
+                        fromUserId: currentDeal?.assignedTo || '',
                         toUserId: updates.assignedTo,
                         reassignedByName: user?.user_metadata?.full_name || 'A team member',
                         workspaceId: workspace!.id,
@@ -2004,7 +2004,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 if (updates.stage !== undefined && updates.stage !== currentDeal?.stage) {
                     const dealName = updates.title || currentDeal?.title || 'Deal';
                     const dealValue = updates.value || currentDeal?.value;
-                    const targetUserId = updates.assignedTo || currentDeal?.assignedTo || currentDeal?.userId || user!.id;
+                    const targetUserId = updates.assignedTo || user!.id;
                     
                     if (updates.stage === 'closed_won') {
                         // Notify deal won - optionally team-wide for celebration

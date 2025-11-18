@@ -48,7 +48,7 @@ const SideMenu: React.FC<SideMenuProps> = ({
             return false;
         }
         // If unified accounts is enabled, hide the old 3 CRM tabs
-        if (isUnifiedAccountsEnabled && [Tab.Investors, Tab.Customers, Tab.Partners].includes(item.id)) {
+        if (isUnifiedAccountsEnabled && ([Tab.Investors, Tab.Customers, Tab.Partners] as TabType[]).includes(item.id)) {
             return false;
         }
         // If unified accounts is disabled, hide the new Accounts tab

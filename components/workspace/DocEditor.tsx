@@ -991,7 +991,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                     
                     {/* Tiptap Editor Content */}
                     <div className="flex-1 overflow-y-auto p-3 lg:p-6 bg-white">
-                        <style jsx global>{`
+                        <style>{`
                             /* Page Break Styles */
                             .ProseMirror .page-break {
                                 margin: 2rem 0;

@@ -32,7 +32,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const unreadCountRef = useRef<HTMLSpanElement>(null);
+  const unreadCountRef = useRef<HTMLDivElement>(null);
 
   // Load unread count with error handling
   const loadUnreadCount = useCallback(async () => {

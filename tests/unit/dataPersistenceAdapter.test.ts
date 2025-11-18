@@ -55,7 +55,7 @@ describe('DataPersistenceAdapter - Task Operations', () => {
 
       const result = await DataPersistenceAdapter.createTask(
         'user-123',
-        'general',
+        'productsServicesTasks',
         'Test task',
         'High',
         'crm-456',
@@ -79,7 +79,7 @@ describe('DataPersistenceAdapter - Task Operations', () => {
           crm_item_id: 'crm-456',
           contact_id: 'contact-789',
           assigned_to: 'user-002',
-          category: 'general',
+          category: 'productsServicesTasks',
         }),
         'workspace-001'
       );
@@ -90,7 +90,7 @@ describe('DataPersistenceAdapter - Task Operations', () => {
       await expect(
         DataPersistenceAdapter.createTask(
           'user-123',
-          'general',
+          'productsServicesTasks',
           'Test task',
           'Medium',
           undefined,
@@ -112,13 +112,13 @@ describe('DataPersistenceAdapter - Task Operations', () => {
       await expect(
         DataPersistenceAdapter.createTask(
           'user-123',
-          'general',
+          'productsServicesTasks',
           'Test task',
           'Medium',
           undefined,
           undefined,
           undefined,
-          'workspace-001'
+          'workspace-123'
         )
       ).rejects.toThrow('Database connection failed');
     });
@@ -822,7 +822,7 @@ describe('DataPersistenceAdapter - Error Handling', () => {
     await expect(
       DataPersistenceAdapter.createTask(
         'user-123',
-        'general',
+        'productsServicesTasks',
         'Task',
         'Medium',
         undefined,

@@ -161,7 +161,6 @@ describe('Field Transformers - Database to Application', () => {
         id: 'crm-123',
         company: 'Acme Corp',
         type: 'investor',
-        type: 'investor',
         priority: 'High',
         status: 'Active',
         next_action: 'Follow up call',
@@ -173,7 +172,7 @@ describe('Field Transformers - Database to Application', () => {
         assigned_to_name: 'Jane Smith',
       };
 
-      const result = dbToCrmItem(dbItem);
+      const result = dbToCrmItem(dbItem as any);
 
       expect(result).toEqual({
         id: 'crm-123',
@@ -207,7 +206,7 @@ describe('Field Transformers - Database to Application', () => {
         assigned_to_name: null,
       };
 
-      const result = dbToCrmItem(dbItem);
+      const result = dbToCrmItem(dbItem as any);
 
       expect(result.nextAction).toBeUndefined();
       expect(result.nextActionDate).toBeUndefined();
@@ -627,7 +626,7 @@ describe('Field Transformers - Batch Operations', () => {
         },
       ];
 
-      const result = dbToCrmItems(dbItems);
+      const result = dbToCrmItems(dbItems as any);
 
       expect(result).toHaveLength(2);
       expect(result[0].company).toBe('Company 1');

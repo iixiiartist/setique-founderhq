@@ -2244,7 +2244,7 @@ export class DatabaseService {
 
   static async createGTMDoc(docData: {
     workspaceId: string,
-             userId: string,
+                         userId: string,
     title: string,
     docType: string,
     contentJson?: any,
@@ -2747,6 +2747,38 @@ export class DatabaseService {
     }
   }
 
+  static async updateFinancialForecast(id: string, updates: Tables['financial_forecasts']['Update']) {
+    try {
+      const { data, error } = await supabase
+        .from('financial_forecasts')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      logger.error('Error updating financial forecast:', error);
+      return { data: null, error };
+    }
+  }
+
+  static async deleteFinancialForecast(id: string) {
+    try {
+      const { error } = await supabase
+        .from('financial_forecasts')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return { data: true, error: null };
+    } catch (error) {
+      logger.error('Error deleting financial forecast:', error);
+      return { data: false, error };
+    }
+  }
+
   static async getBudgetPlans(workspaceId: string, activePlansOnly = false) {
     try {
       let query = supabase
@@ -2802,6 +2834,21 @@ export class DatabaseService {
     } catch (error) {
       logger.error('Error updating budget plan:', error);
       return { data: null, error };
+    }
+  }
+
+  static async deleteBudgetPlan(id: string) {
+    try {
+      const { error } = await supabase
+        .from('budget_plans')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return { data: true, error: null };
+    } catch (error) {
+      logger.error('Error deleting budget plan:', error);
+      return { data: false, error };
     }
   }
 
