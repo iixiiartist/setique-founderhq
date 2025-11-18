@@ -6,6 +6,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Task, AppActions, TaskCollectionName, TaskStatus, Priority } from '../../types';
 import { TASK_TAG_BG_COLORS } from '../../constants';
+import { Trash2 } from 'lucide-react';
 
 interface TaskItemProps {
     task: Task;
@@ -316,6 +317,19 @@ export function TaskItem({
                                 className="px-3 py-1 border border-gray-300 font-semibold hover:border-gray-500"
                             >
                                 View details
+                            </button>
+                            <button
+                                type="button"
+                                onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (confirm('Are you sure you want to delete this task?')) {
+                                        await actions.deleteTask(task.id);
+                                    }
+                                }}
+                                className="px-2 py-1 border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-400"
+                                title="Delete task"
+                            >
+                                <Trash2 size={14} />
                             </button>
                         </div>
                     </div>

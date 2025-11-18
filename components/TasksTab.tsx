@@ -7,7 +7,30 @@
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
+// @ts-ignore
 import { List, type RowComponentProps } from 'react-window';
+import { 
+    DndContext, 
+    DragOverlay, 
+    closestCorners, 
+    KeyboardSensor, 
+    PointerSensor, 
+    useSensor, 
+    useSensors,
+    DragStartEvent,
+    DragOverEvent,
+    DragEndEvent,
+    defaultDropAnimationSideEffects,
+    DropAnimation,
+    useDroppable
+} from '@dnd-kit/core';
+import { 
+    SortableContext, 
+    sortableKeyboardCoordinates, 
+    verticalListSortingStrategy,
+    useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Tab, type TabType } from '../constants';
 import { Task, AppActions, TaskCollectionName, Priority, TaskStatus, AnyCrmItem, WorkspaceMember, CrmType } from '../types';
 import { logger } from '../lib/logger';
@@ -133,6 +156,51 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
     const [bulkSelectMode, setBulkSelectMode] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [activeTask, setActiveTask] = useState<Task | null>(null);
+
+    // DnD State
+    const [activeId, setActiveId] = useState<string | null>(null);
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    const handleDragStart = useCallback((event: DragStartEvent) => {
+        setActiveId(event.active.id as string);
+    }, []);
+
+    const handleDragEnd = useCallback((event: DragEndEvent) => {
+        const { active, over } = event;
+        setActiveId(null);
+
+        if (!over) return;
+
+        const activeTask = allTasks.find(t => t.id === active.id);
+        if (!activeTask) return;
+
+        // Determine new status based on drop target
+        let newStatus: TaskStatus | undefined;
+
+        // Check if dropped on a column directly
+        if (['Todo', 'InProgress', 'Done'].includes(over.id as string)) {
+            newStatus = over.id as TaskStatus;
+        } else {
+            // Check if dropped on another task
+            const overTask = allTasks.find(t => t.id === over.id);
+            if (overTask) {
+                newStatus = overTask.status;
+            }
+        }
+
+        if (newStatus && newStatus !== activeTask.status) {
+            actions.updateTask(activeTask.id, { status: newStatus });
+        }
+    }, [allTasks, actions]);
 
     // 4. HANDLERS: FILTER TOGGLING - Pure toggle, no magic
     const toggleCategory = useCallback((category: TaskCategory) => {
@@ -298,14 +366,14 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
     // 7. RENDER
     return (
         <>
-        <div className="flex h-full bg-white">
+        <div className="flex h-full bg-white font-mono">
             {/* SIDEBAR */}
-            <aside className="w-64 border-r border-gray-200 p-4 flex flex-col gap-6 overflow-y-auto">
+            <aside className="w-64 border-r-2 border-black p-4 flex flex-col gap-6 overflow-y-auto bg-gray-50">
                 <div className="flex justify-between items-center">
-                    <h2 className="font-mono text-sm font-bold uppercase text-gray-500">Filters</h2>
+                    <h2 className="font-bold uppercase text-black">Filters</h2>
                     <button 
                         onClick={clearAllFilters}
-                        className="text-xs text-blue-600 hover:underline"
+                        className="text-xs text-blue-600 hover:underline font-bold"
                     >
                         Clear all
                     </button>
@@ -313,7 +381,7 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
 
                 {/* Module/Category */}
                 <div className="space-y-2">
-                    <h3 className="text-xs font-semibold text-gray-900">Module</h3>
+                    <h3 className="text-xs font-bold text-black uppercase border-b-2 border-black pb-1">Module</h3>
                     <div className="space-y-1">
                         {[
                             { id: 'productsServicesTasks', label: 'Products & Services' },
@@ -323,11 +391,12 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
                             { id: 'marketingTasks', label: 'Marketing' },
                             { id: 'financialTasks', label: 'Financials' }
                         ].map(category => (
-                            <label key={category.id} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                            <label key={category.id} className="flex items-center gap-2 text-sm text-black cursor-pointer hover:bg-gray-200 p-1 transition-colors">
                                 <input
                                     type="checkbox"
                                     checked={selectedCategories.includes(category.id as TaskCategory)}
                                     onChange={() => toggleCategory(category.id as TaskCategory)}
+                                    className="accent-black w-4 h-4 border-2 border-black rounded-none focus:ring-0"
                                 />
                                 {category.label}
                             </label>
@@ -337,18 +406,19 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
 
                 {/* Status */}
                 <div className="space-y-2">
-                    <h3 className="text-xs font-semibold text-gray-900">Status</h3>
+                    <h3 className="text-xs font-bold text-black uppercase border-b-2 border-black pb-1">Status</h3>
                     <div className="space-y-1">
                         {[
                             { id: 'Todo', label: 'To Do' },
                             { id: 'InProgress', label: 'In Progress' },
                             { id: 'Done', label: 'Done' }
                         ].map(status => (
-                            <label key={status.id} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                            <label key={status.id} className="flex items-center gap-2 text-sm text-black cursor-pointer hover:bg-gray-200 p-1 transition-colors">
                                 <input
                                     type="checkbox"
                                     checked={selectedStatuses.includes(status.id as TaskStatus)}
                                     onChange={() => toggleStatus(status.id as TaskStatus)}
+                                    className="accent-black w-4 h-4 border-2 border-black rounded-none focus:ring-0"
                                 />
                                 {status.label}
                             </label>
@@ -358,18 +428,19 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
 
                 {/* Priority */}
                 <div className="space-y-2">
-                    <h3 className="text-xs font-semibold text-gray-900">Priority</h3>
+                    <h3 className="text-xs font-bold text-black uppercase border-b-2 border-black pb-1">Priority</h3>
                     <div className="space-y-1">
                         {[
                             { id: 'High', label: 'High' },
                             { id: 'Medium', label: 'Medium' },
                             { id: 'Low', label: 'Low' }
                         ].map(priority => (
-                            <label key={priority.id} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                            <label key={priority.id} className="flex items-center gap-2 text-sm text-black cursor-pointer hover:bg-gray-200 p-1 transition-colors">
                                 <input
                                     type="checkbox"
                                     checked={selectedPriorities.includes(priority.id as Priority)}
                                     onChange={() => togglePriority(priority.id as Priority)}
+                                    className="accent-black w-4 h-4 border-2 border-black rounded-none focus:ring-0"
                                 />
                                 {priority.label}
                             </label>
@@ -378,20 +449,22 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
                 </div>
 
                 {/* Toggles */}
-                <div className="space-y-2">
-                    <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                <div className="space-y-2 pt-2 border-t-2 border-black">
+                    <label className="flex items-center gap-2 text-sm text-black cursor-pointer hover:bg-gray-200 p-1 transition-colors">
                         <input
                             type="checkbox"
                             checked={onlyMyTasks}
                             onChange={(e) => setOnlyMyTasks(e.target.checked)}
+                            className="accent-black w-4 h-4 border-2 border-black rounded-none focus:ring-0"
                         />
                         Assigned to me
                     </label>
-                    <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                    <label className="flex items-center gap-2 text-sm text-black cursor-pointer hover:bg-gray-200 p-1 transition-colors">
                         <input
                             type="checkbox"
                             checked={highPriorityOnly}
                             onChange={(e) => setHighPriorityOnly(e.target.checked)}
+                            className="accent-black w-4 h-4 border-2 border-black rounded-none focus:ring-0"
                         />
                         High priority only
                     </label>
@@ -402,7 +475,7 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
                     <input 
                         type="text"
                         placeholder="Search tasks..."
-                        className="w-full text-xs border border-gray-300 rounded px-2 py-1"
+                        className="w-full text-xs border-2 border-black rounded-none px-2 py-2 focus:outline-none focus:ring-2 focus:ring-black bg-white"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -410,37 +483,37 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
             </aside>
 
             {/* MAIN CONTENT */}
-            <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex-1 flex flex-col min-w-0 bg-white">
                 {/* Stats Bar */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 border-b border-gray-200 bg-gray-50/50">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 border-b-2 border-black bg-white">
                     <StatCard label="Total Tasks" value={totalCount} />
                     <StatCard label="Showing" value={filteredTasks.length} />
                     <StatCard label="To Do" value={todoCount} />
                     <StatCard label="Done" value={doneCount} />
                 </div>
 
-                <div className="border-b border-gray-200 bg-white px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+                <div className="border-b-2 border-black bg-white px-4 py-3 flex flex-wrap items-center justify-between gap-3">
                     <div>
-                        <p className="text-sm font-semibold text-gray-900">Working set</p>
-                        <p className="text-xs text-gray-500">Filtered view out of {totalCount} total workspace tasks</p>
+                        <p className="text-sm font-bold text-black uppercase">Working set</p>
+                        <p className="text-xs text-gray-600">Filtered view out of {totalCount} total workspace tasks</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
                         <button
                             onClick={() => setIsCreateModalOpen(true)}
-                            className="text-xs font-semibold border px-3 py-1 rounded bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+                            className="text-xs font-bold border-2 border-black px-4 py-2 bg-black text-white shadow-neo-btn hover:translate-y-0.5 hover:shadow-none transition-all"
                         >
-                            New task
+                            + New task
                         </button>
                         <button
                             onClick={toggleBulkSelect}
-                            className={`text-xs font-semibold border px-3 py-1 rounded ${bulkSelectMode ? 'bg-black text-white border-black' : 'border-gray-300 text-gray-700 hover:border-gray-500'}`}
+                            className={`text-xs font-bold border-2 border-black px-4 py-2 shadow-neo-btn hover:translate-y-0.5 hover:shadow-none transition-all ${bulkSelectMode ? 'bg-gray-800 text-white' : 'bg-white text-black'}`}
                         >
                             {bulkSelectMode ? 'Bulk select enabled' : 'Enable bulk select'}
                         </button>
                         <button
                             onClick={clearSelection}
                             disabled={selectionCount === 0}
-                            className={`text-xs font-semibold border px-3 py-1 rounded ${selectionCount === 0 ? 'text-gray-400 border-gray-200 cursor-not-allowed' : 'text-gray-700 border-gray-300 hover:border-gray-500'}`}
+                            className={`text-xs font-bold border-2 border-black px-4 py-2 shadow-neo-btn hover:translate-y-0.5 hover:shadow-none transition-all ${selectionCount === 0 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-black'}`}
                         >
                             Clear selection ({selectionCount})
                         </button>
@@ -449,25 +522,47 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
 
                 <div className="flex-1 overflow-hidden">
                     {hasResults ? (
-                        <div className="h-full overflow-y-auto bg-gray-50">
-                            <div className="grid gap-4 p-4 lg:grid-cols-2 xl:grid-cols-3 auto-rows-min" style={{ gridAutoRows: 'minmax(0, 1fr)' }}>
-                                {STATUS_COLUMNS.map(column => (
-                                    <TaskColumn
-                                        key={column.id}
-                                        column={column}
-                                        tasks={groupedTasks[column.id] || []}
-                                        selectedTaskIds={selectedTaskIds}
-                                        bulkSelectMode={bulkSelectMode}
-                                        onTaskSelect={handleTaskSelect}
-                                        onTaskClick={handleTaskClick}
-                                        actions={actions}
-                                        getLinkedEntityName={getLinkedEntityName}
-                                        onLinkedEntityNavigate={handleLinkedEntityNavigate}
-                                        onCategoryNavigate={handleOpenTaskModule}
-                                    />
-                                ))}
+                        <DndContext 
+                            sensors={sensors} 
+                            collisionDetection={closestCorners} 
+                            onDragStart={handleDragStart} 
+                            onDragEnd={handleDragEnd}
+                        >
+                            <div className="h-full overflow-y-auto bg-gray-50">
+                                <div className="grid gap-4 p-4 lg:grid-cols-2 xl:grid-cols-3 auto-rows-min" style={{ gridAutoRows: 'minmax(0, 1fr)' }}>
+                                    {STATUS_COLUMNS.map(column => (
+                                        <TaskColumn
+                                            key={column.id}
+                                            column={column}
+                                            tasks={groupedTasks[column.id] || []}
+                                            selectedTaskIds={selectedTaskIds}
+                                            bulkSelectMode={bulkSelectMode}
+                                            onTaskSelect={handleTaskSelect}
+                                            onTaskClick={handleTaskClick}
+                                            actions={actions}
+                                            getLinkedEntityName={getLinkedEntityName}
+                                            onLinkedEntityNavigate={handleLinkedEntityNavigate}
+                                            onCategoryNavigate={handleOpenTaskModule}
+                                        />
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                            <DragOverlay>
+                                {activeId ? (
+                                    <div className="opacity-80 rotate-2 scale-105 cursor-grabbing">
+                                        <TaskItem
+                                            task={allTasks.find(t => t.id === activeId)!}
+                                            isSelected={false}
+                                            bulkSelectMode={false}
+                                            onSelect={() => {}}
+                                            onClick={() => {}}
+                                            actions={actions}
+                                            linkedEntityName={getLinkedEntityName(allTasks.find(t => t.id === activeId)!)}
+                                        />
+                                    </div>
+                                ) : null}
+                            </DragOverlay>
+                        </DndContext>
                     ) : (
                         <EmptyState clearAllFilters={clearAllFilters} totalCount={totalCount} />
                     )}
@@ -538,31 +633,36 @@ function TaskColumn({
     onLinkedEntityNavigate,
     onCategoryNavigate
 }: TaskColumnProps) {
+    const { setNodeRef } = useDroppable({
+        id: column.id,
+    });
     const hasTasks = tasks.length > 0;
 
     return (
-        <section className="flex flex-col h-full border-2 border-black shadow-neo bg-white">
+        <section ref={setNodeRef} className="flex flex-col h-full border-2 border-black shadow-neo bg-white">
             <div className={`px-4 py-3 border-b-2 border-black ${column.accent}`}>
                 <p className="text-xs font-mono uppercase text-gray-600 font-bold">{column.title}</p>
                 <p className="text-sm text-black font-bold">{tasks.length} task{tasks.length === 1 ? '' : 's'}</p>
                 <p className="text-xs text-gray-600">{column.description}</p>
             </div>
             <div className="flex-1 min-h-[200px]">
-                {hasTasks ? (
-                    <TaskColumnList
-                        tasks={tasks}
-                        selectedTaskIds={selectedTaskIds}
-                        bulkSelectMode={bulkSelectMode}
-                        onTaskSelect={onTaskSelect}
-                        onTaskClick={onTaskClick}
-                        actions={actions}
-                        getLinkedEntityName={getLinkedEntityName}
-                        onLinkedEntityNavigate={onLinkedEntityNavigate}
-                        onCategoryNavigate={onCategoryNavigate}
-                    />
-                ) : (
-                    <p className="text-xs text-gray-500 italic p-4">{column.emptyMessage}</p>
-                )}
+                <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+                    {hasTasks ? (
+                        <TaskColumnList
+                            tasks={tasks}
+                            selectedTaskIds={selectedTaskIds}
+                            bulkSelectMode={bulkSelectMode}
+                            onTaskSelect={onTaskSelect}
+                            onTaskClick={onTaskClick}
+                            actions={actions}
+                            getLinkedEntityName={getLinkedEntityName}
+                            onLinkedEntityNavigate={onLinkedEntityNavigate}
+                            onCategoryNavigate={onCategoryNavigate}
+                        />
+                    ) : (
+                        <p className="text-xs text-gray-500 italic p-4">{column.emptyMessage}</p>
+                    )}
+                </SortableContext>
             </div>
         </section>
     );
@@ -597,61 +697,66 @@ const StaticTaskList = ({
     getLinkedEntityName,
     onLinkedEntityNavigate,
     onCategoryNavigate
-}: TaskColumnListProps) => (
-    <div className="h-full overflow-y-auto p-4 space-y-3">
-        {tasks.map(task => (
-            <TaskItem
-                key={task.id}
-                task={task}
-                isSelected={selectedTaskIds.has(task.id)}
-                bulkSelectMode={bulkSelectMode}
-                onSelect={() => onTaskSelect(task.id)}
-                onClick={() => onTaskClick(task)}
-                actions={actions}
-                linkedEntityName={getLinkedEntityName(task)}
-                onLinkedEntityNavigate={onLinkedEntityNavigate}
-                onCategoryNavigate={onCategoryNavigate}
-            />
-        ))}
-    </div>
-);
-
-type VirtualizedRowData = TaskColumnListProps;
-
-function VirtualizedTaskRow({
-    ariaAttributes,
-    index,
-    style,
-    tasks,
-    selectedTaskIds,
-    bulkSelectMode,
-    onTaskSelect,
-    onTaskClick,
-    actions,
-    getLinkedEntityName,
-    onLinkedEntityNavigate,
-    onCategoryNavigate
-}: RowComponentProps<VirtualizedRowData>) {
-    const task = tasks[index];
-    if (!task) {
-        return null;
-    }
-
+}: TaskColumnListProps) => {
     return (
-        <div {...ariaAttributes} style={style}>
-            <div className="px-4 py-2">
-                <TaskItem
+        <div className="flex flex-col gap-3 p-3">
+            {tasks.map(task => (
+                <SortableTaskItem
+                    key={task.id}
                     task={task}
-                    isSelected={selectedTaskIds.has(task.id)}
+                    selectedTaskIds={selectedTaskIds}
                     bulkSelectMode={bulkSelectMode}
-                    onSelect={() => onTaskSelect(task.id)}
-                    onClick={() => onTaskClick(task)}
+                    onTaskSelect={onTaskSelect}
+                    onTaskClick={onTaskClick}
                     actions={actions}
-                    linkedEntityName={getLinkedEntityName(task)}
+                    getLinkedEntityName={getLinkedEntityName}
                     onLinkedEntityNavigate={onLinkedEntityNavigate}
                     onCategoryNavigate={onCategoryNavigate}
                 />
-            </div>
+            ))}
+        </div>
+    );
+};
+
+function SortableTaskItem(props: {
+    task: Task;
+    selectedTaskIds: Set<string>;
+    bulkSelectMode: boolean;
+    onTaskSelect: (taskId: string) => void;
+    onTaskClick: (task: Task) => void;
+    actions: AppActions;
+    getLinkedEntityName: (task: Task) => string | null;
+    onLinkedEntityNavigate: (task: Task) => void;
+    onCategoryNavigate: (task: Task) => void;
+}) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging
+    } = useSortable({ id: props.task.id, data: { task: props.task } });
+
+    const style = {
+        transform: CSS.Translate.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+        <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+            <TaskItem
+                task={props.task}
+                isSelected={props.selectedTaskIds.has(props.task.id)}
+                bulkSelectMode={props.bulkSelectMode}
+                onSelect={() => props.onTaskSelect(props.task.id)}
+                onClick={() => props.onTaskClick(props.task)}
+                actions={props.actions}
+                linkedEntityName={props.getLinkedEntityName(props.task)}
+                onLinkedEntityNavigate={props.onLinkedEntityNavigate}
+                onCategoryNavigate={props.onCategoryNavigate}
+            />
         </div>
     );
 }
@@ -734,3 +839,36 @@ function EmptyState({ clearAllFilters, totalCount }: { clearAllFilters: () => vo
         </div>
     );
 }
+
+interface VirtualizedRowData {
+    tasks: Task[];
+    selectedTaskIds: Set<string>;
+    bulkSelectMode: boolean;
+    onTaskSelect: (taskId: string) => void;
+    onTaskClick: (task: Task) => void;
+    actions: AppActions;
+    getLinkedEntityName: (task: Task) => string | null;
+    onLinkedEntityNavigate: (task: Task) => void;
+    onCategoryNavigate: (task: Task) => void;
+}
+
+const VirtualizedTaskRow = ({ index, style, ...data }: RowComponentProps<VirtualizedRowData>) => {
+    const task = data.tasks[index];
+    if (!task) return null;
+
+    return (
+        <div style={style} className="px-3 py-1.5">
+            <TaskItem
+                task={task}
+                isSelected={data.selectedTaskIds.has(task.id)}
+                bulkSelectMode={data.bulkSelectMode}
+                onSelect={() => data.onTaskSelect(task.id)}
+                onClick={() => data.onTaskClick(task)}
+                actions={data.actions}
+                linkedEntityName={data.getLinkedEntityName(task)}
+                onLinkedEntityNavigate={data.onLinkedEntityNavigate}
+                onCategoryNavigate={data.onCategoryNavigate}
+            />
+        </div>
+    );
+};

@@ -252,7 +252,7 @@ export function TaskCreationModal({
                 )}
 
                 {/* Subtasks Section */}
-                <div className="border-t-2 border-gray-200 pt-4 mt-2">
+                <div className="border-t-2 border-black pt-4 mt-2">
                     <label className="block font-mono text-sm font-bold mb-2">📋 Subtasks (Optional)</label>
                     <SubtaskManager 
                         subtasks={subtasks}
@@ -260,7 +260,7 @@ export function TaskCreationModal({
                     />
                 </div>
 
-                <div className="flex gap-3 pt-4 border-t-2 border-gray-200 mt-2">
+                <div className="flex gap-3 pt-4 border-t-2 border-black mt-2">
                     <button
                         onClick={handleSubmit}
                         disabled={!text.trim()}

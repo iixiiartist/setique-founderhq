@@ -248,7 +248,7 @@ export function TaskDetailPanel({
                 )}
 
                 {/* Meta info */}
-                <div className="bg-gray-50 border-2 border-gray-300 p-3 space-y-2 text-xs font-mono">
+                <div className="bg-gray-50 border-2 border-black p-3 space-y-2 text-xs font-mono">
                     <div>
                         <span className="text-gray-600">Created:</span>{' '}
                         <span className="font-bold">{new Date(task.createdAt).toLocaleString()}</span>

@@ -331,7 +331,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         // Load documents
                         if (!loadedTabsRef.current.has('documents')) {
                             const documents = await loadDocuments();
-                            setData(prev => ({ ...prev, documents }));
+                            setData(prev => ({ ...prev, ...documents }));
                             loadedTabsRef.current.add('documents');
                         }
                         break;
@@ -359,7 +359,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         // Load documents for products/services tab
                         if (!loadedTabsRef.current.has('documents')) {
                             const documents = await loadDocuments();
-                            setData(prev => ({ ...prev, documents }));
+                            setData(prev => ({ ...prev, ...documents }));
                             loadedTabsRef.current.add('documents');
                         }
                         break;
@@ -615,7 +615,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         loadedTabsRef.current.add('productsServices');
                         
                         const documents = await loadDocuments({ force: true });
-                        setData(prev => ({ ...prev, documents }));
+                        setData(prev => ({ ...prev, ...documents }));
                         loadedTabsRef.current.add('documents');
                     }
                     break;
@@ -655,7 +655,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
                 case Tab.Documents:
                     const docs = await loadDocuments({ force: true });
-                    setData(prev => ({ ...prev, documents: docs }));
+                    setData(prev => ({ ...prev, ...docs }));
                     loadedTabsRef.current.add('documents');
                     break;
 
@@ -713,7 +713,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 await loadTasks({ force: true });
                 if (useLazyDataPersistenceRef.current?.loadDeals) {
                     const deals = await useLazyDataPersistenceRef.current.loadDeals({ force: true });
-                    setData(prev => ({ ...prev, deals }));
+                    setData(prev => ({ ...prev, ...deals }));
                 }
                 break;
             
@@ -1579,7 +1579,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     setData(prev => ({ ...prev, ...freshFinancials }));
                 } else if (collection === 'marketing') {
                     const freshMarketing = await loadMarketing({ force: true });
-                    setData(prev => ({ ...prev, marketing: freshMarketing }));
+                    setData(prev => ({ ...prev, ...freshMarketing }));
                 } else if (['investors', 'customers', 'partners'].includes(collection) || collection === 'contacts') {
                     const freshCrm = await loadCrmItems({ force: true });
                     setData(prev => ({ ...prev, ...freshCrm }));
@@ -1588,7 +1588,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     setData(prev => ({ ...prev, ...freshTasks }));
                 } else if (collection === 'documents') {
                     const freshDocuments = await loadDocuments({ force: true });
-                    setData(prev => ({ ...prev, documents: freshDocuments }));
+                    setData(prev => ({ ...prev, ...freshDocuments }));
                 }
                 
                 handleToast('Failed to delete item', 'info');
@@ -1881,7 +1881,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 invalidateCache('deals');
                 if (useLazyDataPersistenceRef.current?.loadDeals) {
                     const deals = await useLazyDataPersistenceRef.current.loadDeals({ force: true });
-                    setData(prev => ({ ...prev, deals }));
+                    setData(prev => ({ ...prev, ...deals }));
                 }
 
                 handleToast(`Deal "${dealData.title}" created successfully`, 'success');
@@ -2092,7 +2092,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 invalidateCache('deals');
                 if (useLazyDataPersistenceRef.current?.loadDeals) {
                     const deals = await useLazyDataPersistenceRef.current.loadDeals({ force: true });
-                    setData(prev => ({ ...prev, deals }));
+                    setData(prev => ({ ...prev, ...deals }));
                 }
 
                 return { success: true, message: 'Deal updated successfully' };
@@ -2114,7 +2114,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 invalidateCache('deals');
                 if (useLazyDataPersistenceRef.current?.loadDeals) {
                     const deals = await useLazyDataPersistenceRef.current.loadDeals({ force: true });
-                    setData(prev => ({ ...prev, deals }));
+                    setData(prev => ({ ...prev, ...deals }));
                 }
 
                 handleToast('Deal deleted successfully', 'success');
