@@ -166,7 +166,7 @@ export function TaskItem({
                                     <textarea
                                         value={draftTitle}
                                         onChange={(event) => setDraftTitle(event.target.value)}
-                                        className="w-full border border-gray-300 rounded-sm p-2 text-sm font-mono"
+                                        className="w-full border border-gray-300 p-2 text-sm font-mono"
                                         rows={2}
                                         autoFocus
                                     />
@@ -175,7 +175,7 @@ export function TaskItem({
                                             type="button"
                                             onClick={handleSaveTitle}
                                             disabled={isSaving || !isDirty}
-                                            className={`px-3 py-1 border rounded ${isDirty ? 'bg-black text-white border-black' : 'text-gray-400 border-gray-200 cursor-not-allowed'}`}
+                                            className={`px-3 py-1 border ${isDirty ? 'bg-black text-white border-black' : 'text-gray-400 border-gray-200 cursor-not-allowed'}`}
                                         >
                                             Save
                                         </button>
@@ -186,7 +186,7 @@ export function TaskItem({
                                                 setIsEditing(false);
                                                 setDraftTitle(task.text || '');
                                             }}
-                                            className="px-3 py-1 border border-gray-300 rounded"
+                                            className="px-3 py-1 border border-gray-300"
                                         >
                                             Cancel
                                         </button>
@@ -200,7 +200,7 @@ export function TaskItem({
                             <button
                                 type="button"
                                 onClick={handleToggleEdit}
-                                className="text-xs font-semibold border border-gray-300 px-2 py-1 rounded hover:border-gray-500"
+                                className="text-xs font-semibold border border-gray-300 px-2 py-1 hover:border-gray-500"
                             >
                                 {isEditing ? 'Close' : 'Edit'}
                             </button>
@@ -252,7 +252,7 @@ export function TaskItem({
                                         e.stopPropagation();
                                         onLinkedEntityNavigate?.(task);
                                     }}
-                                    className="font-mono px-2 py-0.5 text-teal-600 bg-teal-50 border border-teal-300 rounded-sm hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                                    className="font-mono px-2 py-0.5 text-teal-600 bg-teal-50 border border-teal-300 hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-teal-400"
                                     title="Open linked record"
                                 >
                                     🔗 {linkedEntityName}
@@ -274,7 +274,7 @@ export function TaskItem({
                                     value={task.status}
                                     onChange={(event) => handleStatusChange(event.target.value as TaskStatus)}
                                     onClick={(e) => e.stopPropagation()}
-                                    className="border border-gray-300 rounded px-2 py-1 text-xs"
+                                    className="border border-gray-300 px-2 py-1 text-xs"
                                     disabled={isSaving}
                                 >
                                     {STATUS_OPTIONS.map(option => (
@@ -290,7 +290,7 @@ export function TaskItem({
                                     value={task.priority}
                                     onChange={(event) => handlePriorityChange(event.target.value as Priority)}
                                     onClick={(e) => e.stopPropagation()}
-                                    className="border border-gray-300 rounded px-2 py-1 text-xs"
+                                    className="border border-gray-300 px-2 py-1 text-xs"
                                     disabled={isSaving}
                                 >
                                     {PRIORITY_OPTIONS.map(option => (
@@ -303,7 +303,7 @@ export function TaskItem({
                             <button
                                 type="button"
                                 onClick={handleCategoryNavigate}
-                                className="px-3 py-1 border border-gray-300 rounded font-semibold hover:border-gray-500"
+                                className="px-3 py-1 border border-gray-300 font-semibold hover:border-gray-500"
                             >
                                 Open module
                             </button>
@@ -313,7 +313,7 @@ export function TaskItem({
                                     e.stopPropagation();
                                     onClick();
                                 }}
-                                className="px-3 py-1 border border-gray-300 rounded font-semibold hover:border-gray-500"
+                                className="px-3 py-1 border border-gray-300 font-semibold hover:border-gray-500"
                             >
                                 View details
                             </button>

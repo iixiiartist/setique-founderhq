@@ -6,11 +6,11 @@ interface TaskPriorityProps {
 }
 
 const priorityStyles: Record<Priority, string> = {
-  High: 'text-red-500',
-  Medium: 'text-yellow-500',
-  Low: 'text-green-500',
+  High: 'bg-red-100 text-red-800 border-red-500',
+  Medium: 'bg-yellow-100 text-yellow-800 border-yellow-500',
+  Low: 'bg-green-100 text-green-800 border-green-500',
 };
 
 export const TaskPriority: React.FC<TaskPriorityProps> = ({ priority }) => {
-  return <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${priorityStyles[priority]}`}>{priority}</span>;
+  return <span className={`px-2 inline-flex text-xs leading-5 font-semibold border font-mono ${priorityStyles[priority]}`}>{priority}</span>;
 };

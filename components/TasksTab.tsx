@@ -54,21 +54,21 @@ const STATUS_COLUMNS: Array<{
         id: 'Todo',
         title: 'Backlog',
         description: 'Ready to be picked up next',
-        accent: 'from-sky-50 via-white to-sky-100',
+        accent: 'bg-sky-100',
         emptyMessage: 'Nothing waiting – add a task or adjust filters.'
     },
     {
         id: 'InProgress',
         title: 'In Progress',
         description: 'Actively being worked right now',
-        accent: 'from-amber-50 via-white to-amber-100',
+        accent: 'bg-amber-100',
         emptyMessage: 'No active work. Reassign or pull from backlog.'
     },
     {
         id: 'Done',
         title: 'Completed',
         description: 'Recently delivered wins',
-        accent: 'from-emerald-50 via-white to-emerald-100',
+        accent: 'bg-emerald-100',
         emptyMessage: 'No recent completions yet.'
     }
 ];
@@ -541,11 +541,11 @@ function TaskColumn({
     const hasTasks = tasks.length > 0;
 
     return (
-        <section className="flex flex-col h-full border-2 border-gray-900 shadow-neo bg-white rounded-lg overflow-hidden">
-            <div className={`px-4 py-3 border-b border-gray-200 bg-gradient-to-r ${column.accent}`}>
-                <p className="text-xs font-mono uppercase text-gray-500">{column.title}</p>
-                <p className="text-sm text-gray-900 font-semibold">{tasks.length} task{tasks.length === 1 ? '' : 's'}</p>
-                <p className="text-xs text-gray-500">{column.description}</p>
+        <section className="flex flex-col h-full border-2 border-black shadow-neo bg-white">
+            <div className={`px-4 py-3 border-b-2 border-black ${column.accent}`}>
+                <p className="text-xs font-mono uppercase text-gray-600 font-bold">{column.title}</p>
+                <p className="text-sm text-black font-bold">{tasks.length} task{tasks.length === 1 ? '' : 's'}</p>
+                <p className="text-xs text-gray-600">{column.description}</p>
             </div>
             <div className="flex-1 min-h-[200px]">
                 {hasTasks ? (

@@ -73,7 +73,7 @@ const FilterChip = ({ label, isActive, onClick }: FilterChipProps) => (
     <button
         type="button"
         onClick={onClick}
-        className={`px-3 py-1 text-xs font-semibold border-2 border-black rounded-full font-mono transition-colors ${
+        className={`px-3 py-1 text-xs font-semibold border-2 border-black font-mono transition-colors ${
             isActive ? 'bg-black text-white' : 'bg-white text-black hover:bg-gray-100'
         }`}
     >
@@ -85,7 +85,7 @@ const ActiveFilterChip = ({ label, onRemove }: ActiveFilterChipProps) => (
     <button
         type="button"
         onClick={onRemove}
-        className="flex items-center gap-1 px-2 py-1 text-xs font-semibold border border-gray-400 rounded-full font-mono text-gray-700 hover:bg-gray-100"
+        className="flex items-center gap-1 px-2 py-1 text-xs font-semibold border border-black font-mono text-black hover:bg-gray-100"
     >
         {label}
         <span aria-hidden="true">✕</span>
