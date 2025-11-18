@@ -2434,6 +2434,9 @@ export class DatabaseService {
 
   static async linkDocToEntity(docId: string, workspaceId: string, entityType: 'task' | 'event' | 'crm' | 'chat' | 'contact', entityId: string) {
     try {
+      // Clean entity ID if it has a prefix (e.g. task-UUID -> UUID)
+      const cleanEntityId = entityId.replace(/^(task|event|crm|contact|chat)-/, '');
+
       // Verify doc belongs to workspace before linking
       const { data: doc } = await supabase
         .from('gtm_docs')
@@ -2451,14 +2454,14 @@ export class DatabaseService {
         .insert({
           doc_id: docId,
           linked_entity_type: entityType,
-          linked_entity_id: entityId
+          linked_entity_id: cleanEntityId
         })
         .select()
         .single()
 
       if (error) throw error
 
-      logger.info('[Database] Linked GTM doc:', { docId, entityType, entityId, workspaceId })
+      logger.info('[Database] Linked GTM doc:', { docId, entityType, entityId: cleanEntityId, workspaceId })
       return { data: { linkId: data.id }, error: null }
     } catch (error) {
       logger.error('Error linking GTM doc:', error)
@@ -2485,6 +2488,9 @@ export class DatabaseService {
 
   static async getLinkedDocs(entityType: 'task' | 'event' | 'crm' | 'chat' | 'contact', entityId: string) {
     try {
+      // Clean entity ID if it has a prefix (e.g. task-UUID -> UUID)
+      const cleanEntityId = entityId.replace(/^(task|event|crm|contact|chat)-/, '');
+
       const { data, error } = await supabase
         .from('gtm_doc_links')
         .select(`
@@ -2505,7 +2511,7 @@ export class DatabaseService {
           )
         `)
         .eq('linked_entity_type', entityType)
-        .eq('linked_entity_id', entityId)
+        .eq('linked_entity_id', cleanEntityId)
 
       if (error) throw error
 
