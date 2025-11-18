@@ -5,7 +5,6 @@ import {
 } from 'recharts';
 import { FinancialLog, Expense, ExpenseCategory, PaymentMethod, AppActions, Task, Document, BusinessProfile, WorkspaceMember, DashboardData, ProductService } from '../types';
 import { Tab } from '../constants';
-import TaskManagement from './shared/TaskManagement';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import KpiCard from './shared/KpiCard';
 import { RevenueModule, CashFlowModule, MetricsModule } from './financials';
@@ -931,16 +930,6 @@ const FinancialsTab: React.FC<{
                         </ul>
                     </div>
                 </div>
-
-                {/* Tasks Section */}
-                <TaskManagement
-                    tasks={tasks}
-                    actions={actions}
-                    taskCollectionName="financialTasks"
-                    tag="Financials"
-                    title="Financial Tasks"
-                    placeholder="e.g., 'Prepare Q3 board deck'"
-                />
             </div>
             </div>
             )}

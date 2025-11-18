@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { CrmItem, AnyCrmItem, Task, AppActions, Contact, Document, BusinessProfile, WorkspaceMember, Deal, ProductService, CrmType, Meeting } from '../types';
 import AccountDetailView from './shared/AccountDetailView';
 import ContactDetailView from './shared/ContactDetailView';
-import TaskManagement from './shared/TaskManagement';
 import { ContactManager } from './shared/ContactManager';
 import { AccountManager } from './shared/AccountManager';
 import { PaginatedAccountManager } from './shared/PaginatedAccountManager';

@@ -16,6 +16,7 @@ interface ContactFormData {
     email: string;
     phone: string;
     title: string;
+    linkedin: string;
     linkedCrmId: string; // Empty string means create new account
     newAccountName: string; // For creating new CRM account
 }
@@ -69,6 +70,7 @@ export function ContactManager({
         email: '',
         phone: '',
         title: '',
+        linkedin: '',
         linkedCrmId: '',
         newAccountName: ''
     });
@@ -201,7 +203,7 @@ export function ContactManager({
                     email: formData.email.trim(),
                     phone: formData.phone.trim(),
                     title: formData.title.trim(),
-                    linkedin: ''
+                    linkedin: formData.linkedin.trim()
                 }
             );
 
@@ -212,6 +214,7 @@ export function ContactManager({
                     email: '',
                     phone: '',
                     title: '',
+                    linkedin: '',
                     linkedCrmId: '',
                     newAccountName: ''
                 });
@@ -244,7 +247,8 @@ export function ContactManager({
                     name: formData.name.trim(),
                     email: formData.email.trim(),
                     phone: formData.phone.trim(),
-                    title: formData.title.trim()
+                    title: formData.title.trim(),
+                    linkedin: formData.linkedin.trim()
                 }
             );
 
@@ -255,6 +259,7 @@ export function ContactManager({
                 email: '',
                 phone: '',
                 title: '',
+                linkedin: '',
                 linkedCrmId: '',
                 newAccountName: ''
             });
@@ -287,6 +292,7 @@ export function ContactManager({
             email: contact.email,
             phone: contact.phone || '',
             title: contact.title || '',
+            linkedin: contact.linkedin || '',
             linkedCrmId: getLinkedAccount(contact)?.id || '',
             newAccountName: ''
         });
@@ -300,6 +306,7 @@ export function ContactManager({
             email: '',
             phone: '',
             title: '',
+            linkedin: '',
             linkedCrmId: '',
             newAccountName: ''
         });
@@ -313,6 +320,7 @@ export function ContactManager({
             email: '',
             phone: '',
             title: '',
+            linkedin: '',
             linkedCrmId: '',
             newAccountName: ''
         });

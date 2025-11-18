@@ -29,6 +29,7 @@ const contactFormSchema = z.object({
     email: z.string().email('Invalid email address'),
     phone: z.string().max(50).optional(),
     title: z.string().max(200).optional(),
+    linkedin: z.union([z.string().url('Enter a valid URL'), z.literal('')]).optional(),
     linkedCrmId: z.string().optional(),
     newAccountName: z.string().max(200).optional(),
     crmType: z.enum(['investors', 'customers', 'partners'] as const),
@@ -144,10 +145,17 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
         const result = await actions.createContact(
             data.crmType,
             crmItemId,
-            data.name.trim(),
-            data.email.trim(),
-            data.phone?.trim() || undefined,
-            data.title?.trim() || undefined
+            {
+                name: data.name.trim(),
+                email: data.email.trim(),
+                phone: data.phone?.trim() || undefined,
+                title: data.title?.trim() || undefined,
+                linkedin: data.linkedin?.trim() || '',
+                assignedTo: undefined,
+                assignedToName: undefined,
+                createdByName: undefined,
+                tags: []
+            }
         );
 
         if (result.success) {
@@ -159,13 +167,16 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
     };
 
     const handleEventSubmit = async (data: EventFormData) => {
-        const result = await actions.createCalendarEvent(
-            data.title.trim(),
+        const icon = data.type === 'meeting' ? '🤝' : data.type === 'call' ? '📞' : '📅';
+        const result = await actions.createTask(
+            'productsServicesTasks',
+            `${icon} ${data.title.trim()}`,
+            'High',
+            undefined,
+            undefined,
             data.date,
-            data.time,
-            parseInt(data.duration),
-            data.description?.trim() || undefined,
-            data.type
+            undefined,
+            data.time || undefined
         );
         if (result.success) {
             onSuccess?.(result.message);
@@ -191,156 +202,31 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
             setError(result.message);
         }
     };
+    const handleDocumentUpload = async () => {
+        if (!documentFile) {
+            setError('Please select a file to upload');
+            return;
+        }
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError(null);
         setIsSubmitting(true);
+        setError(null);
 
         try {
-            let result: { success: boolean; message: string };
+            const reader = new FileReader();
+            const fileReadPromise = new Promise<string>((resolve, reject) => {
+                reader.onload = (event) => resolve(event.target?.result as string);
+                reader.onerror = reject;
+            });
 
-            switch (formType) {
-                case 'task':
-                    if (!taskText.trim()) {
-                        setError('Task description is required');
-                        setIsSubmitting(false);
-                        return;
-                    }
-                    result = await actions.createTask(
-                        taskCategory,
-                        taskText.trim(),
-                        taskPriority,
-                        undefined,
-                        undefined,
-                        taskDueDate || undefined,
-                        undefined,
-                        taskDueTime || undefined,
-                        taskSubtasks
-                    );
-                    break;
+            reader.readAsDataURL(documentFile);
+            const base64 = await fileReadPromise;
 
-                case 'crm':
-                    if (!crmCompany.trim()) {
-                        setError('Company name is required');
-                        setIsSubmitting(false);
-                        return;
-                    }
-                    result = await actions.createCrmItem(crmCollection, {
-                        company: crmCompany.trim(),
-                        nextAction: crmNextAction.trim() || undefined,
-                        nextActionDate: crmNextActionDate || undefined,
-                        nextActionTime: crmNextActionTime || undefined
-                    });
-                    break;
-
-                case 'contact':
-                    if (!contactName.trim() || !contactEmail.trim()) {
-                        setError('Name and email are required');
-                        setIsSubmitting(false);
-                        return;
-                    }
-
-                    let crmItemId = contactLinkedCrmId;
-
-                    // Create new CRM account if specified
-                    if (!crmItemId && contactNewAccountName.trim()) {
-                        const crmResult = await actions.createCrmItem(contactCrmType, {
-                            company: contactNewAccountName.trim()
-                        });
-                        
-                        if (crmResult.success && crmResult.itemId) {
-                            crmItemId = crmResult.itemId;
-                        }
-                    }
-
-                    if (!crmItemId) {
-                        setError('Please select or create a CRM account for this contact');
-                        setIsSubmitting(false);
-                        return;
-                    }
-
-                    result = await actions.createContact(
-                        contactCrmType,
-                        crmItemId,
-                        {
-                            name: contactName.trim(),
-                            email: contactEmail.trim(),
-                            phone: contactPhone.trim(),
-                            title: contactTitle.trim(),
-                            linkedin: ''
-                        }
-                    );
-                    break;
-
-                case 'event':
-                    if (!eventTitle.trim() || !eventDate) {
-                        setError('Event title and date are required');
-                        setIsSubmitting(false);
-                        return;
-                    }
-                    // Create as a task for now (calendar events need more integration)
-                    result = await actions.createTask(
-                        'productsServicesTasks',
-                        `${eventType === 'meeting' ? '🤝' : eventType === 'call' ? '📞' : '📅'} ${eventTitle.trim()}`,
-                        'High',
-                        undefined,
-                        undefined,
-                        eventDate,
-                        undefined,
-                        eventTime
-                    );
-                    break;
-
-                case 'expense':
-                    const amount = parseFloat(expenseAmount);
-                    if (!expenseAmount.trim() || isNaN(amount) || amount <= 0) {
-                        setError('Valid amount is required');
-                        setIsSubmitting(false);
-                        return;
-                    }
-                    if (!expenseDescription.trim()) {
-                        setError('Description is required');
-                        setIsSubmitting(false);
-                        return;
-                    }
-                    result = await actions.createExpense({
-                        amount: amount,
-                        category: expenseCategory as any,
-                        description: expenseDescription.trim(),
-                        date: expenseDate
-                    });
-                    break;
-
-                case 'document':
-                    if (!documentFile) {
-                        setError('Please select a file to upload');
-                        setIsSubmitting(false);
-                        return;
-                    }
-
-                    const reader = new FileReader();
-                    const fileReadPromise = new Promise<string>((resolve, reject) => {
-                        reader.onload = (event) => resolve(event.target?.result as string);
-                        reader.onerror = reject;
-                    });
-                    
-                    reader.readAsDataURL(documentFile);
-                    const base64 = await fileReadPromise;
-
-                    result = await actions.uploadDocument(
-                        documentFile.name,
-                        documentFile.type || 'application/octet-stream',
-                        base64,
-                        currentTab as any
-                    );
-                    break;
-
-                default:
-                    setError('Unknown form type');
-                    setIsSubmitting(false);
-                    return;
-            }
+            const result = await actions.uploadDocument(
+                documentFile.name,
+                documentFile.type || 'application/octet-stream',
+                base64,
+                currentTab as any
+            );
 
             if (result.success) {
                 onSuccess?.(result.message);
@@ -349,8 +235,8 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
                 setError(result.message);
             }
         } catch (err) {
-            console.error('Form submission error:', err);
-            setError('An error occurred. Please try again.');
+            console.error('Document upload error:', err);
+            setError('Failed to upload document. Please try again.');
         } finally {
             setIsSubmitting(false);
         }
@@ -526,6 +412,7 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
                             title: '',
                             email: '',
                             phone: '',
+                            linkedin: '',
                             linkedCrmId: '',
                             newAccountName: '',
                         }}
@@ -581,6 +468,13 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
                                             placeholder="(555) 123-4567"
                                         />
                                     </div>
+
+                                    <FormField
+                                        name="linkedin"
+                                        label="LinkedIn Profile"
+                                        type="url"
+                                        placeholder="https://linkedin.com/in/username"
+                                    />
 
                                     <div className="border-t-2 border-gray-300 pt-4">
                                         <label className="block font-mono text-sm font-semibold text-black mb-2">
@@ -870,8 +764,8 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
                     {formType === 'document' && (
                         <div className="flex gap-3 mt-6 pt-4 border-t-2 border-gray-200">
                             <button
-                                type="submit"
-                                onClick={handleSubmit}
+                                type="button"
+                                onClick={handleDocumentUpload}
                                 disabled={isSubmitting}
                                 className="flex-1 font-mono font-semibold bg-green-500 text-white py-3 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
                             >

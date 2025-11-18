@@ -33,6 +33,7 @@ export type FeatureFlagKey =
     // UI features
     | 'ui.unified-accounts'
     | 'ui.paginated-crm'
+    | 'ui.unified-tasks'
     
     // Experimental features
     | 'experimental.new-dashboard'
@@ -132,6 +133,12 @@ const DEFAULT_FLAGS: FeatureFlagConfig[] = [
         enabled: false, // Start disabled for testing
         description: 'Use server-side pagination and virtualized lists for CRM (scalability)',
         envVar: 'VITE_PAGINATED_CRM'
+    },
+    {
+        key: 'ui.unified-tasks',
+        enabled: true, // Enable by default - production ready
+        description: 'Show unified Tasks tab with advanced filtering and automation',
+        envVar: 'VITE_UNIFIED_TASKS'
     },
     
     // Experimental

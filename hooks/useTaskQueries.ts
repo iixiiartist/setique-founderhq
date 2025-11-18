@@ -26,6 +26,8 @@ export function useWorkspaceTasks(userId: string | undefined, workspaceId: strin
         throw new Error('User ID and Workspace ID required');
       }
 
+      console.log('[useWorkspaceTasks] Fetching tasks', { userId, workspaceId });
+
       // Fetch each category separately with database-level filtering
       const categories = [
         'productsServicesTasks',
@@ -42,6 +44,7 @@ export function useWorkspaceTasks(userId: string | undefined, workspaceId: strin
             category,
             limit: 1000
           });
+          console.log(`[useWorkspaceTasks] ${category}:`, data?.length || 0, 'tasks');
           return { category, data };
         })
       );
@@ -51,6 +54,8 @@ export function useWorkspaceTasks(userId: string | undefined, workspaceId: strin
         ...acc,
         [category]: data || []
       }), {} as Record<string, Task[]>);
+      
+      console.log('[useWorkspaceTasks] Final result:', result);
 
       return result as {
         productsServicesTasks: Task[]

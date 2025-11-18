@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import { ProductService, ProductPriceHistory, Task, AppActions, ProductServiceCategory, ProductServiceType, ProductServiceStatus, RevenueTransaction, Deal } from '../../types';
-import TaskManagement from '../shared/TaskManagement';
 import KpiCard from '../shared/KpiCard';
 import { ProductServiceCard } from './ProductServiceCard';
 import { ProductServiceCreateModal } from './ProductServiceCreateModal';
@@ -298,18 +297,6 @@ export function ProductsServicesTab({
                     ))}
                 </div>
             )}
-
-            {/* Tasks Section */}
-            <div className="mt-8">
-                <TaskManagement
-                    tasks={tasks}
-                    actions={actions}
-                    taskCollectionName="productsServicesTasks"
-                    tag="Products"
-                    title="Products & Services Tasks"
-                    placeholder="e.g., 'Update pricing for Premium Plan'"
-                />
-            </div>
             </>
             )}
 

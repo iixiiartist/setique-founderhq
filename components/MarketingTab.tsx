@@ -3,7 +3,6 @@ import { MarketingItem, AppActions, Task, Priority, Document, BusinessProfile, W
 import Modal from './shared/Modal';
 import NotesManager from './shared/NotesManager';
 import { Tab } from '../constants';
-import TaskManagement from './shared/TaskManagement';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { CampaignAnalyticsModule, AttributionModule } from './marketing';
 import CampaignFormModal from './marketing/CampaignFormModal';
@@ -381,21 +380,6 @@ const MarketingTab: React.FC<{
                         ))}
                     </ul>
                 )}
-            </div>
-
-            {/* Marketing Tasks */}
-            <div>
-
-                <div className="col-span-1 md:col-span-2">
-                     <TaskManagement
-                        tasks={tasks}
-                        actions={actions}
-                        taskCollectionName="marketingTasks"
-                        tag="Marketing"
-                        title="Marketing Tasks"
-                        placeholder="e.g., 'Draft next newsletter'"
-                    />
-                </div>
             </div>
         </div>
             )}

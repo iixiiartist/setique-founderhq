@@ -3,8 +3,9 @@ import type { DashboardData } from './types';
 export const Tab = {
     Dashboard: 'dashboard',
     Calendar: 'calendar',
+    Tasks: 'tasks', // NEW: Unified task management
     ProductsServices: 'products-services',
-    Accounts: 'accounts', // NEW: Unified CRM view
+    Accounts: 'accounts', // Unified CRM view
     Investors: 'investor-crm',
     Customers: 'customer-crm',
     Partners: 'partnerships',
@@ -26,8 +27,9 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
     { id: Tab.Dashboard, label: 'Dashboard' },
     { id: Tab.Calendar, label: 'Calendar' },
+    { id: Tab.Tasks, label: 'Tasks' }, // NEW: Unified task management
     { id: Tab.ProductsServices, label: 'Products & Services' },
-    { id: Tab.Accounts, label: 'Accounts' }, // NEW: Unified CRM view
+    { id: Tab.Accounts, label: 'Accounts' },
     { id: Tab.Investors, label: 'Investor CRM' },
     { id: Tab.Customers, label: 'Customer CRM' },
     { id: Tab.Partners, label: 'Partnerships' },
@@ -80,11 +82,15 @@ export const EMPTY_DASHBOARD_DATA: DashboardData = {
 
 export const TASK_TAG_BG_COLORS: Record<string, string> = {
     Products: 'bg-blue-300',
+    'Products & Services': 'bg-blue-300',
     Investor: 'bg-green-300',
     Customer: 'bg-orange-300',
     Partner: 'bg-purple-300',
+    CRM: 'bg-teal-300',
+    Accounts: 'bg-teal-300',
     Marketing: 'bg-pink-300',
     Financials: 'bg-yellow-300',
+    Financial: 'bg-yellow-300',
 };
 
 export const TASK_TAG_BORDER_COLORS: Record<string, string> = {

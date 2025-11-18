@@ -4,7 +4,7 @@
  * Server-side CSV generation for large datasets
  */
 
-import { supabase } from './supabase';
+import { supabase } from '../supabase';
 import { logger } from '../utils/logger';
 import { showSuccess, showError, showLoading, updateToast } from '../utils/toast';
 

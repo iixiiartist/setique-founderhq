@@ -13,7 +13,7 @@
  */
 
 import React, { useMemo, useCallback } from 'react';
-import { FixedSizeList as List } from 'react-window';
+import { List } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { CrmItem } from '../../types';
 

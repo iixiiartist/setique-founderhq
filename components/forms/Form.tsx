@@ -1,26 +1,26 @@
 import React from 'react';
-import { useForm, FormProvider, UseFormReturn, FieldValues, SubmitHandler } from 'react-hook-form';
+import { useForm, FormProvider, UseFormReturn, SubmitHandler, DefaultValues, FieldValues } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ZodSchema } from 'zod';
+import type { ZodTypeAny, TypeOf } from 'zod';
 
-interface FormProps<T extends FieldValues> {
-  schema: ZodSchema<T>;
-  defaultValues: T;
-  onSubmit: SubmitHandler<T>;
-  children: React.ReactNode | ((methods: UseFormReturn<T>) => React.ReactNode);
+interface FormProps<TSchema extends ZodTypeAny, TValues extends FieldValues = TypeOf<TSchema>> {
+  schema: TSchema;
+  defaultValues: DefaultValues<TValues>;
+  onSubmit: SubmitHandler<TValues>;
+  children: React.ReactNode | ((methods: UseFormReturn<TValues>) => React.ReactNode);
   className?: string;
   id?: string;
 }
 
-export function Form<T extends FieldValues>({
+export function Form<TSchema extends ZodTypeAny, TValues extends FieldValues = TypeOf<TSchema>>({
   schema,
   defaultValues,
   onSubmit,
   children,
   className = '',
   id,
-}: FormProps<T>) {
-  const methods = useForm<T>({
+}: FormProps<TSchema, TValues>) {
+  const methods = useForm<TValues>({
     resolver: zodResolver(schema),
     defaultValues,
     mode: 'onBlur', // Validate on blur for better UX

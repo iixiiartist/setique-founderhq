@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { z } from 'zod';
 import { Contact, Task, AppActions, CrmCollectionName, TaskCollectionName, Note, AnyCrmItem, Priority, NoteableCollectionName, WorkspaceMember, Subtask } from '../../types';
 import { AssignmentDropdown } from './AssignmentDropdown';
 import Modal from './Modal';
@@ -6,6 +7,19 @@ import NotesManager from './NotesManager';
 import { TASK_TAG_BG_COLORS } from '../../constants';
 import MeetingsManager from './MeetingsManager';
 import { SubtaskManager } from './SubtaskManager';
+import { Form } from '../forms/Form';
+import { FormField } from '../forms/FormField';
+import { Button } from '../ui/Button';
+
+const contactEditSchema = z.object({
+    name: z.string().min(1, 'Name is required'),
+    email: z.string().email('Invalid email address'),
+    phone: z.string().max(50).optional(),
+    title: z.string().max(200).optional(),
+    linkedin: z.union([z.string().url('Enter a valid LinkedIn URL'), z.literal('')]).optional()
+});
+
+type ContactEditFormData = z.infer<typeof contactEditSchema>;
 
 interface ContactDetailViewProps {
     contact: Contact;

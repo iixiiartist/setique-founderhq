@@ -6,7 +6,6 @@ import { DashboardData, AppActions, Task, TaskCollectionName, CrmCollectionName,
 import SideMenu from './components/SideMenu';
 import DashboardTab from './components/DashboardTab';
 import Toast from './components/shared/Toast';
-import TaskFocusModal from './components/shared/TaskFocusModal';
 import { TabLoadingFallback } from './components/shared/TabLoadingFallback';
 import { setUser as setSentryUser, setWorkspaceContext, trackAction } from './lib/sentry.tsx';
 import { useAnalytics } from './hooks/useAnalytics';
@@ -25,6 +24,7 @@ const SettingsTab = lazy(() => import('./components/SettingsTab'));
 const FileLibraryTab = lazy(() => import('./components/FileLibraryTab'));
 const AdminTab = lazy(() => import('./components/AdminTab'));
 const CalendarTab = lazy(() => import('./components/CalendarTab'));
+const TasksTab = lazy(() => import('./components/TasksTab'));
 const WorkspaceTab = lazy(() => import('./components/workspace/WorkspaceTab'));
 import { BusinessProfileSetup } from './components/BusinessProfileSetup';
 import { AcceptInviteNotification } from './components/shared/AcceptInviteNotification';
@@ -82,6 +82,28 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
     const [isLoading, setIsLoading] = useState(true);
     const loadedTabsRef = useRef<Set<string>>(new Set()); // Use ref to avoid infinite loop
     const userId = user?.id;
+    
+    // Create unified crmItems array for AccountsTab
+    const dataWithUnifiedCrm = useMemo(() => {
+        const crmItems = [
+            ...(data.investors || []),
+            ...(data.customers || []),
+            ...(data.partners || [])
+        ];
+        
+        // Also create unified crmTasks array for AccountsTab
+        const crmTasks = [
+            ...(data.investorTasks || []),
+            ...(data.customerTasks || []),
+            ...(data.partnerTasks || [])
+        ];
+        
+        return {
+            ...data,
+            crmItems,
+            crmTasks
+        };
+    }, [data]);
     
     const [toast, setToast] = useState<{ message: string; type: 'info' | 'success' } | null>(null);
     const [sentNotifications, setSentNotifications] = useState<Set<string>>(new Set());
@@ -210,12 +232,23 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
     // Load tab-specific data when tab changes (lazy loading)
     useEffect(() => {
         const loadTabData = async () => {
-            if (!user || !workspace || loadedTabsRef.current.has(activeTab) || isLoading) {
-                return; // Already loaded this tab or still loading
+            logger.info(`[DashboardApp] Lazy load effect triggered for tab: ${activeTab}`, {
+                hasUser: !!user,
+                hasWorkspace: !!workspace,
+                alreadyLoaded: loadedTabsRef.current.has(activeTab),
+                loadedTabs: Array.from(loadedTabsRef.current)
+            });
+            
+            if (!user || !workspace || loadedTabsRef.current.has(activeTab)) {
+                logger.info('[DashboardApp] Skipping tab data load', {
+                    reason: !user ? 'no user' : !workspace ? 'no workspace' : 'already loaded'
+                });
+                return; // Already loaded this tab
             }
 
             try {
                 setIsLoading(true);
+                logger.info(`[DashboardApp] Loading data for tab: ${activeTab}`);
                 
                 switch (activeTab) {
                     case Tab.Dashboard:
@@ -331,6 +364,20 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         }
                         break;
 
+                    case Tab.Tasks:
+                        // Load all tasks for the Tasks tab
+                        logger.info('[DashboardApp] Tab.Tasks case hit', {
+                            tasksAlreadyLoaded: loadedTabsRef.current.has('tasks')
+                        });
+                        if (!loadedTabsRef.current.has('tasks')) {
+                            logger.info('[DashboardApp] Loading tasks for Tasks tab...');
+                            const tasks = await loadTasks();
+                            logger.info('[DashboardApp] Tasks loaded', tasks);
+                            setData(prev => ({ ...prev, ...tasks }));
+                            loadedTabsRef.current.add('tasks');
+                        }
+                        break;
+
                     case Tab.Settings:
                         // No additional data needed (uses core data)
                         break;
@@ -345,7 +392,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
         };
 
         loadTabData();
-    }, [activeTab, user?.id, workspace?.id, isLoading]); // Removed function deps and loadedTabs to prevent infinite loop
+    }, [activeTab, user?.id, workspace?.id]); // Only depend on tab and user/workspace changes
 
     // Handle data loading errors
     useEffect(() => {
@@ -701,6 +748,12 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 await loadMarketing({ force: true });
                 break;
             
+            case Tab.Tasks:
+                // Tasks tab needs all task collections
+                await loadTasks({ force: true });
+                await loadCrmItems({ force: true }); // For linked accounts/contacts
+                break;
+            
             case Tab.Dashboard:
                 // Dashboard needs overview data
                 await loadCoreData();
@@ -786,14 +839,30 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         contactId: result.data.contact_id || undefined,
                         assignedTo: result.data.assigned_to || undefined,
                         assignedToName: result.data.assigned_to_profile?.full_name || undefined,
-                        notes: []
+                        notes: [],
+                        subtasks: result.data.subtasks || []
                     };
+                    
+                    logger.info('[DashboardApp] Created task object:', newTask);
 
-                    // Add the server task directly to state (no cache invalidation)
-                    setData(prev => ({
-                        ...prev,
-                        [category]: [...(prev[category] as Task[]), newTask]
-                    }));
+                    // Add the server task directly to state
+                    logger.info('[DashboardApp] Adding task to state:', { 
+                        category, 
+                        taskId: newTask.id, 
+                        currentCount: (data[category] as Task[])?.length || 0 
+                    });
+                    
+                    setData(prev => {
+                        const updatedCategory = [...(prev[category] as Task[]), newTask];
+                        logger.info('[DashboardApp] State updated:', { 
+                            category, 
+                            newCount: updatedCategory.length 
+                        });
+                        return {
+                            ...prev,
+                            [category]: updatedCategory
+                        };
+                    });
                 }
                 
                 // Track action in Sentry and Analytics
@@ -2384,6 +2453,24 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         </Suspense>
                     </SectionBoundary>
                 );
+            case Tab.Tasks:
+                if (featureFlags.isEnabled('ui.unified-tasks')) {
+                    return (
+                        <SectionBoundary sectionName="Tasks">
+                            <Suspense fallback={<TabLoadingFallback />}>
+                                <TasksTab 
+                                    data={data}
+                                    actions={actions}
+                                    workspaceMembers={workspaceMembers}
+                                    userId={user?.id || ''}
+                                    workspaceId={workspace?.id || ''}
+                                    onNavigateToTab={setActiveTab}
+                                />
+                            </Suspense>
+                        </SectionBoundary>
+                    );
+                }
+                return null;
             case Tab.ProductsServices:
                 return (
                     <SectionBoundary sectionName="ProductsServices">
@@ -2405,8 +2492,8 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     <SectionBoundary sectionName="Accounts">
                         <Suspense fallback={<TabLoadingFallback />}>
                             <AccountsTab 
-                                crmItems={data.crmItems || []}
-                                crmTasks={data.crmTasks || []}
+                                crmItems={dataWithUnifiedCrm.crmItems || []}
+                                crmTasks={dataWithUnifiedCrm.crmTasks || []}
                                 actions={actions}
                                 documents={data.documents}
                                 businessProfile={businessProfile}
@@ -2707,12 +2794,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
             
-            <TaskFocusModal
-                isOpen={isTaskFocusModalOpen}
-                onClose={() => setIsTaskFocusModalOpen(false)}
-                tasks={allIncompleteTasks}
-                actions={{ updateTask: actions.updateTask }}
-            />
             <SideMenu
                 isOpen={isMenuOpen}
                 onClose={() => setIsMenuOpen(false)}

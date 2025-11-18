@@ -65,18 +65,21 @@ export const useQueryDataPersistence = () => {
    */
   const loadTasks = useCallback(
     async (options: LoadOptions = {}) => {
-      if (options.force) {
-        await refetchTasks();
+      // If we don't have data yet OR force refetch is requested, wait for fetch to complete
+      if (!tasksData || options.force) {
+        const result = await refetchTasks();
+        return result.data || {
+          productsServicesTasks: [],
+          investorTasks: [],
+          customerTasks: [],
+          partnerTasks: [],
+          marketingTasks: [],
+          financialTasks: []
+        };
       }
 
-      return tasksData || {
-        productsServicesTasks: [],
-        investorTasks: [],
-        customerTasks: [],
-        partnerTasks: [],
-        marketingTasks: [],
-        financialTasks: []
-      };
+      // Return cached data if available
+      return tasksData;
     },
     [tasksData, refetchTasks]
   );
@@ -86,15 +89,18 @@ export const useQueryDataPersistence = () => {
    */
   const loadCrmItems = useCallback(
     async (options: LoadOptions = {}) => {
-      if (options.force) {
-        await refetchCrm();
+      // If we don't have data yet OR force refetch is requested, wait for fetch to complete
+      if (!crmData || options.force) {
+        const result = await refetchCrm();
+        return result.data || {
+          investors: [],
+          customers: [],
+          partners: []
+        };
       }
 
-      return crmData || {
-        investors: [],
-        customers: [],
-        partners: []
-      };
+      // Return cached data if available
+      return crmData;
     },
     [crmData, refetchCrm]
   );

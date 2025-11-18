@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { AnyCrmItem, Task, AppActions, CrmCollectionName, TaskCollectionName, Contact, Document, BusinessProfile, WorkspaceMember, Deal, ProductService, Meeting } from '../types';
 import AccountDetailView from './shared/AccountDetailView';
 import ContactDetailView from './shared/ContactDetailView';
-import TaskManagement from './shared/TaskManagement';
 import { ContactManager } from './shared/ContactManager';
 import { AccountManager } from './shared/AccountManager';
 import { FollowUpsManager } from './shared/FollowUpsManager';
@@ -417,6 +416,8 @@ function CrmTabComponent({
                     </div>
                 </div>
 
+                </div>
+
                 {/* Quick Access Sections */}
                 {userId && (
                     <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-6 border-2 border-black shadow-neo">
@@ -507,17 +508,7 @@ function CrmTabComponent({
                         </div>
                     </div>
                 )}
-
-                <TaskManagement
-                    tasks={generalTasks}
-                    actions={actions}
-                    taskCollectionName={taskCollection}
-                    tag={tag}
-                    title={`${title} Tasks`}
-                    placeholder="e.g., 'Draft outreach templates'"
-                />
             </div>
-        </div>
         </>
     );
 }
