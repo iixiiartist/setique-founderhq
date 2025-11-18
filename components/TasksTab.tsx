@@ -50,7 +50,18 @@ export function TasksTab({
             ...(data.marketingTasks || []),
             ...(data.financialTasks || [])
         ];
-        logger.info('[TasksTab] Flattened tasks', { count: tasks.length });
+        logger.info('[TasksTab] Flattened tasks', { 
+            count: tasks.length,
+            breakdown: {
+                productsServices: data.productsServicesTasks?.length || 0,
+                investors: data.investorTasks?.length || 0,
+                customers: data.customerTasks?.length || 0,
+                partners: data.partnerTasks?.length || 0,
+                marketing: data.marketingTasks?.length || 0,
+                financials: data.financialTasks?.length || 0
+            },
+            sampleTasks: tasks.slice(0, 3).map(t => ({ id: t.id, text: t.text, category: t.category, status: t.status }))
+        });
         return tasks;
     }, [data]);
 
@@ -305,7 +316,7 @@ export function TasksTab({
                 </div>
 
                 {/* Virtualized List */}
-                <div className="flex-1 min-h-0 relative">
+                <div className="flex-1 min-h-0 relative" style={{ minHeight: '400px' }}>
                     <VirtualizedTaskList
                         tasks={filteredTasks}
                         selectedTaskIds={selectedTaskIds}
