@@ -60,17 +60,6 @@ interface FormatOption {
 	instruction: string;
 }
 
-interface QuickSuggestion {
-	label: string;
-	prompt: string;
-	helper?: string;
-}
-
-interface ChartSuggestion {
-	label: string;
-	prompt: string;
-}
-
 interface AICommandPaletteProps {
 	editor: Editor;
 	position: Position;
@@ -90,43 +79,6 @@ const QUICK_ACTIONS: string[] = [
 	'Draft a follow-up email referencing this section',
 	'Highlight risks, blockers, and next steps',
 	'Translate this into a customer-facing snippet',
-];
-
-const QUICK_SUGGESTIONS: QuickSuggestion[] = [
-	{
-		label: '📌 Executive summary',
-		prompt: 'Write an executive-ready summary that calls out momentum, metrics, and next steps.',
-		helper: '60-second overview',
-	},
-	{
-		label: '🧭 Talk tracks',
-		prompt: 'Turn this document into talk-track bullets for a customer call.',
-		helper: 'Use bold headers + CTA',
-	},
-	{
-		label: '🚀 Launch plan',
-		prompt: 'Draft a five-step launch plan with owners, dates, and success metrics.',
-	},
-	{
-		label: '🎯 Persona fit',
-		prompt: 'Explain why this resonates with our ideal buyer and what objections to handle.',
-	},
-	{
-		label: '🧪 Experiment ideas',
-		prompt: 'Suggest 3 experiments with hypothesis, metric, and expected impact.',
-	},
-	{
-		label: '📣 Social snippet',
-		prompt: 'Convert this section into a LinkedIn + email teaser with CTA.',
-	},
-];
-
-const CHART_SUGGESTIONS: ChartSuggestion[] = [
-	{ label: '📈 Revenue trends', prompt: 'Create a line chart showing revenue and GMV trends.' },
-	{ label: '🥧 Expense mix', prompt: 'Generate a pie chart showing expenses by category.' },
-	{ label: '📊 Pipeline stages', prompt: 'Insert a bar chart summarizing pipeline counts by stage.' },
-	{ label: '🔁 Conversion funnel', prompt: 'Draft a funnel chart showing lead → opportunity → customer conversion.' },
-	{ label: '✨ Custom chart', prompt: 'Create a custom chart using the best available workspace data.' },
 ];
 
 const DOC_TYPE_SUGGESTIONS: Partial<Record<DocType, string[]>> = {
@@ -427,21 +379,6 @@ export const AICommandPalette: React.FC<AICommandPaletteProps> = ({
 			: 'replace'
 		: 'insert';
 
-	const safeDocTitle = docTitle?.trim() || 'Untitled Document';
-	const derivedWorkspaceName = workspaceName?.trim() || workspaceContext.businessProfile?.companyName || 'Workspace';
-	const primaryTag = (tags ?? [])[0] || 'core audience';
-	const year = new Date().getFullYear();
-
-	const quickPrompts = useMemo(
-		() => [
-			`Latest trends impacting ${safeDocTitle}`,
-			`Key stats for ${derivedWorkspaceName} in ${year}`,
-			`Competitor analysis for ${primaryTag}`,
-			'Customer sentiment trends this quarter',
-			'Top 5 industry benchmarks to cite',
-		],
-		[derivedWorkspaceName, primaryTag, safeDocTitle, year],
-	);
 
 	const resetPosition = useCallback(() => {
 		setBasePosition(clampToViewport(position, paletteRef));
@@ -1028,54 +965,6 @@ Rules:
 								)}
 							</div>
 						)}
-					</div>
-
-					<div className="space-y-3 rounded-xl border border-slate-200/80 bg-white/70 p-3">
-						<div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-[0.35em] text-slate-400">
-							<span>Jump-start ideas</span>
-							<span className="tracking-normal text-[10px] text-slate-500 font-medium">
-								{safeDocTitle === 'Untitled Document' ? 'Use workspace context' : safeDocTitle}
-							</span>
-						</div>
-						<div className="flex flex-wrap gap-2">
-							{quickPrompts.map((promptOption) => (
-								<button
-									key={promptOption}
-									type="button"
-									onClick={() => setPrompt(promptOption)}
-									className="rounded-full border border-dashed border-slate-300 px-3 py-1 text-[11px] text-slate-600 hover:border-slate-500"
-								>
-									{promptOption}
-								</button>
-							))}
-						</div>
-						<div className="grid gap-2 md:grid-cols-2">
-							{QUICK_SUGGESTIONS.map((suggestion) => (
-								<button
-									key={suggestion.label}
-									type="button"
-									onClick={() => setPrompt(suggestion.prompt)}
-									className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left transition hover:bg-white hover:border-slate-300"
-								>
-									<div className="text-[13px] font-semibold text-slate-800">{suggestion.label}</div>
-									<p className="mt-1 text-[11px] leading-snug text-slate-500">
-										{suggestion.helper ?? suggestion.prompt}
-									</p>
-								</button>
-							))}
-						</div>
-						<div className="flex flex-wrap gap-2">
-							{CHART_SUGGESTIONS.map((suggestion) => (
-								<button
-									key={suggestion.label}
-									type="button"
-									onClick={() => setPrompt(suggestion.prompt)}
-									className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] text-blue-700 hover:bg-blue-100"
-								>
-									{suggestion.label}
-								</button>
-							))}
-						</div>
 					</div>
 
 					<div className="rounded-xl border border-slate-200 bg-white/80 p-3">
