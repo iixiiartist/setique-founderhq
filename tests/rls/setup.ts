@@ -12,18 +12,48 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   throw new Error('Missing Supabase environment variables for testing');
 }
 
-const requiredCreds = {
-  SUPABASE_TEST_OWNER_EMAIL: process.env.SUPABASE_TEST_OWNER_EMAIL,
-  SUPABASE_TEST_OWNER_PASSWORD: process.env.SUPABASE_TEST_OWNER_PASSWORD,
-  SUPABASE_TEST_MEMBER_EMAIL: process.env.SUPABASE_TEST_MEMBER_EMAIL,
-  SUPABASE_TEST_MEMBER_PASSWORD: process.env.SUPABASE_TEST_MEMBER_PASSWORD,
-  SUPABASE_TEST_NON_MEMBER_EMAIL: process.env.SUPABASE_TEST_NON_MEMBER_EMAIL,
-  SUPABASE_TEST_NON_MEMBER_PASSWORD: process.env.SUPABASE_TEST_NON_MEMBER_PASSWORD,
+const DEFAULT_TEST_USERS = {
+  owner: {
+    email: 'test-owner@example.com',
+    password: 'test-password-123',
+  },
+  member: {
+    email: 'test-member@example.com',
+    password: 'test-password-123',
+  },
+  nonMember: {
+    email: 'test-nonmember@example.com',
+    password: 'test-password-123',
+  },
+} as const;
+
+const resolveCredential = (envKey: string, fallback: string): string => {
+  return process.env[envKey] ?? fallback;
 };
 
-const missingCredKeys = Object.entries(requiredCreds)
-  .filter(([, value]) => !value)
-  .map(([key]) => key);
+const resolvedCreds = {
+  owner: {
+    email: resolveCredential('SUPABASE_TEST_OWNER_EMAIL', DEFAULT_TEST_USERS.owner.email),
+    password: resolveCredential('SUPABASE_TEST_OWNER_PASSWORD', DEFAULT_TEST_USERS.owner.password),
+    workspaceId: process.env.SUPABASE_TEST_OWNER_WORKSPACE_ID || '',
+  },
+  member: {
+    email: resolveCredential('SUPABASE_TEST_MEMBER_EMAIL', DEFAULT_TEST_USERS.member.email),
+    password: resolveCredential('SUPABASE_TEST_MEMBER_PASSWORD', DEFAULT_TEST_USERS.member.password),
+    workspaceId: process.env.SUPABASE_TEST_MEMBER_WORKSPACE_ID || '',
+  },
+  nonMember: {
+    email: resolveCredential('SUPABASE_TEST_NON_MEMBER_EMAIL', DEFAULT_TEST_USERS.nonMember.email),
+    password: resolveCredential('SUPABASE_TEST_NON_MEMBER_PASSWORD', DEFAULT_TEST_USERS.nonMember.password),
+  },
+};
+
+const missingCredKeys = Object.entries(resolvedCreds)
+  .flatMap(([role, creds]) =>
+    Object.entries(creds)
+      .filter(([field, value]) => field !== 'workspaceId' && !value)
+      .map(([field]) => `${role}.${field}`)
+  );
 
 if (missingCredKeys.length > 0) {
   throw new Error(
@@ -65,20 +95,9 @@ export const createAnonymousClient = (): SupabaseClient => {
  * These should be created manually in your Supabase project for testing
  */
 export const TEST_USERS = {
-  owner: {
-    email: requiredCreds.SUPABASE_TEST_OWNER_EMAIL!,
-    password: requiredCreds.SUPABASE_TEST_OWNER_PASSWORD!,
-    workspaceId: process.env.SUPABASE_TEST_OWNER_WORKSPACE_ID || '',
-  },
-  member: {
-    email: requiredCreds.SUPABASE_TEST_MEMBER_EMAIL!,
-    password: requiredCreds.SUPABASE_TEST_MEMBER_PASSWORD!,
-    workspaceId: process.env.SUPABASE_TEST_MEMBER_WORKSPACE_ID || '',
-  },
-  nonMember: {
-    email: requiredCreds.SUPABASE_TEST_NON_MEMBER_EMAIL!,
-    password: requiredCreds.SUPABASE_TEST_NON_MEMBER_PASSWORD!,
-  },
+  owner: resolvedCreds.owner,
+  member: resolvedCreds.member,
+  nonMember: resolvedCreds.nonMember,
 };
 
 /**

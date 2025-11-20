@@ -30,7 +30,7 @@ VALUES (
   '{"provider":"email","providers":["email"]}',
   '{"name":"Test Owner"}'
 )
-ON CONFLICT (email) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- Test Member User
 INSERT INTO auth.users (
@@ -61,7 +61,7 @@ VALUES (
   '{"provider":"email","providers":["email"]}',
   '{"name":"Test Member"}'
 )
-ON CONFLICT (email) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- Test Non-Member User
 INSERT INTO auth.users (
@@ -92,7 +92,7 @@ VALUES (
   '{"provider":"email","providers":["email"]}',
   '{"name":"Test Non-Member"}'
 )
-ON CONFLICT (email) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- Verify users exist
 SELECT 

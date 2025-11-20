@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { TabType } from '../constants';
 import type { YouSearchMetadata } from '../src/lib/services/youSearch.types';
+import { htmlToPlainText, parseAIResponse } from '../utils/aiContentParser';
 
 // Conversation history structure matching ModuleAssistant's Content format
 interface Part {
@@ -251,12 +252,25 @@ export const useConversationHistory = (context: TabType, workspaceId?: string, u
   };
 
   const exportAsText = useCallback((): string => {
+    const toReadableText = (value: string): string => {
+      if (!value) return '';
+      try {
+        const html = parseAIResponse(value);
+        const plain = htmlToPlainText(html);
+        return plain || value;
+      } catch (error) {
+        console.warn('[useConversationHistory] Failed to parse markdown for export', error);
+        return value;
+      }
+    };
+
     return history.map(msg => {
       const role = msg.role === 'user' ? 'You' : msg.role === 'model' ? 'AI' : 'Tool';
       const text = msg.parts.find(p => p.text)?.text || '[No text]';
+      const readable = text && text !== '[No text]' ? toReadableText(text) : text;
       const metadataSummary = describeWebSearchMetadata(msg.metadata?.webSearch);
       return [
-        `${role}: ${text}`,
+        `${role}: ${readable}`,
         metadataSummary
       ].filter(Boolean).join('\n');
     }).join('\n\n');

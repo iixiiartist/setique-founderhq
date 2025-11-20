@@ -96,12 +96,6 @@ export function LandingPage() {
               >
                 Launch FounderHQ <ArrowRight size={20} />
               </Link>
-              <a
-                href="#features"
-                className="px-8 py-4 border-2 border-black bg-white hover:bg-gray-100 font-medium text-lg transition-all flex items-center gap-2"
-              >
-                <PlayCircle className="w-5 h-5" /> Watch 2-min tour
-              </a>
             </div>
             <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 gap-4 text-left">
               <div className="p-4 border-2 border-black bg-white shadow-neo-sm animate-pulse-slow">

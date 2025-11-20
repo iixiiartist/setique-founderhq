@@ -1,9 +1,8 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { AppActions, TaskCollectionName, NoteableCollectionName, CrmCollectionName, DeletableCollectionName, TabType, GTMDocMetadata, AnyCrmItem } from '../../types';
 import { getAiResponse, AILimitError } from '../../services/groqService';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { parseAIResponse, isSafeContent } from '../../utils/aiContentParser';
 import { Tab } from '../../constants';
 import { useConversationHistory } from '../../hooks/useConversationHistory';
 import type { AssistantMessagePayload } from '../../hooks/useConversationHistory';
@@ -77,6 +76,116 @@ const formatRelativeTime = (iso?: string | null) => {
     const diffDays = Math.round(diffHours / 24);
     return `${diffDays}d ago`;
 };
+
+interface ChartConfigPayload {
+    title?: string;
+    data?: Array<Record<string, unknown>>;
+    nameKey?: string;
+    dataKey?: string;
+    xAxisLabel?: string;
+    yAxisLabel?: string;
+}
+
+const toDisplayString = (value: unknown): string => {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return value.toLocaleString();
+    }
+    return String(value).trim();
+};
+
+const normalizeLabel = (value?: string, fallback: string = 'Value'): string => {
+    if (value && value.trim().length) {
+        return value.trim();
+    }
+    return fallback.charAt(0).toUpperCase() + fallback.slice(1);
+};
+
+const convertChartConfigToMarkdown = (config: ChartConfigPayload): string => {
+    if (!config || typeof config !== 'object') {
+        return '';
+    }
+    const rowsSource = Array.isArray(config.data) ? config.data : [];
+    const title = config.title?.trim() || 'Chart summary';
+    if (!rowsSource.length) {
+        return `**${title}**\n\n_No chart data was provided._`;
+    }
+    const nameKey = config.nameKey && config.nameKey.trim().length ? config.nameKey : 'name';
+    const valueKey = config.dataKey && config.dataKey.trim().length ? config.dataKey : 'value';
+    const nameHeader = normalizeLabel(config.xAxisLabel, nameKey);
+    const valueHeader = normalizeLabel(config.yAxisLabel, valueKey);
+    const rows = rowsSource
+        .map((item) => {
+            if (!item || typeof item !== 'object') return null;
+            const name = toDisplayString(item[nameKey] ?? item['name']);
+            const value = toDisplayString(item[valueKey] ?? item['value']);
+            if (!name && !value) return null;
+            return `| ${name || 'Item'} | ${value || '—'} |`;
+        })
+        .filter((row): row is string => Boolean(row))
+        .join('\n');
+    if (!rows) {
+        return `**${title}**\n\n_No readable values were returned for this visualization._`;
+    }
+    return `**${title}**\n\n| ${nameHeader} | ${valueHeader} |\n| --- | --- |\n${rows}`;
+};
+
+const convertChartBlocksToMarkdown = (input: string): string => {
+    if (!input) return '';
+    return input.replace(/```(?:json-chart|chart-config)\s*\n([\s\S]*?)```/gi, (_, jsonPayload) => {
+        try {
+            const parsed = JSON.parse(jsonPayload);
+            const table = convertChartConfigToMarkdown(parsed);
+            return table ? `\n${table}\n` : '';
+        } catch (error) {
+            console.warn('[ModuleAssistant] failed to parse chart payload', error);
+            return '';
+        }
+    });
+};
+
+const stripCodeFences = (input: string): string => {
+    if (!input) return '';
+    return input.replace(/```[a-zA-Z0-9_-]*\n?/g, '').replace(/```/g, '');
+};
+
+const enforceHumanReadable = (input: string): string => {
+    const markdownSafe = convertChartBlocksToMarkdown(input);
+    return stripCodeFences(markdownSafe).trim();
+};
+
+const escapeHtml = (input: string): string =>
+    input
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+const toSafeAssistantHtml = (content: string): string => {
+    if (!content) return '';
+    try {
+        const rendered = parseAIResponse(content);
+        if (rendered && isSafeContent(rendered)) {
+            return rendered;
+        }
+    } catch (error) {
+        console.warn('[ModuleAssistant] Failed to parse assistant content', error);
+    }
+    return escapeHtml(content).replace(/\n/g, '<br />');
+};
+
+const HUMAN_OUTPUT_RULES = `STRICT OUTPUT RULES:
+1. Write in plain sentences, bullet lists, or Markdown tables.
+2. Never return JSON, code fences, or visualization configs.
+3. Describe comparisons or metrics using narrative text instead of code.`;
+
+const STYLIZED_OUTPUT_BLUEPRINT = `STYLE GUIDE:
+- Open with ⚡ **Quick Pulse:** one bold sentence that frames the overall answer.
+- Follow with 📊 **Snapshot** using 2-3 tight bullets calling out metrics or context.
+- Add ✅ **Strategic Moves** as a numbered list focused on recommendations.
+- Close with 🧭 **Next 48 Hours** containing 1-2 actionable steps tailored to the workspace.
+- Use bold labels, tasteful emoji, and short sentences so everything feels skimmable.`;
 
 const PROSPECT_KEYWORDS = ['prospect', 'lead', 'customer', 'client', 'account', 'pipeline', 'buyer', 'target'];
 const ACTION_KEYWORDS = ['suggest', 'recommend', 'find', 'list', 'identify', 'source', 'share', 'give', 'show'];
@@ -178,6 +287,17 @@ function ModuleAssistant({
     const assistantUnlocked = normalizedPlanType !== 'free';
     const displayPlanName = normalizedPlanType.replace(/-/g, ' ');
     const planLabel = displayPlanName.charAt(0).toUpperCase() + displayPlanName.slice(1);
+    const enforcedSystemPrompt = useMemo(() => {
+        const base = (systemPrompt || '').trim();
+        const additions: string[] = [];
+        if (!base.includes('STRICT OUTPUT RULES')) {
+            additions.push(HUMAN_OUTPUT_RULES);
+        }
+        if (!base.includes('STYLE GUIDE:')) {
+            additions.push(STYLIZED_OUTPUT_BLUEPRINT);
+        }
+        return [base, ...additions].filter(Boolean).join('\n\n');
+    }, [systemPrompt]);
     
     // Use conversation history hook for persistence with workspace/user scoping
     const {
@@ -213,7 +333,7 @@ function ModuleAssistant({
     const [showInlineForm, setShowInlineForm] = useState<{ type: 'task' | 'crm' | 'contact' | 'event' | 'expense' | 'document'; data?: any } | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const systemPromptRef = useRef(systemPrompt);
+    const systemPromptRef = useRef(enforcedSystemPrompt);
     const assistantWebMetadataRef = useRef<YouSearchMetadata | null>(null);
 
     // Rate limit: 10 requests per minute
@@ -221,8 +341,8 @@ function ModuleAssistant({
     const RATE_LIMIT_MAX_REQUESTS = 10;
 
     useEffect(() => {
-        systemPromptRef.current = systemPrompt;
-    }, [systemPrompt]);
+        systemPromptRef.current = enforcedSystemPrompt;
+    }, [enforcedSystemPrompt]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -821,19 +941,20 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
             
             // Extract text from the response
             const finalResponseText = modelResponse.candidates?.[0]?.content?.parts?.find(p => 'text' in p)?.text ?? "I've completed the action.";
-            
+            const readableResponse = enforceHumanReadable(finalResponseText);
+
             // Only add message if response is not empty (avoid empty assistant messages that cause 400 errors)
-            if (finalResponseText && finalResponseText.trim().length > 0) {
+            if (readableResponse && readableResponse.trim().length > 0) {
                 const metadataForMessage = assistantWebMetadataRef.current
                     ? { webSearch: assistantWebMetadataRef.current }
                     : undefined;
-                addMessage({ role: 'model', parts: [{ text: finalResponseText }], metadata: metadataForMessage });
+                addMessage({ role: 'model', parts: [{ text: readableResponse }], metadata: metadataForMessage });
                 assistantWebMetadataRef.current = null;
                 
                 // Trigger notification callback if provided
                 if (onNewMessage) {
                     onNewMessage({
-                        text: finalResponseText,
+                        text: readableResponse,
                         metadata: metadataForMessage,
                     });
                 }
@@ -1042,9 +1163,10 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                                     </>
                                 ) : (
                                     <>
-                                        <ReactMarkdown className="markdown-content" remarkPlugins={[remarkGfm]}>
-                                            {textPart || '...'}
-                                        </ReactMarkdown>
+                                        <div
+                                            className="markdown-content"
+                                            dangerouslySetInnerHTML={{ __html: toSafeAssistantHtml(textPart || '') || escapeHtml(textPart || '...') }}
+                                        />
                                         <button 
                                             onClick={() => handleCopyMessage(textPart || '', index)} 
                                             className="absolute top-1 right-1 bg-white border border-black p-1 rounded-none shadow-neo-btn text-xs font-mono hover:bg-gray-50 transition-colors"

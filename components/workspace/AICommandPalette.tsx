@@ -33,6 +33,7 @@ import type {
 	YouSearchMetadata,
 	YouSearchResponse,
 } from '@/src/lib/services/youSearch.types';
+import { parseAIResponse, isSafeContent } from '../../utils/aiContentParser';
 
 interface Position {
 	top: number;
@@ -150,6 +151,23 @@ const FORMAT_OPTIONS: FormatOption[] = [
 			'Return a Markdown table with columns: Item, Summary, Owner, Due date, Source. Limit to 5 rows.',
 	},
 ];
+
+const PREMIUM_DOC_STYLE_GUIDE = `PREMIUM DOCUMENT BLUEPRINT:
+- Open with a bold **Executive Snapshot** sentence that states the POV + big promise.
+- Follow with 📊 **Signals** (metrics, momentum, or proof) using a short bullet stack.
+- Drop a > **Callout** block for the sharpest insight or risk.
+- Add 🛠️ **Strategic Build** as numbered steps that map to TipTap checklists or headings.
+- Close with 🗣️ **Conversation Starters** or CTA checklist so editors can assign work.
+- Use \`##\`/\`###\` headings, \`- [ ]\` checklists, \`>\` callouts, and Markdown tables so TipTap components (task list, callout, table) light up automatically.`;
+
+const TIPTAP_TOOLKIT_HINT = `Tiptap tools you can control:
+ Headings: \`##\`, \`###\`.
+ Callouts / banners: \`> **Label:** insight\`.
+ Checklists: \`- [ ] Task\`.
+ Tables: standard Markdown table syntax.
+ Divider: \`---\`.
+ Inline highlights: **bold**, _italic_, ==highlight==.
+Lean into these so designers can one-click into existing toolbar buttons.`;
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
@@ -292,6 +310,73 @@ const formatImageReferences = (
 	const provider = metadata?.provider ? ` via ${metadata.provider}` : '';
 	const timestamp = metadata?.fetchedAt ? ` · ${formatRelativeTime(metadata.fetchedAt)}` : '';
 	return `IMAGE REFERENCES AVAILABLE${provider}${timestamp}:\n${lines.join('\n')}`;
+};
+
+interface ChartConfigPayload {
+	title?: string;
+	data?: Array<Record<string, unknown>>;
+	nameKey?: string;
+	dataKey?: string;
+	xAxisLabel?: string;
+	yAxisLabel?: string;
+}
+
+const toDisplayString = (value: unknown): string => {
+	if (value === null || value === undefined) return '';
+	if (typeof value === 'number' && Number.isFinite(value)) {
+		return value.toLocaleString();
+	}
+	return String(value).trim();
+};
+
+const normalizeLabel = (value?: string, fallback: string = 'Value'): string => {
+	if (value && value.trim().length) {
+		return value.trim();
+	}
+	return fallback.charAt(0).toUpperCase() + fallback.slice(1);
+};
+
+const convertChartConfigToMarkdown = (config: ChartConfigPayload): string => {
+	if (!config || typeof config !== 'object') {
+		return '';
+	}
+	const rowsSource = Array.isArray(config.data) ? config.data : [];
+	const title = config.title?.trim() || 'Chart summary';
+	if (!rowsSource.length) {
+		return `**${title}**\n\n_No chart data was provided._`;
+	}
+	const nameKey = config.nameKey && config.nameKey.trim().length ? config.nameKey : 'name';
+	const valueKey = config.dataKey && config.dataKey.trim().length ? config.dataKey : 'value';
+	const nameHeader = normalizeLabel(config.xAxisLabel, nameKey);
+	const valueHeader = normalizeLabel(config.yAxisLabel, valueKey);
+	const rows = rowsSource
+		.map((item) => {
+			if (!item || typeof item !== 'object') return null;
+			const name = toDisplayString(item[nameKey] ?? item['name']);
+			const value = toDisplayString(item[valueKey] ?? item['value']);
+			if (!name && !value) return null;
+			return `| ${name || 'Item'} | ${value || '—'} |`;
+		})
+		.filter((row): row is string => Boolean(row))
+		.join('\n');
+	if (!rows) {
+		return `**${title}**\n\n_No readable values were returned for this visualization._`;
+	}
+	return `**${title}**\n\n| ${nameHeader} | ${valueHeader} |\n| --- | --- |\n${rows}`;
+};
+
+const convertChartBlocksToMarkdown = (input: string): string => {
+	if (!input) return '';
+	return input.replace(/```(?:json-chart|chart-config)\s*\n([\s\S]*?)```/gi, (_, jsonPayload) => {
+		try {
+			const parsed = JSON.parse(jsonPayload);
+			const table = convertChartConfigToMarkdown(parsed);
+			return table ? `\n${table}\n` : '';
+		} catch (error) {
+			console.warn('[AICommandPalette] failed to parse chart payload', error);
+			return '';
+		}
+	});
 };
 
 const extractModelText = (response: GenerateContentResponse): string => {
@@ -510,8 +595,14 @@ Rules:
 2. Do not fabricate metrics or companies—only use provided workspace data.
 3. When selection text is present, assume the user wants that exact section improved unless explicitly asked.
 4. Prefer Markdown-friendly output. Avoid trailing spaces or double newlines.
-5. When you return chart configs, wrap JSON in \`\`\`chart-config fences.
-6. Always close with concise, actionable recommendations.`;
+5. Never include code fences, JSON blobs, or visualization configs—describe comparisons using sentences, bullets, or Markdown tables only.
+6. Always close with concise, actionable recommendations.
+7. Mirror the PREMIUM DOCUMENT BLUEPRINT so the draft feels like an executive-ready artifact.
+8. Lean into the Tiptap toolkit so your structure auto-maps to existing editor buttons.
+
+${PREMIUM_DOC_STYLE_GUIDE}
+
+${TIPTAP_TOOLKIT_HINT}`;
 	}, [docType, formatOption, tone, workspaceName]);
 
 	const handleDragStart = useCallback(
@@ -626,33 +717,29 @@ Rules:
 
 	const insertResponseIntoEditor = useCallback(
 		(responseText: string) => {
-			const chartMatch = responseText.match(/```chart-config\s*\n([\s\S]*?)```/);
-			if (chartMatch) {
-				try {
-					const chartConfig = JSON.parse(chartMatch[1]);
-					if (chartConfig.chartType && chartConfig.data && chartConfig.dataKeys) {
-						editor.chain().focus().insertChart(chartConfig).run();
-						setStatusMessage('Inserted chart block');
-						return;
-					}
-				} catch (error) {
-					console.warn('Failed to parse chart config, falling back to text.', error);
-				}
+			const markdownSafe = convertChartBlocksToMarkdown(responseText);
+			const parserMode = hasSelection
+				? mode === 'improve'
+					? 'improve'
+					: 'rewrite'
+				: 'generate';
+			const html = parseAIResponse(markdownSafe, parserMode).trim();
+			if (!html) {
+				return;
 			}
-
-			const cleaned = responseText
-				.replace(/```html\n?/g, '')
-				.replace(/```/g, '')
-				.trim();
+			if (!isSafeContent(html)) {
+				setErrorMessage('AI response was blocked because it looked unsafe.');
+				return;
+			}
 
 			editor.chain().focus();
 			if (hasSelection && (mode === 'replace' || mode === 'improve') && selection.range) {
-				editor.commands.insertContentAt(selection.range, cleaned);
+				editor.commands.insertContentAt(selection.range, html);
 			} else {
-				editor.commands.insertContent(`\n${cleaned}\n`);
+				editor.commands.insertContent(`${html}<p></p>`);
 			}
 		},
-		[editor, hasSelection, mode, selection.range],
+		[editor, hasSelection, mode, selection.range, setErrorMessage],
 	);
 
 	const handleGenerate = useCallback(async () => {

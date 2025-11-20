@@ -42,6 +42,45 @@ const modeOptions: Array<{ id: ResearchMode; label: string; icon: React.ReactNod
     { id: 'rag', label: 'Deep Dive', icon: <Sparkles size={14} />, helper: 'Synthesized summary' },
 ];
 
+const comingSoonNotices: Partial<
+    Record<
+        ResearchMode,
+        {
+            chip: string;
+            title: string;
+            body: string;
+            icon: React.ReactNode;
+            accent: string;
+            formMessage: string;
+        }
+    >
+> = {
+    news: {
+        chip: 'Live news feeds',
+        title: 'Real-time press coverage is almost ready',
+        body: 'Track headlines from trusted outlets with one-click citations. News mode is rolling out shortly.',
+        icon: <Newspaper size={14} />,
+        accent: 'from-amber-50 via-orange-50 to-white',
+        formMessage: 'News monitoring launches soon. Switch back to Web search to keep researching today.',
+    },
+    images: {
+        chip: 'Visual research',
+        title: 'Insert curated image cards soon',
+        body: 'We’re polishing image sourcing so you can drop verified visuals straight into the doc.',
+        icon: <ImageIcon size={14} />,
+        accent: 'from-rose-50 via-pink-50 to-white',
+        formMessage: 'Image search is coming soon. Use Web search to continue pulling context.',
+    },
+    rag: {
+        chip: 'Deep dive answers',
+        title: 'Synthesized deep dives are on deck',
+        body: 'We’re training the long-form research mode to cite every insight automatically.',
+        icon: <Sparkles size={14} />,
+        accent: 'from-violet-50 via-indigo-50 to-white',
+        formMessage: 'Deep Dive is in private beta. Use Web search until it unlocks for your workspace.',
+    },
+};
+
 const escapeHtml = (text: string) =>
     text
         .replace(/&/g, '&amp;')
@@ -215,12 +254,23 @@ export const DocResearchSidebar: React.FC<DocResearchSidebarProps> = ({
     const [history, setHistory] = useState<ResearchHistoryItem[]>([]);
     const [lastQuery, setLastQuery] = useState<string | null>(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const currentComingSoon = comingSoonNotices[mode];
+    const isComingSoonMode = Boolean(currentComingSoon);
 
     useEffect(() => {
         if (!isOpen) {
             setIsFullscreen(false);
         }
     }, [isOpen]);
+
+    useEffect(() => {
+        if (isComingSoonMode) {
+            setResults(null);
+            setLastQuery(null);
+            setError(null);
+            setErrorCode(null);
+        }
+    }, [isComingSoonMode]);
 
     const modeLabel = (value: ResearchMode) => modeOptions.find((option) => option.id === value)?.label ?? value;
 
@@ -243,6 +293,10 @@ export const DocResearchSidebar: React.FC<DocResearchSidebarProps> = ({
     const handleSearch = async (customQuery?: string, customMode?: ResearchMode) => {
         const effectiveQuery = (customQuery ?? query).trim();
         const effectiveMode = customMode ?? mode;
+
+        if (comingSoonNotices[effectiveMode]) {
+            return;
+        }
 
         if (!effectiveQuery) {
             setError('Enter a question or topic to research.');
@@ -359,6 +413,7 @@ export const DocResearchSidebar: React.FC<DocResearchSidebarProps> = ({
     );
 
     const canSendToEditor = Boolean(editor && (ragAnswer || primaryHits.length > 0 || imageResults.length > 0));
+    const disableSearch = loading || isComingSoonMode;
 
     const handleSendAllToEditor = () => {
         if (!editor) return;
@@ -464,12 +519,26 @@ export const DocResearchSidebar: React.FC<DocResearchSidebarProps> = ({
                             />
                             <button
                                 type="submit"
-                                disabled={loading}
-                                className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-black disabled:opacity-50"
+                                disabled={disableSearch}
+                                className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Search'}
+                                {loading ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : isComingSoonMode ? (
+                                    'Coming soon'
+                                ) : (
+                                    'Search'
+                                )}
                             </button>
                         </div>
+                        {isComingSoonMode && currentComingSoon && (
+                            <p className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gray-100">
+                                    {currentComingSoon.icon}
+                                </span>
+                                {currentComingSoon.formMessage}
+                            </p>
+                        )}
                         {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
                         {lastQuery && !error && !loading && (
                             <p className="mt-2 text-xs text-gray-500">Last search: {lastQuery}</p>
@@ -481,10 +550,14 @@ export const DocResearchSidebar: React.FC<DocResearchSidebarProps> = ({
                             <button
                                 key={prompt}
                                 onClick={() => {
+                                    if (isComingSoonMode) return;
                                     setQuery(prompt);
                                     handleSearch(prompt);
                                 }}
-                                className="rounded-full border border-dashed border-gray-300 px-3 py-1 text-[11px] text-gray-600 hover:border-gray-500"
+                                disabled={isComingSoonMode}
+                                className={`rounded-full border border-dashed border-gray-300 px-3 py-1 text-[11px] text-gray-600 hover:border-gray-500 transition ${
+                                    isComingSoonMode ? 'cursor-not-allowed opacity-50' : ''
+                                }`}
                             >
                                 {prompt}
                             </button>
@@ -493,169 +566,182 @@ export const DocResearchSidebar: React.FC<DocResearchSidebarProps> = ({
                 </div>
 
                 <div className={`flex-1 overflow-y-auto ${horizontalPadding} py-4 space-y-4`}>
-                    {!loading && !error && results?.metadata && (
-                        <div className="rounded-2xl border border-gray-200 bg-gray-50/80 p-3 text-[11px] text-gray-600 flex flex-wrap gap-2">
-                            <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 border border-gray-200">
-                                {results.metadata.provider || 'You.com'}
-                            </span>
-                            <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 border border-gray-200">
-                                {modeLabel(results.metadata.mode)}
-                            </span>
-                            {typeof metadataCount === 'number' && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 border border-gray-200">
-                                    {metadataCount} result{metadataCount === 1 ? '' : 's'}
-                                </span>
-                            )}
-                            {results.metadata.durationMs && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 border border-gray-200">
-                                    {results.metadata.durationMs}ms
-                                </span>
-                            )}
-                            {results.metadata.fetchedAt && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 border border-gray-200">
-                                    Fetched {formatFetchedAgo(results.metadata.fetchedAt)}
-                                </span>
-                            )}
+                    {isComingSoonMode && currentComingSoon ? (
+                        <div className={`rounded-3xl border-2 border-dashed border-gray-200 bg-gradient-to-br ${currentComingSoon.accent} p-6 text-center shadow-inner`}>
+                            <div className="mx-auto mb-3 inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-1 text-xs font-semibold text-gray-700">
+                                {currentComingSoon.icon}
+                                {currentComingSoon.chip}
+                            </div>
+                            <h4 className="text-xl font-bold text-gray-900">{currentComingSoon.title}</h4>
+                            <p className="mt-2 text-sm text-gray-600">{currentComingSoon.body}</p>
                         </div>
-                    )}
-                    {loading && (
-                        <div className="flex flex-col items-center justify-center gap-2 py-12 text-sm text-gray-500">
-                            <Loader2 className="h-5 w-5 animate-spin" />
-                            Searching live sources…
-                        </div>
-                    )}
-
-                    {!loading && !results && !error && (
-                        <div className="rounded-2xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">
-                            Start a web search to pull live insights into your doc. Cite sources with one click.
-                        </div>
-                    )}
-
-                    {!loading && error && (
-                        <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 space-y-3">
-                            <p>{error}</p>
-                            {errorCode === 'missing-api-key' && (
-                                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 space-y-2">
-                                    <p className="font-semibold">Setup checklist for admins:</p>
-                                    <ol className="list-decimal space-y-1 pl-4">
-                                        <li>In Supabase, open <strong>Settings → API → Edge Functions → Secrets</strong> and add <code>YOUCOM_API_KEY</code>.</li>
-                                        <li>Redeploy the <code>ai-search</code> Edge Function so it picks up the new secret.</li>
-                                        <li>For local CLI tests, add the same key to your <code>.env</code> file (validated by <code>scripts/validate-env.js</code>).</li>
-                                    </ol>
-                                    <p className="text-[11px] text-amber-800">Once the key is set, rerun the search to resume live research.</p>
+                    ) : (
+                        <>
+                            {!loading && !error && results?.metadata && (
+                                <div className="rounded-2xl border border-gray-200 bg-gray-50/80 p-3 text-[11px] text-gray-600 flex flex-wrap gap-2">
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 border border-gray-200">
+                                        {results.metadata.provider || 'You.com'}
+                                    </span>
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 border border-gray-200">
+                                        {modeLabel(results.metadata.mode)}
+                                    </span>
+                                    {typeof metadataCount === 'number' && (
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 border border-gray-200">
+                                            {metadataCount} result{metadataCount === 1 ? '' : 's'}
+                                        </span>
+                                    )}
+                                    {results.metadata.durationMs && (
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 border border-gray-200">
+                                            {results.metadata.durationMs}ms
+                                        </span>
+                                    )}
+                                    {results.metadata.fetchedAt && (
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 border border-gray-200">
+                                            Fetched {formatFetchedAgo(results.metadata.fetchedAt)}
+                                        </span>
+                                    )}
                                 </div>
                             )}
-                        </div>
-                    )}
+                            {loading && (
+                                <div className="flex flex-col items-center justify-center gap-2 py-12 text-sm text-gray-500">
+                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                    Searching live sources…
+                                </div>
+                            )}
 
-                    {!loading && !error && ragAnswer && (
-                        <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-violet-50 to-indigo-50 p-4">
-                            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-                                <Sparkles size={16} /> Synthesized Answer
-                            </div>
-                            <p className="mt-2 text-sm text-gray-700 whitespace-pre-line">{ragAnswer}</p>
-                            <div className="mt-3 flex items-center gap-2">
-                                <button
-                                    onClick={() => handleInsert(ragAnswer)}
-                                    className="inline-flex items-center gap-1 rounded-full bg-gray-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-black"
-                                >
-                                    <BookmarkPlus size={14} /> Insert Summary
-                                </button>
-                            </div>
-                        </div>
-                    )}
+                            {!loading && !results && !error && (
+                                <div className="rounded-2xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">
+                                    Start a web search to pull live insights into your doc. Cite sources with one click.
+                                </div>
+                            )}
 
-                    {!loading && !error && mode === 'images' && (
-                        imageResults.length > 0 ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {imageResults.map((image, index) => (
-                                    <div key={`${image.imageUrl}-${index}`} className="rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-                                        <div className="aspect-video bg-gray-100 flex items-center justify-center">
-                                            {image.imageUrl ? (
-                                                <img src={image.imageUrl} alt={image.title || `Reference image ${index + 1}`} className="h-full w-full object-cover" />
-                                            ) : (
-                                                <div className="text-xs text-gray-400">No preview</div>
-                                            )}
+                            {!loading && error && (
+                                <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 space-y-3">
+                                    <p>{error}</p>
+                                    {errorCode === 'missing-api-key' && (
+                                        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 space-y-2">
+                                            <p className="font-semibold">Setup checklist for admins:</p>
+                                            <ol className="list-decimal space-y-1 pl-4">
+                                                <li>In Supabase, open <strong>Settings → API → Edge Functions → Secrets</strong> and add <code>YOUCOM_API_KEY</code>.</li>
+                                                <li>Redeploy the <code>ai-search</code> Edge Function so it picks up the new secret.</li>
+                                                <li>For local CLI tests, add the same key to your <code>.env</code> file (validated by <code>scripts/validate-env.js</code>).</li>
+                                            </ol>
+                                            <p className="text-[11px] text-amber-800">Once the key is set, rerun the search to resume live research.</p>
                                         </div>
-                                        <div className="p-4 space-y-2">
-                                            <div className="text-[11px] uppercase tracking-[0.3em] text-gray-400">Image {index + 1}</div>
-                                            <p className="text-sm font-semibold text-gray-900">{image.title || 'Untitled visual'}</p>
-                                            {image.source && <p className="text-xs text-gray-500">{image.source}</p>}
-                                            <div className="flex flex-wrap gap-2 text-xs">
-                                                <button
-                                                    onClick={() => handleInsertImage(image)}
-                                                    className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-100"
-                                                >
-                                                    <BookmarkPlus size={14} /> Insert Image Card
-                                                </button>
-                                                {image.url && (
-                                                    <a
-                                                        href={image.url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-50"
-                                                    >
-                                                        <ExternalLink size={14} /> Open Source
-                                                    </a>
+                                    )}
+                                </div>
+                            )}
+
+                            {!loading && !error && ragAnswer && (
+                                <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-violet-50 to-indigo-50 p-4">
+                                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                                        <Sparkles size={16} /> Synthesized Answer
+                                    </div>
+                                    <p className="mt-2 text-sm text-gray-700 whitespace-pre-line">{ragAnswer}</p>
+                                    <div className="mt-3 flex items-center gap-2">
+                                        <button
+                                            onClick={() => handleInsert(ragAnswer)}
+                                            className="inline-flex items-center gap-1 rounded-full bg-gray-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-black"
+                                        >
+                                            <BookmarkPlus size={14} /> Insert Summary
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {!loading && !error && mode === 'images' && (
+                                imageResults.length > 0 ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {imageResults.map((image, index) => (
+                                            <div key={`${image.imageUrl}-${index}`} className="rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+                                                <div className="aspect-video bg-gray-100 flex items-center justify-center">
+                                                    {image.imageUrl ? (
+                                                        <img src={image.imageUrl} alt={image.title || `Reference image ${index + 1}`} className="h-full w-full object-cover" />
+                                                    ) : (
+                                                        <div className="text-xs text-gray-400">No preview</div>
+                                                    )}
+                                                </div>
+                                                <div className="p-4 space-y-2">
+                                                    <div className="text-[11px] uppercase tracking-[0.3em] text-gray-400">Image {index + 1}</div>
+                                                    <p className="text-sm font-semibold text-gray-900">{image.title || 'Untitled visual'}</p>
+                                                    {image.source && <p className="text-xs text-gray-500">{image.source}</p>}
+                                                    <div className="flex flex-wrap gap-2 text-xs">
+                                                        <button
+                                                            onClick={() => handleInsertImage(image)}
+                                                            className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-100"
+                                                        >
+                                                            <BookmarkPlus size={14} /> Insert Image Card
+                                                        </button>
+                                                        {image.url && (
+                                                            <a
+                                                                href={image.url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-50"
+                                                            >
+                                                                <ExternalLink size={14} /> Open Source
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : results ? (
+                                    <div className="rounded-2xl border border-dashed border-gray-200 p-4 text-sm text-gray-500">
+                                        No images were returned for this query. Try a more specific visual description.
+                                    </div>
+                                ) : null
+                            )}
+
+                            {!loading && !error && mode !== 'images' && primaryHits.length > 0 && (
+                                <div className="space-y-3">
+                                    {primaryHits.map((hit: any, index: number) => {
+                                        const snippet = hit.description || hit.snippets?.[0] || '';
+                                        const url = hit.url || hit.link;
+                                        const title = hit.title || hit.name || `Source ${index + 1}`;
+                                        return (
+                                            <div key={`${title}-${index}`} className="rounded-2xl border border-gray-200 p-4 shadow-sm">
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div>
+                                                        <p className="text-[11px] uppercase tracking-[0.3em] text-gray-400">Result {index + 1}</p>
+                                                        <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-base font-semibold text-gray-900 hover:text-blue-600">
+                                                            {title}
+                                                            <ExternalLink size={14} />
+                                                        </a>
+                                                        {hit.source && <p className="text-xs text-gray-500">{hit.source}</p>}
+                                                    </div>
+                                                </div>
+                                                {snippet && <p className="mt-2 text-sm text-gray-700 leading-relaxed">{snippet}</p>}
+                                                {hit.snippets && hit.snippets.length > 1 && (
+                                                    <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-600">
+                                                        {hit.snippets.slice(1, 4).map((text: string, idx: number) => (
+                                                            <li key={idx}>{text}</li>
+                                                        ))}
+                                                    </ul>
                                                 )}
+                                                <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                                                    <button
+                                                        onClick={() => handleInsert(snippet || title, url, title)}
+                                                        className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-100"
+                                                    >
+                                                        <LinkIcon size={14} /> Insert Citation
+                                                    </button>
+                                                    {snippet && (
+                                                        <button
+                                                            onClick={() => handleInsert(`${snippet}\n\nKey takeaways: ${hit.snippets?.slice(1, 3).join(' ') || ''}`, url, title)}
+                                                            className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-100"
+                                                        >
+                                                            <BookmarkPlus size={14} /> Insert Summary
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : results ? (
-                            <div className="rounded-2xl border border-dashed border-gray-200 p-4 text-sm text-gray-500">
-                                No images were returned for this query. Try a more specific visual description.
-                            </div>
-                        ) : null
-                    )}
-
-                    {!loading && !error && mode !== 'images' && primaryHits.length > 0 && (
-                        <div className="space-y-3">
-                            {primaryHits.map((hit: any, index: number) => {
-                                const snippet = hit.description || hit.snippets?.[0] || '';
-                                const url = hit.url || hit.link;
-                                const title = hit.title || hit.name || `Source ${index + 1}`;
-                                return (
-                                    <div key={`${title}-${index}`} className="rounded-2xl border border-gray-200 p-4 shadow-sm">
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div>
-                                                <p className="text-[11px] uppercase tracking-[0.3em] text-gray-400">Result {index + 1}</p>
-                                                <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-base font-semibold text-gray-900 hover:text-blue-600">
-                                                    {title}
-                                                    <ExternalLink size={14} />
-                                                </a>
-                                                {hit.source && <p className="text-xs text-gray-500">{hit.source}</p>}
-                                            </div>
-                                        </div>
-                                        {snippet && <p className="mt-2 text-sm text-gray-700 leading-relaxed">{snippet}</p>}
-                                        {hit.snippets && hit.snippets.length > 1 && (
-                                            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-gray-600">
-                                                {hit.snippets.slice(1, 4).map((text: string, idx: number) => (
-                                                    <li key={idx}>{text}</li>
-                                                ))}
-                                            </ul>
-                                        )}
-                                        <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                                            <button
-                                                onClick={() => handleInsert(snippet || title, url, title)}
-                                                className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-100"
-                                            >
-                                                <LinkIcon size={14} /> Insert Citation
-                                            </button>
-                                            {snippet && (
-                                                <button
-                                                    onClick={() => handleInsert(`${snippet}\n\nKey takeaways: ${hit.snippets?.slice(1, 3).join(' ') || ''}`, url, title)}
-                                                    className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-100"
-                                                >
-                                                    <BookmarkPlus size={14} /> Insert Summary
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
 

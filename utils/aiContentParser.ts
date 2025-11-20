@@ -1,116 +1,70 @@
+import MarkdownIt from 'markdown-it';
 import { AIAction } from './aiPromptBuilder';
+
+const markdownParser = new MarkdownIt({
+  html: false,
+  linkify: true,
+  typographer: true,
+  breaks: true,
+}).enable(['table', 'strikethrough']);
+
+const RESPONSE_PREFIX = /^(Here(?:'| i)s|Sure,|Okay,|Certainly,|Generated Content:|Improved Version:|Expanded Version:|Summary:|Rewritten Version:|Draft:|Output:)\u00A0?/i;
 
 /**
  * Parses AI-generated markdown content and converts to Tiptap-compatible HTML
  */
-export function parseAIResponse(response: string, commandType: AIAction): string {
-  // Clean up the response
+export function parseAIResponse(response: string, _commandType?: AIAction): string {
   let content = response.trim();
-  
-  // Remove common AI response prefixes
-  content = content.replace(/^(Here's|Here is|Sure,|Okay,|Certainly,|Generated Content:|Improved Version:|Expanded Version:|Summary:|Rewritten Version:)\s*/i, '');
-  
-  // Convert markdown to HTML
-  
-  // Code blocks (before other conversions)
-  content = content.replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) => {
-    return `<pre><code class="language-${lang || 'text'}">${escapeHtml(code.trim())}</code></pre>`;
-  });
-  
-  // Inline code
-  content = content.replace(/`([^`]+)`/g, '<code>$1</code>');
-  
-  // Headings (must be on their own line)
-  content = content.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-  content = content.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-  content = content.replace(/^# (.+)$/gm, '<h1>$1</h1>');
-  
-  // Bold and italic
-  content = content.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
-  content = content.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  content = content.replace(/\*(.+?)\*/g, '<em>$1</em>');
-  content = content.replace(/___(.+?)___/g, '<strong><em>$1</em></strong>');
-  content = content.replace(/__(.+?)__/g, '<strong>$1</strong>');
-  content = content.replace(/_(.+?)_/g, '<em>$1</em>');
-  
-  // Strikethrough
-  content = content.replace(/~~(.+?)~~/g, '<s>$1</s>');
-  
-  // Links
-  content = content.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
-  
-  // Horizontal rules
-  content = content.replace(/^(---|\*\*\*|___)$/gm, '<hr>');
-  
-  // Lists - unordered
-  const unorderedListRegex = /^[*+-] (.+)$/gm;
-  let listItems: string[] = [];
-  content = content.replace(unorderedListRegex, (match, item) => {
-    listItems.push(`<li>${item}</li>`);
-    return '___UL_PLACEHOLDER___';
-  });
-  
-  if (listItems.length > 0) {
-    content = content.replace(/___UL_PLACEHOLDER___(\n___UL_PLACEHOLDER___)*/g, 
-      `<ul>${listItems.join('')}</ul>`
-    );
-    listItems = [];
-  }
-  
-  // Lists - ordered
-  const orderedListRegex = /^\d+\. (.+)$/gm;
-  content = content.replace(orderedListRegex, (match, item) => {
-    listItems.push(`<li>${item}</li>`);
-    return '___OL_PLACEHOLDER___';
-  });
-  
-  if (listItems.length > 0) {
-    content = content.replace(/___OL_PLACEHOLDER___(\n___OL_PLACEHOLDER___)*/g, 
-      `<ol>${listItems.join('')}</ol>`
-    );
-  }
-  
-  // Blockquotes
-  content = content.replace(/^> (.+)$/gm, '<blockquote><p>$1</p></blockquote>');
-  
-  // Merge consecutive blockquotes
-  content = content.replace(/<\/blockquote>\s*<blockquote>/g, '');
-  
-  // Paragraphs - wrap remaining lines that aren't already wrapped
-  const lines = content.split('\n').filter(l => l.trim() !== '');
-  const wrappedLines = lines.map(line => {
-    // Don't wrap if already an HTML element
-    if (line.match(/^<(h[1-6]|ul|ol|blockquote|pre|hr)/i)) {
-      return line;
-    }
-    // Don't wrap if it's a closing tag
-    if (line.match(/^<\/(ul|ol|blockquote|pre)>/i)) {
-      return line;
-    }
-    // Wrap in paragraph
-    return `<p>${line}</p>`;
-  });
-  
-  content = wrappedLines.join('\n');
-  
-  // Clean up excessive newlines
-  content = content.replace(/\n{3,}/g, '\n\n');
-  
-  return content;
+
+  // Remove common AI response prefixes for cleaner insertion
+  content = content.replace(RESPONSE_PREFIX, '');
+
+  // Convert Markdown to HTML using markdown-it (keeps raw HTML disabled for safety)
+  const rendered = markdownParser.render(content);
+  return enhanceTaskLists(rendered);
 }
 
-/**
- * Escape HTML special characters
- */
-function escapeHtml(text: string): string {
-  const map: Record<string, string> = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;'
-  };
-  return text.replace(/[&<>"']/g, m => map[m]);
+function enhanceTaskLists(html: string): string {
+  if (typeof document === 'undefined') {
+    return html;
+  }
+
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  const taskLists = Array.from(template.content.querySelectorAll('ul'));
+
+  taskLists.forEach((list) => {
+    let containsTasks = false;
+    Array.from(list.children).forEach((item) => {
+      if (!(item instanceof HTMLLIElement)) {
+        return;
+      }
+      const textNode = findLeadingTextNode(item);
+      if (!textNode) {
+        return;
+      }
+      const match = textNode.textContent?.match(/^\s*\[( |x|X)\]\s*/);
+      if (!match) {
+        return;
+      }
+      containsTasks = true;
+      const isChecked = match[1].toLowerCase() === 'x';
+      textNode.textContent = textNode.textContent?.replace(/^\s*\[(?: |x|X)\]\s*/, '') ?? '';
+      item.setAttribute('data-type', 'taskItem');
+      item.setAttribute('data-checked', String(isChecked));
+    });
+
+    if (containsTasks) {
+      list.setAttribute('data-type', 'taskList');
+    }
+  });
+
+  return template.innerHTML;
+}
+
+function findLeadingTextNode(element: HTMLElement): Text | null {
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+  return walker.nextNode() as Text | null;
 }
 
 /**
@@ -118,8 +72,16 @@ function escapeHtml(text: string): string {
  */
 export function htmlToPlainText(html: string): string {
   return html
+  .replace(/<br\s*\/?>(?=\s*)/gi, '\n')
+    .replace(/<\/(p|div|li|section|article|h[1-6]|tr)>/gi, '\n')
+    .replace(/<\/(ul|ol|table)>/gi, '\n\n')
     .replace(/<[^>]*>/g, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\r/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n[ \t]+/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/[ \t]{2,}/g, ' ')
     .trim();
 }
 
