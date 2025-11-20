@@ -1,10 +1,10 @@
 # Create Test Users for RLS Testing
 
-This SQL script creates the test users needed for RLS automated tests.
+This SQL script creates the test users needed for RLS automated tests. The content is mirrored in [`tests/fixtures/create_test_users.sql`](../fixtures/create_test_users.sql) so you can run it directly from the Supabase SQL editor without copy/paste.
 
 ## Instructions
 
-1. Go to: https://supabase.com/dashboard/project/jffnzpdcmdalxqhkfymx
+1. Go to: <https://supabase.com/dashboard/project/jffnzpdcmdalxqhkfymx>
 2. Navigate to: SQL Editor
 3. Copy and paste this script
 4. Click "Run"
@@ -127,9 +127,10 @@ ORDER BY email;
 ## Expected Output
 
 You should see 3 users:
-- test-owner@example.com (Test Owner)
-- test-member@example.com (Test Member)
-- test-nonmember@example.com (Test Non-Member)
+
+- `test-owner@example.com` (Test Owner)
+- `test-member@example.com` (Test Member)
+- `test-nonmember@example.com` (Test Non-Member)
 
 All should have `email_confirmed_at` set to now().
 

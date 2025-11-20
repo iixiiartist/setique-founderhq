@@ -79,10 +79,11 @@ export function TaskCreationModal({
             onClose={onClose}
             title="Create New Task"
         >
-            <div className="space-y-4 p-4">
+            <div className="space-y-4 p-4" data-testid="task-creation-modal">
                 <div>
                     <label className="block font-mono text-sm font-bold mb-1">Task Description *</label>
                     <textarea
+                        data-testid="task-description-input"
                         value={text}
                         onChange={(e) => setText(e.target.value)}
                         placeholder="What needs to be done?"
@@ -95,6 +96,7 @@ export function TaskCreationModal({
                 <div>
                     <label className="block font-mono text-sm font-bold mb-1">Module *</label>
                     <select
+                        data-testid="task-module-select"
                         value={category}
                         onChange={(e) => setCategory(e.target.value as TaskCollectionName)}
                         className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -112,6 +114,7 @@ export function TaskCreationModal({
                     <div>
                         <label className="block font-mono text-sm font-bold mb-1">Priority</label>
                         <select
+                            data-testid="task-priority-select"
                             value={priority}
                             onChange={(e) => setPriority(e.target.value as Priority)}
                             className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -124,6 +127,7 @@ export function TaskCreationModal({
                     <div>
                         <label className="block font-mono text-sm font-bold mb-1">Due Date</label>
                         <input
+                            data-testid="task-due-date-input"
                             type="date"
                             value={dueDate}
                             onChange={(e) => setDueDate(e.target.value)}
@@ -133,6 +137,7 @@ export function TaskCreationModal({
                     <div>
                         <label className="block font-mono text-sm font-bold mb-1">Due Time</label>
                         <input
+                            data-testid="task-due-time-input"
                             type="time"
                             value={dueTime}
                             onChange={(e) => setDueTime(e.target.value)}
@@ -144,6 +149,7 @@ export function TaskCreationModal({
                 <div>
                     <label className="block font-mono text-sm font-bold mb-1">Assign To</label>
                     <select
+                        data-testid="task-assignee-select"
                         value={assignedTo}
                         onChange={(e) => setAssignedTo(e.target.value)}
                         className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -160,6 +166,7 @@ export function TaskCreationModal({
                 <div>
                     <label className="block font-mono text-sm font-bold mb-1">Link to Account (Optional)</label>
                     <select
+                        data-testid="task-crm-select"
                         value={crmItemId}
                         onChange={(e) => {
                             setCrmItemId(e.target.value);
@@ -180,6 +187,7 @@ export function TaskCreationModal({
                     <div>
                         <label className="block font-mono text-sm font-bold mb-1">Link to Contact (Optional)</label>
                         <select
+                            data-testid="task-contact-select"
                             value={contactId}
                             onChange={(e) => setContactId(e.target.value)}
                             className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -199,6 +207,7 @@ export function TaskCreationModal({
                     <div>
                         <label className="block font-mono text-sm font-bold mb-1">Link to Deal (Optional)</label>
                         <select
+                            data-testid="task-deal-select"
                             value={dealId}
                             onChange={(e) => setDealId(e.target.value)}
                             className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -218,6 +227,7 @@ export function TaskCreationModal({
                     <div>
                         <label className="block font-mono text-sm font-bold mb-1">Link to Campaign (Optional)</label>
                         <select
+                            data-testid="task-campaign-select"
                             value={campaignId}
                             onChange={(e) => setCampaignId(e.target.value)}
                             className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -237,6 +247,7 @@ export function TaskCreationModal({
                     <div>
                         <label className="block font-mono text-sm font-bold mb-1">Link to Product/Service (Optional)</label>
                         <select
+                            data-testid="task-product-select"
                             value={productId}
                             onChange={(e) => setProductId(e.target.value)}
                             className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -264,12 +275,14 @@ export function TaskCreationModal({
                     <button
                         onClick={handleSubmit}
                         disabled={!text.trim()}
+                        data-testid="task-create-button"
                         className="flex-1 px-4 py-2 bg-black text-white border-2 border-black rounded-none font-mono font-semibold shadow-neo-btn hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Create Task
                     </button>
                     <button
                         onClick={onClose}
+                        data-testid="task-cancel-button"
                         className="flex-1 px-4 py-2 bg-white text-black border-2 border-black rounded-none font-mono font-semibold shadow-neo-btn hover:bg-gray-100"
                     >
                         Cancel

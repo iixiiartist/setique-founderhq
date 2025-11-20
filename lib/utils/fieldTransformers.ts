@@ -143,6 +143,7 @@ interface DbDocument {
   uploaded_at?: string | null;
   uploaded_by?: string | null;
   uploaded_by_name?: string | null;
+  user_id?: string | null;
 }
 
 interface DbExpense {
@@ -260,9 +261,7 @@ export function dbToMarketingItem(dbItem: DbMarketingItem): MarketingItem {
 /**
  * Transform database CRM item record to application BaseCrmItem model
  */
-import { Task, MarketingItem, BaseCrmItem, Contact, FinancialLog, Document, Expense, AnyCrmItem } from '../../types';
-
-// ...existing code...
+// import { Task, MarketingItem, BaseCrmItem, Contact, FinancialLog, Document, Expense, AnyCrmItem } from '../../types';
 
 /**
  * Transform database CRM item record to application AnyCrmItem model
@@ -353,7 +352,7 @@ export function dbToDocument(dbDocument: DbDocument): Document {
     module: dbDocument.module as Document['module'],
     companyId: dbDocument.company_id || undefined,
     contactId: dbDocument.contact_id || undefined,
-    uploadedBy: dbDocument.uploaded_by || undefined,
+    uploadedBy: dbDocument.uploaded_by || dbDocument.user_id || undefined,
     uploadedByName: dbDocument.uploaded_by_name || undefined,
     notes: (dbDocument.notes as Note[] | undefined) || [],
   };
@@ -417,6 +416,7 @@ export function marketingItemToDb(item: Partial<MarketingItem>): Record<string, 
   if (item.dueDate !== undefined) dbObject.due_date = item.dueDate || null;
   if (item.dueTime !== undefined) dbObject.due_time = item.dueTime || null;
   if (item.assignedTo !== undefined) dbObject.assigned_to = item.assignedTo || null;
+  if (item.assignedToName !== undefined) dbObject.assigned_to_name = item.assignedToName || null;
   
   // Campaign details
   if (item.campaignBudget !== undefined) dbObject.campaign_budget = item.campaignBudget;

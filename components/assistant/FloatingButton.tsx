@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Sparkles, Loader2 } from 'lucide-react';
+import { Sparkles, Loader2, Lock } from 'lucide-react';
 import './animations.css';
 
 interface FloatingButtonProps {
@@ -8,6 +8,8 @@ interface FloatingButtonProps {
   unreadCount?: number;
   className?: string;
   isLoading?: boolean;
+  variant?: 'default' | 'locked';
+  tooltip?: string;
 }
 
 export const FloatingButton: React.FC<FloatingButtonProps> = ({
@@ -16,6 +18,8 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
   unreadCount = 0,
   className = '',
   isLoading = false,
+  variant = 'default',
+  tooltip,
 }) => {
   const [isFirstRender, setIsFirstRender] = useState(true);
   
@@ -25,6 +29,27 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
     const timer = setTimeout(() => setIsFirstRender(false), 500);
     return () => clearTimeout(timer);
   }, []);
+
+  const isLockedVariant = variant === 'locked';
+  const buttonColors = isLockedVariant
+    ? 'bg-gray-300 text-gray-800 hover:bg-gray-300'
+    : 'bg-blue-600 text-white';
+  const defaultTooltip = isLoading
+    ? 'Loading data...'
+    : isLockedVariant
+      ? 'Upgrade to unlock the AI assistant'
+      : 'Open AI Assistant';
+  const tooltipText = tooltip || defaultTooltip;
+
+  const renderIcon = () => {
+    if (isLoading) {
+      return <Loader2 className="w-6 h-6 animate-spin" strokeWidth={2.5} />;
+    }
+    if (isLockedVariant) {
+      return <Lock className="w-6 h-6" strokeWidth={2.5} />;
+    }
+    return <Sparkles className="w-6 h-6" strokeWidth={2.5} />;
+  };
   
   return (
     <button
@@ -32,7 +57,6 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
       className={`
         fixed bottom-6 right-6
         w-16 h-16 rounded-full
-        bg-blue-600 text-white
         border-4 border-black
         shadow-neo-btn-lg
         hover:shadow-neo-xl
@@ -40,6 +64,7 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
         gpu-accelerate
         ${isFirstRender ? 'fab-spring-enter' : ''}
         ${hasUnread ? 'animate-pulse' : ''}
+        ${buttonColors}
         ${className}
       `}
       style={{
@@ -48,8 +73,8 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
         willChange: 'transform, box-shadow',
         pointerEvents: 'auto'
       }}
-      title={isLoading ? "Loading data..." : "Open AI Assistant"}
-      aria-label={isLoading ? "Loading data..." : "Open AI Assistant"}
+      title={tooltipText}
+      aria-label={tooltipText}
       disabled={isLoading}
       onMouseEnter={(e) => {
         if (!isLoading) e.currentTarget.style.transform = 'scale(1.05)';
@@ -64,11 +89,7 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
         if (!isLoading) e.currentTarget.style.transform = 'scale(1.05)';
       }}
     >
-      {isLoading ? (
-        <Loader2 className="w-6 h-6 animate-spin" strokeWidth={2.5} />
-      ) : (
-        <Sparkles className="w-6 h-6" strokeWidth={2.5} />
-      )}
+      {renderIcon()}
       
       {hasUnread && unreadCount > 0 && (
         <span

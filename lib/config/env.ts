@@ -42,6 +42,7 @@ interface EnvConfig {
   VITE_ENVIRONMENT?: 'development' | 'staging' | 'production';
   VITE_SENTRY_DSN?: string;
   VITE_ANALYTICS_ID?: string;
+  VITE_USE_MOCK_AI_SEARCH?: string;
 }
 
 // Use shared configuration
@@ -86,6 +87,7 @@ export function getEnvConfig(): EnvConfig {
     VITE_ENVIRONMENT: import.meta.env.VITE_ENVIRONMENT,
     VITE_SENTRY_DSN: import.meta.env.VITE_SENTRY_DSN,
     VITE_ANALYTICS_ID: import.meta.env.VITE_ANALYTICS_ID,
+    VITE_USE_MOCK_AI_SEARCH: import.meta.env.VITE_USE_MOCK_AI_SEARCH,
   };
 }
 
@@ -97,6 +99,8 @@ export function validateEnvironment(): void {
   const errors: string[] = [];
   const warnings: string[] = [];
   const env = getEnvConfig();
+  
+  console.log('[Env Validation] VITE_SUPABASE_URL:', env.VITE_SUPABASE_URL);
   
   // Determine if production environment
   const isProduction = env.VITE_ENVIRONMENT === 'production' || !import.meta.env.DEV;

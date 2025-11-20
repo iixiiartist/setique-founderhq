@@ -12,6 +12,26 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   throw new Error('Missing Supabase environment variables for testing');
 }
 
+const requiredCreds = {
+  SUPABASE_TEST_OWNER_EMAIL: process.env.SUPABASE_TEST_OWNER_EMAIL,
+  SUPABASE_TEST_OWNER_PASSWORD: process.env.SUPABASE_TEST_OWNER_PASSWORD,
+  SUPABASE_TEST_MEMBER_EMAIL: process.env.SUPABASE_TEST_MEMBER_EMAIL,
+  SUPABASE_TEST_MEMBER_PASSWORD: process.env.SUPABASE_TEST_MEMBER_PASSWORD,
+  SUPABASE_TEST_NON_MEMBER_EMAIL: process.env.SUPABASE_TEST_NON_MEMBER_EMAIL,
+  SUPABASE_TEST_NON_MEMBER_PASSWORD: process.env.SUPABASE_TEST_NON_MEMBER_PASSWORD,
+};
+
+const missingCredKeys = Object.entries(requiredCreds)
+  .filter(([, value]) => !value)
+  .map(([key]) => key);
+
+if (missingCredKeys.length > 0) {
+  throw new Error(
+    `Missing Supabase test credentials: ${missingCredKeys.join(', ')}. ` +
+    'See tests/fixtures/create_test_users.sql and update your .env to include these values.'
+  );
+}
+
 /**
  * Create a Supabase client authenticated as a specific user
  */
@@ -46,18 +66,18 @@ export const createAnonymousClient = (): SupabaseClient => {
  */
 export const TEST_USERS = {
   owner: {
-    email: 'test-owner@example.com',
-    password: 'test-password-123',
-    workspaceId: '', // Will be set during test setup
+    email: requiredCreds.SUPABASE_TEST_OWNER_EMAIL!,
+    password: requiredCreds.SUPABASE_TEST_OWNER_PASSWORD!,
+    workspaceId: process.env.SUPABASE_TEST_OWNER_WORKSPACE_ID || '',
   },
   member: {
-    email: 'test-member@example.com',
-    password: 'test-password-123',
-    workspaceId: '', // Will be set during test setup
+    email: requiredCreds.SUPABASE_TEST_MEMBER_EMAIL!,
+    password: requiredCreds.SUPABASE_TEST_MEMBER_PASSWORD!,
+    workspaceId: process.env.SUPABASE_TEST_MEMBER_WORKSPACE_ID || '',
   },
   nonMember: {
-    email: 'test-nonmember@example.com',
-    password: 'test-password-123',
+    email: requiredCreds.SUPABASE_TEST_NON_MEMBER_EMAIL!,
+    password: requiredCreds.SUPABASE_TEST_NON_MEMBER_PASSWORD!,
   },
 };
 

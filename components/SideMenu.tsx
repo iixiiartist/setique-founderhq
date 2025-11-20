@@ -139,6 +139,7 @@ const SideMenu: React.FC<SideMenuProps> = ({
                             key={item.id} 
                             href="#" 
                             className={`block p-3 text-lg font-mono font-semibold rounded-none border-2 transition-all my-2 ${activeTab === item.id ? activeClass : inactiveClass} hover:bg-gray-100 hover:text-black`}
+                            data-testid={`nav-link-${item.id}`}
                             onClick={(e) => {
                                 e.preventDefault();
                                 onSwitchTab(item.id);

@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+/* eslint-disable @typescript-eslint/no-var-requires */
+
 /**
  * Pre-Build Environment Validation Script
  * 
@@ -15,17 +17,18 @@
  *   1 - Validation errors found
  */
 
-const fs = require('fs');
-const path = require('path');
+import 'dotenv/config';
+import fs from 'fs';
+import path from 'path';
 
 // Import shared environment configuration
-const {
+import {
   REQUIRED_ENV_VARS,
   PRODUCTION_REQUIRED_ENV_VARS,
   IMPORTANT_ENV_VARS,
   RECOMMENDED_ENV_VARS,
-  validateEnvVar: sharedValidateEnvVar,
-} = require('../lib/config/envConfig.shared.js');
+  validateEnvVar as sharedValidateEnvVar,
+} from '../lib/config/envConfig.shared.js';
 
 // ANSI color codes for terminal output
 const colors = {
@@ -36,6 +39,15 @@ const colors = {
   yellow: '\x1b[33m',
   blue: '\x1b[34m',
 };
+
+// Server-side secrets that are not exposed to the client bundle but are
+// critical for backend integrations (e.g., Supabase Edge Functions, automation).
+const SERVER_ONLY_VARS = [
+  {
+    name: 'YOUCOM_API_KEY',
+    description: 'Required for You.com Search and Agent integrations',
+  },
+];
 
 // Re-export from shared config for consistency
 const REQUIRED_VARS = REQUIRED_ENV_VARS;
@@ -200,6 +212,18 @@ function validate() {
   // Print summary
   log('', colors.reset);
   log('━'.repeat(60), colors.bright);
+
+  // Warn about missing server-only secrets (do not fail build yet)
+  log('\nServer-Only Secrets:', colors.bright);
+  SERVER_ONLY_VARS.forEach(({ name, description }) => {
+    if (process.env[name]?.trim()) {
+      log(`  🔐 ${name}: Set`, colors.green);
+    } else {
+      const warning = `${name} is not set (${description})`;
+      log(`  ⚠️  ${warning}`, colors.yellow);
+      allWarnings.push(warning);
+    }
+  });
   
   if (allWarnings.length > 0) {
     log(`\n⚠️  Warnings (${allWarnings.length}):`, colors.yellow);

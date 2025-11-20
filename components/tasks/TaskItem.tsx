@@ -119,6 +119,8 @@ export function TaskItem({
 
     return (
         <div
+            data-testid="task-card"
+            data-task-id={task.id}
             className={`
                 flex items-stretch bg-white border-2 border-black shadow-neo cursor-pointer
                 hover:shadow-neo-lg transition-all
@@ -210,17 +212,17 @@ export function TaskItem({
                         {/* Tags */}
                         <div className="flex flex-wrap gap-2 text-xs">
                             {/* Module tag */}
-                            <span className={`font-mono px-2 py-0.5 ${tagColorClass} border border-black`}>
+                            <span className={`font-mono px-2 py-0.5 ${tagColorClass} border border-black`} data-testid="task-module-tag">
                                 {moduleLabel}
                             </span>
 
                             {/* Priority */}
-                            <span className={`font-mono px-2 py-0.5 border ${PRIORITY_COLORS[task.priority]}`}>
+                            <span className={`font-mono px-2 py-0.5 border ${PRIORITY_COLORS[task.priority]}`} data-testid="task-priority-tag">
                                 {task.priority}
                             </span>
 
                             {/* Status */}
-                            <span className={`font-mono px-2 py-0.5 ${STATUS_COLORS[task.status]}`}>
+                            <span className={`font-mono px-2 py-0.5 ${STATUS_COLORS[task.status]}`} data-testid="task-status-tag">
                                 {task.status === 'InProgress' ? 'In Progress' : task.status}
                             </span>
 
@@ -304,6 +306,7 @@ export function TaskItem({
                             <button
                                 type="button"
                                 onClick={handleCategoryNavigate}
+                                data-testid="task-open-module-button"
                                 className="px-3 py-1 border border-gray-300 font-semibold hover:border-gray-500"
                             >
                                 Open module
@@ -314,6 +317,7 @@ export function TaskItem({
                                     e.stopPropagation();
                                     onClick();
                                 }}
+                                data-testid="task-view-details-button"
                                 className="px-3 py-1 border border-gray-300 font-semibold hover:border-gray-500"
                             >
                                 View details
@@ -326,6 +330,7 @@ export function TaskItem({
                                         await actions.deleteTask(task.id);
                                     }
                                 }}
+                                data-testid="task-delete-button"
                                 className="px-2 py-1 border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-400"
                                 title="Delete task"
                             >

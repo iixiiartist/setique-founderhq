@@ -60,6 +60,102 @@ const GROWTH_STAGES: { value: GrowthStage; label: string; description: string }[
     { value: 'Mature', label: 'Mature', description: 'Established business' }
 ];
 
+type PricingTier = NonNullable<BusinessProfile['pricingTiers']>[number];
+type CoreProduct = NonNullable<BusinessProfile['coreProducts']>[number];
+type ServiceOffering = NonNullable<BusinessProfile['serviceOfferings']>[number];
+
+const DEFAULT_DEAL_TYPES = ['new_business', 'expansion', 'renewal'];
+const DEFAULT_BILLING_CYCLE = 'monthly';
+
+const trimOrUndefined = (value?: string | null) => {
+    const next = value?.trim();
+    return next && next.length > 0 ? next : undefined;
+};
+
+const sanitizeStringArray = (values?: string[]) => {
+    if (!values) return undefined;
+    const cleaned = values
+        .map(value => value?.trim())
+        .filter((value): value is string => Boolean(value && value.length > 0));
+    return cleaned.length ? cleaned : undefined;
+};
+
+const sanitizePricingTiers = (tiers?: PricingTier[]) => {
+    if (!tiers) return undefined;
+    const cleaned = tiers
+        .map((tier) => {
+            const name = tier.name?.trim();
+            const billingCycle = tier.billingCycle || DEFAULT_BILLING_CYCLE;
+            const price = tier.price === undefined || tier.price === null || Number.isNaN(tier.price)
+                ? undefined
+                : Number(tier.price);
+            const features = sanitizeStringArray(tier.features) || [];
+            return {
+                name: name && name.length > 0 ? name : undefined,
+                price,
+                billingCycle,
+                features,
+            };
+        })
+        .filter(tier => tier.name || tier.price !== undefined || tier.features.length);
+    return cleaned.length ? cleaned : undefined;
+};
+
+const sanitizeCoreProducts = (products?: CoreProduct[]) => {
+    if (!products) return undefined;
+    const cleaned = products
+        .map(product => ({
+            name: trimOrUndefined(product.name),
+            description: trimOrUndefined(product.description),
+            type: trimOrUndefined(product.type),
+            status: trimOrUndefined(product.status)
+        }))
+        .filter(product => product.name || product.description || product.type || product.status);
+    return cleaned.length ? cleaned : undefined;
+};
+
+const sanitizeServiceOfferings = (offerings?: ServiceOffering[]) => {
+    if (!offerings) return undefined;
+    const cleaned = offerings
+        .map(offering => ({
+            name: trimOrUndefined(offering.name),
+            description: trimOrUndefined(offering.description),
+            pricing: trimOrUndefined(offering.pricing)
+        }))
+        .filter(offering => offering.name || offering.description || offering.pricing);
+    return cleaned.length ? cleaned : undefined;
+};
+
+const prepareProfilePayload = (data: Partial<BusinessProfile>): Partial<BusinessProfile> => ({
+    ...data,
+    companyName: data.companyName?.trim() || '',
+    industry: trimOrUndefined(data.industry),
+    companySize: data.companySize,
+    businessModel: data.businessModel,
+    description: trimOrUndefined(data.description),
+    targetMarket: trimOrUndefined(data.targetMarket),
+    valueProposition: trimOrUndefined(data.valueProposition),
+    primaryGoal: data.primaryGoal,
+    keyChallenges: trimOrUndefined(data.keyChallenges),
+    growthStage: data.growthStage,
+    currentMrr: data.currentMrr,
+    targetMrr: data.targetMrr,
+    customerCount: data.customerCount,
+    teamSize: data.teamSize,
+    targetCustomerProfile: trimOrUndefined(data.targetCustomerProfile),
+    marketPositioning: trimOrUndefined(data.marketPositioning),
+    competitiveAdvantages: sanitizeStringArray(data.competitiveAdvantages),
+    keyDifferentiators: sanitizeStringArray(data.keyDifferentiators),
+    competitors: sanitizeStringArray(data.competitors),
+    uniqueDifferentiators: trimOrUndefined(data.uniqueDifferentiators),
+    monetizationModel: data.monetizationModel,
+    dealTypes: sanitizeStringArray(data.dealTypes),
+    techStack: sanitizeStringArray(data.techStack),
+    pricingTiers: sanitizePricingTiers(data.pricingTiers),
+    coreProducts: sanitizeCoreProducts(data.coreProducts),
+    serviceOfferings: sanitizeServiceOfferings(data.serviceOfferings),
+});
+
 export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
     onComplete,
     onSkip,
@@ -88,24 +184,45 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
     
     const [step, setStep] = useState(1);
     const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-    const [formData, setFormData] = useState<Partial<BusinessProfile>>({
-        companyName: '',
-        industry: undefined,
-        companySize: undefined,
-        businessModel: undefined,
-        description: '',
-        targetMarket: '',
-        valueProposition: '',
-        primaryGoal: undefined,
-        keyChallenges: '',
-        growthStage: undefined,
-        currentMrr: undefined,
-        targetMrr: undefined,
-        customerCount: undefined,
-        teamSize: undefined,
-        // If we have existing complete data, prioritize it over draft
-        // Otherwise, load draft first, then apply any initial data
-        ...(hasExistingData ? initialData : { ...loadDraft(), ...initialData })
+    const [formData, setFormData] = useState<Partial<BusinessProfile>>(() => {
+        const baseForm: Partial<BusinessProfile> = {
+            companyName: '',
+            industry: undefined,
+            companySize: undefined,
+            businessModel: undefined,
+            description: '',
+            targetMarket: '',
+            valueProposition: '',
+            primaryGoal: undefined,
+            keyChallenges: '',
+            growthStage: undefined,
+            currentMrr: undefined,
+            targetMrr: undefined,
+            customerCount: undefined,
+            teamSize: undefined,
+            targetCustomerProfile: '',
+            marketPositioning: '',
+            competitiveAdvantages: [],
+            keyDifferentiators: [],
+            uniqueDifferentiators: '',
+            dealTypes: DEFAULT_DEAL_TYPES,
+            pricingTiers: [],
+            coreProducts: [],
+            serviceOfferings: [],
+            techStack: [],
+        };
+        const draftData = hasExistingData ? {} : loadDraft();
+        const initialValues = {
+            ...baseForm,
+            ...(hasExistingData ? {} : draftData),
+            ...initialData,
+        } as Partial<BusinessProfile>;
+
+        if (!initialValues.dealTypes || initialValues.dealTypes.length === 0) {
+            initialValues.dealTypes = DEFAULT_DEAL_TYPES;
+        }
+
+        return initialValues;
     });
     
     // Clear draft when component unmounts if we loaded existing data
@@ -142,9 +259,92 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
     }, [formData, hasExistingData, debouncedSave]);
 
     const totalSteps = 7;
+    const requiredFields: { key: keyof BusinessProfile; label: string }[] = [
+        { key: 'companyName', label: 'Company name' },
+        { key: 'industry', label: 'Industry' },
+        { key: 'targetCustomerProfile', label: 'Target customer profile' },
+        { key: 'marketPositioning', label: 'Market positioning' },
+        { key: 'monetizationModel', label: 'Monetization model' },
+        { key: 'competitiveAdvantages', label: 'Competitive advantages' },
+        { key: 'keyDifferentiators', label: 'Key differentiators' },
+    ];
 
     const updateField = <K extends keyof BusinessProfile>(key: K, value: BusinessProfile[K] | undefined) => {
         setFormData(prev => ({ ...prev, [key]: value }));
+    };
+
+    const ensureArray = <T,>(value?: T[]): T[] => (value ? [...value] : []);
+
+    const addPricingTier = () => {
+        setFormData(prev => {
+            const tiers = ensureArray<PricingTier>(prev.pricingTiers);
+            tiers.push({ name: '', price: 0, features: [], billingCycle: DEFAULT_BILLING_CYCLE });
+            return { ...prev, pricingTiers: tiers };
+        });
+    };
+
+    const updatePricingTier = <K extends keyof PricingTier>(index: number, field: K, value: PricingTier[K]) => {
+        setFormData(prev => {
+            const tiers = ensureArray<PricingTier>(prev.pricingTiers);
+            tiers[index] = { ...tiers[index], [field]: value };
+            return { ...prev, pricingTiers: tiers };
+        });
+    };
+
+    const removePricingTier = (index: number) => {
+        setFormData(prev => {
+            const tiers = ensureArray<PricingTier>(prev.pricingTiers);
+            tiers.splice(index, 1);
+            return { ...prev, pricingTiers: tiers.length ? tiers : undefined };
+        });
+    };
+
+    const addCoreProduct = () => {
+        setFormData(prev => {
+            const products = ensureArray<CoreProduct>(prev.coreProducts);
+            products.push({ name: '', description: '', type: '', status: '' });
+            return { ...prev, coreProducts: products };
+        });
+    };
+
+    const updateCoreProduct = <K extends keyof CoreProduct>(index: number, field: K, value: CoreProduct[K]) => {
+        setFormData(prev => {
+            const products = ensureArray<CoreProduct>(prev.coreProducts);
+            products[index] = { ...products[index], [field]: value };
+            return { ...prev, coreProducts: products };
+        });
+    };
+
+    const removeCoreProduct = (index: number) => {
+        setFormData(prev => {
+            const products = ensureArray<CoreProduct>(prev.coreProducts);
+            products.splice(index, 1);
+            return { ...prev, coreProducts: products.length ? products : undefined };
+        });
+    };
+
+    const addServiceOffering = () => {
+        setFormData(prev => {
+            const services = ensureArray<ServiceOffering>(prev.serviceOfferings);
+            services.push({ name: '', description: '', pricing: '' });
+            return { ...prev, serviceOfferings: services };
+        });
+    };
+
+    const updateServiceOffering = <K extends keyof ServiceOffering>(index: number, field: K, value: ServiceOffering[K]) => {
+        setFormData(prev => {
+            const services = ensureArray<ServiceOffering>(prev.serviceOfferings);
+            services[index] = { ...services[index], [field]: value };
+            return { ...prev, serviceOfferings: services };
+        });
+    };
+
+    const removeServiceOffering = (index: number) => {
+        setFormData(prev => {
+            const services = ensureArray<ServiceOffering>(prev.serviceOfferings);
+            services.splice(index, 1);
+            return { ...prev, serviceOfferings: services.length ? services : undefined };
+        });
     };
 
     const nextStep = () => {
@@ -183,15 +383,39 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
         if (step > 1) setStep(step - 1);
     };
 
+    const missingFields = requiredFields.filter(({ key }) => {
+        const value = formData[key];
+        if (Array.isArray(value)) {
+            return !value.length;
+        }
+        if (typeof value === 'string') {
+            return value.trim().length === 0;
+        }
+        return value === undefined || value === null;
+    });
+
     const handleComplete = () => {
+        if (missingFields.length > 0) {
+            track('business_profile_missing_required_fields', {
+                missing_fields: missingFields.map(field => field.key).join(','),
+            });
+            alert(
+                `Please complete the following fields before finishing the AI context:\n\n${missingFields
+                    .map(field => `• ${field.label}`)
+                    .join('\n')}`
+            );
+            return;
+        }
+
         track('business_profile_completed', { 
             total_fields: Object.keys(formData).length,
             has_company_name: !!formData.companyName,
             has_industry: !!formData.industry,
             has_mrr: !!formData.currentMrr
         })
+        const sanitizedProfile = prepareProfilePayload(formData);
         onComplete({
-            ...formData,
+            ...sanitizedProfile,
             isComplete: true,
             completedAt: Date.now()
         });
@@ -578,6 +802,31 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
                     placeholder="Unique features, proprietary tech, exclusive partnerships..."
                 />
             </div>
+
+            <div>
+                <label className="block text-sm font-bold font-mono mb-2">
+                    Competitors (comma-separated)
+                </label>
+                <input
+                    type="text"
+                    value={formData.competitors?.join(', ') || ''}
+                    onChange={(e) => updateField('competitors', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    placeholder="Competitor A, Competitor B, Competitor C"
+                />
+            </div>
+
+            <div>
+                <label className="block text-sm font-bold font-mono mb-2">
+                    Unique Differentiators Summary
+                </label>
+                <textarea
+                    value={formData.uniqueDifferentiators || ''}
+                    onChange={(e) => updateField('uniqueDifferentiators', e.target.value || undefined)}
+                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600 h-24"
+                    placeholder="Use narrative form to highlight why customers choose you."
+                />
+            </div>
         </div>
     );
 
@@ -645,16 +894,91 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
                 </label>
                 <input
                     type="text"
-                    value={formData.dealTypes?.join(', ') || 'new_business, expansion, renewal'}
+                    value={formData.dealTypes?.join(', ') || ''}
                     onChange={(e) => updateField('dealTypes', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
                     className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600"
                     placeholder="new_business, expansion, renewal"
                 />
             </div>
 
+            <div>
+                <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-bold font-mono">Pricing Tiers</label>
+                    <button
+                        type="button"
+                        onClick={addPricingTier}
+                        className="text-sm font-mono border-2 border-black px-3 py-1 bg-white hover:bg-gray-100"
+                    >
+                        + Add Tier
+                    </button>
+                </div>
+                {(!formData.pricingTiers || formData.pricingTiers.length === 0) && (
+                    <p className="text-sm text-gray-500 font-mono border-2 border-dashed border-black p-3">
+                        Add your pricing tiers so Copilot can recommend the right plans in summaries and follow-ups.
+                    </p>
+                )}
+                <div className="space-y-3">
+                    {(formData.pricingTiers || []).map((tier, index) => (
+                        <div key={index} className="border-2 border-black p-3 space-y-2">
+                            <div className="flex justify-between items-center">
+                                <h4 className="font-bold font-mono">Tier {index + 1}</h4>
+                                <button
+                                    type="button"
+                                    onClick={() => removePricingTier(index)}
+                                    className="text-sm text-red-600 font-mono"
+                                >
+                                    Remove
+                                </button>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <input
+                                    type="text"
+                                    value={tier.name || ''}
+                                    onChange={(e) => updatePricingTier(index, 'name', e.target.value)}
+                                    placeholder="Tier name (e.g., Pro, Enterprise)"
+                                    className="w-full px-3 py-2 border-2 border-black font-mono"
+                                />
+                                <div className="flex gap-2">
+                                    <input
+                                        type="number"
+                                        value={tier.price ?? ''}
+                                        onChange={(e) => {
+                                            const raw = e.target.value;
+                                            const nextValue = raw === '' ? undefined : Number(raw);
+                                            updatePricingTier(index, 'price', nextValue as PricingTier['price']);
+                                        }}
+                                        placeholder="Price"
+                                        className="w-full px-3 py-2 border-2 border-black font-mono"
+                                        min="0"
+                                    />
+                                    <select
+                                        value={tier.billingCycle || DEFAULT_BILLING_CYCLE}
+                                        onChange={(e) => updatePricingTier(index, 'billingCycle', e.target.value)}
+                                        className="px-3 py-2 border-2 border-black font-mono bg-white"
+                                    >
+                                        <option value="monthly">Monthly</option>
+                                        <option value="quarterly">Quarterly</option>
+                                        <option value="annual">Annual</option>
+                                        <option value="lifetime">Lifetime</option>
+                                        <option value="usage-based">Usage based</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <input
+                                type="text"
+                                value={tier.features?.join(', ') || ''}
+                                onChange={(e) => updatePricingTier(index, 'features', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                                placeholder="Key features (comma-separated)"
+                                className="w-full px-3 py-2 border-2 border-black font-mono"
+                            />
+                        </div>
+                    ))}
+                </div>
+            </div>
+
             <div className="bg-yellow-50 border-2 border-black p-4">
                 <p className="text-sm font-mono">
-                    <span className="font-bold">💰 Note:</span> Pricing tiers can be managed later in Settings. This helps the AI understand your revenue model.
+                    <span className="font-bold">💰 Note:</span> Pricing tiers and deal types power AI recommendations in CRM and automation emails.
                 </p>
             </div>
         </div>
@@ -681,26 +1005,120 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
             </div>
 
             <div>
-                <label className="block text-sm font-bold font-mono mb-2">
-                    Service Offerings (comma-separated)
-                </label>
-                <textarea
-                    value={formData.serviceOfferings?.map(s => `${s.name}: ${s.description}`).join(', ') || ''}
-                    onChange={(e) => {
-                        const services = e.target.value.split(',').map(s => {
-                            const parts = s.trim().split(':');
-                            return {
-                                name: parts[0]?.trim() || '',
-                                description: parts[1]?.trim() || '',
-                                pricing: ''
-                            };
-                        }).filter(s => s.name);
-                        updateField('serviceOfferings', services.length > 0 ? services : undefined);
-                    }}
-                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600 h-24"
-                    placeholder="Consulting: Strategy sessions, Development: Custom apps, Design: Brand identity..."
-                />
-                <p className="text-xs text-gray-500 mt-1 font-mono">Format: Service Name: Description, ...</p>
+                <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-bold font-mono">Core Products</label>
+                    <button
+                        type="button"
+                        onClick={addCoreProduct}
+                        className="text-sm font-mono border-2 border-black px-3 py-1 bg-white hover:bg-gray-100"
+                    >
+                        + Add Product
+                    </button>
+                </div>
+                {(!formData.coreProducts || formData.coreProducts.length === 0) && (
+                    <p className="text-sm text-gray-500 font-mono border-2 border-dashed border-black p-3">
+                        List flagship products so Copilot can reference them in briefs and updates.
+                    </p>
+                )}
+                <div className="space-y-3">
+                    {(formData.coreProducts || []).map((product, index) => (
+                        <div key={index} className="border-2 border-black p-3 space-y-2">
+                            <div className="flex justify-between items-center">
+                                <h4 className="font-bold font-mono">Product {index + 1}</h4>
+                                <button
+                                    type="button"
+                                    onClick={() => removeCoreProduct(index)}
+                                    className="text-sm text-red-600 font-mono"
+                                >
+                                    Remove
+                                </button>
+                            </div>
+                            <input
+                                type="text"
+                                value={product.name || ''}
+                                onChange={(e) => updateCoreProduct(index, 'name', e.target.value)}
+                                placeholder="Product name"
+                                className="w-full px-3 py-2 border-2 border-black font-mono"
+                            />
+                            <textarea
+                                value={product.description || ''}
+                                onChange={(e) => updateCoreProduct(index, 'description', e.target.value)}
+                                placeholder="Short description"
+                                className="w-full px-3 py-2 border-2 border-black font-mono h-20"
+                            />
+                            <div className="grid grid-cols-2 gap-3">
+                                <input
+                                    type="text"
+                                    value={product.type || ''}
+                                    onChange={(e) => updateCoreProduct(index, 'type', e.target.value)}
+                                    placeholder="Type (e.g., SaaS, Mobile)"
+                                    className="w-full px-3 py-2 border-2 border-black font-mono"
+                                />
+                                <input
+                                    type="text"
+                                    value={product.status || ''}
+                                    onChange={(e) => updateCoreProduct(index, 'status', e.target.value)}
+                                    placeholder="Status (Idea, Beta, GA...)"
+                                    className="w-full px-3 py-2 border-2 border-black font-mono"
+                                />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div>
+                <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-bold font-mono">Service Offerings</label>
+                    <button
+                        type="button"
+                        onClick={addServiceOffering}
+                        className="text-sm font-mono border-2 border-black px-3 py-1 bg-white hover:bg-gray-100"
+                    >
+                        + Add Service
+                    </button>
+                </div>
+                {(!formData.serviceOfferings || formData.serviceOfferings.length === 0) && (
+                    <p className="text-sm text-gray-500 font-mono border-2 border-dashed border-black p-3">
+                        Document retainers or add-on services so Copilot knows what you can deliver.
+                    </p>
+                )}
+                <div className="space-y-3">
+                    {(formData.serviceOfferings || []).map((service, index) => (
+                        <div key={index} className="border-2 border-black p-3 space-y-2">
+                            <div className="flex justify-between items-center">
+                                <h4 className="font-bold font-mono">Service {index + 1}</h4>
+                                <button
+                                    type="button"
+                                    onClick={() => removeServiceOffering(index)}
+                                    className="text-sm text-red-600 font-mono"
+                                >
+                                    Remove
+                                </button>
+                            </div>
+                            <input
+                                type="text"
+                                value={service.name || ''}
+                                onChange={(e) => updateServiceOffering(index, 'name', e.target.value)}
+                                placeholder="Service name"
+                                className="w-full px-3 py-2 border-2 border-black font-mono"
+                            />
+                            <textarea
+                                value={service.description || ''}
+                                onChange={(e) => updateServiceOffering(index, 'description', e.target.value)}
+                                placeholder="What does this service include?"
+                                className="w-full px-3 py-2 border-2 border-black font-mono h-20"
+                            />
+                            <input
+                                type="text"
+                                value={service.pricing || ''}
+                                onChange={(e) => updateServiceOffering(index, 'pricing', e.target.value)}
+                                placeholder="Pricing notes (hourly, retainer, per project)"
+                                className="w-full px-3 py-2 border-2 border-black font-mono"
+                            />
+                        </div>
+                    ))}
+                </div>
             </div>
 
             <div className="bg-green-50 border-2 border-black p-4">
@@ -756,6 +1174,19 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
 
                 {/* Content */}
                 <div className="p-6">
+                    {missingFields.length > 0 && (
+                        <div className="mb-6 border-2 border-yellow-400 bg-yellow-50 p-4">
+                            <h2 className="font-mono font-semibold text-yellow-800 mb-2">Almost there ⏱️</h2>
+                            <p className="text-sm font-mono text-yellow-700">
+                                These fields power Copilot personalization. Please fill them in before finishing:
+                            </p>
+                            <ul className="list-disc pl-5 text-sm font-mono text-yellow-900 mt-2 space-y-1">
+                                {missingFields.map(field => (
+                                    <li key={field.key}>{field.label}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
                     {renderStepIndicator()}
                     
                     {step === 1 && renderStep1()}

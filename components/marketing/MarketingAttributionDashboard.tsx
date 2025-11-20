@@ -22,7 +22,6 @@ export const MarketingAttributionDashboard: React.FC = () => {
     if (workspace) {
       loadAttributionData();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspace]);
 
   const loadAttributionData = async () => {

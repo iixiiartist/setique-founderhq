@@ -1,5 +1,6 @@
 /// <reference types="vitest" />
 import path from 'path';
+import fs from 'fs';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
@@ -16,7 +17,7 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3001,
         host: '0.0.0.0',
-        strictPort: false, // Allow fallback to other ports
+        strictPort: true, // Keep dashboard + Playwright aligned on a single port
       },
       plugins: [
         react(),
@@ -36,6 +37,7 @@ export default defineConfig(({ mode }) => {
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),
+          'y-supabase': path.resolve(__dirname, 'node_modules/y-supabase/dist/index.js'),
         },
         extensions: ['.ts', '.tsx', '.js', '.jsx', '.json']
       },
@@ -43,6 +45,10 @@ export default defineConfig(({ mode }) => {
         include: [
           'react-colorful',
           'emoji-picker-react',
+          'y-supabase',
+          'yjs',
+          '@tiptap/extension-collaboration',
+          '@tiptap/extension-collaboration-cursor'
         ]
       },
       build: {

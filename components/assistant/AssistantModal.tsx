@@ -3,9 +3,9 @@ import ReactDOM from 'react-dom';
 import { Minus, X, Maximize2, Minimize2 } from 'lucide-react';
 import { TabType } from '../../constants';
 import { AppActions, DashboardData } from '../../types';
-import { AssistantContextSwitcher } from './AssistantContextSwitcher';
 import { getAssistantConfig } from './assistantConfig';
 import ModuleAssistant from '../shared/ModuleAssistant';
+import type { AssistantMessagePayload } from '../../hooks/useConversationHistory';
 import './animations.css';
 
 interface AssistantModalProps {
@@ -22,7 +22,8 @@ interface AssistantModalProps {
   userContext: string; // Current user info and permissions
   teamContext: string;
   data: DashboardData;
-  onNewMessage?: () => void;
+  onNewMessage?: (payload: AssistantMessagePayload) => void;
+  planType?: string;
 }
 
 export const AssistantModal: React.FC<AssistantModalProps> = ({
@@ -40,6 +41,7 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
   teamContext,
   data,
   onNewMessage,
+  planType,
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -159,14 +161,10 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
       {/* Header */}
       <div className="
         h-14 px-4 border-b-3 border-black
-        flex items-center justify-between gap-4
+        flex items-center justify-end gap-4
         bg-gradient-to-r from-blue-50 to-blue-100
         flex-shrink-0
       ">
-        <AssistantContextSwitcher 
-          currentTab={currentTab}
-          onChange={onContextChange}
-        />
         
         <div className="flex items-center gap-2">
           <button
@@ -222,7 +220,7 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
       {/* Content - ModuleAssistant */}
       <div className="h-[calc(100%-56px)] overflow-hidden bg-white">
         <ModuleAssistant
-          title={config.title}
+          title="AI Assistant"
           systemPrompt={systemPrompt}
           actions={actions}
           currentTab={currentTab}
@@ -235,6 +233,7 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
           businessContext={businessContext}
           teamContext={teamContext}
           crmItems={[...data.investors, ...data.customers, ...data.partners]}
+          planType={planType}
         />
       </div>
     </div>

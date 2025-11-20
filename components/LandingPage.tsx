@@ -21,7 +21,8 @@ import {
   Code,
   DollarSign,
   Handshake,
-  Sparkles
+  Sparkles,
+  PlayCircle
 } from 'lucide-react';
 
 export function LandingPage() {
@@ -61,36 +62,107 @@ export function LandingPage() {
 
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="text-center max-w-3xl mx-auto">
-          <div className="inline-block mb-4 px-4 py-2 bg-yellow-300 border-2 border-black shadow-neo font-mono text-sm font-bold">
-            ⚡ FOR SEED-STAGE FOUNDERS ORCHESTRATING GTM
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div>
+            <div className="flex flex-wrap items-center gap-3 text-xs uppercase font-mono text-gray-700 mb-6">
+              <span className="px-3 py-1 bg-yellow-300 border-2 border-black shadow-neo">Seed & Series A founders</span>
+              <span className="px-3 py-1 bg-white border-2 border-black shadow-neo-sm">RevOps & Sales leads</span>
+              <span className="px-3 py-1 bg-blue-100 border-2 border-black shadow-neo-sm">Boutique GTM agencies</span>
+            </div>
+            <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
+              One GTM Command Center for Sellers, Founders, and Consultants
+            </h1>
+            <p className="text-lg md:text-xl text-gray-700 mb-6 leading-relaxed">
+              FounderHQ replaces the spreadsheet circus with a single workspace where sales leaders forecast, founders share investor updates, and agencies orchestrate client plays. Keep every pipeline conversation, campaign brief, and follow-up tied to the same source of truth.
+            </p>
+            <ul className="space-y-3 text-gray-900 mb-8">
+              <li className="flex items-start gap-3">
+                <Target className="w-5 h-5 mt-0.5" />
+                <span>Deal rooms, notes, and tasks stitched together so every account team knows exactly what’s closing this week and what needs attention.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <Handshake className="w-5 h-5 mt-0.5" />
+                <span>Investor, customer, and partner pipelines in one board—no more toggling between five CRMs or forwarding screenshots before a call.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <Sparkles className="w-5 h-5 mt-0.5" />
+                <span>Optional AI copilots summarize deal health, prep call briefs, and pull market intel—but the workflows still make sense without them.</span>
+              </li>
+            </ul>
+            <div className="flex flex-wrap gap-4">
+              <Link
+                to="/app"
+                className="px-8 py-4 bg-black text-white border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all font-medium text-lg flex items-center gap-2"
+              >
+                Launch FounderHQ <ArrowRight size={20} />
+              </Link>
+              <a
+                href="#features"
+                className="px-8 py-4 border-2 border-black bg-white hover:bg-gray-100 font-medium text-lg transition-all flex items-center gap-2"
+              >
+                <PlayCircle className="w-5 h-5" /> Watch 2-min tour
+              </a>
+            </div>
+            <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 gap-4 text-left">
+              <div className="p-4 border-2 border-black bg-white shadow-neo-sm animate-pulse-slow">
+                <p className="text-3xl font-bold">82h</p>
+                <p className="text-xs font-mono uppercase text-gray-500">Hours saved / founder / month</p>
+              </div>
+              <div className="p-4 border-2 border-black bg-white shadow-neo-sm animate-pulse-slow [animation-delay:0.3s]">
+                <p className="text-3xl font-bold">3️⃣-in-1</p>
+                <p className="text-xs font-mono uppercase text-gray-500">Investor • Sales • Partner CRM</p>
+              </div>
+              <div className="p-4 border-2 border-black bg-white shadow-neo-sm animate-pulse-slow [animation-delay:0.6s]">
+                <p className="text-3xl font-bold">15+</p>
+                <p className="text-xs font-mono uppercase text-gray-500">Automations your ops team needs</p>
+              </div>
+            </div>
+            <p className="mt-4 text-sm text-gray-600">
+              Start free with core GTM tools • Unlock AI briefings & automations when ready • No credit card required
+            </p>
           </div>
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
-            <span className="text-blue-600">Replace 7 Tools With One Lightweight GTM Hub</span>
-          </h1>
-          <p className="text-2xl md:text-3xl font-semibold text-gray-800 mb-6">
-            Pipeline • Execution • Intelligence
-          </p>
-          <p className="text-xl text-gray-700 mb-8 leading-relaxed">
-            Built for founders juggling fundraising, sales, and partnerships. Manage your entire GTM motion—investor pipeline, customer deals, partner relationships—with AI that knows your business context. Start free, unlock AI as you grow.
-          </p>
-          <div className="flex gap-4 justify-center flex-wrap">
-            <Link
-              to="/app"
-              className="px-8 py-4 bg-black text-white border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all font-medium text-lg flex items-center gap-2"
-            >
-              Start Free <ArrowRight size={20} />
-            </Link>
-            <a
-              href="#features"
-              className="px-8 py-4 border-2 border-black hover:bg-gray-100 font-medium text-lg transition-all"
-            >
-              See Features
-            </a>
+          <div className="relative">
+            <div className="absolute inset-0 blur-3xl bg-gradient-to-br from-blue-200/60 via-purple-200/40 to-pink-100/60 -z-10 rounded-full"></div>
+            <div className="space-y-6">
+              <div className="floating-card">
+                <p className="text-xs font-mono text-gray-500">AI DAILY INTELLIGENCE</p>
+                <h3 className="text-xl font-bold mb-2">Investor + Revenue Briefing</h3>
+                <p className="text-sm text-gray-700 mb-3">“Apollo Ventures just led a $25M SaaS round. Queue outreach with updated pitch deck + attach traction dashboard.”</p>
+                <div className="flex items-center justify-between text-xs font-mono text-gray-500">
+                  <span>Powered by live data + web search</span>
+                  <span>Updated 6:05 AM</span>
+                </div>
+              </div>
+              <div className="floating-card delay-1">
+                <p className="text-xs font-mono text-gray-500">GTM TASK GRAPH</p>
+                <div className="space-y-2">
+                  {['Prep Seed Update', 'Revive Acme Deal', 'Spin up co-marketing draft'].map((task, idx) => (
+                    <div key={task} className="flex items-center justify-between border border-black px-3 py-2 bg-white">
+                      <span className="text-sm font-medium">{task}</span>
+                      <span className="text-xs text-gray-500">{idx === 0 ? 'Investor' : idx === 1 ? 'Sales' : 'Partner'}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="floating-card delay-2">
+                <p className="text-xs font-mono text-gray-500">LIVE DASHBOARD</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="border border-black bg-white p-3">
+                    <p className="text-xs text-gray-500">Pipeline Momentum</p>
+                    <p className="text-2xl font-bold">+38%</p>
+                  </div>
+                  <div className="border border-black bg-white p-3">
+                    <p className="text-xs text-gray-500">Runway</p>
+                    <p className="text-2xl font-bold">17 mo</p>
+                  </div>
+                  <div className="col-span-2 border border-black bg-black text-white p-4">
+                    <p className="text-xs uppercase font-mono text-gray-200">Next best action</p>
+                    <p className="text-lg font-semibold">Send 3-slide update to Tier 1 investors before Friday standup.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <p className="mt-4 text-sm text-gray-600">
-            Start free with core GTM tools • Unlock AI with paid plans • No credit card required
-          </p>
         </div>
       </section>
 
@@ -98,23 +170,23 @@ export function LandingPage() {
       <section className="bg-gray-50 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Designed for Seed-Stage Go-To-Market</h2>
-            <p className="text-lg text-gray-600">When you're wearing every GTM hat, you need a hub that keeps up—not slows you down.</p>
+            <h2 className="text-3xl font-bold mb-4">Built for the Three GTM Heroes Keeping the Lights On</h2>
+            <p className="text-lg text-gray-600">FounderHQ speaks the language of fundraising founders, revenue operators, and boutique agencies that moonlight as fractional CROs.</p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             <UseCase
-              title="Seed-Stage Founders"
-              description="Orchestrate fundraising, first customers, and early partnerships in one place. Track investor conversations, close initial deals, and manage your founding team—all without enterprise tool bloat."
+              title="Founders & CROs"
+              description="Share a single dashboard for investor updates, pipeline commits, and partner experiments. Replace late-night deck edits with live metrics everyone trusts."
               icon={<Rocket className="w-8 h-8" />}
             />
             <UseCase
-              title="Early Sales Teams"
-              description="For teams graduating from spreadsheets. Smart pipeline tracking, AI-powered account briefs, and deal coaching that actually understands your product and ICP."
+              title="Sales & RevOps Leaders"
+              description="Coach reps with actual context, not screenshots. Forecast, inspect deal hygiene, and trigger structured follow-ups across territories from one workspace."
               icon={<TrendingUp className="w-8 h-8" />}
             />
             <UseCase
-              title="GTM Consultants"
-              description="Run multiple client GTM motions simultaneously. Pre-built templates, collaborative deal rooms, and AI assistance for strategy deliverables in half the time."
+              title="Consultants & GTM Agencies"
+              description="Spin up client workspaces in minutes, templatize deliverables, and give stakeholders a branded portal for status, docs, and next actions."
               icon={<Briefcase className="w-8 h-8" />}
             />
           </div>
@@ -424,9 +496,9 @@ export function LandingPage() {
 
 function UseCase({ title, description, icon }: { title: string; description: string; icon: React.ReactNode }) {
   return (
-    <div className="p-6 border-2 border-black shadow-neo bg-white text-center">
+    <div className="p-6 border-2 border-black shadow-neo bg-white text-center transition-transform duration-300 hover:-translate-y-1">
       <div className="flex justify-center mb-3">
-        <div className="w-12 h-12 bg-blue-100 border-2 border-black flex items-center justify-center">
+        <div className="w-12 h-12 bg-blue-100 border-2 border-black flex items-center justify-center animate-pulse-slow">
           {icon}
         </div>
       </div>

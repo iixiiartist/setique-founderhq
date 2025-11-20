@@ -4,6 +4,48 @@ import { AppActions, DashboardData } from '../../types';
 import { useAssistantState } from '../../hooks/useAssistantState';
 import { FloatingButton } from './FloatingButton';
 import { AssistantModal } from './AssistantModal';
+import type { AssistantMessagePayload } from '../../hooks/useConversationHistory';
+
+const formatRelativeTime = (iso?: string) => {
+  if (!iso) return '';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  const diffMs = Date.now() - date.getTime();
+  const diffMinutes = Math.round(diffMs / 60000);
+  if (diffMinutes < 1) return 'just now';
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.round(diffHours / 24);
+  return `${diffDays}d ago`;
+};
+
+const formatNotificationMetadata = (metadata?: AssistantMessagePayload['metadata']) => {
+  const webMeta = metadata?.webSearch;
+  if (!webMeta) return '';
+  const parts: string[] = [];
+  if (webMeta.provider) {
+    parts.push(webMeta.provider);
+  }
+  if (typeof webMeta.count === 'number') {
+    parts.push(`${webMeta.count} source${webMeta.count === 1 ? '' : 's'}`);
+  }
+  if (webMeta.mode === 'images') {
+    parts.push('image references');
+  } else if (webMeta.mode === 'news') {
+    parts.push('news search');
+  }
+  if (webMeta.fetchedAt) {
+    const relative = formatRelativeTime(webMeta.fetchedAt);
+    if (relative) {
+      parts.push(relative);
+    }
+  }
+  if (webMeta.query) {
+    parts.push(`“${webMeta.query}”`);
+  }
+  return parts.join(' • ');
+};
 
 interface FloatingAIAssistantProps {
   currentTab: TabType;
@@ -36,6 +78,8 @@ export const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({
   autoOpenOnMobile = true, // Default to true for mobile-first experience
   onDataLoadNeeded,
 }) => {
+  const normalizedPlanType = planType || 'free';
+  const assistantUnlocked = normalizedPlanType !== 'free';
   const {
     isOpen,
     selectedContext,
@@ -48,6 +92,46 @@ export const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({
   } = useAssistantState(currentTab);
   
   const [isLoadingData, setIsLoadingData] = React.useState(false);
+  const desktopNotificationsEnabled = data?.settings?.desktopNotifications;
+
+  const handleUpgradeClick = React.useCallback(() => {
+    if (onUpgradeNeeded) {
+      onUpgradeNeeded();
+    } else {
+      console.info('[FloatingAIAssistant] Upgrade required to use AI assistant');
+    }
+  }, [onUpgradeNeeded]);
+  
+  const handleAssistantMessage = React.useCallback((payload: AssistantMessagePayload) => {
+    markUnread();
+    if (isOpen) {
+      return;
+    }
+
+    if (!desktopNotificationsEnabled) {
+      return;
+    }
+
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      return;
+    }
+
+    if (Notification.permission !== 'granted') {
+      return;
+    }
+
+    try {
+      const metadataLine = formatNotificationMetadata(payload.metadata);
+      const textSnippet = payload.text?.trim().slice(0, 200) || 'New assistant reply ready.';
+      const body = metadataLine ? `${textSnippet}\n${metadataLine}` : textSnippet;
+      new Notification('Setique AI Assistant', {
+        body,
+        tag: `ai-assistant-${Date.now()}`,
+      });
+    } catch (error) {
+      console.error('[FloatingAIAssistant] Failed to show assistant notification:', error);
+    }
+  }, [markUnread, isOpen, desktopNotificationsEnabled]);
   
   // Enhanced toggle that ensures data is loaded before opening
   const toggle = React.useCallback(async () => {
@@ -56,6 +140,12 @@ export const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({
       let needsData = false;
       
       switch (currentTab) {
+        case Tab.Tasks:
+          needsData = data.productsServicesTasks.length === 0 && (!data.crmTasks || data.crmTasks.length === 0);
+          break;
+        case Tab.Accounts:
+          needsData = (!data.crmItems || data.crmItems.length === 0) && data.investors.length === 0;
+          break;
         case Tab.Investors:
           needsData = data.investors.length === 0;
           break;
@@ -102,7 +192,7 @@ export const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({
   
   // Auto-open on mobile devices (on first mount only)
   React.useEffect(() => {
-    if (!autoOpenOnMobile) return;
+    if (!autoOpenOnMobile || !assistantUnlocked) return;
     
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
     if (isMobile) {
@@ -112,15 +202,20 @@ export const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({
       }, 500);
       return () => clearTimeout(timer);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array = run only once on mount
+  }, [autoOpenOnMobile, assistantUnlocked, toggle]);
   
   // Expose toggle function to parent via callback ref
   React.useEffect(() => {
     if (onToggleRef) {
-      onToggleRef(toggle);
+      onToggleRef(assistantUnlocked ? toggle : handleUpgradeClick);
     }
-  }, [toggle, onToggleRef]);
+  }, [assistantUnlocked, handleUpgradeClick, onToggleRef, toggle]);
+
+  React.useEffect(() => {
+    if (!assistantUnlocked && isOpen) {
+      minimize();
+    }
+  }, [assistantUnlocked, isOpen, minimize]);
   
   // Don't show AI assistant for free plans (disabled for local development testing)
   // TODO: Re-enable before production deployment
@@ -136,9 +231,11 @@ export const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({
       currentTab,
       workspaceId,
       companyName,
-      willShowButton: !isOpen
+      plan: normalizedPlanType,
+      willShowButton: !isOpen,
+      assistantUnlocked,
     });
-  }, [isOpen, hasUnread, currentTab, workspaceId, companyName]);
+  }, [assistantUnlocked, companyName, currentTab, hasUnread, isOpen, normalizedPlanType, workspaceId]);
 
   // Log when component mounts
   React.useEffect(() => {
@@ -170,6 +267,18 @@ export const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({
     });
   }, [data]);
   
+  if (!assistantUnlocked) {
+    return (
+      <FloatingButton
+        onClick={handleUpgradeClick}
+        hasUnread={false}
+        unreadCount={0}
+        variant="locked"
+        tooltip="Upgrade to unlock the AI assistant"
+      />
+    );
+  }
+
   return (
     <>
       {/* Floating Button (always visible when minimized) */}
@@ -196,7 +305,8 @@ export const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({
         userContext={userContext}
         teamContext={teamContext}
         data={data}
-        onNewMessage={markUnread}
+        onNewMessage={handleAssistantMessage}
+        planType={normalizedPlanType}
       />
     </>
   );

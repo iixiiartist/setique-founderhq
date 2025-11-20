@@ -9,7 +9,9 @@ interface KeyboardShortcutsConfig {
   onTabChange?: (tab: TabType) => void;
   onEscape?: () => void;
   onToggleAI?: () => void;
+  onAIAccessBlocked?: () => void;
   enabled?: boolean;
+  aiShortcutEnabled?: boolean;
 }
 
 /**
@@ -31,7 +33,9 @@ export const useKeyboardShortcuts = (config: KeyboardShortcutsConfig) => {
     onTabChange,
     onEscape,
     onToggleAI,
-    enabled = true
+    onAIAccessBlocked,
+    enabled = true,
+    aiShortcutEnabled = true
   } = config;
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
@@ -76,7 +80,11 @@ export const useKeyboardShortcuts = (config: KeyboardShortcutsConfig) => {
     // Ctrl+/: Toggle AI assistant (only when not in input/modal)
     if ((event.ctrlKey || event.metaKey) && event.key === '/') {
       event.preventDefault();
-      onToggleAI?.();
+      if (aiShortcutEnabled) {
+        onToggleAI?.();
+      } else {
+        onAIAccessBlocked?.();
+      }
       return;
     }
 
@@ -119,7 +127,7 @@ export const useKeyboardShortcuts = (config: KeyboardShortcutsConfig) => {
       onTabChange(newTab);
       return;
     }
-  }, [enabled, onNewTask, onSearch, onHelp, onTabChange, onEscape, onToggleAI]);
+  }, [aiShortcutEnabled, enabled, onAIAccessBlocked, onNewTask, onSearch, onHelp, onTabChange, onEscape, onToggleAI]);
 
   useEffect(() => {
     if (!enabled) return;

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import { AppActions, TaskCollectionName, NoteableCollectionName, CrmCollectionName, DeletableCollectionName, TabType, GTMDocMetadata, AnyCrmItem } from '../../types';
 import { getAiResponse, AILimitError } from '../../services/groqService';
@@ -6,13 +6,15 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Tab } from '../../constants';
 import { useConversationHistory } from '../../hooks/useConversationHistory';
+import type { AssistantMessagePayload } from '../../hooks/useConversationHistory';
 import { useFullscreenChat } from '../../hooks/useFullscreenChat';
 import { getRelevantHistory, pruneFunctionResponse } from '../../utils/conversationUtils';
 import { DocLibraryPicker } from '../workspace/DocLibraryPicker';
 import { useAuth } from '../../contexts/AuthContext';
-import { QuickActionsToolbar } from './QuickActionsToolbar';
 import { InlineFormModal } from './InlineFormModal';
 import { DatabaseService } from '../../lib/services/database';
+import { searchWeb } from '@/src/lib/services/youSearchService';
+import type { YouSearchImageResult, YouSearchMetadata } from '@/src/lib/services/youSearch.types';
 
 // Keep using Content format for compatibility
 interface Part {
@@ -25,6 +27,9 @@ interface Part {
 interface Content {
     role: 'user' | 'model' | 'tool';
     parts: Part[];
+    metadata?: {
+        webSearch?: YouSearchMetadata;
+    };
 }
 
 interface ModuleAssistantProps {
@@ -35,14 +40,69 @@ interface ModuleAssistantProps {
     workspaceId?: string;
     onUpgradeNeeded?: () => void;
     compact?: boolean; // For floating modal mode
-    onNewMessage?: () => void; // Callback when AI responds (for notifications)
+    onNewMessage?: (payload: AssistantMessagePayload) => void; // Callback when AI responds (for notifications)
     allowFullscreen?: boolean; // Enable fullscreen toggle (default: true)
     autoFullscreenMobile?: boolean; // Auto-open fullscreen on mobile (default: true)
     businessContext?: string; // Optional context injected on first message
     teamContext?: string; // Optional context injected on first message
     maxFileSizeMB?: number; // Max file size for AI chat (default: 5MB, lower than storage limit due to base64 overhead)
     crmItems?: AnyCrmItem[]; // For contact form in quick actions
+    planType?: string; // Workspace plan for gating AI
 }
+
+const formatHostname = (value?: string | null) => {
+    if (!value) return '';
+    try {
+        return new URL(value).hostname.replace(/^www\./, '');
+    } catch {
+        try {
+            return new URL(`https://${value}`).hostname.replace(/^www\./, '');
+        } catch {
+            return value;
+        }
+    }
+};
+
+const formatRelativeTime = (iso?: string | null) => {
+    if (!iso) return '';
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return '';
+    const diffMs = Date.now() - date.getTime();
+    const diffMinutes = Math.round(diffMs / 60000);
+    if (diffMinutes < 1) return 'just now';
+    if (diffMinutes < 60) return `${diffMinutes}m ago`;
+    const diffHours = Math.round(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.round(diffHours / 24);
+    return `${diffDays}d ago`;
+};
+
+const formatMetadataForClipboard = (metadata?: YouSearchMetadata | null) => {
+    if (!metadata) return '';
+    const chips: string[] = [];
+    if (metadata.provider) {
+        chips.push(metadata.provider);
+    }
+    if (metadata.mode) {
+        chips.push(metadata.mode === 'images' ? 'Image references' : 'Web search');
+    }
+    if (typeof metadata.count === 'number') {
+        chips.push(`${metadata.count} source${metadata.count === 1 ? '' : 's'}`);
+    }
+    if (metadata.durationMs) {
+        chips.push(`${metadata.durationMs}ms`);
+    }
+    if (metadata.fetchedAt) {
+        const relative = formatRelativeTime(metadata.fetchedAt);
+        if (relative) {
+            chips.push(`fetched ${relative}`);
+        }
+    }
+
+    const summary = chips.length > 0 ? `Sources: ${chips.join(' • ')}` : '';
+    const queryLine = metadata.query ? `Query: "${metadata.query}"` : '';
+    return [summary, queryLine].filter(Boolean).join('\n');
+};
 
 function ModuleAssistant({ 
     title, 
@@ -58,9 +118,14 @@ function ModuleAssistant({
     businessContext,
     teamContext,
     maxFileSizeMB = 5, // Default 5MB for AI chat (base64 encoding adds ~33% overhead)
-    crmItems = []
+    crmItems = [],
+    planType
 }: ModuleAssistantProps) {
     const { user } = useAuth();
+    const normalizedPlanType = (planType || 'free').toLowerCase();
+    const assistantUnlocked = normalizedPlanType !== 'free';
+    const displayPlanName = normalizedPlanType.replace(/-/g, ' ');
+    const planLabel = displayPlanName.charAt(0).toUpperCase() + displayPlanName.slice(1);
     
     // Use conversation history hook for persistence with workspace/user scoping
     const {
@@ -76,6 +141,13 @@ function ModuleAssistant({
     const { isFullscreen, toggleFullscreen, exitFullscreen, isMobileDevice } = useFullscreenChat();
     const [userInput, setUserInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isWebSearchEnabled, setIsWebSearchEnabled] = useState(false);
+    const [webSearchMode, setWebSearchMode] = useState<'text' | 'images'>('text');
+    const [imageResults, setImageResults] = useState<YouSearchImageResult[]>([]);
+    const [imageSearchLoading, setImageSearchLoading] = useState(false);
+    const [imageSearchError, setImageSearchError] = useState<string | null>(null);
+    const [imageSearchMetadata, setImageSearchMetadata] = useState<YouSearchMetadata | null>(null);
+    const [lastImageQuery, setLastImageQuery] = useState<string | null>(null);
     const [file, setFile] = useState<File | null>(null);
     const [fileContent, setFileContent] = useState<string>(''); // base64 content
     const [isCopied, setIsCopied] = useState(false);
@@ -90,6 +162,7 @@ function ModuleAssistant({
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const systemPromptRef = useRef(systemPrompt);
+    const assistantWebMetadataRef = useRef<YouSearchMetadata | null>(null);
 
     // Rate limit: 10 requests per minute
     const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute in milliseconds
@@ -105,6 +178,19 @@ function ModuleAssistant({
 
     useEffect(scrollToBottom, [history, isLoading]);
 
+    useEffect(() => {
+        if (!isWebSearchEnabled && webSearchMode !== 'text') {
+            setWebSearchMode('text');
+        }
+        if (!isWebSearchEnabled || webSearchMode !== 'images') {
+            setImageResults([]);
+            setImageSearchError(null);
+            setImageSearchMetadata(null);
+            setImageSearchLoading(false);
+            setLastImageQuery(null);
+        }
+    }, [isWebSearchEnabled, webSearchMode]);
+
     const blobToBase64 = (blob: Blob): Promise<string> => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -115,6 +201,57 @@ function ModuleAssistant({
             reader.onerror = reject;
             reader.readAsDataURL(blob);
         });
+    };
+
+    const runImageSearch = useCallback(
+        async (query: string, options: { silent?: boolean } = {}): Promise<{ visuals: YouSearchImageResult[]; metadata: YouSearchMetadata | null }> => {
+            const { silent = false } = options;
+            const trimmed = query.trim();
+            if (!trimmed) {
+                if (!silent) {
+                    setImageSearchError('Type a question or describe the visual you need before fetching references.');
+                }
+                return { visuals: [], metadata: null };
+            }
+
+            if (!silent) {
+                setImageSearchLoading(true);
+                setImageSearchError(null);
+            }
+
+            try {
+                const payload = await searchWeb(trimmed, 'images');
+                const visuals = payload.images ?? [];
+                const metadata = payload.metadata ?? null;
+                setImageResults(visuals);
+                setImageSearchMetadata(metadata);
+                setLastImageQuery(trimmed);
+                if (!silent && !visuals.length) {
+                    setImageSearchError('No visuals found for this query. Try a more specific description.');
+                }
+                return { visuals, metadata };
+            } catch (err: any) {
+                console.error('[ModuleAssistant] image search failed', err);
+                if (!silent) {
+                    setImageSearchError(err?.message ?? 'Image search failed.');
+                }
+                setImageResults([]);
+                setImageSearchMetadata(null);
+                return { visuals: [], metadata: null };
+            } finally {
+                if (!silent) {
+                    setImageSearchLoading(false);
+                }
+            }
+        },
+        [],
+    );
+
+    const appendImageResultToPrompt = (image: YouSearchImageResult) => {
+        if (!image) return;
+        const host = image.source || formatHostname(image.url) || 'source';
+        const snippet = `[Image Reference] ${image.title || host}: ${image.url || image.imageUrl} (${host})`;
+        setUserInput((prev) => (prev ? `${prev}\n\n${snippet}` : snippet));
     };
 
     const checkRateLimit = (): { allowed: boolean; remainingTime?: number } => {
@@ -182,7 +319,7 @@ function ModuleAssistant({
         try {
             switch (name) {
                 case 'createTask':
-                    return await actions.createTask(args.category as TaskCollectionName, args.text, args.priority, undefined, undefined, args.dueDate, args.assignedTo);
+                    return await actions.createTask(args.category as TaskCollectionName, args.text, args.priority, undefined, undefined, args.dueDate, args.assignedTo, args.dueTime);
                 case 'updateTask':
                     return await actions.updateTask(args.taskId, args.updates);
                 case 'addNote':
@@ -303,6 +440,17 @@ function ModuleAssistant({
                     return await actions.updateDocument(args.docId, args.name, args.mimeType, args.content);
                 case 'getFileContent':
                     return await actions.getFileContent(args.fileId);
+                case 'createEvent':
+                    return await actions.createTask(
+                        'productsServicesTasks',
+                        `📅 ${args.title}`,
+                        'High',
+                        undefined,
+                        undefined,
+                        args.date,
+                        undefined,
+                        args.time
+                    );
                 default:
                     return { success: false, message: `Unknown function: ${name}` };
             }
@@ -314,6 +462,17 @@ function ModuleAssistant({
 
     const sendMessage = async (prompt: string) => {
         if ((!prompt.trim() && !file) || isLoading) return;
+        assistantWebMetadataRef.current = null;
+
+        if (!assistantUnlocked) {
+            const upgradeMessage = 'AI assistant is available on paid plans. Visit Settings to upgrade your workspace.';
+            setUserInput('');
+            addMessage({ role: 'user', parts: [{ text: prompt }] });
+            addMessage({ role: 'model', parts: [{ text: `⚠️ ${upgradeMessage}` }] });
+            setAiLimitError(new AILimitError(upgradeMessage, 0, 0, normalizedPlanType));
+            onUpgradeNeeded?.();
+            return;
+        }
 
         // Check rate limit before processing
         const rateLimitCheck = checkRateLimit();
@@ -352,6 +511,80 @@ function ModuleAssistant({
             if (teamContext) contextParts.push(teamContext);
             // Prepend context to AI message, but keep user's displayed message clean
             textPartForAI = `${contextParts.join('\n\n')}\n\n${prompt}`;
+        }
+
+        // Handle Web Search
+        if (isWebSearchEnabled) {
+            if (webSearchMode === 'text') {
+                try {
+                    const searchResults = await searchWeb(prompt, 'search');
+                    if (searchResults.hits && searchResults.hits.length > 0) {
+                        const webContext = `\n\nWEB SEARCH RESULTS (Use these to answer the user's request):\n${searchResults.hits.map((hit, i) => `[${i + 1}] ${hit.title}: ${hit.description} (${hit.url})`).join('\n')}`;
+
+                        const snippets = searchResults.hits
+                            .map((hit, i) => (hit.snippets ? `[${i + 1}] Snippets: ${hit.snippets.join(' ')}` : ''))
+                            .filter(Boolean)
+                            .join('\n');
+
+                        textPartForAI += webContext;
+                        if (snippets) {
+                            textPartForAI += `\n\nSnippets:\n${snippets}`;
+                        }
+
+                        const normalizedMetadata: YouSearchMetadata = {
+                            mode: 'search',
+                            query: searchResults.metadata?.query || prompt,
+                            fetchedAt: searchResults.metadata?.fetchedAt || new Date().toISOString(),
+                            provider: searchResults.metadata?.provider || 'You.com',
+                            count: searchResults.metadata?.count ?? searchResults.hits?.length,
+                            durationMs: searchResults.metadata?.durationMs,
+                        };
+                        assistantWebMetadataRef.current = normalizedMetadata;
+
+                        const providerLabel = searchResults.metadata?.provider ? ` via ${searchResults.metadata.provider}` : '';
+                        const fetchedLabel = searchResults.metadata?.fetchedAt
+                            ? ` (fetched ${formatRelativeTime(searchResults.metadata.fetchedAt)})`
+                            : '';
+
+                        textPartForAI += `\n\nCITATION INSTRUCTIONS:
+                    1. You MUST cite your sources when using information from the WEB SEARCH RESULTS.
+                    2. Use inline citations like [1], [2] corresponding to the source numbers.
+                    3. At the end of your response, include a "Sources" section with links to the URLs provided in the search results.
+                    4. Format the sources as an HTML list: <ul><li><a href="url">Title</a></li></ul>.
+                    ${providerLabel}${fetchedLabel}`;
+                    }
+                } catch (e) {
+                    console.error('Web search failed', e);
+                }
+            } else if (webSearchMode === 'images') {
+                try {
+                    let visualsForContext = imageResults;
+                    let metadataForContext = imageSearchMetadata;
+                    if (visualsForContext.length === 0) {
+                        const { visuals, metadata } = await runImageSearch(prompt, { silent: true });
+                        visualsForContext = visuals;
+                        metadataForContext = metadata;
+                    }
+
+                    if (visualsForContext.length > 0) {
+                        const visualContext = visualsForContext
+                            .slice(0, 4)
+                            .map((image, index) => {
+                                const host = formatHostname(image.url) || image.source || 'source';
+                                return `[Image ${index + 1}] ${image.title || host}${host ? ` (${host})` : ''}`;
+                            })
+                            .join('\n');
+
+                        const providerLabel = metadataForContext?.provider ? `Provided by ${metadataForContext.provider}` : 'Image references';
+                        const fetchedLabel = metadataForContext?.fetchedAt ? ` · ${formatRelativeTime(metadataForContext.fetchedAt)}` : '';
+                        textPartForAI += `\n\nIMAGE REFERENCES AVAILABLE:\n${visualContext}\n${providerLabel}${fetchedLabel}\nCall out where each reference should appear and cite the source number in your response.`;
+                    } else {
+                        textPartForAI += '\n\nNOTE: Image mode is enabled but no visuals are available. Recommend the imagery we should source to support this request.';
+                    }
+                } catch (e) {
+                    console.error('Image search failed', e);
+                }
+            }
         }
 
         // Inject GTM doc content if attached
@@ -491,11 +724,18 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
             
             // Only add message if response is not empty (avoid empty assistant messages that cause 400 errors)
             if (finalResponseText && finalResponseText.trim().length > 0) {
-                addMessage({ role: 'model', parts: [{ text: finalResponseText }] });
+                const metadataForMessage = assistantWebMetadataRef.current
+                    ? { webSearch: assistantWebMetadataRef.current }
+                    : undefined;
+                addMessage({ role: 'model', parts: [{ text: finalResponseText }], metadata: metadataForMessage });
+                assistantWebMetadataRef.current = null;
                 
                 // Trigger notification callback if provided
                 if (onNewMessage) {
-                    onNewMessage();
+                    onNewMessage({
+                        text: finalResponseText,
+                        metadata: metadataForMessage,
+                    });
                 }
             } else {
                 console.warn('[ModuleAssistant] Received empty response from AI, not adding to conversation history');
@@ -509,11 +749,13 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                     role: 'model', 
                     parts: [{ text: `⚠️ ${error.message}\n\nPlease upgrade your plan to continue using the AI assistant.` }] 
                 });
+                assistantWebMetadataRef.current = null;
                 return;
             }
             
             const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
             addMessage({ role: 'model', parts: [{ text: `Error: ${errorMessage}` }] });
+            assistantWebMetadataRef.current = null;
         } finally {
             setIsLoading(false);
         }
@@ -555,8 +797,13 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                     return `User: ${hasFile ? '[File Attached]\n' : ''}${textPart}`;
                 }
                 if (shouldRenderModelMessage) {
+                    const webSearchMeta = msg.metadata?.webSearch;
                     const textPart = msg.parts.find(p => 'text' in p)?.text || '';
-                    return `Assistant: ${textPart}`;
+                    const metadataSummary = formatMetadataForClipboard(webSearchMeta);
+                    return [
+                        `Assistant: ${textPart}`,
+                        metadataSummary
+                    ].filter(Boolean).join('\n');
                 }
                 return null;
             })
@@ -601,22 +848,6 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                         )}
                     </div>
                     <div className="flex gap-2 flex-wrap">
-                        {/* Quick Actions Toolbar - moved to top */}
-                        <QuickActionsToolbar
-                            actions={actions}
-                            currentTab={currentTab}
-                            workspaceId={workspaceId}
-                            onActionComplete={(message) => {
-                                // Add system message to chat
-                                addMessage({
-                                    role: 'model',
-                                    parts: [{ text: message }]
-                                });
-                            }}
-                            onOpenForm={(formType, data) => {
-                                setShowInlineForm({ type: formType, data });
-                            }}
-                        />
                         <button
                             onClick={handleGenerateReport}
                             className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all disabled:opacity-50 flex items-center gap-2 shrink-0"
@@ -684,6 +915,7 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                 {history.map((msg, index) => {
                      const isUserModel = msg.role === 'user';
                      const isModelMessage = msg.role === 'model';
+                 const webSearchMeta = !isUserModel ? msg.metadata?.webSearch : undefined;
                      
                      // We only want to render messages from the user, or final text-only responses from the model.
                      // Intermediate model responses that contain function calls should not be rendered.
@@ -727,6 +959,28 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                                                 </svg>
                                             )}
                                         </button>
+                                        {webSearchMeta && (
+                                            <div className="mt-3 flex flex-wrap gap-2 text-[10px] text-gray-600">
+                                                <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 border border-gray-200">
+                                                    {webSearchMeta.provider || 'You.com'}
+                                                </span>
+                                                {webSearchMeta.count !== undefined && (
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 border border-gray-200">
+                                                        {webSearchMeta.count} source{webSearchMeta.count === 1 ? '' : 's'}
+                                                    </span>
+                                                )}
+                                                {webSearchMeta.fetchedAt && (
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 border border-gray-200">
+                                                        {formatRelativeTime(webSearchMeta.fetchedAt)}
+                                                    </span>
+                                                )}
+                                                {webSearchMeta.query && (
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 border border-gray-200 max-w-[200px] truncate">
+                                                        “{webSearchMeta.query}”
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
                                     </>
                                 )}
                             </div>
@@ -818,6 +1072,109 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                 </div>
             )}
 
+            <div className="px-1 mb-2 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setIsWebSearchEnabled(!isWebSearchEnabled)}
+                        className={`text-xs font-semibold px-3 py-1.5 rounded-full border flex items-center gap-1 transition-all ${
+                            isWebSearchEnabled 
+                            ? 'bg-blue-50 border-blue-200 text-blue-700' 
+                            : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                        }`}
+                    >
+                        <span>🌐</span> Web Search {isWebSearchEnabled ? 'ON' : 'OFF'}
+                    </button>
+                    {isWebSearchEnabled && (
+                        <div className="flex items-center gap-2 text-[11px] text-gray-600">
+                            {[
+                                { id: 'text', label: 'Text answers' },
+                                { id: 'images', label: 'Image references' }
+                            ].map((option) => (
+                                <button
+                                    key={option.id}
+                                    type="button"
+                                    onClick={() => setWebSearchMode(option.id as 'text' | 'images')}
+                                    className={`px-2 py-1 rounded-full border text-[11px] ${
+                                        webSearchMode === option.id ? 'border-purple-500 text-purple-700 bg-purple-50' : 'border-gray-200 text-gray-500'
+                                    }`}
+                                >
+                                    {option.label}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+                {isWebSearchEnabled && webSearchMode === 'images' && (
+                    <div className="rounded-2xl border border-dashed border-gray-300 bg-white/80 p-3 space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => runImageSearch(userInput || lastImageQuery || '')}
+                                disabled={imageSearchLoading}
+                                className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${
+                                    imageSearchLoading ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-black text-white'
+                                }`}
+                            >
+                                {imageSearchLoading ? 'Fetching…' : 'Fetch visuals'}
+                            </button>
+                            {lastImageQuery && (
+                                <span className="text-[11px] text-gray-500">Last search: “{lastImageQuery}”</span>
+                            )}
+                        </div>
+                        {imageSearchError && <p className="text-xs text-red-600">{imageSearchError}</p>}
+                        {imageSearchMetadata && (
+                            <div className="flex flex-wrap gap-2 text-[10px] text-gray-600">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5">
+                                    {imageSearchMetadata.provider || 'You.com'}
+                                </span>
+                                {imageSearchMetadata.fetchedAt && (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5">
+                                        {formatRelativeTime(imageSearchMetadata.fetchedAt)}
+                                    </span>
+                                )}
+                                <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5">
+                                    {(imageSearchMetadata.count ?? imageResults.length) || 0} results
+                                </span>
+                            </div>
+                        )}
+                        <div className="max-h-48 overflow-y-auto">
+                            {imageResults.length === 0 ? (
+                                <div className="rounded-xl border border-dashed border-gray-200 px-3 py-4 text-center text-xs text-gray-500">
+                                    Describe the type of visual you need in the prompt box, then tap “Fetch visuals” to preview research-ready images.
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-2 gap-2">
+                                    {imageResults.slice(0, 6).map((image) => {
+                                        const host = formatHostname(image.url) || image.source || 'source';
+                                        return (
+                                            <div key={`${image.imageUrl}-${image.url}`} className="rounded-xl border border-gray-200 bg-gray-50 p-2 space-y-2">
+                                                <div className="aspect-video overflow-hidden rounded-lg bg-gray-200">
+                                                    <img src={image.thumbnail || image.imageUrl} alt={image.title || 'Research visual'} className="h-full w-full object-cover" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-semibold text-gray-800 leading-snug max-h-10 overflow-hidden">{image.title || host}</p>
+                                                    <div className="mt-1 flex items-center justify-between text-[10px] text-gray-500">
+                                                        <span>{host}</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => appendImageResultToPrompt(image)}
+                                                            className="text-blue-600 font-semibold hover:text-blue-800"
+                                                        >
+                                                            Add to prompt
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+
             <form onSubmit={handleChatSubmit} className="flex flex-col gap-2 shrink-0">
                 {file && (
                     <div className="flex items-center justify-between p-2 bg-gray-100 border-2 border-dashed border-black text-sm">
@@ -883,9 +1240,35 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
             </form>
         </div>
     );
+
+    const lockedContent = (
+        <div className={`h-full w-full flex flex-col items-center justify-center text-center bg-gradient-to-b from-gray-50 to-white ${compact ? 'p-4' : 'p-8'}`}>
+            <div className={`border-4 border-black shadow-neo-xl bg-white rounded-3xl space-y-4 ${compact ? 'p-4 w-full' : 'p-8 max-w-lg'}`}>
+                <div className="text-4xl" aria-hidden="true">🔒</div>
+                <h2 className="text-2xl font-bold text-gray-900">AI assistant is a premium feature</h2>
+                <p className="text-gray-700">
+                    You're currently on the <strong>{planLabel}</strong> plan. Upgrade to unlock research-grade answers, CRM automations, and document-aware coaching from the Setique AI assistant.
+                </p>
+                <ul className="text-left text-sm text-gray-700 space-y-2">
+                    <li>✅ Unlimited AI questions &amp; follow-ups</li>
+                    <li>✅ CRM + task automations and quick actions</li>
+                    <li>✅ GTM doc grounding and visual research</li>
+                </ul>
+                {onUpgradeNeeded && (
+                    <button
+                        onClick={onUpgradeNeeded}
+                        className="w-full px-4 py-3 border-2 border-black bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors shadow-neo-btn"
+                    >
+                        View plans &amp; upgrade →
+                    </button>
+                )}
+            </div>
+        </div>
+    );
     
     // Auto-enter fullscreen on mobile if enabled
     useEffect(() => {
+        if (!assistantUnlocked) return;
         if (autoFullscreenMobile && isMobileDevice() && allowFullscreen && !isFullscreen) {
             // Small delay to ensure component is mounted
             const timer = setTimeout(() => {
@@ -893,8 +1276,12 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
             }, 100);
             return () => clearTimeout(timer);
         }
-    }, []); // Empty deps - only run on mount
+    }, [assistantUnlocked, autoFullscreenMobile, allowFullscreen, isFullscreen, isMobileDevice, toggleFullscreen]);
     
+    if (!assistantUnlocked) {
+        return lockedContent;
+    }
+
     // Render fullscreen via portal
     if (isFullscreen && allowFullscreen) {
         return ReactDOM.createPortal(

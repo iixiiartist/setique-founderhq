@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
+import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import TextAlign from '@tiptap/extension-text-align';
@@ -34,10 +35,25 @@ import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { AICommandPalette } from './AICommandPalette';
 import { ImageUploadModal } from './ImageUploadModal';
 import { ChartQuickInsert } from './ChartQuickInsert';
+import { DocResearchSidebar } from './DocResearchSidebar';
 import { useAIWorkspaceContext } from '../../hooks/useAIWorkspaceContext';
 import { uploadToSupabase, validateImageFile } from '../../lib/services/imageUploadService';
 import { exportToMarkdown, exportToPDF, exportToHTML, exportToText, generateFilename } from '../../lib/services/documentExport';
 import { GTM_TEMPLATES, type DocumentTemplate } from '../../lib/templates/gtmTemplates';
+import {
+    ExportSettings,
+    ExportPreset,
+    createDefaultExportSettings,
+    loadWorkspaceExportPreferences,
+    saveWorkspaceExportSettings,
+    saveWorkspaceExportPresets,
+} from '../../lib/services/documentExportPreferences';
+import Collaboration from '@tiptap/extension-collaboration';
+import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
+import * as Y from 'yjs';
+import SupabaseProvider from 'y-supabase';
+import { supabase } from '../../lib/supabase';
+import BubbleMenuExtension from '@tiptap/extension-bubble-menu';
 
 interface DocEditorProps {
     workspaceId: string;
@@ -50,6 +66,19 @@ interface DocEditorProps {
     data: DashboardData;
     onUpgradeNeeded?: () => void;
 }
+
+import { 
+    Maximize2, Minimize2, Layout, ChevronDown as ChevronDownIcon,
+    Undo, Redo, Printer, Bold, Italic, Underline as UnderlineIcon, Strikethrough, 
+    AlignLeft, AlignCenter, AlignRight, AlignJustify, 
+    List, ListOrdered, CheckSquare, Link as LinkIcon, Image as ImageIcon, 
+    Table as TableIcon, Type, MoreHorizontal, FileText, Download, Settings,
+    Palette, Highlighter, Plus, Minus, X, Save, Share2, Info,
+    Scissors, Copy, Clipboard, FilePlus, Trash2, CornerUpLeft,
+    Subscript as SubscriptIcon, Superscript as SuperscriptIcon, Youtube as YoutubeIcon,
+    Search as SearchIcon,
+    Sparkles, Globe
+} from 'lucide-react';
 
 export const DocEditor: React.FC<DocEditorProps> = ({
     workspaceId,
@@ -70,12 +99,18 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     const [isSaving, setIsSaving] = useState(false);
     const [isLoading, setIsLoading] = useState(!!docId);
     
+    // Collaboration state
+    const [provider, setProvider] = useState<SupabaseProvider | null>(null);
+    const [ydoc, setYdoc] = useState<Y.Doc | null>(null);
+    const [collabStatus, setCollabStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
+    const [activeUsers, setActiveUsers] = useState<any[]>([]);
+    const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+
     // AI Command Palette state
     const [showAICommandPalette, setShowAICommandPalette] = useState(false);
     const [aiPalettePosition, setAIPalettePosition] = useState({ top: 0, left: 0 });
     
     // Toolbar state
-    const [showToolbarMenu, setShowToolbarMenu] = useState(false);
     const [showColorPicker, setShowColorPicker] = useState(false);
     const [showHighlightPicker, setShowHighlightPicker] = useState(false);
     const [showLinkInput, setShowLinkInput] = useState(false);
@@ -89,9 +124,70 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     const [selectedColor, setSelectedColor] = useState('#000000');
     const [selectedHighlight, setSelectedHighlight] = useState('#FFFF00');
     const [showChartQuickInsert, setShowChartQuickInsert] = useState(false);
+    const [showResearchSidebar, setShowResearchSidebar] = useState(false);
+    const [showExportSettingsModal, setShowExportSettingsModal] = useState(false);
+    const [exportSettings, setExportSettings] = useState<ExportSettings>(() => createDefaultExportSettings(workspace?.name));
+    const [exportPresets, setExportPresets] = useState<ExportPreset[]>([]);
+    const [defaultPresetId, setDefaultPresetId] = useState<string | null>(null);
+    const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
+    const [newPresetName, setNewPresetName] = useState('');
+    const [presetFormError, setPresetFormError] = useState<string | null>(null);
+
+    const exportPageSizeOptions: { value: ExportSettings['pageSize']; label: string }[] = [
+        { value: 'a4', label: 'A4 • 210 × 297 mm' },
+        { value: 'letter', label: 'US Letter • 8.5 × 11 in' },
+        { value: 'legal', label: 'US Legal • 8.5 × 14 in' },
+    ];
+
+    const exportOrientationOptions: { value: ExportSettings['orientation']; label: string }[] = [
+        { value: 'portrait', label: 'Portrait' },
+        { value: 'landscape', label: 'Landscape' },
+    ];
+
+    const workspaceDefaultPreset = useMemo(
+        () => exportPresets.find((preset) => preset.id === defaultPresetId) ?? null,
+        [exportPresets, defaultPresetId],
+    );
     
-    // Ref for toolbar menu to detect clicks outside
-    const toolbarMenuRef = useRef<HTMLDivElement>(null);
+    // Layout state
+    const [showDocSettings, setShowDocSettings] = useState(false);
+    const [isFocusMode, setIsFocusMode] = useState(false);
+    const [zoomLevel, setZoomLevel] = useState<number>(100);
+    const [pagePreviews, setPagePreviews] = useState<string[]>([]);
+    const [inlineAISuggestion, setInlineAISuggestion] = useState<{ visible: boolean; top: number; left: number; text: string }>(
+        { visible: false, top: 0, left: 0, text: '' }
+    );
+    const [lineSpacing, setLineSpacing] = useState(1.65);
+    const [templateSearch, setTemplateSearch] = useState('');
+    const canvasScrollRef = useRef<HTMLDivElement>(null);
+    const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+
+    const getRelativeTimeLabel = useCallback((date: Date) => {
+        const diffMs = Date.now() - date.getTime();
+        const seconds = Math.max(0, Math.floor(diffMs / 1000));
+        if (seconds < 60) return 'just now';
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+        const days = Math.floor(hours / 24);
+        if (days < 7) return `${days} day${days === 1 ? '' : 's'} ago`;
+        return date.toLocaleDateString();
+    }, []);
+
+    const lastSavedLabel = useMemo(() => {
+        if (isSaving) return 'Saving changes…';
+        if (!lastSavedAt) return 'Not saved yet';
+        return `Saved ${getRelativeTimeLabel(lastSavedAt)}`;
+    }, [getRelativeTimeLabel, isSaving, lastSavedAt]);
+
+    useEffect(() => {
+        const prefs = loadWorkspaceExportPreferences(workspaceId, workspace?.name);
+        setExportSettings(prefs.settings);
+        setExportPresets(prefs.presets);
+        setDefaultPresetId(prefs.defaultPresetId);
+        setSelectedPresetId(prefs.defaultPresetId);
+    }, [workspaceId, workspace?.name]);
     
     // Fetch workspace context for AI
     const { context: workspaceContext, loading: contextLoading, error: contextError } = useAIWorkspaceContext(
@@ -100,10 +196,53 @@ export const DocEditor: React.FC<DocEditorProps> = ({
         userId
     );
 
+    useEffect(() => {
+        if (docId) {
+            const doc = new Y.Doc();
+            
+            // Initialize Supabase Provider for Yjs
+            // Note: This requires Realtime to be enabled on the Supabase project
+            // Constructor: (doc, supabase, config)
+            const p = new SupabaseProvider(doc, supabase, {
+                channel: `doc-collab-${docId}`,
+                id: docId,
+                tableName: 'gtm_docs',
+                columnName: 'content',
+            });
+            
+            p.on('status', (event: any) => {
+                setCollabStatus(event.status);
+            });
+
+            p.awareness.on('change', () => {
+                const states = Array.from(p.awareness.getStates().values());
+                setActiveUsers(states);
+            });
+
+            setYdoc(doc);
+            setProvider(p);
+
+            return () => {
+                p.destroy();
+                doc.destroy();
+            };
+        } else {
+            setYdoc(null);
+            setProvider(null);
+            setCollabStatus('disconnected');
+            setActiveUsers([]);
+        }
+    }, [docId]);
+
     // Initialize Tiptap editor with premium extensions
     const editor = useEditor({
         extensions: [
-            StarterKit,
+            StarterKit.configure({
+                // The History extension is included in StarterKit, but we need to disable it
+                // when using Collaboration to avoid conflicts.
+                // In recent versions, it uses 'undoRedo'.
+                undoRedo: docId ? false : undefined, 
+            }),
             Placeholder.configure({
                 placeholder: 'Start writing your document...',
             }),
@@ -158,6 +297,24 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                 nocookie: true,
             }),
             ChartNode,
+            BubbleMenuExtension.configure({
+                pluginKey: 'bubbleMenu',
+            }),
+            // Collaboration extensions
+            ...(docId && ydoc && provider ? [
+                Collaboration.configure({ document: ydoc }),
+                // CollaborationCursor causes a crash on save/load in some environments
+                // Disabling temporarily to ensure stability
+                /*
+                CollaborationCursor.configure({ 
+                    provider, 
+                    user: { 
+                        name: 'User', 
+                        color: '#' + Math.floor(Math.random()*16777215).toString(16) 
+                    } 
+                })
+                */
+            ] : []),
         ],
         content: '',
         editorProps: {
@@ -174,6 +331,11 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                         left: coords.left + window.scrollX 
                     });
                     setShowAICommandPalette(true);
+                    return true;
+                }
+                if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 't') {
+                    event.preventDefault();
+                    setShowTemplateMenu((prev) => !prev);
                     return true;
                 }
                 return false;
@@ -197,32 +359,25 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                 return false;
             },
         },
-    });
+    }, [docId, ydoc, provider]);
 
+    // Load document content
     useEffect(() => {
-        if (docId) {
+        if (docId && editor) {
             loadDoc();
         }
-    }, [docId]);
-
-    // Close toolbar menu when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (showToolbarMenu && toolbarMenuRef.current && !toolbarMenuRef.current.contains(event.target as Node)) {
-                setShowToolbarMenu(false);
-            }
-        };
-
-        if (showToolbarMenu) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [showToolbarMenu]);
+    }, [docId, editor]); // Re-run when editor is ready
 
     const loadDoc = async () => {
+        // If we already have content (from Yjs), don't overwrite it with DB content
+        // unless the Yjs doc is empty (first load)
+        if (!editor) return;
+        
+        // Check if Yjs has content. 
+        // Note: editor.isEmpty is true for empty paragraph, but we want to know if Yjs has *any* updates.
+        // If we are connected and Yjs has content, we trust Yjs.
+        // But initially Yjs is empty until it syncs.
+        
         setIsLoading(true);
         try {
             const { data, error } = await DatabaseService.loadGTMDocById(docId!, workspaceId);
@@ -230,28 +385,32 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             if (error) {
                 console.error('Error loading doc:', error);
                 alert('Failed to load document. It may have been deleted or you may not have access.\n\nError: ' + (error as Error).message);
-                // Keep loading state to prevent editing stale data
                 return;
             } else if (data) {
                 setTitle(data.title);
                 setDocType(data.docType as DocType);
                 setVisibility(data.visibility as DocVisibility);
                 setTags(data.tags);
+                const updatedAtValue = (data as GTMDoc).updatedAt || (data as any).updated_at;
+                if (updatedAtValue) {
+                    setLastSavedAt(new Date(updatedAtValue));
+                }
                 
-                // Load content into Tiptap editor
-                if (editor && data.contentJson) {
-                    editor.commands.setContent(data.contentJson);
-                } else if (editor && data.contentPlain) {
-                    // Fallback to plain text if no JSON
-                    editor.commands.setContent(data.contentPlain);
+                // Only set content if the editor is empty to avoid overwriting collaborative changes
+                // or if we are sure we want to load from DB (e.g. initial load)
+                if (editor.isEmpty) {
+                    if (data.contentJson) {
+                        editor.commands.setContent(data.contentJson);
+                    } else if (data.contentPlain) {
+                        editor.commands.setContent(data.contentPlain);
+                    }
                 }
             }
-            // Only clear loading state on success
             setIsLoading(false);
         } catch (error) {
             console.error('Error loading doc:', error);
             alert('Unexpected error loading document. Please try again.');
-            // Keep loading state to prevent editing
+            setIsLoading(false);
         }
     };
 
@@ -281,21 +440,138 @@ export const DocEditor: React.FC<DocEditorProps> = ({
         }
     };
 
+    const generatePresetId = () => {
+        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+            return crypto.randomUUID();
+        }
+        return `preset-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    };
+
+    const persistPresetState = (nextPresets: ExportPreset[], nextDefaultId: string | null) => {
+        setExportPresets(nextPresets);
+        setDefaultPresetId(nextDefaultId);
+        saveWorkspaceExportPresets(workspaceId, nextPresets, nextDefaultId);
+    };
+
+    const handleApplyPreset = (presetId: string) => {
+        const preset = exportPresets.find((item) => item.id === presetId);
+        if (!preset) return;
+        setExportSettings(preset.settings);
+        setSelectedPresetId(presetId);
+        setPresetFormError(null);
+    };
+
+    const handleCreatePreset = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const trimmedName = newPresetName.trim();
+        if (!trimmedName) {
+            setPresetFormError('Give the preset a descriptive name.');
+            return;
+        }
+
+        if (exportPresets.some((preset) => preset.name.toLowerCase() === trimmedName.toLowerCase())) {
+            setPresetFormError('A preset with that name already exists.');
+            return;
+        }
+
+        const newPreset: ExportPreset = {
+            id: generatePresetId(),
+            name: trimmedName,
+            settings: exportSettings,
+            updatedAt: Date.now(),
+        };
+
+        const nextPresets = [...exportPresets, newPreset];
+        persistPresetState(nextPresets, defaultPresetId);
+        setSelectedPresetId(newPreset.id);
+        setNewPresetName('');
+        setPresetFormError(null);
+        saveWorkspaceExportSettings(workspaceId, exportSettings);
+    };
+
+    const handleUpdateSelectedPreset = () => {
+        if (!selectedPresetId) return;
+        const nextPresets = exportPresets.map((preset) =>
+            preset.id === selectedPresetId
+                ? { ...preset, settings: exportSettings, updatedAt: Date.now() }
+                : preset
+        );
+        persistPresetState(nextPresets, defaultPresetId);
+        saveWorkspaceExportSettings(workspaceId, exportSettings);
+    };
+
+    const handleDeleteSelectedPreset = () => {
+        if (!selectedPresetId) return;
+        const nextPresets = exportPresets.filter((preset) => preset.id !== selectedPresetId);
+        const nextDefaultId = defaultPresetId === selectedPresetId ? null : defaultPresetId;
+        persistPresetState(nextPresets, nextDefaultId);
+        setSelectedPresetId(null);
+    };
+
+    const handleSetDefaultPreset = (presetId: string) => {
+        const preset = exportPresets.find((item) => item.id === presetId);
+        if (!preset) return;
+        persistPresetState(exportPresets, presetId);
+        setSelectedPresetId(presetId);
+        setExportSettings(preset.settings);
+    };
+
+    const handleExportSettingChange = <K extends keyof ExportSettings>(key: K, value: ExportSettings[K]) => {
+        setExportSettings((prev) => ({
+            ...prev,
+            [key]: value,
+        }));
+        setSelectedPresetId(null);
+    };
+
+    const handleResetExportSettings = () => {
+        if (defaultPresetId) {
+            const defaultPreset = exportPresets.find((preset) => preset.id === defaultPresetId);
+            if (defaultPreset) {
+                setExportSettings(defaultPreset.settings);
+                setSelectedPresetId(defaultPresetId);
+                return;
+            }
+        }
+        setExportSettings(createDefaultExportSettings(workspace?.name));
+        setSelectedPresetId(null);
+    };
+
+    const handleSaveExportPreferences = () => {
+        saveWorkspaceExportSettings(workspaceId, exportSettings);
+        setShowExportSettingsModal(false);
+    };
+
     const handleExport = async (format: 'markdown' | 'pdf' | 'html' | 'text') => {
         if (!editor) return;
 
         try {
-            const filename = generateFilename(title || 'document', format === 'markdown' ? 'md' : format);
+            const resolvedTitle = title?.trim() ? title : 'Document';
+            const extension = format === 'markdown' ? 'md' : format;
+            const filename = generateFilename(resolvedTitle, extension);
 
             switch (format) {
                 case 'markdown':
                     exportToMarkdown(editor, filename);
                     break;
                 case 'pdf':
-                    await exportToPDF(editor, title || 'Document', filename);
+                    await exportToPDF(editor, {
+                        title: resolvedTitle,
+                        filename,
+                        includePageNumbers: exportSettings.includePageNumbers,
+                        pageSize: exportSettings.pageSize,
+                        orientation: exportSettings.orientation,
+                        margin: exportSettings.margin,
+                        includeCoverPage: exportSettings.includeCoverPage,
+                        coverSubtitle: exportSettings.coverSubtitle,
+                        coverMeta: exportSettings.coverMeta,
+                        brandColor: exportSettings.brandColor,
+                        footerNote: exportSettings.footerNote,
+                    });
+                    saveWorkspaceExportSettings(workspaceId, exportSettings);
                     break;
                 case 'html':
-                    exportToHTML(editor, filename);
+                    exportToHTML(editor, filename, resolvedTitle);
                     break;
                 case 'text':
                     exportToText(editor, filename);
@@ -372,6 +648,9 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                     return;
                 } else if (data) {
                     onSave(data as GTMDoc);
+                    setLastSavedAt(new Date());
+                    // Show success feedback (could be a toast, but for now alert or just console)
+                    // We'll rely on the "Saved to cloud" text in the header updating
                 }
             } else {
                 // Create new doc
@@ -392,10 +671,12 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                     return;
                 } else if (data) {
                     onSave(data as GTMDoc);
+                    setLastSavedAt(new Date());
                 }
             }
         } catch (error) {
             console.error('Error saving doc:', error);
+            alert('An error occurred while saving.');
         } finally {
             setIsSaving(false);
         }
@@ -445,922 +726,1077 @@ export const DocEditor: React.FC<DocEditorProps> = ({
         }
     };
 
+    const characterCountStorage = (editor?.storage as any)?.characterCount;
+    const wordCount = characterCountStorage?.words ? characterCountStorage.words() : 0;
+    const characterCount = characterCountStorage?.characters ? characterCountStorage.characters() : 0;
+    const estimatedReadMinutes = Math.max(1, Math.ceil(Math.max(1, wordCount) / 220));
+    const displayedTags = tags.slice(0, 3);
+    const extraTagCount = Math.max(0, tags.length - displayedTags.length);
+    const docTypeLabel = DOC_TYPE_LABELS[docType] ?? 'GTM Doc';
+    const docTypeIcon = DOC_TYPE_ICONS[docType] ?? '📄';
+    const collaboratorCount = activeUsers.length;
+    const docStatusLabel = isSaving
+        ? 'Saving to cloud'
+        : collabStatus === 'connected'
+            ? 'Live collaboration'
+            : 'Offline draft';
+    const docStatusBadgeClass = isSaving
+        ? 'bg-yellow-200 text-yellow-900'
+        : collabStatus === 'connected'
+            ? 'bg-green-200 text-green-900'
+            : 'bg-gray-200 text-gray-800';
+    const visibilityBadgeClass = visibility === 'private'
+        ? 'bg-white text-gray-900'
+        : 'bg-green-200 text-green-900';
+    const workspaceName = workspace?.name ?? 'Workspace';
+    const docSummaryCards = [
+        {
+            icon: '📝',
+            title: 'Word Count',
+            value: wordCount.toLocaleString(),
+            helper: `${characterCount.toLocaleString()} characters`
+        },
+        {
+            icon: '🧭',
+            title: 'Doc Context',
+            value: `${estimatedReadMinutes} min read`,
+            helper: tags.length
+                ? `Tags: ${displayedTags.join(', ')}${extraTagCount ? ` +${extraTagCount}` : ''}`
+                : 'Add tags to guide AI'
+        },
+        {
+            icon: '🤝',
+            title: 'Collaboration',
+            value: collaboratorCount ? `${collaboratorCount} active` : 'Solo draft',
+            helper: docStatusLabel
+        }
+    ];
+    const fontFamilyOptions = [
+        { id: 'system', label: 'System Sans', stack: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', isDefault: true },
+        { id: 'inter', label: 'Inter', stack: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' },
+        { id: 'roboto', label: 'Roboto', stack: 'Roboto, "Helvetica Neue", Arial, sans-serif' },
+        { id: 'space-grotesk', label: 'Space Grotesk', stack: '"Space Grotesk", "Helvetica Neue", Arial, sans-serif' },
+        { id: 'ibm-plex', label: 'IBM Plex Sans', stack: '"IBM Plex Sans", "Helvetica Neue", Arial, sans-serif' },
+        { id: 'source-serif', label: 'Source Serif Pro', stack: '"Source Serif Pro", Georgia, serif' },
+        { id: 'merriweather', label: 'Merriweather', stack: 'Merriweather, Georgia, serif' },
+        { id: 'playfair', label: 'Playfair Display', stack: '"Playfair Display", Georgia, serif' },
+        { id: 'dm-sans', label: 'DM Sans', stack: '"DM Sans", "Helvetica Neue", Arial, sans-serif' },
+        { id: 'courier-prime', label: 'Courier Prime', stack: '"Courier Prime", "Courier New", monospace' }
+    ];
+    const fontSizeOptions = ['11px', '12px', '13px', '14px', '15px', '16px', '17px', '18px', '20px', '22px', '24px', '28px', '32px'];
+    const lineSpacingOptions = [
+        { label: 'Compact', value: 1.35 },
+        { label: 'Editorial', value: 1.5 },
+        { label: 'Comfort', value: 1.65 },
+        { label: 'Roomy', value: 1.85 },
+        { label: 'Wide', value: 2.05 }
+    ];
+    const resolveFontFamilyId = (fontAttr?: string | null) => {
+        if (!fontAttr) return 'system';
+        const exact = fontFamilyOptions.find((option) => option.stack === fontAttr);
+        if (exact) return exact.id;
+        const loose = fontFamilyOptions.find((option) => option.stack.startsWith(fontAttr));
+        return loose ? loose.id : 'system';
+    };
+    const getFontStackById = (id: string) => fontFamilyOptions.find((option) => option.id === id)?.stack;
+    const zoomOptions = [90, 100, 110, 125, 150];
+    const inchInPx = 96;
+    const zoomScale = zoomLevel / 100;
+    const pageWidthPx = 8.5 * inchInPx * zoomScale;
+    const pageHeightPx = 11 * inchInPx * zoomScale;
+    const marginPx = 1 * inchInPx * zoomScale;
+    const wordsPerPage = 520;
+    const totalPages = Math.max(1, Math.ceil(Math.max(1, wordCount) / wordsPerPage));
+    const displayedPreviewCount = Math.min(totalPages, 6);
+    const rulerInterval = zoomLevel >= 140 ? 0.25 : zoomLevel >= 120 ? 0.5 : 1;
+    const rulerTicks = useMemo(() => {
+        const ticks: number[] = [];
+        const width = 8.5;
+        for (let position = 0; position <= width + 0.001; position += rulerInterval) {
+            ticks.push(Number(position.toFixed(2)));
+        }
+        return ticks;
+    }, [rulerInterval]);
+    const paragraphSpacing = useMemo(() => Number(Math.max(0.85, lineSpacing * 0.72).toFixed(2)), [lineSpacing]);
+    const showInlineAIFab = inlineAISuggestion.visible && !isFocusMode;
+    const filteredTemplates = useMemo(() => {
+        const query = templateSearch.trim().toLowerCase();
+        if (!query) return GTM_TEMPLATES;
+        return GTM_TEMPLATES.filter((template) =>
+            template.name.toLowerCase().includes(query) ||
+            template.description.toLowerCase().includes(query)
+        );
+    }, [templateSearch]);
+    const pageGapPx = 48;
+    const handleScrollToPage = useCallback((pageNumber: number) => {
+        if (!canvasScrollRef.current) return;
+        const target = Math.max(0, (pageNumber - 1) * (pageHeightPx + pageGapPx));
+        canvasScrollRef.current.scrollTo({ top: target, behavior: 'smooth' });
+    }, [pageHeightPx]);
+
+    useEffect(() => {
+        if (!editor) {
+            setPagePreviews([]);
+            return;
+        }
+        const rawText = editor.getText?.() ?? '';
+        if (!rawText.trim()) {
+            setPagePreviews([]);
+            return;
+        }
+        const words = rawText.trim().split(/\s+/);
+        const previews: string[] = [];
+        for (let page = 0; page < totalPages; page++) {
+            const start = page * wordsPerPage;
+            if (start >= words.length) break;
+            const snippet = words.slice(start, start + 40).join(' ');
+            previews.push(snippet);
+        }
+        setPagePreviews(previews);
+    }, [editor, totalPages, wordCount]);
+
+    useEffect(() => {
+        if (!editor || typeof window === 'undefined') return;
+        const handleSelectionUpdate = () => {
+            const { view, state } = editor;
+            if (!view || !state) return;
+            const { from, to } = state.selection;
+            if (from === to) {
+                setInlineAISuggestion((current) => current.visible ? { ...current, visible: false } : current);
+                return;
+            }
+            try {
+                const coords = view.coordsAtPos(Math.min(to, view.state.doc.content.size));
+                setInlineAISuggestion({
+                    visible: true,
+                    top: coords.top + window.scrollY - 36,
+                    left: coords.left + window.scrollX,
+                    text: state.doc.textBetween(from, to).slice(0, 120)
+                });
+            } catch (error) {
+                setInlineAISuggestion((current) => current.visible ? { ...current, visible: false } : current);
+            }
+        };
+        const handleBlur = () => {
+            setInlineAISuggestion((current) => current.visible ? { ...current, visible: false } : current);
+        };
+        editor.on('selectionUpdate', handleSelectionUpdate);
+        editor.on('blur', handleBlur);
+        return () => {
+            editor.off('selectionUpdate', handleSelectionUpdate);
+            editor.off('blur', handleBlur);
+        };
+    }, [editor]);
+    const workspaceBackdrop = isFocusMode
+        ? undefined
+        : ({ backgroundImage: 'linear-gradient(120deg, #fffdf3 0%, #fef3c7 35%, #e0f2fe 100%)' } as React.CSSProperties);
+
     if (isLoading) {
         return (
-            <div className="h-full flex items-center justify-center">
-                <p className="text-gray-500">Loading document...</p>
+            <div className="h-full flex items-center justify-center bg-[#fffdf3]">
+                <div className="px-6 py-4 border-4 border-black rounded-3xl shadow-neo-sm bg-white text-gray-700 font-mono text-sm">
+                    Loading your GTM doc...
+                </div>
             </div>
         );
     }
 
+    const currentFontFamilyAttr = editor ? editor.getAttributes('textStyle').fontFamily : undefined;
+    const currentFontFamilyId = resolveFontFamilyId(currentFontFamilyAttr);
+    const currentFontSizeValue = editor ? (editor.getAttributes('textStyle').fontSize || 'default') : 'default';
+
     return (
-        <div className="h-full flex flex-col">
-            {/* Header */}
-            <div className="p-2 lg:p-4 border-b-2 border-black bg-white flex flex-col lg:flex-row items-stretch lg:items-center gap-2 lg:gap-0 lg:justify-between">
-                <div className="flex items-center gap-2 lg:gap-3 flex-1">
-                    <button
-                        onClick={onClose}
-                        className="px-2 lg:px-3 py-1 text-sm lg:text-base bg-white border-2 border-black font-bold hover:bg-gray-100 transition-colors min-w-[60px]"
-                        aria-label="Close editor"
-                    >
-                        ← Back
-                    </button>
-                    <input
-                        type="text"
-                        id="doc-title-input"
-                        name="docTitle"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        className="flex-1 px-2 lg:px-3 py-1 lg:py-2 text-base lg:text-xl font-bold border-2 border-black"
-                        placeholder="Document title..."
-                        aria-label="Document title"
-                    />
-                </div>
-                <button
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="lg:ml-3 px-4 lg:px-6 py-2 min-h-[44px] bg-yellow-400 text-black font-bold border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    aria-label={isSaving ? 'Saving...' : 'Save document'}
-                >
-                    {isSaving ? 'Saving...' : 'Save'}
-                </button>
-            </div>
-
-            {/* Main Content */}
-            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-                {/* Editor Area */}
-                <div className="flex-1 overflow-y-auto flex flex-col">
-                    {/* Hamburger Toolbar Menu */}
-                    {editor && (
-                        <div className="sticky top-0 z-10 bg-white border-b-2 border-black p-2">
-                            <div className="flex items-center justify-between flex-wrap gap-2">
-                                <div className="relative" ref={toolbarMenuRef}>
-                                    <button 
-                                        onClick={() => setShowToolbarMenu(!showToolbarMenu)}
-                                        className="px-4 py-2 text-sm font-bold border-2 border-black bg-white hover:bg-yellow-300 flex items-center gap-2"
-                                        title="Formatting Tools"
-                                    >
-                                        <span className="text-lg">☰</span>
-                                        <span>Format</span>
-                                    </button>
-                                    
-                                    {showToolbarMenu && (
-                                        <div className="absolute top-full mt-1 left-0 bg-white border-2 border-black shadow-lg z-30 min-w-[280px] max-h-[70vh] overflow-y-auto">
-                                            {/* Font Family Section */}
-                                            <div className="border-b-2 border-black p-2">
-                                                <div className="text-xs font-bold mb-2 text-gray-600">FONT FAMILY</div>
-                                                <select
-                                                    id="font-family-select"
-                                                    name="fontFamily"
-                                                    onChange={(e) => {
-                                                        if (e.target.value === 'unset') {
-                                                            editor.chain().focus().unsetFontFamily().run();
-                                                        } else {
-                                                            editor.chain().focus().setFontFamily(e.target.value).run();
-                                                        }
-                                                    }}
-                                                    className="w-full px-2 py-2 text-sm border-2 border-black font-bold"
-                                                    value={editor.getAttributes('textStyle').fontFamily || ''}
-                                                    aria-label="Select font family"
-                                                >
-                                                    <option value="">Default (Inter)</option>
-                                                    <option value="unset">Remove Font</option>
-                                                    <option value="Arial, sans-serif" style={{ fontFamily: 'Arial, sans-serif' }}>Arial</option>
-                                                    <option value="'Times New Roman', serif" style={{ fontFamily: 'Times New Roman, serif' }}>Times New Roman</option>
-                                                    <option value="Georgia, serif" style={{ fontFamily: 'Georgia, serif' }}>Georgia</option>
-                                                    <option value="'Courier New', monospace" style={{ fontFamily: 'Courier New, monospace' }}>Courier New</option>
-                                                    <option value="Verdana, sans-serif" style={{ fontFamily: 'Verdana, sans-serif' }}>Verdana</option>
-                                                    <option value="Helvetica, sans-serif" style={{ fontFamily: 'Helvetica, sans-serif' }}>Helvetica</option>
-                                                    <option value="'Comic Sans MS', cursive" style={{ fontFamily: 'Comic Sans MS, cursive' }}>Comic Sans</option>
-                                                    <option value="Impact, sans-serif" style={{ fontFamily: 'Impact, sans-serif' }}>Impact</option>
-                                                    <option value="'Trebuchet MS', sans-serif" style={{ fontFamily: 'Trebuchet MS, sans-serif' }}>Trebuchet</option>
-                                                    <option value="'Palatino Linotype', serif" style={{ fontFamily: 'Palatino Linotype, serif' }}>Palatino</option>
-                                                    <option value="Garamond, serif" style={{ fontFamily: 'Garamond, serif' }}>Garamond</option>
-                                                    <option value="'Brush Script MT', cursive" style={{ fontFamily: 'Brush Script MT, cursive' }}>Brush Script</option>
-                                                </select>
-                                            </div>
-
-                                            {/* Font Size Section */}
-                                            <div className="border-b-2 border-black p-2">
-                                                <div className="text-xs font-bold mb-2 text-gray-600">FONT SIZE</div>
-                                                <select
-                                                    id="font-size-select"
-                                                    name="fontSize"
-                                                    onChange={(e) => {
-                                                        if (e.target.value === 'unset') {
-                                                            editor.chain().focus().unsetFontSize().run();
-                                                        } else {
-                                                            editor.chain().focus().setFontSize(e.target.value).run();
-                                                        }
-                                                    }}
-                                                    className="w-full px-2 py-2 text-sm border-2 border-black font-bold"
-                                                    value={editor.getAttributes('textStyle').fontSize || ''}
-                                                    aria-label="Select font size"
-                                                >
-                                                    <option value="">Default (16px)</option>
-                                                    <option value="unset">Remove Size</option>
-                                                    <option value="10px">Tiny (10px)</option>
-                                                    <option value="12px">Small (12px)</option>
-                                                    <option value="14px">Normal (14px)</option>
-                                                    <option value="16px">Medium (16px)</option>
-                                                    <option value="18px">Large (18px)</option>
-                                                    <option value="20px">XL (20px)</option>
-                                                    <option value="24px">XXL (24px)</option>
-                                                    <option value="28px">Huge (28px)</option>
-                                                    <option value="32px">Massive (32px)</option>
-                                                    <option value="36px">Giant (36px)</option>
-                                                    <option value="48px">Gigantic (48px)</option>
-                                                    <option value="64px">Colossal (64px)</option>
-                                                </select>
-                                            </div>
-
-                                            {/* Text Formatting Section */}
-                                            <div className="border-b-2 border-black p-2">
-                                                <div className="text-xs font-bold mb-2 text-gray-600">TEXT FORMATTING</div>
-                                                <div className="grid grid-cols-4 gap-1">
-                                                    <button onClick={() => { editor.chain().focus().toggleBold().run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive('bold') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Bold"><strong>B</strong></button>
-                                                    <button onClick={() => { editor.chain().focus().toggleItalic().run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive('italic') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Italic"><em>I</em></button>
-                                                    <button onClick={() => { editor.chain().focus().toggleUnderline().run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive('underline') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Underline"><u>U</u></button>
-                                                    <button onClick={() => { editor.chain().focus().toggleStrike().run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive('strike') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Strikethrough"><s>S</s></button>
-                                                    <button onClick={() => { editor.chain().focus().toggleSubscript().run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive('subscript') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Subscript">X₂</button>
-                                                    <button onClick={() => { editor.chain().focus().toggleSuperscript().run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive('superscript') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Superscript">X²</button>
-                                                </div>
-                                            </div>
-                                            
-                                            {/* Colors Section - Advanced Color Picker */}
-                                            <div className="border-b-2 border-black p-2">
-                                                <div className="text-xs font-bold mb-2 text-gray-600">COLORS</div>
-                                                
-                                                {/* Text Color Picker */}
-                                                <div className="mb-3">
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <span className="text-xs font-medium">Text Color</span>
-                                                        <button 
-                                                            onClick={() => setShowAdvancedColorPicker(!showAdvancedColorPicker)}
-                                                            className="flex items-center gap-2 px-3 py-1 text-xs font-bold border-2 border-black bg-white hover:bg-gray-100"
-                                                        >
-                                                            <div 
-                                                                className="w-5 h-5 border-2 border-black" 
-                                                                style={{ backgroundColor: selectedColor }}
-                                                            />
-                                                            {showAdvancedColorPicker ? 'Close' : 'Pick Color'}
-                                                        </button>
-                                                    </div>
-                                                    {showAdvancedColorPicker && (
-                                                        <div className="mb-2">
-                                                            <HexColorPicker 
-                                                                color={selectedColor} 
-                                                                onChange={(color) => {
-                                                                    setSelectedColor(color);
-                                                                    editor.chain().focus().setColor(color).run();
-                                                                }}
-                                                                style={{ width: '100%', height: '150px' }}
-                                                            />
-                                                            <input
-                                                                type="text"
-                                                                id="text-color-hex"
-                                                                name="textColorHex"
-                                                                value={selectedColor}
-                                                                onChange={(e) => {
-                                                                    setSelectedColor(e.target.value);
-                                                                    if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
-                                                                        editor.chain().focus().setColor(e.target.value).run();
-                                                                    }
-                                                                }}
-                                                                className="w-full mt-2 px-2 py-1 text-sm border-2 border-black font-mono"
-                                                                placeholder="#000000"
-                                                                aria-label="Text color hex code"
-                                                            />
-                                                        </div>
-                                                    )}
-                                                    <div className="flex gap-1">
-                                                        <button 
-                                                            onClick={() => editor.chain().focus().unsetColor().run()}
-                                                            className="flex-1 px-2 py-1 text-xs font-bold border-2 border-black bg-white hover:bg-gray-100"
-                                                        >
-                                                            Clear Color
-                                                        </button>
-                                                    </div>
-                                                </div>
-
-                                                {/* Highlight Color Picker */}
-                                                <div>
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <span className="text-xs font-medium">Highlight</span>
-                                                        <button 
-                                                            onClick={() => setShowAdvancedHighlightPicker(!showAdvancedHighlightPicker)}
-                                                            className="flex items-center gap-2 px-3 py-1 text-xs font-bold border-2 border-black bg-white hover:bg-gray-100"
-                                                        >
-                                                            <div 
-                                                                className="w-5 h-5 border-2 border-black" 
-                                                                style={{ backgroundColor: selectedHighlight }}
-                                                            />
-                                                            {showAdvancedHighlightPicker ? 'Close' : 'Pick Color'}
-                                                        </button>
-                                                    </div>
-                                                    {showAdvancedHighlightPicker && (
-                                                        <div className="mb-2">
-                                                            <HexColorPicker 
-                                                                color={selectedHighlight} 
-                                                                onChange={(color) => {
-                                                                    setSelectedHighlight(color);
-                                                                    editor.chain().focus().toggleHighlight({ color }).run();
-                                                                }}
-                                                                style={{ width: '100%', height: '150px' }}
-                                                            />
-                                                            <input
-                                                                type="text"
-                                                                id="highlight-color-hex"
-                                                                name="highlightColorHex"
-                                                                value={selectedHighlight}
-                                                                onChange={(e) => {
-                                                                    setSelectedHighlight(e.target.value);
-                                                                    if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
-                                                                        editor.chain().focus().toggleHighlight({ color: e.target.value }).run();
-                                                                    }
-                                                                }}
-                                                                className="w-full mt-2 px-2 py-1 text-sm border-2 border-black font-mono"
-                                                                placeholder="#FFFF00"
-                                                                aria-label="Highlight color hex code"
-                                                            />
-                                                        </div>
-                                                    )}
-                                                    <div className="flex gap-1">
-                                                        <button 
-                                                            onClick={() => editor.chain().focus().unsetHighlight().run()}
-                                                            className="flex-1 px-2 py-1 text-xs font-bold border-2 border-black bg-white hover:bg-gray-100"
-                                                        >
-                                                            Clear Highlight
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            {/* Headings Section */}
-                                            <div className="border-b-2 border-black p-2">
-                                                <div className="text-xs font-bold mb-2 text-gray-600">HEADINGS</div>
-                                                <div className="flex flex-col gap-1">
-                                                    <button onClick={() => { editor.chain().focus().toggleHeading({ level: 1 }).run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-left font-bold border-2 border-black ${editor.isActive('heading', { level: 1 }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`}>Heading 1</button>
-                                                    <button onClick={() => { editor.chain().focus().toggleHeading({ level: 2 }).run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-left font-bold border-2 border-black ${editor.isActive('heading', { level: 2 }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`}>Heading 2</button>
-                                                    <button onClick={() => { editor.chain().focus().toggleHeading({ level: 3 }).run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-left font-bold border-2 border-black ${editor.isActive('heading', { level: 3 }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`}>Heading 3</button>
-                                                </div>
-                                            </div>
-                                            
-                                            {/* Alignment Section */}
-                                            <div className="border-b-2 border-black p-2">
-                                                <div className="text-xs font-bold mb-2 text-gray-600">ALIGNMENT</div>
-                                                <div className="grid grid-cols-4 gap-1">
-                                                    <button onClick={() => { 
-                                                        if (editor.isActive('resizableImage')) {
-                                                            editor.chain().focus().updateAttributes('resizableImage', { alignment: 'left' }).run();
-                                                        } else {
-                                                            editor.chain().focus().setTextAlign('left').run();
-                                                        }
-                                                        setShowToolbarMenu(false);
-                                                    }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive({ textAlign: 'left' }) || editor.isActive('resizableImage', { alignment: 'left' }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Left">⬅</button>
-                                                    <button onClick={() => { 
-                                                        if (editor.isActive('resizableImage')) {
-                                                            editor.chain().focus().updateAttributes('resizableImage', { alignment: 'center' }).run();
-                                                        } else {
-                                                            editor.chain().focus().setTextAlign('center').run();
-                                                        }
-                                                        setShowToolbarMenu(false);
-                                                    }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive({ textAlign: 'center' }) || editor.isActive('resizableImage', { alignment: 'center' }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Center">↔</button>
-                                                    <button onClick={() => { 
-                                                        if (editor.isActive('resizableImage')) {
-                                                            editor.chain().focus().updateAttributes('resizableImage', { alignment: 'right' }).run();
-                                                        } else {
-                                                            editor.chain().focus().setTextAlign('right').run();
-                                                        }
-                                                        setShowToolbarMenu(false);
-                                                    }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive({ textAlign: 'right' }) || editor.isActive('resizableImage', { alignment: 'right' }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Right">➡</button>
-                                                    <button onClick={() => { editor.chain().focus().setTextAlign('justify').run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-sm font-bold border-2 border-black ${editor.isActive({ textAlign: 'justify' }) ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`} title="Justify" disabled={editor.isActive('resizableImage')}>≡</button>
-                                                </div>
-                                            </div>
-                                            
-                                            {/* Lists Section */}
-                                            <div className="border-b-2 border-black p-2">
-                                                <div className="text-xs font-bold mb-2 text-gray-600">LISTS</div>
-                                                <div className="flex flex-col gap-1">
-                                                    <button onClick={() => { editor.chain().focus().toggleBulletList().run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-left font-bold border-2 border-black ${editor.isActive('bulletList') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`}>• Bullet List</button>
-                                                    <button onClick={() => { editor.chain().focus().toggleOrderedList().run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-left font-bold border-2 border-black ${editor.isActive('orderedList') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`}>1. Numbered List</button>
-                                                    <button onClick={() => { editor.chain().focus().toggleTaskList().run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-left font-bold border-2 border-black ${editor.isActive('taskList') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`}>☑ Task List</button>
-                                                </div>
-                                            </div>
-                                            
-                                            {/* Blocks Section */}
-                                            <div className="border-b-2 border-black p-2">
-                                                <div className="text-xs font-bold mb-2 text-gray-600">BLOCKS</div>
-                                                <div className="flex flex-col gap-1">
-                                                    <button onClick={() => { editor.chain().focus().toggleBlockquote().run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-left font-bold border-2 border-black ${editor.isActive('blockquote') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`}>" Quote</button>
-                                                    <button onClick={() => { editor.chain().focus().toggleCodeBlock().run(); setShowToolbarMenu(false); }} className={`px-3 py-2 text-left font-bold border-2 border-black ${editor.isActive('codeBlock') ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'}`}>{'</>'} Code Block</button>
-                                                    <button onClick={() => { editor.chain().focus().setHorizontalRule().run(); setShowToolbarMenu(false); }} className="px-3 py-2 text-left font-bold border-2 border-black bg-white hover:bg-gray-100">─ Horizontal Rule</button>
-                                                    <button 
-                                                        onClick={() => { editor.chain().focus().setPageBreak().run(); setShowToolbarMenu(false); }} 
-                                                        className="px-3 py-2 text-left font-bold border-2 border-black bg-white hover:bg-gray-100"
-                                                        title="Insert Page Break (Cmd/Ctrl+Enter)"
-                                                    >
-                                                        ⊟ Page Break
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            
-                                            {/* Table Section */}
-                                            <div className="border-b-2 border-black p-2">
-                                                <div className="text-xs font-bold mb-2 text-gray-600">TABLE</div>
-                                                <button onClick={() => { editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(); setShowToolbarMenu(false); }} className="w-full px-3 py-2 text-left font-bold border-2 border-black bg-white hover:bg-gray-100 mb-1">⊞ Insert Table</button>
-                                                {editor.isActive('table') && (
-                                                    <div className="flex flex-col gap-1">
-                                                        <button onClick={() => { editor.chain().focus().addColumnBefore().run(); setShowToolbarMenu(false); }} className="px-3 py-2 text-left text-xs border-2 border-black bg-white hover:bg-gray-100">+Col Before</button>
-                                                        <button onClick={() => { editor.chain().focus().addColumnAfter().run(); setShowToolbarMenu(false); }} className="px-3 py-2 text-left text-xs border-2 border-black bg-white hover:bg-gray-100">+Col After</button>
-                                                        <button onClick={() => { editor.chain().focus().deleteColumn().run(); setShowToolbarMenu(false); }} className="px-3 py-2 text-left text-xs border-2 border-black bg-red-100 hover:bg-red-200">-Delete Column</button>
-                                                        <button onClick={() => { editor.chain().focus().addRowBefore().run(); setShowToolbarMenu(false); }} className="px-3 py-2 text-left text-xs border-2 border-black bg-white hover:bg-gray-100">+Row Above</button>
-                                                        <button onClick={() => { editor.chain().focus().addRowAfter().run(); setShowToolbarMenu(false); }} className="px-3 py-2 text-left text-xs border-2 border-black bg-white hover:bg-gray-100">+Row Below</button>
-                                                        <button onClick={() => { editor.chain().focus().deleteRow().run(); setShowToolbarMenu(false); }} className="px-3 py-2 text-left text-xs border-2 border-black bg-red-100 hover:bg-red-200">-Delete Row</button>
-                                                        <button onClick={() => { editor.chain().focus().deleteTable().run(); setShowToolbarMenu(false); }} className="px-3 py-2 text-left text-xs border-2 border-black bg-red-200 hover:bg-red-300">✕ Delete Table</button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            
-                                            {/* Charts & Graphs Section */}
-                                            <div className="border-b-2 border-black p-2">
-                                                <div className="text-xs font-bold mb-2 text-gray-600">CHARTS & GRAPHS</div>
-                                                <button 
-                                                    onClick={() => {
-                                                        setShowChartQuickInsert(true);
-                                                        setShowToolbarMenu(false);
-                                                    }} 
-                                                    className="w-full px-3 py-2 text-left font-bold border-2 border-black bg-blue-50 hover:bg-blue-100"
-                                                >
-                                                    📊 Insert Chart with Template
-                                                </button>
-                                            </div>
-                                            
-                                            {/* Media Section */}
-                                            <div className="border-b-2 border-black p-2">
-                                                <div className="text-xs font-bold mb-2 text-gray-600">MEDIA & INSERT</div>
-                                                <div className="flex flex-col gap-1">
-                                                    {/* Emoji Picker */}
-                                                    <button 
-                                                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                                                        className="px-3 py-2 text-left font-bold border-2 border-black bg-white hover:bg-gray-100"
-                                                    >
-                                                        😀 {showEmojiPicker ? 'Close Emoji Picker' : 'Insert Emoji'}
-                                                    </button>
-                                                    {showEmojiPicker && (
-                                                        <div className="mb-2">
-                                                            <EmojiPicker
-                                                                onEmojiClick={(emojiObject) => {
-                                                                    editor.chain().focus().insertContent(emojiObject.emoji).run();
-                                                                    setShowEmojiPicker(false);
-                                                                }}
-                                                                width="100%"
-                                                                height="300px"
-                                                                searchDisabled={false}
-                                                                skinTonesDisabled={false}
-                                                                previewConfig={{ showPreview: false }}
-                                                            />
-                                                        </div>
-                                                    )}
-                                                    
-                                                    <button onClick={() => {
-                                                        if (editor.isActive('link')) {
-                                                            editor.chain().focus().unsetLink().run();
-                                                            setShowToolbarMenu(false);
-                                                        } else {
-                                                            setShowLinkInput(true);
-                                                            setLinkUrl(editor.getAttributes('link').href || '');
-                                                        }
-                                                    }} className={`px-3 py-2 text-left font-bold border-2 border-black ${editor.isActive('link') ? 'bg-blue-200' : 'bg-white hover:bg-gray-100'}`}>🔗 {editor.isActive('link') ? 'Remove Link' : 'Add Link'}</button>
-                                                    {showLinkInput && (
-                                                        <div className="p-2 bg-gray-50 border-2 border-black">
-                                                            <input type="url" id="link-url-input" name="linkUrl" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://..." className="w-full px-2 py-1 border-2 border-black text-sm mb-1" aria-label="Link URL" />
-                                                            <div className="flex gap-1">
-                                                                <button onClick={() => { if (linkUrl) { editor.chain().focus().setLink({ href: linkUrl }).run(); } setShowLinkInput(false); setLinkUrl(''); setShowToolbarMenu(false); }} className="flex-1 px-2 py-1 bg-green-500 text-white font-bold border-2 border-black text-xs">✓ Add</button>
-                                                                <button onClick={() => { setShowLinkInput(false); setLinkUrl(''); }} className="flex-1 px-2 py-1 bg-red-500 text-white font-bold border-2 border-black text-xs">✕ Cancel</button>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    <button onClick={() => {
-                                                        setShowImageUploadModal(true);
-                                                        setShowToolbarMenu(false);
-                                                    }} className="px-3 py-2 text-left font-bold border-2 border-black bg-white hover:bg-gray-100">🖼 Insert Image</button>
-                                                    <button onClick={() => {
-                                                        const url = window.prompt('Enter YouTube URL:');
-                                                        if (url) { editor.chain().focus().setYoutubeVideo({ src: url }).run(); }
-                                                        setShowToolbarMenu(false);
-                                                    }} className="px-3 py-2 text-left font-bold border-2 border-black bg-white hover:bg-gray-100">📺 Embed Video</button>
-                                                </div>
-                                            </div>
-                                            
-                                            {/* Clear Formatting */}
-                                            <div className="border-b-2 border-black p-2">
-                                                <button onClick={() => { editor.chain().focus().clearNodes().unsetAllMarks().run(); setShowToolbarMenu(false); }} className="w-full px-3 py-2 text-left font-bold border-2 border-black bg-white hover:bg-gray-100">🧹 Clear Formatting</button>
-                                            </div>
-                                            
-                                            {/* Close Button */}
-                                            <div className="p-2 bg-gray-50">
-                                                <button 
-                                                    onClick={() => setShowToolbarMenu(false)} 
-                                                    className="w-full px-3 py-2 text-center font-bold border-2 border-black bg-yellow-400 hover:bg-yellow-500 transition-colors"
-                                                >
-                                                    ✓ Done
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
+        <div
+            className={`h-full flex flex-col ${isFocusMode ? 'fixed inset-0 z-50 bg-white' : ''}`}
+            style={workspaceBackdrop}
+        >
+            {/* Hero Header */}
+            {!isFocusMode && (
+                <div className="bg-white border-b border-gray-200 px-4 lg:px-8 py-5">
+                    <div className="flex flex-col gap-4">
+                        <div className="flex flex-wrap items-center gap-3">
+                            <button
+                                onClick={onClose}
+                                className="flex items-center gap-2 px-3 py-1.5 border border-gray-300 rounded-full text-[11px] font-semibold uppercase tracking-wide hover:bg-gray-100"
+                            >
+                                <CornerUpLeft size={16} />
+                                Back
+                            </button>
+                            <div className="flex items-center gap-3 flex-1 min-w-[280px]">
+                                <div className="w-12 h-12 rounded-2xl border border-gray-200 bg-white flex items-center justify-center text-xl">
+                                    {docTypeIcon}
                                 </div>
-                                
-                                {/* Quick Formatting Toolbar */}
-                                <div className="flex items-center gap-1 flex-wrap">
-                                    {/* Text Style Buttons */}
-                                    <button
-                                        onClick={() => editor.chain().focus().toggleBold().run()}
-                                        className={`px-3 py-2 text-sm font-bold border-2 border-black hover:bg-gray-100 ${editor.isActive('bold') ? 'bg-yellow-300' : 'bg-white'}`}
-                                        title="Bold (Cmd+B)"
-                                    >
-                                        <strong>B</strong>
-                                    </button>
-                                    <button
-                                        onClick={() => editor.chain().focus().toggleItalic().run()}
-                                        className={`px-3 py-2 text-sm font-bold border-2 border-black hover:bg-gray-100 ${editor.isActive('italic') ? 'bg-yellow-300' : 'bg-white'}`}
-                                        title="Italic (Cmd+I)"
-                                    >
-                                        <em>I</em>
-                                    </button>
-                                    <button
-                                        onClick={() => editor.chain().focus().toggleUnderline().run()}
-                                        className={`px-3 py-2 text-sm font-bold border-2 border-black hover:bg-gray-100 ${editor.isActive('underline') ? 'bg-yellow-300' : 'bg-white'}`}
-                                        title="Underline (Cmd+U)"
-                                    >
-                                        <u>U</u>
-                                    </button>
-                                    <button
-                                        onClick={() => editor.chain().focus().toggleStrike().run()}
-                                        className={`px-3 py-2 text-sm font-bold border-2 border-black hover:bg-gray-100 ${editor.isActive('strike') ? 'bg-yellow-300' : 'bg-white'}`}
-                                        title="Strikethrough"
-                                    >
-                                        <s>S</s>
-                                    </button>
-                                    
-                                    <div className="w-px h-6 bg-black mx-1" />
-                                    
-                                    {/* Heading Buttons */}
-                                    <button
-                                        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-                                        className={`px-3 py-2 text-xs font-bold border-2 border-black hover:bg-gray-100 ${editor.isActive('heading', { level: 1 }) ? 'bg-yellow-300' : 'bg-white'}`}
-                                        title="Heading 1"
-                                    >
-                                        H1
-                                    </button>
-                                    <button
-                                        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-                                        className={`px-3 py-2 text-xs font-bold border-2 border-black hover:bg-gray-100 ${editor.isActive('heading', { level: 2 }) ? 'bg-yellow-300' : 'bg-white'}`}
-                                        title="Heading 2"
-                                    >
-                                        H2
-                                    </button>
-                                    <button
-                                        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-                                        className={`px-3 py-2 text-xs font-bold border-2 border-black hover:bg-gray-100 ${editor.isActive('heading', { level: 3 }) ? 'bg-yellow-300' : 'bg-white'}`}
-                                        title="Heading 3"
-                                    >
-                                        H3
-                                    </button>
-                                    
-                                    <div className="w-px h-6 bg-black mx-1" />
-                                    
-                                    {/* List Buttons */}
-                                    <button
-                                        onClick={() => editor.chain().focus().toggleBulletList().run()}
-                                        className={`px-3 py-2 text-sm font-bold border-2 border-black hover:bg-gray-100 ${editor.isActive('bulletList') ? 'bg-yellow-300' : 'bg-white'}`}
-                                        title="Bullet List"
-                                    >
-                                        •
-                                    </button>
-                                    <button
-                                        onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                                        className={`px-3 py-2 text-sm font-bold border-2 border-black hover:bg-gray-100 ${editor.isActive('orderedList') ? 'bg-yellow-300' : 'bg-white'}`}
-                                        title="Numbered List"
-                                    >
-                                        1.
-                                    </button>
-                                    
-                                    <div className="w-px h-6 bg-black mx-1" />
-                                    
-                                    {/* Alignment Buttons */}
-                                    <button
-                                        onClick={() => editor.chain().focus().setTextAlign('left').run()}
-                                        className={`px-3 py-2 text-xs font-bold border-2 border-black hover:bg-gray-100 ${editor.isActive({ textAlign: 'left' }) ? 'bg-yellow-300' : 'bg-white'}`}
-                                        title="Align Left"
-                                    >
-                                        ⬅
-                                    </button>
-                                    <button
-                                        onClick={() => editor.chain().focus().setTextAlign('center').run()}
-                                        className={`px-3 py-2 text-xs font-bold border-2 border-black hover:bg-gray-100 ${editor.isActive({ textAlign: 'center' }) ? 'bg-yellow-300' : 'bg-white'}`}
-                                        title="Align Center"
-                                    >
-                                        ↔
-                                    </button>
-                                    <button
-                                        onClick={() => editor.chain().focus().setTextAlign('right').run()}
-                                        className={`px-3 py-2 text-xs font-bold border-2 border-black hover:bg-gray-100 ${editor.isActive({ textAlign: 'right' }) ? 'bg-yellow-300' : 'bg-white'}`}
-                                        title="Align Right"
-                                    >
-                                        ➡
-                                    </button>
+                                <div className="flex-1 min-w-[200px]">
+                                    <input
+                                        type="text"
+                                        value={title}
+                                        onChange={(e) => setTitle(e.target.value)}
+                                        className="w-full text-2xl font-semibold bg-transparent border-b border-transparent focus:border-gray-400 focus:outline-none focus:ring-0 px-0"
+                                        placeholder="Untitled GTM Doc"
+                                    />
+                                    <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] font-semibold text-gray-600">
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                                            {docTypeIcon} {docTypeLabel}
+                                        </span>
+                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${visibilityBadgeClass}`}>
+                                            {visibility === 'private' ? '🔒 Private' : '👥 Team Share'}
+                                        </span>
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                                            📍 {workspaceName}
+                                        </span>
+                                    </div>
                                 </div>
-                                
-                                {/* AI Assistant Button - Always visible */}
-                                <button 
-                                    onClick={handleOpenAIPalette}
-                                    disabled={!workspaceContext || contextLoading || !!contextError} 
-                                    className="px-4 py-2 text-sm font-bold border-2 border-black bg-purple-500 text-white hover:bg-purple-600 disabled:bg-gray-300 disabled:text-gray-500 relative" 
-                                    title={
-                                        contextError ? `AI unavailable: ${contextError.message}` :
-                                        contextLoading ? 'Loading AI context...' :
-                                        'AI Writing Assistant (Cmd+K)'
-                                    }
+                            </div>
+                            <div className="flex items-center gap-2 ml-auto">
+                                <div className="flex items-center gap-1 text-xs font-semibold text-gray-600">
+                                    <span className={`w-2 h-2 rounded-full ${isSaving ? 'bg-yellow-400' : collabStatus === 'connected' ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                                    {docStatusLabel}
+                                </div>
+                                {activeUsers.length > 0 && (
+                                    <div className="flex -space-x-2">
+                                        {activeUsers.map((user, i) => (
+                                            <div
+                                                key={i}
+                                                className="w-7 h-7 rounded-full bg-blue-500 border-2 border-white flex items-center justify-center text-[10px] text-white"
+                                                title={user.user?.name || 'Collaborator'}
+                                            >
+                                                {(user.user?.name || 'U')[0]}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                <button
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(window.location.href);
+                                        alert('Link copied to clipboard!');
+                                    }}
+                                    className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-full border border-gray-300 hover:bg-gray-100"
                                 >
-                                    {contextLoading ? '⏳' : '🤖'} AI
+                                    <Share2 size={16} /> Share
+                                </button>
+                                <button
+                                    onClick={handleSave}
+                                    disabled={isSaving}
+                                    className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-full ${isSaving ? 'bg-gray-200 text-gray-500' : 'bg-[#1c1b1f] text-white hover:bg-black'}`}
+                                >
+                                    <Save size={16} /> {isSaving ? 'Saving…' : 'Save' }
                                 </button>
                             </div>
                         </div>
-                    )}
-                    
-                    {/* Tiptap Editor Content */}
-                    <div className="flex-1 overflow-y-auto p-3 lg:p-6 bg-white">
-                        <style>{`
-                            /* Page Break Styles */
-                            .ProseMirror .page-break {
-                                margin: 2rem 0;
-                                padding: 1rem 0;
-                                border: none;
-                                border-top: 2px dashed #ccc;
-                                border-bottom: 2px dashed #ccc;
-                                position: relative;
-                                page-break-after: always;
-                                break-after: page;
-                            }
-                            .ProseMirror .page-break::before {
-                                content: '📄 Page Break';
-                                position: absolute;
-                                top: 50%;
-                                left: 50%;
-                                transform: translate(-50%, -50%);
-                                background: white;
-                                padding: 0.25rem 0.75rem;
-                                font-size: 0.75rem;
-                                font-weight: bold;
-                                color: #999;
-                                border: 1px solid #ccc;
-                                border-radius: 4px;
-                            }
-                            @media print {
-                                .ProseMirror .page-break {
-                                    border: none;
-                                    margin: 0;
-                                    padding: 0;
-                                }
-                                .ProseMirror .page-break::before {
-                                    display: none;
-                                }
-                            }
-                            
-                            /* Table Styles */
-                            .ProseMirror table {
-                                border-collapse: collapse;
-                                table-layout: fixed;
-                                width: 100%;
-                                margin: 1rem 0;
-                                overflow: hidden;
-                            }
-                            .ProseMirror table td,
-                            .ProseMirror table th {
-                                min-width: 1em;
-                                border: 2px solid #000;
-                                padding: 0.5rem;
-                                vertical-align: top;
-                                box-sizing: border-box;
-                                position: relative;
-                            }
-                            .ProseMirror table th {
-                                background-color: #fef08a;
-                                font-weight: bold;
-                                text-align: left;
-                            }
-                            .ProseMirror table .selectedCell {
-                                background-color: #e0e0e0;
-                            }
-                            
-                            /* Task List Styles */
-                            .ProseMirror ul[data-type="taskList"] {
-                                list-style: none;
-                                padding: 0;
-                            }
-                            .ProseMirror ul[data-type="taskList"] li {
-                                display: flex;
-                                align-items: flex-start;
-                                margin: 0.25rem 0;
-                            }
-                            .ProseMirror ul[data-type="taskList"] li > label {
-                                flex: 0 0 auto;
-                                margin-right: 0.5rem;
-                                user-select: none;
-                            }
-                            .ProseMirror ul[data-type="taskList"] li > div {
-                                flex: 1 1 auto;
-                            }
-                            .ProseMirror ul[data-type="taskList"] input[type="checkbox"] {
-                                width: 1.2rem;
-                                height: 1.2rem;
-                                cursor: pointer;
-                                margin-top: 0.15rem;
-                            }
-                            
-                            /* Image Styles */
-                            .ProseMirror img {
-                                max-width: 100%;
-                                height: auto;
-                                display: block;
-                                margin: 1rem auto;
-                                border: 2px solid #000;
-                            }
-                            
-                            /* Link Styles */
-                            .ProseMirror a {
-                                color: #2563eb;
-                                text-decoration: underline;
-                                cursor: pointer;
-                            }
-                            .ProseMirror a:hover {
-                                color: #1d4ed8;
-                            }
-                            
-                            /* Highlight Styles */
-                            .ProseMirror mark {
-                                padding: 0.125rem 0.25rem;
-                                border-radius: 0.25rem;
-                            }
-                            
-                            /* Focus Styles */
-                            .ProseMirror .has-focus {
-                                border-radius: 4px;
-                                box-shadow: 0 0 0 2px #fef08a;
-                            }
-                            
-                            /* Resizable Image Styles */
-                            .resizable-image-container {
-                                margin: 1rem 0;
-                                text-align: center;
-                            }
-                            .resizable-image-container.align-left {
-                                text-align: left;
-                            }
-                            .resizable-image-container.align-right {
-                                text-align: right;
-                            }
-                            .resizable-image-container.align-center {
-                                text-align: center;
-                            }
-                            .resizable-image-wrapper {
-                                display: inline-block;
-                                position: relative;
-                            }
-                            
-                            /* YouTube Embed Styles */
-                            .ProseMirror iframe[data-youtube-video] {
-                                aspect-ratio: 16 / 9;
-                                width: 100%;
-                                border: 2px solid #000;
-                                margin: 1rem 0;
-                            }
-                            
-                            /* Dropcursor Styles */
-                            .ProseMirror .ProseMirror-dropcursor {
-                                background-color: #000;
-                                width: 4px;
-                            }
-                        `}</style>
-                        <EditorContent 
-                            editor={editor} 
-                            className="h-full min-h-[300px] lg:min-h-[500px] border-2 border-black p-3 lg:p-4 text-base lg:text-base"
-                            onClick={() => {
-                                // Auto-close toolbar menu when clicking into the editor
-                                if (showToolbarMenu) {
-                                    setShowToolbarMenu(false);
-                                }
-                            }}
-                        />
-                        
-                        {/* Character Count Footer */}
-                        {editor && (
-                            <div className="mt-2 px-4 py-2 bg-gray-50 border-2 border-black text-xs text-gray-600 flex justify-between items-center">
-                                <span>
-                                    {editor.storage.characterCount.words()} words • {editor.storage.characterCount.characters()} characters
-                                </span>
-                                <span className="text-xs text-gray-500">
-                                    Typography: Smart quotes, em dashes, © ™ ® symbols enabled
-                                </span>
+
+                        <div className="flex flex-wrap items-center gap-3 justify-between text-xs text-gray-600">
+                            <div className="flex flex-wrap gap-2">
+                                {displayedTags.length ? (
+                                    displayedTags.map((tag) => (
+                                        <span key={tag} className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 font-mono">
+                                            #{tag}
+                                        </span>
+                                    ))
+                                ) : (
+                                    <span className="px-3 py-1 rounded-full border border-dashed border-gray-300 text-gray-500">
+                                        + Add tags for smarter AI prompts
+                                    </span>
+                                )}
+                                {extraTagCount > 0 && (
+                                    <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 font-mono">
+                                        +{extraTagCount} more
+                                    </span>
+                                )}
                             </div>
-                        )}
+                            <div className="flex flex-wrap gap-2">
+                                <button
+                                    onClick={() => setShowDocSettings(true)}
+                                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-full border border-gray-300 hover:bg-gray-100"
+                                >
+                                    <Settings size={14} /> Doc settings
+                                </button>
+                                <button
+                                    onClick={handleSaveToFileLibrary}
+                                    disabled={!docId}
+                                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-full border border-gray-300 hover:bg-gray-100 disabled:opacity-50"
+                                >
+                                    <FilePlus size={14} /> Save to library
+                                </button>
+                                <button
+                                    onClick={() => setShowResearchSidebar(true)}
+                                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-full border border-gray-300 hover:bg-gray-100"
+                                >
+                                    <Globe size={14} /> Research
+                                </button>
+                                <button
+                                    onClick={handleOpenAIPalette}
+                                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-full border border-gray-300 hover:bg-gray-100"
+                                >
+                                    <Sparkles size={14} /> AI Copilot
+                                </button>
+                                <button
+                                    onClick={() => setIsFocusMode(true)}
+                                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-full border border-gray-300 hover:bg-gray-100"
+                                >
+                                    <Maximize2 size={14} /> Focus mode
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowExportMenu(!showExportMenu)}
+                                    className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl border border-gray-300 bg-white hover:bg-gray-50 ${showExportMenu ? 'ring-2 ring-gray-200' : ''}`}
+                                    aria-expanded={showExportMenu}
+                                >
+                                    <Download size={16} /> Export
+                                    <ChevronDownIcon size={16} />
+                                </button>
+                                {showExportMenu && (
+                                    <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-50 w-60 py-2">
+                                        <button onClick={() => { handleExport('pdf'); setShowExportMenu(false); }} className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center gap-2 text-sm">
+                                            <Download size={14} /> PDF (.pdf)
+                                        </button>
+                                        <button onClick={() => { handleExport('markdown'); setShowExportMenu(false); }} className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center gap-2 text-sm">
+                                            <FileText size={14} /> Markdown (.md)
+                                        </button>
+                                        <button onClick={() => { handleExport('html'); setShowExportMenu(false); }} className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center gap-2 text-sm">
+                                            <Layout size={14} /> HTML (.html)
+                                        </button>
+                                        <button onClick={() => { handleExport('text'); setShowExportMenu(false); }} className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center gap-2 text-sm">
+                                            <Type size={14} /> Plain text (.txt)
+                                        </button>
+                                        <div className="mt-2 pt-2 border-t border-gray-100">
+                                            <button
+                                                onClick={() => {
+                                                    setShowExportSettingsModal(true);
+                                                    setShowExportMenu(false);
+                                                }}
+                                                className="w-full px-4 py-2 text-left hover:bg-gray-50 flex flex-col text-sm"
+                                            >
+                                                <span className="inline-flex items-center gap-2 font-semibold">
+                                                    <Settings size={14} /> Advanced PDF settings
+                                                </span>
+                                                <span className="text-xs text-gray-500">Page size, cover page, branding</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => setShowTemplateMenu(true)}
+                                className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl border border-dashed border-gray-300 bg-white hover:bg-gray-50 transition ${showTemplateMenu ? 'shadow-md border-gray-400' : ''}`}
+                            >
+                                <Layout size={16} /> Template shelf
+                                <span className="text-[11px] uppercase tracking-[0.3em] text-gray-400">⌘ + Shift + T</span>
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            {docSummaryCards.map((card) => (
+                                <div key={card.title} className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
+                                    <div className="text-[11px] font-semibold uppercase tracking-widest text-gray-500">
+                                        {card.icon} {card.title}
+                                    </div>
+                                    <div className="text-2xl font-semibold mt-1">{card.value}</div>
+                                    <div className="text-xs text-gray-500 mt-0.5">{card.helper}</div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
-
-                {/* Metadata Sidebar - Collapsible on mobile */}
-                <div className="lg:w-64 w-full border-t-2 lg:border-t-0 lg:border-l-2 border-black bg-gray-50 p-3 lg:p-4 overflow-y-auto max-h-[50vh] lg:max-h-none">
-                    <h3 className="font-black mb-4">Document Settings</h3>
-
-                    {/* Doc Type */}
-                    <div className="mb-4">
-                        <label className="block text-sm font-bold mb-2">Type</label>
-                        <select
-                            value={docType}
-                            onChange={(e) => setDocType(e.target.value as DocType)}
-                            className="w-full px-2 py-2 border-2 border-black font-mono text-sm"
-                            aria-label="Document type"
+            )}
+            {/* Toolbar */}
+            {editor && !isFocusMode && (
+                <div className="sticky top-4 z-20 mx-4 mt-4 bg-white/90 backdrop-blur border-2 border-black px-4 py-2 flex items-center gap-1 flex-wrap shadow-neo-sm rounded-2xl">
+                    {/* Undo/Redo */}
+                    <div className="flex items-center gap-0.5 border-r border-gray-300 pr-2 mr-1">
+                        <button onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} className="p-1.5 rounded hover:bg-gray-200 disabled:opacity-30 text-gray-700"><Undo size={16} /></button>
+                        <button onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} className="p-1.5 rounded hover:bg-gray-200 disabled:opacity-30 text-gray-700"><Redo size={16} /></button>
+                        <button onClick={() => window.print()} className="p-1.5 rounded hover:bg-gray-200 text-gray-700"><Printer size={16} /></button>
+                    </div>
+                    
+                    {/* Text Style */}
+                    <div className="flex items-center gap-1 border-r border-gray-300 pr-2 mr-1">
+                        <select 
+                            className="h-7 px-2 text-sm bg-transparent hover:bg-gray-200 rounded border-none focus:ring-0 cursor-pointer text-gray-700 font-medium"
+                            onChange={(e) => {
+                                if (e.target.value.startsWith('h')) {
+                                    editor.chain().focus().toggleHeading({ level: parseInt(e.target.value.substring(1)) as any }).run();
+                                } else {
+                                    editor.chain().focus().setParagraph().run();
+                                }
+                            }}
+                            value={editor.isActive('heading', { level: 1 }) ? 'h1' : editor.isActive('heading', { level: 2 }) ? 'h2' : editor.isActive('heading', { level: 3 }) ? 'h3' : 'p'}
                         >
-                            {Object.entries(DOC_TYPE_LABELS).map(([type, label]) => (
-                                <option key={type} value={type}>
-                                    {DOC_TYPE_ICONS[type]} {label}
-                                </option>
+                            <option value="p">Normal text</option>
+                            <option value="h1">Heading 1</option>
+                            <option value="h2">Heading 2</option>
+                            <option value="h3">Heading 3</option>
+                        </select>
+                        
+                        <select 
+                            className="h-7 px-2 text-sm bg-transparent hover:bg-gray-200 rounded border-none focus:ring-0 cursor-pointer w-28 text-gray-700"
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                if (value === 'system') {
+                                    editor.chain().focus().unsetFontFamily().run();
+                                } else {
+                                    const stack = getFontStackById(value);
+                                    if (stack) {
+                                        editor.chain().focus().setFontFamily(stack).run();
+                                    }
+                                }
+                            }}
+                            value={currentFontFamilyId}
+                        >
+                            {fontFamilyOptions.map((option) => (
+                                <option key={option.id} value={option.id}>{option.label}</option>
+                            ))}
+                        </select>
+
+                        <select
+                            className="h-7 px-2 text-sm bg-transparent hover:bg-gray-200 rounded border-none focus:ring-0 cursor-pointer w-24 text-gray-700"
+                            value={currentFontSizeValue}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                if (value === 'default') {
+                                    editor.chain().focus().unsetFontSize().run();
+                                } else {
+                                    editor.chain().focus().setFontSize(value).run();
+                                }
+                            }}
+                        >
+                            <option value="default">Font size</option>
+                            {fontSizeOptions.map((size) => (
+                                <option key={size} value={size}>{size}</option>
+                            ))}
+                        </select>
+
+                        <select
+                            className="h-7 px-2 text-sm bg-transparent hover:bg-gray-200 rounded border-none focus:ring-0 cursor-pointer w-28 text-gray-700"
+                            value={lineSpacing.toFixed(2)}
+                            onChange={(e) => setLineSpacing(parseFloat(e.target.value))}
+                        >
+                            {lineSpacingOptions.map((option) => (
+                                <option key={option.value} value={option.value.toString()}>{option.label} ({option.value.toFixed(2)})</option>
                             ))}
                         </select>
                     </div>
 
-                    {/* Visibility */}
-                    <div className="mb-4">
-                        <label className="block text-sm font-bold mb-2">Visibility</label>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => setVisibility('team')}
-                                className={`flex-1 px-2 py-2 text-sm font-bold border-2 border-black ${
-                                    visibility === 'team'
-                                        ? 'bg-black text-white'
-                                        : 'bg-white hover:bg-gray-100'
-                                }`}
-                            >
-                                👥 Team
+                    {/* Formatting */}
+                    <div className="flex items-center gap-0.5 border-r border-gray-300 pr-2 mr-1">
+                        <button onClick={() => editor.chain().focus().toggleBold().run()} className={`p-1.5 rounded hover:bg-gray-200 ${editor.isActive('bold') ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}`}><Bold size={16} /></button>
+                        <button onClick={() => editor.chain().focus().toggleItalic().run()} className={`p-1.5 rounded hover:bg-gray-200 ${editor.isActive('italic') ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}`}><Italic size={16} /></button>
+                        <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={`p-1.5 rounded hover:bg-gray-200 ${editor.isActive('underline') ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}`}><UnderlineIcon size={16} /></button>
+                        <button onClick={() => editor.chain().focus().toggleStrike().run()} className={`p-1.5 rounded hover:bg-gray-200 ${editor.isActive('strike') ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}`}><Strikethrough size={16} /></button>
+                        <button onClick={() => editor.chain().focus().toggleSubscript().run()} className={`p-1.5 rounded hover:bg-gray-200 ${editor.isActive('subscript') ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}`}><SubscriptIcon size={16} /></button>
+                        <button onClick={() => editor.chain().focus().toggleSuperscript().run()} className={`p-1.5 rounded hover:bg-gray-200 ${editor.isActive('superscript') ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}`}><SuperscriptIcon size={16} /></button>
+                        
+                        <div className="relative">
+                            <button onClick={() => setShowAdvancedColorPicker(!showAdvancedColorPicker)} className="p-1.5 rounded hover:bg-gray-200 flex items-center gap-1 text-gray-700">
+                                <Palette size={16} />
+                                <div className="w-3 h-3 border border-gray-300 rounded-sm" style={{ backgroundColor: selectedColor }}></div>
                             </button>
-                            <button
-                                onClick={() => setVisibility('private')}
-                                className={`flex-1 px-2 py-2 text-sm font-bold border-2 border-black ${
-                                    visibility === 'private'
-                                        ? 'bg-black text-white'
-                                        : 'bg-white hover:bg-gray-100'
-                                }`}
-                            >
-                                🔒 Private
-                            </button>
+                            {showAdvancedColorPicker && (
+                                <div className="absolute top-full left-0 mt-1 z-50 bg-white p-2 shadow-xl border border-gray-200 rounded-lg w-48">
+                                    <HexColorPicker color={selectedColor} onChange={(color) => { setSelectedColor(color); editor.chain().focus().setColor(color).run(); }} />
+                                    <button onClick={() => setShowAdvancedColorPicker(false)} className="w-full mt-2 text-xs bg-gray-100 hover:bg-gray-200 py-1 rounded">Close</button>
+                                </div>
+                            )}
                         </div>
-                        <p className="text-xs text-gray-600 mt-1">
-                            {visibility === 'team'
-                                ? 'All workspace members can view'
-                                : 'Only you can view'}
-                        </p>
+                        
+                        <div className="relative">
+                            <button onClick={() => setShowAdvancedHighlightPicker(!showAdvancedHighlightPicker)} className="p-1.5 rounded hover:bg-gray-200 flex items-center gap-1 text-gray-700">
+                                <Highlighter size={16} className={editor.isActive('highlight') ? 'text-yellow-500' : ''} />
+                            </button>
+                            {showAdvancedHighlightPicker && (
+                                <div className="absolute top-full left-0 mt-1 z-50 bg-white p-2 shadow-xl border border-gray-200 rounded-lg w-48">
+                                    <HexColorPicker color={selectedHighlight} onChange={(color) => { setSelectedHighlight(color); editor.chain().focus().toggleHighlight({ color }).run(); }} />
+                                    <button onClick={() => setShowAdvancedHighlightPicker(false)} className="w-full mt-2 text-xs bg-gray-100 hover:bg-gray-200 py-1 rounded">Close</button>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
-                    {/* Tags */}
-                    <div className="mb-4">
-                        <label className="block text-sm font-bold mb-2">Tags</label>
-                        <input
-                            type="text"
-                            id="doc-tags-input"
-                            name="docTags"
-                            placeholder="Add tags (comma separated)"
-                            className="w-full px-2 py-2 border-2 border-black font-mono text-sm"
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    const input = e.currentTarget;
-                                    const newTags = input.value.split(',').map(t => t.trim()).filter(Boolean);
-                                    setTags([...tags, ...newTags]);
-                                    input.value = '';
-                                }
-                            }}
-                            aria-label="Add tags"
-                        />
-                        {tags.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-2">
-                                {tags.map((tag, idx) => (
-                                    <span
-                                        key={idx}
-                                        className="px-2 py-1 text-xs bg-white border border-black"
-                                    >
-                                        {tag}
-                                        <button
-                                            onClick={() => setTags(tags.filter((_, i) => i !== idx))}
-                                            className="ml-1 text-red-600 hover:text-red-800"
-                                            aria-label={`Remove ${tag} tag`}
-                                        >
-                                            ×
-                                        </button>
-                                    </span>
-                                ))}
+                    {/* Alignment & Lists */}
+                    <div className="flex items-center gap-0.5 border-r border-gray-300 pr-2 mr-1">
+                        <button onClick={() => setShowLinkInput(!showLinkInput)} className={`p-1.5 rounded hover:bg-gray-200 ${editor.isActive('link') ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}`}><LinkIcon size={16} /></button>
+                        {showLinkInput && (
+                            <div className="absolute top-full mt-1 bg-white p-2 shadow-lg border border-gray-200 rounded z-50 flex gap-1">
+                                <input type="text" value={linkUrl} onChange={e => setLinkUrl(e.target.value)} className="border rounded px-2 py-1 text-sm" placeholder="https://..." />
+                                <button onClick={() => { if(linkUrl) editor.chain().focus().setLink({ href: linkUrl }).run(); setShowLinkInput(false); }} className="bg-blue-500 text-white px-2 py-1 rounded text-xs">Add</button>
                             </div>
                         )}
-                    </div>
-
-                    {/* Actions */}
-                    <div className="space-y-2 mb-4">
-                        <button
-                            onClick={handleOpenAIPalette}
-                            disabled={!editor || contextLoading || !!contextError}
-                            className="w-full px-3 py-2 bg-purple-500 text-white font-bold border-2 border-black shadow-neo-btn hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                            title={
-                                contextError ? `AI unavailable: ${contextError.message}` :
-                                contextLoading ? 'Loading AI context...' :
-                                'Open AI Writing Assistant'
-                            }
+                        <button onClick={() => setShowImageUploadModal(true)} className="p-1.5 rounded hover:bg-gray-200 text-gray-700"><ImageIcon size={16} /></button>
+                        
+                        <div className="w-px h-4 bg-gray-300 mx-1"></div>
+                        
+                        <button 
+                            onClick={() => {
+                                if (editor.isActive('resizableImage')) {
+                                    editor.chain().focus().updateAttributes('resizableImage', { alignment: 'left' }).run();
+                                } else {
+                                    editor.chain().focus().setTextAlign('left').run();
+                                }
+                            }} 
+                            className={`p-1.5 rounded hover:bg-gray-200 ${editor.isActive({ textAlign: 'left' }) || editor.isActive('resizableImage', { alignment: 'left' }) ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}`}
                         >
-                            {contextLoading ? '⏳ Loading AI...' : '🤖 AI Writing Assistant'}
+                            <AlignLeft size={16} />
                         </button>
+                        <button 
+                            onClick={() => {
+                                if (editor.isActive('resizableImage')) {
+                                    editor.chain().focus().updateAttributes('resizableImage', { alignment: 'center' }).run();
+                                } else {
+                                    editor.chain().focus().setTextAlign('center').run();
+                                }
+                            }} 
+                            className={`p-1.5 rounded hover:bg-gray-200 ${editor.isActive({ textAlign: 'center' }) || editor.isActive('resizableImage', { alignment: 'center' }) ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}`}
+                        >
+                            <AlignCenter size={16} />
+                        </button>
+                        <button 
+                            onClick={() => {
+                                if (editor.isActive('resizableImage')) {
+                                    editor.chain().focus().updateAttributes('resizableImage', { alignment: 'right' }).run();
+                                } else {
+                                    editor.chain().focus().setTextAlign('right').run();
+                                }
+                            }} 
+                            className={`p-1.5 rounded hover:bg-gray-200 ${editor.isActive({ textAlign: 'right' }) || editor.isActive('resizableImage', { alignment: 'right' }) ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}`}
+                        >
+                            <AlignRight size={16} />
+                        </button>
+                        
+                        <div className="w-px h-4 bg-gray-300 mx-1"></div>
+                        
+                        <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={`p-1.5 rounded hover:bg-gray-200 ${editor.isActive('bulletList') ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}`}><List size={16} /></button>
+                        <button onClick={() => editor.chain().focus().toggleOrderedList().run()} className={`p-1.5 rounded hover:bg-gray-200 ${editor.isActive('orderedList') ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}`}><ListOrdered size={16} /></button>
+                        <button onClick={() => editor.chain().focus().toggleTaskList().run()} className={`p-1.5 rounded hover:bg-gray-200 ${editor.isActive('taskList') ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}`}><CheckSquare size={16} /></button>
+                    </div>
+                    
+                    {/* Insert */}
+                    <div className="flex items-center gap-0.5">
+                        <button onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} className="p-1.5 rounded hover:bg-gray-200 text-gray-700"><TableIcon size={16} /></button>
+                        <button onClick={() => editor.chain().focus().setPageBreak().run()} className="p-1.5 rounded hover:bg-gray-200 text-gray-700" title="Page Break"><FilePlus size={16} /></button>
+                        <button onClick={() => {
+                            const url = prompt('Enter YouTube URL');
+                            if (url) editor.chain().focus().setYoutubeVideo({ src: url }).run();
+                        }} className="p-1.5 rounded hover:bg-gray-200 text-gray-700" title="Insert YouTube"><YoutubeIcon size={16} /></button>
+                        <button onClick={() => setShowChartQuickInsert(true)} className="p-1.5 rounded hover:bg-gray-200 text-gray-700" title="Insert Chart"><span className="text-sm">📊</span></button>
+                        <button onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()} className="p-1.5 rounded hover:bg-gray-200 text-gray-700" title="Clear Formatting"><span className="text-xs font-bold">Tx</span></button>
+                    </div>
+                </div>
+            )}
+
+            {/* Focus Mode Exit Button */}
+            {isFocusMode && (
+                <button
+                    onClick={() => setIsFocusMode(false)}
+                    className="fixed top-4 right-4 z-50 px-4 py-2 bg-yellow-300 border-2 border-black shadow-neo-sm rounded-full font-black text-sm hover:-translate-y-0.5 transition-all"
+                >
+                    <Minimize2 size={24} />
+                </button>
+            )}
+
+            {/* Main Content */}
+            <div 
+                className={`flex-1 overflow-hidden relative ${isFocusMode ? 'bg-white' : 'bg-[#f7f7fb]'}`}
+                onContextMenu={(e) => {
+                    if (isFocusMode) {
+                        e.preventDefault();
+                        setContextMenu({ x: e.clientX, y: e.clientY });
+                    }
+                }}
+                onClick={() => setContextMenu(null)}
+            >
+                {!isFocusMode && (
+                    <div
+                        className="absolute inset-0 pointer-events-none"
+                        style={{
+                            backgroundImage:
+                                'radial-gradient(circle at 25% 20%, rgba(148, 163, 184, 0.18), transparent 60%), radial-gradient(circle at 75% 0%, rgba(226, 232, 240, 0.45), transparent 55%)'
+                        }}
+                    />
+                )}
+                {/* Editor Area */}
+                <div ref={canvasScrollRef} className="flex-1 overflow-y-auto w-full flex justify-center px-4 lg:px-12 py-6">
+                    <style>{`
+                        /* Page Break Styles */
+                        .ProseMirror .page-break {
+                            margin: 2rem 0;
+                            padding: 1rem 0;
+                            border: none;
+                            border-top: 2px dashed #ccc;
+                            border-bottom: 2px dashed #ccc;
+                            position: relative;
+                            page-break-after: always;
+                            break-after: page;
+                        }
+                        .ProseMirror .page-break::before {
+                            content: '📄 Page Break';
+                            position: absolute;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                            background: white;
+                            padding: 0.25rem 0.75rem;
+                            font-size: 0.75rem;
+                            font-weight: bold;
+                            color: #999;
+                            border: 1px solid #ccc;
+                            border-radius: 4px;
+                        }
+                        @media print {
+                            .ProseMirror .page-break {
+                                border: none;
+                                margin: 0;
+                                padding: 0;
+                            }
+                            .ProseMirror .page-break::before {
+                                display: none;
+                            }
+                        }
+                        
+                        /* Table Styles */
+                        .ProseMirror table {
+                            border-collapse: collapse;
+                            table-layout: fixed;
+                            width: 100%;
+                            margin: 1rem 0;
+                            overflow: hidden;
+                        }
+                        .ProseMirror table td,
+                        .ProseMirror table th {
+                            min-width: 1em;
+                            border: 1px solid #ced4da;
+                            padding: 0.5rem;
+                            vertical-align: top;
+                            box-sizing: border-box;
+                            position: relative;
+                        }
+                        .ProseMirror table th {
+                            background-color: #f8f9fa;
+                            font-weight: bold;
+                            text-align: left;
+                        }
+                        .ProseMirror table .selectedCell {
+                            background-color: #e9ecef;
+                        }
+                        
+                        /* Task List Styles */
+                        .ProseMirror ul[data-type="taskList"] {
+                            list-style: none;
+                            padding: 0;
+                        }
+                        .ProseMirror ul[data-type="taskList"] li {
+                            display: flex;
+                            align-items: flex-start;
+                            margin: 0.25rem 0;
+                        }
+                        .ProseMirror ul[data-type="taskList"] li > label {
+                            flex: 0 0 auto;
+                            margin-right: 0.5rem;
+                            user-select: none;
+                        }
+                        .ProseMirror ul[data-type="taskList"] li > div {
+                            flex: 1 1 auto;
+                        }
+                        .ProseMirror ul[data-type="taskList"] input[type="checkbox"] {
+                            width: 1.2rem;
+                            height: 1.2rem;
+                            cursor: pointer;
+                            margin-top: 0.15rem;
+                        }
+                        
+                        /* Image Styles */
+                        .ProseMirror img {
+                            max-width: 100%;
+                            height: auto;
+                            display: block;
+                            margin: 1rem auto;
+                        }
+                        
+                        /* Link Styles */
+                        .ProseMirror a {
+                            color: #2563eb;
+                            text-decoration: underline;
+                            cursor: pointer;
+                        }
+                        .ProseMirror a:hover {
+                            color: #1d4ed8;
+                        }
+
+                        /* Citation Styles */
+                        .doc-citation {
+                            font-size: 0.75rem;
+                            vertical-align: super;
+                            margin-left: 0.15rem;
+                        }
+                        .doc-citation a {
+                            color: #4338ca;
+                            text-decoration: none;
+                            font-weight: 600;
+                        }
+                        .doc-citation a:hover {
+                            text-decoration: underline;
+                        }
+
+                        .doc-reference-divider {
+                            margin-top: 2rem;
+                            margin-bottom: 1rem;
+                            border: none;
+                            border-top: 1px solid #e5e7eb;
+                        }
+
+                        .doc-footnote {
+                            font-size: 0.95rem;
+                            color: #475467;
+                            margin-top: 0.5rem;
+                            line-height: 1.5;
+                        }
+                        .doc-footnote a {
+                            color: #2563eb;
+                            text-decoration: underline;
+                        }
+                        
+                        /* Highlight Styles */
+                        .ProseMirror mark {
+                            padding: 0.125rem 0.25rem;
+                            border-radius: 0.25rem;
+                        }
+                        
+                        /* Focus Styles */
+                        .ProseMirror .has-focus {
+                            border-radius: 4px;
+                            box-shadow: 0 0 0 2px #93c5fd;
+                        }
+                        
+                        /* Resizable Image Styles */
+                        .resizable-image-container {
+                            margin: 1rem 0;
+                            text-align: center;
+                        }
+                        .resizable-image-container[data-alignment="left"] {
+                            text-align: left;
+                        }
+                        .resizable-image-container[data-alignment="right"] {
+                            text-align: right;
+                        }
+                        .resizable-image-container[data-alignment="center"] {
+                            text-align: center;
+                        }
+                        .resizable-image-wrapper {
+                            display: inline-block;
+                            position: relative;
+                        }
+                        
+                        /* YouTube Embed Styles */
+                        .ProseMirror iframe[data-youtube-video] {
+                            aspect-ratio: 16 / 9;
+                            width: 100%;
+                            border: none;
+                            margin: 1rem 0;
+                            border-radius: 8px;
+                        }
+                        
+                        /* Dropcursor Styles */
+                        .ProseMirror .ProseMirror-dropcursor {
+                            background-color: #2563eb;
+                            width: 2px;
+                        }
+                        .ProseMirror {
+                            font-family: 'Inter', 'Google Sans', 'Helvetica Neue', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                            font-size: 1.05rem;
+                            line-height: ${lineSpacing};
+                            letter-spacing: 0.01em;
+                            color: #1c1d21;
+                        }
+                        .ProseMirror h1 {
+                            font-size: 2.35rem;
+                            font-weight: 600;
+                            letter-spacing: -0.01em;
+                            margin: 3rem 0 1.25rem;
+                        }
+                        .ProseMirror h2 {
+                            font-size: 1.85rem;
+                            font-weight: 600;
+                            margin: 2.5rem 0 1rem;
+                        }
+                        .ProseMirror h3 {
+                            font-size: 1.35rem;
+                            font-weight: 600;
+                            margin: 2rem 0 0.75rem;
+                        }
+                        .ProseMirror p {
+                            margin: 0 0 ${paragraphSpacing}rem;
+                        }
+                        .ProseMirror blockquote {
+                            border-left: 4px solid #d1d5db;
+                            padding-left: 1rem;
+                            font-style: italic;
+                            color: #475467;
+                        }
+                        .ProseMirror ul,
+                        .ProseMirror ol {
+                            margin: 0 0 ${Math.max(paragraphSpacing - 0.2, 0.8)}rem 1.5rem;
+                        }
+                        .ProseMirror code {
+                            font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+                            font-size: 0.95em;
+                            background: #f1f5f9;
+                            padding: 0.15rem 0.4rem;
+                            border-radius: 0.375rem;
+                        }
+                        .ProseMirror ::selection {
+                            background: rgba(129, 140, 248, 0.45);
+                        }
+                    `}</style>
+
+                    <div className="w-full max-w-[1100px] flex flex-col gap-5">
+                        <div className="flex flex-wrap items-center justify-between text-xs text-gray-600 font-medium px-1">
+                            <div className="flex flex-wrap items-center gap-3">
+                                <span className="uppercase tracking-[0.35em] text-gray-400">Canvas</span>
+                                <span>{wordCount.toLocaleString()} words</span>
+                                <span className="text-gray-300">•</span>
+                                <span>{estimatedReadMinutes} min read</span>
+                                <span className="hidden lg:inline text-gray-300">•</span>
+                                <span className="hidden lg:inline">{characterCount.toLocaleString()} characters</span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-3">
+                                <span>{lastSavedLabel}</span>
+                                <div className="flex items-center gap-1">
+                                    <span className={`w-2 h-2 rounded-full ${collabStatus === 'connected' ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+                                    {collabStatus === 'connected' ? 'Live sync on' : 'Offline editing'}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="rounded-2xl border border-gray-200 bg-white/80 backdrop-blur px-4 py-3 shadow-sm flex flex-wrap items-center gap-3 text-[11px] uppercase tracking-[0.3em] text-gray-500">
+                            <span>Doc width 8.5"</span>
+                            <span className="text-gray-300">•</span>
+                            <span>Margins 1"</span>
+                            <span className="text-gray-300">•</span>
+                            <span>Line height {lineSpacing.toFixed(2)}</span>
+                            <span className="text-gray-300">•</span>
+                            <span>{docTypeLabel}</span>
+                            <div className="flex items-center gap-2 ml-auto tracking-normal text-[10px] text-gray-400">
+                                <span className="uppercase">Zoom</span>
+                                <select
+                                    value={zoomLevel}
+                                    onChange={(e) => setZoomLevel(Number(e.target.value))}
+                                    className="text-[12px] font-semibold text-gray-700 border border-gray-300 rounded-lg px-2 py-1 bg-white"
+                                >
+                                    {zoomOptions.map((option) => (
+                                        <option key={option} value={option}>{option}%</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
                         <div className="relative">
+                            <div className="absolute inset-x-14 -top-8 h-8 rounded-t-2xl border border-gray-200 bg-gradient-to-b from-white via-white to-gray-50 shadow-sm flex items-end px-6 gap-6 overflow-hidden">
+                                {Array.from({ length: 9 }).map((_, idx) => (
+                                    <div key={idx} className="flex-1 relative h-full flex justify-center">
+                                        <span className="absolute -top-4 text-[10px] text-gray-400 font-semibold">{idx}"</span>
+                                        <span className="w-px h-4 bg-gray-300" />
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="flex gap-4">
+                                <div className="hidden xl:flex flex-col items-center pt-10">
+                                    <div className="text-[10px] uppercase tracking-[0.35em] text-gray-400 mb-2">Margin</div>
+                                    <div className="w-12 rounded-2xl border border-gray-200 bg-white shadow-inner overflow-hidden">
+                                        <div
+                                            className="h-full w-full"
+                                            style={{ backgroundImage: 'linear-gradient(#e5e7eb 1px, transparent 1px)', backgroundSize: '100% 16px' }}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="relative flex-1">
+                                    <div className="relative bg-white rounded-[32px] border border-gray-200 shadow-[0_40px_80px_rgba(15,23,42,0.12)] px-10 sm:px-14 py-14 sm:py-16">
+                                        <div className="absolute inset-x-10 top-10 border-b border-dashed border-gray-200 text-[11px] text-gray-400 uppercase tracking-[0.35em] pb-2 flex items-center justify-between pointer-events-none select-none">
+                                            <span>{workspaceName}</span>
+                                            <span>Page 1</span>
+                                        </div>
+                                        <EditorContent 
+                                            editor={editor} 
+                                            className="mt-12 h-full min-h-[900px] focus:outline-none prose prose-lg max-w-none text-[#1c1d21] leading-[1.75]"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="sticky bottom-4 self-end flex flex-wrap items-center gap-3 bg-white/90 border border-gray-200 rounded-full px-5 py-2 text-xs text-gray-600 shadow-lg backdrop-blur">
+                            <span className="font-semibold text-gray-900">{wordCount.toLocaleString()} words</span>
+                            <span className="text-gray-300">•</span>
+                            <span>{estimatedReadMinutes} min read</span>
+                            <span className="text-gray-300">•</span>
+                            <span>{characterCount.toLocaleString()} chars</span>
+                            <span className="text-gray-300">•</span>
+                            <span>{lastSavedLabel}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Template Shelf - Top Floating */}
+            {!isFocusMode && (
+                <div
+                    className={`fixed left-1/2 z-30 w-full max-w-[1200px] px-4 transition-all duration-300 ${showTemplateMenu ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-6 pointer-events-none'}`}
+                    style={{ top: '140px', transform: 'translateX(-50%)' }}
+                    aria-hidden={!showTemplateMenu}
+                >
+                    <div className="rounded-3xl border border-gray-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.25)]">
+                        <div className="flex flex-wrap gap-3 items-center px-5 py-3 border-b border-gray-100">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-gray-800">
+                                <Layout size={16} /> Template Shelf
+                                <span className="text-[11px] uppercase tracking-[0.35em] text-gray-400">⌘ + Shift + T</span>
+                            </div>
+                            <div className="flex-1 min-w-[200px]">
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={templateSearch}
+                                        onChange={(e) => setTemplateSearch(e.target.value)}
+                                        placeholder="Search templates"
+                                        className="w-full rounded-2xl border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200"
+                                    />
+                                    <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2 text-[11px] font-semibold text-gray-500">
+                                {['All', 'Launch', 'Persona', 'Campaign', 'Ops'].map((chip) => (
+                                    <button
+                                        key={chip}
+                                        onClick={() => setTemplateSearch(chip === 'All' ? '' : chip)}
+                                        className={`px-3 py-1 rounded-full border ${templateSearch === chip || (chip === 'All' && !templateSearch) ? 'border-gray-900 text-gray-900 bg-gray-100' : 'border-gray-200 hover:border-gray-400'}`}
+                                    >
+                                        {chip}
+                                    </button>
+                                ))}
+                            </div>
                             <button
-                                onClick={() => setShowTemplateMenu(!showTemplateMenu)}
-                                disabled={!editor}
-                                className="w-full px-3 py-2 bg-blue-500 text-white font-bold border-2 border-black shadow-neo-btn hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center justify-between"
+                                onClick={() => setShowTemplateMenu(false)}
+                                className="p-2 rounded-full hover:bg-gray-100 text-gray-500"
+                                aria-label="Close template shelf"
                             >
-                                <span>📋 Use Template</span>
-                                <span>{showTemplateMenu ? '▲' : '▼'}</span>
+                                <X size={16} />
                             </button>
-                            {showTemplateMenu && editor && (
-                                <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-50 max-h-[400px] overflow-y-auto">
-                                    {GTM_TEMPLATES.map((template) => (
-                                        <button
-                                            key={template.id}
-                                            onClick={() => handleApplyTemplate(template)}
-                                            className="w-full px-3 py-2 text-left text-sm hover:bg-yellow-300 border-b-2 border-black last:border-b-0"
-                                        >
-                                            <div className="font-bold">{template.icon} {template.name}</div>
-                                            <div className="text-xs text-gray-600 mt-1">{template.description}</div>
-                                        </button>
+                        </div>
+                        <div className="px-5 py-4 overflow-hidden">
+                            {filteredTemplates.length === 0 ? (
+                                <div className="text-center text-sm text-gray-500 py-6">
+                                    No templates match that search.
+                                </div>
+                            ) : (
+                                <div className="flex gap-3 overflow-x-auto pb-2">
+                                    {filteredTemplates.slice(0, 40).map((template) => (
+                                        <div key={template.id} className="min-w-[220px] max-w-[240px] flex-shrink-0 border border-gray-200 rounded-2xl p-3 bg-white hover:border-gray-400 transition">
+                                            <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                                                <span className="text-lg">{template.icon}</span>
+                                                <span className="truncate">{template.name}</span>
+                                            </div>
+                                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{template.description}</p>
+                                            <div className="flex items-center justify-between mt-3 text-[11px] text-gray-400">
+                                                <span>GTM Doc</span>
+                                                <button
+                                                    onClick={() => { handleApplyTemplate(template); setShowTemplateMenu(false); }}
+                                                    className="px-3 py-1 text-xs font-semibold rounded-full bg-gray-900 text-white hover:bg-black"
+                                                >
+                                                    Apply
+                                                </button>
+                                            </div>
+                                        </div>
                                     ))}
                                 </div>
                             )}
                         </div>
-                        <button
-                            onClick={handleSaveToFileLibrary}
-                            disabled={!docId || !editor}
-                            className="w-full px-3 py-2 bg-green-500 text-white font-bold border-2 border-black shadow-neo-btn hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-                            title={!docId ? 'Save document first' : 'Save to File Library'}
-                        >
-                            💾 Save to File Library
-                        </button>
-                        <div className="relative">
-                            <button
-                                onClick={() => setShowExportMenu(!showExportMenu)}
-                                disabled={!editor}
-                                className="w-full px-3 py-2 bg-purple-500 text-white font-bold border-2 border-black shadow-neo-btn hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center justify-between"
-                            >
-                                <span>📥 Export Document</span>
-                                <span>{showExportMenu ? '▲' : '▼'}</span>
+                    </div>
+                </div>
+            )}
+
+            {/* Document Settings Modal */}
+            {showDocSettings && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-bold">Document Settings</h3>
+                            <button onClick={() => setShowDocSettings(false)} className="text-gray-500 hover:text-gray-700">
+                                <X size={20} />
                             </button>
-                            {showExportMenu && editor && (
-                                <div className="absolute bottom-full left-0 right-0 mb-1 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] z-50">
+                        </div>
+                        
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Document Type</label>
+                                <select
+                                    value={docType}
+                                    onChange={(e) => setDocType(e.target.value as DocType)}
+                                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                                >
+                                    {Object.entries(DOC_TYPE_LABELS).map(([type, label]) => (
+                                        <option key={type} value={type}>
+                                            {label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Visibility</label>
+                                <div className="flex gap-2">
                                     <button
-                                        onClick={() => { handleExport('markdown'); setShowExportMenu(false); }}
-                                        className="w-full px-3 py-2 text-left text-sm font-bold hover:bg-yellow-300 border-b-2 border-black"
+                                        onClick={() => setVisibility('team')}
+                                        className={`flex-1 px-3 py-2 rounded-md border ${visibility === 'team' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'border-gray-300 hover:bg-gray-50'}`}
                                     >
-                                        📝 Markdown (.md)
+                                        👥 Team
                                     </button>
                                     <button
-                                        onClick={() => { handleExport('pdf'); setShowExportMenu(false); }}
-                                        className="w-full px-3 py-2 text-left text-sm font-bold hover:bg-yellow-300 border-b-2 border-black"
+                                        onClick={() => setVisibility('private')}
+                                        className={`flex-1 px-3 py-2 rounded-md border ${visibility === 'private' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'border-gray-300 hover:bg-gray-50'}`}
                                     >
-                                        📄 PDF (.pdf)
-                                    </button>
-                                    <button
-                                        onClick={() => { handleExport('html'); setShowExportMenu(false); }}
-                                        className="w-full px-3 py-2 text-left text-sm font-bold hover:bg-yellow-300 border-b-2 border-black"
-                                    >
-                                        🌐 HTML (.html)
-                                    </button>
-                                    <button
-                                        onClick={() => { handleExport('text'); setShowExportMenu(false); }}
-                                        className="w-full px-3 py-2 text-left text-sm font-bold hover:bg-yellow-300"
-                                    >
-                                        📋 Plain Text (.txt)
+                                        🔒 Private
                                     </button>
                                 </div>
-                            )}
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
+                                <input
+                                    type="text"
+                                    placeholder="Add tags (comma separated)"
+                                    className="w-full border border-gray-300 rounded-md px-3 py-2"
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            const input = e.currentTarget;
+                                            const newTags = input.value.split(',').map(t => t.trim()).filter(Boolean);
+                                            setTags([...tags, ...newTags]);
+                                            input.value = '';
+                                        }
+                                    }}
+                                />
+                                <div className="flex flex-wrap gap-1 mt-2">
+                                    {tags.map((tag, idx) => (
+                                        <span key={idx} className="px-2 py-1 text-xs bg-gray-100 rounded-full flex items-center gap-1">
+                                            {tag}
+                                            <button onClick={() => setTags(tags.filter((_, i) => i !== idx))} className="text-gray-500 hover:text-red-500">×</button>
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            <div className="pt-4 border-t border-gray-200">
+                                <button
+                                    onClick={handleSaveToFileLibrary}
+                                    disabled={!docId}
+                                    className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    <Save size={16} /> Save to File Library
+                                </button>
+                            </div>
                         </div>
                     </div>
-
-                    {/* AI Quick Info */}
-                    {workspace?.planType !== 'free' && (
-                        <div className="mb-4 p-3 bg-purple-100 border-2 border-purple-400">
-                            <p className="text-xs font-bold mb-2">🤖 AI Writing Assistant</p>
-                            <p className="text-xs text-gray-700">
-                                Click the <strong>🤖 AI</strong> button in the toolbar or press <kbd className="px-1 py-0.5 bg-white border border-gray-400 rounded text-xs font-mono">Cmd+K</kbd> to use AI assistance.
-                            </p>
-                            <p className="text-xs text-gray-600 mt-2">
-                                Select text for quick actions: improve, expand, summarize, or rewrite.
-                            </p>
-                        </div>
-                    )}
                 </div>
-            </div>
+            )}
 
             {/* AI Command Palette */}
             {showAICommandPalette && editor && workspaceContext && (
@@ -1371,6 +1807,9 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                     workspaceContext={workspaceContext}
                     docType={docType}
                     data={data}
+                    docTitle={title}
+                    workspaceName={workspace?.name || null}
+                    tags={tags}
                 />
             )}
 
@@ -1393,6 +1832,311 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                     onClose={() => setShowChartQuickInsert(false)}
                     data={data}
                 />
+            )}
+
+            {/* Export Settings Modal */}
+            {showExportSettingsModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4 py-6">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl p-6 md:p-8 space-y-6">
+                        <div className="flex items-start justify-between gap-6">
+                            <div>
+                                <p className="text-[11px] uppercase tracking-[0.35em] text-gray-400 font-semibold">Export</p>
+                                <h3 className="text-2xl font-bold mt-2">Professional PDF settings</h3>
+                                <p className="text-sm text-gray-600 mt-1">Pick the layout, cover, and branding that matches your investor updates and board-ready docs.</p>
+                            </div>
+                            <button
+                                onClick={() => setShowExportSettingsModal(false)}
+                                className="p-2 rounded-full border border-gray-200 hover:bg-gray-50 text-gray-500"
+                                aria-label="Close export settings"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 space-y-3">
+                            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                    <p className="text-[11px] uppercase tracking-[0.35em] text-gray-400 font-semibold">Workspace presets</p>
+                                    <p className="text-sm text-gray-600">Save investor-ready layouts and reuse them across docs.</p>
+                                </div>
+                                {workspaceDefaultPreset && (
+                                    <span className="text-xs font-semibold text-gray-600">Default: {workspaceDefaultPreset.name}</span>
+                                )}
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {exportPresets.length === 0 ? (
+                                    <span className="text-xs text-gray-500">No presets yet—dial in your layout then save it below.</span>
+                                ) : (
+                                    exportPresets.map((preset) => (
+                                        <button
+                                            key={preset.id}
+                                            type="button"
+                                            onClick={() => handleApplyPreset(preset.id)}
+                                            className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                                                selectedPresetId === preset.id
+                                                    ? 'border-black bg-black text-white shadow-neo-btn'
+                                                    : 'border-gray-300 text-gray-700 hover:border-gray-400'
+                                            }`}
+                                        >
+                                            {preset.name}
+                                            {preset.id === defaultPresetId && <span className="text-amber-400">★</span>}
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                            <form onSubmit={handleCreatePreset} className="flex flex-col gap-2 sm:flex-row">
+                                <input
+                                    type="text"
+                                    value={newPresetName}
+                                    onChange={(event) => setNewPresetName(event.target.value)}
+                                    className="flex-1 rounded-xl border border-dashed border-gray-300 bg-white px-3 py-2 text-sm focus:border-black focus:outline-none"
+                                    placeholder="Preset name (e.g. Board Update)"
+                                />
+                                <button
+                                    type="submit"
+                                    className="rounded-xl bg-black px-4 py-2 text-sm font-semibold text-white shadow-neo-btn disabled:cursor-not-allowed disabled:opacity-50"
+                                    disabled={!newPresetName.trim()}
+                                >
+                                    Save preset
+                                </button>
+                            </form>
+                            {presetFormError && <p className="text-xs text-red-500">{presetFormError}</p>}
+                            {selectedPresetId && exportPresets.some((preset) => preset.id === selectedPresetId) && (
+                                <div className="flex flex-wrap gap-2 text-xs">
+                                    <button
+                                        type="button"
+                                        onClick={handleUpdateSelectedPreset}
+                                        className="rounded-full border border-gray-300 px-3 py-1.5 font-semibold text-gray-700 hover:border-gray-500"
+                                    >
+                                        Update selected preset
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSetDefaultPreset(selectedPresetId)}
+                                        disabled={selectedPresetId === defaultPresetId}
+                                        className="rounded-full border border-gray-300 px-3 py-1.5 font-semibold text-gray-700 hover:border-gray-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        Mark as workspace default
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleDeleteSelectedPreset}
+                                        className="rounded-full border border-red-200 px-3 py-1.5 font-semibold text-red-600 hover:bg-red-50"
+                                    >
+                                        Delete preset
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="grid md:grid-cols-[1.2fr_0.8fr] gap-6">
+                            <div className="space-y-4">
+                                <div className="grid sm:grid-cols-2 gap-4">
+                                    <label className="text-sm font-semibold text-gray-700 flex flex-col gap-1">
+                                        Page size
+                                        <select
+                                            className="mt-1 rounded-xl border-gray-200 shadow-sm focus:border-black focus:ring-black px-3 py-2 text-sm"
+                                            value={exportSettings.pageSize}
+                                            onChange={(e) => handleExportSettingChange('pageSize', e.target.value as ExportSettings['pageSize'])}
+                                        >
+                                            {exportPageSizeOptions.map((option) => (
+                                                <option key={option.value} value={option.value}>{option.label}</option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                    <label className="text-sm font-semibold text-gray-700 flex flex-col gap-1">
+                                        Orientation
+                                        <select
+                                            className="mt-1 rounded-xl border-gray-200 shadow-sm focus:border-black focus:ring-black px-3 py-2 text-sm"
+                                            value={exportSettings.orientation}
+                                            onChange={(e) => handleExportSettingChange('orientation', e.target.value as ExportSettings['orientation'])}
+                                        >
+                                            {exportOrientationOptions.map((option) => (
+                                                <option key={option.value} value={option.value}>{option.label}</option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <div className="grid sm:grid-cols-2 gap-4">
+                                    <label className="text-sm font-semibold text-gray-700 flex flex-col gap-1">
+                                        Margins (pts)
+                                        <input
+                                            type="number"
+                                            min={36}
+                                            max={96}
+                                            step={2}
+                                            value={exportSettings.margin}
+                                            onChange={(e) => handleExportSettingChange('margin', Math.min(120, Math.max(24, Number(e.target.value) || 0)))}
+                                            className="mt-1 rounded-xl border-gray-200 shadow-sm focus:border-black focus:ring-black px-3 py-2 text-sm"
+                                        />
+                                        <span className="text-xs text-gray-500">Higher values leave more white space for headers/footers.</span>
+                                    </label>
+                                    <div className="text-sm font-semibold text-gray-700 flex flex-col gap-2">
+                                        Options
+                                        <label className="inline-flex items-center gap-2 text-sm font-normal text-gray-700">
+                                            <input
+                                                type="checkbox"
+                                                className="rounded border-gray-300 text-black focus:ring-black"
+                                                checked={exportSettings.includeCoverPage}
+                                                onChange={(e) => handleExportSettingChange('includeCoverPage', e.target.checked)}
+                                            />
+                                            Include cover page
+                                        </label>
+                                        <label className="inline-flex items-center gap-2 text-sm font-normal text-gray-700">
+                                            <input
+                                                type="checkbox"
+                                                className="rounded border-gray-300 text-black focus:ring-black"
+                                                checked={exportSettings.includePageNumbers}
+                                                onChange={(e) => handleExportSettingChange('includePageNumbers', e.target.checked)}
+                                            />
+                                            Include page numbers
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div className="grid sm:grid-cols-2 gap-4">
+                                    <label className="text-sm font-semibold text-gray-700 flex flex-col gap-1">
+                                        Cover subtitle
+                                        <input
+                                            type="text"
+                                            value={exportSettings.coverSubtitle}
+                                            onChange={(e) => handleExportSettingChange('coverSubtitle', e.target.value)}
+                                            className="mt-1 rounded-xl border-gray-200 shadow-sm focus:border-black focus:ring-black px-3 py-2 text-sm"
+                                            placeholder="Investor update • Q4"
+                                        />
+                                    </label>
+                                    <label className="text-sm font-semibold text-gray-700 flex flex-col gap-1">
+                                        Cover meta
+                                        <input
+                                            type="text"
+                                            value={exportSettings.coverMeta}
+                                            onChange={(e) => handleExportSettingChange('coverMeta', e.target.value)}
+                                            className="mt-1 rounded-xl border-gray-200 shadow-sm focus:border-black focus:ring-black px-3 py-2 text-sm"
+                                            placeholder="Prepared for Board & Strategic Advisors"
+                                        />
+                                    </label>
+                                </div>
+
+                                <div className="grid sm:grid-cols-[auto_1fr] gap-4 items-center">
+                                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-3">
+                                        Brand color
+                                        <input
+                                            type="color"
+                                            value={exportSettings.brandColor}
+                                            onChange={(e) => handleExportSettingChange('brandColor', e.target.value)}
+                                            className="h-10 w-16 rounded-xl border border-gray-200 cursor-pointer"
+                                        />
+                                    </label>
+                                    <label className="text-sm font-semibold text-gray-700 flex flex-col gap-1">
+                                        Footer note
+                                        <input
+                                            type="text"
+                                            value={exportSettings.footerNote}
+                                            onChange={(e) => handleExportSettingChange('footerNote', e.target.value)}
+                                            className="mt-1 rounded-xl border-gray-200 shadow-sm focus:border-black focus:ring-black px-3 py-2 text-sm"
+                                            placeholder="FounderHQ • setique.com"
+                                        />
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div className="bg-gray-50 border border-dashed border-gray-200 rounded-3xl p-4 flex flex-col gap-4">
+                                <div className="text-xs font-semibold uppercase tracking-[0.35em] text-gray-400">Preview</div>
+                                <div className="bg-white rounded-2xl border border-gray-200 shadow-inner p-5 space-y-3">
+                                    <div
+                                        className="h-2 w-16 rounded-full"
+                                        style={{ backgroundColor: exportSettings.brandColor }}
+                                    ></div>
+                                    <h4 className="text-lg font-semibold text-gray-900">{title || 'Untitled document'}</h4>
+                                    <p className="text-sm text-gray-600">{exportSettings.coverSubtitle}</p>
+                                    <p className="text-xs text-gray-500">{exportSettings.coverMeta}</p>
+                                    <div className="flex flex-wrap gap-2 text-[11px] uppercase tracking-wide text-gray-500">
+                                        <span className="px-2 py-0.5 border border-gray-200 rounded-full">{exportSettings.pageSize.toUpperCase()}</span>
+                                        <span className="px-2 py-0.5 border border-gray-200 rounded-full">{exportSettings.orientation}</span>
+                                        {exportSettings.includeCoverPage && (
+                                            <span className="px-2 py-0.5 border border-gray-200 rounded-full">Cover</span>
+                                        )}
+                                        {exportSettings.includePageNumbers && (
+                                            <span className="px-2 py-0.5 border border-gray-200 rounded-full">Page #</span>
+                                        )}
+                                    </div>
+                                    <div className="text-xs text-gray-400 border-t border-dashed border-gray-200 pt-3">
+                                        {exportSettings.footerNote}
+                                    </div>
+                                </div>
+                                <p className="text-xs text-gray-500">
+                                    Settings apply to PDF exports. Markdown/HTML/Text use their own balanced formatting.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-gray-100">
+                            <button
+                                onClick={handleResetExportSettings}
+                                className="text-sm font-semibold text-gray-600 hover:text-black"
+                            >
+                                Reset to defaults
+                            </button>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowExportSettingsModal(false)}
+                                    className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSaveExportPreferences}
+                                    className="px-5 py-2 rounded-xl bg-black text-white text-sm font-semibold shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+                                >
+                                    Save settings
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Research Sidebar */}
+            <DocResearchSidebar
+                isOpen={showResearchSidebar && !isFocusMode}
+                onClose={() => setShowResearchSidebar(false)}
+                editor={editor}
+                docTitle={title}
+                docTypeLabel={docTypeLabel}
+                workspaceName={workspaceName}
+                tags={tags}
+            />
+
+            {/* Context Menu (Focus Mode) */}
+            {contextMenu && (
+                <div 
+                    className="fixed z-50 bg-white shadow-xl border border-gray-200 rounded-lg p-2 flex flex-col gap-1 min-w-[200px]"
+                    style={{ top: contextMenu.y, left: contextMenu.x }}
+                >
+                    <div className="text-xs font-semibold text-gray-500 px-3 py-1 uppercase">Quick Actions</div>
+                    <button onClick={() => { editor?.chain().focus().toggleBold().run(); setContextMenu(null); }} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded text-sm text-left"><Bold size={14} /> Bold</button>
+                    <button onClick={() => { editor?.chain().focus().toggleItalic().run(); setContextMenu(null); }} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded text-sm text-left"><Italic size={14} /> Italic</button>
+                    <button onClick={() => { editor?.chain().focus().toggleStrike().run(); setContextMenu(null); }} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded text-sm text-left"><Strikethrough size={14} /> Strikethrough</button>
+                    <div className="h-px bg-gray-200 my-1"></div>
+                    <button onClick={() => { handleOpenAIPalette(); setContextMenu(null); }} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded text-sm text-left text-purple-600"><span className="text-lg">✨</span> AI Assistant</button>
+                </div>
+            )}
+
+            {/* Bubble Menu */}
+            {editor && (
+                <BubbleMenu editor={editor}>
+                    <div className="bg-white shadow-xl border border-gray-200 rounded-lg p-1 flex items-center gap-1">
+                        <button onClick={() => editor.chain().focus().toggleBold().run()} className={`p-1.5 rounded hover:bg-gray-100 ${editor.isActive('bold') ? 'text-blue-600 bg-blue-50' : 'text-gray-600'}`}><Bold size={14} /></button>
+                        <button onClick={() => editor.chain().focus().toggleItalic().run()} className={`p-1.5 rounded hover:bg-gray-100 ${editor.isActive('italic') ? 'text-blue-600 bg-blue-50' : 'text-gray-600'}`}><Italic size={14} /></button>
+                        <button onClick={() => editor.chain().focus().toggleStrike().run()} className={`p-1.5 rounded hover:bg-gray-100 ${editor.isActive('strike') ? 'text-blue-600 bg-blue-50' : 'text-gray-600'}`}><Strikethrough size={14} /></button>
+                        <div className="w-px h-4 bg-gray-200 mx-1"></div>
+                        <button onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={`p-1.5 rounded hover:bg-gray-100 ${editor.isActive('heading', { level: 1 }) ? 'text-blue-600 bg-blue-50' : 'text-gray-600'}`}>H1</button>
+                        <button onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={`p-1.5 rounded hover:bg-gray-100 ${editor.isActive('heading', { level: 2 }) ? 'text-blue-600 bg-blue-50' : 'text-gray-600'}`}>H2</button>
+                        <div className="w-px h-4 bg-gray-200 mx-1"></div>
+                        <button onClick={handleOpenAIPalette} className="p-1.5 rounded hover:bg-purple-50 text-purple-600 font-medium text-xs flex items-center gap-1">✨ AI</button>
+                    </div>
+                </BubbleMenu>
             )}
 
         </div>

@@ -278,6 +278,8 @@ export class DataPersistenceAdapter {
       company: string
       priority: Priority
       status: string
+      assignedTo?: string
+      assignedToName?: string
       nextAction?: string
       nextActionDate?: string
       nextActionTime?: string
@@ -298,6 +300,8 @@ export class DataPersistenceAdapter {
       type: collectionToType(collection),
       priority: itemData.priority || 'Medium',
       status: itemData.status || 'Active',
+      assigned_to: itemData.assignedTo || null,
+      assigned_to_name: itemData.assignedToName || null,
       next_action: itemData.nextAction || null,
       next_action_date: itemData.nextActionDate || null,
       next_action_time: itemData.nextActionTime || null,
@@ -485,6 +489,7 @@ export class DataPersistenceAdapter {
         dueDate: itemData.dueDate,
         dueTime: itemData.dueTime,
         assignedTo: itemData.assignedTo,
+  assignedToName: itemData.assignedToName,
         notes: itemData.notes || [],
         // Campaign details
         campaignBudget: itemData.campaignBudget,

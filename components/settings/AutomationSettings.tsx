@@ -60,7 +60,7 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
     // Load preferences on mount
     useEffect(() => {
         loadPreferences();
-    }, [workspaceId]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [workspaceId]);
 
     async function savePreferences() {
         if (!preferences) return;

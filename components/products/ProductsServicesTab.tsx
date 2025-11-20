@@ -5,6 +5,9 @@ import { ProductServiceCard } from './ProductServiceCard';
 import { ProductServiceCreateModal } from './ProductServiceCreateModal';
 import { ProductServiceDetailModal } from './ProductServiceDetailModal';
 import ProductAnalyticsDashboard from './ProductAnalyticsDashboard';
+import { getAiResponse } from '../../services/groqService';
+import { searchWeb } from '../../src/lib/services/youSearchService';
+import { MarketResearchPanel } from './MarketResearchPanel';
 
 interface ProductsServicesTabProps {
     workspaceId: string;
@@ -34,9 +37,111 @@ export function ProductsServicesTab({
     const [statusFilter, setStatusFilter] = useState<ProductServiceStatus | 'all'>('all');
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
+    const [isSmartSearch, setIsSmartSearch] = useState(false);
+    const [smartSearchResults, setSmartSearchResults] = useState<string[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [marketResearchResult, setMarketResearchResult] = useState<string | null>(null);
+    const [showMarketResearch, setShowMarketResearch] = useState(false);
+
+    const handleSmartSearch = async () => {
+        if (!searchTerm.trim()) return;
+        setIsSearching(true);
+        try {
+            // 1. Internal Semantic Search
+            const productList = productsServices.map(p => ({
+                id: p.id,
+                name: p.name,
+                description: p.description,
+                category: p.category,
+                tags: p.tags
+            }));
+
+            const prompt = `
+            I have the following products/services:
+            ${JSON.stringify(productList)}
+
+            The user is searching for: "${searchTerm}"
+
+            Return a JSON array of IDs for the products that best match the user's intent.
+            Example: ["id1", "id2"]
+            Return ONLY the JSON array.
+            `;
+
+            const history: any[] = [{
+                role: 'user',
+                parts: [{ text: prompt }]
+            }];
+            
+            const systemPrompt = "You are a smart search assistant.";
+            
+            const aiResponse = await getAiResponse(history, systemPrompt, false, workspaceId);
+            const text = aiResponse.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const jsonMatch = text.match(/\[[\s\S]*\]/);
+            
+            if (jsonMatch) {
+                const ids = JSON.parse(jsonMatch[0]);
+                setSmartSearchResults(ids);
+            }
+
+            // 2. External Market Research (if requested via specific button or if internal search yields few results)
+            // For now, we'll keep this separate to avoid confusion, but we can trigger it here if needed.
+
+        } catch (e) {
+            console.error("Smart search failed", e);
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    const handleMarketResearch = async () => {
+        if (!searchTerm.trim()) return;
+        setIsSearching(true);
+        setShowMarketResearch(true);
+        setMarketResearchResult(null);
+        
+        try {
+            const searchResults = await searchWeb(searchTerm, 'search');
+            
+            if (searchResults.hits && searchResults.hits.length > 0) {
+                const context = searchResults.hits.map((h: any) => `[${h.title}](${h.url}): ${h.description}`).join('\n\n');
+                
+                const prompt = `
+                The user is researching: "${searchTerm}"
+                
+                Here are the top search results:
+                ${context}
+                
+                Please provide a concise summary of the market information, pricing, and key competitors found.
+                Format as markdown.
+                `;
+                
+                const aiResponse = await getAiResponse(
+                    [{ role: 'user', parts: [{ text: prompt }] }],
+                    "You are a market research assistant.",
+                    false,
+                    workspaceId
+                );
+                
+                setMarketResearchResult(aiResponse.candidates?.[0]?.content?.parts?.[0]?.text || "No analysis generated.");
+            } else {
+                setMarketResearchResult("No online results found.");
+            }
+        } catch (e) {
+            console.error("Market research failed", e);
+            setMarketResearchResult("Failed to perform market research.");
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
     // Filter products based on search and filters
     const filteredProducts = useMemo(() => {
         return productsServices.filter(product => {
+            // Smart Search Override
+            if (isSmartSearch && smartSearchResults.length > 0) {
+                return smartSearchResults.includes(product.id);
+            }
+
             // Search filter
             const matchesSearch = searchTerm === '' || 
                 product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -138,6 +243,16 @@ export function ProductsServicesTab({
                 />
             )}
             
+            {/* Market Research Results */}
+            {showMarketResearch && (
+                <MarketResearchPanel
+                    query={searchTerm || 'Market Research'}
+                    rawReport={marketResearchResult}
+                    isLoading={isSearching && !marketResearchResult}
+                    onClose={() => setShowMarketResearch(false)}
+                />
+            )}
+
             {/* Catalog View */}
             {currentView === 'catalog' && (
             <>
@@ -175,14 +290,53 @@ export function ProductsServicesTab({
             <div className="bg-white border-2 border-black shadow-neo p-4">
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                     {/* Search */}
-                    <div className="md:col-span-2">
-                        <input
-                            type="text"
-                            placeholder="Search products/services..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full px-3 py-2 border-2 border-black focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
+                    <div className="md:col-span-2 flex flex-col gap-2">
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                placeholder={isSmartSearch ? "Describe what you're looking for..." : "Search products/services..."}
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && isSmartSearch) {
+                                        handleSmartSearch();
+                                    }
+                                }}
+                                className="w-full px-3 py-2 border-2 border-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <button
+                                onClick={() => {
+                                    setIsSmartSearch(!isSmartSearch);
+                                    if (!isSmartSearch) {
+                                        setSmartSearchResults([]);
+                                        setShowMarketResearch(false);
+                                    }
+                                }}
+                                className={`px-2 py-1 border-2 border-black font-mono text-xs ${isSmartSearch ? 'bg-purple-600 text-white' : 'bg-gray-100'}`}
+                                title="Toggle AI Features"
+                            >
+                                {isSmartSearch ? '✨ AI' : 'AI'}
+                            </button>
+                        </div>
+                        
+                        {isSmartSearch && (
+                            <div className="flex gap-2 animate-fadeIn">
+                                <button
+                                    onClick={handleSmartSearch}
+                                    disabled={isSearching}
+                                    className="flex-1 px-2 py-1 border-2 border-black bg-black text-white font-mono text-xs hover:bg-gray-800 disabled:opacity-50"
+                                >
+                                    {isSearching ? 'Searching...' : '🔍 Filter My Products'}
+                                </button>
+                                <button
+                                    onClick={handleMarketResearch}
+                                    disabled={isSearching}
+                                    className="flex-1 px-2 py-1 border-2 border-black bg-blue-600 text-white font-mono text-xs hover:bg-blue-700 disabled:opacity-50"
+                                >
+                                    {isSearching ? 'Researching...' : '🌐 Research Online'}
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Category Filter */}

@@ -1,48 +1,36 @@
 import { test, expect } from '@playwright/test';
+import { loginAs } from './utils/auth';
+import { navigateToTab } from './utils/navigation';
 
 test.describe('Team Collaboration', () => {
   test.beforeEach(async ({ page }) => {
-    test.skip(true, 'Auth setup required - needs workspace owner account');
+    await loginAs(page, 'owner');
+    await navigateToTab(page, 'settings');
+    await expect(page.locator('text=Team Members')).toBeVisible();
   });
 
-  test('should open team invite modal', async ({ page }) => {
-    await page.goto('/dashboard');
-    
-    // Click invite button
-    await page.click('button:has-text("Invite"), button[aria-label="Invite team member"]');
-    
-    // Verify modal opens
-    await expect(page.locator('text=Invite Team Member')).toBeVisible();
+  test('should display workspace members list', async ({ page }) => {
+    const membersSection = page.locator('text=Team Members');
+    await expect(membersSection).toBeVisible();
+    await expect(page.getByTestId('open-invite-team-modal')).toBeVisible();
   });
 
-  test('should send team invitation', async ({ page }) => {
-    await page.goto('/dashboard');
-    await page.click('button:has-text("Invite")');
-    
-    // Fill email
-    await page.fill('input[type="email"]', 'newmember@example.com');
-    
-    // Send invite
-    await page.click('button:has-text("Send Invite")');
-    
-    // Verify success message
-    await expect(page.locator('text=Invitation sent')).toBeVisible();
-  });
+  test('should open and close team invite modal', async ({ page }) => {
+    await page.getByTestId('open-invite-team-modal').click();
+    const modal = page.getByTestId('invite-team-modal');
+    await expect(modal).toBeVisible();
 
-  test('should show workspace members', async ({ page }) => {
-    await page.goto('/dashboard');
-    
-    // Navigate to settings
-    await page.click('button:has-text("Settings")');
-    
-    // Check team section
-    await expect(page.locator('text=Workspace Members')).toBeVisible();
+    const inviteEmail = `playwright-invite+${Date.now()}@example.com`;
+    await page.getByTestId('invite-email-input').fill(inviteEmail);
+    await page.getByTestId('invite-role-select').selectOption('member');
+    await page.getByTestId('invite-cancel-button').click();
+    await expect(modal).toBeHidden();
   });
 });
 
-test.describe('RLS Enforcement (E2E)', () => {
+test.describe.skip('RLS Enforcement (E2E)', () => {
   test.beforeEach(async ({ page }) => {
-    test.skip(true, 'Requires multiple test accounts');
+    // Requires multiple test accounts
   });
 
   test('members should only see workspace data', async ({ page }) => {

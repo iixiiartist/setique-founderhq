@@ -166,15 +166,15 @@ export const useQueryDataPersistence = () => {
    */
   const loadDocuments = useCallback(async (options: LoadOptions = {}) => {
     if (!userId || !workspaceId) {
-      return [];
+      return { documents: [] };
     }
 
     try {
       const { data } = await DatabaseService.getDocuments(workspaceId);
-      return data || [];
+      return { documents: data || [] };
     } catch (err) {
       console.error('Error loading documents:', err);
-      return [];
+      return { documents: [] };
     }
   }, [userId, workspaceId]);
 

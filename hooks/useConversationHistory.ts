@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { TabType } from '../constants';
+import type { YouSearchMetadata } from '../src/lib/services/youSearch.types';
 
 // Conversation history structure matching ModuleAssistant's Content format
 interface Part {
@@ -9,9 +10,19 @@ interface Part {
   functionResponse?: { id?: string; name: string; response: any };
 }
 
+export interface ConversationMessageMetadata {
+  webSearch?: YouSearchMetadata;
+}
+
 export interface Content {
   role: 'user' | 'model' | 'tool';
   parts: Part[];
+  metadata?: ConversationMessageMetadata;
+}
+
+export interface AssistantMessagePayload {
+  text: string;
+  metadata?: ConversationMessageMetadata;
 }
 
 interface ConversationMetadata {
@@ -212,11 +223,42 @@ export const useConversationHistory = (context: TabType, workspaceId?: string, u
   }, [storageKey]);
 
   // Export conversation as text
+  const describeWebSearchMetadata = (metadata?: YouSearchMetadata) => {
+    if (!metadata) return '';
+    const parts: string[] = [];
+    if (metadata.provider) {
+      parts.push(metadata.provider);
+    }
+    if (metadata.mode) {
+      parts.push(metadata.mode === 'images' ? 'Image references' : 'Web search');
+    }
+    if (typeof metadata.count === 'number') {
+      parts.push(`${metadata.count} result${metadata.count === 1 ? '' : 's'}`);
+    }
+    if (metadata.durationMs) {
+      parts.push(`${metadata.durationMs}ms`);
+    }
+    if (metadata.fetchedAt) {
+      const fetchedDate = new Date(metadata.fetchedAt);
+      if (!Number.isNaN(fetchedDate.getTime())) {
+        parts.push(`fetched ${fetchedDate.toLocaleString()}`);
+      }
+    }
+
+    const summary = parts.length > 0 ? `Sources: ${parts.join(' • ')}` : '';
+    const queryLine = metadata.query ? `Query: "${metadata.query}"` : '';
+    return [summary, queryLine].filter(Boolean).join('\n');
+  };
+
   const exportAsText = useCallback((): string => {
     return history.map(msg => {
       const role = msg.role === 'user' ? 'You' : msg.role === 'model' ? 'AI' : 'Tool';
       const text = msg.parts.find(p => p.text)?.text || '[No text]';
-      return `${role}: ${text}`;
+      const metadataSummary = describeWebSearchMetadata(msg.metadata?.webSearch);
+      return [
+        `${role}: ${text}`,
+        metadataSummary
+      ].filter(Boolean).join('\n');
     }).join('\n\n');
   }, [history]);
 

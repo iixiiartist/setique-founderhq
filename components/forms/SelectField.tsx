@@ -10,6 +10,7 @@ export interface SelectFieldProps {
   required?: boolean;
   disabled?: boolean;
   className?: string;
+  onChange?: (value: string, event: React.ChangeEvent<HTMLSelectElement>) => void;
 }
 
 export function SelectField({
@@ -21,6 +22,7 @@ export function SelectField({
   required,
   disabled,
   className = '',
+  onChange,
 }: SelectFieldProps) {
   const { control } = useFormContext();
   const {
@@ -56,6 +58,10 @@ export function SelectField({
             : 'border-black focus:border-blue-500'
           }
         `}
+        onChange={(event) => {
+          field.onChange(event);
+          onChange?.(event.target.value, event);
+        }}
       >
         <option value="">{placeholder}</option>
         {options.map((option) => (

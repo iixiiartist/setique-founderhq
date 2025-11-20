@@ -91,7 +91,7 @@ export const InviteTeamMemberModal: React.FC<InviteTeamMemberModalProps> = ({
 
     return (
         <div className="fixed inset-0 flex items-center justify-center z-[100] p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}>
-            <div className="bg-white border-4 border-black shadow-neo-lg max-w-md w-full">
+            <div className="bg-white border-4 border-black shadow-neo-lg max-w-md w-full" data-testid="invite-team-modal">
                 {/* Header */}
                 <div className="bg-blue-500 border-b-4 border-black p-4 flex justify-between items-center">
                     <h2 className="text-xl font-bold text-white">Invite Team Member</h2>
@@ -118,6 +118,7 @@ export const InviteTeamMemberModal: React.FC<InviteTeamMemberModalProps> = ({
                             </label>
                             <input
                                 type="email"
+                                data-testid="invite-email-input"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="w-full px-4 py-2 border-2 border-black font-mono"
@@ -135,6 +136,7 @@ export const InviteTeamMemberModal: React.FC<InviteTeamMemberModalProps> = ({
                             <select
                                 value={role}
                                 onChange={(e) => setRole(e.target.value as 'member' | 'owner')}
+                                data-testid="invite-role-select"
                                 className="w-full px-4 py-2 border-2 border-black font-mono bg-white"
                                 disabled={isLoading}
                             >
@@ -181,6 +183,7 @@ export const InviteTeamMemberModal: React.FC<InviteTeamMemberModalProps> = ({
                             <button
                                 type="button"
                                 onClick={onClose}
+                                data-testid="invite-cancel-button"
                                 className="flex-1 font-mono bg-gray-200 border-2 border-black text-black py-2 px-4 font-semibold shadow-neo-btn transition-all hover:bg-gray-300 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
                                 disabled={isLoading}
                             >
@@ -188,6 +191,7 @@ export const InviteTeamMemberModal: React.FC<InviteTeamMemberModalProps> = ({
                             </button>
                             <button
                                 type="submit"
+                                data-testid="invite-submit-button"
                                 className="flex-1 font-mono bg-blue-600 border-2 border-black text-white py-2 px-4 font-semibold shadow-neo-btn transition-all hover:bg-blue-700 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
                                 disabled={isLoading}
                             >

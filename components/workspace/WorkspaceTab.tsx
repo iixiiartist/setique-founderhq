@@ -39,10 +39,12 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId,
         setReloadKey(prev => prev + 1);
     };
 
+    const isEditorOpen = !!(selectedDoc || isCreatingNew);
+
     return (
         <div className="h-full flex relative">
             {/* Mobile Menu Button */}
-            {(selectedDoc || isCreatingNew) && (
+            {isEditorOpen && (
                 <button
                     onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                     className="lg:hidden fixed top-20 left-4 z-50 p-2 bg-yellow-400 border-2 border-black shadow-neo-btn"
@@ -59,7 +61,8 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId,
                 lg:w-80 w-full lg:relative absolute inset-y-0 left-0 z-40
                 border-r-2 border-black bg-white overflow-y-auto
                 transition-transform duration-300 ease-in-out
-                ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+                ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+                ${!isEditorOpen ? 'lg:translate-x-0' : 'lg:hidden'}
             `}>
                 <DocsList
                     key={reloadKey}

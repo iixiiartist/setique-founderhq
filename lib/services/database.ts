@@ -615,8 +615,7 @@ export class DatabaseService {
     try {
       const { data, error } = await supabase
         .from('documents')
-        .select('id, name, mime_type, module, company_id, contact_id, workspace_id, created_at, updated_at')
-        // Note: uploaded_by and uploaded_by_name columns don't exist yet (need migration)
+        .select('*') // Select all columns including content and uploaded_by info
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false })
         .limit(100) // Limit to 100 most recent documents
@@ -2254,15 +2253,20 @@ export class DatabaseService {
     templateCategory?: string,
     tags?: string[]
   }) {
+    if (!docData.workspaceId || !docData.userId) {
+      logger.error('[Database] Missing required fields for createGTMDoc', { workspaceId: docData.workspaceId, userId: docData.userId });
+      return { data: null, error: new Error('Missing required fields: workspaceId or userId') };
+    }
+
     try {
       const { data, error } = await supabase
         .from('gtm_docs')
         .insert({
           workspace_id: docData.workspaceId,
           owner_id: docData.userId,
-          title: docData.title,
-          doc_type: docData.docType,
-          content_json: docData.contentJson || null,
+          title: docData.title || 'Untitled Document',
+          doc_type: docData.docType || 'brief',
+          content_json: docData.contentJson || {},
           content_plain: docData.contentPlain || '',
           visibility: docData.visibility || 'team',
           is_template: docData.isTemplate || false,
@@ -3250,12 +3254,41 @@ export class DatabaseService {
     try {
       const { data, error } = await supabase
         .from('product_price_history')
-        .select('*')
-        .eq('workspace_id', workspaceId)
-        .order('effective_date', { ascending: false });
+        .select(
+          `id,
+           product_service_id,
+           changed_at,
+           changed_by,
+           old_price,
+           new_price,
+           reason,
+           effective_from,
+           effective_to,
+           product:products_services!inner(id, name, workspace_id)`
+        )
+        .eq('product.workspace_id', workspaceId)
+        .order('changed_at', { ascending: false });
 
       if (error) throw error;
-      return { data, error: null };
+      const normalized = (data || []).map((record: any) => ({
+        id: record.id,
+        productServiceId: record.product_service_id,
+        changedAt: record.changed_at,
+        changedBy: record.changed_by,
+        oldPrice: record.old_price,
+        newPrice: record.new_price,
+        reason: record.reason,
+        effectiveFrom: record.effective_from,
+        effectiveTo: record.effective_to,
+        product: record.product
+          ? {
+              id: record.product.id,
+              name: record.product.name,
+              workspaceId: record.product.workspace_id,
+            }
+          : undefined,
+      }));
+      return { data: normalized, error: null };
     } catch (error) {
       logger.error('Error fetching price history:', error);
       return { data: null, error };
@@ -3265,12 +3298,49 @@ export class DatabaseService {
   static async getProductBundles(workspaceId: string) {
     try {
       const { data, error } = await supabase
-        .from('product_bundles')
-        .select('*')
-        .eq('workspace_id', workspaceId);
+        .from('product_service_bundles')
+        .select(
+          `id,
+           bundle_id,
+           component_id,
+           quantity,
+           discount_percent,
+           is_optional,
+           display_order,
+           bundle:products_services!inner(id, name, workspace_id, category, type),
+           component:products_services!inner(id, name, workspace_id, category, type)`
+        )
+        .eq('bundle.workspace_id', workspaceId);
 
       if (error) throw error;
-      return { data, error: null };
+      const normalized = (data || []).map((record: any) => ({
+        id: record.id,
+        bundleId: record.bundle_id,
+        componentId: record.component_id,
+        quantity: record.quantity,
+        discountPercent: record.discount_percent,
+        isOptional: record.is_optional,
+        displayOrder: record.display_order,
+        bundle: record.bundle
+          ? {
+              id: record.bundle.id,
+              name: record.bundle.name,
+              category: record.bundle.category,
+              type: record.bundle.type,
+              workspaceId: record.bundle.workspace_id,
+            }
+          : undefined,
+        component: record.component
+          ? {
+              id: record.component.id,
+              name: record.component.name,
+              category: record.component.category,
+              type: record.component.type,
+              workspaceId: record.component.workspace_id,
+            }
+          : undefined,
+      }));
+      return { data: normalized, error: null };
     } catch (error) {
       logger.error('Error fetching product bundles:', error);
       return { data: null, error };

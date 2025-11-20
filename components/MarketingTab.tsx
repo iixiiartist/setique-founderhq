@@ -402,4 +402,6 @@ const MarketingTab: React.FC<{
     );
 });
 
+MarketingTab.displayName = 'MarketingTab';
+
 export default MarketingTab;

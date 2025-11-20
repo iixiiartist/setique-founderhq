@@ -5,6 +5,8 @@ import NotesManager from './NotesManager';
 import { TASK_TAG_BG_COLORS } from '../../constants';
 import { AssignmentDropdown } from './AssignmentDropdown';
 import { SubtaskManager } from './SubtaskManager';
+import { searchWeb } from '../../src/lib/services/youSearchService';
+import { getAiResponse } from '../../services/groqService';
 
 interface AccountDetailViewProps {
     item: AnyCrmItem;
@@ -115,6 +117,71 @@ function AccountDetailView({
     
     const editCrmModalTriggerRef = useRef<HTMLButtonElement | null>(null);
     const editTaskModalTriggerRef = useRef<HTMLButtonElement | null>(null);
+
+    const [isEnriching, setIsEnriching] = useState(false);
+
+    const handleEnrich = async () => {
+        setIsEnriching(true);
+        try {
+            const query = `Overview of company ${item.company} ${item.website || ''}`;
+            const searchResults = await searchWeb(query, 'search');
+            
+            if (!searchResults.hits || searchResults.hits.length === 0) {
+                alert('No information found.');
+                setIsEnriching(false);
+                return;
+            }
+
+            const context = searchResults.hits.map((h: any) => `${h.title}: ${h.description}`).join('\n');
+            const prompt = `
+            Based on the following search results for "${item.company}", extract the following information in JSON format:
+            - description: A brief 1-2 sentence summary of what the company does.
+            - website: The official website URL (if found).
+            - linkedin: The LinkedIn company page URL (if found).
+            - twitter: The Twitter/X handle or URL (if found).
+            - industry: The primary industry.
+            - location: Headquarters location.
+
+            Search Results:
+            ${context}
+
+            Return ONLY valid JSON.
+            `;
+
+            const history: any[] = [{
+                role: 'user',
+                parts: [{ text: prompt }]
+            }];
+            
+            const systemPrompt = "You are a helpful assistant that extracts structured data from text.";
+            
+            const aiResponse = await getAiResponse(history, systemPrompt, false);
+            const text = aiResponse.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                const data = JSON.parse(jsonMatch[0]);
+                
+                await actions.updateCrmItem(crmCollection, item.id, {
+                    description: data.description || item.description,
+                    website: data.website || item.website,
+                    linkedin: data.linkedin || item.linkedin,
+                    twitter: data.twitter || item.twitter,
+                    industry: data.industry || item.industry,
+                    location: data.location || item.location,
+                });
+                alert('Enrichment complete!');
+            } else {
+                throw new Error('Failed to parse AI response');
+            }
+
+        } catch (error) {
+            console.error('Enrichment failed:', error);
+            alert('Enrichment failed. See console for details.');
+        } finally {
+            setIsEnriching(false);
+        }
+    };
 
     // Transform workspace members to match AssignmentDropdown's expected format
     const transformedMembers = useMemo(() => 
@@ -252,13 +319,22 @@ function AccountDetailView({
                     <div className="bg-white p-6 border-2 border-black shadow-neo">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-2xl font-bold">Account Info</h2>
-                            <button 
-                                ref={editCrmModalTriggerRef} 
-                                onClick={() => setIsEditing(true)} 
-                                className="font-mono bg-black text-white border-2 border-black cursor-pointer text-xs py-2 px-3 rounded-none font-semibold shadow-neo-btn hover:bg-gray-800 transition-all"
-                            >
-                                Edit
-                            </button>
+                            <div className="flex gap-2">
+                                <button 
+                                    onClick={handleEnrich}
+                                    disabled={isEnriching}
+                                    className="font-mono bg-white text-black border-2 border-black cursor-pointer text-xs py-2 px-3 rounded-none font-semibold shadow-neo-btn hover:bg-gray-100 transition-all disabled:opacity-50"
+                                >
+                                    {isEnriching ? 'Enriching...' : 'Enrich'}
+                                </button>
+                                <button 
+                                    ref={editCrmModalTriggerRef} 
+                                    onClick={() => setIsEditing(true)} 
+                                    className="font-mono bg-black text-white border-2 border-black cursor-pointer text-xs py-2 px-3 rounded-none font-semibold shadow-neo-btn hover:bg-gray-800 transition-all"
+                                >
+                                    Edit
+                                </button>
+                            </div>
                         </div>
                         <div className="space-y-5">
                             {valueDisplay('Primary Contact', item.contacts[0]?.name || 'N/A')}

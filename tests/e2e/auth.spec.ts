@@ -8,25 +8,28 @@ test.describe('Authentication Flow', () => {
     await expect(page).toHaveTitle(/FounderHQ/);
     
     // Check for key landing page elements
-    await expect(page.locator('text=Lightweight GTM Hub')).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: /One GTM Command Center/i })
+    ).toBeVisible();
+    await expect(page.getByRole('link', { name: /Launch FounderHQ/i })).toBeVisible();
   });
 
   test('should navigate to login', async ({ page }) => {
     await page.goto('/');
     
     // Find and click login button
-    const loginButton = page.locator('button:has-text("Log In"), a:has-text("Log In")').first();
+    const loginButton = page.locator('a:has-text("Sign In")').first();
     await loginButton.click();
     
-    // Should show login form or redirect to Supabase auth
-    await expect(page).toHaveURL(/login|auth/);
+    // Should navigate into the authenticated app or auth flow
+    await expect(page).toHaveURL(/(login|auth|app)/);
   });
 
   test('should show signup option', async ({ page }) => {
     await page.goto('/');
     
     // Find signup button
-    const signupButton = page.locator('button:has-text("Sign Up"), a:has-text("Get Started")').first();
+    const signupButton = page.locator('a:has-text("Get Started"), a:has-text("Launch FounderHQ")').first();
     await expect(signupButton).toBeVisible();
   });
 });

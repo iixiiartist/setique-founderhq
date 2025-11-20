@@ -7,7 +7,6 @@
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
-// @ts-ignore
 import { List, type RowComponentProps } from 'react-window';
 import { 
     DndContext, 
@@ -500,6 +499,7 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
                     <div className="flex flex-wrap gap-2">
                         <button
                             onClick={() => setIsCreateModalOpen(true)}
+                            data-testid="open-task-modal-button"
                             className="text-xs font-bold border-2 border-black px-4 py-2 bg-black text-white shadow-neo-btn hover:translate-y-0.5 hover:shadow-none transition-all"
                         >
                             + New task
@@ -639,7 +639,12 @@ function TaskColumn({
     const hasTasks = tasks.length > 0;
 
     return (
-        <section ref={setNodeRef} className="flex flex-col h-full border-2 border-black shadow-neo bg-white">
+        <section
+            ref={setNodeRef}
+            className="flex flex-col h-full border-2 border-black shadow-neo bg-white"
+            data-testid={`task-column-${column.id.toLowerCase()}`}
+            data-task-status={column.id}
+        >
             <div className={`px-4 py-3 border-b-2 border-black ${column.accent}`}>
                 <p className="text-xs font-mono uppercase text-gray-600 font-bold">{column.title}</p>
                 <p className="text-sm text-black font-bold">{tasks.length} task{tasks.length === 1 ? '' : 's'}</p>

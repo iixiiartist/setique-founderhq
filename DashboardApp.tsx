@@ -1760,7 +1760,13 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 // Increment file count and storage usage
                 await DatabaseService.incrementFileCount(workspace.id, fileSizeBytes);
 
-                await reload();
+                // Force reload documents by clearing the loaded tab flag
+                loadedTabsRef.current.delete('documents');
+                
+                // Reload documents immediately
+                const documents = await loadDocuments({ force: true });
+                setData(prev => ({ ...prev, ...documents }));
+                
                 invalidateCache('documents');
                 invalidateCache('documentsMetadata'); // Refresh metadata for AI context
                 handleToast(`"${name}" uploaded successfully.`, 'success');
@@ -2786,7 +2792,13 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             <div className="min-h-screen p-3 sm:p-4 md:p-8">
                 <header role="banner" className="mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
                     <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
-                        <button onClick={() => setIsMenuOpen(true)} aria-label="Open navigation menu" aria-expanded={isMenuOpen} className="shrink-0">
+                        <button
+                            onClick={() => setIsMenuOpen(true)}
+                            aria-label="Open navigation menu"
+                            aria-expanded={isMenuOpen}
+                            className="shrink-0"
+                            data-testid="open-side-menu-button"
+                        >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-6 h-6" aria-hidden="true">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                             </svg>
@@ -2911,18 +2923,65 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 const industry = profile?.industry || 'Not specified';
                 const businessModel = profile?.business_model || profile?.businessModel || 'Not specified';
                 const primaryGoal = profile?.primary_goal || profile?.primaryGoal || 'Not specified';
+                const targetCustomerProfile = profile?.target_customer_profile || profile?.targetCustomerProfile;
+                const marketPositioning = profile?.market_positioning || profile?.marketPositioning;
+                const monetizationModel = profile?.monetization_model || profile?.monetizationModel;
+                const competitiveAdvantages = profile?.competitive_advantages || profile?.competitiveAdvantages || [];
+                const keyDifferentiators = profile?.key_differentiators || profile?.keyDifferentiators || [];
+                const pricingTiers = profile?.pricing_tiers || profile?.pricingTiers || [];
+                const averageDealSize = profile?.average_deal_size || profile?.averageDealSize;
+                const salesCycleDays = profile?.sales_cycle_days || profile?.salesCycleDays;
+                const competitors = profile?.competitors || [];
                 
+                const contextLines = [
+                    `- **Industry:** ${industry}`,
+                    `- **Business Model:** ${businessModel}`,
+                    `- **Primary Goal:** ${primaryGoal}`,
+                ];
+
+                if (targetCustomerProfile) {
+                    contextLines.push(`- **Ideal Customer:** ${targetCustomerProfile}`);
+                }
+                if (marketPositioning) {
+                    contextLines.push(`- **Positioning:** ${marketPositioning}`);
+                }
+                if (monetizationModel) {
+                    contextLines.push(`- **Monetization:** ${monetizationModel}`);
+                }
+                if (averageDealSize) {
+                    contextLines.push(`- **Avg Deal Size:** $${averageDealSize}`);
+                }
+                if (salesCycleDays) {
+                    contextLines.push(`- **Sales Cycle:** ${salesCycleDays} days`);
+                }
+
+                const differentiatorLines = [] as string[];
+                if (competitiveAdvantages?.length) {
+                    differentiatorLines.push(`• Competitive Advantages: ${competitiveAdvantages.join(', ')}`);
+                }
+                if (keyDifferentiators?.length) {
+                    differentiatorLines.push(`• Key Differentiators: ${keyDifferentiators.join(', ')}`);
+                }
+
+                const pricingLines = (pricingTiers || []).slice(0, 3).map((tier: any) => {
+                    const tierName = tier?.name || 'Tier';
+                    const tierPrice = typeof tier?.price === 'number' ? `$${tier.price}` : 'Custom pricing';
+                    const billing = tier?.billingCycle || 'per cycle';
+                    const features = (tier?.features || []).slice(0, 3).join(', ');
+                    return `  • ${tierName}: ${tierPrice}/${billing}${features ? ` – ${features}` : ''}`;
+                });
+
+                const competitorLines = (competitors || []).slice(0, 3).map((name: string) => `  • ${name}`);
+
                 const businessContextStr = businessProfile ? `
 **Business Context: ${companyName}**
-- **Company:** ${companyName}
-- **Industry:** ${industry}
-- **Business Model:** ${businessModel}
-- **Primary Goal:** ${primaryGoal}
-` : `**Business Context:** Not yet configured.`;
+${contextLines.join('\n')}
+
+${differentiatorLines.length ? '**Differentiators:**\n' + differentiatorLines.join('\n') + '\n\n' : ''}${pricingLines.length ? '**Pricing Snapshot:**\n' + pricingLines.join('\n') + '\n\n' : ''}${competitorLines.length ? '**Primary Competitors:**\n' + competitorLines.join('\n') + '\n' : ''}` : `**Business Context:** Not yet configured.`;
                 
                 const teamContextStr = workspaceMembers.length > 0 ? `
 **Team Members (${workspaceMembers.length}):**
-${workspaceMembers.map(member => `- ${member.fullName || member.email || 'Unknown Member'} (${member.email || 'no email'}) - Role: ${member.role}`).join('\n')}
+${workspaceMembers.map(member => `- ${member.fullName || member.email || 'Unknown Member'} (ID: ${member.userId}) - Role: ${member.role}`).join('\n')}
 ` : `**Team:** Working solo (no additional team members in workspace).`;
                 
                 // Build current user context for personalized AI responses

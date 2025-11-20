@@ -22,11 +22,20 @@ interface DocumentUploadModalProps {
     actions: AppActions;
     companies: AnyCrmItem[];
     contacts: (Contact & { companyName: string })[];
+    initialModule?: TabType;
 }
 
-const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({ isOpen, onClose, file, actions, companies, contacts }) => {
+const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
+    isOpen,
+    onClose,
+    file,
+    actions,
+    companies,
+    contacts,
+    initialModule
+}) => {
     const [fileName, setFileName] = useState('');
-    const [selectedModule, setSelectedModule] = useState<TabType>(Tab.Documents);
+    const [selectedModule, setSelectedModule] = useState<TabType>(initialModule || Tab.Documents);
     const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
     const [selectedContactId, setSelectedContactId] = useState<string>('');
     const [isUploading, setIsUploading] = useState(false);
@@ -36,11 +45,17 @@ const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({ isOpen, onClo
         if (file) {
             setFileName(file.name);
             // Reset fields on new file
-            setSelectedModule(Tab.Documents);
+            setSelectedModule(initialModule || Tab.Documents);
             setSelectedCompanyId('');
             setSelectedContactId('');
         }
-    }, [file]);
+    }, [file, initialModule]);
+
+    useEffect(() => {
+        if (!file && initialModule) {
+            setSelectedModule(initialModule);
+        }
+    }, [initialModule, file]);
 
     useEffect(() => {
         // Reset contact if company changes

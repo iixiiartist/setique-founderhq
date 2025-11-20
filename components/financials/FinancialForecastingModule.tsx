@@ -23,7 +23,6 @@ export const FinancialForecastingModule: React.FC = () => {
     if (workspace) {
       loadForecastData();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspace]);
 
   const loadForecastData = async () => {

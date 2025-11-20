@@ -1,211 +1,91 @@
 # End-to-End Testing with Playwright
 
-## Overview
-This directory contains E2E tests for the FounderHQ application using Playwright.
+Realistic FounderHQ flows live under `tests/e2e` and log in with actual Supabase users. The suite now depends on shared helpers (`tests/e2e/utils`) and deterministic seed data so that we can safely run it locally and in CI.
 
-## Setup
+## Prerequisites
 
-### Install Dependencies
-```bash
-npm install
-npx playwright install chromium
-```
+1. **Dependencies**
+   ```bash
+   npm install
+   npx playwright install --with-deps chromium
+   ```
+2. **Seed Supabase fixtures** – run the SQL inside `tests/fixtures/create_test_users.sql` and `tests/fixtures/create_test_workspace.sql`. The scripts are idempotent and will create:
+   - Owner / member / non-member accounts with confirmed passwords
+   - A "Playwright Test Workspace" shared with the owner + member users
+3. **Environment variables** – copy `.env.example` to `.env.local` (or `.env.test`) and fill in:
+   ```bash
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_anon_key
 
-### Environment Setup
-Create `.env.test` with test credentials:
-```bash
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_anon_key
-TEST_USER_EMAIL=test@example.com
-TEST_USER_PASSWORD=testpassword123
-```
+   SUPABASE_TEST_OWNER_EMAIL=test-owner@example.com
+   SUPABASE_TEST_OWNER_PASSWORD=test-password-123
+   SUPABASE_TEST_OWNER_WORKSPACE_ID=<workspace_id_from_fixture>
 
-## Running Tests
+   SUPABASE_TEST_MEMBER_EMAIL=test-member@example.com
+   SUPABASE_TEST_MEMBER_PASSWORD=test-password-123
+   SUPABASE_TEST_MEMBER_WORKSPACE_ID=<workspace_id_from_fixture>
 
-### All Tests
-```bash
-npm run test:e2e
-```
+   SUPABASE_TEST_NON_MEMBER_EMAIL=test-nonmember@example.com
+   SUPABASE_TEST_NON_MEMBER_PASSWORD=test-password-123
+   ```
+   > These credentials are required by both the Playwright helpers and the Vitest RLS suite. Update them anytime you re-seed Supabase.
 
-### Specific Test File
-```bash
-npx playwright test tests/e2e/auth.spec.ts
-```
+4. **App server** – the config expects the dashboard at `http://localhost:3001`. Run `npm run dev` before starting the tests (the Playwright config will automatically reuse the dev server).
 
-### UI Mode (Interactive)
-```bash
-npx playwright test --ui
-```
+## Running the suite
 
-### Debug Mode
-```bash
-npx playwright test --debug
-```
+| Command | When to use |
+| --- | --- |
+| `npm run test:e2e` | Run the entire Playwright suite headlessly |
+| `npx playwright test tests/e2e/tasks.spec.ts` | Target a single spec |
+| `npm run test:e2e:ui` | Visual test runner for local debugging |
+| `npm run test:e2e:debug` | Pause-on-error debugging shell |
+| `npx playwright test --headed` | Temporarily launch the real browser |
+| `npm run test:e2e:report` | Open the most recent HTML/blob report |
 
-### Headed Mode (See Browser)
-```bash
-npx playwright test --headed
-```
+The default reporter configuration mirrors CI: locally you get the `list` reporter plus an interactive HTML dashboard (opened with `npm run test:e2e:report`). In CI we switch to `line + github + blob`, so GitHub Actions shows inline output and uploads a zipped trace that you can replay with `npx playwright show-report blob-report`.
 
-## Test Structure
+## Helpers & authentication
 
-### Authentication Tests (`auth.spec.ts`)
-- Landing page load
-- Login flow
-- Signup flow
-- Protected route access
+- `tests/e2e/utils/auth.ts` exposes `loginAs(page, role)` which signs into the UI as the seeded owner (default) or member. It will throw immediately if the required env vars are missing.
+- `tests/e2e/utils/navigation.ts` provides `openNavigationMenu` and `navigateToTab` utility functions that rely on deterministic `data-testid` attributes throughout the dashboard.
 
-### Task Management (`tasks.spec.ts`)
-- Create task
-- Edit task
-- Delete task
-- Filter tasks
-- Task status updates
+Specs should reuse these helpers instead of duplicating login/form code. Global state (tasks, collaboration, etc.) is cleaned up inside each spec to keep the shared workspace consistent between runs.
 
-### CRM & Marketing (`crm-marketing.spec.ts`)
-- CRM tab navigation
-- Create CRM items (investors, customers, partners)
-- Filter CRM by type
-- Marketing item creation
-- Marketing status workflow
+## Current spec coverage
 
-### Collaboration (`collaboration.spec.ts`)
-- Team invite flow
-- Workspace member management
-- RLS enforcement verification
+| File | Coverage |
+| --- | --- |
+| `auth.spec.ts` | Basic smoke tests around the authentication form (still marked TODO for full coverage) |
+| `tasks.spec.ts` | Creates, filters, and deletes tasks inside the seeded workspace via the UI helpers |
+| `collaboration.spec.ts` | Navigates to the Team tab, verifies members, and exercises the invite modal |
+| `crm-marketing.spec.ts` | Legacy skeleton specs that remain skipped until the CRM board is fully wired for deterministic data |
 
-## Authentication in Tests
+## CI integration
 
-### Current Status
-Tests are currently skipped (`test.skip(true)`) because they require authenticated sessions.
+Add the following step to any pipeline after `npm ci`:
 
-### Implementation Options
-
-#### Option 1: Use Test Credentials
-```typescript
-test.beforeEach(async ({ page }) => {
-  await page.goto('/');
-  await page.fill('input[type="email"]', process.env.TEST_USER_EMAIL);
-  await page.fill('input[type="password"]', process.env.TEST_USER_PASSWORD);
-  await page.click('button[type="submit"]');
-  await page.waitForURL('/dashboard');
-});
-```
-
-#### Option 2: Use Supabase Test Client
-```typescript
-import { createClient } from '@supabase/supabase-js';
-
-test.beforeEach(async ({ page }) => {
-  const supabase = createClient(url, key);
-  const { data } = await supabase.auth.signIn({
-    email: 'test@example.com',
-    password: 'password'
-  });
-  
-  // Set auth token in browser
-  await page.context().addCookies([{
-    name: 'sb-access-token',
-    value: data.session.access_token,
-    domain: 'localhost',
-    path: '/'
-  }]);
-});
-```
-
-#### Option 3: Playwright Auth State
-```typescript
-// global-setup.ts
-import { chromium } from '@playwright/test';
-
-export default async function globalSetup() {
-  const browser = await chromium.launch();
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  
-  // Login
-  await page.goto('http://localhost:3001');
-  await page.fill('input[type="email"]', 'test@example.com');
-  await page.fill('input[type="password"]', 'password');
-  await page.click('button[type="submit"]');
-  
-  // Save auth state
-  await context.storageState({ path: 'playwright/.auth/user.json' });
-  await browser.close();
-}
-```
-
-## CI/CD Integration
-
-### GitHub Actions Example
 ```yaml
-name: E2E Tests
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 20
-      - run: npm ci
-      - run: npx playwright install --with-deps
-      - run: npm run test:e2e
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-      - uses: actions/upload-artifact@v3
-        if: always()
-        with:
-          name: playwright-report
-          path: playwright-report/
+- name: Run Playwright
+  run: npm run test:e2e
+  env:
+    VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+    VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+    SUPABASE_TEST_OWNER_EMAIL: ${{ secrets.SUPABASE_TEST_OWNER_EMAIL }}
+    SUPABASE_TEST_OWNER_PASSWORD: ${{ secrets.SUPABASE_TEST_OWNER_PASSWORD }}
+    SUPABASE_TEST_MEMBER_EMAIL: ${{ secrets.SUPABASE_TEST_MEMBER_EMAIL }}
+    SUPABASE_TEST_MEMBER_PASSWORD: ${{ secrets.SUPABASE_TEST_MEMBER_PASSWORD }}
+    SUPABASE_TEST_NON_MEMBER_EMAIL: ${{ secrets.SUPABASE_TEST_NON_MEMBER_EMAIL }}
+    SUPABASE_TEST_NON_MEMBER_PASSWORD: ${{ secrets.SUPABASE_TEST_NON_MEMBER_PASSWORD }}
 ```
 
-## Best Practices
-
-### Test Data Management
-- Create test-specific workspace for each run
-- Clean up test data after tests complete
-- Use unique identifiers (timestamps) for test items
-
-### Selectors
-- Prefer `data-testid` attributes for stability
-- Use `text=` for user-visible content
-- Avoid CSS selectors that may change
-
-### Assertions
-- Wait for elements before assertions
-- Use `toBeVisible()` for UI elements
-- Check both positive and negative cases
-
-### Performance
-- Run tests in parallel when possible
-- Use `test.describe.serial()` for dependent tests
-- Skip slow tests in CI with `test.slow()`
+Upload `playwright-report` or the generated `blob-report` folder as an artifact so failures can be replayed locally.
 
 ## Troubleshooting
 
-### Tests Timing Out
-- Increase timeout in `playwright.config.ts`
-- Check if dev server is running
-- Verify network requests complete
+- **"Missing Playwright test credentials"** – double-check the `SUPABASE_TEST_*` variables are exported in your shell/session.
+- **Login form never loads** – ensure `npm run dev` successfully started on `localhost:3001` and that `VITE_SUPABASE_*` values point to the same project you seeded.
+- **Stale data between runs** – rerun the SQL fixtures and, if necessary, clean up tasks/marketing items inside Supabase to restore the baseline workspace.
+- **Need to inspect a failure locally** – run `npm run test:e2e:report` to open the latest HTML report, or `npx playwright show-report blob-report` if you downloaded the CI artifact.
 
-### Authentication Failures
-- Check test credentials are correct
-- Verify Supabase URL and keys
-- Check auth session persistence
-
-### Flaky Tests
-- Add explicit waits: `await page.waitForSelector()`
-- Use `waitForLoadState('networkidle')`
-- Check for race conditions in component rendering
-
-## TODO
-- [ ] Implement authentication helper
-- [ ] Add test data fixtures
-- [ ] Setup CI pipeline integration
-- [ ] Add visual regression tests
-- [ ] Add API mocking for offline tests
-- [ ] Add performance testing
+For additional database-level access control tests see `tests/rls`.

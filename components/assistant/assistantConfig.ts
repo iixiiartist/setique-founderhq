@@ -60,17 +60,82 @@ function buildSafeSystemPrompt(
     data: rawContext.data, // data is from database queries, trusted
   });
 
+  // Append Chart Instructions
+  const promptWithCharts = `${prompt}\n\n${CHART_INSTRUCTIONS}`;
+
   // Final validation before return
-  const validation = PromptSanitizer.validateSystemPrompt(prompt);
+  const validation = PromptSanitizer.validateSystemPrompt(promptWithCharts);
   if (!validation.isValid) {
     console.error('[AssistantConfig] Final prompt validation failed:', validation);
     throw new Error('Unable to generate safe prompt. Please contact support.');
   }
 
-  return prompt;
+  return promptWithCharts;
 }
 
 export const ASSISTANT_CONFIGS: AssistantConfig[] = [
+  {
+    tab: Tab.Tasks,
+    title: 'Task Manager AI',
+    icon: '✅',
+    color: 'green',
+    getSystemPrompt: ({ companyName, businessContext, userContext, teamContext, data }) => {
+      // Unified task summary
+      const allTasks = [
+        ...(data.productsServicesTasks || []),
+        ...(data.crmTasks || []), // Unified CRM tasks
+        ...(data.investorTasks || []), // Legacy
+        ...(data.customerTasks || []), // Legacy
+        ...(data.partnerTasks || []), // Legacy
+        ...(data.marketingTasks || []),
+        ...(data.financialTasks || [])
+      ];
+      
+      const taskSummary = {
+        total: allTasks.length,
+        byStatus: allTasks.reduce((acc, t) => { acc[t.status] = (acc[t.status] || 0) + 1; return acc; }, {} as Record<string, number>),
+        byPriority: allTasks.reduce((acc, t) => { acc[t.priority] = (acc[t.priority] || 0) + 1; return acc; }, {} as Record<string, number>),
+        overdue: allTasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'Done').length,
+        today: allTasks.filter(t => t.dueDate === new Date().toISOString().split('T')[0] && t.status !== 'Done').length,
+        recent: allTasks.slice(0, 5).map(t => ({ id: t.id, text: t.text, status: t.status, priority: t.priority }))
+      };
+
+      return `You are an expert task management assistant for ${companyName}.
+
+${businessContext}
+
+${userContext}
+
+${teamContext}
+
+**Reporting Guidelines:**
+When asked for a report, analyze the unified task data.
+- Summarize tasks by status and priority.
+- Highlight overdue tasks and tasks due today.
+- Suggest task prioritization based on deadlines and priority levels.
+
+**Response Accuracy:**
+- Do not make up or hallucinate information.
+- ONLY use the task data provided in the context below.
+
+Your goal is to help organize, prioritize, and track tasks across all areas of the business.
+Use the provided dashboard context to answer questions and call functions to complete tasks.
+Today's date is ${new Date().toISOString().split('T')[0]}.
+
+**Subtasks Feature:**
+- All tasks support subtasks.
+- Suggest breaking down large tasks into subtasks.
+
+Task Summary:
+- Total: ${taskSummary.total}
+- Status: ${JSON.stringify(taskSummary.byStatus)}
+- Priority: ${JSON.stringify(taskSummary.byPriority)}
+- Overdue: ${taskSummary.overdue}, Due Today: ${taskSummary.today}
+Recent: ${JSON.stringify(taskSummary.recent)}
+
+**Note:** Use functions to create, update, or delete tasks.`;
+    },
+  },
   {
     tab: Tab.Accounts,
     title: 'Accounts AI',
@@ -891,3 +956,32 @@ export const getAssistantIcon = (tab: TabType): string => {
   const config = getAssistantConfig(tab);
   return config?.icon || '✨';
 };
+
+const CHART_INSTRUCTIONS = `
+**Charts & Graphs:**
+You can generate charts to visualize data. To do this, output a code block with the language \`json-chart\`.
+The content must be a valid JSON object with the following structure:
+{
+  "type": "bar" | "pie" | "line" | "area",
+  "title": "Chart Title",
+  "data": [{ "name": "Label", "value": 10 }, ...],
+  "dataKey": "value", // The key for the numeric value
+  "nameKey": "name", // The key for the label
+  "colors": ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"], // Optional custom colors
+  "xAxisLabel": "X Axis Label", // Optional
+  "yAxisLabel": "Y Axis Label" // Optional
+}
+
+Example:
+\`\`\`json-chart
+{
+  "type": "pie",
+  "title": "Tasks by Status",
+  "data": [
+    { "name": "Todo", "value": 5 },
+    { "name": "Done", "value": 3 }
+  ],
+  "dataKey": "value"
+}
+\`\`\`
+`;

@@ -605,7 +605,7 @@ describe('DataPersistenceAdapter - Marketing Operations', () => {
       const mockItem = {
         id: 'marketing-123',
         title: 'Launch Campaign',
-        item_type: 'Product Launch',
+        type: 'Product Launch',
         status: 'Planned',
       };
 

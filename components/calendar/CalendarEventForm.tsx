@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { z } from 'zod';
-import { Priority, TaskCollectionName, CrmCollectionName, BaseCrmItem, Contact, WorkspaceMember, Subtask } from '../../types';
+import { Priority, TaskCollectionName, CrmCollectionName, BaseCrmItem, WorkspaceMember, Subtask } from '../../types';
 import { SubtaskManager } from '../shared/SubtaskManager';
 import { Form } from '../forms/Form';
 import { FormField } from '../forms/FormField';
@@ -174,7 +174,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
         try {
             setIsQuickAdding(true);
             setGlobalError(null);
-            const newContactId = await onCreateContact(
+            await onCreateContact(
                 crmCollection,
                 crmItemId,
                 quickAddContactName.trim(),
@@ -235,24 +235,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
             defaultValues={getDefaultValues()}
             onSubmit={handleFormSubmit}
         >
-            {({ formState, watch }) => {
-                // Watch CRM fields to update local state for contact lookup
-                const watchedCrmCollection = watch('crmCollection' as any);
-                const watchedCrmItemId = watch('crmItemId' as any);
-
-                // Sync watched values to local state for contact filtering
-                React.useEffect(() => {
-                    if (watchedCrmCollection && watchedCrmCollection !== crmCollection) {
-                        setCrmCollection(watchedCrmCollection);
-                    }
-                }, [watchedCrmCollection]);
-
-                React.useEffect(() => {
-                    if (watchedCrmItemId && watchedCrmItemId !== crmItemId) {
-                        setCrmItemId(watchedCrmItemId);
-                    }
-                }, [watchedCrmItemId]);
-
+            {({ formState }) => {
                 return (
                     <div className="space-y-4">
                         {/* Global Error */}
@@ -361,6 +344,11 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                                     name="crmCollection"
                                     label="CRM Type"
                                     required
+                                    onChange={(value) => {
+                                        const typedValue = (value || 'investors') as CrmCollectionName;
+                                        setCrmCollection(typedValue);
+                                        setCrmItemId('');
+                                    }}
                                     options={[
                                         { value: 'investors', label: 'Investor' },
                                         { value: 'customers', label: 'Customer' },
@@ -409,6 +397,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                                             name="crmItemId"
                                             label=""
                                             required
+                                            onChange={(value) => setCrmItemId(value)}
                                             options={[
                                                 { value: '', label: '-- Select --' },
                                                 ...(crmItems[crmCollection]?.map(item => ({
@@ -521,12 +510,18 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                                         { value: 'customers', label: 'Customer' },
                                         { value: 'partners', label: 'Partner' },
                                     ]}
+                                    onChange={(value) => {
+                                        const typedValue = (value || 'investors') as CrmCollectionName;
+                                        setCrmCollection(typedValue);
+                                        setCrmItemId('');
+                                    }}
                                 />
 
                                 <SelectField
                                     name="crmItemId"
                                     label={`Select ${crmCollection.slice(0, -1).charAt(0).toUpperCase() + crmCollection.slice(1, -1)}`}
                                     required
+                                    onChange={(value) => setCrmItemId(value)}
                                     options={[
                                         { value: '', label: '-- Select --' },
                                         ...(crmItems[crmCollection]?.map(item => ({

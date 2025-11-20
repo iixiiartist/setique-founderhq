@@ -83,6 +83,14 @@ export interface BaseCrmItem {
     noteCount?: number;
     taskCount?: number;
     documentCount?: number;
+    
+    // Enrichment Fields
+    description?: string;
+    website?: string;
+    linkedin?: string;
+    twitter?: string;
+    industry?: string;
+    location?: string;
 }
 
 // CRM Type discriminator
@@ -291,6 +299,7 @@ export interface ProductPriceHistory {
     reason?: 'promotion' | 'cost_increase' | 'market_adjustment' | 'seasonal' | 'other';
     effectiveFrom?: string;
     effectiveTo?: string;
+    product?: Pick<ProductService, 'id' | 'name' | 'workspaceId'>;
 }
 
 export interface ProductServiceBundle {
@@ -301,6 +310,8 @@ export interface ProductServiceBundle {
     discountPercent?: number;
     isOptional: boolean;
     displayOrder: number;
+    bundle?: Pick<ProductService, 'id' | 'name' | 'category' | 'type' | 'workspaceId'>;
+    component?: Pick<ProductService, 'id' | 'name' | 'category' | 'type' | 'workspaceId'>;
 }
 
 export interface MarketingItem {

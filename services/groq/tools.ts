@@ -37,6 +37,10 @@ const createTaskTool: GroqTool = {
                     type: ['string', 'null'], 
                     description: 'Optional. The due date for the task in YYYY-MM-DD format. Set to null if no due date.' 
                 },
+                dueTime: {
+                    type: ['string', 'null'],
+                    description: 'Optional. The due time for the task in HH:MM format (24-hour). Set to null if no due time.'
+                },
                 assignedTo: { 
                     type: ['string', 'null'], 
                     description: 'Optional. User ID (UUID) of the team member to assign this task to. Set to null or omit if the task should be unassigned. Do NOT use email addresses.' 
@@ -162,7 +166,11 @@ const createCrmItemTool: GroqTool = {
                 stage: { type: 'string', description: 'Optional. Current stage in the pipeline.' },
                 contactPerson: { type: 'string', description: 'Optional. Name of the main contact person.' },
                 email: { type: 'string', description: 'Optional. Email address.' },
-                phone: { type: 'string', description: 'Optional. Phone number.' }
+                phone: { type: 'string', description: 'Optional. Phone number.' },
+                assignedTo: { 
+                    type: ['string', 'null'], 
+                    description: 'Optional. User ID (UUID) of the team member to assign this account to. Set to null or omit if unassigned.' 
+                }
             },
             required: ['collection', 'name']
         }
@@ -582,6 +590,25 @@ const getFileContentTool: GroqTool = {
     }
 };
 
+const createEventTool: GroqTool = {
+    type: 'function',
+    function: {
+        name: 'createEvent',
+        description: 'Creates a new calendar event. This will appear as a task with a date and time.',
+        parameters: {
+            type: 'object',
+            properties: {
+                title: { type: 'string', description: 'The title of the event.' },
+                date: { type: 'string', description: 'The date of the event in YYYY-MM-DD format.' },
+                time: { type: 'string', description: 'The time of the event in HH:MM format (24-hour).' },
+                duration: { type: 'string', description: 'Duration in minutes (default 60).' },
+                description: { type: 'string', description: 'Optional description or details for the event.' }
+            },
+            required: ['title', 'date', 'time']
+        }
+    }
+};
+
 // All tools (for reference/debugging)
 export const groqTools: GroqTool[] = [
     createTaskTool,
@@ -608,6 +635,7 @@ export const groqTools: GroqTool[] = [
     uploadDocumentTool,
     updateDocumentTool,
     getFileContentTool,
+    createEventTool,
 ];
 
 /**
@@ -622,7 +650,7 @@ export const getRelevantTools = (tab: string): GroqTool[] => {
     const fileTools = [uploadDocumentTool, updateDocumentTool, getFileContentTool];
     
     // Task tools (available everywhere for cross-module task creation)
-    const taskTools = [createTaskTool, updateTaskTool, deleteItemTool];
+    const taskTools = [createTaskTool, updateTaskTool, deleteItemTool, createEventTool];
     
     // CRM tools (available everywhere for cross-module CRM management)
     const crmTools = [

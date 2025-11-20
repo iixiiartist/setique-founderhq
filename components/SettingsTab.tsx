@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { SettingsData, AppActions, QuickLink } from '../types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { SettingsData, AppActions, QuickLink, BusinessProfile } from '../types';
 import { SubscriptionBanner } from './SubscriptionBanner';
 import { PricingPage } from './PricingPage';
 import { InviteTeamMemberModal } from './shared/InviteTeamMemberModal';
@@ -83,6 +83,16 @@ const QuickLinkEditor: React.FC<QuickLinkEditorProps> = ({ link, onUpdate, onDel
     );
 };
 
+const AI_CONTEXT_REQUIRED_FIELDS: Array<{ key: keyof BusinessProfile; label: string }> = [
+    { key: 'companyName', label: 'Company name' },
+    { key: 'industry', label: 'Industry' },
+    { key: 'targetCustomerProfile', label: 'Ideal customer profile' },
+    { key: 'marketPositioning', label: 'Market positioning' },
+    { key: 'monetizationModel', label: 'Monetization model' },
+    { key: 'competitiveAdvantages', label: 'Competitive advantages' },
+    { key: 'keyDifferentiators', label: 'Key differentiators' },
+];
+
 interface SettingsTabProps {
     settings: SettingsData;
     onUpdateSettings: (updates: Partial<SettingsData>) => void;
@@ -109,15 +119,60 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
     });
     const [isLoadingUsage, setIsLoadingUsage] = useState(true);
     const { user } = useAuth();
-    const { workspace, workspaceMembers, isLoadingMembers, refreshMembers } = useWorkspace();
+    const { workspace, businessProfile, workspaceMembers, isLoadingMembers, refreshMembers } = useWorkspace();
 
     // Get plan type from workspace (already mapped to camelCase by WorkspaceContext)
     const workspacePlanType = workspace?.planType || 'free';
     const isTeamPlan = workspacePlanType.startsWith('team');
     
     // Debug logging
-    console.log('[SettingsTab] Workspace:', workspace);
-    console.log('[SettingsTab] Plan Type:', workspacePlanType);
+
+    const openBusinessProfileModal = () => {
+        if (typeof window === 'undefined') return;
+        window.dispatchEvent(new CustomEvent('openBusinessProfile'));
+    };
+
+    const aiContextSummary = useMemo(() => {
+        if (!businessProfile) {
+            return null;
+        }
+
+        const completedFields = AI_CONTEXT_REQUIRED_FIELDS.filter(({ key }) => {
+            const value = businessProfile[key];
+            if (Array.isArray(value)) {
+                return value.length > 0;
+            }
+            if (typeof value === 'string') {
+                return value.trim().length > 0;
+            }
+            return value !== undefined && value !== null;
+        });
+
+        const completedKeys = new Set(completedFields.map(field => field.key));
+        const missing = AI_CONTEXT_REQUIRED_FIELDS.filter(field => !completedKeys.has(field.key));
+
+        const highlights = [
+            { label: 'Ideal Customer', value: businessProfile.targetCustomerProfile },
+            { label: 'Positioning', value: businessProfile.marketPositioning },
+            { label: 'Monetization', value: businessProfile.monetizationModel },
+            { label: 'Top Differentiators', value: (businessProfile.keyDifferentiators || []).slice(0, 3).join(', ') },
+            { label: 'Competitive Edge', value: (businessProfile.competitiveAdvantages || []).slice(0, 3).join(', ') },
+        ].filter(item => item.value && item.value.toString().trim().length > 0);
+
+        const percent = Math.round((completedFields.length / AI_CONTEXT_REQUIRED_FIELDS.length) * 100);
+        const lastUpdated = businessProfile.updatedAt
+            ? new Date(businessProfile.updatedAt).toLocaleDateString()
+            : 'Not yet saved';
+
+        return {
+            percent,
+            completed: completedFields.length,
+            total: AI_CONTEXT_REQUIRED_FIELDS.length,
+            missing,
+            highlights,
+            lastUpdated,
+        };
+    }, [businessProfile]);
 
     // Fetch real usage data
     useEffect(() => {
@@ -160,7 +215,6 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
             sessionStorage.removeItem('checkout_plan');
             
             // Auto-open the pricing modal
-            console.log('Auto-triggering checkout for plan:', checkoutPlan);
             setTimeout(() => {
                 setShowPricingPage(true);
             }, 500);
@@ -246,13 +300,6 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                 return;
             }
 
-            console.log('Removing member:', {
-                workspaceId: workspace.id,
-                userId: member.userId,
-                memberEmail,
-                currentUserId: user?.id,
-                workspaceOwnerId
-            });
 
             const result = await DatabaseService.removeWorkspaceMember(workspace.id, member.userId);
             
@@ -358,6 +405,78 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                 <h2 className="text-2xl font-semibold text-black mb-6">Workspace Settings</h2>
 
                 <div className="space-y-8">
+                    <fieldset className="border-2 border-dashed border-black p-4">
+                        <legend className="text-lg font-mono font-semibold px-2">AI Context & Copilot Personalization</legend>
+                        <div className="space-y-4">
+                            <p className="text-sm text-gray-600">
+                                Keep your business context fresh so every Copilot response reflects your ICP, positioning, and pricing.
+                            </p>
+
+                            {businessProfile && aiContextSummary ? (
+                                <>
+                                    <div>
+                                        <div className="flex items-center justify-between text-sm font-mono mb-1">
+                                            <span>{aiContextSummary.completed} of {aiContextSummary.total} key fields complete</span>
+                                            <span>{aiContextSummary.percent}%</span>
+                                        </div>
+                                        <div className="h-3 border-2 border-black bg-white">
+                                            <div
+                                                className="h-full bg-blue-600"
+                                                style={{ width: `${aiContextSummary.percent}%` }}
+                                            />
+                                        </div>
+                                        <p className="text-xs text-gray-500 font-mono mt-1">Last updated {aiContextSummary.lastUpdated}</p>
+                                    </div>
+
+                                    {aiContextSummary.highlights.length > 0 && (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            {aiContextSummary.highlights.map(({ label, value }) => (
+                                                <div key={label} className="border-2 border-black p-3 bg-white">
+                                                    <div className="text-xs uppercase text-gray-500 font-mono">{label}</div>
+                                                    <div className="text-sm font-semibold font-mono text-black mt-1 whitespace-pre-wrap">
+                                                        {value}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {aiContextSummary.missing.length > 0 && (
+                                        <div>
+                                            <div className="text-xs uppercase text-gray-500 font-mono mb-1">Suggested next fields</div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {aiContextSummary.missing.map(field => (
+                                                    <span key={field.key} className="text-xs font-mono border-2 border-black px-2 py-1 bg-yellow-50">
+                                                        {field.label}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <div className="border-2 border-dashed border-black p-4 bg-white">
+                                    <p className="text-sm font-mono text-gray-600">
+                                        You haven’t saved a full AI context yet. Share your ICP, positioning, and pricing so Copilot can tailor answers.
+                                    </p>
+                                </div>
+                            )}
+
+                            {workspace?.ownerId === user?.id ? (
+                                <button
+                                    onClick={openBusinessProfileModal}
+                                    className="font-mono bg-black text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+                                >
+                                    Update AI Context
+                                </button>
+                            ) : (
+                                <p className="text-xs text-gray-500 font-mono">
+                                    Only workspace owners can edit the AI context. Ask your admin to update it if details are outdated.
+                                </p>
+                            )}
+                        </div>
+                    </fieldset>
+
                     {/* Business Profile Section - Only show for workspace owners */}
                     {workspace && workspace.ownerId === user?.id && (
                         <fieldset className="border-2 border-dashed border-black p-4">
@@ -368,7 +487,7 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                     As the workspace owner, you can update your business information here.
                                 </p>
                                 <button
-                                    onClick={() => window.dispatchEvent(new CustomEvent('openBusinessProfile'))}
+                                    onClick={openBusinessProfileModal}
                                     className="font-mono bg-black text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
                                 >
                                     Edit Business Profile
@@ -475,7 +594,8 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                 <div className="pt-4">
                                     <button
                                         onClick={() => setShowInviteModal(true)}
-                                        className="font-mono bg-green-600 border-2 border-black text-white cursor-pointer py-2 px-6 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-green-700 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+                                            className="font-mono bg-green-600 border-2 border-black text-white cursor-pointer py-2 px-6 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-green-700 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+                                            data-testid="open-invite-team-modal"
                                     >
                                         + Invite Team Member
                                     </button>

@@ -42,7 +42,6 @@ export const RevenueAnalyticsDashboard: React.FC = () => {
     if (workspace) {
       loadRevenueData();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspace]);
 
   const loadRevenueData = async () => {

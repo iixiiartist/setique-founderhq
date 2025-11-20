@@ -935,4 +935,6 @@ const FinancialsTab: React.FC<{
     );
 });
 
+FinancialsTab.displayName = 'FinancialsTab';
+
 export default FinancialsTab;
