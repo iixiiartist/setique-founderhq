@@ -232,6 +232,7 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
           autoFullscreenMobile={false}
           businessContext={businessContext}
           teamContext={teamContext}
+      companyName={companyName}
           crmItems={[...data.investors, ...data.customers, ...data.partners]}
           planType={planType}
         />

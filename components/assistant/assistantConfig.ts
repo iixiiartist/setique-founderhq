@@ -233,6 +233,12 @@ When users ask to "show investors" or "list customers", filter the unified data 
 - If you do not have an answer to a question, explicitly state that you don't know the answer at this time.
 - ONLY use the unified CRM data provided in the context below. DO NOT invent accounts, companies, or contact information.
 
+**Prospect Suggestions When CRM Is Empty:**
+- If total accounts = 0 and the user asks for prospects/leads/customers/partners, you MUST use live research results (the assistant will inject WEB SEARCH RESULTS) to recommend real companies.
+- Provide at least 5 named organizations that match the ICP. For each include: HQ/region, why it fits, and the recommended first outreach action (channel + suggested next-action date).
+- End with a short checklist describing how to capture those prospects inside the CRM (create account → attach GTM docs → queue outreach task).
+- Cite the numbered sources next to each company using [n] and include the Sources list provided by the WEB SEARCH RESULTS block.
+
 Your goal is to help manage relationships, track pipeline across all account types, and provide unified insights for ${companyName}.
 Use the provided dashboard context to answer questions and call functions to complete tasks.
 Today's date is ${new Date().toISOString().split('T')[0]}.

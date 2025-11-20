@@ -45,6 +45,7 @@ interface ModuleAssistantProps {
     autoFullscreenMobile?: boolean; // Auto-open fullscreen on mobile (default: true)
     businessContext?: string; // Optional context injected on first message
     teamContext?: string; // Optional context injected on first message
+    companyName?: string; // For prospect query building
     maxFileSizeMB?: number; // Max file size for AI chat (default: 5MB, lower than storage limit due to base64 overhead)
     crmItems?: AnyCrmItem[]; // For contact form in quick actions
     planType?: string; // Workspace plan for gating AI
@@ -75,6 +76,56 @@ const formatRelativeTime = (iso?: string | null) => {
     if (diffHours < 24) return `${diffHours}h ago`;
     const diffDays = Math.round(diffHours / 24);
     return `${diffDays}d ago`;
+};
+
+const PROSPECT_KEYWORDS = ['prospect', 'lead', 'customer', 'client', 'account', 'pipeline', 'buyer', 'target'];
+const ACTION_KEYWORDS = ['suggest', 'recommend', 'find', 'list', 'identify', 'source', 'share', 'give', 'show'];
+
+const normalizeText = (value: string) => value.toLowerCase();
+
+const hasKeyword = (text: string, keywords: string[]) => keywords.some((keyword) => text.includes(keyword));
+
+const detectProspectIntent = (prompt: string) => {
+    const normalized = normalizeText(prompt);
+    const questionCue = normalized.includes('who should we') || normalized.includes('which companies') || normalized.includes('help me find');
+    return hasKeyword(normalized, PROSPECT_KEYWORDS) && (hasKeyword(normalized, ACTION_KEYWORDS) || questionCue);
+};
+
+const extractContextField = (context?: string, label?: string) => {
+    if (!context || !label) return null;
+    const pattern = new RegExp(`(?:-\\s*)?\\*\\*${label}:?\\*\\*\\s*([^\\n]+)`, 'i');
+    const match = context.match(pattern);
+    if (match && match[1]) {
+        const value = match[1].replace(/\*\*/g, '').trim();
+        if (!value || /not specified/i.test(value)) {
+            return null;
+        }
+        return value;
+    }
+    return null;
+};
+
+const extractCompanyFromContext = (context?: string) => {
+    if (!context) return null;
+    const match = context.match(/\*\*Business Context:\s*([^*]+)\*\*/i);
+    return match && match[1] ? match[1].trim() : null;
+};
+
+const buildProspectQuery = (prompt: string, options: { companyName?: string; businessContext?: string }) => {
+    const { companyName, businessContext } = options;
+    const company = companyName || extractCompanyFromContext(businessContext || undefined);
+    const industry = extractContextField(businessContext, 'Industry');
+    const idealCustomer = extractContextField(businessContext, 'Ideal Customer');
+    const sanitizedPrompt = prompt.replace(/(can you|please|help me|could you|would you)/gi, '').trim();
+    const parts = [company, 'prospective companies'];
+    if (idealCustomer) parts.push(idealCustomer);
+    if (industry) parts.push(industry);
+    if (sanitizedPrompt) parts.push(sanitizedPrompt);
+    return parts
+        .filter(Boolean)
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
 };
 
 const formatMetadataForClipboard = (metadata?: YouSearchMetadata | null) => {
@@ -117,6 +168,7 @@ function ModuleAssistant({
     autoFullscreenMobile = true,
     businessContext,
     teamContext,
+    companyName,
     maxFileSizeMB = 5, // Default 5MB for AI chat (base64 encoding adds ~33% overhead)
     crmItems = [],
     planType
@@ -500,6 +552,52 @@ function ModuleAssistant({
         setAiLimitError(null); // Clear any previous AI limit errors
         setRateLimitError(null); // Clear any previous rate limit errors
 
+        const buildWebSearchContext = (searchResults: any, fallbackQuery: string) => {
+            if (!searchResults?.hits || searchResults.hits.length === 0) {
+                return '';
+            }
+
+            const normalizedMetadata: YouSearchMetadata = {
+                mode: 'search',
+                query: searchResults.metadata?.query || fallbackQuery,
+                fetchedAt: searchResults.metadata?.fetchedAt || new Date().toISOString(),
+                provider: searchResults.metadata?.provider || 'You.com',
+                count: searchResults.metadata?.count ?? searchResults.hits.length,
+                durationMs: searchResults.metadata?.durationMs,
+            };
+            assistantWebMetadataRef.current = normalizedMetadata;
+
+            const providerLabel = normalizedMetadata.provider ? ` via ${normalizedMetadata.provider}` : '';
+            const fetchedLabel = normalizedMetadata.fetchedAt
+                ? ` (fetched ${formatRelativeTime(normalizedMetadata.fetchedAt)})`
+                : '';
+
+            const listings = searchResults.hits
+                .map(
+                    (hit: any, index: number) =>
+                        `[${index + 1}] ${hit.title || hit.url}: ${hit.description || hit.summary || ''} (${hit.url})`
+                )
+                .join('\n');
+
+            const snippetLines = searchResults.hits
+                .map((hit: any, index: number) =>
+                    hit.snippets && hit.snippets.length
+                        ? `[${index + 1}] Snippets: ${hit.snippets.join(' ')}`
+                        : ''
+                )
+                .filter(Boolean)
+                .join('\n');
+
+            let context = `\n\nWEB SEARCH RESULTS (Query: "${normalizedMetadata.query}")${providerLabel}${fetchedLabel}:\n${listings}`;
+            if (snippetLines) {
+                context += `\n\nSnippets:\n${snippetLines}`;
+            }
+
+            context += `\n\nCITATION INSTRUCTIONS:\n1. Cite the numbered sources inline using [1], [2], etc.\n2. End your response with a Sources section formatted as an HTML list (<ul><li><a href="url">Title</a></li></ul>).\n3. Only cite sources that are relevant to the specific insight.`;
+
+            return context;
+        };
+
         const userMessageParts: any[] = [];
         let textPart = prompt; // This is what the user actually typed
         let textPartForAI = prompt; // This is what we send to AI (may include context)
@@ -513,45 +611,47 @@ function ModuleAssistant({
             textPartForAI = `${contextParts.join('\n\n')}\n\n${prompt}`;
         }
 
+        const hasCrmRecords = Array.isArray(crmItems) && crmItems.length > 0;
+        const industryFromContext = extractContextField(businessContext, 'Industry');
+        const idealCustomerProfile = extractContextField(businessContext, 'Ideal Customer');
+        const resolvedCompanyName = companyName || extractCompanyFromContext(businessContext);
+        const shouldBootstrapProspects =
+            currentTab === Tab.Accounts &&
+            !hasCrmRecords &&
+            !isWebSearchEnabled &&
+            detectProspectIntent(prompt);
+
+        if (shouldBootstrapProspects) {
+            try {
+                const prospectQuery = buildProspectQuery(prompt, {
+                    companyName: resolvedCompanyName || undefined,
+                    businessContext,
+                }) || prompt;
+                const searchResults = await searchWeb(prospectQuery, 'search');
+                const webContext = buildWebSearchContext(searchResults, prospectQuery);
+                if (webContext) {
+                    textPartForAI += `\n\nCRM DATA GAP NOTICE:\n- There are currently zero CRM accounts on record.\n- The user explicitly asked for prospect recommendations.\n- Use the live research results below to ground your answer.`;
+                    textPartForAI += webContext;
+                    const focusLine = idealCustomerProfile
+                        ? `Focus on the "${idealCustomerProfile}" buyer profile`
+                        : industryFromContext
+                        ? `Focus on high-fit companies inside the ${industryFromContext} space`
+                        : 'Focus on high-fit organizations for the current ICP';
+                    textPartForAI += `\n\nAUTO_PROSPECT_DIRECTIVE:\n- Provide at least 5 named organizations for ${resolvedCompanyName || 'the business'} even though the CRM is empty.\n- ${focusLine}.\n- For each company include: (a) HQ or region if available, (b) why it fits, (c) the recommended first outreach action with channel + suggested nextActionDate.\n- After the list, add a numbered plan outlining how to capture these prospects in the CRM (createAccount → link documents → create outreach task).\n- Reference the numbered sources next to each company using [n] notation and include the Sources list at the end.`;
+                }
+            } catch (error) {
+                console.error('[ModuleAssistant] Auto prospect research failed', error);
+            }
+        }
+
         // Handle Web Search
         if (isWebSearchEnabled) {
             if (webSearchMode === 'text') {
                 try {
                     const searchResults = await searchWeb(prompt, 'search');
-                    if (searchResults.hits && searchResults.hits.length > 0) {
-                        const webContext = `\n\nWEB SEARCH RESULTS (Use these to answer the user's request):\n${searchResults.hits.map((hit, i) => `[${i + 1}] ${hit.title}: ${hit.description} (${hit.url})`).join('\n')}`;
-
-                        const snippets = searchResults.hits
-                            .map((hit, i) => (hit.snippets ? `[${i + 1}] Snippets: ${hit.snippets.join(' ')}` : ''))
-                            .filter(Boolean)
-                            .join('\n');
-
+                    const webContext = buildWebSearchContext(searchResults, prompt);
+                    if (webContext) {
                         textPartForAI += webContext;
-                        if (snippets) {
-                            textPartForAI += `\n\nSnippets:\n${snippets}`;
-                        }
-
-                        const normalizedMetadata: YouSearchMetadata = {
-                            mode: 'search',
-                            query: searchResults.metadata?.query || prompt,
-                            fetchedAt: searchResults.metadata?.fetchedAt || new Date().toISOString(),
-                            provider: searchResults.metadata?.provider || 'You.com',
-                            count: searchResults.metadata?.count ?? searchResults.hits?.length,
-                            durationMs: searchResults.metadata?.durationMs,
-                        };
-                        assistantWebMetadataRef.current = normalizedMetadata;
-
-                        const providerLabel = searchResults.metadata?.provider ? ` via ${searchResults.metadata.provider}` : '';
-                        const fetchedLabel = searchResults.metadata?.fetchedAt
-                            ? ` (fetched ${formatRelativeTime(searchResults.metadata.fetchedAt)})`
-                            : '';
-
-                        textPartForAI += `\n\nCITATION INSTRUCTIONS:
-                    1. You MUST cite your sources when using information from the WEB SEARCH RESULTS.
-                    2. Use inline citations like [1], [2] corresponding to the source numbers.
-                    3. At the end of your response, include a "Sources" section with links to the URLs provided in the search results.
-                    4. Format the sources as an HTML list: <ul><li><a href="url">Title</a></li></ul>.
-                    ${providerLabel}${fetchedLabel}`;
                     }
                 } catch (e) {
                     console.error('Web search failed', e);
