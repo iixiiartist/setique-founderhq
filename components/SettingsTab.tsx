@@ -406,95 +406,115 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
 
                 <div className="space-y-8">
                     <fieldset className="border-2 border-dashed border-black p-4">
-                        <legend className="text-lg font-mono font-semibold px-2">AI Context & Copilot Personalization</legend>
-                        <div className="space-y-4">
+                        <legend className="text-lg font-mono font-semibold px-2">Business Profile & Copilot Personalization</legend>
+                        <div className="space-y-6">
                             <p className="text-sm text-gray-600">
-                                Keep your business context fresh so every Copilot response reflects your ICP, positioning, and pricing.
+                                Keep one source of truth for your ICP, positioning, pricing, and operating metrics. Copilot, notifications, and calendar deadlines all pull from the same autosaving profile.
                             </p>
 
-                            {businessProfile && aiContextSummary ? (
-                                <>
-                                    <div>
-                                        <div className="flex items-center justify-between text-sm font-mono mb-1">
-                                            <span>{aiContextSummary.completed} of {aiContextSummary.total} key fields complete</span>
-                                            <span>{aiContextSummary.percent}%</span>
-                                        </div>
-                                        <div className="h-3 border-2 border-black bg-white">
-                                            <div
-                                                className="h-full bg-blue-600"
-                                                style={{ width: `${aiContextSummary.percent}%` }}
-                                            />
-                                        </div>
-                                        <p className="text-xs text-gray-500 font-mono mt-1">Last updated {aiContextSummary.lastUpdated}</p>
-                                    </div>
+                            <div className="grid gap-6 md:grid-cols-2">
+                                <div className="space-y-4">
+                                    {businessProfile && aiContextSummary ? (
+                                        <>
+                                            <div>
+                                                <div className="flex items-center justify-between text-sm font-mono mb-1">
+                                                    <span>{aiContextSummary.completed} of {aiContextSummary.total} key fields complete</span>
+                                                    <span>{aiContextSummary.percent}%</span>
+                                                </div>
+                                                <div className="h-3 border-2 border-black bg-white">
+                                                    <div
+                                                        className="h-full bg-blue-600"
+                                                        style={{ width: `${aiContextSummary.percent}%` }}
+                                                    />
+                                                </div>
+                                                <p className="text-xs text-gray-500 font-mono mt-1">Last updated {aiContextSummary.lastUpdated}</p>
+                                            </div>
 
-                                    {aiContextSummary.highlights.length > 0 && (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                            {aiContextSummary.highlights.map(({ label, value }) => (
-                                                <div key={label} className="border-2 border-black p-3 bg-white">
-                                                    <div className="text-xs uppercase text-gray-500 font-mono">{label}</div>
-                                                    <div className="text-sm font-semibold font-mono text-black mt-1 whitespace-pre-wrap">
-                                                        {value}
+                                            {aiContextSummary.highlights.length > 0 && (
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                    {aiContextSummary.highlights.map(({ label, value }) => (
+                                                        <div key={label} className="border-2 border-black p-3 bg-white">
+                                                            <div className="text-xs uppercase text-gray-500 font-mono">{label}</div>
+                                                            <div className="text-sm font-semibold font-mono text-black mt-1 whitespace-pre-wrap">
+                                                                {value}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {aiContextSummary.missing.length > 0 && (
+                                                <div>
+                                                    <div className="text-xs uppercase text-gray-500 font-mono mb-1">Suggested next fields</div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {aiContextSummary.missing.map(field => (
+                                                            <span key={field.key} className="text-xs font-mono border-2 border-black px-2 py-1 bg-yellow-50">
+                                                                {field.label}
+                                                            </span>
+                                                        ))}
                                                     </div>
                                                 </div>
-                                            ))}
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className="border-2 border-dashed border-black p-4 bg-white">
+                                            <p className="text-sm font-mono text-gray-600">
+                                                You haven’t saved a full AI context yet. Share your ICP, positioning, and pricing so Copilot can tailor answers.
+                                            </p>
                                         </div>
                                     )}
+                                </div>
 
-                                    {aiContextSummary.missing.length > 0 && (
+                                <div className="border-2 border-black bg-white p-4 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="font-mono font-semibold text-sm uppercase tracking-wide">Business Profile Snapshot</h3>
+                                        {businessProfile?.isComplete ? (
+                                            <span className="text-xs font-bold text-green-600">Complete</span>
+                                        ) : (
+                                            <span className="text-xs font-bold text-yellow-600">Draft</span>
+                                        )}
+                                    </div>
+                                    <dl className="grid grid-cols-1 gap-3">
                                         <div>
-                                            <div className="text-xs uppercase text-gray-500 font-mono mb-1">Suggested next fields</div>
-                                            <div className="flex flex-wrap gap-2">
-                                                {aiContextSummary.missing.map(field => (
-                                                    <span key={field.key} className="text-xs font-mono border-2 border-black px-2 py-1 bg-yellow-50">
-                                                        {field.label}
-                                                    </span>
-                                                ))}
-                                            </div>
+                                            <dt className="text-xs uppercase text-gray-500 font-mono">Company</dt>
+                                            <dd className="text-sm font-semibold text-black">{businessProfile?.companyName || 'Not set'}</dd>
                                         </div>
-                                    )}
-                                </>
-                            ) : (
-                                <div className="border-2 border-dashed border-black p-4 bg-white">
-                                    <p className="text-sm font-mono text-gray-600">
-                                        You haven’t saved a full AI context yet. Share your ICP, positioning, and pricing so Copilot can tailor answers.
+                                        <div>
+                                            <dt className="text-xs uppercase text-gray-500 font-mono">Industry</dt>
+                                            <dd className="text-sm font-semibold text-black">{businessProfile?.industry || 'Not set'}</dd>
+                                        </div>
+                                        <div>
+                                            <dt className="text-xs uppercase text-gray-500 font-mono">Team Size</dt>
+                                            <dd className="text-sm font-semibold text-black">{businessProfile?.teamSize || businessProfile?.companySize || 'Not set'}</dd>
+                                        </div>
+                                        <div>
+                                            <dt className="text-xs uppercase text-gray-500 font-mono">Growth Stage</dt>
+                                            <dd className="text-sm font-semibold text-black">{businessProfile?.growthStage || 'Not set'}</dd>
+                                        </div>
+                                    </dl>
+                                    <p className="text-xs text-gray-600 font-mono">
+                                        All changes in the Business Profile modal autosave every few seconds (even mid-step) and immediately update Copilot, notifications, and calendar context—close it anytime without losing progress.
                                     </p>
                                 </div>
-                            )}
+                            </div>
 
                             {workspace?.ownerId === user?.id ? (
-                                <button
-                                    onClick={openBusinessProfileModal}
-                                    className="font-mono bg-black text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
-                                >
-                                    Update AI Context
-                                </button>
+                                <div className="flex flex-col gap-2">
+                                    <button
+                                        onClick={openBusinessProfileModal}
+                                        className="font-mono bg-black text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+                                    >
+                                        Edit Business Profile & AI Context
+                                    </button>
+                                    <span className="text-xs text-gray-500 font-mono">Need to finish later? Close the modal—your draft stays synced to secure storage.</span>
+                                </div>
                             ) : (
                                 <p className="text-xs text-gray-500 font-mono">
-                                    Only workspace owners can edit the AI context. Ask your admin to update it if details are outdated.
+                                    Only workspace owners can edit the shared business profile. Ask your admin to update it if details are outdated.
                                 </p>
                             )}
                         </div>
                     </fieldset>
-
-                    {/* Business Profile Section - Only show for workspace owners */}
-                    {workspace && workspace.ownerId === user?.id && (
-                        <fieldset className="border-2 border-dashed border-black p-4">
-                            <legend className="text-lg font-mono font-semibold px-2">Business Profile</legend>
-                            <div className="space-y-4">
-                                <p className="text-sm text-gray-600">
-                                    Your business profile helps AI personalize responses and recommendations. 
-                                    As the workspace owner, you can update your business information here.
-                                </p>
-                                <button
-                                    onClick={openBusinessProfileModal}
-                                    className="font-mono bg-black text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
-                                >
-                                    Edit Business Profile
-                                </button>
-                            </div>
-                        </fieldset>
-                    )}
 
                     {/* Team Management Section - Only show for team plans */}
                     {isTeamPlan && (

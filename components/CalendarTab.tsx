@@ -10,6 +10,7 @@ import { LinkedDocsDisplay } from './workspace/LinkedDocsDisplay';
 import { useAuth } from '../contexts/AuthContext';
 import { DatabaseService } from '../lib/services/database';
 import TeamCalendarView from './team/TeamCalendarView';
+import { useRealTimeClock } from '../hooks/useRealTimeClock';
 
 interface CalendarTabProps {
     events: CalendarEvent[];
@@ -591,7 +592,8 @@ function CalendarTab({
     workspaceMembers = [],
     crmItems
 }: CalendarTabProps) {
-    const [currentDate, setCurrentDate] = useState(new Date());
+    const { date: realTimeNow, isoDate: todayIso } = useRealTimeClock();
+    const [currentDate, setCurrentDate] = useState(realTimeNow);
     const [viewMode, setViewMode] = useState<ViewMode>('month');
     const [calendarMode, setCalendarMode] = useState<'personal' | 'team'>('personal');
     const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
@@ -624,7 +626,7 @@ function CalendarTab({
         });
     };
     
-    const handleToday = () => setCurrentDate(new Date());
+    const handleToday = () => setCurrentDate(new Date(realTimeNow));
     
     const openEventModal = (event: CalendarEvent, triggerRef: React.RefObject<HTMLButtonElement>) => {
         setSelectedEvent(event);
@@ -709,7 +711,7 @@ function CalendarTab({
                     <div key={day} className="p-2 border-b-2 border-r-2 border-black bg-gray-100 font-mono text-center">{day}</div>
                 ))}
                 {days.map((day, index) => {
-                    const isToday = day && day.toDateString() === new Date().toDateString();
+                    const isToday = day && day.toISOString().split('T')[0] === todayIso;
                     const dayEvents = day ? events.filter(e => e.dueDate === day.toISOString().split('T')[0]) : [];
                     
                     return (
@@ -755,7 +757,7 @@ function CalendarTab({
         return (
             <div className="border-t-2 border-l-2 border-black">
                 {days.map(day => {
-                    const isToday = day.toDateString() === new Date().toDateString();
+                    const isToday = day.toISOString().split('T')[0] === todayIso;
                     const dayEvents = events.filter(e => e.dueDate === day.toISOString().split('T')[0]);
                     return (
                         <div key={day.toISOString()} className="flex border-b-2 border-black">
@@ -788,10 +790,9 @@ function CalendarTab({
     const renderDayView = () => {
         const dayEvents = events.filter(e => e.dueDate === currentDate.toISOString().split('T')[0]);
         const hours = Array.from({ length: 24 }, (_, i) => i); // 0-23 hours
-        const now = new Date();
-        const isToday = currentDate.toDateString() === now.toDateString();
-        const currentHour = now.getHours();
-        const currentMinute = now.getMinutes();
+    const isToday = currentDate.toDateString() === realTimeNow.toDateString();
+    const currentHour = realTimeNow.getHours();
+    const currentMinute = realTimeNow.getMinutes();
 
         // Helper to get events for a specific hour
         const getEventsForHour = (hour: number) => {

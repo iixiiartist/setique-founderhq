@@ -38,11 +38,13 @@ import { DataPersistenceAdapter } from './lib/services/dataPersistenceAdapter';
 import { DatabaseService } from './lib/services/database';
 import { supabase } from './lib/supabase';
 import { SectionBoundary } from './lib/errorBoundaries';
+import { useRealTimeClock } from './hooks/useRealTimeClock';
 
 const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePlan }) => {
     const { user, signOut } = useAuth();
     const { workspace, businessProfile, showOnboarding, saveBusinessProfile, dismissOnboarding, isLoadingWorkspace, refreshWorkspace, canEditTask, workspaceMembers, isWorkspaceOwner } = useWorkspace();
     const { track } = useAnalytics();
+    const realTimeClock = useRealTimeClock();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showBusinessProfileModal, setShowBusinessProfileModal] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
@@ -487,7 +489,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
         };
 
         const checkNotifications = async () => {
-            const todayStr = new Date().toISOString().split('T')[0];
+            const todayStr = realTimeClock.isoDate;
 
             if (todayStr !== lastNotificationCheckDate) {
                 setLastNotificationCheckDate(todayStr);
@@ -550,7 +552,8 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
         disableDesktopNotifications,
         handleToast,
         lastNotificationCheckDate,
-        sentNotifications
+        sentNotifications,
+        realTimeClock.isoDate
     ]);
 
     // Event listener for opening business profile modal from settings
