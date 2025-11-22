@@ -63,9 +63,9 @@ export function TermsOfServicePage() {
 
             <h3 className="text-xl font-bold mt-4 mb-2">3.2 Account Types</h3>
             <ul className="list-disc pl-6 space-y-2">
-              <li><strong>Free Plan:</strong> Limited features (20 AI requests/month, 100MB storage)</li>
-              <li><strong>Power Plan ($99/month):</strong> Unlimited AI, 5GB storage, advanced features</li>
-              <li><strong>Team Pro ($149/month + $25/user):</strong> Multi-user workspaces, unlimited everything</li>
+              <li><strong>Free Plan:</strong> Core workspace features plus 25 Copilot requests per month (resets monthly) and unlimited storage/files for a single seat.</li>
+              <li><strong>Power Plan ($49/month):</strong> Unlimited Copilot usage, unlimited storage/files, automations, advanced analytics, and priority email support for individual operators.</li>
+              <li><strong>Team Pro ($99/month base + $25/user/month):</strong> Multi-seat workspaces with unlimited Copilot usage, unlimited shared storage, admin controls, and priority team onboarding.</li>
             </ul>
 
             <h3 className="text-xl font-bold mt-4 mb-2">3.3 Account Termination</h3>

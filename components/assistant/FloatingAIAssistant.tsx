@@ -79,7 +79,7 @@ export const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({
   onDataLoadNeeded,
 }) => {
   const normalizedPlanType = planType || 'free';
-  const assistantUnlocked = normalizedPlanType !== 'free';
+  const assistantUnlocked = true;
   const {
     isOpen,
     selectedContext,

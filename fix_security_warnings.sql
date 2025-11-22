@@ -82,11 +82,13 @@ BEGIN
   WHERE id = p_workspace_id;
 
   IF v_plan_type = 'free' THEN
-    v_monthly_limit := 50;
-  ELSIF v_plan_type = 'pro' THEN
-    v_monthly_limit := 1000;
+    v_monthly_limit := 25;
   ELSE
-    v_monthly_limit := 10000;
+    v_monthly_limit := NULL; -- Unlimited for paid and admin plans
+  END IF;
+
+  IF v_monthly_limit IS NULL THEN
+    RETURN TRUE;
   END IF;
 
   SELECT COUNT(*) INTO v_usage_count
@@ -105,28 +107,9 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$
-DECLARE
-  v_plan_type TEXT;
-  v_storage_limit BIGINT;
-  v_storage_used BIGINT;
 BEGIN
-  SELECT plan_type INTO v_plan_type
-  FROM workspaces
-  WHERE id = p_workspace_id;
-
-  IF v_plan_type = 'free' THEN
-    v_storage_limit := 1073741824; -- 1GB
-  ELSIF v_plan_type = 'pro' THEN
-    v_storage_limit := 107374182400; -- 100GB
-  ELSE
-    v_storage_limit := 1099511627776; -- 1TB
-  END IF;
-
-  SELECT COALESCE(storage_used, 0) INTO v_storage_used
-  FROM workspaces
-  WHERE id = p_workspace_id;
-
-  RETURN v_storage_used < v_storage_limit;
+  -- Storage is now unlimited for all plans
+  RETURN TRUE;
 END;
 $$;
 
@@ -162,10 +145,13 @@ BEGIN
 
   IF v_plan_type = 'free' THEN
     v_max_invitations := 5;
-  ELSIF v_plan_type = 'pro' THEN
-    v_max_invitations := 50;
-  ELSE
+  ELSIF v_plan_type = 'power-individual' THEN
+    v_max_invitations := 25;
+  ELSIF v_plan_type = 'team-pro' THEN
     v_max_invitations := 999999;
+  ELSE
+    -- Legacy plans fall back to a generous limit but remain capped
+    v_max_invitations := 100;
   END IF;
 
   SELECT COUNT(*) INTO v_invitation_count
@@ -198,11 +184,14 @@ BEGIN
   WHERE id = NEW.workspace_id;
 
   IF v_plan_type = 'free' THEN
-    v_max_members := 3;
-  ELSIF v_plan_type = 'pro' THEN
-    v_max_members := 10;
-  ELSE
+    v_max_members := 1;
+  ELSIF v_plan_type = 'power-individual' THEN
+    v_max_members := 1;
+  ELSIF v_plan_type = 'team-pro' THEN
     v_max_members := 999999;
+  ELSE
+    -- Default for deprecated plans keeps a conservative limit
+    v_max_members := 10;
   END IF;
 
   SELECT COUNT(*) INTO v_member_count
@@ -300,17 +289,24 @@ SET search_path = public, pg_temp
 AS $$
 BEGIN
   IF NEW.plan_type = 'free' THEN
-    NEW.max_team_members := 3;
-    NEW.max_storage_gb := 1;
-    NEW.ai_requests_per_month := 50;
-  ELSIF NEW.plan_type = 'pro' THEN
-    NEW.max_team_members := 10;
-    NEW.max_storage_gb := 100;
-    NEW.ai_requests_per_month := 1000;
-  ELSIF NEW.plan_type = 'enterprise' THEN
-    NEW.max_team_members := 999999;
-    NEW.max_storage_gb := 1000;
-    NEW.ai_requests_per_month := 10000;
+    NEW.max_team_members := 1;
+    NEW.max_storage_gb := NULL; -- Unlimited storage
+    NEW.ai_requests_per_month := 25;
+  ELSIF NEW.plan_type = 'power-individual' THEN
+    NEW.max_team_members := 1;
+    NEW.max_storage_gb := NULL;
+    NEW.ai_requests_per_month := NULL; -- Unlimited AI
+  ELSIF NEW.plan_type = 'team-pro' THEN
+    NEW.max_team_members := GREATEST(COALESCE(NEW.max_team_members, 2), 2);
+    NEW.max_storage_gb := NULL;
+    NEW.ai_requests_per_month := NULL;
+  ELSE
+    -- Legacy plans (pro, enterprise, etc.) retain unlimited storage and AI by default
+    NEW.max_storage_gb := NULL;
+    NEW.ai_requests_per_month := NULL;
+    IF NEW.max_team_members IS NULL THEN
+      NEW.max_team_members := 999999;
+    END IF;
   END IF;
   RETURN NEW;
 END;

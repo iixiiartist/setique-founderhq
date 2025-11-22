@@ -1744,13 +1744,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 // Calculate file size (content is base64)
                 const fileSizeBytes = content ? Math.ceil((content.length * 3) / 4) : 0;
 
-                // Check storage limit before uploading
-                const { data: limitCheck } = await DatabaseService.checkStorageLimit(workspace.id, fileSizeBytes);
-                if (limitCheck === false) {
-                    handleToast('Storage limit exceeded. Please upgrade your plan.', 'info');
-                    return { success: false, message: 'Storage limit exceeded. Please upgrade your plan or delete some files.' };
-                }
-
                 await DataPersistenceAdapter.uploadDocument(userId, workspace.id, {
                     name,
                     mimeType,
@@ -2598,27 +2591,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     </SectionBoundary>
                 );
             case Tab.Workspace:
-                // GTM Docs - available for all paid plans
-                if (workspace?.planType === 'free') {
-                    return (
-                        <div className="p-8 text-center">
-                            <div className="max-w-md mx-auto">
-                                <div className="mb-6 text-6xl">📋</div>
-                                <h2 className="text-2xl font-bold mb-4">GTM Docs - Premium Feature</h2>
-                                <p className="text-gray-600 mb-6">
-                                    Create and collaborate on GTM briefs, campaign plans, battlecards, and more with rich text editing and AI integration. Available on Power and Team Pro plans.
-                                </p>
-                                <button
-                                    onClick={() => setActiveTab(Tab.Settings)}
-                                    className="px-6 py-3 bg-yellow-400 text-black font-bold border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
-                                    aria-label="Upgrade to Power or Team Pro plan to access GTM Docs"
-                                >
-                                    Upgrade to Access GTM Docs
-                                </button>
-                            </div>
-                        </div>
-                    );
-                }
                 return (
                     <Suspense fallback={<TabLoadingFallback />}>
                         <WorkspaceTab 
@@ -2631,27 +2603,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     </Suspense>
                 );
             case Tab.Documents:
-                // Hide file library for free users
-                if (workspace?.planType === 'free') {
-                    return (
-                        <div className="p-8 text-center">
-                            <div className="max-w-md mx-auto">
-                                <div className="mb-6 text-6xl">📁</div>
-                                <h2 className="text-2xl font-bold mb-4">File Library - Premium Feature</h2>
-                                <p className="text-gray-600 mb-6">
-                                    Upload and organize your documents, pitch decks, and important files. Available on Power and Team Pro plans.
-                                </p>
-                                <button
-                                    onClick={() => setActiveTab(Tab.Settings)}
-                                    className="px-6 py-3 bg-yellow-400 text-black font-bold border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
-                                    aria-label="Upgrade to Power or Team Pro plan to access File Library"
-                                >
-                                    Upgrade to Access File Library
-                                </button>
-                            </div>
-                        </div>
-                    );
-                }
                 return (
                     <Suspense fallback={<TabLoadingFallback />}>
                         <FileLibraryTab documents={data.documents} actions={actions} companies={allCompanies} contacts={allContacts} />

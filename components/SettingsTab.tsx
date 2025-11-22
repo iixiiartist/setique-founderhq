@@ -124,6 +124,16 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
     // Get plan type from workspace (already mapped to camelCase by WorkspaceContext)
     const workspacePlanType = workspace?.planType || 'free';
     const isTeamPlan = workspacePlanType.startsWith('team');
+    const subscriptionDescription = useMemo(() => {
+        switch (workspacePlanType) {
+            case 'team-pro':
+                return 'Team Pro unlocks unlimited Copilot access, automations, storage, and seat management for your entire workspace.';
+            case 'power-individual':
+                return 'Power plan includes unlimited Copilot and storage for one seat. Upgrade to Team Pro if you need multiple seats or advanced admin controls.';
+            default:
+                return 'Free plan includes 25 Copilot requests per month (resets monthly) plus unlimited documents and storage. Upgrade for unlimited AI throughput and automations.';
+        }
+    }, [workspacePlanType]);
     
     // Debug logging
 
@@ -633,9 +643,7 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                     Current Plan: {workspacePlanType.split('-').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                                 </h3>
                                 <p className="text-sm text-gray-600 mb-4">
-                                    {workspacePlanType === 'team-pro' 
-                                        ? 'You have unlimited access to all features.' 
-                                        : 'Upgrade to unlock more AI requests, storage, and premium features.'}
+                                    {subscriptionDescription}
                                 </p>
                                 <div className="flex gap-3">
                                     {workspacePlanType !== 'team-pro' && workspacePlanType !== 'power-individual' && (

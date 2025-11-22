@@ -1,10 +1,35 @@
 import { supabase } from '../supabase'
 import { Database } from '../types/database'
-import { DashboardData, Task, AnyCrmItem, Contact, Meeting, MarketingItem, FinancialLog, Document, SettingsData, Priority, GTMDoc, GTMDocMetadata, LinkedDoc } from '../../types'
+import { DashboardData, Task, AnyCrmItem, Contact, Meeting, MarketingItem, FinancialLog, Document, SettingsData, Priority, GTMDoc, GTMDocMetadata, LinkedDoc, PlanType } from '../../types'
+import { PLAN_LIMITS } from '../subscriptionConstants'
 import { dbToTasks, dbToMarketingItems, dbToFinancialLogs, dbToCrmItem, dbToContacts } from '../utils/fieldTransformers'
 import { logger } from '../logger'
 
 type Tables = Database['public']['Tables']
+
+const LEGACY_PLAN_MAP: Record<string, PlanType> = {
+  pro: 'power-individual',
+  'pro-individual': 'power-individual',
+  'team-starter': 'team-pro'
+}
+
+const isPlanType = (value: string): value is PlanType => (
+  value === 'free' ||
+  value === 'power-individual' ||
+  value === 'team-pro'
+)
+
+const getPlanAiLimit = (planType: string): number | null => {
+  const normalizedPlan = LEGACY_PLAN_MAP[planType] ?? planType
+  if (!isPlanType(normalizedPlan)) {
+    return null
+  }
+  const planLimits = PLAN_LIMITS[normalizedPlan]
+  if (!planLimits) {
+    return null
+  }
+  return planLimits.aiRequestsPerMonth
+}
 
 export class DatabaseService {
   // User Profile operations
@@ -1494,13 +1519,15 @@ export class DatabaseService {
     error: any 
   }> {
     try {
+      const freePlanDefaultLimit = getPlanAiLimit('free') ?? 25
+
       // Validate workspaceId
       if (!workspaceId) {
         logger.warn('[Database] No workspaceId provided to checkAILimit, allowing request');
         return { 
           allowed: true, 
           usage: 0, 
-          limit: 20, 
+          limit: freePlanDefaultLimit,
           planType: 'free',
           error: null 
         };
@@ -1542,12 +1569,14 @@ export class DatabaseService {
       // If no subscription exists, create one with default free plan
       if (!subscription) {
         logger.info('[Database] No subscription found, creating free plan subscription for workspace:', workspaceId);
+        const planLimit = getPlanAiLimit('free');
         const { error: createError } = await supabase
           .from('subscriptions')
           .insert({
             workspace_id: workspaceId,
             plan_type: 'free',
             ai_requests_used: 0,
+            ai_requests_limit: planLimit,
             ai_requests_reset_at: new Date().toISOString()
           });
 
@@ -1560,7 +1589,7 @@ export class DatabaseService {
         return {
           allowed: true,
           usage: 0,
-          limit: 20,
+          limit: planLimit ?? Number.MAX_SAFE_INTEGER,
           planType: 'free',
           error: null
         };
@@ -1569,17 +1598,20 @@ export class DatabaseService {
       // Default to free plan if no subscription
       const planType = subscription?.plan_type || 'free';
       const currentUsage = subscription?.ai_requests_used || 0;
-      const configuredLimit = subscription?.ai_requests_limit ?? Number.MAX_SAFE_INTEGER;
-      const isUnlimitedPlan = subscription?.ai_requests_limit == null;
-      const allowed = isUnlimitedPlan || currentUsage < configuredLimit;
+  const planLimit = getPlanAiLimit(planType);
+  const storedLimit = typeof subscription?.ai_requests_limit === 'number' ? subscription.ai_requests_limit : null;
+  const configuredLimit = storedLimit && storedLimit > 0 ? storedLimit : planLimit;
+  const isUnlimitedPlan = configuredLimit == null;
+  const effectiveLimit = isUnlimitedPlan ? Number.MAX_SAFE_INTEGER : configuredLimit;
+      const allowed = currentUsage < effectiveLimit;
 
-      const logLimit = isUnlimitedPlan ? 'unlimited' : configuredLimit;
+      const logLimit = isUnlimitedPlan ? 'unlimited' : effectiveLimit;
       logger.info(`[Database] AI Limit Check: ${currentUsage}/${logLimit} (${planType}), IsUnlimited: ${isUnlimitedPlan}, Allowed: ${allowed}`);
 
       return { 
         allowed, 
         usage: currentUsage,
-        limit: isUnlimitedPlan ? Number.MAX_SAFE_INTEGER : configuredLimit,
+        limit: effectiveLimit,
         planType,
         error: null
       };
@@ -1589,7 +1621,7 @@ export class DatabaseService {
       return { 
         allowed: true, 
         usage: 0, 
-        limit: 20, 
+        limit: getPlanAiLimit('free') ?? 25,
         planType: 'free',
         error 
       };
@@ -1712,11 +1744,11 @@ export class DatabaseService {
           data: {
             planType: 'free' as const,
             aiRequestsUsed: 0,
-            aiRequestsLimit: 0,
+            aiRequestsLimit: getPlanAiLimit('free') ?? 25,
             storageUsed: 0,
-            storageLimit: 104857600, // 100 MB
+            storageLimit: null,
             fileCountUsed: 0,
-            fileCountLimit: 0,
+            fileCountLimit: null,
             seatCount: 1,
             usedSeats: 1
           },
@@ -1728,11 +1760,11 @@ export class DatabaseService {
         data: {
           planType: subscription.plan_type,
           aiRequestsUsed: subscription.ai_requests_used || 0,
-          aiRequestsLimit: subscription.ai_requests_limit,
+          aiRequestsLimit: subscription.ai_requests_limit ?? getPlanAiLimit(subscription.plan_type) ?? null,
           storageUsed: subscription.storage_bytes_used || 0,
-          storageLimit: subscription.storage_bytes_limit,
+          storageLimit: subscription.storage_bytes_limit ?? null,
           fileCountUsed: subscription.file_count_used || 0,
-          fileCountLimit: subscription.file_count_limit,
+          fileCountLimit: subscription.file_count_limit ?? null,
           seatCount: subscription.seat_count || 1,
           usedSeats: subscription.used_seats || 1
         },
@@ -1827,18 +1859,8 @@ export class DatabaseService {
   }
 
   static async checkStorageLimit(workspaceId: string, fileSizeBytes: number) {
-    try {
-      const { data, error } = await supabase.rpc('check_storage_limit', {
-        p_workspace_id: workspaceId,
-        p_file_size_bytes: fileSizeBytes
-      })
-
-      if (error) throw error
-      return { data: data as boolean, error: null }
-    } catch (error) {
-      logger.error('Error checking storage limit:', error)
-      return { data: false, error }
-    }
+    logger.info('[Database] Storage limit checks are disabled - allowing upload')
+    return { data: true, error: null }
   }
 
   static async updateStorageUsage(workspaceId: string, bytesDelta: number, fileCountDelta: number) {

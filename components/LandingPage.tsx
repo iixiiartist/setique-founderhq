@@ -25,6 +25,102 @@ import {
   PlayCircle
 } from 'lucide-react';
 
+type FeatureCluster = {
+  id: string;
+  badge: string;
+  title: string;
+  description: string;
+  accent: string;
+  tagline: string;
+  metric: string;
+  features: Array<{
+    title: string;
+    description: string;
+    icon: React.ReactNode;
+  }>;
+};
+
+const FEATURE_CLUSTERS: FeatureCluster[] = [
+  {
+    id: 'pipeline',
+    badge: '1',
+    title: 'Pipeline: Track Every Deal',
+    description: 'Unified CRM for fundraising, sales, and partnerships so every convo, doc, and metric lives in one view.',
+    accent: 'from-blue-100/70 via-white to-blue-50/60',
+  tagline: 'Live pipeline sync',
+  metric: '82% fewer manual updates',
+    features: [
+      {
+        title: '3-in-1 Smart CRM',
+        description: 'Investor, customer, and partner boards stay perfectly in sync with shared notes, tags, and automations.',
+        icon: <Users className="w-8 h-8" />,
+      },
+      {
+        title: 'Deal Flow Analytics',
+        description: 'Velocity, conversion, and forecast dashboards refresh in real time so updates never require spreadsheet wrangling.',
+        icon: <BarChart3 className="w-8 h-8" />,
+      },
+      {
+        title: 'Financial Tracking',
+        description: 'Log revenue, burn, and runway alongside every account, ready for board packets or investor notes with a click.',
+        icon: <TrendingUp className="w-8 h-8" />,
+      },
+    ],
+  },
+  {
+    id: 'execution',
+    badge: '2',
+    title: 'Execution: Ship Revenue Work Fast',
+    description: 'Docs, tasks, and meetings aligned to the same source of truth keep every GTM lane moving in sync.',
+    accent: 'from-green-100/70 via-white to-teal-50/60',
+  tagline: 'Workflow clarity',
+  metric: '12 hrs saved weekly',
+    features: [
+      {
+        title: 'GTM Task Graph',
+        description: 'Assign owners, priorities, and XP rewards so teams know what’s urgent without pinging ops leads.',
+        icon: <Target className="w-8 h-8" />,
+      },
+      {
+        title: 'Unified Calendar',
+        description: 'Investor standups, customer calls, and campaign launches stack in one color-coded, filterable view.',
+        icon: <Calendar className="w-8 h-8" />,
+      },
+      {
+        title: 'Collaborative Deal Rooms',
+        description: 'Twenty-plus formatting tools—plus templates—to draft updates, proposals, and co-marketing briefs together.',
+        icon: <FileText className="w-8 h-8" />,
+      },
+    ],
+  },
+  {
+    id: 'intelligence',
+    badge: '3',
+    title: 'Intelligence: Scale With AI',
+    description: 'Context-aware copilots summarize pipelines, prep meetings, and suggest next plays without leaving the workspace.',
+    accent: 'from-purple-100/70 via-white to-fuchsia-50/60',
+  tagline: 'AI boost on tap',
+  metric: '25 copilots/day free',
+    features: [
+      {
+        title: 'AI Account Briefs',
+        description: 'Instant dossiers on any investor, customer, or partner using your notes, docs, and historical touchpoints.',
+        icon: <Brain className="w-8 h-8" />,
+      },
+      {
+        title: 'Automated Outreach',
+        description: 'Copilot drafts investor updates, follow-ups, and partner proposals using the context it already has.',
+        icon: <Sparkles className="w-8 h-8" />,
+      },
+      {
+        title: 'Deal Coaching & Strategy',
+        description: 'Module-specific AI recommends next steps, objections to prep for, and talking points pulled from past wins.',
+        icon: <Shield className="w-8 h-8" />,
+      },
+    ],
+  },
+];
+
 export function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
@@ -112,7 +208,7 @@ export function LandingPage() {
               </div>
             </div>
             <p className="mt-4 text-sm text-gray-600">
-              Start free with core GTM tools • Unlock AI briefings & automations when ready • No credit card required
+              Start free with core GTM tools + 25 Copilot requests • Unlimited storage included • No credit card required
             </p>
           </div>
           <div className="relative">
@@ -230,98 +326,66 @@ export function LandingPage() {
       </section>
 
       {/* Features Grid */}
-      <section id="features" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 bg-white">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold mb-4">Three Layers of GTM Excellence</h2>
-          <p className="text-xl text-gray-600">Pipeline to manage deals. Execution to get work done. Intelligence to scale smarter.</p>
+      <section id="features" className="relative py-20 overflow-hidden bg-gradient-to-b from-white via-indigo-50 to-white">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute -top-16 -right-8 w-56 h-56 bg-purple-200/50 blur-3xl animate-pulse" />
+          <div className="absolute -bottom-12 -left-12 w-72 h-72 bg-blue-200/40 blur-3xl animate-pulse [animation-delay:2s]" />
         </div>
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <p className="inline-flex items-center gap-2 px-4 py-2 border-2 border-black bg-white shadow-neo-sm text-xs font-mono uppercase tracking-[0.2em]">
+              <Clock className="w-4 h-4" /> Live GTM system preview
+            </p>
+            <h2 className="mt-4 text-4xl font-bold mb-4">Three Layers of GTM Excellence</h2>
+            <p className="text-xl text-gray-600">Pipeline to manage deals. Execution to get work done. Intelligence to scale smarter.</p>
+          </div>
 
-        {/* Pipeline */}
-        <div className="mb-16">
-          <div className="mb-8">
-            <h3 className="text-2xl font-bold mb-2 flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-100 border-2 border-black flex items-center justify-center text-sm font-mono">1</div>
-              Pipeline: Track Every Deal
-            </h3>
-            <p className="text-gray-600">Unified CRM for fundraising, sales, and partnerships. See your entire GTM motion in one view.</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            <FeatureCard
-              icon={<Users className="w-8 h-8" />}
-              title="3-in-1 Smart CRM"
-              description="Manage investor pipeline, customer deals, and partner relationships in one unified view. Track conversations, stages, and next actions without switching tools."
-            />
-            <FeatureCard
-              icon={<BarChart3 className="w-8 h-8" />}
-              title="Deal Flow Analytics"
-              description="Visualize pipeline health, conversion rates, and deal velocity. Track MRR, GMV, fundraising progress, and partnership value with interactive charts."
-            />
-            <FeatureCard
-              icon={<TrendingUp className="w-8 h-8" />}
-              title="Financial Tracking"
-              description="Log revenue, expenses, and runway. Monitor burn rate and forecast growth. Export data for deeper analysis or board reporting."
-            />
-          </div>
-        </div>
+          <div className="space-y-10">
+            {FEATURE_CLUSTERS.map((cluster, clusterIdx) => (
+              <div
+                key={cluster.id}
+                className="group relative border-2 border-black rounded-3xl shadow-neo bg-white/90 backdrop-blur overflow-hidden px-6 py-8 sm:px-10"
+              >
+                <div
+                  className={`absolute inset-0 bg-gradient-to-r ${cluster.accent} opacity-40 blur-3xl animate-pulse`}
+                  style={{ animationDuration: `${6 + clusterIdx}s` }}
+                />
+                <div className="absolute -right-12 -top-12 w-32 h-32 border-2 border-dashed border-black/20 rounded-full animate-[spin_18s_linear_infinite]" />
+                <div className="absolute -left-10 bottom-6 w-24 h-24 border border-black/20 rounded-full animate-[spin_26s_linear_infinite]" />
 
-        {/* Execution */}
-        <div className="mb-16">
-          <div className="mb-8">
-            <h3 className="text-2xl font-bold mb-2 flex items-center gap-2">
-              <div className="w-8 h-8 bg-green-100 border-2 border-black flex items-center justify-center text-sm font-mono">2</div>
-              Execution: Get Work Done
-            </h3>
-            <p className="text-gray-600">Task management, docs, and calendar—everything your team needs to execute fast.</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            <FeatureCard
-              icon={<Target className="w-8 h-8" />}
-              title="GTM Task Management"
-              description="Organize work by pipeline, product, or marketing. Assign to teammates, set priorities, and track progress. Gamified XP system keeps teams motivated."
-            />
-            <FeatureCard
-              icon={<Calendar className="w-8 h-8" />}
-              title="Unified Calendar"
-              description="All tasks, investor meetings, customer calls, and campaign deadlines in one view. Color-coded by module with quick-add and priority filtering."
-            />
-            <FeatureCard
-              icon={<FileText className="w-8 h-8" />}
-              title="Collaborative Deal Rooms"
-              description="Create board decks, sales proposals, and partnership briefs with 24 formatting tools. Export to PDF/Word. Includes 5 GTM templates to start fast."
-            />
-          </div>
-        </div>
+                <div className="relative z-10 flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
+                  <div className="flex items-center gap-4">
+                    <span className="w-10 h-10 flex items-center justify-center border-2 border-black bg-black text-white font-mono text-sm">
+                      {cluster.badge}
+                    </span>
+                    <div>
+                      <h3 className="text-2xl font-bold">{cluster.title}</h3>
+                      <p className="text-sm text-gray-600 max-w-xl">{cluster.description}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-3 text-xs font-mono uppercase tracking-[0.2em] text-gray-600">
+                    <span className="px-3 py-1 border-2 border-black bg-white shadow-neo-sm">{cluster.tagline}</span>
+                    <span className="px-3 py-1 border border-dashed border-black">{cluster.metric}</span>
+                  </div>
+                </div>
 
-        {/* Intelligence */}
-        <div>
-          <div className="mb-8">
-            <h3 className="text-2xl font-bold mb-2 flex items-center gap-2">
-              <div className="w-8 h-8 bg-purple-100 border-2 border-black flex items-center justify-center text-sm font-mono">3</div>
-              Intelligence: Scale With AI
-            </h3>
-            <p className="text-gray-600">Context-aware AI assistants that know your business, not generic ChatGPT responses.</p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            <FeatureCard
-              icon={<Brain className="w-8 h-8" />}
-              title="AI Account Briefs"
-              description="Get instant context on any investor, customer, or partner. AI synthesizes your notes, emails, and meeting history into actionable deal intelligence."
-            />
-            <FeatureCard
-              icon={<Sparkles className="w-8 h-8" />}
-              title="Automated Outreach"
-              description="AI drafts personalized investor emails, sales follow-ups, and partnership proposals based on your CRM data and past successful messages."
-            />
-            <FeatureCard
-              icon={<Shield className="w-8 h-8" />}
-              title="Deal Coaching & Strategy"
-              description="Module-specific AI for fundraising, sales, and partnerships. Get real-time coaching on deal strategy, next steps, and objection handling tailored to your stage."
-            />
+                <div className="relative z-10 grid md:grid-cols-3 gap-6">
+                  {cluster.features.map((feature, featureIdx) => (
+                    <FeatureCard
+                      key={feature.title}
+                      icon={feature.icon}
+                      title={feature.title}
+                      description={feature.description}
+                      delayMs={featureIdx * 120}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Pricing Section */}
       <section id="pricing" className="bg-gray-50 py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -334,14 +398,14 @@ export function LandingPage() {
               name="Free"
               price="$0"
               period="/month"
-              description="Start with core GTM tools. Upgrade for AI when ready."
+              description="Start with core GTM tools plus 25 Copilot requests every month."
               features={[
+                "25 Copilot requests per month (resets monthly)",
+                "Unlimited documents & storage",
                 "Unified task management",
-                "Basic 3-in-1 CRM (25 contacts)",
+                "3-in-1 CRM",
                 "Calendar & deal tracking",
-                "Pipeline analytics",
-                "100 MB storage",
-                "AI unlocks with paid plans"
+                "Pipeline analytics"
               ]}
               cta="Get Started"
               highlighted={false}
@@ -352,6 +416,7 @@ export function LandingPage() {
               period="/month"
               description="For solo founders orchestrating seed-stage GTM"
               features={[
+                "Unlimited Copilot requests & automations",
                 "AI account briefs & deal coaching",
                 "Automated investor outreach",
                 "Unlimited CRM contacts & deals",
@@ -359,7 +424,7 @@ export function LandingPage() {
                 "5 GTM document templates",
                 "Advanced pipeline analytics",
                 "Financial tracking & runway",
-                "5 GB storage + unlimited files",
+                "Unlimited storage & files",
                 "CSV export for board reporting",
                 "Priority email support"
               ]}
@@ -373,6 +438,7 @@ export function LandingPage() {
               description="For early sales teams scaling GTM motion"
               additionalPricing="+ $25/user/month"
               features={[
+                "Unlimited Copilot per seat",
                 "All Power features per user",
                 "Shared team workspaces",
                 "Collaborative pipeline mgmt",
@@ -380,7 +446,7 @@ export function LandingPage() {
                 "Role-based CRM permissions",
                 "Team performance dashboards",
                 "Shared document libraries",
-                "10 GB team storage",
+                "Unlimited shared storage",
                 "Multi-user API access",
                 "Priority team onboarding"
               ]}
@@ -502,9 +568,12 @@ function UseCase({ title, description, icon }: { title: string; description: str
   );
 }
 
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+function FeatureCard({ icon, title, description, delayMs = 0 }: { icon: React.ReactNode; title: string; description: string; delayMs?: number }) {
   return (
-    <div className="p-6 border-2 border-black shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all bg-white">
+    <div
+      className="p-6 border-2 border-black shadow-neo hover:-translate-y-1 hover:shadow-none transition-transform duration-500 bg-white"
+      style={{ transitionDelay: `${delayMs}ms` }}
+    >
       <div className="w-12 h-12 bg-blue-100 border-2 border-black flex items-center justify-center mb-4">
         {icon}
       </div>

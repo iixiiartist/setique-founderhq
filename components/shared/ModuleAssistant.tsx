@@ -144,6 +144,13 @@ const convertChartBlocksToMarkdown = (input: string): string => {
     });
 };
 
+const formatPlanLabel = (plan?: string) => {
+    if (!plan) return 'Free';
+    const normalized = plan.replace(/[_-]+/g, ' ').trim();
+    if (!normalized) return 'Free';
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+};
+
 const stripCodeFences = (input: string): string => {
     if (!input) return '';
     return input.replace(/```[a-zA-Z0-9_-]*\n?/g, '').replace(/```/g, '');
@@ -284,9 +291,8 @@ function ModuleAssistant({
 }: ModuleAssistantProps) {
     const { user } = useAuth();
     const normalizedPlanType = (planType || 'free').toLowerCase();
-    const assistantUnlocked = normalizedPlanType !== 'free';
-    const displayPlanName = normalizedPlanType.replace(/-/g, ' ');
-    const planLabel = displayPlanName.charAt(0).toUpperCase() + displayPlanName.slice(1);
+    const assistantUnlocked = true; // All plans get AI access; limits enforced elsewhere
+    const planLabel = formatPlanLabel(normalizedPlanType);
     const enforcedSystemPrompt = useMemo(() => {
         const base = (systemPrompt || '').trim();
         const additions: string[] = [];
@@ -966,9 +972,16 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
             // Handle AI limit errors specifically
             if (error instanceof AILimitError) {
                 setAiLimitError(error);
+                const errorPlanType = (error.planType || normalizedPlanType).toLowerCase();
+                const errorPlan = formatPlanLabel(errorPlanType);
+                const limit = error.limit || 0;
+                const usage = error.usage || 0;
+                const personalizedMessage = errorPlanType === 'free'
+                    ? `You've used all ${limit || 25} AI requests included with the Free plan. Credits reset at the start of each month, or you can upgrade for unlimited Copilot access.`
+                    : `You've used ${usage}/${limit || '∞'} AI requests on the ${errorPlan} plan. Upgrade for unlimited Copilot access.`;
                 addMessage({ 
                     role: 'model', 
-                    parts: [{ text: `⚠️ ${error.message}\n\nPlease upgrade your plan to continue using the AI assistant.` }] 
+                    parts: [{ text: `⚠️ ${personalizedMessage}` }] 
                 });
                 assistantWebMetadataRef.current = null;
                 return;
@@ -1050,6 +1063,10 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
     };
     
     // Main chat content
+    const isFreePlanLimit = aiLimitError
+        ? ((aiLimitError.planType || normalizedPlanType).toLowerCase() === 'free')
+        : false;
+
     const chatContent = (
         <div className={`bg-white h-full flex flex-col ${
             compact 
@@ -1245,13 +1262,13 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                         <span className="text-2xl">✨</span>
                         <div className="flex-1">
                             <h3 className="font-bold text-yellow-800 mb-1">
-                                {aiLimitError.limit === 0 ? 'AI Features Not Available on Free Plan' : 'AI Usage Limit Reached'}
+                                {isFreePlanLimit ? 'Free Plan AI Quota Reached' : 'AI Usage Limit Reached'}
                             </h3>
                             <p className="text-sm text-yellow-700 mb-2">
-                                {aiLimitError.limit === 0 ? (
+                                {isFreePlanLimit ? (
                                     <>
-                                        The Free plan includes task management, basic CRM, and calendar features. 
-                                        <strong> Upgrade to Power ($49/mo)</strong> or <strong>Team Pro ($99/mo)</strong> to unlock unlimited AI assistants, document library, and premium features.
+                                        You've used all <strong>25 monthly AI requests</strong> included in the Free plan. Credits reset at the start of each month. 
+                                        Upgrade to Power ($49/mo) or Team Pro ($99/mo) for unlimited Copilot access.
                                     </>
                                 ) : (
                                     <>

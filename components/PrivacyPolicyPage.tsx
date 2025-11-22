@@ -77,6 +77,7 @@ export function PrivacyPolicyPage() {
               <li>Send administrative information, updates, and security alerts</li>
               <li>Respond to your comments, questions, and customer service requests</li>
               <li>Monitor and analyze usage patterns and trends</li>
+              <li>Enforce plan entitlements (including free-tier Copilot credits and unlimited storage abuse prevention)</li>
               <li>Detect, prevent, and address technical issues and security threats</li>
               <li>Comply with legal obligations</li>
             </ul>
@@ -213,6 +214,15 @@ export function PrivacyPolicyPage() {
               <p><strong>Website:</strong> https://setique.com</p>
               <p><strong>Support:</strong> Available through the application</p>
             </div>
+          </Section>
+
+          <Section title="15. Beta Program & Fair Use">
+            <p>FounderHQ is currently offered as a live beta. Feature scope, AI credit allocations (including the 25 monthly Copilot requests on the Free plan), and pricing may change as we evolve the service.</p>
+            <ul className="list-disc pl-6 space-y-2">
+              <li>All plans include unlimited document storage and file uploads. We reserve the right to investigate and limit abusive usage that threatens platform reliability.</li>
+              <li>Free-tier AI credits automatically reset each calendar month. We may temporarily suspend AI access if we detect malicious or automated traffic.</li>
+              <li>We will provide notice before making material changes to quotas or pricing, and you may cancel at any time via the Settings page.</li>
+            </ul>
           </Section>
 
           <div className="bg-yellow-50 border-2 border-black p-6 mt-8">

@@ -86,6 +86,11 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
 
     const limits = PLAN_LIMITS[planType];
     const isTeamPlan = planType.startsWith('team-');
+    const planSummary: Record<PlanType, string> = {
+        'free': 'Includes 25 Copilot requests each month, unlimited documents & storage, and one seat. Credits reset on the 1st.',
+        'power-individual': 'Unlimited Copilot, unlimited storage/files, and advanced automations for a single seat.',
+        'team-pro': 'Unlimited Copilot, docs, storage, and advanced collaboration for every seat in your workspace.',
+    };
 
     const aiUsagePercent = getUsagePercentage(aiRequestsUsed, limits.aiRequestsPerMonth);
     const storageUsagePercent = getUsagePercentage(storageUsed, limits.storageBytes);
@@ -125,17 +130,26 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
 
     return (
         <div className="bg-white border-2 border-black shadow-neo p-4 mb-6">
-            <div className="flex justify-between items-start mb-4">
-                <div>
+            <div className="flex justify-between items-start mb-4 flex-wrap gap-3">
+                <div className="max-w-xl">
                     <h3 className="text-lg font-bold text-black flex items-center gap-2">
                         {limits.name} Plan
                         {planType === 'free' && (
                             <span className="text-xs bg-gray-200 text-black px-2 py-1 border border-black font-mono">FREE</span>
                         )}
+                        {planType === 'power-individual' && (
+                            <span className="text-xs bg-blue-100 text-blue-900 px-2 py-1 border border-black font-mono">PRO SOLO</span>
+                        )}
+                        {planType === 'team-pro' && (
+                            <span className="text-xs bg-green-100 text-green-900 px-2 py-1 border border-black font-mono">TEAM</span>
+                        )}
                     </h3>
+                    <p className="text-sm text-gray-700 mt-1 font-mono">
+                        {planSummary[planType]}
+                    </p>
                     {isTeamPlan && seatCount && (
-                        <p className="text-sm text-black mt-1 font-mono">
-                            {usedSeats || 0} / {seatCount} seats used
+                        <p className="text-xs text-black mt-1 font-mono">
+                            Seats in use: {usedSeats || 0} / {seatCount}
                         </p>
                     )}
                 </div>
@@ -155,28 +169,43 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
                 {renderUsageBar('Files', fileCountUsed, limits.fileCount)}
             </div>
 
-            {(showAiWarning || showStorageWarning || showFileWarning) && (
-                <div className="mt-4 p-3 bg-yellow-100 border-2 border-black">
-                    <div className="flex items-start gap-2">
-                        <svg className="w-5 h-5 text-black flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                        </svg>
-                        <div className="flex-1">
-                            <p className="text-sm font-bold text-black">Usage Warning</p>
-                            <p className="text-xs text-black mt-1">
-                                You're approaching your plan limits. 
-                                {showAiWarning && ' AI requests are running low.'}
-                                {showStorageWarning && ' Storage is nearly full.'}
-                                {showFileWarning && ' File limit almost reached.'}
-                                {' '}
-                                <button onClick={onUpgrade} className="underline font-bold hover:text-blue-600">
+            {(showAiWarning || showStorageWarning || showFileWarning) && (() => {
+                const warningLines: string[] = [];
+                if (showAiWarning) {
+                    warningLines.push(
+                        planType === 'free'
+                            ? 'You have almost used your 25 monthly Copilot requests. Credits reset at the start of the next month, or upgrade for unlimited AI.'
+                            : 'AI activity is spiking. Upgrade if you need guaranteed unlimited throughput.'
+                    );
+                }
+                if (showStorageWarning) {
+                    warningLines.push('Storage capacity is nearly full. Consider archiving files or upgrading.');
+                }
+                if (showFileWarning) {
+                    warningLines.push('File count is close to the limit. Upgrade to remove caps.');
+                }
+
+                return (
+                    <div className="mt-4 p-3 bg-yellow-100 border-2 border-black">
+                        <div className="flex items-start gap-2">
+                            <svg className="w-5 h-5 text-black flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                            <div className="flex-1">
+                                <p className="text-sm font-bold text-black">Usage Warning</p>
+                                <ul className="text-xs text-black mt-1 list-disc pl-4 space-y-1">
+                                    {warningLines.map((line, idx) => (
+                                        <li key={idx}>{line}</li>
+                                    ))}
+                                </ul>
+                                <button onClick={onUpgrade} className="underline font-bold hover:text-blue-600 text-xs mt-2">
                                     Upgrade now
-                                </button> to continue without interruption.
-                            </p>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
         </div>
     );
 };

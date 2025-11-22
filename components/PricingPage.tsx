@@ -48,6 +48,18 @@ export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', 
         }
     };
 
+    const planSubheading: Record<PlanType, string> = {
+        'free': '25 Copilot requests every month • unlimited documents & storage',
+        'power-individual': 'Unlimited Copilot + storage for one builder',
+        'team-pro': 'Unlimited Copilot plus shared automations for every seat',
+    };
+
+    const planBadgeText: Partial<Record<PlanType, string>> = {
+        'free': 'NOW INCLUDES AI',
+        'power-individual': 'UNLIMITED AI',
+        'team-pro': 'TEAM FAVORITE',
+    };
+
     const renderPlanCard = (planType: PlanType, isPopular: boolean = false) => {
         const limits = PLAN_LIMITS[planType];
         const basePrice = PLAN_PRICES[planType];
@@ -69,9 +81,16 @@ export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', 
                 )}
                 
                 <div className="text-center mb-6">
-                    <h3 className="text-2xl font-bold font-mono text-black mb-2">
-                        {limits.name}
-                    </h3>
+                    <div className="flex flex-col items-center gap-2">
+                        <h3 className="text-2xl font-bold font-mono text-black">
+                            {limits.name}
+                        </h3>
+                        {planBadgeText[planType] && (
+                            <span className="text-xs font-bold font-mono px-2 py-1 border-2 border-black bg-yellow-100 text-black">
+                                {planBadgeText[planType]}
+                            </span>
+                        )}
+                    </div>
                     <div className="flex items-baseline justify-center gap-1">
                         <span className="text-4xl font-bold font-mono text-black">
                             {formatPrice(isTeamPlan(planType) ? basePrice : totalPrice)}
@@ -83,6 +102,9 @@ export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', 
                             + {formatPrice(seatPrice)}/user/month
                         </p>
                     )}
+                    <p className="text-sm text-gray-700 font-mono mt-3">
+                        {planSubheading[planType]}
+                    </p>
                 </div>
 
                 {isTeamPlan(planType) && (
@@ -119,26 +141,24 @@ export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', 
                 )}
 
                 <ul className="space-y-3 mb-6">
-                    {planType !== 'free' && (
-                        <li className="flex items-start gap-2 text-sm text-black">
-                            <span className="text-green-600 font-bold flex-shrink-0 mt-0.5">✓</span>
-                            <span className="font-mono">
-                                {limits.aiRequestsPerMonth === null ? 'Unlimited' : limits.aiRequestsPerMonth} AI requests/month
-                                {isTeamPlan(planType) && ' per user'}
-                            </span>
-                        </li>
-                    )}
                     <li className="flex items-start gap-2 text-sm text-black">
                         <span className="text-green-600 font-bold flex-shrink-0 mt-0.5">✓</span>
                         <span className="font-mono">
-                            {limits.fileCount === null ? 'Unlimited' : limits.fileCount} files
+                            {limits.aiRequestsPerMonth === null ? 'Unlimited' : `${limits.aiRequestsPerMonth}`} AI requests/month
                             {isTeamPlan(planType) && ' per user'}
                         </span>
                     </li>
                     <li className="flex items-start gap-2 text-sm text-black">
                         <span className="text-green-600 font-bold flex-shrink-0 mt-0.5">✓</span>
                         <span className="font-mono">
-                            {formatBytes(limits.storageBytes)} storage
+                            {limits.fileCount === null ? 'Unlimited' : limits.fileCount.toLocaleString()} files
+                            {isTeamPlan(planType) && ' per user'}
+                        </span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm text-black">
+                        <span className="text-green-600 font-bold flex-shrink-0 mt-0.5">✓</span>
+                        <span className="font-mono">
+                            {limits.storageBytes === null ? 'Unlimited storage' : `${formatBytes(limits.storageBytes)} storage`}
                             {isTeamPlan(planType) && ' shared'}
                         </span>
                     </li>
@@ -178,7 +198,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', 
                 <div className="sticky top-0 bg-white border-b-2 border-black p-6 flex justify-between items-center z-10">
                     <div>
                         <h2 className="text-3xl font-bold text-black font-mono">Choose Your Plan</h2>
-                        <p className="text-gray-700 mt-1">Select the perfect plan for your needs</p>
+                        <p className="text-gray-700 mt-1">Every plan includes Copilot access — start free with 25 monthly requests and unlimited storage.</p>
                     </div>
                     <button
                         onClick={onClose}

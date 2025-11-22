@@ -31,20 +31,21 @@ export interface PlanLimits {
 export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
   'free': {
     name: 'Free',
-    aiRequestsPerMonth: 0, // No AI access
-    storageBytes: 104857600, // 100 MB
-    fileCount: 0, // No file access
+    aiRequestsPerMonth: 25, // 25 AI requests/month
+    storageBytes: null, // Unlimited storage
+    fileCount: null, // Unlimited files
     maxSeats: 1,
     features: [
       'Task Management',
       'CRM (limited)',
-      'Basic Analytics'
+      'Basic Analytics',
+      '25 AI Assistant requests/month'
     ]
   },
   'power-individual': {
     name: 'Power',
     aiRequestsPerMonth: null, // Unlimited
-    storageBytes: 5368709120, // 5 GB
+    storageBytes: null, // Unlimited
     fileCount: null, // Unlimited
     maxSeats: 1,
     features: [
@@ -62,7 +63,7 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
   'team-pro': {
     name: 'Team Pro',
     aiRequestsPerMonth: null, // Unlimited per user
-    storageBytes: 10737418240, // 10 GB shared
+    storageBytes: null, // Unlimited shared
     fileCount: null, // Unlimited per user
     maxSeats: 999,
     features: [
