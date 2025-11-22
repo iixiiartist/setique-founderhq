@@ -196,6 +196,8 @@ export type PricingModel =
     | 'usage_based'  // Pay per use (API calls, etc.)
     | 'custom';      // Negotiated/custom pricing
 
+export type BillingPeriod = 'one_time' | 'weekly' | 'monthly' | 'quarterly' | 'annual' | 'custom';
+
 export interface TieredPrice {
     minQuantity: number;
     maxQuantity?: number; // null = unlimited
@@ -239,6 +241,7 @@ export interface ProductService {
     pricingModel: PricingModel;
     basePrice?: number;
     currency: string;
+    billingPeriod?: BillingPeriod;
     
     // Cost Structure
     costOfGoods?: number;

@@ -20,12 +20,20 @@ CREATE TABLE IF NOT EXISTS products_services (
     sku TEXT, -- Stock Keeping Unit
     category TEXT NOT NULL CHECK (category IN ('product', 'service', 'bundle')),
     type TEXT NOT NULL CHECK (type IN ('digital', 'physical', 'saas', 'consulting', 'package', 'subscription', 'booking')),
-    status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'discontinued')),
+    status TEXT DEFAULT 'draft' CHECK (status IN (
+        'draft',
+        'active',
+        'inactive',
+        'discontinued',
+        'archived',
+        'out_of_stock'
+    )),
     
     -- Pricing Model
     pricing_model TEXT NOT NULL CHECK (pricing_model IN ('flat_rate', 'hourly', 'daily', 'weekly', 'monthly', 'annual', 'tiered', 'usage_based', 'custom')),
     base_price NUMERIC(15, 2),
     currency TEXT DEFAULT 'USD',
+    billing_period TEXT CHECK (billing_period IN ('one_time', 'weekly', 'monthly', 'quarterly', 'annual', 'custom')),
     
     -- Cost Structure (for profit calculation)
     cost_of_goods NUMERIC(15, 2),

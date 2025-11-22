@@ -3329,8 +3329,8 @@ export class DatabaseService {
            discount_percent,
            is_optional,
            display_order,
-           bundle:products_services!inner(id, name, workspace_id, category, type),
-           component:products_services!inner(id, name, workspace_id, category, type)`
+           bundle:products_services!product_service_bundles_bundle_id_fkey!inner(id, name, workspace_id, category, type),
+           component:products_services!product_service_bundles_component_id_fkey!inner(id, name, workspace_id, category, type)`
         )
         .eq('bundle.workspace_id', workspaceId);
 
