@@ -7,6 +7,54 @@ import {
   CampaignAttribution, MarketingAnalytics
 } from '../../types'
 import { taskToDb, marketingItemToDb, crmItemToDb, contactToDb } from '../utils/fieldTransformers'
+import * as Y from 'yjs'
+
+type BinaryContent = string | Uint8Array | ArrayBuffer
+
+const isBinaryContent = (content: BinaryContent): content is Uint8Array | ArrayBuffer =>
+  typeof content !== 'string'
+
+const toUint8Array = (input: Uint8Array | ArrayBuffer): Uint8Array =>
+  input instanceof Uint8Array ? input : new Uint8Array(input)
+
+const encodeToBase64 = (bytes: Uint8Array): string => {
+  const bufferCtor = (globalThis as any)?.Buffer
+  if (bufferCtor?.from) {
+    return bufferCtor.from(bytes).toString('base64')
+  }
+
+  if (typeof btoa === 'function') {
+    let binary = ''
+    const chunkSize = 0x8000
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, i + chunkSize)
+      binary += String.fromCharCode(...chunk)
+    }
+    return btoa(binary)
+  }
+
+  throw new Error('Base64 encoding is not supported in this environment')
+}
+
+const normalizeDocumentContent = (content: BinaryContent) => {
+  if (!isBinaryContent(content)) {
+    return { value: content, encoding: 'utf-8' as const }
+  }
+
+  const value = encodeToBase64(toUint8Array(content))
+  return { value, encoding: 'base64' as const }
+}
+
+interface SaveDocumentSnapshotOptions {
+  docId: string
+  workspaceId: string
+  userId?: string
+  yDoc?: Y.Doc
+  snapshot?: Uint8Array | ArrayBuffer
+  binaryBlob?: Uint8Array | ArrayBuffer
+  meta?: Record<string, unknown>
+  maxRetries?: number
+}
 
 // Helper to convert task category name to database format
 const categoryToDbFormat = (category: TaskCollectionName): string => {
@@ -580,16 +628,18 @@ export class DataPersistenceAdapter {
     docData: {
       name: string
       mimeType: string
-      content: string
+      content: BinaryContent
       module: string
       companyId?: string
       contactId?: string
     }
   ) {
+    const normalized = normalizeDocumentContent(docData.content)
+    
     const document = {
       name: docData.name,
       mime_type: docData.mimeType,
-      content: docData.content,
+      content: normalized.value,
       module: docData.module,
       company_id: docData.companyId || null,
       contact_id: docData.contactId || null,
@@ -615,6 +665,58 @@ export class DataPersistenceAdapter {
   static async deleteDocument(docId: string) {
     const { error } = await DatabaseService.deleteDocument(docId)
     return { error }
+  }
+
+  static async saveDocumentSnapshot(options: SaveDocumentSnapshotOptions) {
+    const snapshotBytes = options.snapshot
+      ? toUint8Array(options.snapshot)
+      : options.yDoc
+        ? Y.encodeStateAsUpdate(options.yDoc)
+        : null
+
+    if (!snapshotBytes) {
+      throw new Error('A Yjs document or raw snapshot bytes must be provided')
+    }
+
+    const binaryBlobBytes = options.binaryBlob ? toUint8Array(options.binaryBlob) : null
+    const payload = {
+      kind: 'gtm_doc_snapshot',
+      version: 1,
+      snapshot: encodeToBase64(snapshotBytes),
+      binaryBlob: binaryBlobBytes ? encodeToBase64(binaryBlobBytes) : undefined,
+      meta: {
+        docId: options.docId,
+        workspaceId: options.workspaceId,
+        userId: options.userId ?? null,
+        savedAt: new Date().toISOString(),
+        snapshotBytes: snapshotBytes.length,
+        binaryBlobBytes: binaryBlobBytes?.length ?? 0,
+        ...options.meta,
+      },
+    }
+
+    const serializedContent = JSON.stringify(payload)
+    const maxRetries = Math.max(1, options.maxRetries ?? 3)
+    let lastResult: Awaited<ReturnType<typeof DatabaseService.updateDocument>> | null = null
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const result = await DatabaseService.updateDocument(options.docId, {
+        content: serializedContent,
+      })
+
+      if (!result.error) {
+        return result
+      }
+
+      lastResult = result
+    }
+
+    return (
+      lastResult ?? {
+        data: null,
+        error: new Error('Failed to persist document snapshot after retries'),
+      }
+    )
   }
 
   // Expense operations

@@ -1,6 +1,6 @@
 import { supabase } from '../supabase'
 import { Database } from '../types/database'
-import { DashboardData, Task, AnyCrmItem, Contact, Meeting, MarketingItem, FinancialLog, Document, SettingsData, Priority, GTMDoc, GTMDocMetadata, LinkedDoc, PlanType } from '../../types'
+import { DashboardData, Task, AnyCrmItem, Contact, Meeting, MarketingItem, FinancialLog, Document, SettingsData, Priority, GTMDoc, GTMDocMetadata, GTMDocLink, LinkedDoc, PlanType, StructuredBlockMap } from '../../types'
 import { PLAN_LIMITS } from '../subscriptionConstants'
 import { dbToTasks, dbToMarketingItems, dbToFinancialLogs, dbToCrmItem, dbToContacts } from '../utils/fieldTransformers'
 import { logger } from '../logger'
@@ -2188,7 +2188,7 @@ export class DatabaseService {
     try {
       let query = supabase
         .from('gtm_docs')
-        .select('id, workspace_id, owner_id, created_at, updated_at, title, doc_type, visibility, is_template, template_category, tags')
+        .select('id, workspace_id, owner_id, created_at, updated_at, title, doc_type, visibility, is_template, template_category, tags, blocks_metadata')
         .eq('workspace_id', workspaceId)
 
       // Apply filters
@@ -2219,6 +2219,7 @@ export class DatabaseService {
         isTemplate: dbDoc.is_template,
         templateCategory: dbDoc.template_category,
         tags: dbDoc.tags || [],
+        blocksMetadata: dbDoc.blocks_metadata || undefined,
       })) || []
 
       return { data: docs, error: null }
@@ -2254,6 +2255,7 @@ export class DatabaseService {
         isTemplate: data.is_template,
         templateCategory: data.template_category,
         tags: data.tags || [],
+        blocksMetadata: data.blocks_metadata || undefined,
       }
 
       return { data: doc, error: null }
@@ -2273,7 +2275,8 @@ export class DatabaseService {
     visibility?: 'private' | 'team',
     isTemplate?: boolean,
     templateCategory?: string,
-    tags?: string[]
+    tags?: string[],
+    blocksMetadata?: StructuredBlockMap
   }) {
     if (!docData.workspaceId || !docData.userId) {
       logger.error('[Database] Missing required fields for createGTMDoc', { workspaceId: docData.workspaceId, userId: docData.userId });
@@ -2294,6 +2297,7 @@ export class DatabaseService {
           is_template: docData.isTemplate || false,
           template_category: docData.templateCategory || null,
           tags: docData.tags || [],
+          blocks_metadata: docData.blocksMetadata ?? null,
         })
         .select()
         .single()
@@ -2315,6 +2319,7 @@ export class DatabaseService {
         isTemplate: data.is_template,
         templateCategory: data.template_category,
         tags: data.tags || [],
+        blocksMetadata: data.blocks_metadata || undefined,
       }
 
       logger.info('[Database] Created GTM doc:', { docId: doc.id, title: doc.title })
@@ -2333,7 +2338,8 @@ export class DatabaseService {
     visibility?: 'private' | 'team',
     tags?: string[],
     isTemplate?: boolean,
-    templateCategory?: string | null
+    templateCategory?: string | null,
+    blocksMetadata?: StructuredBlockMap
   }) {
     try {
       const updateData: any = {
@@ -2348,6 +2354,7 @@ export class DatabaseService {
       if (updates.tags !== undefined) updateData.tags = updates.tags
       if (updates.isTemplate !== undefined) updateData.is_template = updates.isTemplate
       if (updates.templateCategory !== undefined) updateData.template_category = updates.templateCategory
+  if (updates.blocksMetadata !== undefined) updateData.blocks_metadata = updates.blocksMetadata
 
       const { data, error } = await supabase
         .from('gtm_docs')
@@ -2374,6 +2381,7 @@ export class DatabaseService {
         isTemplate: data.is_template,
         templateCategory: data.template_category,
         tags: data.tags || [],
+        blocksMetadata: data.blocks_metadata || undefined,
       }
 
       logger.info('[Database] Updated GTM doc:', { docId: doc.id })
@@ -2560,6 +2568,31 @@ export class DatabaseService {
       return { data: linkedDocs, error: null }
     } catch (error) {
       logger.error('Error loading linked docs:', error)
+      return { data: null, error }
+    }
+  }
+
+  static async getDocLinksForDoc(docId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('gtm_doc_links')
+        .select('id, doc_id, linked_entity_type, linked_entity_id, created_at')
+        .eq('doc_id', docId)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+
+      const links: GTMDocLink[] = (data || []).map((link: any) => ({
+        id: link.id,
+        docId: link.doc_id,
+        linkedEntityType: link.linked_entity_type,
+        linkedEntityId: link.linked_entity_id,
+        createdAt: link.created_at,
+      }))
+
+      return { data: links, error: null }
+    } catch (error) {
+      logger.error('Error loading doc links:', error)
       return { data: null, error }
     }
   }

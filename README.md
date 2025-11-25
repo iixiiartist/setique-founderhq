@@ -176,6 +176,11 @@ FounderHQ is a Setique tool designed specifically for startup founders and early
 
    Apply database migrations via Supabase dashboard or CLI.
 
+   **Structured block storage bucket:**
+
+   - Run `create_doc_block_assets_bucket.sql` for each environment (dev/staging/prod) to provision the `doc-block-assets` bucket Supabase Storage uses for signature PNGs.
+   - Follow the step-by-step guide in [`DOC_BLOCK_ASSETS_BUCKET_SETUP.md`](DOC_BLOCK_ASSETS_BUCKET_SETUP.md) for CLI commands, validation queries, and troubleshooting tips.
+
 ### Installation
 
 Install project dependencies:

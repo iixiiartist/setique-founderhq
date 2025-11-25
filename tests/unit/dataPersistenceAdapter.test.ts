@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import * as Y from 'yjs';
 import { DataPersistenceAdapter } from '../../lib/services/dataPersistenceAdapter';
 import * as DatabaseService from '../../lib/services/database';
 import * as ActivityService from '../../lib/services/activityService';
@@ -24,6 +25,9 @@ vi.mock('../../lib/services/database', () => ({
     createFinancialLog: vi.fn(),
     updateFinancialLog: vi.fn(),
     deleteFinancialLog: vi.fn(),
+    createDocument: vi.fn(),
+    updateDocument: vi.fn(),
+    deleteDocument: vi.fn(),
   },
 }));
 
@@ -873,5 +877,104 @@ describe('DataPersistenceAdapter - Error Handling', () => {
 
     expect(result.error).toEqual(permissionError);
     expect(result.data).toBeNull();
+  });
+});
+
+describe('DataPersistenceAdapter - Document Persistence Enhancements', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should encode a Yjs snapshot to base64 and persist it', async () => {
+    const ydoc = new Y.Doc();
+    ydoc.getText('content').insert(0, 'Hello Codex');
+
+    const snapshotBytes = Y.encodeStateAsUpdate(ydoc);
+    const expectedBase64 = Buffer.from(snapshotBytes).toString('base64');
+
+    vi.mocked(DatabaseService.DatabaseService.updateDocument).mockResolvedValue({
+      data: { id: 'doc-1' },
+      error: null,
+    });
+
+    const result = await DataPersistenceAdapter.saveDocumentSnapshot({
+      docId: 'doc-1',
+      workspaceId: 'workspace-1',
+      yDoc: ydoc,
+      userId: 'user-1',
+    });
+
+    expect(result.error).toBeNull();
+    const payloadArg = vi.mocked(DatabaseService.DatabaseService.updateDocument).mock.calls[0][1] as any;
+    const payload = JSON.parse(payloadArg.content);
+    expect(payload.kind).toBe('gtm_doc_snapshot');
+    expect(payload.snapshot).toBe(expectedBase64);
+    expect(payload.meta.workspaceId).toBe('workspace-1');
+  });
+
+  it('should include optional binary blob data when provided', async () => {
+    const snapshot = new Uint8Array([1, 2, 3]);
+    const binaryBlob = new Uint8Array([9, 9, 9, 9]);
+    const expectedBlobBase64 = Buffer.from(binaryBlob).toString('base64');
+
+    vi.mocked(DatabaseService.DatabaseService.updateDocument).mockResolvedValue({
+      data: { id: 'doc-2' },
+      error: null,
+    });
+
+    await DataPersistenceAdapter.saveDocumentSnapshot({
+      docId: 'doc-2',
+      workspaceId: 'workspace-1',
+      snapshot,
+      binaryBlob,
+    });
+
+    const payloadArg = vi.mocked(DatabaseService.DatabaseService.updateDocument).mock.calls[0][1] as any;
+    const payload = JSON.parse(payloadArg.content);
+    expect(payload.binaryBlob).toBe(expectedBlobBase64);
+    expect(payload.meta.binaryBlobBytes).toBe(binaryBlob.length);
+  });
+
+  it('should retry Supabase updates when failures occur', async () => {
+    const errorResponse = { data: null, error: new Error('Temporary failure') };
+    const successResponse = { data: { id: 'doc-3' }, error: null };
+
+    vi.mocked(DatabaseService.DatabaseService.updateDocument)
+      .mockResolvedValueOnce(errorResponse as any)
+      .mockResolvedValueOnce(errorResponse as any)
+      .mockResolvedValueOnce(successResponse as any);
+
+    const result = await DataPersistenceAdapter.saveDocumentSnapshot({
+      docId: 'doc-3',
+      workspaceId: 'workspace-1',
+      snapshot: new Uint8Array([7, 7, 7]),
+      maxRetries: 3,
+    });
+
+    expect(DatabaseService.DatabaseService.updateDocument).toHaveBeenCalledTimes(3);
+    expect(result.data).toEqual(successResponse.data);
+  });
+
+  it('should encode binary uploads when calling uploadDocument', async () => {
+    const binary = new Uint8Array([0xde, 0xad, 0xbe, 0xef]);
+    const expectedBase64 = Buffer.from(binary).toString('base64');
+
+    vi.mocked(DatabaseService.DatabaseService.createDocument).mockResolvedValue({
+      data: { id: 'upload-1' },
+      error: null,
+    });
+
+    await DataPersistenceAdapter.uploadDocument('user-1', 'workspace-1', {
+      name: 'snapshot.bin',
+      mimeType: 'application/octet-stream',
+      content: binary,
+      module: 'workspace',
+    });
+
+    expect(DatabaseService.DatabaseService.createDocument).toHaveBeenCalledWith(
+      'user-1',
+      'workspace-1',
+      expect.objectContaining({ content: expectedBase64 })
+    );
   });
 });

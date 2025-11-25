@@ -7,6 +7,7 @@ import { AssignmentDropdown } from './AssignmentDropdown';
 import { SubtaskManager } from './SubtaskManager';
 import { searchWeb } from '../../src/lib/services/youSearchService';
 import { getAiResponse } from '../../services/groqService';
+import { ModerationError, formatModerationErrorMessage } from '../../lib/services/moderationService';
 
 interface AccountDetailViewProps {
     item: AnyCrmItem;
@@ -176,8 +177,12 @@ function AccountDetailView({
             }
 
         } catch (error) {
-            console.error('Enrichment failed:', error);
-            alert('Enrichment failed. See console for details.');
+            if (error instanceof ModerationError) {
+                alert(formatModerationErrorMessage(error));
+            } else {
+                console.error('Enrichment failed:', error);
+                alert('Enrichment failed. See console for details.');
+            }
         } finally {
             setIsEnriching(false);
         }

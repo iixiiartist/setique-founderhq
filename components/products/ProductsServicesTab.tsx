@@ -6,6 +6,7 @@ import { ProductServiceCreateModal } from './ProductServiceCreateModal';
 import { ProductServiceDetailModal } from './ProductServiceDetailModal';
 import ProductAnalyticsDashboard from './ProductAnalyticsDashboard';
 import { getAiResponse } from '../../services/groqService';
+import { ModerationError, formatModerationErrorMessage } from '../../lib/services/moderationService';
 import { searchWeb } from '../../src/lib/services/youSearchService';
 import { MarketResearchPanel } from './MarketResearchPanel';
 
@@ -86,8 +87,12 @@ export function ProductsServicesTab({
             // 2. External Market Research (if requested via specific button or if internal search yields few results)
             // For now, we'll keep this separate to avoid confusion, but we can trigger it here if needed.
 
-        } catch (e) {
-            console.error("Smart search failed", e);
+        } catch (error) {
+            if (error instanceof ModerationError) {
+                alert(formatModerationErrorMessage(error));
+            } else {
+                console.error("Smart search failed", error);
+            }
         } finally {
             setIsSearching(false);
         }
@@ -126,9 +131,13 @@ export function ProductsServicesTab({
             } else {
                 setMarketResearchResult("No online results found.");
             }
-        } catch (e) {
-            console.error("Market research failed", e);
-            setMarketResearchResult("Failed to perform market research.");
+        } catch (error) {
+            if (error instanceof ModerationError) {
+                setMarketResearchResult(formatModerationErrorMessage(error));
+            } else {
+                console.error("Market research failed", error);
+                setMarketResearchResult("Failed to perform market research.");
+            }
         } finally {
             setIsSearching(false);
         }

@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { uploadBinary, deleteObjects } from './uploadService';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
@@ -217,27 +218,26 @@ export async function uploadToSupabase(
     ? `${workspaceId}/${docId}/${filename}`
     : `${workspaceId}/${filename}`;
 
-  // Upload to Supabase Storage
-  const { data, error } = await supabase.storage
-    .from('workspace-images')
-    .upload(path, compressedFile, {
-      cacheControl: '3600',
-      upsert: false,
-    });
+  const result = await uploadBinary({
+    bucket: 'workspace-images',
+    path,
+    file: compressedFile,
+    cacheControl: '3600',
+    makePublic: true,
+    metadata: {
+      workspaceId,
+      docId,
+      type: 'image',
+    },
+  });
 
-  if (error) {
-    console.error('Upload error:', error);
-    throw new Error(`Upload failed: ${error.message}`);
+  if (!result.publicUrl) {
+    throw new Error('Upload succeeded but public URL could not be generated');
   }
 
-  // Get public URL
-  const { data: urlData } = supabase.storage
-    .from('workspace-images')
-    .getPublicUrl(path);
-
   return {
-    url: urlData.publicUrl,
-    path: path,
+    url: result.publicUrl,
+    path: result.path,
     size: compressedFile.size,
   };
 }
@@ -247,14 +247,7 @@ export async function uploadToSupabase(
  * @param path - Storage path of the image
  */
 export async function deleteFromSupabase(path: string): Promise<void> {
-  const { error } = await supabase.storage
-    .from('workspace-images')
-    .remove([path]);
-
-  if (error) {
-    console.error('Delete error:', error);
-    throw new Error(`Delete failed: ${error.message}`);
-  }
+  await deleteObjects({ bucket: 'workspace-images', paths: [path] });
 }
 
 /**

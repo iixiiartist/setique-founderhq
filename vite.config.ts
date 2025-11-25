@@ -106,7 +106,8 @@ export default defineConfig(({ mode }) => {
         globals: true,
         environment: 'node',
         setupFiles: (process.env.TEST_TYPE === 'rls') ? ['./tests/rls/setup.ts'] : [],
-        testMatch: ['**/tests/**/*.test.ts'],
+        include: ['tests/**/*.test.ts'],
+        exclude: ['tests/e2e/**'], // keep Playwright specs out of Vitest runs
         coverage: {
           provider: 'v8',
           reporter: ['text', 'json', 'html'],

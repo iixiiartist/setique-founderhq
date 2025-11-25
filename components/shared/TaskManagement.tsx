@@ -490,8 +490,8 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
                     onSelect={async (doc) => {
                         try {
                             const { error } = await DatabaseService.linkDocToEntity(
-                                workspace.id,
                                 doc.id,
+                                workspace.id,
                                 'task',
                                 editingTask.id
                             );

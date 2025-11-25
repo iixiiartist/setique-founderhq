@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
 import { WorkspaceProvider } from './contexts/WorkspaceContext'
+import { FeatureFlagProvider } from './contexts/FeatureFlagContext'
 import { QueryProvider } from './lib/providers/QueryProvider'
 import { Toaster } from './lib/utils/toast'
 import { LoginForm } from './components/auth/LoginForm'
@@ -130,7 +131,9 @@ function AppRoutes() {
 
   return (
     <WorkspaceProvider>
-      <DashboardApp subscribePlan={subscribePlan || sessionStorage.getItem('pending_subscription')} />
+      <FeatureFlagProvider>
+        <DashboardApp subscribePlan={subscribePlan || sessionStorage.getItem('pending_subscription')} />
+      </FeatureFlagProvider>
     </WorkspaceProvider>
   )
 }

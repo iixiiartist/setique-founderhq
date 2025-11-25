@@ -111,6 +111,7 @@ export const cleanupTestData = async (
   await client.from('tasks').delete().eq('workspace_id', workspaceId);
   await client.from('marketing_items').delete().eq('workspace_id', workspaceId);
   await client.from('crm_items').delete().eq('workspace_id', workspaceId);
+  await client.from('gtm_docs').delete().eq('workspace_id', workspaceId);
   await client.from('activity_log').delete().eq('workspace_id', workspaceId);
   await client.from('workspace_members').delete().eq('workspace_id', workspaceId);
   await client.from('workspaces').delete().eq('id', workspaceId);

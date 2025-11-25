@@ -840,6 +840,32 @@ export type DocVisibility = 'private' | 'team';
 
 export type LinkedEntityType = 'task' | 'event' | 'crm' | 'chat' | 'contact';
 
+export type StructuredBlockType = 'textbox' | 'signature';
+
+export interface StructuredBlockPosition {
+    x: number;
+    y: number;
+    zIndex: number;
+}
+
+export interface StructuredBlockDimensions {
+    width: number;
+    height: number;
+}
+
+export interface StructuredBlock {
+    id: string;
+    type: StructuredBlockType;
+    position: StructuredBlockPosition;
+    size: StructuredBlockDimensions;
+    rotation?: number;
+    data?: Record<string, unknown>;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export type StructuredBlockMap = Record<string, StructuredBlock>;
+
 export interface GTMDoc {
     id: string;
     workspaceId: string;
@@ -854,6 +880,7 @@ export interface GTMDoc {
     isTemplate: boolean;
     templateCategory?: string;
     tags: string[];
+    blocksMetadata?: StructuredBlockMap;
     searchVector?: string; // Not typically used in frontend
 }
 

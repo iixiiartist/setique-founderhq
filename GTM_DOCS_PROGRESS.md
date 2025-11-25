@@ -3,13 +3,13 @@
 ## Overview
 Implementation of Google Docs-style GTM workspace with rich text editing, templates, and AI integration.
 
-**Status:** Phase 1 Complete (7 of 20 tasks) ✅  
+**Status:** Phase 1 Complete (8 of 20 tasks) ✅  
 **Started:** 2024-11-10  
 **Latest Commit:** af30123
 
 ---
 
-## ✅ Completed Tasks (7/20)
+## ✅ Completed Tasks (8/20)
 
 ### **Task 1: Database Schema Setup** ✅
 **Files:**
@@ -120,6 +120,20 @@ Implementation of Google Docs-style GTM workspace with rich text editing, templa
 
 ---
 
+### **Task 4: Install Tiptap Dependencies** ✅
+**Files / Commands:**
+- `package.json`
+- `package-lock.json`
+
+**What was done:**
+- Confirmed all baseline editor deps are installed and pinned:
+   - `@tiptap/react`, `@tiptap/starter-kit`, and `@tiptap/extension-placeholder`
+   - Collaboration helpers (`@tiptap/extension-collaboration`, `@tiptap/extension-collaboration-cursor`, `@tiptap/y-tiptap`)
+- Ensured lockfile sync via `npm install` so the workspace can `npm run build` without fetching new packages mid-branch.
+- Documented the dependency state here so future tasks can move straight into wiring up the editor experience.
+
+---
+
 ### **Task 6: DatabaseService CRUD** ✅
 **Files:**
 - `lib/services/database.ts` (added 10 new methods, lines 2056-2408)
@@ -181,19 +195,7 @@ _No tasks currently in progress_
 
 ---
 
-## ⏳ Remaining Tasks (13/20)
-
-### **Task 4: Install Tiptap Dependencies**
-**Command:** `npm install @tiptap/react @tiptap/starter-kit @tiptap/extension-placeholder`
-
-**Packages needed:**
-- `@tiptap/react` - React wrapper
-- `@tiptap/starter-kit` - Basic formatting (bold, italic, lists, headings, etc.)
-- `@tiptap/extension-placeholder` - Placeholder text
-
-**Validation:** Run `npm run build` to ensure no dependency conflicts
-
----
+## ⏳ Remaining Tasks (12/20)
 
 ### **Task 8: Tiptap Editor Integration**
 **File:** `components/workspace/DocEditor.tsx`

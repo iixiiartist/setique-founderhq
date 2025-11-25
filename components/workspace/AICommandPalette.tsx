@@ -14,19 +14,22 @@ import {
 	Globe,
 	Image as ImageIcon,
 	Loader2,
+	Lock,
 	RefreshCw,
+	Search,
 	Sparkles,
 	Wand2,
 	X,
 } from 'lucide-react';
 import { DOC_TYPE_ICONS, DOC_TYPE_LABELS } from '../../constants';
-import type { DocType, DashboardData, BusinessProfile } from '../../types';
+import type { DocType, DashboardData, BusinessProfile, PlanType, WorkspaceRole } from '../../types';
 import type { AIWorkspaceContext } from '../../hooks/useAIWorkspaceContext';
 import {
 	getAiResponse,
 	type Content,
 	type GenerateContentResponse,
 } from '../../services/groqService';
+import { ModerationError, formatModerationErrorMessage } from '../../lib/services/moderationService';
 import { searchWeb } from '@/src/lib/services/youSearchService';
 import type {
 	YouSearchImageResult,
@@ -34,6 +37,12 @@ import type {
 	YouSearchResponse,
 } from '@/src/lib/services/youSearch.types';
 import { parseAIResponse, isSafeContent } from '../../utils/aiContentParser';
+import {
+	commandRegistry,
+	type CommandInsertMode,
+	type CommandMatch,
+	type CommandRuntimeContext,
+} from '../../lib/ai/commandRegistry';
 
 interface Position {
 	top: number;
@@ -71,6 +80,9 @@ interface AICommandPaletteProps {
 	docTitle: string;
 	workspaceName: string | null;
 	tags: string[];
+	planType: PlanType;
+	workspaceRole: WorkspaceRole;
+	onUpgradeNeeded?: () => void;
 }
 
 const QUICK_ACTIONS: string[] = [
@@ -413,16 +425,23 @@ export const AICommandPalette: React.FC<AICommandPaletteProps> = ({
 	docTitle,
 	workspaceName,
 	tags,
+	planType,
+	workspaceRole,
+	onUpgradeNeeded,
 }) => {
 	const paletteRef = useRef<HTMLDivElement>(null);
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const dragDataRef = useRef<{ startX: number; startY: number; origin: Position } | null>(null);
+	const selectionPresenceRef = useRef(false);
 
 	const [prompt, setPrompt] = useState('');
 	const [tone, setTone] = useState<ToneOption>(TONE_OPTIONS[0]);
 	const [formatOption, setFormatOption] = useState<FormatOption>(FORMAT_OPTIONS[0]);
 	const [selection, setSelection] = useState<SelectionState>({ text: '', range: null, wordCount: 0 });
-	const [insertMode, setInsertMode] = useState<'replace' | 'append'>('replace');
+	const [insertMode, setInsertMode] = useState<CommandInsertMode>('replace');
+	const [blockInsertDirection, setBlockInsertDirection] = useState<'before' | 'after'>('after');
+	const [commandQuery, setCommandQuery] = useState('');
+	const [selectedCommandId, setSelectedCommandId] = useState<string | null>(null);
 
 	const [loading, setLoading] = useState(false);
 	const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -453,16 +472,103 @@ export const AICommandPalette: React.FC<AICommandPaletteProps> = ({
 		return badges;
 	}, [data]);
 
+	const commandContext = useMemo<CommandRuntimeContext>(
+		() => ({
+			docType,
+			docTitle,
+			tags,
+			planType,
+			workspaceRole,
+			hasSelection: Boolean(selection.text?.length),
+			selectionText: selection.text,
+			selectionWordCount: selection.wordCount,
+			workspaceName,
+			dashboardData: data,
+			businessProfile: workspaceContext.businessProfile ?? null,
+			relatedDocs:
+				workspaceContext.relatedDocs?.map((doc) => ({
+					title: doc.title,
+					docType: doc.docType,
+					tags: doc.tags ?? [],
+				})) ?? [],
+		}),
+		[
+			data,
+			docTitle,
+			docType,
+			planType,
+			selection.text,
+			selection.wordCount,
+			tags,
+			workspaceContext.businessProfile,
+			workspaceContext.relatedDocs,
+			workspaceName,
+			workspaceRole,
+		],
+	);
+
+	const commandMatches = useMemo<CommandMatch[]>(
+		() => commandRegistry.search(commandQuery, commandContext),
+		[commandContext, commandQuery],
+	);
+
+	const selectedCommandDefinition = useMemo(
+		() => (selectedCommandId ? commandRegistry.get(selectedCommandId) ?? null : null),
+		[selectedCommandId],
+	);
+
 	const docSummary = useMemo(
 		() => buildDocDataSummary(docType, data, workspaceContext.businessProfile),
 		[data, docType, workspaceContext.businessProfile],
 	);
 	const hasSelection = !editor.state.selection.empty;
-	const mode: 'insert' | 'replace' | 'improve' = hasSelection
-		? prompt.toLowerCase().includes('improve') || prompt.toLowerCase().includes('rewrite')
+	const promptLower = prompt.toLowerCase();
+	const shouldInsert = !hasSelection || insertMode === 'append' || insertMode === 'block';
+	const mode: 'insert' | 'replace' | 'improve' = shouldInsert
+		? 'insert'
+		: promptLower.includes('improve') || promptLower.includes('rewrite')
 			? 'improve'
-			: 'replace'
-		: 'insert';
+			: 'replace';
+
+	const insertModeHint = useMemo(() => {
+		if (insertMode === 'replace') {
+			return hasSelection
+				? 'Will overwrite the highlighted text.'
+				: 'Select text to enable rewrite mode.';
+		}
+		if (insertMode === 'block') {
+			return blockInsertDirection === 'before'
+				? 'Inserts a new AI block above this section.'
+				: 'Inserts a new AI block below this section.';
+		}
+		return 'Adds AI output at the current cursor.';
+	}, [blockInsertDirection, hasSelection, insertMode]);
+
+	const insertModeHintTone = useMemo(() => {
+		if (insertMode === 'block') return 'text-amber-600';
+		if (insertMode === 'replace' && !hasSelection) return 'text-rose-600';
+		return 'text-slate-500';
+	}, [hasSelection, insertMode]);
+
+	const resolveBlockInsertionPosition = useCallback(
+		(direction: 'before' | 'after'): number | null => {
+			const { state } = editor;
+			const { selection } = state;
+			const refPos = direction === 'before' ? selection.$from : selection.$to;
+			for (let depth = refPos.depth; depth > 0; depth -= 1) {
+				const node = refPos.node(depth) as { type?: { isBlock?: boolean } } | null;
+				if (node?.type?.isBlock) {
+					try {
+						return direction === 'before' ? refPos.before(depth) : refPos.after(depth);
+					} catch (_error) {
+						return null;
+					}
+				}
+			}
+			return direction === 'before' ? 0 : state.doc.content.size;
+		},
+		[editor],
+	);
 
 
 	const resetPosition = useCallback(() => {
@@ -478,17 +584,24 @@ export const AICommandPalette: React.FC<AICommandPaletteProps> = ({
 		const updateSelection = () => {
 			const { from, to } = editor.state.selection;
 			const text = editor.state.doc.textBetween(from, to, ' ');
+			const trimmed = text.trim();
+			const hasText = Boolean(trimmed);
 			setSelection({
-				text: text.trim(),
+				text: trimmed,
 				range: from === to ? null : { from, to },
-				wordCount: text.trim() ? text.trim().split(/\s+/).length : 0,
+				wordCount: hasText ? trimmed.split(/\s+/).length : 0,
 			});
-			if (!prompt && !text.trim()) {
+			if (!prompt && !hasText) {
 				const docPrompt = DOC_TYPE_SUGGESTIONS[docType]?.[0] ?? QUICK_ACTIONS[0];
 				setPrompt(docPrompt);
 			}
-			if (text.trim()) {
-				setInsertMode('replace');
+			if (hasText && !selectionPresenceRef.current) {
+				selectionPresenceRef.current = true;
+				setInsertMode((prev) => (prev === 'append' ? 'replace' : prev));
+			}
+			if (!hasText) {
+				selectionPresenceRef.current = false;
+				setInsertMode((prev) => (prev === 'replace' ? 'append' : prev));
 			}
 		};
 
@@ -583,6 +696,52 @@ export const AICommandPalette: React.FC<AICommandPaletteProps> = ({
 		},
 		[editor],
 	);
+
+	const handleCommandSelect = useCallback(
+		(match: CommandMatch) => {
+			if (match.isLocked) {
+				const reason = match.lockedReason ?? 'This command is locked right now.';
+				setErrorMessage(reason);
+				if (match.definition.minPlan && reason.toLowerCase().includes('upgrade') && onUpgradeNeeded) {
+					onUpgradeNeeded();
+				}
+				return;
+			}
+
+			const result = match.definition.build(commandContext);
+			if (result.prompt) {
+				setPrompt(result.prompt);
+			}
+			if (result.toneId) {
+				const nextTone = TONE_OPTIONS.find((option) => option.id === result.toneId);
+				if (nextTone) {
+					setTone(nextTone);
+				}
+			}
+			if (result.formatId) {
+				const nextFormat = FORMAT_OPTIONS.find((option) => option.id === result.formatId);
+				if (nextFormat) {
+					setFormatOption(nextFormat);
+				}
+			}
+			const defaultMode: CommandInsertMode = selection.text ? 'replace' : 'append';
+			setInsertMode(result.insertMode ?? defaultMode);
+			setSelectedCommandId(match.definition.id);
+			setCommandQuery('');
+			setStatusMessage(`Command ready: ${match.definition.title}`);
+			setErrorMessage(null);
+			if (typeof window !== 'undefined') {
+				requestAnimationFrame(() => textareaRef.current?.focus());
+			} else {
+				textareaRef.current?.focus();
+			}
+		},
+		[commandContext, onUpgradeNeeded, selection.text],
+	);
+
+	const clearSelectedCommand = useCallback(() => {
+		setSelectedCommandId(null);
+	}, []);
 
 	const buildSystemPrompt = useCallback(() => {
 		const label = DOC_TYPE_LABELS[docType] ?? docType;
@@ -733,13 +892,29 @@ ${TIPTAP_TOOLKIT_HINT}`;
 			}
 
 			editor.chain().focus();
-			if (hasSelection && (mode === 'replace' || mode === 'improve') && selection.range) {
+			if (insertMode === 'block') {
+				const position = resolveBlockInsertionPosition(blockInsertDirection);
+				if (position !== null) {
+					editor.commands.insertContentAt(position, `${html}<p></p>`);
+				} else {
+					editor.commands.insertContent(`${html}<p></p>`);
+				}
+			} else if (hasSelection && (mode === 'replace' || mode === 'improve') && selection.range) {
 				editor.commands.insertContentAt(selection.range, html);
 			} else {
 				editor.commands.insertContent(`${html}<p></p>`);
 			}
 		},
-		[editor, hasSelection, mode, selection.range, setErrorMessage],
+		[
+			blockInsertDirection,
+			editor,
+			hasSelection,
+			insertMode,
+			mode,
+			resolveBlockInsertionPosition,
+			selection.range,
+			setErrorMessage,
+		],
 	);
 
 	const handleGenerate = useCallback(async () => {
@@ -771,7 +946,11 @@ ${TIPTAP_TOOLKIT_HINT}`;
 			setStatusMessage('✨ Inserted AI output');
 		} catch (error) {
 			console.error('[AICommandPalette] generation failed', error);
-			setErrorMessage(error instanceof Error ? error.message : 'Failed to generate response.');
+			if (error instanceof ModerationError) {
+				setErrorMessage(formatModerationErrorMessage(error));
+			} else {
+				setErrorMessage(error instanceof Error ? error.message : 'Failed to generate response.');
+			}
 		} finally {
 			setLoading(false);
 		}
@@ -830,10 +1009,106 @@ ${TIPTAP_TOOLKIT_HINT}`;
 				</div>
 
 				<div className="space-y-4 px-4 py-4">
+					<div className="rounded-xl border border-slate-200 bg-white/80 p-3">
+						<div className="flex items-center justify-between gap-2">
+							<div>
+								<p className="text-xs font-semibold text-slate-700">Command runner</p>
+								<p className="text-[11px] text-slate-400">Search workspace-aware AI recipes</p>
+							</div>
+							<span className="text-[10px] uppercase tracking-[0.25em] text-slate-400">⌘K</span>
+						</div>
+						<div className="relative mt-2">
+							<Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+							<input
+								type="text"
+								value={commandQuery}
+								onChange={(event) => setCommandQuery(event.target.value)}
+								placeholder="Try “summary”, “risk”, “outbound”…"
+								className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-9 text-sm text-slate-700 outline-none focus:border-slate-400"
+							/>
+							{commandQuery ? (
+								<button
+									type="button"
+									onClick={() => setCommandQuery('')}
+									className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-slate-100"
+									aria-label="Clear command search"
+								>
+									<X size={14} />
+								</button>
+							) : null}
+						</div>
+						<div className="mt-3 max-h-44 space-y-2 overflow-y-auto pr-1">
+							{commandMatches.length ? (
+								commandMatches.map((match) => {
+									const isSelected = selectedCommandId === match.definition.id;
+									return (
+										<button
+											key={match.definition.id}
+											type="button"
+											onClick={() => handleCommandSelect(match)}
+											className={`w-full rounded-xl border px-3 py-2 text-left transition ${
+												isSelected
+													? 'border-slate-900 bg-slate-900/5'
+													: 'border-slate-200/70 hover:border-slate-300 hover:bg-slate-50'
+											}`}
+											aria-label={`Run ${match.definition.title}`}
+											data-locked={match.isLocked}
+											title={match.lockedReason ?? ''}
+										>
+											<div className="flex items-start justify-between gap-3">
+												<div className="space-y-1">
+													<p className="text-sm font-semibold text-slate-800">{match.definition.title}</p>
+													<p className="text-xs text-slate-500">{match.definition.description}</p>
+													{match.definition.docTypes?.length ? (
+														<div className="flex flex-wrap gap-1 pt-1">
+															{match.definition.docTypes.slice(0, 3).map((type) => (
+																<span
+																	key={`${match.definition.id}-${type}`}
+																	className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500"
+																>
+																	{DOC_TYPE_ICONS[type] ?? '📝'} {DOC_TYPE_LABELS[type] ?? type}
+																</span>
+															))}
+														</div>
+													) : null}
+												</div>
+												<div className="flex flex-col items-end gap-1 text-[10px] text-slate-400">
+													{match.definition.requiresSelection && <span>Needs selection</span>}
+													{match.isLocked ? (
+														<span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 font-medium text-rose-600">
+															<Lock size={12} /> Locked
+														</span>
+													) : (
+														<span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">
+															Score {Math.round(match.score)}
+														</span>
+													)}
+												</div>
+											</div>
+										</button>
+									);
+								})
+							) : (
+								<p className="text-xs text-slate-400">No commands available for this context yet.</p>
+							)}
+						</div>
+						{selectedCommandDefinition && (
+							<div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
+								<span>Ready: {selectedCommandDefinition.title}</span>
+								<button
+									type="button"
+									onClick={clearSelectedCommand}
+									className="text-slate-400 hover:text-slate-600"
+								>
+									Reset
+								</button>
+							</div>
+						)}
+					</div>
 					<div className="rounded-xl border border-slate-200 bg-white/70 p-3">
 						<div className="flex items-center justify-between gap-2">
 							<label className="text-xs font-medium text-slate-600">Prompt</label>
-							<div className="flex items-center gap-2 text-[11px] text-slate-400">
+							<div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
 								<button
 									type="button"
 									className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] ${
@@ -852,8 +1127,47 @@ ${TIPTAP_TOOLKIT_HINT}`;
 								>
 									Append
 								</button>
+								<button
+									type="button"
+									className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] ${
+										insertMode === 'block' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
+									}`}
+									onClick={() => setInsertMode('block')}
+								>
+									Insert block
+								</button>
 							</div>
 						</div>
+						{insertMode === 'block' ? (
+							<div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+								<span className="font-semibold text-slate-500">Block direction</span>
+								<div className="inline-flex rounded-full bg-slate-100 p-1">
+									<button
+										type="button"
+										className={`rounded-full px-3 py-1 text-[11px] font-medium ${
+											blockInsertDirection === 'before'
+												? 'bg-white text-slate-900 shadow'
+												: 'text-slate-500'
+										}`}
+										onClick={() => setBlockInsertDirection('before')}
+									>
+										Above block
+									</button>
+									<button
+										type="button"
+										className={`rounded-full px-3 py-1 text-[11px] font-medium ${
+											blockInsertDirection === 'after'
+												? 'bg-white text-slate-900 shadow'
+												: 'text-slate-500'
+										}`}
+										onClick={() => setBlockInsertDirection('after')}
+									>
+										Below block
+									</button>
+								</div>
+							</div>
+						) : null}
+						<p className={`mt-2 text-[11px] ${insertModeHintTone}`}>{insertModeHint}</p>
 						<textarea
 							ref={textareaRef}
 							value={prompt}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, type Editor } from '@tiptap/react';
 import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -27,19 +27,22 @@ import { ResizableImage } from '../../lib/tiptap/ResizableImage';
 import { FontSize } from '../../lib/tiptap/FontSize';
 import { PageBreak } from '../../lib/tiptap/PageBreak';
 import ChartNode from '../../lib/tiptap/ChartNode';
+import TextBoxNode from '../../lib/tiptap/TextBoxNode';
+import SignatureNode from '../../lib/tiptap/SignatureNode';
 import { HexColorPicker } from 'react-colorful';
 import EmojiPicker from 'emoji-picker-react';
-import { GTMDoc, DocType, DocVisibility, AppActions, DashboardData } from '../../types';
+import { GTMDoc, DocType, DocVisibility, AppActions, DashboardData, StructuredBlock, StructuredBlockMap, PlanType, WorkspaceRole } from '../../types';
 import { DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '../../constants';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { AICommandPalette } from './AICommandPalette';
 import { ImageUploadModal } from './ImageUploadModal';
 import { ChartQuickInsert } from './ChartQuickInsert';
-import { DocResearchSidebar } from './DocResearchSidebar';
+import { ResearchCopilot } from '../docs/ResearchCopilot';
 import { useAIWorkspaceContext } from '../../hooks/useAIWorkspaceContext';
 import { uploadToSupabase, validateImageFile } from '../../lib/services/imageUploadService';
 import { exportToMarkdown, exportToPDF, exportToHTML, exportToText, generateFilename } from '../../lib/services/documentExport';
 import { GTM_TEMPLATES, type DocumentTemplate } from '../../lib/templates/gtmTemplates';
+import { DocShareModal } from './DocShareModal';
 import {
     ExportSettings,
     ExportPreset,
@@ -54,6 +57,12 @@ import * as Y from 'yjs';
 import SupabaseProvider from 'y-supabase';
 import { supabase } from '../../lib/supabase';
 import BubbleMenuExtension from '@tiptap/extension-bubble-menu';
+import { useFeatureFlags } from '../../contexts/FeatureFlagContext';
+import { GridOverlay } from '../docs/canvas/GridOverlay';
+import { CanvasPalette } from '../docs/canvas/CanvasPalette';
+import { telemetry } from '../../lib/services/telemetry';
+import { startHeartbeatMonitor, COLLAB_RESYNC_INTERVAL_MS, CollabBackoffController } from '../../lib/collab/supabaseProviderConfig';
+import { v4 as uuidv4 } from 'uuid';
 
 interface DocEditorProps {
     workspaceId: string;
@@ -77,7 +86,7 @@ import {
     Scissors, Copy, Clipboard, FilePlus, Trash2, CornerUpLeft,
     Subscript as SubscriptIcon, Superscript as SuperscriptIcon, Youtube as YoutubeIcon,
     Search as SearchIcon,
-    Sparkles, Globe
+    Sparkles, Globe, AlertTriangle
 } from 'lucide-react';
 
 export const DocEditor: React.FC<DocEditorProps> = ({
@@ -92,12 +101,26 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     onUpgradeNeeded,
 }) => {
     const { workspace } = useWorkspace();
+    const { isFeatureEnabled } = useFeatureFlags();
+    const planType: PlanType = workspace?.planType ?? 'free';
+    const workspaceRole: WorkspaceRole = workspace?.ownerId === userId ? 'owner' : 'member';
+    const isCanvasModeEnabled = isFeatureEnabled('docs.canvas-mode');
+    const isAIPaletteEnabled = isFeatureEnabled('docs.ai-palette');
     const [title, setTitle] = useState('Untitled Document');
     const [docType, setDocType] = useState<DocType>('brief');
     const [visibility, setVisibility] = useState<DocVisibility>('team');
     const [tags, setTags] = useState<string[]>([]);
     const [isSaving, setIsSaving] = useState(false);
     const [isLoading, setIsLoading] = useState(!!docId);
+    const [, setBlocksMetadata] = useState<StructuredBlockMap>({});
+    const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+    const [lineSpacing, setLineSpacing] = useState(1.5);
+    const [zoomLevel, setZoomLevel] = useState(110);
+    const [inlineAISuggestion, setInlineAISuggestion] = useState({ visible: false, top: 0, left: 0, text: '' });
+    const [isFocusMode, setIsFocusMode] = useState(false);
+    const [templateSearch, setTemplateSearch] = useState('');
+    const [, setPagePreviews] = useState<string[]>([]);
+    const [showDocSettings, setShowDocSettings] = useState(false);
     
     // Collaboration state
     const [provider, setProvider] = useState<SupabaseProvider | null>(null);
@@ -105,6 +128,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     const [collabStatus, setCollabStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
     const [activeUsers, setActiveUsers] = useState<any[]>([]);
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+    const [collabWarning, setCollabWarning] = useState<string | null>(null);
 
     // AI Command Palette state
     const [showAICommandPalette, setShowAICommandPalette] = useState(false);
@@ -126,12 +150,43 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     const [showChartQuickInsert, setShowChartQuickInsert] = useState(false);
     const [showResearchSidebar, setShowResearchSidebar] = useState(false);
     const [showExportSettingsModal, setShowExportSettingsModal] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
     const [exportSettings, setExportSettings] = useState<ExportSettings>(() => createDefaultExportSettings(workspace?.name));
     const [exportPresets, setExportPresets] = useState<ExportPreset[]>([]);
     const [defaultPresetId, setDefaultPresetId] = useState<string | null>(null);
     const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
     const [newPresetName, setNewPresetName] = useState('');
     const [presetFormError, setPresetFormError] = useState<string | null>(null);
+    const [isCanvasPaletteOpen, setIsCanvasPaletteOpen] = useState(isCanvasModeEnabled);
+    const [isCanvasGridVisible, setIsCanvasGridVisible] = useState(true);
+    const [canvasGridSize, setCanvasGridSize] = useState(16);
+    const [gridAnnouncement, setGridAnnouncement] = useState('');
+    const gridAnnouncementTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const blocksMetadataRef = useRef<StructuredBlockMap>({});
+    const blockMetadataSubscribers = useRef<Map<string, Set<(metadata?: StructuredBlock) => void>>>(new Map());
+    const editorRef = useRef<Editor | null>(null);
+    const canvasScrollRef = useRef<HTMLDivElement | null>(null);
+    const heartbeatCleanupRef = useRef<(() => void) | null>(null);
+    const offlineSinceRef = useRef<number | null>(null);
+    const lastHeartbeatOnlineRef = useRef<boolean | null>(null);
+    const offlineWarningTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const offlineWarningBackoffRef = useRef(new CollabBackoffController([8000, 20000, 45000]));
+    const lastStatusTelemetryRef = useRef<string | null>(null);
+    const collabWarningLatchedRef = useRef(false);
+    const bootStartRef = useRef<number>(Date.now());
+    const bootTrackedRef = useRef(false);
+    const handshakeStartRef = useRef<number | null>(null);
+    const handshakeTrackedRef = useRef(false);
+
+    const setLatchedCollabWarning = useCallback((message: string) => {
+        collabWarningLatchedRef.current = true;
+        setCollabWarning(message);
+    }, []);
+
+    const clearCollabWarning = useCallback(() => {
+        collabWarningLatchedRef.current = false;
+        setCollabWarning(null);
+    }, []);
 
     const exportPageSizeOptions: { value: ExportSettings['pageSize']; label: string }[] = [
         { value: 'a4', label: 'A4 • 210 × 297 mm' },
@@ -148,19 +203,478 @@ export const DocEditor: React.FC<DocEditorProps> = ({
         () => exportPresets.find((preset) => preset.id === defaultPresetId) ?? null,
         [exportPresets, defaultPresetId],
     );
-    
-    // Layout state
-    const [showDocSettings, setShowDocSettings] = useState(false);
-    const [isFocusMode, setIsFocusMode] = useState(false);
-    const [zoomLevel, setZoomLevel] = useState<number>(100);
-    const [pagePreviews, setPagePreviews] = useState<string[]>([]);
-    const [inlineAISuggestion, setInlineAISuggestion] = useState<{ visible: boolean; top: number; left: number; text: string }>(
-        { visible: false, top: 0, left: 0, text: '' }
+
+    const notifyBlockMetadata = useCallback((blockId: string, metadata?: StructuredBlock) => {
+        const listeners = blockMetadataSubscribers.current.get(blockId);
+        if (!listeners || !listeners.size) {
+            return;
+        }
+        listeners.forEach((listener) => {
+            try {
+                listener(metadata);
+            } catch (error) {
+                console.warn('Block metadata listener error', error);
+            }
+        });
+    }, []);
+
+    const subscribeToBlockMetadata = useCallback(
+        (blockId: string, listener: (metadata?: StructuredBlock) => void) => {
+            if (!blockId) {
+                return () => undefined;
+            }
+            const map = blockMetadataSubscribers.current;
+            let listeners = map.get(blockId);
+            if (!listeners) {
+                listeners = new Set();
+                map.set(blockId, listeners);
+            }
+            listeners.add(listener);
+
+            const snapshot = blocksMetadataRef.current[blockId];
+            if (snapshot) {
+                listener(snapshot);
+            }
+
+            return () => {
+                const nextListeners = map.get(blockId);
+                if (!nextListeners) {
+                    return;
+                }
+                nextListeners.delete(listener);
+                if (!nextListeners.size) {
+                    map.delete(blockId);
+                }
+            };
+        },
+        [],
     );
-    const [lineSpacing, setLineSpacing] = useState(1.65);
-    const [templateSearch, setTemplateSearch] = useState('');
-    const canvasScrollRef = useRef<HTMLDivElement>(null);
-    const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+
+    const persistBlockMetadata = useCallback((block?: StructuredBlock) => {
+        if (!block?.id) {
+            return;
+        }
+
+        setBlocksMetadata((prev) => {
+            const next = { ...prev, [block.id]: block };
+            blocksMetadataRef.current = next;
+            return next;
+        });
+        notifyBlockMetadata(block.id, block);
+    }, [notifyBlockMetadata]);
+
+    const removeBlockMetadata = useCallback((blockId?: string) => {
+        if (!blockId) {
+            return;
+        }
+
+        setBlocksMetadata((prev) => {
+            if (!prev[blockId]) {
+                return prev;
+            }
+            const next = { ...prev };
+            delete next[blockId];
+            blocksMetadataRef.current = next;
+            return next;
+        });
+        notifyBlockMetadata(blockId, undefined);
+    }, [notifyBlockMetadata]);
+
+    const getBlocksMetadataPayload = useCallback(() => {
+        return Object.keys(blocksMetadataRef.current).length ? blocksMetadataRef.current : {};
+    }, []);
+
+    const trackStorageFailure = useCallback(
+        (stage: 'load' | 'save', error: unknown, metadata?: Record<string, unknown>) => {
+            const message = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown error';
+            telemetry.track('doc_storage_failure', {
+                workspaceId,
+                userId,
+                docId: docId ?? null,
+                metadata: {
+                    stage,
+                    message,
+                    ...(metadata ?? {}),
+                },
+            });
+        },
+        [docId, userId, workspaceId],
+    );
+
+    const emitBootTelemetry = useCallback(
+        (metadata?: Record<string, unknown>) => {
+            if (bootTrackedRef.current) {
+                return;
+            }
+            const startedAt = bootStartRef.current ?? Date.now();
+            const durationMs = Math.max(0, Date.now() - startedAt);
+            telemetry.track('doc_editor_boot', {
+                workspaceId,
+                userId,
+                docId: docId ?? null,
+                metadata: {
+                    durationMs,
+                    ...(metadata ?? {}),
+                },
+            });
+            bootTrackedRef.current = true;
+        },
+        [docId, userId, workspaceId],
+    );
+
+    const emitCanvasTelemetry = useCallback(
+        (event: 'canvas_shell_toggled' | 'canvas_palette_interaction', metadata?: Record<string, unknown>) => {
+            telemetry.track(event, {
+                workspaceId,
+                userId,
+                docId,
+                metadata,
+            });
+        },
+        [docId, userId, workspaceId],
+    );
+
+    const announceGridState = useCallback((message: string) => {
+        setGridAnnouncement(message);
+        if (gridAnnouncementTimeoutRef.current) {
+            clearTimeout(gridAnnouncementTimeoutRef.current);
+        }
+        gridAnnouncementTimeoutRef.current = setTimeout(() => setGridAnnouncement(''), 1800);
+    }, []);
+
+    const toggleCanvasPalette = useCallback(() => {
+        if (!isCanvasModeEnabled) {
+            return;
+        }
+        setIsCanvasPaletteOpen((prev) => {
+            const next = !prev;
+            emitCanvasTelemetry('canvas_shell_toggled', { open: next });
+            return next;
+        });
+    }, [emitCanvasTelemetry, isCanvasModeEnabled]);
+
+    const toggleCanvasGrid = useCallback(
+        (nextState?: boolean) => {
+            if (!isCanvasModeEnabled) {
+                return;
+            }
+            setIsCanvasGridVisible((prev) => {
+                const next = typeof nextState === 'boolean' ? nextState : !prev;
+                announceGridState(next ? 'Grid overlay enabled' : 'Grid overlay disabled');
+                emitCanvasTelemetry('canvas_palette_interaction', {
+                    action: 'grid_toggle',
+                    value: next,
+                });
+                return next;
+            });
+        },
+        [announceGridState, emitCanvasTelemetry, isCanvasModeEnabled],
+    );
+
+    const handleGridSizeChange = useCallback(
+        (nextSize: number) => {
+            if (!isCanvasModeEnabled) {
+                return;
+            }
+            const sanitized = Math.max(4, Math.min(64, Math.round(nextSize)));
+            setCanvasGridSize(sanitized);
+            announceGridState(`Grid spacing set to ${sanitized}px`);
+            emitCanvasTelemetry('canvas_palette_interaction', {
+                action: 'grid_size_change',
+                value: sanitized,
+            });
+        },
+        [announceGridState, emitCanvasTelemetry, isCanvasModeEnabled],
+    );
+
+    const handleInsertTextBox = useCallback(() => {
+        const instance = editorRef.current;
+        if (!instance || !isCanvasModeEnabled) {
+            return;
+        }
+
+        const blockId = uuidv4();
+        const now = new Date().toISOString();
+        const siblings = Object.keys(blocksMetadataRef.current).length;
+        const newBlock: StructuredBlock = {
+            id: blockId,
+            type: 'textbox',
+            position: {
+                x: 0,
+                y: siblings * 24,
+                zIndex: siblings,
+            },
+            size: {
+                width: 360,
+                height: 200,
+            },
+            rotation: 0,
+            data: {
+                placeholder: 'Type your notes',
+            },
+            createdAt: now,
+            updatedAt: now,
+        };
+
+        persistBlockMetadata(newBlock);
+        emitCanvasTelemetry('canvas_palette_interaction', {
+            action: 'insert_textbox',
+            value: blockId,
+        });
+
+        instance
+            .chain()
+            .focus()
+            .insertTextBox({
+                blockId,
+                width: newBlock.size.width,
+                height: newBlock.size.height,
+                x: newBlock.position.x,
+                y: newBlock.position.y,
+                zIndex: newBlock.position.zIndex,
+                placeholder: 'Type your notes',
+                createdAt: now,
+            })
+            .run();
+    }, [editorRef, emitCanvasTelemetry, isCanvasModeEnabled, persistBlockMetadata]);
+
+    const handleInsertSignature = useCallback(() => {
+        const instance = editorRef.current;
+        if (!instance || !isCanvasModeEnabled) {
+            return;
+        }
+
+        const blockId = uuidv4();
+        const now = new Date().toISOString();
+        const siblings = Object.keys(blocksMetadataRef.current).length;
+        const defaultStroke = '#111827';
+        const block: StructuredBlock = {
+            id: blockId,
+            type: 'signature',
+            position: {
+                x: 0,
+                y: siblings * 24,
+                zIndex: siblings,
+            },
+            size: {
+                width: 360,
+                height: 220,
+            },
+            rotation: 0,
+            data: {
+                strokeColor: defaultStroke,
+                strokeWidth: 3,
+                assetUrl: null,
+                assetPath: null,
+            },
+            createdAt: now,
+            updatedAt: now,
+        };
+
+        persistBlockMetadata(block);
+        emitCanvasTelemetry('canvas_palette_interaction', {
+            action: 'insert_signature',
+            value: blockId,
+        });
+
+        instance
+            .chain()
+            .focus()
+            .insertSignature({
+                blockId,
+                width: block.size.width,
+                height: block.size.height,
+                x: block.position.x,
+                y: block.position.y,
+                zIndex: block.position.zIndex,
+                strokeColor: defaultStroke,
+                strokeWidth: 3,
+                createdAt: now,
+                updatedAt: now,
+            })
+        .run();
+    }, [editorRef, emitCanvasTelemetry, isCanvasModeEnabled, persistBlockMetadata]);
+
+    useEffect(() => {
+        if (docId) {
+            const doc = new Y.Doc();
+            const providerInstance = new SupabaseProvider(doc, supabase, {
+                channel: `doc-collab-${docId}`,
+                id: docId,
+                tableName: 'gtm_docs',
+                columnName: 'content',
+                resyncInterval: COLLAB_RESYNC_INTERVAL_MS,
+            });
+
+            const connectionStartedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
+            let handshakeLogged = false;
+            handshakeStartRef.current = Date.now();
+            handshakeTrackedRef.current = false;
+            const statusListener = (event: any) => {
+                setCollabStatus(event.status);
+
+                if (lastStatusTelemetryRef.current !== event.status) {
+                    lastStatusTelemetryRef.current = event.status;
+                    telemetry.track('collab_channel_health', {
+                        workspaceId,
+                        userId,
+                        docId,
+                        metadata: {
+                            event: 'status',
+                            status: event.status,
+                        },
+                    });
+                }
+
+                if (!handshakeLogged && event.status === 'connected') {
+                    handshakeLogged = true;
+                    const latencySource = typeof performance !== 'undefined' ? performance.now() : Date.now();
+                    telemetry.track('collab_channel_health', {
+                        workspaceId,
+                        userId,
+                        docId,
+                        metadata: {
+                            event: 'handshake',
+                            latencyMs: Math.round(latencySource - connectionStartedAt),
+                        },
+                    });
+                }
+
+                if (event.status === 'connected' && !handshakeTrackedRef.current) {
+                    const durationMs = Math.max(0, Date.now() - (handshakeStartRef.current ?? Date.now()));
+                    telemetry.track('yjs_handshake_latency', {
+                        workspaceId,
+                        userId,
+                        docId,
+                        metadata: {
+                            durationMs,
+                        },
+                    });
+                    handshakeTrackedRef.current = true;
+                }
+            };
+
+            providerInstance.on('status', statusListener);
+
+            const heartbeatCleanup = startHeartbeatMonitor({
+                provider: providerInstance,
+                onBeat: ({ online, timestamp }) => {
+                    if (lastHeartbeatOnlineRef.current !== online) {
+                        telemetry.track('collab_channel_health', {
+                            workspaceId,
+                            userId,
+                            docId,
+                            metadata: {
+                                event: 'heartbeat',
+                                online,
+                                offlineDurationMs:
+                                    !online && offlineSinceRef.current
+                                        ? timestamp - offlineSinceRef.current
+                                        : 0,
+                            },
+                        });
+                        lastHeartbeatOnlineRef.current = online;
+                    }
+
+                    if (online) {
+                        offlineSinceRef.current = null;
+                        if (offlineWarningTimeoutRef.current) {
+                            clearTimeout(offlineWarningTimeoutRef.current);
+                            offlineWarningTimeoutRef.current = null;
+                        }
+                        offlineWarningBackoffRef.current.reset();
+                        clearCollabWarning();
+                    } else if (offlineSinceRef.current === null) {
+                        offlineSinceRef.current = timestamp;
+                        const delay = offlineWarningBackoffRef.current.nextDelay();
+                        if (offlineWarningTimeoutRef.current) {
+                            clearTimeout(offlineWarningTimeoutRef.current);
+                        }
+                        offlineWarningTimeoutRef.current = setTimeout(() => {
+                            setLatchedCollabWarning('Realtime sync is offline. Edits remain local until we reconnect.');
+                        }, delay);
+                    } else if (offlineSinceRef.current) {
+                        const offlineDuration = timestamp - offlineSinceRef.current;
+                        if (offlineDuration > 60_000) {
+                            setLatchedCollabWarning('Realtime sync lost for over a minute. Consider refreshing to reconnect.');
+                        }
+                    }
+                },
+            });
+
+            heartbeatCleanupRef.current?.();
+            heartbeatCleanupRef.current = heartbeatCleanup;
+
+            const awarenessListener = () => {
+                const states = Array.from(providerInstance.awareness.getStates().values());
+                setActiveUsers(states);
+            };
+            providerInstance.awareness.on('change', awarenessListener);
+
+            setYdoc(doc);
+            setProvider(providerInstance);
+
+            return () => {
+                heartbeatCleanupRef.current?.();
+                heartbeatCleanupRef.current = null;
+                if (offlineWarningTimeoutRef.current) {
+                    clearTimeout(offlineWarningTimeoutRef.current);
+                    offlineWarningTimeoutRef.current = null;
+                }
+                offlineSinceRef.current = null;
+                lastHeartbeatOnlineRef.current = null;
+                clearCollabWarning();
+
+                if (typeof providerInstance.awareness?.off === 'function') {
+                    providerInstance.awareness.off('change', awarenessListener);
+                }
+
+                if (typeof providerInstance.off === 'function') {
+                    providerInstance.off('status', statusListener);
+                } else {
+                    providerInstance.removeListener('status', statusListener);
+                }
+
+                providerInstance.destroy();
+                doc.destroy();
+            };
+        }
+
+        setYdoc(null);
+        setProvider(null);
+        setCollabStatus('disconnected');
+        setActiveUsers([]);
+        heartbeatCleanupRef.current?.();
+        heartbeatCleanupRef.current = null;
+        if (offlineWarningTimeoutRef.current) {
+            clearTimeout(offlineWarningTimeoutRef.current);
+            offlineWarningTimeoutRef.current = null;
+        }
+        offlineSinceRef.current = null;
+        lastHeartbeatOnlineRef.current = null;
+        clearCollabWarning();
+    }, [docId, userId, workspaceId, clearCollabWarning, setLatchedCollabWarning]);
+    const canvasModeEnabledRef = useRef(isCanvasModeEnabled);
+    const aiPaletteEnabledRef = useRef(isAIPaletteEnabled);
+
+    useEffect(() => {
+        aiPaletteEnabledRef.current = isAIPaletteEnabled;
+        if (!isAIPaletteEnabled) {
+            setShowAICommandPalette(false);
+        }
+    }, [isAIPaletteEnabled]);
+
+    useEffect(() => {
+        canvasModeEnabledRef.current = isCanvasModeEnabled;
+        if (!isCanvasModeEnabled) {
+            setShowTemplateMenu(false);
+        }
+    }, [isCanvasModeEnabled]);
+
+    useEffect(() => {
+        bootStartRef.current = Date.now();
+        bootTrackedRef.current = false;
+    }, [docId]);
 
     const getRelativeTimeLabel = useCallback((date: Date) => {
         const diffMs = Date.now() - date.getTime();
@@ -297,6 +811,18 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                 nocookie: true,
             }),
             ChartNode,
+            TextBoxNode.configure({
+                onMetadataChange: persistBlockMetadata,
+                onBlockRemoved: removeBlockMetadata,
+                subscribeToBlockMetadata,
+            }),
+            SignatureNode.configure({
+                workspaceId,
+                docId,
+                onMetadataChange: persistBlockMetadata,
+                onBlockRemoved: removeBlockMetadata,
+                subscribeToBlockMetadata,
+            }),
             BubbleMenuExtension.configure({
                 pluginKey: 'bubbleMenu',
             }),
@@ -324,6 +850,9 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             handleKeyDown: (view, event) => {
                 // Cmd+K or Ctrl+K to open AI command palette
                 if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+                    if (!aiPaletteEnabledRef.current) {
+                        return false;
+                    }
                     event.preventDefault();
                     const coords = view.coordsAtPos(view.state.selection.from);
                     setAIPalettePosition({ 
@@ -334,8 +863,19 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                     return true;
                 }
                 if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 't') {
+                    if (!canvasModeEnabledRef.current) {
+                        return false;
+                    }
                     event.preventDefault();
                     setShowTemplateMenu((prev) => !prev);
+                    return true;
+                }
+                if ((event.metaKey || event.ctrlKey) && event.key === "'") {
+                    if (!canvasModeEnabledRef.current) {
+                        return false;
+                    }
+                    event.preventDefault();
+                    toggleCanvasGrid();
                     return true;
                 }
                 return false;
@@ -359,7 +899,11 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                 return false;
             },
         },
-    }, [docId, ydoc, provider]);
+    }, [docId, provider, removeBlockMetadata, persistBlockMetadata, subscribeToBlockMetadata, workspaceId, ydoc]);
+
+    useEffect(() => {
+        editorRef.current = editor;
+    }, [editor]);
 
     // Load document content
     useEffect(() => {
@@ -367,6 +911,12 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             loadDoc();
         }
     }, [docId, editor]); // Re-run when editor is ready
+
+    useEffect(() => {
+        if (!docId && editor && !bootTrackedRef.current) {
+            emitBootTelemetry({ source: 'new_doc', docType });
+        }
+    }, [docId, docType, editor, emitBootTelemetry]);
 
     const loadDoc = async () => {
         // If we already have content (from Yjs), don't overwrite it with DB content
@@ -384,6 +934,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             
             if (error) {
                 console.error('Error loading doc:', error);
+                trackStorageFailure('load', error, { operation: 'loadGTMDocById' });
                 alert('Failed to load document. It may have been deleted or you may not have access.\n\nError: ' + (error as Error).message);
                 return;
             } else if (data) {
@@ -395,20 +946,43 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                 if (updatedAtValue) {
                     setLastSavedAt(new Date(updatedAtValue));
                 }
+
+                const metadata = (data as GTMDoc).blocksMetadata || {};
+                blocksMetadataRef.current = metadata;
+                setBlocksMetadata(metadata);
+                Object.values(metadata).forEach((block) => {
+                    if (block?.id) {
+                        notifyBlockMetadata(block.id, block);
+                    }
+                });
                 
                 // Only set content if the editor is empty to avoid overwriting collaborative changes
                 // or if we are sure we want to load from DB (e.g. initial load)
-                if (editor.isEmpty) {
+                const editorWasEmpty = editor.isEmpty;
+                if (editorWasEmpty) {
                     if (data.contentJson) {
                         editor.commands.setContent(data.contentJson);
                     } else if (data.contentPlain) {
                         editor.commands.setContent(data.contentPlain);
                     }
                 }
+
+                emitBootTelemetry({
+                    source: 'existing_doc',
+                    docType: data.docType,
+                    contentSource: editorWasEmpty
+                        ? data.contentJson
+                            ? 'database_json'
+                            : data.contentPlain
+                                ? 'database_plain'
+                                : 'database_empty'
+                        : 'yjs',
+                });
             }
             setIsLoading(false);
         } catch (error) {
             console.error('Error loading doc:', error);
+            trackStorageFailure('load', error, { operation: 'loadGTMDocById', phase: 'exception' });
             alert('Unexpected error loading document. Please try again.');
             setIsLoading(false);
         }
@@ -615,7 +1189,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
 
     // Removed handleSendToAI - use AI Command Palette (Cmd+K) instead
     const handleOpenAIPalette = () => {
-        if (!editor) return;
+        if (!editor || !aiPaletteEnabledRef.current) return;
         const { view } = editor;
         const coords = view.coordsAtPos(view.state.selection.from);
         setAIPalettePosition({ top: coords.top + window.scrollY + 30, left: coords.left + window.scrollX });
@@ -639,11 +1213,13 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                     visibility,
                     contentJson,
                     contentPlain,
-                    tags
+                    tags,
+                    blocksMetadata: getBlocksMetadataPayload(),
                 });
                 
                 if (error) {
                     console.error('Error updating doc:', error);
+                    trackStorageFailure('save', error, { operation: 'updateGTMDoc' });
                     alert('Failed to save document. Please try again.');
                     return;
                 } else if (data) {
@@ -662,11 +1238,13 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                     visibility,
                     contentJson,
                     contentPlain,
-                    tags
+                    tags,
+                    blocksMetadata: getBlocksMetadataPayload(),
                 });
                 
                 if (error) {
                     console.error('Error creating doc:', error);
+                    trackStorageFailure('save', error, { operation: 'createGTMDoc' });
                     alert('Failed to create document. Please try again.');
                     return;
                 } else if (data) {
@@ -676,6 +1254,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             }
         } catch (error) {
             console.error('Error saving doc:', error);
+            trackStorageFailure('save', error, { operation: docId ? 'updateGTMDoc' : 'createGTMDoc', phase: 'exception' });
             alert('An error occurred while saving.');
         } finally {
             setIsSaving(false);
@@ -966,11 +1545,10 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                     </div>
                                 )}
                                 <button
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(window.location.href);
-                                        alert('Link copied to clipboard!');
-                                    }}
-                                    className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-full border border-gray-300 hover:bg-gray-100"
+                                    onClick={() => setShowShareModal(true)}
+                                    disabled={!docId}
+                                    title={!docId ? 'Save this doc before sharing with the workspace' : undefined}
+                                    className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-full border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <Share2 size={16} /> Share
                                 </button>
@@ -983,6 +1561,13 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                 </button>
                             </div>
                         </div>
+
+                        {collabWarning && (
+                            <div className="flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-900 shadow-sm">
+                                <AlertTriangle size={16} />
+                                <span>{collabWarning}</span>
+                            </div>
+                        )}
 
                         <div className="flex flex-wrap items-center gap-3 justify-between text-xs text-gray-600">
                             <div className="flex flex-wrap gap-2">
@@ -1023,12 +1608,14 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                 >
                                     <Globe size={14} /> Research
                                 </button>
-                                <button
-                                    onClick={handleOpenAIPalette}
-                                    className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-full border border-gray-300 hover:bg-gray-100"
-                                >
-                                    <Sparkles size={14} /> AI Copilot
-                                </button>
+                                {isAIPaletteEnabled && (
+                                    <button
+                                        onClick={handleOpenAIPalette}
+                                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-full border border-gray-300 hover:bg-gray-100"
+                                    >
+                                        <Sparkles size={14} /> AI Copilot
+                                    </button>
+                                )}
                                 <button
                                     onClick={() => setIsFocusMode(true)}
                                     className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-full border border-gray-300 hover:bg-gray-100"
@@ -1079,26 +1666,30 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                     </div>
                                 )}
                             </div>
-                            <button
-                                onClick={() => setShowTemplateMenu(true)}
-                                className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl border border-dashed border-gray-300 bg-white hover:bg-gray-50 transition ${showTemplateMenu ? 'shadow-md border-gray-400' : ''}`}
-                            >
-                                <Layout size={16} /> Template shelf
-                                <span className="text-[11px] uppercase tracking-[0.3em] text-gray-400">⌘ + Shift + T</span>
-                            </button>
+                            {isCanvasModeEnabled && (
+                                <button
+                                    onClick={() => setShowTemplateMenu(true)}
+                                    className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl border border-dashed border-gray-300 bg-white hover:bg-gray-50 transition ${showTemplateMenu ? 'shadow-md border-gray-400' : ''}`}
+                                >
+                                    <Layout size={16} /> Template shelf
+                                    <span className="text-[11px] uppercase tracking-[0.3em] text-gray-400">⌘ + Shift + T</span>
+                                </button>
+                            )}
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            {docSummaryCards.map((card) => (
-                                <div key={card.title} className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
-                                    <div className="text-[11px] font-semibold uppercase tracking-widest text-gray-500">
-                                        {card.icon} {card.title}
+                        {isCanvasModeEnabled && (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                {docSummaryCards.map((card) => (
+                                    <div key={card.title} className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
+                                        <div className="text-[11px] font-semibold uppercase tracking-widest text-gray-500">
+                                            {card.icon} {card.title}
+                                        </div>
+                                        <div className="text-2xl font-semibold mt-1">{card.value}</div>
+                                        <div className="text-xs text-gray-500 mt-0.5">{card.helper}</div>
                                     </div>
-                                    <div className="text-2xl font-semibold mt-1">{card.value}</div>
-                                    <div className="text-xs text-gray-500 mt-0.5">{card.helper}</div>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -1294,6 +1885,22 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                 >
                     <Minimize2 size={24} />
                 </button>
+            )}
+
+            {isCanvasModeEnabled && !isFocusMode && (
+                <CanvasPalette
+                    isOpen={isCanvasPaletteOpen}
+                    gridVisible={isCanvasGridVisible}
+                    gridSize={canvasGridSize}
+                    onToggleOpen={toggleCanvasPalette}
+                    onToggleGrid={() => toggleCanvasGrid()}
+                    onGridSizeChange={handleGridSizeChange}
+                    onInsertTextBox={handleInsertTextBox}
+                    onInsertSignature={handleInsertSignature}
+                    activeUsers={activeUsers}
+                    collabStatus={collabStatus}
+                    collabWarning={collabWarning}
+                />
             )}
 
             {/* Main Content */}
@@ -1580,7 +2187,6 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                             <div className="flex items-center gap-2 ml-auto tracking-normal text-[10px] text-gray-400">
                                 <span className="uppercase">Zoom</span>
                                 <select
-                                    value={zoomLevel}
                                     onChange={(e) => setZoomLevel(Number(e.target.value))}
                                     className="text-[12px] font-semibold text-gray-700 border border-gray-300 rounded-lg px-2 py-1 bg-white"
                                 >
@@ -1610,7 +2216,12 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                         />
                                     </div>
                                 </div>
-                                <div className="relative flex-1">
+                                <GridOverlay
+                                    show={isCanvasModeEnabled && isCanvasGridVisible}
+                                    gridSize={canvasGridSize}
+                                    zoom={zoomLevel}
+                                    className="flex-1"
+                                >
                                     <div className="relative bg-white rounded-[32px] border border-gray-200 shadow-[0_40px_80px_rgba(15,23,42,0.12)] px-10 sm:px-14 py-14 sm:py-16">
                                         <div className="absolute inset-x-10 top-10 border-b border-dashed border-gray-200 text-[11px] text-gray-400 uppercase tracking-[0.35em] pb-2 flex items-center justify-between pointer-events-none select-none">
                                             <span>{workspaceName}</span>
@@ -1621,7 +2232,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                             className="mt-12 h-full min-h-[900px] focus:outline-none prose prose-lg max-w-none text-[#1c1d21] leading-[1.75]"
                                         />
                                     </div>
-                                </div>
+                                </GridOverlay>
                             </div>
                         </div>
 
@@ -1639,7 +2250,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             </div>
 
             {/* Template Shelf - Top Floating */}
-            {!isFocusMode && (
+            {!isFocusMode && isCanvasModeEnabled && (
                 <div
                     className={`fixed left-1/2 z-30 w-full max-w-[1200px] px-4 transition-all duration-300 ${showTemplateMenu ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 -translate-y-6 pointer-events-none'}`}
                     style={{ top: '140px', transform: 'translateX(-50%)' }}
@@ -1798,8 +2409,22 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                 </div>
             )}
 
+            {docId && showShareModal && (
+                <DocShareModal
+                    isOpen={showShareModal}
+                    onClose={() => setShowShareModal(false)}
+                    workspaceId={workspaceId}
+                    docId={docId}
+                    docTitle={title}
+                    visibility={visibility}
+                    data={data}
+                    onVisibilityChange={(next) => setVisibility(next)}
+                    onLinksUpdated={onReloadList}
+                />
+            )}
+
             {/* AI Command Palette */}
-            {showAICommandPalette && editor && workspaceContext && (
+            {showAICommandPalette && isAIPaletteEnabled && editor && workspaceContext && (
                 <AICommandPalette
                     editor={editor}
                     position={aiPalettePosition}
@@ -1810,6 +2435,9 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                     docTitle={title}
                     workspaceName={workspace?.name || null}
                     tags={tags}
+                    planType={planType}
+                    workspaceRole={workspaceRole}
+                    onUpgradeNeeded={onUpgradeNeeded}
                 />
             )}
 
@@ -2097,8 +2725,8 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                 </div>
             )}
 
-            {/* Research Sidebar */}
-            <DocResearchSidebar
+            {/* Research Copilot */}
+            <ResearchCopilot
                 isOpen={showResearchSidebar && !isFocusMode}
                 onClose={() => setShowResearchSidebar(false)}
                 editor={editor}
@@ -2106,6 +2734,8 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                 docTypeLabel={docTypeLabel}
                 workspaceName={workspaceName}
                 tags={tags}
+                workspaceId={workspaceId}
+                docId={docId}
             />
 
             {/* Context Menu (Focus Mode) */}
@@ -2119,7 +2749,9 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                     <button onClick={() => { editor?.chain().focus().toggleItalic().run(); setContextMenu(null); }} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded text-sm text-left"><Italic size={14} /> Italic</button>
                     <button onClick={() => { editor?.chain().focus().toggleStrike().run(); setContextMenu(null); }} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded text-sm text-left"><Strikethrough size={14} /> Strikethrough</button>
                     <div className="h-px bg-gray-200 my-1"></div>
-                    <button onClick={() => { handleOpenAIPalette(); setContextMenu(null); }} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded text-sm text-left text-purple-600"><span className="text-lg">✨</span> AI Assistant</button>
+                    {isAIPaletteEnabled && (
+                        <button onClick={() => { handleOpenAIPalette(); setContextMenu(null); }} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded text-sm text-left text-purple-600"><span className="text-lg">✨</span> AI Assistant</button>
+                    )}
                 </div>
             )}
 
@@ -2134,9 +2766,17 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                         <button onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={`p-1.5 rounded hover:bg-gray-100 ${editor.isActive('heading', { level: 1 }) ? 'text-blue-600 bg-blue-50' : 'text-gray-600'}`}>H1</button>
                         <button onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={`p-1.5 rounded hover:bg-gray-100 ${editor.isActive('heading', { level: 2 }) ? 'text-blue-600 bg-blue-50' : 'text-gray-600'}`}>H2</button>
                         <div className="w-px h-4 bg-gray-200 mx-1"></div>
-                        <button onClick={handleOpenAIPalette} className="p-1.5 rounded hover:bg-purple-50 text-purple-600 font-medium text-xs flex items-center gap-1">✨ AI</button>
+                        {isAIPaletteEnabled && (
+                            <button onClick={handleOpenAIPalette} className="p-1.5 rounded hover:bg-purple-50 text-purple-600 font-medium text-xs flex items-center gap-1">✨ AI</button>
+                        )}
                     </div>
                 </BubbleMenu>
+            )}
+
+            {isCanvasModeEnabled && (
+                <div aria-live="polite" className="sr-only">
+                    {gridAnnouncement}
+                </div>
             )}
 
         </div>

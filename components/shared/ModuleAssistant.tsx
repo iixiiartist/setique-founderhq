@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import ReactDOM from 'react-dom';
 import { AppActions, TaskCollectionName, NoteableCollectionName, CrmCollectionName, DeletableCollectionName, TabType, GTMDocMetadata, AnyCrmItem } from '../../types';
 import { getAiResponse, AILimitError } from '../../services/groqService';
+import { ModerationError, formatModerationErrorMessage } from '../../lib/services/moderationService';
 import { parseAIResponse, isSafeContent } from '../../utils/aiContentParser';
 import { Tab } from '../../constants';
 import { useConversationHistory } from '../../hooks/useConversationHistory';
@@ -982,6 +983,15 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                 addMessage({ 
                     role: 'model', 
                     parts: [{ text: `⚠️ ${personalizedMessage}` }] 
+                });
+                assistantWebMetadataRef.current = null;
+                return;
+            }
+
+            if (error instanceof ModerationError) {
+                addMessage({
+                    role: 'model',
+                    parts: [{ text: `⚠️ ${formatModerationErrorMessage(error)}` }],
                 });
                 assistantWebMetadataRef.current = null;
                 return;

@@ -273,7 +273,7 @@ export function TaskDetailPanel({
                 isOpen={showDocPicker}
                 onClose={() => setShowDocPicker(false)}
                 onSelect={async (doc) => {
-                    await DatabaseService.linkDocToEntity(workspace.id, doc.id, 'task', task.id);
+                    await DatabaseService.linkDocToEntity(doc.id, workspace.id, 'task', task.id);
                     handleDocAttached();
                 }}
                 workspaceId={workspace.id}

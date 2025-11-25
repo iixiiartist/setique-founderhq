@@ -30,6 +30,10 @@ export type FeatureFlagKey =
     | 'ai.document-analysis'
     | 'ai.conversation-history'
     
+    // GTM Docs / Editor experience
+    | 'docs.canvas-mode'
+    | 'docs.ai-palette'
+    
     // UI features
     | 'ui.unified-accounts'
     | 'ui.paginated-crm'
@@ -119,6 +123,20 @@ const DEFAULT_FLAGS: FeatureFlagConfig[] = [
         key: 'ai.conversation-history',
         enabled: true,
         description: 'Persist AI conversation history'
+    },
+
+    // GTM Docs experience
+    {
+        key: 'docs.canvas-mode',
+        enabled: true,
+        description: 'Enable GTM doc canvas layout and template shelf',
+        envVar: 'VITE_DOCS_CANVAS_MODE'
+    },
+    {
+        key: 'docs.ai-palette',
+        enabled: true,
+        description: 'Enable AI command palette for GTM docs',
+        envVar: 'VITE_DOCS_AI_PALETTE'
     },
     
     // UI features
