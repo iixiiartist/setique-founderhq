@@ -1,15 +1,37 @@
 /// <reference path="../types/deno_http_server.d.ts" />
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0'
 
 type ResearchMode = 'search' | 'news' | 'images' | 'rag'
 
 const ALLOWED_MODES: ResearchMode[] = ['search', 'news', 'images', 'rag']
 
-const corsHeaders: Record<string, string> = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+// Rate limiting configuration
+const RATE_LIMIT = 20 // requests per minute per user
+const RATE_WINDOW_MS = 60_000
+const rateLimits = new Map<string, { count: number; resetAt: number }>()
+
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = [
+  Deno.env.get('ALLOWED_ORIGIN') || 'https://founderhq.setique.com',
+  'http://localhost:3001',
+  'http://localhost:3000',
+]
+
+const getAllowedOrigin = (req: Request): string => {
+  const origin = req.headers.get('origin') || ''
+  if (ALLOWED_ORIGINS.includes(origin)) {
+    return origin
+  }
+  return ALLOWED_ORIGINS[0] // Fallback to primary
 }
+
+const corsHeaders = (req: Request): Record<string, string> => ({
+  'Access-Control-Allow-Origin': getAllowedOrigin(req),
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-workspace-id',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Max-Age': '86400',
+})
 
 const DEFAULT_COUNTS: Record<ResearchMode, number> = {
   search: 5,
@@ -140,18 +162,74 @@ const parseJson = async (response: Response) => {
   }
 }
 
-const jsonResponse = (body: unknown, init?: ResponseInit) =>
+const jsonResponse = (body: unknown, req: Request, init?: ResponseInit) =>
   new Response(JSON.stringify(body), {
     ...(init ?? {}),
     headers: {
       'Content-Type': 'application/json',
-      ...corsHeaders,
+      ...corsHeaders(req),
       ...(init?.headers ?? {}),
     },
   })
 
-const errorResponse = (status: number, message: string, details?: unknown) =>
-  jsonResponse({ error: message, details }, { status })
+// Error codes for client consumption (no internal details)
+type ErrorCode = 'UNAUTHORIZED' | 'RATE_LIMITED' | 'INVALID_REQUEST' | 'SERVICE_ERROR' | 'TIMEOUT'
+
+const ERROR_MESSAGES: Record<ErrorCode, string> = {
+  'UNAUTHORIZED': 'Authentication required',
+  'RATE_LIMITED': 'Too many requests, please try again later',
+  'INVALID_REQUEST': 'Invalid request parameters',
+  'SERVICE_ERROR': 'Service temporarily unavailable',
+  'TIMEOUT': 'Request timed out',
+}
+
+const errorResponse = (status: number, code: ErrorCode, req: Request) =>
+  jsonResponse({ error: ERROR_MESSAGES[code], code }, req, { status })
+
+// Rate limiting check
+const checkRateLimit = (userId: string): boolean => {
+  const now = Date.now()
+  const record = rateLimits.get(userId)
+
+  if (!record || now > record.resetAt) {
+    rateLimits.set(userId, { count: 1, resetAt: now + RATE_WINDOW_MS })
+    return true
+  }
+
+  if (record.count >= RATE_LIMIT) {
+    return false
+  }
+
+  record.count++
+  return true
+}
+
+// Authentication check
+const authenticateRequest = async (req: Request): Promise<{ userId: string; workspaceId?: string } | null> => {
+  const authHeader = req.headers.get('authorization')
+  if (!authHeader?.startsWith('Bearer ')) {
+    return null
+  }
+
+  const token = authHeader.replace('Bearer ', '')
+  
+  try {
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!
+    )
+
+    const { data: { user }, error } = await supabase.auth.getUser(token)
+    if (error || !user) {
+      return null
+    }
+
+    const workspaceId = req.headers.get('x-workspace-id') || undefined
+    return { userId: user.id, workspaceId }
+  } catch {
+    return null
+  }
+}
 
 const sanitizeCount = (value: unknown, fallback: number) => {
   if (typeof value !== 'number') return fallback
@@ -168,26 +246,39 @@ const resolveBody = async (req: Request) => {
 }
 
 serve(async (req: Request) => {
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers: corsHeaders(req) })
   }
 
   if (req.method !== 'POST') {
-    return errorResponse(405, 'Method not allowed')
+    return errorResponse(405, 'INVALID_REQUEST', req)
+  }
+
+  // Authenticate the request
+  const auth = await authenticateRequest(req)
+  if (!auth) {
+    return errorResponse(401, 'UNAUTHORIZED', req)
+  }
+
+  // Check rate limit
+  if (!checkRateLimit(auth.userId)) {
+    return errorResponse(429, 'RATE_LIMITED', req)
   }
 
   const startedAt = performance.now()
 
   try {
-  const { query, mode: rawMode, count: rawCount } = await resolveBody(req)
+    const { query, mode: rawMode, count: rawCount } = await resolveBody(req)
     const apiKey = Deno.env.get('YOUCOM_API_KEY')
 
     if (!apiKey) {
-      return errorResponse(500, 'YOUCOM_API_KEY is not set in Supabase secrets')
+      console.error('[ai-search] YOUCOM_API_KEY not configured')
+      return errorResponse(500, 'SERVICE_ERROR', req)
     }
 
     if (typeof query !== 'string' || !query.trim()) {
-      return errorResponse(400, 'Query is required')
+      return errorResponse(400, 'INVALID_REQUEST', req)
     }
 
   const mode: ResearchMode = isResearchMode(rawMode) ? rawMode : 'search'
@@ -226,8 +317,8 @@ serve(async (req: Request) => {
     const payload: any = await parseJson(response)
 
     if (!response.ok) {
-      console.error('[ai-search] You.com error', { status: response.status, payload })
-      return errorResponse(response.status, `You.com API error: ${response.statusText}`, payload)
+      console.error('[ai-search] You.com error', { status: response.status })
+      return errorResponse(response.status >= 500 ? 502 : 400, 'SERVICE_ERROR', req)
     }
 
     const hitsSource = Array.isArray(payload.hits)
@@ -274,11 +365,11 @@ serve(async (req: Request) => {
       },
     }
 
-    return jsonResponse(resultBody)
+    return jsonResponse(resultBody, req)
   } catch (error) {
     console.error('[ai-search] Unexpected error', error)
     const message = error instanceof Error ? error.message : 'Unknown error'
-    const status = message.includes('abort') ? 504 : 500
-    return errorResponse(status, message)
+    const isTimeout = message.includes('abort')
+    return errorResponse(isTimeout ? 504 : 500, isTimeout ? 'TIMEOUT' : 'SERVICE_ERROR', req)
   }
 })

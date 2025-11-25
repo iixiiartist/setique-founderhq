@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/react';
 import React from 'react';
+import { consentManager } from './services/consentManager';
 
 /**
  * Initialize Sentry for error tracking and performance monitoring
@@ -16,6 +17,12 @@ export const initializeSentry = () => {
   const environment = import.meta.env.VITE_ENVIRONMENT || import.meta.env.MODE || 'development';
   const appVersion = import.meta.env.VITE_APP_VERSION || '1.0.0';
   
+  // Check consent before initializing
+  if (!consentManager.canTrackErrors()) {
+    console.log('[Sentry] Skipping initialization - no consent');
+    return;
+  }
+
   // Only initialize if DSN is provided
   if (!dsn || dsn === 'your_sentry_dsn_here') {
     console.log('[Sentry] Skipping initialization - no DSN configured');

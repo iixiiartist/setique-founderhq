@@ -17,6 +17,7 @@ import DashboardApp from './DashboardApp'
 import { initializeSentry, ErrorBoundary, ErrorFallback } from './lib/sentry.tsx'
 import { analytics } from './lib/services/analytics'
 import { usePageTracking, useUserTracking } from './hooks/useAnalytics'
+import { ConsentBanner } from './components/shared/ConsentBanner'
 
 // Initialize Sentry and Analytics as early as possible
 initializeSentry();
@@ -51,6 +52,7 @@ const App: React.FC = () => {
         <Router>
           <AnalyticsIntegration />
           <Toaster />
+          <ConsentBanner />
           <Routes>
           {/* Public landing page (also handles invite tokens) */}
           <Route path="/" element={<LandingOrInvite />} />

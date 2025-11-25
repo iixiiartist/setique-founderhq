@@ -545,7 +545,7 @@ function RevenueModule({
               return (
                 <div
                   key={transaction.id}
-                  className="p-4 border-2 border-black shadow-neo hover:shadow-neo-hover transition-shadow"
+                  className="p-4 border-2 border-black shadow-neo hover:shadow-neo-lg transition-shadow"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-grow">

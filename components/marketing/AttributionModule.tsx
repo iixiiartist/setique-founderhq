@@ -406,7 +406,7 @@ function AttributionModule({
               const contact = attribution.contactId ? contacts.find(c => c.id === attribution.contactId) : null;
 
               return (
-                <div key={attribution.id} className="p-4 border-2 border-black shadow-neo hover:shadow-neo-hover transition-shadow">
+                <div key={attribution.id} className="p-4 border-2 border-black shadow-neo hover:shadow-neo-lg transition-shadow">
                   <div className="flex items-start justify-between">
                     <div className="flex-grow">
                       <div className="flex items-center gap-2 mb-2">

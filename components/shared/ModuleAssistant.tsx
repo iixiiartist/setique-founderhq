@@ -617,8 +617,6 @@ function ModuleAssistant({
                     return await actions.uploadDocument(args.name, args.mimeType, args.content, args.module as TabType, args.companyId, args.contactId);
                 case 'updateDocument':
                     return await actions.updateDocument(args.docId, args.name, args.mimeType, args.content);
-                case 'getFileContent':
-                    return await actions.getFileContent(args.fileId);
                 case 'createEvent':
                     return await actions.createTask(
                         'productsServicesTasks',
@@ -1210,21 +1208,21 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                                         </button>
                                         {webSearchMeta && (
                                             <div className="mt-3 flex flex-wrap gap-2 text-[10px] text-gray-600">
-                                                <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 border border-gray-200">
+                                                <span className="inline-flex items-center gap-1 rounded-none bg-white/80 px-2 py-0.5 border border-gray-200">
                                                     {webSearchMeta.provider || 'You.com'}
                                                 </span>
                                                 {webSearchMeta.count !== undefined && (
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 border border-gray-200">
+                                                    <span className="inline-flex items-center gap-1 rounded-none bg-white/80 px-2 py-0.5 border border-gray-200">
                                                         {webSearchMeta.count} source{webSearchMeta.count === 1 ? '' : 's'}
                                                     </span>
                                                 )}
                                                 {webSearchMeta.fetchedAt && (
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 border border-gray-200">
+                                                    <span className="inline-flex items-center gap-1 rounded-none bg-white/80 px-2 py-0.5 border border-gray-200">
                                                         {formatRelativeTime(webSearchMeta.fetchedAt)}
                                                     </span>
                                                 )}
                                                 {webSearchMeta.query && (
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 border border-gray-200 max-w-[200px] truncate">
+                                                    <span className="inline-flex items-center gap-1 rounded-none bg-white/80 px-2 py-0.5 border border-gray-200 max-w-[200px] truncate">
                                                         “{webSearchMeta.query}”
                                                     </span>
                                                 )}
@@ -1326,7 +1324,7 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                     <button
                         type="button"
                         onClick={() => setIsWebSearchEnabled(!isWebSearchEnabled)}
-                        className={`text-xs font-semibold px-3 py-1.5 rounded-full border flex items-center gap-1 transition-all ${
+                        className={`text-xs font-semibold px-3 py-1.5 rounded-none border flex items-center gap-1 transition-all ${
                             isWebSearchEnabled 
                             ? 'bg-blue-50 border-blue-200 text-blue-700' 
                             : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
@@ -1344,7 +1342,7 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                                     key={option.id}
                                     type="button"
                                     onClick={() => setWebSearchMode(option.id as 'text' | 'images')}
-                                    className={`px-2 py-1 rounded-full border text-[11px] ${
+                                    className={`px-2 py-1 rounded-none border text-[11px] ${
                                         webSearchMode === option.id ? 'border-purple-500 text-purple-700 bg-purple-50' : 'border-gray-200 text-gray-500'
                                     }`}
                                 >
@@ -1355,13 +1353,13 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                     )}
                 </div>
                 {isWebSearchEnabled && webSearchMode === 'images' && (
-                    <div className="rounded-2xl border border-dashed border-gray-300 bg-white/80 p-3 space-y-2">
+                    <div className="rounded-none border border-dashed border-gray-300 bg-white/80 p-3 space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
                             <button
                                 type="button"
                                 onClick={() => runImageSearch(userInput || lastImageQuery || '')}
                                 disabled={imageSearchLoading}
-                                className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${
+                                className={`inline-flex items-center gap-2 rounded-none px-3 py-1.5 text-xs font-semibold ${
                                     imageSearchLoading ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-black text-white'
                                 }`}
                             >
@@ -1374,22 +1372,22 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                         {imageSearchError && <p className="text-xs text-red-600">{imageSearchError}</p>}
                         {imageSearchMetadata && (
                             <div className="flex flex-wrap gap-2 text-[10px] text-gray-600">
-                                <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5">
+                                <span className="inline-flex items-center gap-1 rounded-none bg-gray-100 px-2 py-0.5">
                                     {imageSearchMetadata.provider || 'You.com'}
                                 </span>
                                 {imageSearchMetadata.fetchedAt && (
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5">
+                                    <span className="inline-flex items-center gap-1 rounded-none bg-gray-100 px-2 py-0.5">
                                         {formatRelativeTime(imageSearchMetadata.fetchedAt)}
                                     </span>
                                 )}
-                                <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5">
+                                <span className="inline-flex items-center gap-1 rounded-none bg-gray-100 px-2 py-0.5">
                                     {(imageSearchMetadata.count ?? imageResults.length) || 0} results
                                 </span>
                             </div>
                         )}
                         <div className="max-h-48 overflow-y-auto">
                             {imageResults.length === 0 ? (
-                                <div className="rounded-xl border border-dashed border-gray-200 px-3 py-4 text-center text-xs text-gray-500">
+                                <div className="rounded-none border border-dashed border-gray-200 px-3 py-4 text-center text-xs text-gray-500">
                                     Describe the type of visual you need in the prompt box, then tap “Fetch visuals” to preview research-ready images.
                                 </div>
                             ) : (
@@ -1397,7 +1395,7 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                                     {imageResults.slice(0, 6).map((image) => {
                                         const host = formatHostname(image.url) || image.source || 'source';
                                         return (
-                                            <div key={`${image.imageUrl}-${image.url}`} className="rounded-xl border border-gray-200 bg-gray-50 p-2 space-y-2">
+                                            <div key={`${image.imageUrl}-${image.url}`} className="rounded-none border border-gray-200 bg-gray-50 p-2 space-y-2">
                                                 <div className="aspect-video overflow-hidden rounded-lg bg-gray-200">
                                                     <img src={image.thumbnail || image.imageUrl} alt={image.title || 'Research visual'} className="h-full w-full object-cover" />
                                                 </div>
@@ -1456,7 +1454,7 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                         title={`Attach a file (max ${maxFileSizeMB}MB)`}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-6 h-6">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.122 2.122l7.81-7.81" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.122 2.122l7.81-7.81" />
                         </svg>
                     </label>
                     {workspaceId && user && (
@@ -1492,7 +1490,7 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
 
     const lockedContent = (
         <div className={`h-full w-full flex flex-col items-center justify-center text-center bg-gradient-to-b from-gray-50 to-white ${compact ? 'p-4' : 'p-8'}`}>
-            <div className={`border-4 border-black shadow-neo-xl bg-white rounded-3xl space-y-4 ${compact ? 'p-4 w-full' : 'p-8 max-w-lg'}`}>
+            <div className={`border-4 border-black shadow-neo-xl bg-white rounded-none space-y-4 ${compact ? 'p-4 w-full' : 'p-8 max-w-lg'}`}>
                 <div className="text-4xl" aria-hidden="true">🔒</div>
                 <h2 className="text-2xl font-bold text-gray-900">AI assistant is a premium feature</h2>
                 <p className="text-gray-700">
@@ -1565,6 +1563,7 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                         }}
                         onClose={() => setShowDocPicker(false)}
                         title="Attach GTM Document to Chat"
+                   
                     />
                 )}
             </>,

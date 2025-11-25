@@ -1473,7 +1473,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     if (isLoading) {
         return (
             <div className="h-full flex items-center justify-center bg-[#fffdf3]">
-                <div className="px-6 py-4 border-4 border-black rounded-3xl shadow-neo-sm bg-white text-gray-700 font-mono text-sm">
+                <div className="px-6 py-4 border-4 border-black rounded-none shadow-neo-sm bg-white text-gray-700 font-mono text-sm">
                     Loading your GTM doc...
                 </div>
             </div>
@@ -1695,7 +1695,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             )}
             {/* Toolbar */}
             {editor && !isFocusMode && (
-                <div className="sticky top-4 z-20 mx-4 mt-4 bg-white/90 backdrop-blur border-2 border-black px-4 py-2 flex items-center gap-1 flex-wrap shadow-neo-sm rounded-2xl">
+                <div className="sticky top-4 z-20 mx-4 mt-4 bg-white/90 backdrop-blur border-2 border-black px-4 py-2 flex items-center gap-1 flex-wrap shadow-neo-sm rounded-none">
                     {/* Undo/Redo */}
                     <div className="flex items-center gap-0.5 border-r border-gray-300 pr-2 mr-1">
                         <button onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} className="p-1.5 rounded hover:bg-gray-200 disabled:opacity-30 text-gray-700"><Undo size={16} /></button>
@@ -1881,7 +1881,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             {isFocusMode && (
                 <button
                     onClick={() => setIsFocusMode(false)}
-                    className="fixed top-4 right-4 z-50 px-4 py-2 bg-yellow-300 border-2 border-black shadow-neo-sm rounded-full font-black text-sm hover:-translate-y-0.5 transition-all"
+                    className="fixed top-4 right-4 z-50 px-4 py-2 bg-yellow-300 border-2 border-black shadow-neo-sm rounded-none font-black text-sm hover:-translate-y-0.5 transition-all"
                 >
                     <Minimize2 size={24} />
                 </button>
@@ -2522,7 +2522,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                 />
                                 <button
                                     type="submit"
-                                    className="rounded-xl bg-black px-4 py-2 text-sm font-semibold text-white shadow-neo-btn disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="rounded-none bg-black px-4 py-2 text-sm font-semibold text-white shadow-neo disabled:cursor-not-allowed disabled:opacity-50"
                                     disabled={!newPresetName.trim()}
                                 >
                                     Save preset
@@ -2715,7 +2715,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                 </button>
                                 <button
                                     onClick={handleSaveExportPreferences}
-                                    className="px-5 py-2 rounded-xl bg-black text-white text-sm font-semibold shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+                                    className="px-5 py-2 rounded-none bg-black text-white text-sm font-semibold shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-neo-sm transition-all"
                                 >
                                     Save settings
                                 </button>

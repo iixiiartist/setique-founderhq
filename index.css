@@ -3,15 +3,11 @@
 @layer base {
     /* Custom Fonts */
     body {
-        font-family: 'Inter', sans-serif;
-        background-color: #ffffff;
-        color: #000000;
+        @apply font-sans bg-white text-black;
     }
 
     h1, h2, h3, h4, h5, h6 {
-        font-family: 'IBM Plex Mono', monospace;
-        font-weight: 600;
-        color: #000000;
+        @apply font-mono font-semibold text-black;
     }
 
     /* Ensure all interactive elements have pointer cursor */
@@ -118,50 +114,36 @@
 }
 
 @layer components {
-    /* Neo-Brutalist Shadow */
-    .shadow-neo {
-        box-shadow: 4px 4px 0px #000 !important;
-    }
-    .shadow-neo-sm {
-        box-shadow: 2px 2px 0px #000 !important;
-    }
-    .shadow-neo-lg {
-        box-shadow: 6px 6px 0px #000 !important;
-    }
+    /* Neo-Brutalist Shadow Utilities - Now largely handled by tailwind.config.js */
+    
+    /* Button specific interactions */
     .shadow-neo-btn {
-        box-shadow: 3px 3px 0px #000 !important;
+        @apply shadow-[3px_3px_0px_#000] border-2 border-black transition-all;
     }
-    .shadow-neo-btn:hover {
-        transform: translate(1px, 1px);
-        box-shadow: 2px 2px 0px #000 !important;
+    .shadow-neo-btn:hover:not(:disabled) {
+        @apply translate-x-[1px] translate-y-[1px] shadow-[2px_2px_0px_#000];
     }
     .shadow-neo-btn:disabled {
-        box-shadow: 3px 3px 0px #6b7280 !important;
+        @apply shadow-[3px_3px_0px_#6b7280] cursor-not-allowed opacity-50;
     }
+
     .shadow-neo-btn-lg {
-        box-shadow: 4px 4px 0px #000 !important;
+        @apply shadow-[4px_4px_0px_#000] border-2 border-black transition-all;
     }
-    .shadow-neo-btn-lg:hover {
-        transform: translate(2px, 2px);
-        box-shadow: 2px 2px 0px #000 !important;
+    .shadow-neo-btn-lg:hover:not(:disabled) {
+        @apply translate-x-[2px] translate-y-[2px] shadow-[2px_2px_0px_#000];
     }
     .shadow-neo-btn-lg:disabled {
-        box-shadow: 4px 4px 0px #6b7280 !important;
+        @apply shadow-[4px_4px_0px_#6b7280] cursor-not-allowed opacity-50;
     }
 
     /* Priority Badges */
     .priority-badge {
-        font-family: 'IBM Plex Mono', monospace;
-        font-size: 0.75rem;
-        font-weight: 600;
-        padding: 0.125rem 0.5rem;
-        border-radius: 0;
-        border: 2px solid #000;
-        text-transform: uppercase;
+        @apply font-mono text-xs font-semibold px-2 py-0.5 border-2 border-black uppercase rounded-none;
     }
-    .priority-high { background-color: #fecaca; color: #000; }
-    .priority-medium { background-color: #fed7aa; color: #000; }
-    .priority-low { background-color: #bfdbfe; color: #000; }
+    .priority-high { @apply bg-red-200 text-black; }
+    .priority-medium { @apply bg-orange-200 text-black; }
+    .priority-low { @apply bg-blue-200 text-black; }
 }
 
 @layer utilities {
@@ -485,7 +467,7 @@
     border: 2px solid #000;
     box-shadow: 6px 6px 0 #000;
     background: #fff;
-    border-radius: 1.25rem;
+    border-radius: 0;
     padding: 1.75rem;
     animation: float-card 7s ease-in-out infinite;
 }

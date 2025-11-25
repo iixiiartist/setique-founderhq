@@ -6,6 +6,7 @@
  */
 
 import { logger } from '../logger';
+import { consentManager } from './consentManager';
 
 // Analytics providers
 type AnalyticsProvider = 'google' | 'mixpanel' | 'segment' | 'posthog';
@@ -98,6 +99,12 @@ class AnalyticsService {
   initialize(): void {
     if (this.initialized) {
       logger.warn('[Analytics] Already initialized');
+      return;
+    }
+
+    // Check consent first
+    if (!consentManager.canTrackAnalytics()) {
+      logger.info('[Analytics] Skipping - no consent');
       return;
     }
 

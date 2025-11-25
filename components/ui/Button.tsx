@@ -45,9 +45,10 @@ export function Button({
       disabled={isDisabled}
       className={`
         font-mono font-semibold rounded-none cursor-pointer
-        transition-all border-2 border-black shadow-neo-btn
-        hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none
-        disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-x-0 disabled:translate-y-0
+        transition-all border-2 border-black 
+        shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-neo-sm
+        active:translate-x-[4px] active:translate-y-[4px] active:shadow-none
+        disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-x-0 disabled:translate-y-0 disabled:shadow-none
         ${variantStyles[variant]}
         ${sizeStyles[size]}
         ${fullWidth ? 'w-full' : ''}

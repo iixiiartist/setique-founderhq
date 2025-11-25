@@ -1,48 +1,56 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-// Create Supabase client with proper validation
-const createSupabaseClient = () => {
-  // Check for missing environment variables
-  if (!supabaseUrl || supabaseUrl.trim() === '') {
-    throw new Error(
-      '❌ VITE_SUPABASE_URL is not configured.\n\n' +
-      'Please add VITE_SUPABASE_URL to your .env file.\n' +
-      'See .env.example for reference.'
-    )
+// Soft validation - don't throw, return null client for graceful degradation
+const validateConfig = (): boolean => {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('[Supabase] Missing configuration');
+    return false;
   }
-
-  if (!supabaseAnonKey || supabaseAnonKey.trim() === '') {
-    throw new Error(
-      '❌ VITE_SUPABASE_ANON_KEY is not configured.\n\n' +
-      'Please add VITE_SUPABASE_ANON_KEY to your .env file.\n' +
-      'See .env.example for reference.'
-    )
-  }
-
-  // Validate URL format
   try {
-    new URL(supabaseUrl)
+    new URL(supabaseUrl);
+    return true;
   } catch {
-    throw new Error(
-      `❌ VITE_SUPABASE_URL is invalid: "${supabaseUrl}"\n\n` +
-      'Please provide a valid Supabase project URL.\n' +
-      'Example: https://your-project.supabase.co'
-    )
+    console.error('[Supabase] Invalid URL format');
+    return false;
   }
+};
 
-  return createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true
+let supabaseInstance: SupabaseClient | null = null;
+
+export const getSupabase = (): SupabaseClient => {
+  if (!supabaseInstance) {
+    if (!validateConfig()) {
+      throw new Error('Supabase not configured');
     }
-  })
-}
+    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+        // Refresh 60 seconds before expiry
+        storageKey: 'fhq-auth',
+        flowType: 'pkce'
+      },
+      global: {
+        headers: {
+          'x-client-info': 'founderhq-web'
+        }
+      }
+    });
+  }
+  return supabaseInstance;
+};
 
-export const supabase = createSupabaseClient()
+// Lazy export for backwards compatibility
+export const supabase = new Proxy({} as SupabaseClient, {
+  get: (_, prop) => {
+    const client = getSupabase();
+    return (client as any)[prop];
+  }
+});
 
 // Helper function to check if user is authenticated
 export const getCurrentUser = async () => {
