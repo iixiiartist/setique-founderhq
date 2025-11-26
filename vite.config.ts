@@ -65,11 +65,26 @@ export default defineConfig(({ mode }) => {
         },
         rollupOptions: {
           output: {
-            // SIMPLIFIED: Keep all node_modules in ONE vendor chunk
-            // This prevents ANY cross-chunk dependency issues
+            // Split vendor chunks to reduce memory pressure during build
             manualChunks: (id) => {
-              // All node_modules go into ONE vendor chunk
               if (id.includes('node_modules')) {
+                // React ecosystem
+                if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler')) {
+                  return 'vendor-react';
+                }
+                // TipTap/ProseMirror (large)
+                if (id.includes('@tiptap') || id.includes('prosemirror') || id.includes('yjs') || id.includes('y-')) {
+                  return 'vendor-editor';
+                }
+                // Supabase
+                if (id.includes('@supabase')) {
+                  return 'vendor-supabase';
+                }
+                // UI libraries
+                if (id.includes('lucide') || id.includes('recharts') || id.includes('date-fns') || id.includes('react-day-picker')) {
+                  return 'vendor-ui';
+                }
+                // Everything else
                 return 'vendor';
               }
               
