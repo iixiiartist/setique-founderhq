@@ -124,15 +124,6 @@ const SideMenu: React.FC<SideMenuProps> = ({
                     <button onClick={onClose} className="text-3xl hover:text-gray-600 transition-colors" aria-label="Close menu">&times;</button>
                 </div>
                 
-                {/* Keyboard shortcuts hint */}
-                <div className="bg-gray-50 border-2 border-black p-3 mb-4 text-xs font-mono">
-                    <div className="font-bold mb-2">⌨️ Keyboard Shortcuts:</div>
-                    <div className="space-y-1 text-gray-600">
-                        <div><kbd className="px-1 bg-white border border-gray-300">↑</kbd> / <kbd className="px-1 bg-white border border-gray-300">k</kbd> - Previous tab</div>
-                        <div><kbd className="px-1 bg-white border border-gray-300">↓</kbd> / <kbd className="px-1 bg-white border border-gray-300">j</kbd> - Next tab</div>
-                        <div><kbd className="px-1 bg-white border border-gray-300">Esc</kbd> - Close menu</div>
-                    </div>
-                </div>
                 <nav className="flex-grow overflow-y-auto custom-scrollbar pr-2 -mr-2" role="navigation" aria-label="Main navigation">
                     {filteredNavItems.map(item => (
                         <a 

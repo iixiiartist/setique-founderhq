@@ -417,11 +417,11 @@ export function LandingPage() {
       <section id="pricing" className="bg-gray-50 py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Pricing That Scales With You</h2>
-            <p className="text-xl text-gray-600">From bootstrapped founder to scaling team—no enterprise sales BS</p>
+            <h2 className="text-4xl font-bold mb-4">Simple, Transparent Pricing</h2>
+            <p className="text-xl text-gray-600">Start free, upgrade when you're ready—no enterprise sales BS</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             <PricingCard
               name="Free"
               price="$0"
@@ -439,47 +439,27 @@ export function LandingPage() {
               highlighted={false}
             />
             <PricingCard
-              name="Power"
+              name="Team Pro"
               price="$49"
               period="/month"
-              description="For solo founders orchestrating seed-stage GTM"
+              description="For founders and teams scaling their GTM motion"
+              additionalPricing="+ $25/extra user/month"
               features={[
                 "Unlimited Copilot requests & automations",
                 "AI account briefs & deal coaching",
                 "Automated investor outreach",
                 "Unlimited CRM contacts & deals",
                 "Collaborative deal rooms",
-                "5 GTM document templates",
+                "All GTM document templates",
                 "Advanced pipeline analytics",
                 "Financial tracking & runway",
                 "Unlimited storage & files",
-                "CSV export for board reporting",
-                "Priority email support"
+                "Shared team workspaces",
+                "Role-based permissions",
+                "Priority support"
               ]}
               cta="Get Started"
               highlighted={true}
-            />
-            <PricingCard
-              name="Team Pro"
-              price="$99"
-              period="/month"
-              description="For early sales teams scaling GTM motion"
-              additionalPricing="+ $25/user/month"
-              features={[
-                "Unlimited Copilot per seat",
-                "All Power features per user",
-                "Shared team workspaces",
-                "Collaborative pipeline mgmt",
-                "Team deal coaching & insights",
-                "Role-based CRM permissions",
-                "Team performance dashboards",
-                "Shared document libraries",
-                "Unlimited shared storage",
-                "Multi-user API access",
-                "Priority team onboarding"
-              ]}
-              cta="Get Started"
-              highlighted={false}
             />
           </div>
         </div>
@@ -503,7 +483,7 @@ export function LandingPage() {
           />
           <FAQItem
             question="How does team billing work?"
-            answer="You pay a base price plus per-seat pricing. Add or remove seats anytime."
+            answer="Team Pro is $49/month base (includes you as owner), plus $25/month for each additional team member. Add or remove seats anytime."
           />
           <FAQItem
             question="What happens to my data?"
