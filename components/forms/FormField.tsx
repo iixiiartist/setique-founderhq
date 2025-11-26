@@ -51,10 +51,10 @@ export function FormField({
   const isTextarea = type === 'textarea';
 
   return (
-    <div className={`space-y-1 ${className}`}>
-      <label htmlFor={id} className="block font-mono text-sm font-semibold text-black">
+    <div className={`space-y-1.5 ${className}`}>
+      <label htmlFor={id} className="label-modern">
         {label}
-        {required && <span className="ml-1 text-red-600" aria-label="required">*</span>}
+        {required && <span className="ml-1 text-red-500" aria-label="required">*</span>}
       </label>
       
       {isTextarea ? (
@@ -68,15 +68,7 @@ export function FormField({
           autoFocus={autoFocus}
           aria-invalid={error ? 'true' : 'false'}
           aria-describedby={describedBy}
-          className={`
-            w-full bg-white border-2 text-black p-2 rounded-none
-            focus:outline-none transition-colors
-            disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500
-            ${error 
-              ? 'border-red-500 focus:border-red-600' 
-              : 'border-black focus:border-blue-500'
-            }
-          `}
+          className={`textarea-modern ${error ? 'input-error' : ''}`}
         />
       ) : (
         <input
@@ -92,26 +84,18 @@ export function FormField({
           autoFocus={autoFocus}
           aria-invalid={error ? 'true' : 'false'}
           aria-describedby={describedBy}
-          className={`
-            w-full bg-white border-2 text-black p-2 rounded-none
-            focus:outline-none transition-colors
-            disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500
-            ${error 
-              ? 'border-red-500 focus:border-red-600' 
-              : 'border-black focus:border-blue-500'
-            }
-          `}
+          className={`input-modern ${error ? 'input-error' : ''}`}
         />
       )}
       
       {helpText && !error && (
-        <p id={`${id}-help`} className="text-xs text-gray-600">
+        <p id={`${id}-help`} className="help-text-modern">
           {helpText}
         </p>
       )}
       
       {error && (
-        <p id={`${id}-error`} className="text-xs text-red-600 font-semibold" role="alert">
+        <p id={`${id}-error`} className="error-text-modern" role="alert">
           {error.message}
         </p>
       )}

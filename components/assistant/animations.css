@@ -107,20 +107,20 @@
   }
 }
 
-/* Loading ring stroke animation */
+/* Loading ring stroke animation - Updated for modern FAB */
 .loading-ring-stroke {
   animation: loadingRing 1.5s ease-in-out infinite;
 }
 
 @keyframes loadingRing {
   0% {
-    stroke-dashoffset: 176;
+    stroke-dashoffset: 150;
   }
   50% {
-    stroke-dashoffset: 44;
+    stroke-dashoffset: 38;
   }
   100% {
-    stroke-dashoffset: 176;
+    stroke-dashoffset: 150;
   }
 }
 
@@ -184,15 +184,42 @@
   }
 }
 
-/* Hover glow effect */
+/* Hover glow effect - Modern soft glow */
 .hover-glow {
-  transition: box-shadow 0.2s ease-out;
+  transition: box-shadow 0.3s ease-out, transform 0.3s ease-out;
 }
 
 .hover-glow:hover {
   box-shadow: 
-    0 0 20px rgba(59, 130, 246, 0.4),
-    0 0 40px rgba(59, 130, 246, 0.2);
+    0 0 30px rgba(59, 130, 246, 0.3),
+    0 0 60px rgba(59, 130, 246, 0.15),
+    0 10px 40px rgba(59, 130, 246, 0.2);
+}
+
+/* Soft shadow 2xl for FAB */
+.shadow-soft-2xl {
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.15),
+    0 12px 24px -8px rgba(0, 0, 0, 0.1),
+    0 0 20px rgba(59, 130, 246, 0.15);
+}
+
+/* Subtle pulse glow for interactive elements */
+.glow-pulse {
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    box-shadow: 
+      0 10px 40px -10px rgba(59, 130, 246, 0.3),
+      0 4px 20px -4px rgba(59, 130, 246, 0.2);
+  }
+  50% {
+    box-shadow: 
+      0 10px 50px -10px rgba(59, 130, 246, 0.5),
+      0 4px 25px -4px rgba(59, 130, 246, 0.35);
+  }
 }
 
 /* Smooth icon transition */

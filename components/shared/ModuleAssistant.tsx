@@ -1266,26 +1266,26 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                 ? 'p-4' 
                 : isFullscreen
                     ? 'p-6 h-full'
-                    : 'p-6 border-2 border-black shadow-neo max-h-[85vh]'
+                    : 'p-6 border border-gray-200 rounded-2xl shadow-soft-lg max-h-[85vh]'
         }`}>
             {(!compact || isFullscreen) && (
                 <div className="flex justify-between items-start mb-4 shrink-0 flex-wrap gap-2 relative">
-                    <div className="flex items-center gap-2 min-w-0">
-                        <h2 className="text-xl font-semibold text-black truncate">{title}</h2>
+                    <div className="flex items-center gap-3 min-w-0">
+                        <h2 className="text-lg font-semibold text-gray-900 truncate">{title}</h2>
                         {messageCount > 0 && (
-                            <span className="text-xs text-gray-500 shrink-0" title="Message count">
-                                ({messageCount})
+                            <span className="badge-modern text-[10px] shrink-0" title="Message count">
+                                {messageCount} messages
                             </span>
                         )}
                     </div>
                     <div className="flex gap-2 flex-wrap">
                         <button
                             onClick={handleGenerateReport}
-                            className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all disabled:opacity-50 flex items-center gap-2 shrink-0"
+                            className="btn-modern-secondary text-xs py-1.5 px-3 disabled:opacity-50 flex items-center gap-1.5 shrink-0"
                             disabled={isLoading}
                             title="Generate a summary report of this module"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M12 20V10H4V20H12ZM14 20V4H22V20H14Z" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5"><path d="M12 20V10H4V20H12ZM14 20V4H22V20H14Z" /></svg>
                             <span className="hidden sm:inline">Report</span>
                         </button>
                         <button
@@ -1296,11 +1296,11 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                                     setTimeout(() => setIsCopied(false), 2000);
                                 });
                             }}
-                            className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all disabled:opacity-50 shrink-0"
+                            className="btn-modern-secondary text-xs py-1.5 px-3 disabled:opacity-50 shrink-0"
                             disabled={history.length === 0 || isCopied}
                             title="Copy conversation to clipboard"
                         >
-                            {isCopied ? 'Copied!' : 'Copy'}
+                            {isCopied ? '✓ Copied' : 'Copy'}
                         </button>
                         <button
                             onClick={() => {
@@ -1308,7 +1308,7 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                                     clearPersistedHistory();
                                 }
                             }}
-                            className="font-mono bg-white border-2 border-black text-red-600 hover:bg-red-50 cursor-pointer text-sm py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all disabled:opacity-50 shrink-0"
+                            className="inline-flex items-center justify-center px-3 py-1.5 rounded-xl text-xs font-semibold text-red-600 bg-white border border-red-200 hover:bg-red-50 hover:border-red-300 transition-all duration-200 disabled:opacity-50 shrink-0"
                             disabled={history.length === 0}
                             title="Clear conversation history"
                         >
@@ -1317,7 +1317,7 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                         {allowFullscreen && !compact && (
                             <button
                                 onClick={toggleFullscreen}
-                                className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-gray-50 shrink-0"
+                                className="btn-modern-secondary text-xs p-1.5 shrink-0"
                                 title={isFullscreen ? 'Exit fullscreen (Esc)' : 'Enter fullscreen'}
                                 aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
                                 aria-pressed={isFullscreen}
@@ -1337,10 +1337,13 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                 </div>
             )}
             
-            <div className="flex-grow overflow-y-auto custom-scrollbar pr-4 mb-4 border-2 border-black bg-gray-50 p-4 min-h-[200px] flex flex-col gap-4" role="log" aria-live="polite" aria-atomic="false">
+            <div className="flex-grow overflow-y-auto custom-scrollbar pr-2 mb-4 bg-gradient-to-b from-gray-50/80 to-white rounded-xl border border-gray-100 p-4 min-h-[200px] flex flex-col gap-3" role="log" aria-live="polite" aria-atomic="false">
                 {history.length === 0 && (
-                    <div className="m-auto text-center text-gray-500">
-                        Ask me anything about this module!
+                    <div className="m-auto text-center">
+                        <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center">
+                            <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                        </div>
+                        <p className="text-gray-500 text-sm">Ask me anything about this module!</p>
                     </div>
                 )}
                 {history.map((msg, index) => {
@@ -1362,10 +1365,10 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                         }
 
                         return (
-                            <div key={index} className={`group relative max-w-[95%] sm:max-w-[85%] md:max-w-[80%] p-3 border-2 border-black whitespace-pre-wrap break-words ${
+                            <div key={index} className={`group relative max-w-[90%] sm:max-w-[85%] whitespace-pre-wrap break-words transition-all duration-200 ${
                                 isUserModel 
-                                ? 'bg-blue-500 text-white self-end shadow-neo-sm' 
-                                : 'bg-gray-100 text-black self-start'
+                                ? 'chat-bubble-user self-end' 
+                                : 'chat-bubble-ai self-start'
                             }`}>
                                 {isUserModel ? (
                                     <>
@@ -1379,12 +1382,12 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                                         />
                                         <button 
                                             onClick={() => handleCopyMessage(textPart || '', index)} 
-                                            className="absolute top-1 right-1 bg-white border border-black p-1 rounded-none shadow-neo-btn text-xs font-mono hover:bg-gray-50 transition-colors"
+                                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-white/90 backdrop-blur-sm border border-gray-200 p-1.5 rounded-lg shadow-soft-sm text-xs hover:bg-gray-50 transition-all duration-200"
                                             title="Copy response"
                                             aria-label="Copy response"
                                         >
-                                            {copiedMessageIndex === index ? 'Copied!' : (
-                                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                                            {copiedMessageIndex === index ? '✓' : (
+                                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-gray-600">
                                                     <path d="M7 3.5A1.5 1.5 0 0 1 8.5 2h3A1.5 1.5 0 0 1 13 3.5v1A1.5 1.5 0 0 1 11.5 6h-3A1.5 1.5 0 0 1 7 4.5v-1Z" />
                                                     <path d="M5.5 4.5A2.5 2.5 0 0 1 8 2h4a2.5 2.5 0 0 1 2.5 2.5v1A2.5 2.5 0 0 1 12 7H8a2.5 2.5 0 0 1-2.5-2.5v-1Zm3-1.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-3Z" />
                                                     <path d="M3.5 6.5A1.5 1.5 0 0 1 5 5h10a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 15 16H5a1.5 1.5 0 0 1-1.5-1.5v-8Zm2 1a.5.5 0 0 0-.5.5v6a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-6a.5.5 0 0 0-.5-.5h-8Z" />
@@ -1421,11 +1424,11 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                      return null; // Don't render tool call/response messages or intermediate model turns
                 })}
                 {isLoading && (
-                    <div className="bg-gray-100 text-black self-start p-3 border-2 border-black">
-                        <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-black rounded-full animate-pulse [animation-delay:-0.3s]"></div>
-                            <div className="w-2 h-2 bg-black rounded-full animate-pulse [animation-delay:-0.15s]"></div>
-                            <div className="w-2 h-2 bg-black rounded-full animate-pulse"></div>
+                    <div className="chat-bubble-ai self-start">
+                        <div className="flex items-center gap-1.5">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
                         </div>
                     </div>
                 )}
@@ -1435,90 +1438,84 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
             {/* AI Limit Warning */}
             {/* Rate Limit Warning */}
             {rateLimitError && (
-                <div className="bg-orange-100 border-2 border-orange-500 p-4 shrink-0">
-                    <div className="flex items-start gap-3">
-                        <span className="text-2xl">⏱️</span>
-                        <div className="flex-1">
-                            <h3 className="font-bold text-orange-800 mb-1">Rate Limit Exceeded</h3>
-                            <p className="text-sm text-orange-700">
-                                {rateLimitError}
-                            </p>
-                        </div>
+                <div className="alert-modern alert-modern-warning shrink-0 mb-3">
+                    <span className="text-xl">⏱️</span>
+                    <div className="flex-1">
+                        <h3 className="font-semibold text-amber-800 text-sm mb-0.5">Rate Limit Exceeded</h3>
+                        <p className="text-xs text-amber-700">
+                            {rateLimitError}
+                        </p>
                     </div>
                 </div>
             )}
 
             {/* AI Limit Warning */}
             {aiLimitError && (
-                <div className="bg-yellow-100 border-2 border-yellow-400 p-4 shrink-0">
-                    <div className="flex items-start gap-3">
-                        <span className="text-2xl">✨</span>
-                        <div className="flex-1">
-                            <h3 className="font-bold text-yellow-800 mb-1">
-                                {isFreePlanLimit ? 'Free Plan AI Quota Reached' : 'AI Usage Limit Reached'}
-                            </h3>
-                            <p className="text-sm text-yellow-700 mb-2">
-                                {isFreePlanLimit ? (
-                                    <>
-                                        You've used all <strong>25 monthly AI requests</strong> included in the Free plan. Credits reset at the start of each month. 
-                                        Upgrade to Power ($49/mo) or Team Pro ($99/mo) for unlimited Copilot access.
-                                    </>
-                                ) : (
-                                    <>
-                                        You've used <strong>{aiLimitError.usage}/{aiLimitError.limit}</strong> AI requests on the <strong>{aiLimitError.planType}</strong> plan. 
-                                        Upgrade for unlimited AI access.
-                                    </>
-                                )}
-                            </p>
-                            {onUpgradeNeeded && (
-                                <button
-                                    onClick={onUpgradeNeeded}
-                                    className="px-4 py-2 border-2 border-black bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-neo text-sm"
-                                >
-                                    View Pricing & Upgrade →
-                                </button>
+                <div className="alert-modern alert-modern-warning shrink-0 mb-3">
+                    <span className="text-xl">✨</span>
+                    <div className="flex-1">
+                        <h3 className="font-semibold text-amber-800 text-sm mb-1">
+                            {isFreePlanLimit ? 'Free Plan AI Quota Reached' : 'AI Usage Limit Reached'}
+                        </h3>
+                        <p className="text-xs text-amber-700 mb-2">
+                            {isFreePlanLimit ? (
+                                <>
+                                    You've used all <strong>25 monthly AI requests</strong> included in the Free plan. Credits reset at the start of each month. 
+                                    Upgrade to Power ($49/mo) or Team Pro ($99/mo) for unlimited Copilot access.
+                                </>
+                            ) : (
+                                <>
+                                    You've used <strong>{aiLimitError.usage}/{aiLimitError.limit}</strong> AI requests on the <strong>{aiLimitError.planType}</strong> plan. 
+                                    Upgrade for unlimited AI access.
+                                </>
                             )}
-                        </div>
+                        </p>
+                        {onUpgradeNeeded && (
+                            <button
+                                onClick={onUpgradeNeeded}
+                                className="btn-modern text-xs py-1.5 px-3"
+                            >
+                                View Pricing & Upgrade →
+                            </button>
+                        )}
                     </div>
                 </div>
             )}
 
             {/* File Size Error */}
             {fileSizeError && (
-                <div className="bg-red-100 border-2 border-red-500 p-4 shrink-0">
-                    <div className="flex items-start gap-3">
-                        <span className="text-2xl">📁</span>
-                        <div className="flex-1">
-                            <h3 className="font-bold text-red-800 mb-1">File Too Large</h3>
-                            <p className="text-sm text-red-700">
-                                {fileSizeError}
-                            </p>
-                            <button
-                                onClick={() => setFileSizeError(null)}
-                                className="mt-2 text-xs underline text-red-600 hover:text-red-800"
-                            >
-                                Dismiss
-                            </button>
-                        </div>
+                <div className="alert-modern alert-modern-error shrink-0 mb-3">
+                    <span className="text-xl">📁</span>
+                    <div className="flex-1">
+                        <h3 className="font-semibold text-red-800 text-sm mb-0.5">File Too Large</h3>
+                        <p className="text-xs text-red-700">
+                            {fileSizeError}
+                        </p>
+                        <button
+                            onClick={() => setFileSizeError(null)}
+                            className="mt-1.5 text-xs text-red-600 hover:text-red-800 font-medium"
+                        >
+                            Dismiss
+                        </button>
                     </div>
                 </div>
             )}
 
-            <div className="px-1 mb-2 space-y-2">
+            <div className="px-1 mb-3 space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                     <button
                         type="button"
                         onClick={() => setIsWebSearchEnabled(!isWebSearchEnabled)}
-                        className={`text-xs font-semibold px-3 py-1.5 rounded-none border flex items-center gap-1 transition-all ${
+                        className={`text-xs font-medium px-3 py-1.5 rounded-full border flex items-center gap-1.5 transition-all duration-200 ${
                             isWebSearchEnabled 
-                            ? 'bg-blue-50 border-blue-200 text-blue-700' 
-                            : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                            ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-soft-xs' 
+                            : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50'
                         }`}
                     >
                         <span>🌐</span> Web Search {isWebSearchEnabled ? 'ON' : 'OFF'}
                     </button>
                     {isWebSearchEnabled && (
-                        <div className="flex items-center gap-2 text-[11px] text-gray-600">
+                        <div className="flex items-center gap-1.5 text-[11px]">
                             {[
                                 { id: 'text', label: 'Text answers' },
                                 { id: 'images', label: 'Image references' }
@@ -1527,8 +1524,10 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                                     key={option.id}
                                     type="button"
                                     onClick={() => setWebSearchMode(option.id as 'text' | 'images')}
-                                    className={`px-2 py-1 rounded-none border text-[11px] ${
-                                        webSearchMode === option.id ? 'border-purple-500 text-purple-700 bg-purple-50' : 'border-gray-200 text-gray-500'
+                                    className={`px-2.5 py-1 rounded-full border text-[11px] font-medium transition-all duration-200 ${
+                                        webSearchMode === option.id 
+                                        ? 'border-purple-300 text-purple-700 bg-purple-50' 
+                                        : 'border-gray-200 text-gray-500 hover:border-gray-300'
                                     }`}
                                 >
                                     {option.label}
@@ -1609,36 +1608,50 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
 
             <form onSubmit={handleChatSubmit} className="flex flex-col gap-2 shrink-0">
                 {file && (
-                    <div className="flex items-center justify-between p-2 bg-gray-100 border-2 border-dashed border-black text-sm">
-                        <div className="flex-1 truncate pr-2">
-                            <div className="font-medium">{file.name}</div>
-                            <div className="text-xs text-gray-600">
-                                {(file.size / (1024 * 1024)).toFixed(2)}MB
+                    <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            </div>
+                            <div className="truncate">
+                                <div className="font-medium text-gray-900 truncate">{file.name}</div>
+                                <div className="text-xs text-gray-500">
+                                    {(file.size / (1024 * 1024)).toFixed(2)}MB
+                                </div>
                             </div>
                         </div>
-                        <button type="button" onClick={clearFile} className="font-bold text-lg hover:text-red-500" aria-label="Remove attached file">&times;</button>
+                        <button type="button" onClick={clearFile} className="p-1 hover:bg-gray-200 rounded-lg transition-colors" aria-label="Remove attached file">
+                            <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
                     </div>
                 )}
                 {attachedDoc && (
-                    <div className="flex items-center justify-between p-2 bg-purple-50 border-2 border-purple-600 text-sm">
-                        <div className="flex-1 truncate pr-2">
-                            <div className="font-medium">📎 {attachedDoc.title}</div>
-                            <div className="text-xs text-purple-700">
-                                {attachedDoc.docType} • {attachedDoc.visibility}
+                    <div className="flex items-center justify-between p-3 bg-purple-50 border border-purple-200 rounded-xl text-sm">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
+                                <span className="text-base">📄</span>
+                            </div>
+                            <div className="truncate">
+                                <div className="font-medium text-gray-900 truncate">{attachedDoc.title}</div>
+                                <div className="text-xs text-purple-600">
+                                    {attachedDoc.docType} • {attachedDoc.visibility}
+                                </div>
                             </div>
                         </div>
-                        <button type="button" onClick={clearDoc} className="font-bold text-lg hover:text-red-500" aria-label="Remove attached document">&times;</button>
+                        <button type="button" onClick={clearDoc} className="p-1 hover:bg-purple-100 rounded-lg transition-colors" aria-label="Remove attached document">
+                            <svg className="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
                     </div>
                 )}
-                <div className="flex gap-4">
+                <div className="flex gap-2 items-end">
                     <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" id={`file-upload-${title.replace(/\s+/g, '-')}`} />
                     <label 
                         htmlFor={`file-upload-${title.replace(/\s+/g, '-')}`} 
-                        className="p-3 border-2 border-black shadow-neo-btn cursor-pointer flex items-center justify-center hover:bg-gray-50 transition-colors" 
+                        className="p-2.5 border border-gray-200 rounded-xl cursor-pointer flex items-center justify-center hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 shadow-soft-xs" 
                         aria-label={`Attach a file (max ${maxFileSizeMB}MB)`}
                         title={`Attach a file (max ${maxFileSizeMB}MB)`}
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-6 h-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-5 h-5 text-gray-500">
                             <path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.122 2.122l7.81-7.81" />
                         </svg>
                     </label>
@@ -1646,24 +1659,24 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                         <button
                             type="button"
                             onClick={() => setShowDocPicker(true)}
-                            className="p-3 border-2 border-purple-600 bg-purple-50 shadow-neo-btn cursor-pointer flex items-center justify-center hover:bg-purple-100 transition-colors"
+                            className="p-2.5 border border-purple-200 bg-purple-50 rounded-xl cursor-pointer flex items-center justify-center hover:bg-purple-100 hover:border-purple-300 transition-all duration-200 shadow-soft-xs"
                             aria-label="Attach GTM document"
                             title="Attach GTM document"
                         >
-                            <span className="text-xl">📄</span>
+                        <span className="text-lg">📄</span>
                         </button>
                     )}
                     <input
                         type="text"
                         value={userInput}
                         onChange={(e) => setUserInput(e.target.value)}
-                        className="w-full bg-white border-2 border-black text-black p-3 rounded-none focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50"
+                        className="flex-1 input-modern py-2.5"
                         placeholder="Ask a question..."
                         disabled={isLoading}
                     />
                     <button
                         type="submit"
-                        className="font-mono font-semibold bg-blue-500 text-white p-3 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn-lg disabled:bg-gray-400 disabled:cursor-not-allowed disabled:text-gray-200"
+                        className="btn-modern px-4 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                         disabled={isLoading || (!userInput && !file && !attachedDoc)}
                     >
                         Send
@@ -1674,24 +1687,26 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
     );
 
     const lockedContent = (
-        <div className={`h-full w-full flex flex-col items-center justify-center text-center bg-gradient-to-b from-gray-50 to-white ${compact ? 'p-4' : 'p-8'}`}>
-            <div className={`border-4 border-black shadow-neo-xl bg-white rounded-none space-y-4 ${compact ? 'p-4 w-full' : 'p-8 max-w-lg'}`}>
-                <div className="text-4xl" aria-hidden="true">🔒</div>
-                <h2 className="text-2xl font-bold text-gray-900">AI assistant is a premium feature</h2>
-                <p className="text-gray-700">
+        <div className={`h-full w-full flex flex-col items-center justify-center text-center bg-gradient-to-b from-gray-50/50 to-white ${compact ? 'p-4' : 'p-8'}`}>
+            <div className={`card-modern space-y-5 ${compact ? 'p-5 w-full' : 'p-8 max-w-lg'}`}>
+                <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                    <span className="text-3xl">🔒</span>
+                </div>
+                <h2 className="text-xl font-semibold text-gray-900">AI assistant is a premium feature</h2>
+                <p className="text-gray-600 text-sm">
                     You're currently on the <strong>{planLabel}</strong> plan. Upgrade to unlock research-grade answers, CRM automations, and document-aware coaching from the Setique AI assistant.
                 </p>
                 <ul className="text-left text-sm text-gray-700 space-y-2">
-                    <li>✅ Unlimited AI questions &amp; follow-ups</li>
-                    <li>✅ CRM + task automations and quick actions</li>
-                    <li>✅ GTM doc grounding and visual research</li>
+                    <li className="flex items-center gap-2"><span className="text-green-500">✓</span> Unlimited AI questions & follow-ups</li>
+                    <li className="flex items-center gap-2"><span className="text-green-500">✓</span> CRM + task automations and quick actions</li>
+                    <li className="flex items-center gap-2"><span className="text-green-500">✓</span> GTM doc grounding and visual research</li>
                 </ul>
                 {onUpgradeNeeded && (
                     <button
                         onClick={onUpgradeNeeded}
-                        className="w-full px-4 py-3 border-2 border-black bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors shadow-neo-btn"
+                        className="w-full btn-modern py-3"
                     >
-                        View plans &amp; upgrade →
+                        View plans & upgrade →
                     </button>
                 )}
             </div>

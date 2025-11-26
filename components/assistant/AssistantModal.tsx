@@ -173,14 +173,14 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
           right: '24px',
           width: 'min(440px, calc(100vw - 3rem))',
           height: 'min(620px, calc(100vh - 8rem))',
-          borderRadius: '16px',
-          border: '3px solid #000',
+          borderRadius: '24px',
+          border: '1px solid rgba(0,0,0,0.1)',
         }),
         zIndex: isFullscreen ? 100000 : 99998,
         backgroundColor: 'white',
         boxShadow: isFullscreen 
           ? 'none' 
-          : '0 25px 50px -12px rgb(0 0 0 / 0.25), 8px 8px 0px #000',
+          : '0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 12px 24px -8px rgba(0, 0, 0, 0.1)',
         display: 'flex',
         flexDirection: 'column',
         opacity: 1,
@@ -196,7 +196,7 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
       <div className="
         relative
         px-4 py-3
-        border-b-3 border-black
+        border-b border-gray-100
         flex items-center justify-between
         bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600
         flex-shrink-0
@@ -205,10 +205,10 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
         <div className="flex items-center gap-3">
           {/* AI Avatar */}
           <div className="
-            w-10 h-10 rounded-full
+            w-10 h-10 rounded-xl
             bg-white/20 backdrop-blur-sm
             flex items-center justify-center
-            border-2 border-white/40
+            border border-white/30
             shadow-inner
           ">
             <Bot className="w-5 h-5 text-white" strokeWidth={2.5} />
@@ -235,7 +235,7 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
               "
             >
               <span className={`
-                px-1.5 py-0.5 rounded
+                px-2 py-0.5 rounded-full
                 ${tabInfo.bgColor} ${tabInfo.color}
                 text-[10px] font-semibold uppercase tracking-wide
               `}>
@@ -247,14 +247,14 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
         </div>
         
         {/* Right side - Actions */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
             className="
-              p-2 rounded-lg
+              p-2 rounded-xl
               hover:bg-white/20
               text-white/90 hover:text-white
-              transition-all duration-150
+              transition-all duration-200
             "
             aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
             title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
@@ -269,10 +269,10 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
           <button
             onClick={isFullscreen ? () => setIsFullscreen(false) : onMinimize}
             className="
-              p-2 rounded-lg
+              p-2 rounded-xl
               hover:bg-white/20
               text-white/90 hover:text-white
-              transition-all duration-150
+              transition-all duration-200
             "
             aria-label={isFullscreen ? "Exit fullscreen" : "Minimize assistant"}
             title={isFullscreen ? "Exit Fullscreen (Esc)" : "Minimize (Esc)"}
@@ -284,10 +284,10 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
             <button
               onClick={onClose}
               className="
-                p-2 rounded-lg
+                p-2 rounded-xl
                 hover:bg-red-500/30
                 text-white/90 hover:text-white
-                transition-all duration-150
+                transition-all duration-200
               "
               aria-label="Close assistant"
               title="Close"
@@ -300,11 +300,9 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
         {/* Context Menu Dropdown */}
         {showContextMenu && (
           <div className="
-            absolute top-full left-4 mt-1
-            bg-white border-2 border-black rounded-lg
-            shadow-neo-lg
-            py-1 min-w-[160px]
-            dropdown-spring
+            absolute top-full left-4 mt-2
+            dropdown-modern
+            min-w-[180px]
             z-10
           ">
             {Object.entries(TAB_DISPLAY_INFO).map(([tab, info]) => (
@@ -315,17 +313,14 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
                   setShowContextMenu(false);
                 }}
                 className={`
-                  w-full px-3 py-2 text-left text-sm
-                  flex items-center gap-2
-                  hover:bg-gray-100
-                  transition-colors
-                  ${currentTab === tab ? 'bg-gray-50 font-semibold' : ''}
+                  dropdown-modern-item
+                  ${currentTab === tab ? 'dropdown-modern-item-active' : ''}
                 `}
               >
                 <span className={`w-2 h-2 rounded-full ${info.bgColor.replace('50', '500')}`} />
                 {info.label}
                 {currentTab === tab && (
-                  <span className="ml-auto text-xs text-gray-400">✓</span>
+                  <span className="ml-auto text-blue-500">✓</span>
                 )}
               </button>
             ))}
@@ -363,8 +358,8 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
         <div
           className={`
             fixed inset-0 
-            ${isFullscreen ? 'bg-black/40' : 'bg-black/10'} 
-            backdrop-blur-[2px]
+            ${isFullscreen ? 'bg-black/50' : 'bg-black/5'} 
+            backdrop-blur-[3px]
             backdrop-fade-enter
           `}
           style={{ zIndex: isFullscreen ? 99999 : 99997 }}

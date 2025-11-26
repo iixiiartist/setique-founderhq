@@ -9,14 +9,14 @@ export interface FormSectionProps {
 
 export function FormSection({ title, description, children, className = '' }: FormSectionProps) {
   return (
-    <div className={`space-y-4 ${className}`}>
+    <div className={`space-y-5 ${className}`}>
       {(title || description) && (
         <div className="space-y-1">
           {title && (
-            <h3 className="text-lg font-bold text-black">{title}</h3>
+            <h3 className="text-base font-semibold text-gray-900">{title}</h3>
           )}
           {description && (
-            <p className="text-sm text-gray-600">{description}</p>
+            <p className="text-sm text-gray-500">{description}</p>
           )}
         </div>
       )}

@@ -62,23 +62,19 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
     if (isLoading) {
       return (
         <div className="relative">
-          <Loader2 className="w-7 h-7 animate-spin" strokeWidth={2} />
+          <Loader2 className="w-6 h-6 animate-spin" strokeWidth={2} />
         </div>
       );
     }
     if (isLockedVariant) {
-      return <Lock className="w-6 h-6" strokeWidth={2.5} />;
+      return <Lock className="w-5 h-5" strokeWidth={2.5} />;
     }
     return (
       <div className="relative">
         <Sparkles 
-          className={`w-7 h-7 transition-all duration-300 ${isHovered ? 'scale-110' : ''}`} 
+          className={`w-6 h-6 transition-all duration-300 ${isHovered ? 'scale-110' : ''}`} 
           strokeWidth={2} 
         />
-        {/* Subtle glow effect */}
-        <div className="absolute inset-0 blur-sm opacity-40">
-          <Sparkles className="w-7 h-7" strokeWidth={2} />
-        </div>
       </div>
     );
   };
@@ -96,25 +92,24 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
       >
         <div className="
           flex items-center gap-2
-          bg-gray-900 text-white
-          px-4 py-2.5 rounded-lg
-          shadow-lg
+          bg-gray-900/95 backdrop-blur-sm text-white
+          px-4 py-2.5 rounded-xl
+          shadow-soft-xl
           whitespace-nowrap
           text-sm font-medium
-          border border-gray-700
         ">
           <MessageCircle className="w-4 h-4 text-blue-400" />
           <span>{tooltipText}</span>
           {/* Tooltip arrow */}
-          <div className="absolute -bottom-1.5 right-6 w-3 h-3 bg-gray-900 border-r border-b border-gray-700 transform rotate-45" />
+          <div className="absolute -bottom-1.5 right-6 w-3 h-3 bg-gray-900/95 transform rotate-45 rounded-sm" />
         </div>
       </div>
 
       {/* Ripple effect ring */}
       {hasUnread && !isLoading && (
-        <div className="absolute inset-0 w-16 h-16">
-          <span className="absolute inset-0 rounded-full bg-blue-400 fab-ripple" />
-          <span className="absolute inset-0 rounded-full bg-blue-400 fab-ripple animation-delay-300" />
+        <div className="absolute inset-0 w-14 h-14">
+          <span className="absolute inset-0 rounded-full bg-blue-400/60 fab-ripple" />
+          <span className="absolute inset-0 rounded-full bg-blue-400/60 fab-ripple animation-delay-300" />
         </div>
       )}
 
@@ -125,20 +120,19 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
         onMouseLeave={() => setIsHovered(false)}
         className={`
           relative
-          w-16 h-16 rounded-full
-          border-3 border-black
+          w-14 h-14 rounded-2xl
           flex items-center justify-center
           gpu-accelerate
-          transition-all duration-200 ease-out
+          transition-all duration-300 ease-out
           ${isFirstRender ? 'fab-spring-enter' : ''}
-          ${isHovered && !isLoading ? 'shadow-neo-xl scale-105' : 'shadow-neo-lg'}
+          ${isHovered && !isLoading ? 'shadow-soft-2xl scale-105 -translate-y-1' : 'shadow-soft-xl'}
           ${isLockedVariant 
-            ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-gray-700' 
+            ? 'bg-gradient-to-br from-gray-400 to-gray-500 text-white' 
             : 'bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 text-white'
           }
           ${isLoading ? 'cursor-wait' : 'cursor-pointer'}
           ${className}
-          active:scale-95 active:shadow-neo-sm
+          active:scale-95 active:shadow-soft-lg
         `}
         style={{
           willChange: 'transform, box-shadow',
@@ -154,13 +148,13 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
           <span
             className="
               absolute -top-1 -right-1
-              min-w-[22px] h-[22px] px-1.5
+              min-w-[20px] h-[20px] px-1.5
               rounded-full
               bg-gradient-to-br from-red-500 to-rose-600
-              text-white text-xs font-bold
+              text-white text-[10px] font-bold
               border-2 border-white
               flex items-center justify-center
-              shadow-md
+              shadow-soft-md
               badge-bounce
             "
             aria-label={`${unreadCount} unread messages`}
@@ -173,28 +167,28 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
         {isLoading && (
           <svg
             className="absolute inset-0 w-full h-full -rotate-90"
-            viewBox="0 0 64 64"
+            viewBox="0 0 56 56"
           >
             <circle
               className="text-blue-300 opacity-30"
-              cx="32"
-              cy="32"
-              r="28"
+              cx="28"
+              cy="28"
+              r="24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="3"
+              strokeWidth="2"
             />
             <circle
               className="text-white loading-ring-stroke"
-              cx="32"
-              cy="32"
-              r="28"
+              cx="28"
+              cy="28"
+              r="24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="3"
+              strokeWidth="2"
               strokeLinecap="round"
-              strokeDasharray="176"
-              strokeDashoffset="140"
+              strokeDasharray="150"
+              strokeDashoffset="120"
             />
           </svg>
         )}
