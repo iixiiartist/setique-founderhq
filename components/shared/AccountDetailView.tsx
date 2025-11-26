@@ -1,4 +1,8 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import {
+    ArrowLeft, Trash2, Sparkles, Pencil, Plus, User, Mail, Phone, Briefcase,
+    ExternalLink, Building, FileText, Calendar, Clock, ChevronRight, CheckSquare
+} from 'lucide-react';
 import { AnyCrmItem, Task, AppActions, CrmCollectionName, TaskCollectionName, Investor, Customer, Partner, Priority, Note, Contact, WorkspaceMember, Subtask } from '../../types';
 import Modal from './Modal';
 import NotesManager from './NotesManager';
@@ -26,9 +30,9 @@ const AccountTaskItem: React.FC<{ task: Task; onEdit: (task: Task, triggerRef: R
     const editButtonRef = useRef<HTMLButtonElement>(null);
     const tagColorClass = TASK_TAG_BG_COLORS[tag] || 'bg-gray-300';
     return (
-        <li className="flex items-stretch">
-            <div className={`w-2 shrink-0 ${tagColorClass}`}></div>
-            <div className="flex items-start justify-between py-2 flex-grow pl-3">
+        <li className="flex items-stretch rounded-md overflow-hidden border border-gray-100 hover:border-gray-200 transition-colors">
+            <div className={`w-1 shrink-0 ${tagColorClass}`}></div>
+            <div className="flex items-start justify-between py-2.5 flex-grow pl-3 pr-2">
                 <div className="flex items-start flex-grow overflow-hidden">
                     <label htmlFor={`acc-task-complete-${task.id}`} className="sr-only">Mark task as complete</label>
                     <input 
@@ -36,17 +40,17 @@ const AccountTaskItem: React.FC<{ task: Task; onEdit: (task: Task, triggerRef: R
                         type="checkbox" 
                         checked={task.status === 'Done'}
                         onChange={(e) => actions.updateTask(task.id, { status: e.target.checked ? 'Done' : 'Todo' })}
-                        className="w-5 h-5 mr-3 mt-1 accent-blue-500 shrink-0 border-2 border-black rounded-none"
+                        className="w-4 h-4 mr-2.5 mt-0.5 accent-gray-900 shrink-0 rounded"
                     />
                     <div className="flex-grow">
-                        <span className={`text-black ${task.status === 'Done' ? 'line-through' : ''}`}>{task.text}</span>
+                        <span className={`text-sm ${task.status === 'Done' ? 'line-through text-gray-400' : 'text-gray-800'}`}>{task.text}</span>
                     </div>
                 </div>
-                <div className="flex gap-2 shrink-0 ml-2">
+                <div className="flex gap-1.5 shrink-0 ml-2">
                     <button 
                         ref={editButtonRef}
                         onClick={() => onEdit(task, editButtonRef)}
-                        className="font-mono bg-white border-2 border-black text-black cursor-pointer text-xs py-1 px-2 rounded-none font-semibold shadow-neo-btn transition-all">
+                        className="text-gray-500 hover:text-gray-700 text-xs py-1 px-2 rounded hover:bg-gray-100 transition-colors">
                         Edit
                     </button>
                     <button 
@@ -55,7 +59,7 @@ const AccountTaskItem: React.FC<{ task: Task; onEdit: (task: Task, triggerRef: R
                                 actions.deleteItem(taskCollection, task.id);
                             }
                         }}
-                        className="font-mono bg-red-600 border-2 border-black text-white cursor-pointer text-xs py-1 px-2 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-red-700">
+                        className="text-gray-400 hover:text-red-600 text-xs py-1 px-2 rounded hover:bg-red-50 transition-colors">
                         Del
                     </button>
                 </div>
@@ -74,18 +78,18 @@ const ContactForm: React.FC<{ crmItemId: string, collection: CrmCollectionName, 
         onDone();
     }
     return (
-        <form onSubmit={handleSubmit} className="space-y-2">
+        <form onSubmit={handleSubmit} className="space-y-2.5">
             <label htmlFor={`contact-form-name-${crmItemId}`} className="sr-only">Name</label>
-            <input id={`contact-form-name-${crmItemId}`} name={`contact-form-name-${crmItemId}`} value={form.name} onChange={e => setForm(p=>({...p, name: e.target.value}))} placeholder="Name" required className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
+            <input id={`contact-form-name-${crmItemId}`} name={`contact-form-name-${crmItemId}`} value={form.name} onChange={e => setForm(p=>({...p, name: e.target.value}))} placeholder="Name" required className="w-full bg-white border border-gray-200 text-gray-900 p-2.5 rounded-md text-sm focus:outline-none focus:border-gray-400"/>
             <label htmlFor={`contact-form-email-${crmItemId}`} className="sr-only">Email</label>
-            <input id={`contact-form-email-${crmItemId}`} name={`contact-form-email-${crmItemId}`} value={form.email} onChange={e => setForm(p=>({...p, email: e.target.value}))} placeholder="Email" type="email" className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
+            <input id={`contact-form-email-${crmItemId}`} name={`contact-form-email-${crmItemId}`} value={form.email} onChange={e => setForm(p=>({...p, email: e.target.value}))} placeholder="Email" type="email" className="w-full bg-white border border-gray-200 text-gray-900 p-2.5 rounded-md text-sm focus:outline-none focus:border-gray-400"/>
             <label htmlFor={`contact-form-phone-${crmItemId}`} className="sr-only">Phone</label>
-            <input id={`contact-form-phone-${crmItemId}`} name={`contact-form-phone-${crmItemId}`} value={form.phone} onChange={e => setForm(p=>({...p, phone: e.target.value}))} placeholder="Phone" type="tel" className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
+            <input id={`contact-form-phone-${crmItemId}`} name={`contact-form-phone-${crmItemId}`} value={form.phone} onChange={e => setForm(p=>({...p, phone: e.target.value}))} placeholder="Phone" type="tel" className="w-full bg-white border border-gray-200 text-gray-900 p-2.5 rounded-md text-sm focus:outline-none focus:border-gray-400"/>
             <label htmlFor={`contact-form-title-${crmItemId}`} className="sr-only">Title</label>
-            <input id={`contact-form-title-${crmItemId}`} name={`contact-form-title-${crmItemId}`} value={form.title} onChange={e => setForm(p=>({...p, title: e.target.value}))} placeholder="Title (e.g., CEO, VP Sales)" className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
+            <input id={`contact-form-title-${crmItemId}`} name={`contact-form-title-${crmItemId}`} value={form.title} onChange={e => setForm(p=>({...p, title: e.target.value}))} placeholder="Title (e.g., CEO, VP Sales)" className="w-full bg-white border border-gray-200 text-gray-900 p-2.5 rounded-md text-sm focus:outline-none focus:border-gray-400"/>
             <label htmlFor={`contact-form-linkedin-${crmItemId}`} className="sr-only">LinkedIn URL</label>
-            <input id={`contact-form-linkedin-${crmItemId}`} name={`contact-form-linkedin-${crmItemId}`} value={form.linkedin} onChange={e => setForm(p=>({...p, linkedin: e.target.value}))} placeholder="LinkedIn URL" type="url" className="w-full bg-white border-2 border-black text-black p-2 rounded-none"/>
-            <button type="submit" className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn">Add Contact</button>
+            <input id={`contact-form-linkedin-${crmItemId}`} name={`contact-form-linkedin-${crmItemId}`} value={form.linkedin} onChange={e => setForm(p=>({...p, linkedin: e.target.value}))} placeholder="LinkedIn URL" type="url" className="w-full bg-white border border-gray-200 text-gray-900 p-2.5 rounded-md text-sm focus:outline-none focus:border-gray-400"/>
+            <button type="submit" className="w-full bg-gray-900 text-white py-2.5 px-4 rounded-md text-sm font-medium hover:bg-gray-800 transition-colors">Add Contact</button>
         </form>
     );
 };
@@ -276,44 +280,49 @@ function AccountDetailView({
     return (
         <div className="space-y-6">
             {/* Header Section */}
-            <div className="bg-white p-6 border-2 border-black shadow-neo">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                        <button 
-                            onClick={onBack} 
-                            className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-2 px-4 rounded-none font-semibold shadow-neo-btn hover:bg-gray-100 transition-all"
-                        >
-                            ← Back
-                        </button>
-                        <h1 className="text-3xl font-bold">{item.company}</h1>
-                    </div>
-                    <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
-                        {workspaceMembers.length > 0 && onAssignCompany && (
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm text-gray-600 font-mono">ASSIGN:</span>
-                                <AssignmentDropdown
-                                    workspaceMembers={transformedMembers}
-                                    currentAssignee={item.assignedTo || undefined}
-                                    onAssign={(userId, userName) => {
-                                        console.log('[AccountDetailView] Assignment requested:', { userId, userName, itemId: item.id });
-                                        onAssignCompany(userId, userName);
-                                    }}
-                                    placeholder="Assign..."
-                                />
-                            </div>
-                        )}
-                        <button 
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                if (window.confirm(`Delete ${item.company}? This will also delete all contacts, tasks, meetings, and documents.`)) {
-                                    actions.deleteItem(crmCollection, item.id);
-                                    onBack();
-                                }
-                            }} 
-                            className="font-mono bg-red-600 border-2 border-black text-white cursor-pointer text-sm py-2 px-4 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-red-700"
-                        >
-                            Delete
-                        </button>
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                <div className="p-5">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                            <button 
+                                onClick={onBack} 
+                                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors"
+                            >
+                                <ArrowLeft className="w-4 h-4" />
+                                Back
+                            </button>
+                            <div className="h-6 w-px bg-gray-200"></div>
+                            <h1 className="text-2xl font-semibold text-gray-900">{item.company}</h1>
+                        </div>
+                        <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                            {workspaceMembers.length > 0 && onAssignCompany && (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-gray-500 uppercase tracking-wide">Assign:</span>
+                                    <AssignmentDropdown
+                                        workspaceMembers={transformedMembers}
+                                        currentAssignee={item.assignedTo || undefined}
+                                        onAssign={(userId, userName) => {
+                                            console.log('[AccountDetailView] Assignment requested:', { userId, userName, itemId: item.id });
+                                            onAssignCompany(userId, userName);
+                                        }}
+                                        placeholder="Assign..."
+                                    />
+                                </div>
+                            )}
+                            <button 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (window.confirm(`Delete ${item.company}? This will also delete all contacts, tasks, meetings, and documents.`)) {
+                                        actions.deleteItem(crmCollection, item.id);
+                                        onBack();
+                                    }
+                                }} 
+                                className="flex items-center gap-1.5 text-gray-400 hover:text-red-600 text-sm font-medium transition-colors"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                Delete
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -321,108 +330,123 @@ function AccountDetailView({
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left Column - Account Info */}
                 <div className="lg:col-span-1 space-y-6">
-                    <div className="bg-white p-6 border-2 border-black shadow-neo">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold">Account Info</h2>
+                    <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                        <div className="flex justify-between items-center p-5 border-b border-gray-100">
+                            <h2 className="text-lg font-semibold text-gray-900">Account Info</h2>
                             <div className="flex gap-2">
                                 <button 
                                     onClick={handleEnrich}
                                     disabled={isEnriching}
-                                    className="font-mono bg-white text-black border-2 border-black cursor-pointer text-xs py-2 px-3 rounded-none font-semibold shadow-neo-btn hover:bg-gray-100 transition-all disabled:opacity-50"
+                                    className="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 text-xs font-medium px-3 py-1.5 rounded-md border border-gray-200 hover:border-gray-300 transition-all disabled:opacity-50"
                                 >
+                                    <Sparkles className="w-3.5 h-3.5" />
                                     {isEnriching ? 'Enriching...' : 'Enrich'}
                                 </button>
                                 <button 
                                     ref={editCrmModalTriggerRef} 
                                     onClick={() => setIsEditing(true)} 
-                                    className="font-mono bg-black text-white border-2 border-black cursor-pointer text-xs py-2 px-3 rounded-none font-semibold shadow-neo-btn hover:bg-gray-800 transition-all"
+                                    className="flex items-center gap-1.5 bg-gray-900 text-white text-xs font-medium px-3 py-1.5 rounded-md hover:bg-gray-800 transition-colors"
                                 >
+                                    <Pencil className="w-3.5 h-3.5" />
                                     Edit
                                 </button>
                             </div>
                         </div>
-                        <div className="space-y-5">
-                            {valueDisplay('Primary Contact', item.contacts[0]?.name || 'N/A')}
-                            <div className="border-t border-gray-200 pt-4">
-                                {valueDisplay('Status', item.status)}
+                        <div className="p-5 space-y-4">
+                            <div>
+                                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Primary Contact</p>
+                                <p className="text-sm font-medium text-gray-900">{item.contacts[0]?.name || 'N/A'}</p>
                             </div>
-                            <div className="flex items-center gap-3">
-                                <span className={`priority-badge priority-${item.priority.toLowerCase()} text-sm`}>{item.priority}</span>
+                            <div className="pt-3 border-t border-gray-100">
+                                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Status</p>
+                                <p className="text-sm font-medium text-gray-900">{item.status}</p>
+                            </div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                    item.priority === 'High' 
+                                        ? 'bg-red-100 text-red-700' 
+                                        : item.priority === 'Medium' 
+                                            ? 'bg-yellow-100 text-yellow-700' 
+                                            : 'bg-gray-100 text-gray-600'
+                                }`}>{item.priority}</span>
                                 {item.assignedToName && (
-                                    <span className="text-sm bg-blue-50 border border-blue-300 px-3 py-1 font-mono text-blue-700">
-                                        → {item.assignedToName}
+                                    <span className="text-xs bg-gray-50 text-gray-600 px-2 py-0.5 rounded flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                                        {item.assignedToName}
                                     </span>
                                 )}
                             </div>
                             
                             {/* Deal Flow / Value Section */}
-                            <div className="border-t border-gray-200 pt-4 space-y-3">
+                            <div className="pt-3 border-t border-gray-100 space-y-3">
                                 {specificValueDisplay()}
                                 
                                 {/* Investment Stage for Investors */}
                                 {'checkSize' in item && (item as any).stage && (
-                                    <div className="bg-green-50 border-2 border-green-400 p-3">
-                                        <p className="text-xs font-mono uppercase text-green-700 mb-1">Investment Stage</p>
-                                        <p className="text-lg font-bold text-green-800">{(item as any).stage}</p>
+                                    <div className="bg-green-50 rounded-md p-3">
+                                        <p className="text-xs text-green-600 uppercase tracking-wide mb-1">Investment Stage</p>
+                                        <p className="text-sm font-semibold text-green-800">{(item as any).stage}</p>
                                     </div>
                                 )}
                                 
                                 {/* Deal Stage for Customers */}
                                 {'dealValue' in item && (item as any).dealStage && (
-                                    <div className="bg-blue-50 border-2 border-blue-400 p-3">
-                                        <p className="text-xs font-mono uppercase text-blue-700 mb-1">Deal Stage</p>
-                                        <p className="text-lg font-bold text-blue-800">{(item as any).dealStage}</p>
+                                    <div className="bg-gray-100 rounded-md p-3">
+                                        <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Deal Stage</p>
+                                        <p className="text-sm font-semibold text-gray-800">{(item as any).dealStage}</p>
                                     </div>
                                 )}
                                 
                                 {/* Partner Type for Partners */}
                                 {'opportunity' in item && (item as any).partnerType && (
-                                    <div className="bg-purple-50 border-2 border-purple-400 p-3">
-                                        <p className="text-xs font-mono uppercase text-purple-700 mb-1">Partner Type</p>
-                                        <p className="text-lg font-bold text-purple-800">{(item as any).partnerType}</p>
+                                    <div className="bg-gray-100 rounded-md p-3">
+                                        <p className="text-xs text-gray-600 uppercase tracking-wide mb-1">Partner Type</p>
+                                        <p className="text-sm font-semibold text-gray-800">{(item as any).partnerType}</p>
                                     </div>
                                 )}
                             </div>
 
                             {/* Additional Info Section */}
                             {((item as any).website || (item as any).industry || (item as any).description) && (
-                                <div className="border-t border-gray-200 pt-4 space-y-3">
+                                <div className="pt-3 border-t border-gray-100 space-y-3">
                                     {(item as any).website && (
                                         <div>
-                                            <p className="text-xs font-mono uppercase text-gray-600 mb-1">Website</p>
+                                            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Website</p>
                                             <a 
                                                 href={(item as any).website} 
                                                 target="_blank" 
                                                 rel="noopener noreferrer"
-                                                className="text-sm text-blue-600 hover:underline break-all"
+                                                className="text-sm text-gray-700 hover:text-gray-900 flex items-center gap-1"
                                             >
                                                 {(item as any).website}
+                                                <ExternalLink className="w-3 h-3" />
                                             </a>
                                         </div>
                                     )}
                                     {(item as any).industry && (
                                         <div>
-                                            <p className="text-xs font-mono uppercase text-gray-600 mb-1">Industry</p>
-                                            <p className="text-sm text-black">{(item as any).industry}</p>
+                                            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Industry</p>
+                                            <p className="text-sm text-gray-900">{(item as any).industry}</p>
                                         </div>
                                     )}
                                     {(item as any).description && (
                                         <div>
-                                            <p className="text-xs font-mono uppercase text-gray-600 mb-1">Description</p>
-                                            <p className="text-sm text-gray-700 whitespace-pre-wrap">{(item as any).description}</p>
+                                            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Description</p>
+                                            <p className="text-sm text-gray-600 whitespace-pre-wrap">{(item as any).description}</p>
                                         </div>
                                     )}
                                 </div>
                             )}
                             
-                            <div className="border-t border-gray-200 pt-4">
-                                <p className="text-sm font-mono uppercase text-gray-600 mb-2">Next Action</p>
-                                <p className={`text-lg font-semibold ${item.nextActionDate && new Date(item.nextActionDate + 'T00:00:00').toISOString().split('T')[0] < new Date().toISOString().split('T')[0] ? 'text-red-600' : 'text-black'}`}>
+                            <div className="pt-3 border-t border-gray-100">
+                                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Next Action</p>
+                                <p className={`text-sm font-medium ${item.nextActionDate && new Date(item.nextActionDate + 'T00:00:00').toISOString().split('T')[0] < new Date().toISOString().split('T')[0] ? 'text-red-600' : 'text-gray-900'}`}>
                                     {item.nextAction || 'None'}
                                 </p>
                                 {item.nextActionDate && (
-                                    <p className="text-sm text-gray-600 mt-1">
-                                        📅 {new Date(item.nextActionDate + 'T00:00:00').toLocaleDateString(undefined, { timeZone: 'UTC' })}
+                                    <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                        <Calendar className="w-3 h-3" />
+                                        {new Date(item.nextActionDate + 'T00:00:00').toLocaleDateString(undefined, { timeZone: 'UTC' })}
                                     </p>
                                 )}
                             </div>
@@ -430,54 +454,81 @@ function AccountDetailView({
                     </div>
 
                     {/* Contacts Section */}
-                    <div className="bg-white p-6 border-2 border-black shadow-neo">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-bold">Contacts ({item.contacts?.length || 0})</h2>
+                    <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                        <div className="flex justify-between items-center p-5 border-b border-gray-100">
+                            <h2 className="text-lg font-semibold text-gray-900">Contacts ({item.contacts?.length || 0})</h2>
                             <button 
                                 onClick={() => setShowAddContact(!showAddContact)} 
-                                className="font-mono bg-black text-white border-2 border-black cursor-pointer text-xs py-2 px-3 rounded-none font-semibold shadow-neo-btn hover:bg-gray-800 transition-all"
+                                className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition-colors ${
+                                    showAddContact 
+                                        ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' 
+                                        : 'bg-gray-900 text-white hover:bg-gray-800'
+                                }`}
                             >
-                                {showAddContact ? 'Cancel' : '+ Add'}
+                                <Plus className="w-3.5 h-3.5" />
+                                {showAddContact ? 'Cancel' : 'Add'}
                             </button>
                         </div>
                         {showAddContact && (
-                            <div className="mb-4 p-4 bg-gray-50 border-2 border-black">
+                            <div className="p-5 bg-gray-50 border-b border-gray-100">
                                 <ContactForm crmItemId={item.id} collection={crmCollection} actions={actions} onDone={() => setShowAddContact(false)} />
                             </div>
                         )}
-                        <ul className="max-h-80 overflow-y-auto custom-scrollbar pr-2 space-y-3">
-                            {(item.contacts || []).length > 0 ? (
-                                (item.contacts || []).map(contact => (
-                                    <li key={contact.id} className="group p-4 border-2 border-black bg-gray-50 hover:bg-blue-50 transition-colors">
-                                        <div className="flex justify-between items-start gap-3">
-                                            <div className="flex-grow min-w-0">
-                                                <p className="font-bold text-lg text-black mb-1">{contact.name}</p>
-                                                {contact.title && <p className="text-sm text-gray-600 mb-1">{contact.title}</p>}
-                                                {contact.email && <p className="text-sm text-blue-600 truncate">{contact.email}</p>}
-                                                {contact.phone && <p className="text-sm text-gray-600">{contact.phone}</p>}
+                        <div className="p-5">
+                            <ul className="max-h-80 overflow-y-auto custom-scrollbar pr-2 space-y-2">
+                                {(item.contacts || []).length > 0 ? (
+                                    (item.contacts || []).map(contact => (
+                                        <li key={contact.id} className="group p-3 rounded-lg border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all">
+                                            <div className="flex justify-between items-start gap-3">
+                                                <div className="flex-grow min-w-0">
+                                                    <p className="font-medium text-sm text-gray-900 mb-0.5">{contact.name}</p>
+                                                    {contact.title && (
+                                                        <p className="text-xs text-gray-500 flex items-center gap-1 mb-1">
+                                                            <Briefcase className="w-3 h-3" />
+                                                            {contact.title}
+                                                        </p>
+                                                    )}
+                                                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-500">
+                                                        {contact.email && (
+                                                            <span className="flex items-center gap-1 truncate">
+                                                                <Mail className="w-3 h-3" />
+                                                                {contact.email}
+                                                            </span>
+                                                        )}
+                                                        {contact.phone && (
+                                                            <span className="flex items-center gap-1">
+                                                                <Phone className="w-3 h-3" />
+                                                                {contact.phone}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <button 
+                                                    onClick={() => onViewContact(contact)} 
+                                                    className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900 font-medium shrink-0 transition-colors"
+                                                >
+                                                    View
+                                                    <ChevronRight className="w-3.5 h-3.5" />
+                                                </button>
                                             </div>
-                                            <button 
-                                                onClick={() => onViewContact(contact)} 
-                                                className="font-mono bg-black text-white border-2 border-black cursor-pointer text-xs py-2 px-3 rounded-none font-semibold shadow-neo-btn hover:bg-gray-800 transition-all shrink-0"
-                                            >
-                                                View →
-                                            </button>
-                                        </div>
-                                    </li>
-                                ))
-                            ) : (
-                                <p className="text-gray-400 italic text-center py-6">No contacts yet. Add one to get started!</p>
-                            )}
-                        </ul>
+                                        </li>
+                                    ))
+                                ) : (
+                                    <p className="text-gray-400 text-sm text-center py-6">No contacts yet. Add one to get started!</p>
+                                )}
+                            </ul>
+                        </div>
                     </div>
                 </div>
 
                 {/* Right Column - Tasks */}
                 <div className="lg:col-span-2">
-                    <div className="bg-white p-6 border-2 border-black shadow-neo">
-                        <h2 className="text-2xl font-bold mb-6">Company Tasks</h2>
-                        <form onSubmit={handleAddTask} className="mb-6 p-4 bg-gray-50 border-2 border-black space-y-3">
-                            <label htmlFor="new-account-task" className="block font-mono text-sm font-semibold text-black">
+                    <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                        <div className="p-5 border-b border-gray-100">
+                            <h2 className="text-lg font-semibold text-gray-900">Company Tasks</h2>
+                        </div>
+                        <form onSubmit={handleAddTask} className="p-5 bg-gray-50 border-b border-gray-100 space-y-3">
+                            <label htmlFor="new-account-task" className="block text-xs text-gray-500 uppercase tracking-wide font-medium">
                                 Add New Task
                             </label>
                             <input
@@ -486,18 +537,18 @@ function AccountDetailView({
                                 value={newTaskText || ''}
                                 onChange={(e) => setNewTaskText(e.target.value)}
                                 placeholder="e.g., Prepare Q4 presentation..."
-                                className="w-full bg-white border-2 border-black text-black p-3 rounded-none focus:outline-none focus:border-blue-500"
+                                className="w-full bg-white border border-gray-200 text-gray-900 p-2.5 rounded-md text-sm focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200"
                                 required
                             />
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <div>
-                                    <label htmlFor="new-task-priority" className="block text-xs font-mono text-gray-600 mb-1">PRIORITY</label>
+                                    <label htmlFor="new-task-priority" className="block text-xs text-gray-500 uppercase tracking-wide mb-1">Priority</label>
                                     <select
                                         id="new-task-priority"
                                         name="new-task-priority"
                                         value={newTaskPriority || 'Medium'}
                                         onChange={(e) => setNewTaskPriority(e.target.value as Priority)}
-                                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                        className="w-full bg-white border border-gray-200 text-gray-900 p-2 rounded-md text-sm focus:outline-none focus:border-gray-400"
                                     >
                                         <option value="Low">Low</option>
                                         <option value="Medium">Medium</option>
@@ -505,40 +556,40 @@ function AccountDetailView({
                                     </select>
                                 </div>
                                 <div>
-                                    <label htmlFor="new-task-duedate" className="block text-xs font-mono text-gray-600 mb-1">DUE DATE</label>
+                                    <label htmlFor="new-task-duedate" className="block text-xs text-gray-500 uppercase tracking-wide mb-1">Due Date</label>
                                     <input
                                         id="new-task-duedate"
                                         name="new-task-duedate"
                                         type="date"
                                         value={newTaskDueDate || ''}
                                         onChange={(e) => setNewTaskDueDate(e.target.value)}
-                                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                        className="w-full bg-white border border-gray-200 text-gray-900 p-2 rounded-md text-sm focus:outline-none focus:border-gray-400"
                                     />
                                 </div>
                             </div>
                             
                             {/* Subtasks section */}
-                            <div className="border-t-2 border-gray-200 pt-3 mt-3">
-                                <label className="block text-xs font-mono text-gray-600 mb-2">SUBTASKS (OPTIONAL)</label>
+                            <div className="border-t border-gray-200 pt-3 mt-3">
+                                <label className="block text-xs text-gray-500 uppercase tracking-wide mb-2">Subtasks (Optional)</label>
                                 <SubtaskManager 
                                     subtasks={newTaskSubtasks}
                                     onSubtasksChange={setNewTaskSubtasks}
                                 />
                             </div>
                             
-                            <button type="submit" className="w-full font-mono font-semibold bg-black text-white py-3 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800">
+                            <button type="submit" className="w-full bg-gray-900 text-white py-2.5 px-4 rounded-md text-sm font-medium hover:bg-gray-800 transition-colors">
                                 Add Task
                             </button>
                         </form>
-                        <div className="space-y-2">
-                            <h3 className="font-mono text-sm text-gray-600 uppercase mb-3">Task List ({companyTasks.length})</h3>
+                        <div className="p-5">
+                            <h3 className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-3">Task List ({companyTasks.length})</h3>
                             <ul className="max-h-[60vh] overflow-y-auto custom-scrollbar pr-2 space-y-1">
                                 {companyTasks.length > 0 ? (
                                     companyTasks.map(task => <AccountTaskItem key={task.id} task={task} onEdit={openEditTaskModal} actions={actions} tag={title} taskCollection={taskCollection} />)
                                 ) : (
                                     <div className="text-center py-12">
-                                        <p className="text-gray-400 text-lg italic">No company-level tasks yet.</p>
-                                        <p className="text-gray-400 text-sm mt-2">Add a task above to track work for {item.company}</p>
+                                        <p className="text-gray-400 text-sm">No company-level tasks yet.</p>
+                                        <p className="text-gray-400 text-xs mt-1">Add a task above to track work for {item.company}</p>
                                     </div>
                                 )}
                             </ul>

@@ -55,22 +55,22 @@ const CalendarHeader: React.FC<{
     return (
         <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
             <div className="flex items-center gap-4">
-                <div className="flex items-center border-2 border-black">
-                    <button onClick={onPrev} className="p-2 hover:bg-gray-100 border-r-2 border-black" aria-label="Previous period">&larr;</button>
-                    <button onClick={onToday} className="p-2 font-mono font-semibold hover:bg-gray-100 border-r-2 border-black">Today</button>
-                    <button onClick={onNext} className="p-2 hover:bg-gray-100" aria-label="Next period">&rarr;</button>
+                <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                    <button onClick={onPrev} className="p-2.5 hover:bg-gray-100 border-r border-gray-200 transition-colors" aria-label="Previous period">&larr;</button>
+                    <button onClick={onToday} className="px-3 py-2 font-medium text-sm hover:bg-gray-100 border-r border-gray-200 transition-colors">Today</button>
+                    <button onClick={onNext} className="p-2.5 hover:bg-gray-100 transition-colors" aria-label="Next period">&rarr;</button>
                 </div>
-                <h2 className="text-2xl font-semibold text-black">{formatHeaderDate()}</h2>
-                <div className="flex border-2 border-black">
+                <h2 className="text-xl font-semibold text-gray-900">{formatHeaderDate()}</h2>
+                <div className="flex border border-gray-200 rounded-lg overflow-hidden shadow-sm">
                     <button
                         onClick={() => onCalendarModeChange('personal')}
-                        className={`py-1 px-3 font-mono text-sm font-semibold ${calendarMode === 'personal' ? 'bg-black text-white' : 'bg-white text-black'}`}
+                        className={`py-1.5 px-3 text-sm font-medium transition-colors ${calendarMode === 'personal' ? 'bg-black text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
                     >
                         Personal
                     </button>
                     <button
                         onClick={() => onCalendarModeChange('team')}
-                        className={`py-1 px-3 font-mono text-sm font-semibold border-l-2 border-black ${calendarMode === 'team' ? 'bg-black text-white' : 'bg-white text-black'}`}
+                        className={`py-1.5 px-3 text-sm font-medium border-l border-gray-200 transition-colors ${calendarMode === 'team' ? 'bg-black text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
                     >
                         Team
                     </button>
@@ -79,16 +79,16 @@ const CalendarHeader: React.FC<{
             <div className="flex items-center gap-4">
                 <button
                     onClick={onNewEvent}
-                    className="py-2 px-4 font-mono font-semibold bg-blue-600 text-white border-2 border-black shadow-neo-btn hover:bg-blue-700"
+                    className="py-2 px-4 font-medium text-sm bg-black text-white rounded-lg shadow-sm hover:bg-gray-800 transition-colors"
                 >
                     + New Event
                 </button>
-                <div className="flex border-2 border-black">
+                <div className="flex border border-gray-200 rounded-lg overflow-hidden shadow-sm">
                     {(['month', 'week', 'day'] as ViewMode[]).map(view => (
                         <button
                             key={view}
                             onClick={() => onViewChange(view)}
-                            className={`py-2 px-4 font-mono font-semibold capitalize ${viewMode === view ? 'bg-black text-white' : 'bg-white text-black'} ${view !== 'month' ? 'border-l-2 border-black' : ''}`}
+                            className={`py-2 px-4 text-sm font-medium capitalize transition-colors ${viewMode === view ? 'bg-black text-white' : 'bg-white text-gray-700 hover:bg-gray-50'} ${view !== 'month' ? 'border-l border-gray-200' : ''}`}
                         >
                             {view}
                         </button>
@@ -257,22 +257,22 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
                 {isTask ? (
                     <>
                         <div>
-                            <label htmlFor="edit-task-text" className="block font-mono text-sm font-semibold text-black mb-1">Task Description</label>
+                            <label htmlFor="edit-task-text" className="block text-sm font-medium text-gray-700 mb-1">Task Description</label>
                             <textarea
                                 id="edit-task-text"
                                 value={editText || ''}
                                 onChange={e => setEditText(e.target.value)}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none min-h-[100px]"
+                                className="w-full bg-white border border-gray-300 text-gray-900 p-3 rounded-md min-h-[100px] focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                             />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor="edit-task-priority" className="block font-mono text-sm font-semibold text-black mb-1">Priority</label>
+                                <label htmlFor="edit-task-priority" className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
                                 <select
                                     id="edit-task-priority"
                                     value={editPriority || 'Medium'}
                                     onChange={e => setEditPriority(e.target.value as Priority)}
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none"
+                                    className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                                 >
                                     <option>Low</option>
                                     <option>Medium</option>
@@ -280,47 +280,47 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
                                 </select>
                             </div>
                             <div>
-                                <label htmlFor="edit-task-duedate" className="block font-mono text-sm font-semibold text-black mb-1">Due Date</label>
+                                <label htmlFor="edit-task-duedate" className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
                                 <input
                                     id="edit-task-duedate"
                                     type="date"
                                     value={editDueDate || ''}
                                     onChange={e => setEditDueDate(e.target.value)}
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none"
+                                    className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                                 />
                             </div>
                         </div>
                         <div>
-                            <label htmlFor="edit-task-duetime" className="block font-mono text-sm font-semibold text-black mb-1">Due Time (Optional)</label>
+                            <label htmlFor="edit-task-duetime" className="block text-sm font-medium text-gray-700 mb-1">Due Time (Optional)</label>
                             <input
                                 id="edit-task-duetime"
                                 type="time"
                                 value={editTime || ''}
                                 onChange={e => setEditTime(e.target.value)}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none"
+                                className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                             />
                         </div>
                     </>
                 ) : isMarketing ? (
                     <>
                         <div>
-                            <label htmlFor="edit-mkt-title" className="block font-mono text-sm font-semibold text-black mb-1">Title</label>
+                            <label htmlFor="edit-mkt-title" className="block text-sm font-medium text-gray-700 mb-1">Title</label>
                             <input
                                 id="edit-mkt-title"
                                 type="text"
                                 value={editTitle || ''}
                                 onChange={e => setEditTitle(e.target.value)}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none"
+                                className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                             />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor="edit-mkt-status" className="block font-mono text-sm font-semibold text-black mb-1">Status</label>
+                                <label htmlFor="edit-mkt-status" className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                                 <select
                                     id="edit-mkt-status"
                                     value={editStatus || 'Planned'}
                                     onChange={e => setEditStatus(e.target.value as MarketingItem['status'])}
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none"
+                                    className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                                 >
                                     <option>Planned</option>
                                     <option>In Progress</option>
@@ -330,95 +330,95 @@ const EventDetailModalContent: React.FC<{ event: CalendarEvent; actions: AppActi
                                 </select>
                             </div>
                             <div>
-                                <label htmlFor="edit-mkt-duedate" className="block font-mono text-sm font-semibold text-black mb-1">Due Date</label>
+                                <label htmlFor="edit-mkt-duedate" className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
                                 <input
                                     id="edit-mkt-duedate"
                                     type="date"
                                     value={editDueDate || ''}
                                     onChange={e => setEditDueDate(e.target.value)}
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none"
+                                    className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                                 />
                             </div>
                         </div>
                         <div>
-                            <label htmlFor="edit-mkt-duetime" className="block font-mono text-sm font-semibold text-black mb-1">Due Time (Optional)</label>
+                            <label htmlFor="edit-mkt-duetime" className="block text-sm font-medium text-gray-700 mb-1">Due Time (Optional)</label>
                             <input
                                 id="edit-mkt-duetime"
                                 type="time"
                                 value={editTime || ''}
                                 onChange={e => setEditTime(e.target.value)}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none"
+                                className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                             />
                         </div>
                     </>
                 ) : isMeeting ? ( // Meeting Item
                     <>
                         <div>
-                            <label htmlFor="edit-meet-title" className="block font-mono text-sm font-semibold text-black mb-1">Title</label>
-                            <input id="edit-meet-title" type="text" value={editTitle || ''} onChange={e => setEditTitle(e.target.value)} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" />
+                            <label htmlFor="edit-meet-title" className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                            <input id="edit-meet-title" type="text" value={editTitle || ''} onChange={e => setEditTitle(e.target.value)} className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent" />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor="edit-meet-date" className="block font-mono text-sm font-semibold text-black mb-1">Date</label>
-                                <input id="edit-meet-date" type="date" value={editDueDate || ''} onChange={e => setEditDueDate(e.target.value)} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" />
+                                <label htmlFor="edit-meet-date" className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                <input id="edit-meet-date" type="date" value={editDueDate || ''} onChange={e => setEditDueDate(e.target.value)} className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent" />
                             </div>
                             <div>
-                                <label htmlFor="edit-meet-time" className="block font-mono text-sm font-semibold text-black mb-1">Time</label>
-                                <input id="edit-meet-time" type="time" value={editTime || ''} onChange={e => setEditTime(e.target.value)} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" />
+                                <label htmlFor="edit-meet-time" className="block text-sm font-medium text-gray-700 mb-1">Time</label>
+                                <input id="edit-meet-time" type="time" value={editTime || ''} onChange={e => setEditTime(e.target.value)} className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent" />
                             </div>
                         </div>
                         <div>
-                            <label htmlFor="edit-meet-attendees" className="block font-mono text-sm font-semibold text-black mb-1">Attendees</label>
-                            <input id="edit-meet-attendees" type="text" value={editAttendees || ''} onChange={e => setEditAttendees(e.target.value)} className="w-full bg-white border-2 border-black text-black p-2 rounded-none" />
+                            <label htmlFor="edit-meet-attendees" className="block text-sm font-medium text-gray-700 mb-1">Attendees</label>
+                            <input id="edit-meet-attendees" type="text" value={editAttendees || ''} onChange={e => setEditAttendees(e.target.value)} className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent" />
                         </div>
                         <div>
-                            <label htmlFor="edit-meet-summary" className="block font-mono text-sm font-semibold text-black mb-1">Summary (Markdown)</label>
-                            <textarea id="edit-meet-summary" value={editSummary || ''} onChange={e => setEditSummary(e.target.value)} className="w-full bg-white border-2 border-black text-black p-2 rounded-none min-h-[150px]" />
+                            <label htmlFor="edit-meet-summary" className="block text-sm font-medium text-gray-700 mb-1">Summary (Markdown)</label>
+                            <textarea id="edit-meet-summary" value={editSummary || ''} onChange={e => setEditSummary(e.target.value)} className="w-full bg-white border border-gray-300 text-gray-900 p-3 rounded-md min-h-[150px] focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent" />
                         </div>
                     </>
                 ) : ( // CRM Action
                     <>
                         <div>
-                            <label htmlFor="edit-crm-action" className="block font-mono text-sm font-semibold text-black mb-1">Next Action</label>
+                            <label htmlFor="edit-crm-action" className="block text-sm font-medium text-gray-700 mb-1">Next Action</label>
                             <input
                                 id="edit-crm-action"
                                 type="text"
                                 value={editNextAction || ''}
                                 onChange={e => setEditNextAction(e.target.value)}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none"
+                                className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                                 placeholder="e.g., Send follow-up email"
                             />
                         </div>
                         <div>
-                            <label htmlFor="edit-crm-date" className="block font-mono text-sm font-semibold text-black mb-1">Next Action Date</label>
+                            <label htmlFor="edit-crm-date" className="block text-sm font-medium text-gray-700 mb-1">Next Action Date</label>
                             <input
                                 id="edit-crm-date"
                                 type="date"
                                 value={editDueDate || ''}
                                 onChange={e => setEditDueDate(e.target.value)}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none"
+                                className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                             />
                         </div>
                         <div>
-                            <label htmlFor="edit-crm-time" className="block font-mono text-sm font-semibold text-black mb-1">Next Action Time (Optional)</label>
+                            <label htmlFor="edit-crm-time" className="block text-sm font-medium text-gray-700 mb-1">Next Action Time (Optional)</label>
                             <input
                                 id="edit-crm-time"
                                 type="time"
                                 value={editTime || ''}
                                 onChange={e => setEditTime(e.target.value)}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none"
+                                className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                             />
                         </div>
-                        <div className="p-3 bg-blue-50 border-2 border-blue-300 rounded-none">
-                            <p className="font-mono text-sm text-blue-800">
+                        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <p className="text-sm text-blue-800">
                                 <strong>Company:</strong> {editCompany}
                             </p>
                         </div>
                     </>
                 )}
                 <div className="flex gap-2 mt-4">
-                    <button onClick={handleSaveChanges} className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none border-2 border-black shadow-neo-btn">Save Changes</button>
-                    <button onClick={handleCancelEditing} className="w-full font-mono font-semibold bg-gray-200 text-black py-2 px-4 rounded-none border-2 border-black shadow-neo-btn">Cancel</button>
+                    <button onClick={handleSaveChanges} className="w-full font-medium bg-black text-white py-2.5 px-4 rounded-md hover:bg-gray-800 transition-colors">Save Changes</button>
+                    <button onClick={handleCancelEditing} className="w-full font-medium bg-gray-100 text-gray-700 py-2.5 px-4 rounded-md border border-gray-200 hover:bg-gray-200 transition-colors">Cancel</button>
                 </div>
             </div>
         );

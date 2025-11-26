@@ -1,4 +1,9 @@
 import React, { useState, useMemo } from 'react';
+import { 
+    Search, Filter, Plus, Upload, Download, Users, ChevronDown, ChevronUp, Tag,
+    CheckSquare, Trash2, Eye, Pencil, LayoutGrid, List, BarChart3, TrendingUp,
+    Calendar, X, FileText, Folder, Clock, AlertCircle
+} from 'lucide-react';
 import { AnyCrmItem, AppActions, CrmCollectionName, Investor, Customer, Partner, Priority } from '../../types';
 import Modal from './Modal';
 
@@ -569,109 +574,135 @@ export function AccountManager({
     };
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-5">
             {/* Header */}
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-                <h3 className="font-mono font-bold text-lg">
-                    📊 {getCrmTypeLabel()} Management ({filteredItems.length})
-                </h3>
-                <div className="flex gap-2 flex-wrap">
-                    <button
-                        onClick={exportAccountsToCSV}
-                        disabled={filteredItems.length === 0}
-                        className="font-mono bg-purple-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-purple-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        📥 Export CSV
-                    </button>
-                    <button
-                        onClick={detectDuplicates}
-                        disabled={crmItems.length < 2}
-                        className="font-mono bg-yellow-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-yellow-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        🔍 Find Duplicates
-                    </button>
-                    <button
-                        onClick={toggleBulkSelect}
-                        className={`font-mono border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn transition-all ${
-                            bulkSelectMode
-                                ? 'bg-orange-600 text-white hover:bg-orange-700'
-                                : 'bg-orange-500 text-white hover:bg-orange-600'
-                        }`}
-                    >
-                        {bulkSelectMode ? '✕ Exit Bulk Select' : '☑️ Bulk Select'}
-                    </button>
+            <div className="flex items-center justify-between gap-4">
+                <div>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                        {getCrmTypeLabel()}s
+                        <span className="ml-2 text-sm font-normal text-gray-500">
+                            ({filteredItems.length}{filteredItems.length !== crmItems.length ? ` of ${crmItems.length}` : ''})
+                        </span>
+                    </h3>
+                </div>
+                <div className="flex items-center gap-2">
+                    {/* Secondary actions - more subtle */}
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={exportAccountsToCSV}
+                            disabled={filteredItems.length === 0}
+                            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            title="Export to CSV"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </button>
+                        <button
+                            onClick={detectDuplicates}
+                            disabled={crmItems.length < 2}
+                            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            title="Find Duplicates"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                        </button>
+                        <button
+                            onClick={toggleBulkSelect}
+                            className={`p-2 rounded-md transition-colors ${
+                                bulkSelectMode
+                                    ? 'text-black bg-gray-200'
+                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                            }`}
+                            title={bulkSelectMode ? 'Exit Bulk Select' : 'Bulk Select'}
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                            </svg>
+                        </button>
+                    </div>
+                    {/* Primary action */}
                     <button
                         onClick={() => setShowAddModal(true)}
-                        className="font-mono bg-green-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-green-600 transition-all"
+                        className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
                     >
-                        + Add {getCrmTypeLabel()}
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add {getCrmTypeLabel()}
                     </button>
                 </div>
             </div>
 
             {/* Bulk Actions Bar */}
             {bulkSelectMode && (
-                <div className="bg-orange-50 border-2 border-orange-400 p-3">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                        <div className="flex items-center gap-2">
-                            <span className="font-mono font-semibold">
-                                {selectedItemIds.size} selected
-                            </span>
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-gray-700">
+                            {selectedItemIds.size} selected
+                        </span>
+                        <button
+                            onClick={selectAllFiltered}
+                            className="text-sm text-gray-600 hover:text-black hover:underline"
+                        >
+                            Select all {filteredItems.length}
+                        </button>
+                        {selectedItemIds.size > 0 && (
                             <button
-                                onClick={selectAllFiltered}
-                                className="text-xs font-mono text-blue-600 hover:underline"
+                                onClick={deselectAll}
+                                className="text-sm text-gray-500 hover:text-gray-700 hover:underline"
                             >
-                                Select All ({filteredItems.length})
+                                Clear
                             </button>
-                            {selectedItemIds.size > 0 && (
-                                <button
-                                    onClick={deselectAll}
-                                    className="text-xs font-mono text-gray-600 hover:underline"
-                                >
-                                    Deselect All
-                                </button>
-                            )}
-                        </div>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => handleBulkAction('export')}
-                                disabled={selectedItemIds.size === 0}
-                                className="font-mono bg-blue-500 text-white border-2 border-black px-3 py-1 text-sm rounded-none font-semibold shadow-neo-btn hover:bg-blue-600 transition-all disabled:opacity-50"
-                            >
-                                📥 Export
-                            </button>
-                            <button
-                                onClick={() => handleBulkAction('delete')}
-                                disabled={selectedItemIds.size === 0}
-                                className="font-mono bg-red-500 text-white border-2 border-black px-3 py-1 text-sm rounded-none font-semibold shadow-neo-btn hover:bg-red-600 transition-all disabled:opacity-50"
-                            >
-                                🗑️ Delete
-                            </button>
-                        </div>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => handleBulkAction('export')}
+                            disabled={selectedItemIds.size === 0}
+                            className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Export
+                        </button>
+                        <button
+                            onClick={() => handleBulkAction('delete')}
+                            disabled={selectedItemIds.size === 0}
+                            className="px-3 py-1.5 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-md hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Delete
+                        </button>
                     </div>
                 </div>
             )}
 
             {/* Search and Filters */}
             <div className="space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                    <label htmlFor="account-search" className="sr-only">Search accounts</label>
-                    <input
-                        id="account-search"
-                        name="account-search"
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search accounts..."
-                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                    />
+                <div className="flex flex-wrap gap-3">
+                    <div className="flex-1 min-w-[200px]">
+                        <label htmlFor="account-search" className="sr-only">Search accounts</label>
+                        <div className="relative">
+                            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <input
+                                id="account-search"
+                                name="account-search"
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search accounts..."
+                                className="w-full pl-10 pr-4 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                            />
+                        </div>
+                    </div>
                     <label htmlFor="account-filter-status" className="sr-only">Filter by status</label>
                     <select
                         id="account-filter-status"
                         name="account-filter-status"
                         value={filterByStatus}
                         onChange={(e) => setFilterByStatus(e.target.value)}
-                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                        className="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                     >
                         <option value="">All Statuses</option>
                         {allStatuses.map(status => (
@@ -684,37 +715,44 @@ export function AccountManager({
                         name="account-filter-priority"
                         value={filterByPriority}
                         onChange={(e) => setFilterByPriority(e.target.value)}
-                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                        className="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                     >
                         <option value="">All Priorities</option>
                         <option value="Low">Low</option>
                         <option value="Medium">Medium</option>
                         <option value="High">High</option>
                     </select>
-                    <label htmlFor="account-filter-tag" className="sr-only">Filter by tag</label>
-                    <select
-                        id="account-filter-tag"
-                        name="account-filter-tag"
-                        value={filterByTag}
-                        onChange={(e) => setFilterByTag(e.target.value)}
-                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                    >
-                        <option value="">All Tags</option>
-                        {allTags.map(tag => (
-                            <option key={tag} value={tag}>
-                                🏷️ {tag}
-                            </option>
-                        ))}
-                    </select>
+                    {allTags.length > 0 && (
+                        <>
+                            <label htmlFor="account-filter-tag" className="sr-only">Filter by tag</label>
+                            <select
+                                id="account-filter-tag"
+                                name="account-filter-tag"
+                                value={filterByTag}
+                                onChange={(e) => setFilterByTag(e.target.value)}
+                                className="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                            >
+                                <option value="">All Tags</option>
+                                {allTags.map(tag => (
+                                    <option key={tag} value={tag}>
+                                        🏷️ {tag}
+                                    </option>
+                                ))}
+                            </select>
+                        </>
+                    )}
                 </div>
 
                 {/* Advanced Filters Toggle */}
                 <div className="flex items-center justify-between">
                     <button
                         onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                        className="text-sm font-mono text-blue-600 hover:underline flex items-center gap-1"
+                        className="text-sm text-gray-600 hover:text-black flex items-center gap-1"
                     >
-                        {showAdvancedFilters ? '▼' : '▶'} Advanced Filters
+                        <svg className={`w-4 h-4 transition-transform ${showAdvancedFilters ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                        More filters
                     </button>
                     {(filterByContactCount !== 'any' || filterByNoteCount !== 'any' || filterOverdue) && (
                         <button
@@ -723,18 +761,18 @@ export function AccountManager({
                                 setFilterByNoteCount('any');
                                 setFilterOverdue(false);
                             }}
-                            className="text-xs font-mono text-gray-600 hover:text-red-600"
+                            className="text-sm text-gray-500 hover:text-red-600"
                         >
-                            Clear Advanced Filters
+                            Clear filters
                         </button>
                     )}
                 </div>
 
                 {/* Advanced Filters Panel */}
                 {showAdvancedFilters && (
-                    <div className="bg-gray-50 border-2 border-gray-300 p-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                            <label htmlFor="filter-contact-count" className="block text-xs font-mono font-semibold text-gray-700 mb-1">
+                            <label htmlFor="filter-contact-count" className="block text-sm font-medium text-gray-700 mb-1">
                                 Contacts
                             </label>
                             <select
@@ -742,7 +780,7 @@ export function AccountManager({
                                 name="filter-contact-count"
                                 value={filterByContactCount}
                                 onChange={(e) => setFilterByContactCount(e.target.value as any)}
-                                className="w-full bg-white border-2 border-gray-400 text-black p-2 text-sm rounded-none focus:outline-none focus:border-blue-500"
+                                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                             >
                                 <option value="any">Any</option>
                                 <option value="has">Has Contacts</option>
@@ -750,7 +788,7 @@ export function AccountManager({
                             </select>
                         </div>
                         <div>
-                            <label htmlFor="filter-note-count" className="block text-xs font-mono font-semibold text-gray-700 mb-1">
+                            <label htmlFor="filter-note-count" className="block text-sm font-medium text-gray-700 mb-1">
                                 Notes
                             </label>
                             <select
@@ -758,7 +796,7 @@ export function AccountManager({
                                 name="filter-note-count"
                                 value={filterByNoteCount}
                                 onChange={(e) => setFilterByNoteCount(e.target.value as any)}
-                                className="w-full bg-white border-2 border-gray-400 text-black p-2 text-sm rounded-none focus:outline-none focus:border-blue-500"
+                                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                             >
                                 <option value="any">Any</option>
                                 <option value="has">Has Notes</option>
@@ -771,10 +809,10 @@ export function AccountManager({
                                     type="checkbox"
                                     checked={filterOverdue}
                                     onChange={(e) => setFilterOverdue(e.target.checked)}
-                                    className="w-4 h-4 accent-red-500 border-2 border-black rounded-none"
+                                    className="w-4 h-4 rounded border-gray-300 text-black focus:ring-black"
                                 />
-                                <span className="text-xs font-mono font-semibold text-gray-700">
-                                    Overdue Actions Only
+                                <span className="text-sm text-gray-700">
+                                    Overdue only
                                 </span>
                             </label>
                         </div>
@@ -783,43 +821,43 @@ export function AccountManager({
             </div>
 
             {/* Analytics Dashboard */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-400 p-3 text-center">
-                    <div className="text-2xl font-bold font-mono text-blue-800">{analytics.total}</div>
-                    <div className="text-xs font-mono text-blue-600">Total {getCrmTypeLabel()}s</div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="text-2xl font-bold text-gray-900">{analytics.total}</div>
+                    <div className="text-xs text-gray-500 mt-1">Total</div>
                 </div>
-                <div className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-400 p-3 text-center">
-                    <div className="text-2xl font-bold font-mono text-red-800">{analytics.highPriority}</div>
-                    <div className="text-xs font-mono text-red-600">High Priority</div>
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="text-2xl font-bold text-red-600">{analytics.highPriority}</div>
+                    <div className="text-xs text-gray-500 mt-1">High Priority</div>
                 </div>
-                <div className="bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-400 p-3 text-center">
-                    <div className="text-2xl font-bold font-mono text-orange-800">{analytics.overdueCount}</div>
-                    <div className="text-xs font-mono text-orange-600">Overdue</div>
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="text-2xl font-bold text-orange-600">{analytics.overdueCount}</div>
+                    <div className="text-xs text-gray-500 mt-1">Overdue</div>
                 </div>
-                <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-400 p-3 text-center">
-                    <div className="text-xl font-bold font-mono text-green-800">
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="text-2xl font-bold text-green-600">
                         ${(analytics.totalValue / 1000000).toFixed(1)}M
                     </div>
-                    <div className="text-xs font-mono text-green-600">Total Value</div>
+                    <div className="text-xs text-gray-500 mt-1">Total Value</div>
                 </div>
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-400 p-3 text-center">
-                    <div className="text-2xl font-bold font-mono text-purple-800">{analytics.withContacts}</div>
-                    <div className="text-xs font-mono text-purple-600">With Contacts</div>
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="text-2xl font-bold text-gray-900">{analytics.withContacts}</div>
+                    <div className="text-xs text-gray-500 mt-1">With Contacts</div>
                 </div>
-                <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-2 border-indigo-400 p-3 text-center">
-                    <div className="text-2xl font-bold font-mono text-indigo-800">{analytics.avgContactsPerAccount}</div>
-                    <div className="text-xs font-mono text-indigo-600">Avg Contacts</div>
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="text-2xl font-bold text-gray-900">{analytics.avgContactsPerAccount}</div>
+                    <div className="text-xs text-gray-500 mt-1">Avg Contacts</div>
                 </div>
             </div>
 
             {/* View Controls and Sort */}
-            <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
+            <div className="flex items-center justify-between gap-4 py-2">
                 <div className="flex items-center gap-2">
-                    <span className="text-sm font-mono font-semibold text-gray-700">Sort by:</span>
+                    <span className="text-sm text-gray-500">Sort:</span>
                     <select
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value as any)}
-                        className="text-sm bg-white border-2 border-black text-black py-1 px-2 rounded-none focus:outline-none focus:border-blue-500"
+                        className="text-sm bg-white border border-gray-300 rounded-md py-1.5 px-2 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                     >
                         <option value="company">Company</option>
                         <option value="priority">Priority</option>
@@ -829,41 +867,57 @@ export function AccountManager({
                     </select>
                     <button
                         onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                        className="px-2 py-1 bg-gray-200 border-2 border-black text-black text-sm font-mono hover:bg-gray-300 transition-all"
+                        className="p-1.5 text-gray-500 hover:text-black hover:bg-gray-100 rounded-md transition-colors"
                         title={`Sort ${sortOrder === 'asc' ? 'ascending' : 'descending'}`}
                     >
-                        {sortOrder === 'asc' ? '↑' : '↓'}
+                        {sortOrder === 'asc' ? (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+                            </svg>
+                        ) : (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4" />
+                            </svg>
+                        )}
                     </button>
                 </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-sm font-mono font-semibold text-gray-700">View:</span>
+                <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
                     <button
                         onClick={() => setViewMode('list')}
-                        className={`px-3 py-1 border-2 border-black text-sm font-mono font-semibold transition-all ${
-                            viewMode === 'list' ? 'bg-black text-white' : 'bg-white text-black hover:bg-gray-100'
+                        className={`px-3 py-1.5 text-sm transition-colors ${
+                            viewMode === 'list' ? 'bg-black text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
                         }`}
                     >
-                        List
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                        </svg>
                     </button>
                     <button
                         onClick={() => setViewMode('grid')}
-                        className={`px-3 py-1 border-2 border-black text-sm font-mono font-semibold transition-all ${
-                            viewMode === 'grid' ? 'bg-black text-white' : 'bg-white text-black hover:bg-gray-100'
+                        className={`px-3 py-1.5 text-sm transition-colors ${
+                            viewMode === 'grid' ? 'bg-black text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
                         }`}
                     >
-                        Grid
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                        </svg>
                     </button>
                 </div>
             </div>
 
             {/* Account List */}
-            <div className={`${viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-3' : 'space-y-2'} max-h-96 overflow-y-auto`}>
+            <div className={`${viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-3' : 'space-y-3'} max-h-[500px] overflow-y-auto`}>
                 {filteredItems.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                        <p>No accounts found</p>
+                    <div className="text-center py-12 col-span-full">
+                        <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                        </div>
+                        <p className="text-gray-500 mb-3">No {crmType === 'accounts' ? 'accounts' : crmType} found</p>
                         <button
                             onClick={() => setShowAddModal(true)}
-                            className="mt-2 text-blue-600 hover:underline"
+                            className="text-sm font-medium text-black hover:underline"
                         >
                             Add your first {crmType === 'accounts' ? 'account' : crmType.slice(0, -1)}
                         </button>
@@ -883,13 +937,17 @@ export function AccountManager({
                         return (
                             <div
                                 key={item.id}
-                                className={`bg-white border-2 p-4 shadow-neo hover:shadow-neo-lg transition-all ${
-                                    isSelected ? 'border-orange-500 bg-orange-50' : isOverdue ? 'border-red-500' : 'border-black'
+                                className={`bg-white rounded-lg border p-4 hover:shadow-md transition-all ${
+                                    isSelected 
+                                        ? 'border-black bg-gray-50 ring-2 ring-black ring-opacity-20' 
+                                        : isOverdue 
+                                            ? 'border-red-300 bg-red-50/30' 
+                                            : 'border-gray-200 hover:border-gray-300'
                                 }`}
                             >
                                 <div className="flex items-start justify-between gap-4">
                                     {bulkSelectMode && (
-                                        <div className="flex-shrink-0">
+                                        <div className="flex-shrink-0 pt-1">
                                             <label htmlFor={`bulk-select-${item.id}`} className="sr-only">
                                                 Select {item.company}
                                             </label>
@@ -899,89 +957,102 @@ export function AccountManager({
                                                 type="checkbox"
                                                 checked={isSelected}
                                                 onChange={() => toggleItemSelection(item.id)}
-                                                className="w-5 h-5 cursor-pointer"
+                                                className="w-4 h-4 cursor-pointer accent-black rounded"
                                             />
                                         </div>
                                     )}
                                     <div className="flex-grow min-w-0">
-                                        <div className="flex items-start justify-between gap-4 mb-2">
+                                        <div className="flex items-start justify-between gap-4 mb-3">
                                             <div className="flex-grow min-w-0">
-                                                <h4 className="font-bold text-lg text-black truncate">
+                                                <h4 className="font-semibold text-base text-gray-900 truncate mb-1">
                                                     {item.company}
                                                 </h4>
                                                 {(item.contacts || []).length > 0 && (
-                                                    <p className="text-sm text-gray-600 truncate">
+                                                    <p className="text-sm text-gray-500 truncate flex items-center gap-1">
+                                                        <Users className="w-3 h-3" />
                                                         {item.contacts![0].name}
-                                                        {item.contacts!.length > 1 && ` +${item.contacts!.length - 1} more`}
+                                                        {item.contacts!.length > 1 && (
+                                                            <span className="text-gray-400 text-xs">+{item.contacts!.length - 1}</span>
+                                                        )}
                                                     </p>
                                                 )}
                                             </div>
                                             <div className="flex-shrink-0 text-right">
                                                 {'checkSize' in item && item.checkSize && (
-                                                    <div>
-                                                        <div className="font-bold text-lg text-green-600">
-                                                            ${(item.checkSize / 1000)}K
+                                                    <div className="bg-green-50 px-2.5 py-1 rounded-md">
+                                                        <div className="font-semibold text-sm text-green-700">
+                                                            ${(item.checkSize / 1000).toFixed(0)}K
                                                         </div>
-                                                        <div className="text-xs text-gray-500">Check Size</div>
+                                                        <div className="text-[10px] text-green-600">Check Size</div>
                                                     </div>
                                                 )}
                                                 {'dealValue' in item && item.dealValue && (
-                                                    <div>
-                                                        <div className="font-bold text-lg text-blue-600">
-                                                            ${(item.dealValue / 1000)}K
+                                                    <div className="bg-gray-100 px-2.5 py-1 rounded-md">
+                                                        <div className="font-semibold text-sm text-gray-800">
+                                                            ${(item.dealValue / 1000).toFixed(0)}K
                                                         </div>
-                                                        <div className="text-xs text-gray-500">Deal Value</div>
+                                                        <div className="text-[10px] text-gray-500">Deal Value</div>
                                                     </div>
                                                 )}
                                             </div>
                                         </div>
                                         
-                                        <div className="flex flex-wrap items-center gap-2 mb-3">
-                                            <span className={`priority-badge priority-${item.priority.toLowerCase()}`}>
+                                        {/* Status badges row */}
+                                        <div className="flex flex-wrap items-center gap-1.5 mb-3">
+                                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                                item.priority === 'High' 
+                                                    ? 'bg-red-100 text-red-700' 
+                                                    : item.priority === 'Medium' 
+                                                        ? 'bg-yellow-100 text-yellow-700' 
+                                                        : 'bg-gray-100 text-gray-600'
+                                            }`}>
                                                 {item.priority}
                                             </span>
-                                            <span className="px-2 py-1 bg-gray-100 border border-black text-xs font-mono">
+                                            <span className="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-600">
                                                 {item.status}
                                             </span>
                                             {item.assignedToName && (
-                                                <span className="px-2 py-1 bg-blue-50 border border-blue-300 text-xs font-mono text-blue-700">
-                                                    → {item.assignedToName}
+                                                <span className="px-2 py-0.5 bg-gray-50 rounded text-xs text-gray-500 flex items-center gap-1">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                                                    {item.assignedToName}
                                                 </span>
                                             )}
                                             {isOverdue && (
-                                                <span className="px-2 py-1 bg-red-500 text-white text-xs font-mono font-bold">
-                                                    OVERDUE
+                                                <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">
+                                                    Overdue
                                                 </span>
                                             )}
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-2 mb-3 text-xs">
-                                            <div className="flex items-center gap-1 text-gray-600">
-                                                <span>👥</span>
-                                                <span>{(item.contacts || []).length} contacts</span>
+                                        {/* Stats row */}
+                                        <div className="flex items-center gap-4 mb-3 text-xs text-gray-500">
+                                            <div className="flex items-center gap-1">
+                                                <Users className="w-3.5 h-3.5" />
+                                                <span>{(item.contacts || []).length}</span>
                                             </div>
-                                            <div className="flex items-center gap-1 text-gray-600">
-                                                <span>�</span>
-                                                <span>{(item.notes || []).length} notes</span>
+                                            <div className="flex items-center gap-1">
+                                                <FileText className="w-3.5 h-3.5" />
+                                                <span>{(item.notes || []).length}</span>
                                             </div>
-                                            <div className="flex items-center gap-1 text-gray-600">
-                                                <span>📄</span>
-                                                <span>{((item as any).documents || []).length} docs</span>
+                                            <div className="flex items-center gap-1">
+                                                <Folder className="w-3.5 h-3.5" />
+                                                <span>{((item as any).documents || []).length}</span>
                                             </div>
                                             {daysSinceContact !== null && (
-                                                <div className={`flex items-center gap-1 ${daysSinceContact > 30 ? 'text-red-600 font-semibold' : 'text-gray-600'}`}>
-                                                    <span>🕐</span>
-                                                    <span>{daysSinceContact}d ago</span>
+                                                <div className={`flex items-center gap-1 ${daysSinceContact > 30 ? 'text-red-500 font-medium' : ''}`}>
+                                                    <Clock className="w-3.5 h-3.5" />
+                                                    <span>{daysSinceContact}d</span>
                                                 </div>
                                             )}
                                         </div>
 
                                         {item.nextAction && (
-                                            <div className="bg-blue-50 border-l-4 border-blue-500 p-2 mb-2">
-                                                <p className="text-sm font-medium text-gray-800">{item.nextAction}</p>
+                                            <div className="bg-gray-50 rounded-md p-2.5 mb-2 border-l-2 border-gray-800">
+                                                <p className="text-sm text-gray-700">{item.nextAction}</p>
                                                 {item.nextActionDate && (
-                                                    <p className="text-xs text-gray-600 mt-1">
-                                                        📅 {new Date(item.nextActionDate + 'T00:00:00').toLocaleDateString(undefined, { 
+                                                    <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                                        <Calendar className="w-3 h-3" />
+                                                        {new Date(item.nextActionDate + 'T00:00:00').toLocaleDateString(undefined, { 
                                                             month: 'short', 
                                                             day: 'numeric', 
                                                             year: 'numeric',
@@ -994,32 +1065,36 @@ export function AccountManager({
                                         )}
                                         
                                         {lastNote && (
-                                            <div className="bg-gray-50 border-l-4 border-gray-400 p-2 mb-2">
-                                                <p className="text-xs text-gray-500 mb-1">Latest Note:</p>
-                                                <p className="text-sm text-gray-700 line-clamp-2">{lastNote.text}</p>
+                                            <div className="bg-gray-50/50 rounded-md p-2 border-l-2 border-gray-300">
+                                                <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">Latest Note</p>
+                                                <p className="text-xs text-gray-600 line-clamp-2">{lastNote.text}</p>
                                             </div>
                                         )}
                                     </div>
-                                    <div className="flex flex-col gap-2 shrink-0">
+                                    
+                                    {/* Action buttons */}
+                                    <div className="flex flex-col gap-1.5 shrink-0">
                                         {onViewAccount && (
                                             <button
                                                 onClick={() => onViewAccount(item)}
-                                                className="font-mono bg-green-500 text-white border-2 border-black px-3 py-1 text-sm rounded-none font-semibold shadow-neo-btn hover:bg-green-600 transition-all"
+                                                className="flex items-center justify-center gap-1.5 bg-gray-900 text-white px-3 py-1.5 text-xs rounded-md font-medium hover:bg-gray-800 transition-colors"
                                             >
-                                                👁️ View
+                                                <Eye className="w-3.5 h-3.5" />
+                                                View
                                             </button>
                                         )}
                                         <button
                                             onClick={() => openEditModal(item)}
-                                            className="font-mono bg-blue-500 text-white border-2 border-black px-3 py-1 text-sm rounded-none font-semibold shadow-neo-btn hover:bg-blue-600 transition-all"
+                                            className="flex items-center justify-center gap-1.5 bg-white text-gray-700 border border-gray-200 px-3 py-1.5 text-xs rounded-md font-medium hover:bg-gray-50 hover:border-gray-300 transition-colors"
                                         >
-                                            ✏️ Edit
+                                            <Pencil className="w-3.5 h-3.5" />
+                                            Edit
                                         </button>
                                         <button
                                             onClick={() => handleDeleteAccount(item)}
-                                            className="font-mono bg-red-500 text-white border-2 border-black px-3 py-1 text-sm rounded-none font-semibold shadow-neo-btn hover:bg-red-600 transition-all"
+                                            className="flex items-center justify-center bg-white text-gray-400 border border-gray-200 px-3 py-1.5 text-xs rounded-md hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
                                         >
-                                            🗑️
+                                            <Trash2 className="w-3.5 h-3.5" />
                                         </button>
                                     </div>
                                 </div>

@@ -174,16 +174,16 @@ type FinancialLogFormData = z.infer<typeof financialLogSchema>;
 type ExpenseFormData = z.infer<typeof expenseSchema>;
 
 const FinancialLogItem: React.FC<{ item: FinancialLog; onDelete: () => void; }> = ({ item, onDelete }) => (
-    <li className="flex items-center justify-between p-3 bg-white border-2 border-black shadow-neo">
+    <li className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg shadow-sm">
         <div className="flex-grow">
-            <p className="font-semibold">{new Date(item.date + 'T00:00:00').toLocaleDateString(undefined, { timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <p className="font-semibold text-gray-900">{new Date(item.date + 'T00:00:00').toLocaleDateString(undefined, { timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric' })}</p>
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 mt-1">
-                <span>MRR: <strong className="text-black">{currencyFormatterNoCents.format(item.mrr)}</strong></span>
-                <span>GMV: <strong className="text-black">{currencyFormatterNoCents.format(item.gmv)}</strong></span>
-                <span>Signups: <strong className="text-black">{numberFormatter.format(item.signups)}</strong></span>
+                <span>MRR: <strong className="text-gray-900">{currencyFormatterNoCents.format(item.mrr)}</strong></span>
+                <span>GMV: <strong className="text-gray-900">{currencyFormatterNoCents.format(item.gmv)}</strong></span>
+                <span>Signups: <strong className="text-gray-900">{numberFormatter.format(item.signups)}</strong></span>
             </div>
         </div>
-        <button onClick={onDelete} className="text-xl font-bold hover:text-red-500 transition-colors shrink-0 ml-4" aria-label={`Delete financial log for ${item.date}`}>&times;</button>
+        <button onClick={onDelete} className="text-xl font-bold text-gray-400 hover:text-red-500 transition-colors shrink-0 ml-4" aria-label={`Delete financial log for ${item.date}`}>&times;</button>
     </li>
 );
 
@@ -224,13 +224,13 @@ const ExpenseItem: React.FC<{
 
     if (isEditing) {
         return (
-            <li className="p-3 bg-yellow-50 border-2 border-black shadow-neo">
+            <li className="p-3 bg-amber-50 border border-amber-200 rounded-lg shadow-sm">
                 <div className="space-y-2">
                     <input
                         type="text"
                         value={editForm.description || ''}
                         onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                        className="w-full p-2 border-2 border-black font-semibold"
+                        className="w-full p-2 border border-gray-300 rounded-md font-semibold focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                         placeholder="Description"
                         required
                     />
@@ -241,7 +241,7 @@ const ExpenseItem: React.FC<{
                             step="0.01"
                             value={editForm.amount ?? 0}
                             onChange={(e) => setEditForm({ ...editForm, amount: Math.max(0, Number(e.target.value)) })}
-                            className="p-2 border-2 border-black font-mono"
+                            className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                             placeholder="Amount"
                             required
                         />
@@ -249,7 +249,7 @@ const ExpenseItem: React.FC<{
                             type="date"
                             value={editForm.date || ''}
                             onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
-                            className="p-2 border-2 border-black"
+                            className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                             required
                         />
                     </div>
@@ -257,7 +257,7 @@ const ExpenseItem: React.FC<{
                         <select
                             value={editForm.category || 'Other'}
                             onChange={(e) => setEditForm({ ...editForm, category: e.target.value as ExpenseCategory })}
-                            className="p-2 border-2 border-black"
+                            className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                         >
                             {EXPENSE_CATEGORY_OPTIONS.map(cat => (
                                 <option key={cat} value={cat}>{cat}</option>
@@ -266,7 +266,7 @@ const ExpenseItem: React.FC<{
                         <select
                             value={editForm.paymentMethod || ''}
                             onChange={(e) => setEditForm({ ...editForm, paymentMethod: (e.target.value || undefined) as PaymentMethod | undefined })}
-                            className="p-2 border-2 border-black"
+                            className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                         >
                             <option value="">Payment Method</option>
                             {PAYMENT_METHOD_OPTIONS.map(pm => (
@@ -277,7 +277,7 @@ const ExpenseItem: React.FC<{
                     <input
                         type="text"
                         value={editForm.vendor || ''}
-                        onChange={(e) => setEditForm({ ...editForm, vendor: e.target.value })}
+                        onChange={(e) => setEditForm({ ...editForm, vendor: e.target.value })}}
                         className="w-full p-2 border-2 border-black"
                         placeholder="Vendor (optional)"
                     />

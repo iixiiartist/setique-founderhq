@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Activity, Briefcase, ChevronLeft, ChevronRight, ExternalLink, Megaphone, Newspaper, Wallet } from 'lucide-react';
+import { Activity, Briefcase, ChevronLeft, ChevronRight, ExternalLink, Mail, Megaphone, Wallet } from 'lucide-react';
 import { DashboardData, BusinessProfile, SettingsData, AppActions } from '../types';
-import { searchWeb } from '../src/lib/services/youSearchService';
 import { useWorkspace } from '../contexts/WorkspaceContext';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 import TeamActivityFeed from './team/TeamActivityFeed';
 
 const QuickLinkItem: React.FC<{ href: string; text: string; iconChar?: string; iconBg?: string; iconColor?: string }> = ({ href, text, iconChar = '↗', iconBg = '#fff', iconColor = '#000' }) => (
@@ -11,23 +12,23 @@ const QuickLinkItem: React.FC<{ href: string; text: string; iconChar?: string; i
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-between gap-4 p-3 bg-gray-100 hover:bg-white border-2 border-black transition-all"
+            className="flex items-center justify-between gap-4 p-3 bg-gray-50 hover:bg-white border border-gray-200 rounded-lg transition-all shadow-sm"
         >
             <div className="flex items-center gap-3">
                 <div
-                    className="w-10 h-10 border-2 border-black flex items-center justify-center font-mono text-lg"
+                    className="w-10 h-10 border border-gray-200 rounded-lg flex items-center justify-center text-lg"
                     style={{ backgroundColor: iconBg, color: iconColor }}
                 >
                     {iconChar}
                 </div>
-                <span className="font-semibold text-sm sm:text-base">{text}</span>
+                <span className="font-medium text-sm sm:text-base text-gray-900">{text}</span>
             </div>
-            <ExternalLink className="w-4 h-4 text-gray-600" />
+            <ExternalLink className="w-4 h-4 text-gray-400" />
         </a>
     </li>
 );
 
-type InsightIcon = 'briefcase' | 'megaphone' | 'wallet' | 'activity' | 'newspaper';
+type InsightIcon = 'briefcase' | 'megaphone' | 'wallet' | 'activity' | 'mail';
 
 type InsightSlide = {
     id: string;
@@ -46,14 +47,15 @@ type InsightSlide = {
     };
 };
 
-const NEWS_CACHE_KEY = 'setique-market-signal';
-
-type CachedMarketSlide = {
-    date: string;
-    focus: string;
-    origin: 'external' | 'fallback';
-    slide: InsightSlide;
-};
+// Email message type for the spotlight
+interface EmailSpotlightMessage {
+    id: string;
+    subject: string | null;
+    snippet: string | null;
+    from_address: string | null;
+    received_at: string | null;
+    is_read: boolean;
+}
 
 const DashboardTab: React.FC<{ 
     data: DashboardData; 
@@ -63,13 +65,13 @@ const DashboardTab: React.FC<{
     onViewAllActivity?: () => void;
 }> = ({ data, actions: _actions, businessProfile, settings, onViewAllActivity }) => {
     const { workspace } = useWorkspace();
+    const { user } = useAuth();
     const [activeInsightIndex, setActiveInsightIndex] = useState(0);
-    const [newsSlide, setNewsSlide] = useState<InsightSlide | null>(null);
-    const [isNewsLoading, setIsNewsLoading] = useState(true);
-    const [newsError, setNewsError] = useState<string | null>(null);
-
-    const normalizedIndustry = businessProfile?.industry;
-    const normalizedTargetMarket = (businessProfile as any)?.target_market ?? businessProfile?.targetMarket;
+    
+    // Email spotlight state
+    const [emailSlide, setEmailSlide] = useState<InsightSlide | null>(null);
+    const [isEmailLoading, setIsEmailLoading] = useState(true);
+    const [hasEmailConnected, setHasEmailConnected] = useState(false);
 
     const currencyFormatter = useMemo(() => new Intl.NumberFormat('en-US', {
         style: 'currency',
@@ -173,178 +175,142 @@ const DashboardTab: React.FC<{
         return { latest, previous, mrrDelta, gmvDelta };
     }, [data.financials]);
 
-    const fallbackMarketSlide = useMemo<InsightSlide | null>(() => {
-        const priorityDeal = pipelineData.topDeals?.[0];
-        if (priorityDeal) {
-            const dealValue = priorityDeal.totalValue ?? priorityDeal.value ?? 0;
-            return {
-                id: 'internal-focus-deal',
-                label: 'Execution focus',
-                title: priorityDeal.title || 'Priority opportunity',
-                metric: dealValue ? formatCurrency(dealValue) : 'Deal value',
-                metricHint: priorityDeal.probability ? `${priorityDeal.probability}% win chance` : undefined,
-                detail: priorityDeal.expectedCloseDate
-                    ? `Target close ${formatRelativeDate(priorityDeal.expectedCloseDate)}.`
-                    : 'Drive next steps to keep the deal warm.',
-                metaLabel: 'Owner',
-                metaValue: priorityDeal.assignedToName || 'Unassigned',
-                accent: 'text-indigo-600',
-                icon: 'activity',
-            };
-        }
-
-        if (marketingData.upcomingCampaign) {
-            const campaign = marketingData.upcomingCampaign;
-            return {
-                id: 'internal-upcoming-campaign',
-                label: 'Upcoming launch',
-                title: campaign.title || 'Scheduled campaign',
-                metric: formatRelativeDate(campaign.dueDate),
-                metricHint: campaign.status,
-                detail: campaign.goals || 'Align assets and approvals before launch.',
-                metaLabel: 'Channels',
-                metaValue: (campaign.channels && campaign.channels.length > 0)
-                    ? campaign.channels.join(', ')
-                    : 'Multichannel',
-                accent: 'text-orange-600',
-                icon: 'megaphone',
-            };
-        }
-
-        return null;
-    }, [formatCurrency, formatRelativeDate, marketingData, pipelineData]);
-
+    // Fetch email spotlight data
     useEffect(() => {
         let cancelled = false;
-        const focus = normalizedIndustry || normalizedTargetMarket || 'startup founders';
-        const today = new Date().toISOString().split('T')[0];
 
-        const hydrateFromCache = () => {
-            try {
-                const cachedRaw = localStorage.getItem(NEWS_CACHE_KEY);
-                if (!cachedRaw) return false;
-                const cached: CachedMarketSlide = JSON.parse(cachedRaw);
-                const cacheMatchesContext = cached?.date === today && cached?.focus === focus && cached?.slide;
-                const cacheIsTrusted = cached?.origin === 'external';
-                const cachedHref = cached?.slide?.action?.href;
-                const hasSafeLink = !cachedHref || isTrustedExternalUrl(cachedHref);
-                if (cacheMatchesContext && cacheIsTrusted && hasSafeLink) {
-                    setNewsSlide(cached.slide);
-                    setNewsError(null);
-                    setIsNewsLoading(false);
-                    return true;
-                }
-                localStorage.removeItem(NEWS_CACHE_KEY);
-            } catch (error) {
-                console.warn('[DashboardTab] Unable to read market intel cache', error);
+        const fetchEmailSpotlight = async () => {
+            if (!workspace?.id || !user?.id) {
+                setIsEmailLoading(false);
+                return;
             }
-            return false;
-        };
 
-        const applyFallbackSlide = () => {
-            if (fallbackMarketSlide) {
-                setNewsSlide({ ...fallbackMarketSlide, id: `${fallbackMarketSlide.id}-fallback` });
-                setNewsError(null);
-            } else {
-                setNewsSlide(null);
-                setNewsError('Connect the market intel integration to surface live headlines.');
-            }
+            setIsEmailLoading(true);
+
             try {
-                localStorage.removeItem(NEWS_CACHE_KEY);
-            } catch (storageError) {
-                console.warn('[DashboardTab] Unable to clear market intel cache', storageError);
-            }
-        };
+                // First check if user has a connected email account
+                const { data: account, error: accountError } = await supabase
+                    .from('integrated_accounts')
+                    .select('id, email_address, status')
+                    .eq('workspace_id', workspace.id)
+                    .eq('user_id', user.id)
+                    .eq('provider', 'gmail')
+                    .eq('status', 'active')
+                    .maybeSingle();
 
-        const fetchMarketNews = async () => {
-            setIsNewsLoading(true);
-            setNewsError(null);
-            try {
-                const query = `latest ${focus} market move for startup operators`;
-                let results: Awaited<ReturnType<typeof searchWeb>> | null = null;
-                let usedMode: 'news' | 'search' = 'news';
-
-                try {
-                    results = await searchWeb(query, 'news');
-                } catch (newsError) {
-                    console.warn('[DashboardTab] News mode failed, retrying with general search', newsError);
-                    usedMode = 'search';
-                    results = await searchWeb(query, 'search', { count: 5 });
+                if (accountError) {
+                    console.warn('[DashboardTab] Error checking email account:', accountError);
                 }
 
-                if (!results) {
-                    throw new Error('No market intel results returned');
-                }
-
-                let isMockNews = results.metadata?.provider === 'mock';
-                let article = !isMockNews ? (results.news?.[0] ?? results.hits?.[0]) : undefined;
-
-                if (!article && usedMode === 'news' && !isMockNews) {
-                    console.warn('[DashboardTab] No headlines returned from news mode, falling back to general search results');
-                    usedMode = 'search';
-                    results = await searchWeb(query, 'search', { count: 5 });
-                    isMockNews = results.metadata?.provider === 'mock';
-                    article = !isMockNews ? (results.news?.[0] ?? results.hits?.[0]) : undefined;
-                }
-
-                const articleUrl = article && isTrustedExternalUrl(article.url) ? article.url : undefined;
-
-                if (!cancelled) {
-                    if (article) {
-                        const slide: InsightSlide = {
-                            id: 'news',
-                            label: 'Market signal',
-                            title: article.title,
-                            metric: 'Live intel',
-                            detail: article.description || 'Fresh market movement to monitor.',
-                            metaLabel: 'Source',
-                            metaValue: getDomainFromUrl(article.url) || 'External',
-                            accent: 'text-indigo-600',
-                            icon: 'newspaper',
-                            action: articleUrl ? { label: 'Read briefing', href: articleUrl } : undefined,
-                        };
-                        setNewsSlide(slide);
-                        if (articleUrl) {
-                            try {
-                                const cached: CachedMarketSlide = { date: today, focus, slide, origin: 'external' };
-                                localStorage.setItem(NEWS_CACHE_KEY, JSON.stringify(cached));
-                            } catch (storageError) {
-                                console.warn('[DashboardTab] Unable to cache market intel slide', storageError);
-                            }
-                        } else {
-                            try {
-                                localStorage.removeItem(NEWS_CACHE_KEY);
-                            } catch (storageError) {
-                                console.warn('[DashboardTab] Unable to clear market intel cache', storageError);
-                            }
-                        }
-                    } else {
-                        if (isMockNews) {
-                            console.info('[DashboardTab] Mock market intel detected; falling back to internal insight.');
-                        }
-                        applyFallbackSlide();
+                if (!account) {
+                    // No connected email account
+                    if (!cancelled) {
+                        setHasEmailConnected(false);
+                        setEmailSlide({
+                            id: 'email-not-connected',
+                            label: 'Email spotlight',
+                            title: 'Connect your inbox',
+                            metric: 'Not linked',
+                            detail: 'Link your Gmail in Settings to see your latest emails here.',
+                            metaLabel: 'Action',
+                            metaValue: 'Go to Settings → Integrations',
+                            accent: 'text-gray-500',
+                            icon: 'mail',
+                        });
+                        setIsEmailLoading(false);
                     }
+                    return;
+                }
+
+                setHasEmailConnected(true);
+
+                // Fetch the most recent email
+                const { data: emails, error: emailError } = await supabase
+                    .from('email_messages')
+                    .select('id, subject, snippet, from_address, received_at, is_read')
+                    .eq('account_id', account.id)
+                    .order('received_at', { ascending: false })
+                    .limit(1);
+
+                if (emailError) {
+                    console.warn('[DashboardTab] Error fetching emails:', emailError);
+                }
+
+                if (!cancelled) {
+                    if (emails && emails.length > 0) {
+                        const latestEmail = emails[0] as EmailSpotlightMessage;
+                        const fromName = latestEmail.from_address?.split('<')[0]?.trim() || latestEmail.from_address || 'Unknown sender';
+                        const timeAgo = latestEmail.received_at
+                            ? formatDistanceToNow(new Date(latestEmail.received_at))
+                            : 'Recently';
+
+                        setEmailSlide({
+                            id: 'email-latest',
+                            label: 'Email spotlight',
+                            title: latestEmail.subject || '(No subject)',
+                            metric: latestEmail.is_read ? 'Read' : 'Unread',
+                            metricHint: timeAgo,
+                            detail: latestEmail.snippet || 'No preview available.',
+                            metaLabel: 'From',
+                            metaValue: fromName,
+                            accent: latestEmail.is_read ? 'text-gray-600' : 'text-blue-600',
+                            icon: 'mail',
+                        });
+                    } else {
+                        // Connected but no emails
+                        setEmailSlide({
+                            id: 'email-empty',
+                            label: 'Email spotlight',
+                            title: 'Inbox empty',
+                            metric: 'No emails',
+                            detail: 'Your synced inbox is empty. New emails will appear here.',
+                            metaLabel: 'Account',
+                            metaValue: account.email_address || 'Connected',
+                            accent: 'text-gray-500',
+                            icon: 'mail',
+                        });
+                    }
+                    setIsEmailLoading(false);
                 }
             } catch (error) {
+                console.warn('[DashboardTab] Email spotlight fetch failed:', error);
                 if (!cancelled) {
-                    console.warn('[DashboardTab] Market intel fetch failed', error);
-                    applyFallbackSlide();
-                }
-            } finally {
-                if (!cancelled) {
-                    setIsNewsLoading(false);
+                    setEmailSlide({
+                        id: 'email-error',
+                        label: 'Email spotlight',
+                        title: 'Unable to load emails',
+                        metric: 'Error',
+                        detail: 'There was an issue loading your emails. Try refreshing the page.',
+                        accent: 'text-gray-500',
+                        icon: 'mail',
+                    });
+                    setIsEmailLoading(false);
                 }
             }
         };
 
-        if (!hydrateFromCache()) {
-            fetchMarketNews();
-        }
+        fetchEmailSpotlight();
 
         return () => {
             cancelled = true;
         };
-    }, [normalizedIndustry, normalizedTargetMarket, getDomainFromUrl, fallbackMarketSlide, isTrustedExternalUrl]);
+    }, [workspace?.id, user?.id]);
+
+    // Helper function for relative time formatting
+    const formatDistanceToNow = (date: Date): string => {
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays === 1) return 'Yesterday';
+        if (diffDays < 7) return `${diffDays}d ago`;
+        return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    };
 
     const insightSlides = useMemo(() => {
         const slides: InsightSlide[] = [];
@@ -396,43 +362,37 @@ const DashboardTab: React.FC<{
             icon: 'wallet',
         });
 
-        if (newsSlide) {
-            slides.push(newsSlide);
-        } else if (isNewsLoading) {
+        // Email spotlight slide
+        if (emailSlide) {
+            slides.push(emailSlide);
+        } else if (isEmailLoading) {
             slides.push({
-                id: 'news-loading',
-                label: 'Market signal',
-                title: 'Syncing live intel…',
-                metric: '•••',
-                detail: 'Pulling today’s most relevant headline.',
+                id: 'email-loading',
+                label: 'Email spotlight',
+                title: 'Checking inbox...',
+                metric: '...',
+                detail: 'Loading your latest email.',
                 accent: 'text-gray-500',
-                icon: 'newspaper',
+                icon: 'mail',
             });
-        } else if (newsError) {
+        } else {
+            // No email connected - show empty state
             slides.push({
-                id: 'news-empty',
-                label: 'Market signal',
-                title: 'No live story yet',
-                metric: '—',
-                detail: newsError,
-                accent: 'text-gray-500',
-                icon: 'newspaper',
+                id: 'email-empty',
+                label: 'Email spotlight',
+                title: 'Connect your inbox',
+                metric: 'No email linked',
+                metricHint: 'Stay on top of messages',
+                detail: 'Link your Gmail or Outlook in Settings → Integrations to see your latest messages here.',
+                metaLabel: 'Quick setup',
+                metaValue: 'Settings → Integrations',
+                accent: 'text-purple-600',
+                icon: 'mail',
             });
         }
 
         return slides;
-    }, [formatCurrency, formatRelativeDate, marketingData, newsError, newsSlide, pipelineData, financialData, isNewsLoading]);
-
-    useEffect(() => {
-        if (insightSlides.length === 0) {
-            setActiveInsightIndex(0);
-            return;
-        }
-
-        if (activeInsightIndex > insightSlides.length - 1) {
-            setActiveInsightIndex(0);
-        }
-    }, [activeInsightIndex, insightSlides.length]);
+    }, [emailSlide, isEmailLoading, financialData, formatCurrency, formatRelativeDate, marketingData, pipelineData]);
 
     const handleSlideChange = useCallback((direction: 'prev' | 'next') => {
         setActiveInsightIndex((prev) => {
@@ -489,28 +449,28 @@ const DashboardTab: React.FC<{
                 return <Wallet className="w-6 h-6" />;
             case 'activity':
                 return <Activity className="w-6 h-6" />;
-            case 'newspaper':
+            case 'mail':
             default:
-                return <Newspaper className="w-6 h-6" />;
+                return <Mail className="w-6 h-6" />;
         }
     };
 
     return (
         <div>
-            <div className="bg-white border-2 border-black shadow-neo mb-8">
-                <div className="bg-black text-white p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm mb-8">
+                <div className="bg-black text-white p-4 rounded-t-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div className="flex items-center gap-3">
-                        <div className="font-mono text-xl font-bold tracking-wider">OPERATIONAL INTEL</div>
+                        <div className="text-xl font-bold tracking-wide">OPERATIONAL INTEL</div>
                         <div className="hidden sm:block h-4 w-[1px] bg-gray-600"></div>
-                        <div className="text-xs font-mono text-gray-400">{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase()}</div>
+                        <div className="text-xs text-gray-400">{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase()}</div>
                     </div>
-                    <div className="text-xs font-mono text-gray-400">Updated live from your workspace</div>
+                    <div className="text-xs text-gray-400">Updated live from your workspace</div>
                 </div>
 
                 <div className="relative overflow-hidden">
                     <div className="flex items-center justify-between px-4 pt-4">
                         <button
-                            className="p-2 border-2 border-black bg-white hover:bg-black hover:text-white transition disabled:opacity-40"
+                            className="p-2 border border-gray-200 rounded-lg bg-white hover:bg-black hover:text-white transition disabled:opacity-40"
                             onClick={() => handleSlideChange('prev')}
                             disabled={insightSlides.length <= 1}
                             aria-label="Previous insight"
@@ -521,12 +481,12 @@ const DashboardTab: React.FC<{
                             {insightSlides.map((slide, idx) => (
                                 <span
                                     key={slide.id}
-                                    className={`h-1 w-8 ${idx === activeInsightIndex ? 'bg-black' : 'bg-gray-300'}`}
+                                    className={`h-1 w-8 rounded-full ${idx === activeInsightIndex ? 'bg-black' : 'bg-gray-200'}`}
                                 />
                             ))}
                         </div>
                         <button
-                            className="p-2 border-2 border-black bg-white hover:bg-black hover:text-white transition disabled:opacity-40"
+                            className="p-2 border border-gray-200 rounded-lg bg-white hover:bg-black hover:text-white transition disabled:opacity-40"
                             onClick={() => handleSlideChange('next')}
                             disabled={insightSlides.length <= 1}
                             aria-label="Next insight"
@@ -542,24 +502,24 @@ const DashboardTab: React.FC<{
                         >
                             {insightSlides.map((slide) => (
                                 <div key={slide.id} className="w-full flex-shrink-0 p-6 grid gap-4 md:grid-cols-[auto,1fr] items-center">
-                                    <div className={`p-4 border-2 border-black bg-white shadow-neo ${slide.accent}`}>
+                                    <div className={`p-4 border border-gray-200 rounded-xl bg-white shadow-sm ${slide.accent}`}>
                                         {renderSlideIcon(slide.icon)}
                                     </div>
                                     <div className="space-y-2">
-                                        <p className="text-xs uppercase font-mono tracking-widest text-gray-500">{slide.label}</p>
-                                        <h3 className="text-2xl font-bold text-black">{slide.title}</h3>
+                                        <p className="text-xs uppercase tracking-widest text-gray-500">{slide.label}</p>
+                                        <h3 className="text-2xl font-bold text-gray-900">{slide.title}</h3>
                                         <div className="flex items-baseline gap-3 flex-wrap">
-                                            <span className={`text-4xl font-mono ${slide.accent}`}>{slide.metric}</span>
+                                            <span className={`text-4xl font-bold ${slide.accent}`}>{slide.metric}</span>
                                             {slide.metricHint && (
-                                                <span className="text-sm font-semibold text-gray-600">{slide.metricHint}</span>
+                                                <span className="text-sm font-medium text-gray-600">{slide.metricHint}</span>
                                             )}
                                         </div>
-                                        <p className="text-gray-700 text-sm md:text-base">{slide.detail}</p>
+                                        <p className="text-gray-600 text-sm md:text-base">{slide.detail}</p>
                                         {(slide.metaLabel || slide.action) && (
-                                            <div className="flex flex-wrap gap-4 text-sm font-semibold">
+                                            <div className="flex flex-wrap gap-4 text-sm font-medium">
                                                 {slide.metaLabel && (
-                                                    <span className="uppercase font-mono text-gray-500">
-                                                        {slide.metaLabel}: <span className="text-black">{slide.metaValue}</span>
+                                                    <span className="uppercase text-gray-500">
+                                                        {slide.metaLabel}: <span className="text-gray-900">{slide.metaValue}</span>
                                                     </span>
                                                 )}
                                                 {slide.action && (
@@ -567,7 +527,7 @@ const DashboardTab: React.FC<{
                                                         href={slide.action.href}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="inline-flex items-center gap-1 text-black border-b-2 border-black hover:bg-black hover:text-white transition px-2"
+                                                        className="inline-flex items-center gap-1 text-gray-900 border-b border-gray-900 hover:bg-black hover:text-white transition px-2 rounded"
                                                     >
                                                         {slide.action.label}
                                                         <ExternalLink className="w-3 h-3" />
@@ -585,49 +545,49 @@ const DashboardTab: React.FC<{
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                 <div className="xl:col-span-2 space-y-8">
-                    <div className="bg-white border-2 border-black shadow-neo p-6">
+                    <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
                         <div className="flex items-center justify-between mb-6">
                             <div>
-                                <p className="text-xs uppercase font-mono text-gray-500">Operating snapshot</p>
-                                <h2 className="text-2xl font-bold text-black">Where attention drives impact</h2>
+                                <p className="text-xs uppercase text-gray-500">Operating snapshot</p>
+                                <h2 className="text-2xl font-bold text-gray-900">Where attention drives impact</h2>
                             </div>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {operatingMetrics.map((metric) => (
-                                <div key={metric.label} className="border-2 border-black p-4 bg-gray-50">
-                                    <p className="text-xs font-mono uppercase text-gray-500">{metric.label}</p>
-                                    <p className="text-2xl font-bold text-black mt-1">{metric.primary}</p>
-                                    {metric.secondary && <p className="text-sm text-gray-600 mt-1">{metric.secondary}</p>}
+                                <div key={metric.label} className="border border-gray-200 rounded-lg p-4 bg-gray-50/50">
+                                    <p className="text-xs uppercase text-gray-500">{metric.label}</p>
+                                    <p className="text-2xl font-bold text-gray-900 mt-1">{metric.primary}</p>
+                                    {metric.secondary && <p className="text-sm text-gray-500 mt-1">{metric.secondary}</p>}
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    <div className="bg-white border-2 border-black shadow-neo p-6">
+                    <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
                         <div className="flex items-center justify-between mb-4">
                             <div>
-                                <p className="text-xs uppercase font-mono text-gray-500">Pipeline radar</p>
-                                <h2 className="text-xl font-bold text-black">Top opportunities on deck</h2>
+                                <p className="text-xs uppercase text-gray-500">Pipeline radar</p>
+                                <h2 className="text-xl font-bold text-gray-900">Top opportunities on deck</h2>
                             </div>
-                            <span className="text-sm font-semibold text-gray-600">{pipelineData.openDealsCount} active</span>
+                            <span className="text-sm font-medium text-gray-500">{pipelineData.openDealsCount} active</span>
                         </div>
                         {pipelineData.topDeals.length > 0 ? (
                             <div className="space-y-4">
                                 {pipelineData.topDeals.map((deal) => (
-                                    <div key={deal.id} className="border-2 border-dashed border-gray-300 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                    <div key={deal.id} className="border border-dashed border-gray-200 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                         <div>
-                                            <p className="text-lg font-semibold text-black">{deal.title}</p>
-                                            <p className="text-sm text-gray-600">Stage: {deal.stage.replace('_', ' ')}</p>
+                                            <p className="text-lg font-semibold text-gray-900">{deal.title}</p>
+                                            <p className="text-sm text-gray-500">Stage: {deal.stage.replace('_', ' ')}</p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-2xl font-mono text-blue-600">{formatCurrency(deal.totalValue ?? deal.value ?? 0)}</p>
-                                            <p className="text-xs font-mono text-gray-500">Prob: {deal.probability ?? 0}%</p>
+                                            <p className="text-2xl font-bold text-blue-600">{formatCurrency(deal.totalValue ?? deal.value ?? 0)}</p>
+                                            <p className="text-xs text-gray-500">Prob: {deal.probability ?? 0}%</p>
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         ) : (
-                            <div className="border-2 border-dashed border-gray-300 p-6 text-center text-gray-500 font-semibold">
+                            <div className="border border-dashed border-gray-200 rounded-lg p-6 text-center text-gray-500 font-medium">
                                 No open deals yet — log your next opportunity to populate this radar.
                             </div>
                         )}
@@ -641,13 +601,13 @@ const DashboardTab: React.FC<{
                             limit={12}
                             showFilters={false}
                             onViewAllActivity={onViewAllActivity}
-                            className="shadow-neo"
+                            className="shadow-sm"
                         />
                     )}
 
                     {settings?.quickLinks && settings.quickLinks.length > 0 && (
-                        <div className="bg-white p-6 border-2 border-black shadow-neo">
-                            <h2 className="text-xl font-semibold text-black mb-4">Quick Links</h2>
+                        <div className="bg-white p-6 border border-gray-200 rounded-xl shadow-sm">
+                            <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Links</h2>
                             <ul className="space-y-3">
                                 {settings.quickLinks.map((link) => (
                                     <QuickLinkItem 

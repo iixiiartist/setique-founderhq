@@ -1,5 +1,8 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { z } from 'zod';
+import {
+    ArrowLeft, Trash2, Pencil, Mail, Phone, Linkedin, Building, User, Calendar, CheckSquare
+} from 'lucide-react';
 import { Contact, Task, AppActions, CrmCollectionName, TaskCollectionName, Note, AnyCrmItem, Priority, NoteableCollectionName, WorkspaceMember, Subtask } from '../../types';
 import { AssignmentDropdown } from './AssignmentDropdown';
 import Modal from './Modal';
@@ -38,9 +41,9 @@ const ContactTaskItem: React.FC<{ task: Task; onEdit: (task: Task, triggerRef: R
     const editButtonRef = useRef<HTMLButtonElement>(null);
     const tagColorClass = TASK_TAG_BG_COLORS[tag] || 'bg-gray-300';
     return (
-        <li className="flex items-stretch">
-            <div className={`w-2 shrink-0 ${tagColorClass}`}></div>
-            <div className="flex items-start justify-between py-2 flex-grow pl-3">
+        <li className="flex items-stretch rounded-md overflow-hidden border border-gray-100 hover:border-gray-200 transition-colors">
+            <div className={`w-1 shrink-0 ${tagColorClass}`}></div>
+            <div className="flex items-start justify-between py-2.5 flex-grow pl-3 pr-2">
                 <div className="flex items-start flex-grow overflow-hidden">
                     <label htmlFor={`contact-task-complete-${task.id}`} className="sr-only">Mark task as complete</label>
                     <input 
@@ -48,17 +51,17 @@ const ContactTaskItem: React.FC<{ task: Task; onEdit: (task: Task, triggerRef: R
                         type="checkbox" 
                         checked={task.status === 'Done'}
                         onChange={(e) => actions.updateTask(task.id, { status: e.target.checked ? 'Done' : 'Todo' })}
-                        className="w-5 h-5 mr-3 mt-1 accent-blue-500 shrink-0 border-2 border-black rounded-none"
+                        className="w-4 h-4 mr-2.5 mt-0.5 accent-gray-900 shrink-0 rounded"
                     />
                     <div className="flex-grow">
-                        <span className={`text-black ${task.status === 'Done' ? 'line-through' : ''}`}>{task.text}</span>
+                        <span className={`text-sm ${task.status === 'Done' ? 'line-through text-gray-400' : 'text-gray-800'}`}>{task.text}</span>
                     </div>
                 </div>
-                <div className="flex gap-2 shrink-0 ml-2">
+                <div className="flex gap-1.5 shrink-0 ml-2">
                     <button 
                         ref={editButtonRef}
                         onClick={() => onEdit(task, editButtonRef)}
-                        className="font-mono bg-white border-2 border-black text-black cursor-pointer text-xs py-1 px-2 rounded-none font-semibold shadow-neo-btn transition-all">
+                        className="text-gray-500 hover:text-gray-700 text-xs py-1 px-2 rounded hover:bg-gray-100 transition-colors">
                         Edit
                     </button>
                     <button 
@@ -67,7 +70,7 @@ const ContactTaskItem: React.FC<{ task: Task; onEdit: (task: Task, triggerRef: R
                                 actions.deleteItem(taskCollection, task.id);
                             }
                         }}
-                        className="font-mono bg-red-600 border-2 border-black text-white cursor-pointer text-xs py-1 px-2 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-red-700">
+                        className="text-gray-400 hover:text-red-600 text-xs py-1 px-2 rounded hover:bg-red-50 transition-colors">
                         Del
                     </button>
                 </div>
@@ -169,8 +172,8 @@ function ContactDetailView({ contact, parentItem, tasks, actions, onBack, crmCol
 
     const valueDisplay = (label: string, value: string | React.ReactNode) => (
         <div>
-            <p className="text-sm font-mono uppercase text-gray-600">{label}</p>
-            <p className="text-lg font-semibold text-black break-words">{value}</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">{label}</p>
+            <p className="text-sm font-medium text-gray-900 break-words">{value}</p>
         </div>
     );
 
@@ -180,19 +183,25 @@ function ContactDetailView({ contact, parentItem, tasks, actions, onBack, crmCol
     return (
         <div className="space-y-6">
             {/* Header Section */}
-            <div className="bg-white p-6 border-2 border-black shadow-neo">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                        <button 
-                            onClick={onBack} 
-                            className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-2 px-4 rounded-none font-semibold shadow-neo-btn hover:bg-gray-100 transition-all"
-                        >
-                            ← Back to {parentItem.company}
-                        </button>
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                <div className="p-5">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                            <button 
+                                onClick={onBack} 
+                                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors"
+                            >
+                                <ArrowLeft className="w-4 h-4" />
+                                {parentItem.company}
+                            </button>
+                            <div className="h-6 w-px bg-gray-200"></div>
                             <div>
-                            <h1 className="text-3xl font-bold">{contact.name}</h1>
-                            <p className="text-gray-600 text-sm mt-1">Contact at {parentItem.company}</p>
-                        </div>
+                                <h1 className="text-xl font-semibold text-gray-900">{contact.name}</h1>
+                                <p className="text-sm text-gray-500 flex items-center gap-1">
+                                    <Building className="w-3.5 h-3.5" />
+                                    Contact at {parentItem.company}
+                                </p>
+                            </div>
                             {workspaceMembers.length > 0 && onAssignContact && (
                                 <div className="ml-4">
                                     <AssignmentDropdown
@@ -203,84 +212,112 @@ function ContactDetailView({ contact, parentItem, tasks, actions, onBack, crmCol
                                     />
                                 </div>
                             )}
+                        </div>
+                        <button 
+                            onClick={() => {
+                                if (window.confirm(`Delete ${contact.name}? This will also delete all associated tasks and meetings.`)) {
+                                    actions.deleteContact(crmCollection, contact.crmItemId, contact.id);
+                                    onBack();
+                                }
+                            }} 
+                            className="flex items-center gap-1.5 text-gray-400 hover:text-red-600 text-sm font-medium transition-colors"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            Delete
+                        </button>
                     </div>
-                    <button 
-                        onClick={() => {
-                            if (window.confirm(`Delete ${contact.name}? This will also delete all associated tasks and meetings.`)) {
-                                actions.deleteContact(crmCollection, contact.crmItemId, contact.id);
-                                onBack();
-                            }
-                        }} 
-                        className="font-mono bg-red-600 border-2 border-black text-white cursor-pointer text-sm py-2 px-4 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-red-700"
-                    >
-                        Delete Contact
-                    </button>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left Column - Contact Info & Meetings */}
                 <div className="lg:col-span-1 space-y-6">
-                    <div className="bg-white p-6 border-2 border-black shadow-neo">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold">Contact Info</h2>
+                    <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                        <div className="flex justify-between items-center p-5 border-b border-gray-100">
+                            <h2 className="text-lg font-semibold text-gray-900">Contact Info</h2>
                             <button 
                                 ref={editContactModalTriggerRef} 
                                 onClick={() => setIsEditing(true)} 
-                                className="font-mono bg-black text-white border-2 border-black cursor-pointer text-xs py-2 px-3 rounded-none font-semibold shadow-neo-btn hover:bg-gray-800 transition-all"
+                                className="flex items-center gap-1.5 bg-gray-900 text-white text-xs font-medium px-3 py-1.5 rounded-md hover:bg-gray-800 transition-colors"
                             >
+                                <Pencil className="w-3.5 h-3.5" />
                                 Edit
                             </button>
                         </div>
-                        <div className="space-y-5">
+                        <div className="p-5 space-y-4">
                             {contact.title && (
                                 <div>
-                                    <p className="text-sm font-mono uppercase text-gray-600">Title</p>
-                                    <p className="text-lg font-semibold text-black">{contact.title}</p>
+                                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Title</p>
+                                    <p className="text-sm font-medium text-gray-900">{contact.title}</p>
                                 </div>
                             )}
                             {contact.assignedToName && (
                                 <div>
-                                    <p className="text-sm font-mono uppercase text-gray-600">Assigned To</p>
-                                    <p className="text-lg font-semibold text-black">→ {contact.assignedToName}</p>
+                                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Assigned To</p>
+                                    <p className="text-sm font-medium text-gray-900 flex items-center gap-1">
+                                        <User className="w-3.5 h-3.5 text-gray-400" />
+                                        {contact.assignedToName}
+                                    </p>
                                 </div>
                             )}
-                            {valueDisplay('Email', contact.email ? (
-                                <a href={`mailto:${contact.email}`} className="text-blue-600 hover:underline break-all">
-                                    {contact.email}
-                                </a>
-                            ) : 'N/A')}
-                            {valueDisplay('Phone', contact.phone ? (
-                                <a href={`tel:${contact.phone}`} className="text-blue-600 hover:underline">
-                                    {contact.phone}
-                                </a>
-                            ) : 'N/A')}
-                            {valueDisplay('LinkedIn', contact.linkedin ? (
-                                <a href={contact.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">
-                                    View Profile →
-                                </a>
-                            ) : 'N/A')}
+                            <div>
+                                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Email</p>
+                                {contact.email ? (
+                                    <a href={`mailto:${contact.email}`} className="text-sm text-gray-700 hover:text-gray-900 flex items-center gap-1 break-all">
+                                        <Mail className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                                        {contact.email}
+                                    </a>
+                                ) : (
+                                    <p className="text-sm text-gray-400">N/A</p>
+                                )}
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Phone</p>
+                                {contact.phone ? (
+                                    <a href={`tel:${contact.phone}`} className="text-sm text-gray-700 hover:text-gray-900 flex items-center gap-1">
+                                        <Phone className="w-3.5 h-3.5 text-gray-400" />
+                                        {contact.phone}
+                                    </a>
+                                ) : (
+                                    <p className="text-sm text-gray-400">N/A</p>
+                                )}
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">LinkedIn</p>
+                                {contact.linkedin ? (
+                                    <a href={contact.linkedin} target="_blank" rel="noopener noreferrer" className="text-sm text-gray-700 hover:text-gray-900 flex items-center gap-1">
+                                        <Linkedin className="w-3.5 h-3.5 text-gray-400" />
+                                        View Profile
+                                    </a>
+                                ) : (
+                                    <p className="text-sm text-gray-400">N/A</p>
+                                )}
+                            </div>
                         </div>
                     </div>
 
                     {/* Meetings Section */}
-                    <div className="bg-white p-6 border-2 border-black shadow-neo">
-                        <MeetingsManager 
-                            meetings={contact.meetings || []}
-                            contactId={contact.id}
-                            crmItemId={contact.crmItemId}
-                            crmCollection={crmCollection}
-                            actions={actions}
-                        />
+                    <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                        <div className="p-5">
+                            <MeetingsManager 
+                                meetings={contact.meetings || []}
+                                contactId={contact.id}
+                                crmItemId={contact.crmItemId}
+                                crmCollection={crmCollection}
+                                actions={actions}
+                            />
+                        </div>
                     </div>
                 </div>
 
                 {/* Right Column - Tasks */}
                 <div className="lg:col-span-2">
-                    <div className="bg-white p-6 border-2 border-black shadow-neo">
-                        <h2 className="text-2xl font-bold mb-6">Tasks for {contact.name}</h2>
-                        <form onSubmit={handleAddTask} className="mb-6 p-4 bg-gray-50 border-2 border-black space-y-3">
-                            <label htmlFor="new-contact-task" className="block font-mono text-sm font-semibold text-black">
+                    <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                        <div className="p-5 border-b border-gray-100">
+                            <h2 className="text-lg font-semibold text-gray-900">Tasks for {contact.name}</h2>
+                        </div>
+                        <form onSubmit={handleAddTask} className="p-5 bg-gray-50 border-b border-gray-100 space-y-3">
+                            <label htmlFor="new-contact-task" className="block text-xs text-gray-500 uppercase tracking-wide font-medium">
                                 Add New Task
                             </label>
                             <textarea
@@ -289,18 +326,18 @@ function ContactDetailView({ contact, parentItem, tasks, actions, onBack, crmCol
                                 value={newTaskText}
                                 onChange={(e) => setNewTaskText(e.target.value)}
                                 placeholder="e.g., Send intro email, Schedule follow-up call..."
-                                className="w-full bg-white border-2 border-black text-black p-3 rounded-none focus:outline-none focus:border-blue-500 min-h-[100px]"
+                                className="w-full bg-white border border-gray-200 text-gray-900 p-2.5 rounded-md text-sm focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200 min-h-[80px]"
                                 required
                             />
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <div>
-                                    <label htmlFor="new-task-priority" className="block text-xs font-mono text-gray-600 mb-1">PRIORITY</label>
+                                    <label htmlFor="new-task-priority" className="block text-xs text-gray-500 uppercase tracking-wide mb-1">Priority</label>
                                     <select
                                         id="new-task-priority"
                                         name="new-task-priority"
                                         value={newTaskPriority}
                                         onChange={(e) => setNewTaskPriority(e.target.value as Priority)}
-                                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                        className="w-full bg-white border border-gray-200 text-gray-900 p-2 rounded-md text-sm focus:outline-none focus:border-gray-400"
                                     >
                                         <option value="Low">Low</option>
                                         <option value="Medium">Medium</option>
@@ -308,40 +345,40 @@ function ContactDetailView({ contact, parentItem, tasks, actions, onBack, crmCol
                                     </select>
                                 </div>
                                 <div>
-                                    <label htmlFor="new-task-duedate" className="block text-xs font-mono text-gray-600 mb-1">DUE DATE</label>
+                                    <label htmlFor="new-task-duedate" className="block text-xs text-gray-500 uppercase tracking-wide mb-1">Due Date</label>
                                     <input
                                         id="new-task-duedate"
                                         name="new-task-duedate"
                                         type="date"
                                         value={newTaskDueDate}
                                         onChange={(e) => setNewTaskDueDate(e.target.value)}
-                                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                        className="w-full bg-white border border-gray-200 text-gray-900 p-2 rounded-md text-sm focus:outline-none focus:border-gray-400"
                                     />
                                 </div>
                             </div>
                             
                             {/* Subtasks section */}
-                            <div className="border-t-2 border-gray-200 pt-3 mt-3">
-                                <label className="block text-xs font-mono text-gray-600 mb-2">SUBTASKS (OPTIONAL)</label>
+                            <div className="border-t border-gray-200 pt-3 mt-3">
+                                <label className="block text-xs text-gray-500 uppercase tracking-wide mb-2">Subtasks (Optional)</label>
                                 <SubtaskManager 
                                     subtasks={newTaskSubtasks}
                                     onSubtasksChange={setNewTaskSubtasks}
                                 />
                             </div>
                             
-                            <button type="submit" className="w-full font-mono font-semibold bg-black text-white py-3 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800">
+                            <button type="submit" className="w-full bg-gray-900 text-white py-2.5 px-4 rounded-md text-sm font-medium hover:bg-gray-800 transition-colors">
                                 Add Task
                             </button>
                         </form>
-                        <div className="space-y-2">
-                            <h3 className="font-mono text-sm text-gray-600 uppercase mb-3">Task List ({contactTasks.length})</h3>
+                        <div className="p-5">
+                            <h3 className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-3">Task List ({contactTasks.length})</h3>
                             <ul className="max-h-[60vh] overflow-y-auto custom-scrollbar pr-2 space-y-1">
                                 {contactTasks.length > 0 ? (
                                     contactTasks.map(task => <ContactTaskItem key={task.id} task={task} onEdit={openEditTaskModal} actions={actions} tag={tag} taskCollection={taskCollection} />)
                                 ) : (
                                     <div className="text-center py-12">
-                                        <p className="text-gray-400 text-lg italic">No tasks for this contact yet.</p>
-                                        <p className="text-gray-400 text-sm mt-2">Add a task above to track work with {contact.name}</p>
+                                        <p className="text-gray-400 text-sm">No tasks for this contact yet.</p>
+                                        <p className="text-gray-400 text-xs mt-1">Add a task above to track work with {contact.name}</p>
                                     </div>
                                 )}
                             </ul>

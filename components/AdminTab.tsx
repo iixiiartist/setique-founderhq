@@ -282,19 +282,19 @@ function AdminTab() {
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex gap-2 border-b-2 border-black">
+            <div className="flex gap-2 border-b border-gray-200">
                 <button
                     onClick={() => setActiveTab('users')}
-                    className={`font-mono px-4 py-2 border-2 border-black font-semibold ${
-                        activeTab === 'users' ? 'bg-black text-white' : 'bg-white text-black'
+                    className={`font-mono px-4 py-2 border border-gray-200 rounded-t-md font-semibold ${
+                        activeTab === 'users' ? 'bg-black text-white' : 'bg-white text-black hover:bg-gray-50'
                     }`}
                 >
                     👥 Users
                 </button>
                 <button
                     onClick={() => setActiveTab('automations')}
-                    className={`font-mono px-4 py-2 border-2 border-black font-semibold ${
-                        activeTab === 'automations' ? 'bg-black text-white' : 'bg-white text-black'
+                    className={`font-mono px-4 py-2 border border-gray-200 rounded-t-md font-semibold ${
+                        activeTab === 'automations' ? 'bg-black text-white' : 'bg-white text-black hover:bg-gray-50'
                     }`}
                 >
                     ⚙️ Automations
@@ -311,35 +311,35 @@ function AdminTab() {
                         {/* Stats Grid */}
             {stats && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-white p-4 border-2 border-black shadow-neo">
+                    <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-sm">
                         <div className="text-3xl font-bold text-black font-mono">{stats.total}</div>
                         <div className="text-sm text-gray-600 font-mono">Total Users</div>
                     </div>
-                    <div className="bg-green-50 p-4 border-2 border-black shadow-neo">
+                    <div className="bg-green-50 p-4 border border-gray-200 rounded-lg shadow-sm">
                         <div className="text-3xl font-bold text-green-700 font-mono">{stats.today}</div>
                         <div className="text-sm text-gray-600 font-mono">Today</div>
                     </div>
-                    <div className="bg-blue-50 p-4 border-2 border-black shadow-neo">
+                    <div className="bg-blue-50 p-4 border border-gray-200 rounded-lg shadow-sm">
                         <div className="text-3xl font-bold text-blue-700 font-mono">{stats.thisWeek}</div>
                         <div className="text-sm text-gray-600 font-mono">This Week</div>
                     </div>
-                    <div className="bg-purple-50 p-4 border-2 border-black shadow-neo">
+                    <div className="bg-purple-50 p-4 border border-gray-200 rounded-lg shadow-sm">
                         <div className="text-3xl font-bold text-purple-700 font-mono">{stats.thisMonth}</div>
                         <div className="text-sm text-gray-600 font-mono">This Month</div>
                     </div>
-                    <div className="bg-emerald-50 p-4 border-2 border-black shadow-neo">
+                    <div className="bg-emerald-50 p-4 border border-gray-200 rounded-lg shadow-sm">
                         <div className="text-3xl font-bold text-emerald-700 font-mono">{stats.confirmed}</div>
                         <div className="text-sm text-gray-600 font-mono">✓ Confirmed</div>
                     </div>
-                    <div className="bg-red-50 p-4 border-2 border-black shadow-neo">
+                    <div className="bg-red-50 p-4 border border-gray-200 rounded-lg shadow-sm">
                         <div className="text-3xl font-bold text-red-700 font-mono">{stats.unconfirmed}</div>
                         <div className="text-sm text-gray-600 font-mono">⚠ Unconfirmed</div>
                     </div>
-                    <div className="bg-gray-50 p-4 border-2 border-black shadow-neo">
+                    <div className="bg-gray-50 p-4 border border-gray-200 rounded-lg shadow-sm">
                         <div className="text-3xl font-bold text-gray-700 font-mono">{stats.freePlan}</div>
                         <div className="text-sm text-gray-600 font-mono">Free Plan</div>
                     </div>
-                    <div className="bg-yellow-50 p-4 border-2 border-black shadow-neo">
+                    <div className="bg-yellow-50 p-4 border border-gray-200 rounded-lg shadow-sm">
                         <div className="text-3xl font-bold text-yellow-700 font-mono">{stats.paidPlan}</div>
                         <div className="text-sm text-gray-600 font-mono">Paid Plans</div>
                     </div>
@@ -347,7 +347,7 @@ function AdminTab() {
             )}
 
             {/* Filters */}
-            <div className="bg-white p-6 border-2 border-black shadow-neo">
+            <div className="bg-white p-6 border border-gray-200 rounded-lg shadow-sm">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label className="block text-sm font-bold font-mono text-black mb-2">
@@ -358,7 +358,7 @@ function AdminTab() {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Email or name..."
-                            className="w-full px-4 py-2 border-2 border-black focus:outline-none focus:border-yellow-400 font-mono text-sm"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black font-mono text-sm"
                         />
                     </div>
                     <div>
@@ -368,7 +368,7 @@ function AdminTab() {
                         <select
                             value={filterPlan}
                             onChange={(e) => setFilterPlan(e.target.value)}
-                            className="w-full px-4 py-2 border-2 border-black focus:outline-none focus:border-yellow-400 font-mono text-sm"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black font-mono text-sm"
                         >
                             <option value="all">All Plans</option>
                             <option value="free">Free</option>
@@ -383,7 +383,7 @@ function AdminTab() {
                         <select
                             value={filterConfirmed}
                             onChange={(e) => setFilterConfirmed(e.target.value)}
-                            className="w-full px-4 py-2 border-2 border-black focus:outline-none focus:border-yellow-400 font-mono text-sm"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black font-mono text-sm"
                         >
                             <option value="all">All</option>
                             <option value="confirmed">Confirmed</option>
@@ -394,7 +394,7 @@ function AdminTab() {
             </div>
 
             {/* Users Table */}
-            <div className="bg-white border-2 border-black shadow-neo overflow-hidden">
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead className="bg-black text-white">
@@ -408,7 +408,7 @@ function AdminTab() {
                                 <th className="px-4 py-3 text-left text-sm font-mono">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y-2 divide-black">
+                        <tbody className="divide-y divide-gray-200">
                             {filteredUsers.map((user) => (
                                 <tr key={user.id} className="hover:bg-gray-50">
                                     <td className="px-4 py-3">
@@ -417,7 +417,7 @@ function AdminTab() {
                                                 {user.fullName}
                                             </div>
                                             {user.isAdmin && (
-                                                <span className="px-2 py-0.5 bg-red-600 text-white text-xs font-mono border border-black">
+                                                <span className="px-2 py-0.5 bg-red-600 text-white text-xs font-mono border border-red-700 rounded">
                                                     ADMIN
                                                 </span>
                                             )}
@@ -431,17 +431,17 @@ function AdminTab() {
                                     </td>
                                     <td className="px-4 py-3">
                                         {user.emailConfirmed ? (
-                                            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-mono border-2 border-black">
+                                            <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-mono border border-green-300 rounded">
                                                 ✓ Confirmed
                                             </span>
                                         ) : (
-                                            <span className="px-2 py-1 bg-red-100 text-red-800 text-xs font-mono border-2 border-black">
+                                            <span className="px-2 py-1 bg-red-100 text-red-800 text-xs font-mono border border-red-300 rounded">
                                                 ⚠ Pending
                                             </span>
                                         )}
                                     </td>
                                     <td className="px-4 py-3">
-                                        <span className={`px-2 py-1 text-xs font-mono border-2 border-black ${
+                                        <span className={`px-2 py-1 text-xs font-mono border border-gray-300 rounded ${
                                             user.planType === 'free' ? 'bg-gray-100 text-gray-800' :
                                             user.planType === 'power-individual' ? 'bg-yellow-100 text-yellow-800' :
                                             'bg-purple-100 text-purple-800'
@@ -462,7 +462,7 @@ function AdminTab() {
                                                     value={selectedPlan}
                                                     onChange={(e) => setSelectedPlan(e.target.value as PlanType)}
                                                     disabled={isUpdatingPlan}
-                                                    className="px-2 py-1 border-2 border-black focus:outline-none focus:border-yellow-400 font-mono text-xs"
+                                                    className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-black font-mono text-xs"
                                                 >
                                                     <option value="free">Free</option>
                                                     <option value="power-individual">Power</option>
@@ -476,21 +476,21 @@ function AdminTab() {
                                                         value={selectedSeats}
                                                         onChange={(e) => setSelectedSeats(parseInt(e.target.value) || 5)}
                                                         disabled={isUpdatingPlan}
-                                                        className="w-16 px-2 py-1 border-2 border-black focus:outline-none focus:border-yellow-400 font-mono text-xs"
+                                                        className="w-16 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-black font-mono text-xs"
                                                         placeholder="Seats"
                                                     />
                                                 )}
                                                 <button
                                                     onClick={() => updateUserPlan(user.id, selectedPlan, selectedSeats)}
                                                     disabled={isUpdatingPlan}
-                                                    className="px-2 py-1 bg-green-500 text-white text-xs font-mono border-2 border-black hover:bg-green-600 disabled:opacity-50"
+                                                    className="px-2 py-1 bg-green-500 text-white text-xs font-mono border border-green-600 rounded hover:bg-green-600 disabled:opacity-50"
                                                 >
                                                     {isUpdatingPlan ? '...' : '✓'}
                                                 </button>
                                                 <button
                                                     onClick={() => setEditingPlanFor(null)}
                                                     disabled={isUpdatingPlan}
-                                                    className="px-2 py-1 bg-gray-300 text-black text-xs font-mono border-2 border-black hover:bg-gray-400 disabled:opacity-50"
+                                                    className="px-2 py-1 bg-gray-300 text-black text-xs font-mono border border-gray-400 rounded hover:bg-gray-400 disabled:opacity-50"
                                                 >
                                                     ✕
                                                 </button>
@@ -503,14 +503,14 @@ function AdminTab() {
                                                         setSelectedPlan(user.planType as PlanType);
                                                         setSelectedSeats(5); // Default to 5 seats for team plans
                                                     }}
-                                                    className="px-3 py-1 bg-yellow-400 text-black text-xs font-mono border-2 border-black hover:bg-yellow-500"
+                                                    className="px-3 py-1 bg-yellow-400 text-black text-xs font-mono border border-yellow-500 rounded hover:bg-yellow-500"
                                                 >
                                                     Change Plan
                                                 </button>
                                                 {!user.isAdmin && (
                                                     <button
                                                         onClick={() => deleteUser(user.id, user.email)}
-                                                        className="px-3 py-1 bg-red-500 text-white text-xs font-mono border-2 border-black hover:bg-red-600"
+                                                        className="px-3 py-1 bg-red-500 text-white text-xs font-mono border border-red-600 rounded hover:bg-red-600"
                                                         title="Delete user"
                                                     >
                                                         🗑️
@@ -533,7 +533,7 @@ function AdminTab() {
             </div>
 
                 {/* Footer Info */}
-                <div className="bg-gray-50 p-4 border-2 border-black text-center">
+                <div className="bg-gray-50 p-4 border border-gray-200 rounded-lg text-center">
                     <p className="text-sm font-mono text-gray-600">
                         Showing {filteredUsers.length} of {users.length} users
                     </p>

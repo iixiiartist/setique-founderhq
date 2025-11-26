@@ -61,21 +61,21 @@ const MarketingItemCard: React.FC<{
     }, [item.actualSpend, item.campaignBudget]);
 
     return (
-        <li className={`p-4 bg-white border-2 shadow-neo ${isOverdue ? 'border-red-500' : 'border-black'}`}>
+        <li className={`p-4 bg-white border rounded-lg shadow-sm ${isOverdue ? 'border-red-300' : 'border-gray-200'}`}>
             <div className="space-y-3">
                 {/* Header */}
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex-grow overflow-hidden">
-                        <h4 className="font-bold text-lg truncate">{item.title}</h4>
+                        <h4 className="font-semibold text-lg text-gray-900 truncate">{item.title}</h4>
                         <div className="flex flex-wrap gap-2 mt-1 text-xs">
-                            <span className="px-2 py-0.5 bg-gray-200 border border-black font-mono">{item.type}</span>
+                            <span className="px-2 py-0.5 bg-gray-100 border border-gray-200 rounded-md">{item.type}</span>
                             {item.channels && item.channels.length > 0 && (
-                                <span className="px-2 py-0.5 bg-blue-100 border border-blue-500 font-mono">
+                                <span className="px-2 py-0.5 bg-blue-50 border border-blue-200 rounded-md text-blue-700">
                                     {item.channels.length} channel{item.channels.length !== 1 ? 's' : ''}
                                 </span>
                             )}
                             {linkedProducts.length > 0 && (
-                                <span className="px-2 py-0.5 bg-orange-100 border border-orange-500 font-mono">
+                                <span className="px-2 py-0.5 bg-orange-50 border border-orange-200 rounded-md text-orange-700">
                                     {linkedProducts.length} product{linkedProducts.length !== 1 ? 's' : ''}
                                 </span>
                             )}
@@ -85,7 +85,7 @@ const MarketingItemCard: React.FC<{
                         <select
                             value={item.status}
                             onChange={(e) => actions.updateMarketingItem(item.id, { status: e.target.value as MarketingItem['status'] })}
-                            className="font-mono text-xs font-semibold bg-white border-2 border-black p-1 rounded-none focus:outline-none focus:border-blue-500"
+                            className="text-xs font-medium bg-white border border-gray-200 p-1.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                             onClick={(e) => e.stopPropagation()}
                             aria-label={`Status for ${item.title}`}
                         >
@@ -99,7 +99,7 @@ const MarketingItemCard: React.FC<{
                             <button 
                                 ref={editButtonRef} 
                                 onClick={() => onEdit(item, editButtonRef)} 
-                                className="font-mono bg-white border-2 border-black text-black cursor-pointer text-xs py-1 px-2 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-gray-100"
+                                className="bg-white border border-gray-200 text-gray-700 cursor-pointer text-xs py-1.5 px-3 rounded-md font-medium transition-colors hover:bg-gray-50"
                             >
                                 Edit
                             </button>
@@ -109,7 +109,7 @@ const MarketingItemCard: React.FC<{
                                         actions.deleteItem('marketing', item.id);
                                     }
                                 }} 
-                                className="text-lg font-bold hover:text-red-500 transition-colors px-2" 
+                                className="text-lg font-bold text-gray-400 hover:text-red-500 transition-colors px-2" 
                                 aria-label={`Delete marketing item: ${item.title}`}
                             >
                                 &times;
@@ -119,20 +119,20 @@ const MarketingItemCard: React.FC<{
                 </div>
 
                 {/* Campaign Details */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs pt-2 border-t border-gray-300">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs pt-2 border-t border-gray-100">
                     {item.dueDate && (
                         <div>
-                            <div className="font-mono text-gray-600 uppercase">Launch Date</div>
-                            <div className="font-semibold">
+                            <div className="text-gray-500 uppercase">Launch Date</div>
+                            <div className="font-medium text-gray-900">
                                 {new Date(`${item.dueDate}T00:00:00Z`).toLocaleDateString(undefined, { timeZone: 'UTC' })}
-                                {isOverdue && <span className="ml-1 font-mono text-xs font-bold text-red-600">⚠</span>}
+                                {isOverdue && <span className="ml-1 text-xs font-medium text-red-600">⚠</span>}
                             </div>
                         </div>
                     )}
                     {item.campaignBudget && item.campaignBudget > 0 && (
                         <div>
-                            <div className="font-mono text-gray-600 uppercase">Budget</div>
-                            <div className="font-semibold font-mono">${item.campaignBudget.toLocaleString()}</div>
+                            <div className="text-gray-500 uppercase">Budget</div>
+                            <div className="font-medium text-gray-900">${item.campaignBudget.toLocaleString()}</div>
                             {budgetUtilization > 0 && (
                                 <div className={`text-xs ${budgetUtilization > 100 ? 'text-red-600' : 'text-green-600'}`}>
                                     {budgetUtilization.toFixed(0)}% used
@@ -142,50 +142,50 @@ const MarketingItemCard: React.FC<{
                     )}
                     {item.targetRevenue && item.targetRevenue > 0 && (
                         <div>
-                            <div className="font-mono text-gray-600 uppercase">Revenue Goal</div>
-                            <div className="font-semibold font-mono text-green-700">${item.targetRevenue.toLocaleString()}</div>
+                            <div className="text-gray-500 uppercase">Revenue Goal</div>
+                            <div className="font-medium text-green-600">${item.targetRevenue.toLocaleString()}</div>
                         </div>
                     )}
                     {item.targetAudience && (
                         <div>
-                            <div className="font-mono text-gray-600 uppercase">Audience</div>
-                            <div className="font-semibold truncate" title={item.targetAudience}>{item.targetAudience}</div>
+                            <div className="text-gray-500 uppercase">Audience</div>
+                            <div className="font-medium text-gray-900 truncate" title={item.targetAudience}>{item.targetAudience}</div>
                         </div>
                     )}
                 </div>
 
                 {/* Campaign Performance KPIs */}
                 {item.kpis && (item.kpis.impressions > 0 || item.kpis.clicks > 0 || item.kpis.conversions > 0) && (
-                    <div className="pt-2 border-t border-gray-300">
-                        <div className="font-mono text-xs text-gray-600 uppercase mb-1">Performance Metrics</div>
+                    <div className="pt-2 border-t border-gray-100">
+                        <div className="text-xs text-gray-500 uppercase mb-1">Performance Metrics</div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                             {item.kpis.impressions > 0 && (
-                                <div className="bg-blue-50 border border-blue-200 p-2 rounded">
+                                <div className="bg-blue-50 border border-blue-100 p-2 rounded-lg">
                                     <div className="text-gray-600">Impressions</div>
-                                    <div className="font-bold text-blue-700">{item.kpis.impressions.toLocaleString()}</div>
+                                    <div className="font-semibold text-blue-700">{item.kpis.impressions.toLocaleString()}</div>
                                 </div>
                             )}
                             {item.kpis.clicks > 0 && (
-                                <div className="bg-green-50 border border-green-200 p-2 rounded">
+                                <div className="bg-green-50 border border-green-100 p-2 rounded-lg">
                                     <div className="text-gray-600">Clicks</div>
-                                    <div className="font-bold text-green-700">{item.kpis.clicks.toLocaleString()}</div>
+                                    <div className="font-semibold text-green-700">{item.kpis.clicks.toLocaleString()}</div>
                                     {item.kpis.impressions > 0 && (
-                                        <div className="text-xs text-gray-600">
+                                        <div className="text-xs text-gray-500">
                                             CTR: {((item.kpis.clicks / item.kpis.impressions) * 100).toFixed(2)}%
                                         </div>
                                     )}
                                 </div>
                             )}
                             {item.kpis.engagements > 0 && (
-                                <div className="bg-purple-50 border border-purple-200 p-2 rounded">
+                                <div className="bg-purple-50 border border-purple-100 p-2 rounded-lg">
                                     <div className="text-gray-600">Engagements</div>
-                                    <div className="font-bold text-purple-700">{item.kpis.engagements.toLocaleString()}</div>
+                                    <div className="font-semibold text-purple-700">{item.kpis.engagements.toLocaleString()}</div>
                                 </div>
                             )}
                             {item.kpis.conversions > 0 && (
-                                <div className="bg-orange-50 border border-orange-200 p-2 rounded">
+                                <div className="bg-orange-50 border border-orange-100 p-2 rounded-lg">
                                     <div className="text-gray-600">Conversions</div>
-                                    <div className="font-bold text-orange-700">{item.kpis.conversions.toLocaleString()}</div>
+                                    <div className="font-semibold text-orange-700">{item.kpis.conversions.toLocaleString()}</div>
                                 </div>
                             )}
                         </div>
@@ -196,7 +196,7 @@ const MarketingItemCard: React.FC<{
                 {item.tags && item.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 pt-2">
                         {item.tags.map(tag => (
-                            <span key={tag} className="px-2 py-0.5 bg-gray-100 border border-gray-400 text-xs font-mono">
+                            <span key={tag} className="px-2 py-0.5 bg-gray-100 border border-gray-200 rounded-md text-xs">
                                 #{tag}
                             </span>
                         ))}

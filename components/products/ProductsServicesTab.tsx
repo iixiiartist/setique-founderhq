@@ -213,7 +213,7 @@ export function ProductsServicesTab({
                 </div>
                 <button
                     onClick={handleCreateProduct}
-                    className="px-4 py-2 bg-blue-500 text-white font-bold border-2 border-black shadow-neo hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all"
+                    className="px-4 py-2 bg-blue-500 text-white font-bold border border-blue-600 rounded-md shadow-sm hover:bg-blue-600 transition-colors"
                 >
                     + Add Product/Service
                 </button>
@@ -223,7 +223,7 @@ export function ProductsServicesTab({
             <div className="flex gap-2">
                 <button
                     onClick={() => setCurrentView('catalog')}
-                    className={`px-4 py-2 border-2 border-black font-semibold transition-all ${
+                    className={`px-4 py-2 border border-gray-300 rounded-md font-semibold transition-all ${
                         currentView === 'catalog'
                             ? 'bg-black text-white'
                             : 'bg-white hover:bg-gray-50'
@@ -233,7 +233,7 @@ export function ProductsServicesTab({
                 </button>
                 <button
                     onClick={() => setCurrentView('analytics')}
-                    className={`px-4 py-2 border-2 border-black font-semibold transition-all ${
+                    className={`px-4 py-2 border border-gray-300 rounded-md font-semibold transition-all ${
                         currentView === 'analytics'
                             ? 'bg-black text-white'
                             : 'bg-white hover:bg-gray-50'
@@ -296,7 +296,7 @@ export function ProductsServicesTab({
             </div>
 
             {/* Filters and Search */}
-            <div className="bg-white border-2 border-black shadow-neo p-4">
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                     {/* Search */}
                     <div className="md:col-span-2 flex flex-col gap-2">
@@ -311,7 +311,7 @@ export function ProductsServicesTab({
                                         handleSmartSearch();
                                     }
                                 }}
-                                className="w-full px-3 py-2 border-2 border-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
                             />
                             <button
                                 onClick={() => {
@@ -321,7 +321,7 @@ export function ProductsServicesTab({
                                         setShowMarketResearch(false);
                                     }
                                 }}
-                                className={`px-2 py-1 border-2 border-black font-mono text-xs ${isSmartSearch ? 'bg-purple-600 text-white' : 'bg-gray-100'}`}
+                                className={`px-2 py-1 border border-gray-300 rounded-md font-mono text-xs ${isSmartSearch ? 'bg-purple-600 text-white' : 'bg-gray-100'}`}
                                 title="Toggle AI Features"
                             >
                                 {isSmartSearch ? '✨ AI' : 'AI'}
@@ -333,14 +333,14 @@ export function ProductsServicesTab({
                                 <button
                                     onClick={handleSmartSearch}
                                     disabled={isSearching}
-                                    className="flex-1 px-2 py-1 border-2 border-black bg-black text-white font-mono text-xs hover:bg-gray-800 disabled:opacity-50"
+                                    className="flex-1 px-2 py-1 border border-gray-300 rounded-md bg-black text-white font-mono text-xs hover:bg-gray-800 disabled:opacity-50"
                                 >
                                     {isSearching ? 'Searching...' : '🔍 Filter My Products'}
                                 </button>
                                 <button
                                     onClick={handleMarketResearch}
                                     disabled={isSearching}
-                                    className="flex-1 px-2 py-1 border-2 border-black bg-blue-600 text-white font-mono text-xs hover:bg-blue-700 disabled:opacity-50"
+                                    className="flex-1 px-2 py-1 border border-blue-700 rounded-md bg-blue-600 text-white font-mono text-xs hover:bg-blue-700 disabled:opacity-50"
                                 >
                                     {isSearching ? 'Researching...' : '🌐 Research Online'}
                                 </button>
@@ -352,7 +352,7 @@ export function ProductsServicesTab({
                     <select
                         value={categoryFilter}
                         onChange={(e) => setCategoryFilter(e.target.value as ProductServiceCategory | 'all')}
-                        className="px-3 py-2 border-2 border-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
                     >
                         <option value="all">All Categories</option>
                         <option value="product">Products</option>
@@ -364,7 +364,7 @@ export function ProductsServicesTab({
                     <select
                         value={typeFilter}
                         onChange={(e) => setTypeFilter(e.target.value as ProductServiceType | 'all')}
-                        className="px-3 py-2 border-2 border-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
                     >
                         <option value="all">All Types</option>
                         <option value="digital">Digital</option>
@@ -380,7 +380,7 @@ export function ProductsServicesTab({
                     <select
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value as ProductServiceStatus | 'all')}
-                        className="px-3 py-2 border-2 border-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
                     >
                         <option value="all">All Status</option>
                         <option value="active">Active</option>
@@ -391,14 +391,14 @@ export function ProductsServicesTab({
                 </div>
 
                 {/* View Mode Toggle */}
-                <div className="flex items-center justify-between mt-3 pt-3 border-t-2 border-black">
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-200">
                     <p className="text-sm text-gray-600">
                         {filteredProducts.length} {filteredProducts.length === 1 ? 'item' : 'items'}
                     </p>
                     <div className="flex gap-2">
                         <button
                             onClick={() => setViewMode('grid')}
-                            className={`px-3 py-1 border-2 border-black font-bold ${
+                            className={`px-3 py-1 border border-gray-300 rounded-md font-bold ${
                                 viewMode === 'grid' 
                                     ? 'bg-blue-500 text-white' 
                                     : 'bg-white hover:bg-gray-100'
@@ -408,7 +408,7 @@ export function ProductsServicesTab({
                         </button>
                         <button
                             onClick={() => setViewMode('list')}
-                            className={`px-3 py-1 border-2 border-black font-bold ${
+                            className={`px-3 py-1 border border-gray-300 rounded-md font-bold ${
                                 viewMode === 'list' 
                                     ? 'bg-blue-500 text-white' 
                                     : 'bg-white hover:bg-gray-100'
@@ -422,7 +422,7 @@ export function ProductsServicesTab({
 
             {/* Products Grid/List */}
             {filteredProducts.length === 0 ? (
-                <div className="bg-white border-2 border-black shadow-neo p-12 text-center">
+                <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-12 text-center">
                     <div className="text-6xl mb-4">📦</div>
                     <h3 className="text-xl font-bold mb-2">No Products or Services Yet</h3>
                     <p className="text-gray-600 mb-6">
@@ -433,7 +433,7 @@ export function ProductsServicesTab({
                     {!searchTerm && categoryFilter === 'all' && typeFilter === 'all' && statusFilter === 'all' && (
                         <button
                             onClick={handleCreateProduct}
-                            className="px-6 py-3 bg-blue-500 text-white font-bold border-2 border-black shadow-neo hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all"
+                            className="px-6 py-3 bg-blue-500 text-white font-bold border border-blue-600 rounded-md shadow-sm hover:bg-blue-600 transition-colors"
                         >
                             + Add Your First Item
                         </button>

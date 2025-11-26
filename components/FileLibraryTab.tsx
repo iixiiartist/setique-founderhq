@@ -57,8 +57,8 @@ const formatSize = (bytes: number | undefined) => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 };
 
-const PANEL_CLASS = 'bg-white border-2 border-black shadow-neo';
-const CONTROL_STRIP_CLASS = 'border-2 border-black bg-white shadow-neo-sm';
+const PANEL_CLASS = 'bg-white border border-gray-200 rounded-lg shadow-sm';
+const CONTROL_STRIP_CLASS = 'border border-gray-200 bg-white rounded-lg shadow-sm';
 
 // --- Main Component ---
 
@@ -177,7 +177,7 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
 
     return (
         <div
-            className="flex h-full bg-[#FDF9F2] text-black font-mono overflow-hidden border-t-2 border-black"
+            className="flex h-full bg-[#FDF9F2] text-black font-mono overflow-hidden border-t border-gray-200"
             onDrop={handleDrop}
             onDragOver={handleDragOver}
         >
@@ -211,15 +211,15 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
             </Modal>
 
             {/* Sidebar */}
-            <div className="w-72 bg-white border-r-2 border-black shadow-neo flex flex-col shrink-0">
-                <div className="p-6 flex items-center gap-3 border-b-2 border-black">
-                    <div className="w-10 h-10 bg-yellow-300 border-2 border-black flex items-center justify-center shadow-neo-sm">
+            <div className="w-72 bg-white border-r border-gray-200 shadow-sm flex flex-col shrink-0">
+                <div className="p-6 flex items-center gap-3 border-b border-gray-200">
+                    <div className="w-10 h-10 bg-yellow-300 border border-gray-300 rounded-lg flex items-center justify-center shadow-sm">
                         <HardDrive className="w-5 h-5 text-black" />
                     </div>
                     <span className="text-2xl font-black tracking-tight">Drive</span>
                 </div>
 
-                <div className="px-4 mb-6 pt-4 border-b-2 border-dashed border-black/30">
+                <div className="px-4 mb-6 pt-4 border-b border-dashed border-gray-300">
                     <Button 
                         onClick={() => fileInputRef.current?.click()}
                         fullWidth
@@ -251,7 +251,7 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                         onClick={() => { setActiveFilter('mine'); setSelectedModule(null); }}
                     />
 
-                    <div className="pt-6 pb-2 px-4 text-xs font-black uppercase tracking-[0.3em] text-black border-b-2 border-black/60">
+                    <div className="pt-6 pb-2 px-4 text-xs font-black uppercase tracking-[0.3em] text-black border-b border-gray-300">
                         FOLDERS
                     </div>
                     {NAV_ITEMS.filter(item => item.id !== 'dashboard' && item.id !== 'settings').map(item => (
@@ -269,7 +269,7 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
             {/* Main Content */}
             <div className="flex-1 flex flex-col min-w-0">
                 {/* Header */}
-                <header className="h-20 bg-white border-b-2 border-black flex items-center justify-between px-8 shrink-0 shadow-neo">
+                <header className="h-20 bg-white border-b border-gray-200 flex items-center justify-between px-8 shrink-0 shadow-sm">
                     <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-tight">
                         <span className="cursor-pointer hover:text-yellow-600" onClick={() => { setActiveFilter('all'); setSelectedModule(null); }}>Drive</span>
                         {selectedModule && (
@@ -285,7 +285,7 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                         <input 
                             type="text"
                             placeholder="Search files..."
-                            className="w-full pl-12 pr-4 py-3 bg-white border-2 border-black focus:outline-none focus:ring-0 focus:border-black text-sm uppercase tracking-tight"
+                            className="w-full pl-12 pr-4 py-3 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black text-sm uppercase tracking-tight"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -294,13 +294,13 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                     <div className={`${CONTROL_STRIP_CLASS} flex items-center gap-2 p-1`}>
                         <button 
                             onClick={() => setViewMode('list')}
-                            className={`px-3 py-2 font-semibold ${viewMode === 'list' ? 'bg-black text-white shadow-neo-sm' : 'bg-white text-black hover:bg-yellow-50'}`}
+                            className={`px-3 py-2 font-semibold rounded ${viewMode === 'list' ? 'bg-black text-white' : 'bg-white text-black hover:bg-gray-100'}`}
                         >
                             <List size={16} />
                         </button>
                         <button 
                             onClick={() => setViewMode('grid')}
-                            className={`px-3 py-2 font-semibold ${viewMode === 'grid' ? 'bg-black text-white shadow-neo-sm' : 'bg-white text-black hover:bg-yellow-50'}`}
+                            className={`px-3 py-2 font-semibold rounded ${viewMode === 'grid' ? 'bg-black text-white' : 'bg-white text-black hover:bg-gray-100'}`}
                         >
                             <Grid size={16} />
                         </button>
@@ -311,7 +311,7 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                 <main className="flex-1 overflow-y-auto p-8 space-y-6" onClick={() => setSelectedDocId(null)}>
                     {filteredDocs.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full text-center" onClick={(e) => e.stopPropagation()}>
-                            <div className="w-40 h-40 border-4 border-dashed border-black flex items-center justify-center mb-6 bg-white shadow-neo-sm">
+                            <div className="w-40 h-40 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center mb-6 bg-white shadow-sm">
                                 <Upload className="w-12 h-12" />
                             </div>
                             <p className="text-xl font-black tracking-tight">No files yet</p>
@@ -333,14 +333,14 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                                         >
                                             <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                                                 <button 
-                                                    className="p-1 border-2 border-black bg-white hover:bg-black hover:text-white"
+                                                    className="p-1 border border-gray-300 rounded bg-white hover:bg-black hover:text-white"
                                                     onClick={(e) => { e.stopPropagation(); /* Menu */ }}
                                                 >
                                                     <MoreVertical size={14} className="text-gray-500" />
                                                 </button>
                                             </div>
                                             
-                                            <div className="w-20 h-20 mb-4 flex items-center justify-center border-2 border-black bg-white shadow-neo-sm group-hover:scale-105 transition-transform">
+                                            <div className="w-20 h-20 mb-4 flex items-center justify-center border border-gray-200 rounded-lg bg-white shadow-sm group-hover:scale-105 transition-transform">
                                                 {getFileIcon(doc.mimeType)}
                                             </div>
                                             
@@ -371,19 +371,19 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                                                     key={doc.id} 
                                                     onClick={(e) => { e.stopPropagation(); setSelectedDocId(doc.id); }}
                                                     className={`
-                                                        group transition-colors cursor-pointer border-b-2 border-black/10 last:border-b-0
+                                                        group transition-colors cursor-pointer border-b border-gray-200 last:border-b-0
                                                         ${selectedDocId === doc.id ? 'bg-yellow-100' : 'hover:bg-gray-100'}
                                                     `}
                                                 >
                                                     <td className="px-6 py-3 font-medium text-gray-900 flex items-center gap-3">
-                                                        <div className="w-10 h-10 flex items-center justify-center border-2 border-black bg-white">
+                                                        <div className="w-10 h-10 flex items-center justify-center border border-gray-200 rounded bg-white">
                                                             {getFileIcon(doc.mimeType)}
                                                         </div>
                                                         <span className="truncate max-w-xs">{doc.name}</span>
                                                     </td>
                                                     <td className="px-6 py-3">
                                                         <div className="flex items-center gap-2">
-                                                            <div className="w-7 h-7 border-2 border-black bg-white flex items-center justify-center text-xs font-black">
+                                                            <div className="w-7 h-7 border border-gray-200 rounded bg-white flex items-center justify-center text-xs font-black">
                                                                 {doc.uploadedByName?.[0] || 'U'}
                                                             </div>
                                                             <span className="text-xs uppercase tracking-tight">{doc.uploadedByName || 'Unknown'}</span>
@@ -391,19 +391,19 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                                                     </td>
                                                     <td className="px-6 py-3">{new Date(doc.uploadedAt).toLocaleDateString()}</td>
                                                     <td className="px-6 py-3">
-                                                        <span className="px-2 py-1 border-2 border-black text-xs font-semibold">
+                                                        <span className="px-2 py-1 border border-gray-300 rounded text-xs font-semibold">
                                                             {NAV_ITEMS.find(i => i.id === doc.module)?.label || 'General'}
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-3 text-right">
                                                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <button onClick={(e) => { e.stopPropagation(); handleDownload(doc); }} className="p-1.5 border-2 border-black bg-white hover:bg-black hover:text-white">
+                                                            <button onClick={(e) => { e.stopPropagation(); handleDownload(doc); }} className="p-1.5 border border-gray-300 rounded bg-white hover:bg-black hover:text-white">
                                                                 <Download size={16} />
                                                             </button>
-                                                            <button onClick={(e) => { e.stopPropagation(); handleShare(doc); }} className="p-1.5 border-2 border-black bg-white hover:bg-blue-600 hover:text-white" title="Share via Email">
+                                                            <button onClick={(e) => { e.stopPropagation(); handleShare(doc); }} className="p-1.5 border border-gray-300 rounded bg-white hover:bg-blue-600 hover:text-white" title="Share via Email">
                                                                 <Send size={16} />
                                                             </button>
-                                                            <button onClick={(e) => { e.stopPropagation(); handleDelete(doc); }} className="p-1.5 border-2 border-black bg-white hover:bg-red-600 hover:text-white">
+                                                            <button onClick={(e) => { e.stopPropagation(); handleDelete(doc); }} className="p-1.5 border border-gray-300 rounded bg-white hover:bg-red-600 hover:text-white">
                                                                 <Trash2 size={16} />
                                                             </button>
                                                         </div>
@@ -421,19 +421,19 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
 
             {/* Right Details Panel (Only when file selected) */}
             {selectedDoc && (
-                <div className="w-96 bg-white border-l-2 border-black p-6 flex flex-col overflow-y-auto shrink-0 shadow-neo">
-                    <div className="flex items-center justify-between mb-6 border-b-2 border-black pb-3">
+                <div className="w-96 bg-white border-l border-gray-200 p-6 flex flex-col overflow-y-auto shrink-0 shadow-sm">
+                    <div className="flex items-center justify-between mb-6 border-b border-gray-200 pb-3">
                         <h3 className="font-black text-lg flex items-center gap-2">
                             <Info size={18} />
                             File Details
                         </h3>
-                        <button onClick={() => setSelectedDocId(null)} className="w-8 h-8 border-2 border-black flex items-center justify-center font-bold">
+                        <button onClick={() => setSelectedDocId(null)} className="w-8 h-8 border border-gray-300 rounded flex items-center justify-center font-bold hover:bg-gray-100">
                             ×
                         </button>
                     </div>
 
                     <div className="flex flex-col items-center mb-6">
-                        <div className="w-32 h-32 border-2 border-black bg-white flex items-center justify-center mb-4 shadow-neo-sm">
+                        <div className="w-32 h-32 border border-gray-200 rounded-lg bg-white flex items-center justify-center mb-4 shadow-sm">
                             {getFileIcon(selectedDoc.mimeType)}
                         </div>
                         <h4 className="font-black text-center break-all">{selectedDoc.name}</h4>
@@ -447,7 +447,7 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                         <DetailRow label="Location" value={NAV_ITEMS.find(i => i.id === selectedDoc.module)?.label || 'General'} />
                     </div>
 
-                    <div className="mt-8 pt-6 border-t-2 border-dashed border-black flex flex-col gap-3">
+                    <div className="mt-8 pt-6 border-t border-dashed border-gray-300 flex flex-col gap-3">
                         <Button 
                             onClick={() => handleDownload(selectedDoc)}
                             className="w-full justify-center gap-2"
@@ -494,8 +494,8 @@ function SidebarItem({ icon, label, active, onClick }: { icon: React.ReactNode, 
         <button 
             onClick={onClick}
             className={`
-                w-full flex items-center gap-3 px-4 py-2 text-sm font-semibold border-2 border-black rounded-none text-left transition-all mb-1 tracking-tight
-                ${active ? 'bg-black text-white shadow-neo-sm' : 'bg-white text-black hover:-translate-y-0.5 hover:translate-x-0.5 hover:shadow-neo-sm'}
+                w-full flex items-center gap-3 px-4 py-2 text-sm font-semibold border border-gray-200 rounded-md text-left transition-all mb-1 tracking-tight
+                ${active ? 'bg-black text-white' : 'bg-white text-black hover:bg-gray-50'}
             `}
         >
             <span className={`text-base ${active ? 'text-white' : 'text-black/60'}`}>{icon}</span>

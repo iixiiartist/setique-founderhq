@@ -3,7 +3,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { EmailComposer } from './EmailComposer';
 import { supabase } from '../../lib/supabase';
 import { DatabaseService } from '../../lib/services/database';
-import { getAiResponse, Content } from '../../services/groqService';
+import { getAiResponse, Content, AILimitError } from '../../services/groqService';
 import { showSuccess, showError } from '../../lib/utils/toast';
 import { fixEmailEncoding, fixHtmlEncoding } from '../../lib/utils/textDecoder';
 
@@ -19,6 +19,7 @@ export const EmailThread: React.FC<EmailThreadProps> = ({ messageId, onClose }) 
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [processingAi, setProcessingAi] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
+  const [aiLimitError, setAiLimitError] = useState<AILimitError | null>(null);
 
   useEffect(() => {
     fetchMessageDetails();
@@ -90,7 +91,12 @@ Tasks with dates will automatically appear on the calendar.`;
         }
     } catch (e: any) {
         console.error(e);
-        showError(`Failed to create task: ${e.message}`);
+        if (e instanceof AILimitError) {
+            setAiLimitError(e);
+            showError(`AI limit reached: ${e.usage}/${e.limit} requests used. Upgrade for unlimited AI.`);
+        } else {
+            showError(`Failed to create task: ${e.message}`);
+        }
     } finally {
         setProcessingAi(false);
     }
@@ -145,7 +151,12 @@ Content: ${cleanedBody}`;
         }
     } catch (e: any) {
         console.error('[EmailThread] Summarization error:', e);
-        showError(`Failed to summarize: ${e.message}`);
+        if (e instanceof AILimitError) {
+            setAiLimitError(e);
+            showError(`AI limit reached: ${e.usage}/${e.limit} requests used. Upgrade for unlimited AI.`);
+        } else {
+            showError(`Failed to summarize: ${e.message}`);
+        }
     } finally {
         setProcessingAi(false);
     }
@@ -255,6 +266,26 @@ Content: ${cleanedBody}`;
           </div>
         </div>
       </div>
+
+      {/* AI Limit Warning Banner */}
+      {aiLimitError && (
+        <div className="px-6 py-3 bg-yellow-50 border-b border-yellow-200 flex items-start gap-3">
+          <span className="text-lg">⚠️</span>
+          <div className="flex-1">
+            <h4 className="font-semibold text-yellow-800 text-sm">AI Limit Reached</h4>
+            <p className="text-xs text-yellow-700 mt-1">
+              You've used <strong>{aiLimitError.usage}/{aiLimitError.limit}</strong> AI requests on the <strong>{aiLimitError.planType}</strong> plan.
+              Upgrade to Power ($49/mo) or Team Pro ($99/mo) for unlimited AI features.
+            </p>
+            <button
+              onClick={() => setAiLimitError(null)}
+              className="mt-2 text-xs text-yellow-700 underline hover:text-yellow-900"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* AI Summary Section - Dedicated Space */}
       {(processingAi || summary) && (

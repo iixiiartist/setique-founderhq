@@ -609,6 +609,109 @@ const createEventTool: GroqTool = {
     }
 };
 
+// ============================================================================
+// Email Tools
+// ============================================================================
+
+const listEmailsTool: GroqTool = {
+    type: 'function',
+    function: {
+        name: 'listEmails',
+        description: 'Lists emails from the connected inbox. Returns recent emails with subject, sender, date, and preview snippet. Use the email data already provided in context first before calling this.',
+        parameters: {
+            type: 'object',
+            properties: {
+                filter: {
+                    type: 'string',
+                    description: 'Filter emails by status.',
+                    enum: ['all', 'unread', 'read']
+                },
+                limit: {
+                    type: 'number',
+                    description: 'Maximum number of emails to return (default 10, max 20).'
+                }
+            },
+            required: []
+        }
+    }
+};
+
+const searchEmailsTool: GroqTool = {
+    type: 'function',
+    function: {
+        name: 'searchEmails',
+        description: 'Searches emails by subject or sender. Returns matching emails from the synced inbox.',
+        parameters: {
+            type: 'object',
+            properties: {
+                query: {
+                    type: 'string',
+                    description: 'Search query to match against email subject, sender, or snippet.'
+                },
+                limit: {
+                    type: 'number',
+                    description: 'Maximum number of results to return (default 5, max 10).'
+                }
+            },
+            required: ['query']
+        }
+    }
+};
+
+const getEmailDetailsTool: GroqTool = {
+    type: 'function',
+    function: {
+        name: 'getEmailDetails',
+        description: 'Gets detailed information about a specific email by ID, including full body content if available.',
+        parameters: {
+            type: 'object',
+            properties: {
+                emailId: {
+                    type: 'string',
+                    description: 'The ID of the email to retrieve details for.'
+                }
+            },
+            required: ['emailId']
+        }
+    }
+};
+
+const createTaskFromEmailTool: GroqTool = {
+    type: 'function',
+    function: {
+        name: 'createTaskFromEmail',
+        description: 'Creates a task based on an email. Useful for tracking action items from emails.',
+        parameters: {
+            type: 'object',
+            properties: {
+                emailId: {
+                    type: 'string',
+                    description: 'The ID of the email to create a task from.'
+                },
+                taskText: {
+                    type: 'string',
+                    description: 'The task description. If not provided, will use email subject.'
+                },
+                priority: {
+                    type: 'string',
+                    description: 'Priority of the task.',
+                    enum: ['Low', 'Medium', 'High']
+                },
+                dueDate: {
+                    type: ['string', 'null'],
+                    description: 'Optional due date in YYYY-MM-DD format.'
+                },
+                category: {
+                    type: 'string',
+                    description: 'The task category.',
+                    enum: ['productsServicesTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketingTasks', 'financialTasks']
+                }
+            },
+            required: ['emailId', 'category']
+        }
+    }
+};
+
 // All tools (for reference/debugging)
 export const groqTools: GroqTool[] = [
     createTaskTool,
@@ -636,6 +739,11 @@ export const groqTools: GroqTool[] = [
     updateDocumentTool,
     getFileContentTool,
     createEventTool,
+    // Email tools
+    listEmailsTool,
+    searchEmailsTool,
+    getEmailDetailsTool,
+    createTaskFromEmailTool,
 ];
 
 /**
@@ -671,13 +779,25 @@ export const getRelevantTools = (tab: string): GroqTool[] => {
     // Financial tools (available everywhere)
     const financialTools = [logFinancialsTool, createExpenseTool, updateExpenseTool];
     
-    // Tab-specific tools (Settings is the only exception)
+    // Email tools (for Email tab and available in general context)
+    const emailTools = [listEmailsTool, searchEmailsTool, getEmailDetailsTool, createTaskFromEmailTool];
+    
+    // Tab-specific tools
     switch(tab) {
         case 'settings':
             // Settings: only settings-specific tools
             return [
                 updateSettingsTool,
                 ...coreTools
+            ];
+        
+        case 'email':
+            // Email tab: prioritize email tools + task creation
+            return [
+                ...emailTools,
+                ...taskTools,
+                ...coreTools,
+                createEventTool
             ];
         
         default:
@@ -687,6 +807,7 @@ export const getRelevantTools = (tab: string): GroqTool[] => {
                 ...crmTools,
                 ...marketingTools,
                 ...financialTools,
+                ...emailTools,
                 ...coreTools,
                 ...fileTools
             ];

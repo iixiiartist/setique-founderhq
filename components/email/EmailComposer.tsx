@@ -9,7 +9,7 @@ import {
   Paperclip, FileUp, LayoutTemplate, Maximize2, Minimize2, Square, Save
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { getAiResponse, Content } from '../../services/groqService';
+import { getAiResponse, Content, AILimitError } from '../../services/groqService';
 import { searchWeb } from '../../src/lib/services/youSearchService';
 import { showSuccess, showError } from '../../lib/utils/toast';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
@@ -215,6 +215,7 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
   const [aiProcessing, setAiProcessing] = useState(false);
   const [aiActionLabel, setAiActionLabel] = useState('');
   const [showAiMenu, setShowAiMenu] = useState(false);
+  const [aiLimitError, setAiLimitError] = useState<AILimitError | null>(null);
   const [showCc, setShowCc] = useState(false);
   const [researchResults, setResearchResults] = useState<string | null>(null);
   
@@ -686,7 +687,12 @@ Format as a bulleted list. Consider: goals, objections to address, questions to 
       }
     } catch (e: any) {
       console.error('[EmailComposer] AI action error:', e);
-      showError(`AI action failed: ${e.message}`);
+      if (e instanceof AILimitError) {
+        setAiLimitError(e);
+        showError(`AI limit reached: ${e.usage}/${e.limit} requests used on ${e.planType} plan. Upgrade for unlimited AI.`);
+      } else {
+        showError(`AI action failed: ${e.message}`);
+      }
     } finally {
       setAiProcessing(false);
       setAiActionLabel('');
@@ -1410,6 +1416,26 @@ Format as a bulleted list. Consider: goals, objections to address, questions to 
             />
           </div>
         </div>
+
+        {/* AI Limit Warning Banner */}
+        {aiLimitError && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3 mx-4 mt-2 flex items-start gap-3">
+            <span className="text-xl">⚠️</span>
+            <div className="flex-1">
+              <h4 className="font-semibold text-yellow-800 text-sm">AI Limit Reached</h4>
+              <p className="text-xs text-yellow-700 mt-1">
+                You've used <strong>{aiLimitError.usage}/{aiLimitError.limit}</strong> AI requests on the <strong>{aiLimitError.planType}</strong> plan.
+                Upgrade to Power ($49/mo) or Team Pro ($99/mo) for unlimited AI features.
+              </p>
+              <button
+                onClick={() => setAiLimitError(null)}
+                className="mt-2 text-xs text-yellow-700 underline hover:text-yellow-900"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Editor Toolbar */}
         <EditorToolbar />

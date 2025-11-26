@@ -945,6 +945,24 @@ export interface DashboardData {
     productsServices: ProductService[];
     productPriceHistory: ProductPriceHistory[];
     productBundles: ProductServiceBundle[];
+    
+    // NEW: Email Integration data
+    emailMessages?: EmailMessage[];
+    hasEmailConnected?: boolean;
+    connectedEmailAddress?: string;
+}
+
+// Email message type for AI context
+export interface EmailMessage {
+    id: string;
+    subject: string | null;
+    snippet: string | null;
+    from_address: string | null;
+    to_addresses: string[] | null;
+    received_at: string | null;
+    is_read: boolean;
+    has_attachments: boolean;
+    thread_id?: string | null;
 }
 
 // Types for AI Function Calling

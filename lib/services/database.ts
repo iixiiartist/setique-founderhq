@@ -2160,6 +2160,40 @@ export class DatabaseService {
         settings: profileResult.data?.settings as SettingsData || { desktopNotifications: false }
       }
 
+      // Fetch email data for AI assistant context
+      try {
+        const { data: emailAccount } = await supabase
+          .from('integrated_accounts')
+          .select('id, email_address, status')
+          .eq('workspace_id', workspaceId)
+          .eq('user_id', userId)
+          .eq('provider', 'gmail')
+          .eq('status', 'active')
+          .maybeSingle();
+
+        if (emailAccount) {
+          dashboardData.hasEmailConnected = true;
+          dashboardData.connectedEmailAddress = emailAccount.email_address;
+
+          // Fetch recent emails (limit to 20 for AI context)
+          const { data: emails } = await supabase
+            .from('email_messages')
+            .select('id, subject, snippet, from_address, to_addresses, received_at, is_read, has_attachments, thread_id')
+            .eq('account_id', emailAccount.id)
+            .order('received_at', { ascending: false })
+            .limit(20);
+
+          dashboardData.emailMessages = emails || [];
+        } else {
+          dashboardData.hasEmailConnected = false;
+          dashboardData.emailMessages = [];
+        }
+      } catch (emailError) {
+        logger.warn('[Database] Error fetching email data (non-critical):', emailError);
+        dashboardData.hasEmailConnected = false;
+        dashboardData.emailMessages = [];
+      }
+
       // Debug logging for CRM items
       logger.info('[Database] Loaded CRM items:', {
         totalCrmItems: crmItems.length,

@@ -13,6 +13,7 @@ import { DocLibraryPicker } from '../workspace/DocLibraryPicker';
 import { useAuth } from '../../contexts/AuthContext';
 import { InlineFormModal } from './InlineFormModal';
 import { DatabaseService } from '../../lib/services/database';
+import { supabase } from '../../lib/supabase';
 import { searchWeb } from '@/src/lib/services/youSearchService';
 import type { YouSearchImageResult, YouSearchMetadata } from '@/src/lib/services/youSearch.types';
 
@@ -628,6 +629,187 @@ function ModuleAssistant({
                         undefined,
                         args.time
                     );
+                
+                // Email tools - these read from the database
+                case 'listEmails': {
+                    if (!workspaceId || !user?.id) {
+                        return { success: false, message: 'No workspace or user context available.' };
+                    }
+                    try {
+                        const { data: account } = await supabase
+                            .from('integrated_accounts')
+                            .select('id, email_address, status')
+                            .eq('workspace_id', workspaceId)
+                            .eq('user_id', user.id)
+                            .eq('provider', 'gmail')
+                            .eq('status', 'active')
+                            .maybeSingle();
+
+                        if (!account) {
+                            return { success: false, message: 'No email account connected. Please link your Gmail in Settings → Integrations.' };
+                        }
+
+                        let query = supabase
+                            .from('email_messages')
+                            .select('id, subject, snippet, from_address, received_at, is_read, has_attachments')
+                            .eq('account_id', account.id)
+                            .order('received_at', { ascending: false });
+
+                        if (args.filter === 'unread') {
+                            query = query.eq('is_read', false);
+                        } else if (args.filter === 'read') {
+                            query = query.eq('is_read', true);
+                        }
+
+                        const limit = Math.min(args.limit || 10, 20);
+                        query = query.limit(limit);
+
+                        const { data: emails, error } = await query;
+                        if (error) throw error;
+
+                        return {
+                            success: true,
+                            message: `Found ${emails?.length || 0} emails.`,
+                            emails: emails?.map(e => ({
+                                id: e.id,
+                                subject: e.subject || '(No subject)',
+                                from: e.from_address?.split('<')[0]?.trim() || e.from_address || 'Unknown',
+                                received: e.received_at,
+                                isUnread: !e.is_read,
+                                hasAttachments: e.has_attachments,
+                                preview: e.snippet?.slice(0, 100) || ''
+                            })) || []
+                        };
+                    } catch (e) {
+                        const message = e instanceof Error ? e.message : 'Failed to fetch emails';
+                        return { success: false, message };
+                    }
+                }
+
+                case 'searchEmails': {
+                    if (!workspaceId || !user?.id) {
+                        return { success: false, message: 'No workspace or user context available.' };
+                    }
+                    try {
+                        const { data: account } = await supabase
+                            .from('integrated_accounts')
+                            .select('id')
+                            .eq('workspace_id', workspaceId)
+                            .eq('user_id', user.id)
+                            .eq('provider', 'gmail')
+                            .eq('status', 'active')
+                            .maybeSingle();
+
+                        if (!account) {
+                            return { success: false, message: 'No email account connected.' };
+                        }
+
+                        const searchQuery = args.query.toLowerCase();
+                        const limit = Math.min(args.limit || 5, 10);
+
+                        const { data: emails, error } = await supabase
+                            .from('email_messages')
+                            .select('id, subject, snippet, from_address, received_at, is_read')
+                            .eq('account_id', account.id)
+                            .or(`subject.ilike.%${searchQuery}%,snippet.ilike.%${searchQuery}%,from_address.ilike.%${searchQuery}%`)
+                            .order('received_at', { ascending: false })
+                            .limit(limit);
+
+                        if (error) throw error;
+
+                        return {
+                            success: true,
+                            message: `Found ${emails?.length || 0} emails matching "${args.query}".`,
+                            emails: emails?.map(e => ({
+                                id: e.id,
+                                subject: e.subject || '(No subject)',
+                                from: e.from_address?.split('<')[0]?.trim() || e.from_address || 'Unknown',
+                                received: e.received_at,
+                                isUnread: !e.is_read,
+                                preview: e.snippet?.slice(0, 100) || ''
+                            })) || []
+                        };
+                    } catch (e) {
+                        const message = e instanceof Error ? e.message : 'Failed to search emails';
+                        return { success: false, message };
+                    }
+                }
+
+                case 'getEmailDetails': {
+                    if (!workspaceId || !user?.id) {
+                        return { success: false, message: 'No workspace or user context available.' };
+                    }
+                    try {
+                        const { data: email, error } = await supabase
+                            .from('email_messages')
+                            .select('*, integrated_accounts!inner(user_id, workspace_id)')
+                            .eq('id', args.emailId)
+                            .eq('integrated_accounts.user_id', user.id)
+                            .eq('integrated_accounts.workspace_id', workspaceId)
+                            .single();
+
+                        if (error || !email) {
+                            return { success: false, message: 'Email not found or access denied.' };
+                        }
+
+                        return {
+                            success: true,
+                            email: {
+                                id: email.id,
+                                subject: email.subject || '(No subject)',
+                                from: email.from_address,
+                                to: email.to_addresses,
+                                cc: email.cc_addresses,
+                                received: email.received_at,
+                                isUnread: !email.is_read,
+                                hasAttachments: email.has_attachments,
+                                snippet: email.snippet,
+                                threadId: email.thread_id
+                            }
+                        };
+                    } catch (e) {
+                        const message = e instanceof Error ? e.message : 'Failed to get email details';
+                        return { success: false, message };
+                    }
+                }
+
+                case 'createTaskFromEmail': {
+                    if (!workspaceId || !user?.id) {
+                        return { success: false, message: 'No workspace or user context available.' };
+                    }
+                    try {
+                        // First get the email
+                        const { data: email } = await supabase
+                            .from('email_messages')
+                            .select('subject, from_address, snippet')
+                            .eq('id', args.emailId)
+                            .single();
+
+                        const taskText = args.taskText || `Follow up: ${email?.subject || 'Email task'}`;
+                        const priority = args.priority || 'Medium';
+                        const category = args.category || 'productsServicesTasks';
+
+                        const result = await actions.createTask(
+                            category as TaskCollectionName,
+                            `📧 ${taskText}`,
+                            priority,
+                            undefined,
+                            undefined,
+                            args.dueDate
+                        );
+
+                        return {
+                            ...result,
+                            message: result.success 
+                                ? `Created task from email "${email?.subject || 'Unknown'}"` 
+                                : result.message
+                        };
+                    } catch (e) {
+                        const message = e instanceof Error ? e.message : 'Failed to create task from email';
+                        return { success: false, message };
+                    }
+                }
+
                 default:
                     return { success: false, message: `Unknown function: ${name}` };
             }
@@ -1622,3 +1804,4 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
 };
 
 export default ModuleAssistant;
+

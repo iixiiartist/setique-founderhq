@@ -1,4 +1,7 @@
 import React, { useState, useMemo } from 'react';
+import { 
+    Search, Clock, Calendar, AlertCircle, CheckCircle, CalendarClock, FileText, User
+} from 'lucide-react';
 import { AnyCrmItem, Priority } from '../../types';
 
 interface FollowUpsManagerProps {
@@ -96,18 +99,18 @@ export function FollowUpsManager({
     }, [filteredItems]);
 
     const getItemTypeLabel = (item: AnyCrmItem) => {
-        if ('checkSize' in item) return '💼 Investor';
-        if ('dealValue' in item) return '🛍️ Customer';
-        if ('opportunity' in item) return '🤝 Partner';
-        return '📊 Account';
+        if ('checkSize' in item) return 'Investor';
+        if ('dealValue' in item) return 'Customer';
+        if ('opportunity' in item) return 'Partner';
+        return 'Account';
     };
 
     const getPriorityColor = (priority: Priority) => {
         switch (priority) {
-            case 'High': return 'bg-red-100 text-red-800 border-red-400';
-            case 'Medium': return 'bg-yellow-100 text-yellow-800 border-yellow-400';
-            case 'Low': return 'bg-green-100 text-green-800 border-green-400';
-            default: return 'bg-gray-100 text-gray-800 border-gray-400';
+            case 'High': return 'bg-red-100 text-red-700';
+            case 'Medium': return 'bg-yellow-100 text-yellow-700';
+            case 'Low': return 'bg-gray-100 text-gray-600';
+            default: return 'bg-gray-100 text-gray-600';
         }
     };
 
@@ -119,44 +122,50 @@ export function FollowUpsManager({
         return (
             <div
                 key={item.id}
-                className={`bg-white border-2 p-4 shadow-neo hover:shadow-neo-lg transition-all ${
-                    isOverdue ? 'border-red-500' : isToday ? 'border-blue-500' : 'border-black'
+                className={`bg-white rounded-lg border p-3 hover:shadow-sm transition-all ${
+                    isOverdue 
+                        ? 'border-red-200 bg-red-50/30' 
+                        : isToday 
+                            ? 'border-gray-300 bg-gray-50/30' 
+                            : 'border-gray-200 hover:border-gray-300'
                 }`}
             >
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex-grow min-w-0">
-                        <div className="flex items-center gap-2 mb-2 flex-wrap">
-                            <span className="text-sm">{getItemTypeLabel(item)}</span>
-                            <h4 className="font-bold text-lg text-black truncate">
+                        <div className="flex items-center gap-2 mb-1.5">
+                            <span className="text-xs text-gray-400 uppercase tracking-wide">{getItemTypeLabel(item)}</span>
+                            <h4 className="font-medium text-sm text-gray-900 truncate">
                                 {item.company}
                             </h4>
                         </div>
 
-                        <p className="text-gray-800 font-semibold mb-2">
+                        <p className="text-sm text-gray-700 mb-2">
                             {item.nextAction}
                         </p>
 
-                        <div className="flex flex-wrap items-center gap-2">
-                            <span className={`px-2 py-1 border text-xs font-mono font-semibold ${getPriorityColor(item.priority)}`}>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${getPriorityColor(item.priority)}`}>
                                 {item.priority}
                             </span>
                             {item.nextActionDate && (
-                                <span className={`px-2 py-1 border text-xs font-mono ${
-                                    isOverdue ? 'bg-red-500 text-white border-red-700 font-bold' :
-                                    isToday ? 'bg-blue-500 text-white border-blue-700 font-bold' :
-                                    'bg-gray-100 text-gray-700 border-gray-400'
+                                <span className={`px-2 py-0.5 rounded text-xs font-medium flex items-center gap-1 ${
+                                    isOverdue ? 'bg-red-100 text-red-700' :
+                                    isToday ? 'bg-gray-900 text-white' :
+                                    'bg-gray-100 text-gray-600'
                                 }`}>
-                                    📅 {new Date(item.nextActionDate + 'T00:00:00').toLocaleDateString(undefined, { 
+                                    <Calendar className="w-3 h-3" />
+                                    {new Date(item.nextActionDate + 'T00:00:00').toLocaleDateString(undefined, { 
                                         month: 'short', 
                                         day: 'numeric',
                                         timeZone: 'UTC'
                                     })}
-                                    {item.nextActionTime && ` at ${item.nextActionTime}`}
+                                    {item.nextActionTime && ` ${item.nextActionTime}`}
                                 </span>
                             )}
                             {item.assignedToName && (
-                                <span className="px-2 py-1 bg-purple-50 border border-purple-300 text-xs font-mono text-purple-700">
-                                    → {item.assignedToName}
+                                <span className="px-2 py-0.5 bg-gray-50 rounded text-xs text-gray-500 flex items-center gap-1">
+                                    <User className="w-3 h-3" />
+                                    {item.assignedToName}
                                 </span>
                             )}
                         </div>
@@ -166,15 +175,15 @@ export function FollowUpsManager({
         );
     };
 
-    const renderGroup = (title: string, items: AnyCrmItem[], emoji: string, color: string) => {
+    const renderGroup = (title: string, items: AnyCrmItem[], icon: React.ReactNode, color: string) => {
         if (items.length === 0) return null;
 
         return (
             <div key={title} className="mb-6">
-                <h4 className={`font-mono font-bold text-lg mb-3 ${color} flex items-center gap-2`}>
-                    <span>{emoji}</span>
+                <h4 className={`flex items-center gap-2 text-sm font-medium mb-3 ${color}`}>
+                    {icon}
                     <span>{title}</span>
-                    <span className="text-sm font-normal">({items.length})</span>
+                    <span className="text-gray-400 font-normal">({items.length})</span>
                 </h4>
                 <div className="space-y-2">
                     {items.map(renderFollowUpCard)}
@@ -187,14 +196,21 @@ export function FollowUpsManager({
         <div className="space-y-4">
             {/* Header */}
             <div className="flex items-center justify-between gap-4 flex-wrap">
-                <h3 className="font-mono font-bold text-xl">
-                    📋 Follow Ups ({filteredItems.length})
-                </h3>
+                <div className="flex items-center gap-3">
+                    <CalendarClock className="w-5 h-5 text-gray-600" />
+                    <h3 className="font-semibold text-lg text-gray-900">
+                        Follow Ups
+                    </h3>
+                    <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
+                        {filteredItems.length}
+                    </span>
+                </div>
             </div>
 
             {/* Filters */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <div>
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <label htmlFor="followups-search" className="sr-only">Search follow ups</label>
                     <input
                         id="followups-search"
@@ -203,7 +219,7 @@ export function FollowUpsManager({
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search follow ups..."
-                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                        className="w-full bg-white border border-gray-200 text-gray-900 pl-9 pr-3 py-2 rounded-md text-sm focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200"
                     />
                 </div>
                 <div>
@@ -213,7 +229,7 @@ export function FollowUpsManager({
                         name="followups-priority"
                         value={filterByPriority}
                         onChange={(e) => setFilterByPriority(e.target.value)}
-                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                        className="w-full bg-white border border-gray-200 text-gray-900 p-2 rounded-md text-sm focus:outline-none focus:border-gray-400"
                     >
                         <option value="">All Priorities</option>
                         <option value="High">High</option>
@@ -228,7 +244,7 @@ export function FollowUpsManager({
                         name="followups-assignment"
                         value={filterAssignment}
                         onChange={(e) => setFilterAssignment(e.target.value as any)}
-                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                        className="w-full bg-white border border-gray-200 text-gray-900 p-2 rounded-md text-sm focus:outline-none focus:border-gray-400"
                     >
                         <option value="all">All Follow Ups</option>
                         <option value="my">My Follow Ups</option>
@@ -241,9 +257,9 @@ export function FollowUpsManager({
                             type="checkbox"
                             checked={filterOverdue}
                             onChange={(e) => setFilterOverdue(e.target.checked)}
-                            className="w-4 h-4 accent-red-500 border-2 border-black rounded-none"
+                            className="w-4 h-4 accent-red-500 rounded"
                         />
-                        <span className="text-sm font-mono font-semibold">
+                        <span className="text-sm text-gray-600">
                             Overdue Only
                         </span>
                     </label>
@@ -253,15 +269,18 @@ export function FollowUpsManager({
             {/* Stats Summary */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 {[
-                    { label: 'Overdue', count: groupedItems.overdue.length, color: 'bg-red-100 border-red-400 text-red-800' },
-                    { label: 'Today', count: groupedItems.today.length, color: 'bg-blue-100 border-blue-400 text-blue-800' },
-                    { label: 'Tomorrow', count: groupedItems.tomorrow.length, color: 'bg-green-100 border-green-400 text-green-800' },
-                    { label: 'Upcoming', count: groupedItems.upcoming.length, color: 'bg-purple-100 border-purple-400 text-purple-800' },
-                    { label: 'No Date', count: groupedItems.noDate.length, color: 'bg-gray-100 border-gray-400 text-gray-800' }
+                    { label: 'Overdue', count: groupedItems.overdue.length, color: 'bg-red-50 border-red-200 text-red-700', icon: <AlertCircle className="w-4 h-4" /> },
+                    { label: 'Today', count: groupedItems.today.length, color: 'bg-gray-100 border-gray-300 text-gray-800', icon: <Clock className="w-4 h-4" /> },
+                    { label: 'Tomorrow', count: groupedItems.tomorrow.length, color: 'bg-green-50 border-green-200 text-green-700', icon: <Calendar className="w-4 h-4" /> },
+                    { label: 'Upcoming', count: groupedItems.upcoming.length, color: 'bg-gray-50 border-gray-200 text-gray-600', icon: <CalendarClock className="w-4 h-4" /> },
+                    { label: 'No Date', count: groupedItems.noDate.length, color: 'bg-gray-50 border-gray-200 text-gray-500', icon: <FileText className="w-4 h-4" /> }
                 ].map(stat => (
-                    <div key={stat.label} className={`border-2 p-3 text-center ${stat.color}`}>
-                        <div className="text-2xl font-bold font-mono">{stat.count}</div>
-                        <div className="text-xs font-mono">{stat.label}</div>
+                    <div key={stat.label} className={`border rounded-lg p-3 ${stat.color}`}>
+                        <div className="flex items-center justify-between">
+                            <div className="text-xl font-semibold">{stat.count}</div>
+                            {stat.icon}
+                        </div>
+                        <div className="text-xs mt-1">{stat.label}</div>
                     </div>
                 ))}
             </div>
@@ -269,17 +288,18 @@ export function FollowUpsManager({
             {/* Follow Up Groups */}
             <div className="space-y-4">
                 {filteredItems.length === 0 ? (
-                    <div className="text-center py-12 text-gray-500">
-                        <p className="text-lg font-semibold">No follow ups found</p>
-                        <p className="text-sm mt-2">Add next actions to your accounts to see them here.</p>
+                    <div className="text-center py-12 text-gray-400">
+                        <CalendarClock className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p className="text-sm">No follow ups found</p>
+                        <p className="text-xs mt-1">Add next actions to your accounts to see them here.</p>
                     </div>
                 ) : (
                     <>
-                        {renderGroup('🚨 Overdue', groupedItems.overdue, '🚨', 'text-red-600')}
-                        {renderGroup('📍 Today', groupedItems.today, '📍', 'text-blue-600')}
-                        {renderGroup('📅 Tomorrow', groupedItems.tomorrow, '📅', 'text-green-600')}
-                        {renderGroup('🗓️ Upcoming', groupedItems.upcoming, '🗓️', 'text-purple-600')}
-                        {renderGroup('📝 No Date Set', groupedItems.noDate, '📝', 'text-gray-600')}
+                        {renderGroup('Overdue', groupedItems.overdue, <AlertCircle className="w-4 h-4" />, 'text-red-600')}
+                        {renderGroup('Today', groupedItems.today, <Clock className="w-4 h-4" />, 'text-gray-900')}
+                        {renderGroup('Tomorrow', groupedItems.tomorrow, <Calendar className="w-4 h-4" />, 'text-green-600')}
+                        {renderGroup('Upcoming', groupedItems.upcoming, <CalendarClock className="w-4 h-4" />, 'text-gray-600')}
+                        {renderGroup('No Date Set', groupedItems.noDate, <FileText className="w-4 h-4" />, 'text-gray-500')}
                     </>
                 )}
             </div>

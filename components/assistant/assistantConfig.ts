@@ -688,6 +688,43 @@ Recent logs: ${JSON.stringify(financialsSummary.recentLogs)}
     icon: '📧',
     color: 'blue',
     getSystemPrompt: ({ companyName, businessContext, userContext, teamContext, data }) => {
+      // Build email context from actual data
+      const hasEmailConnected = data.hasEmailConnected ?? false;
+      const connectedEmail = data.connectedEmailAddress ?? null;
+      const emails = data.emailMessages ?? [];
+      
+      // Email status section
+      let emailStatusSection = '';
+      if (!hasEmailConnected) {
+        emailStatusSection = `
+**Email Status:** Not connected
+The user has not linked a Gmail or Outlook account yet. If they ask about emails, suggest they connect their email in Settings → Integrations.
+You do NOT have access to any email data. Do NOT make up or hallucinate email information.`;
+      } else {
+        const unreadCount = emails.filter(e => !e.is_read).length;
+        const recentEmails = emails.slice(0, 10).map(e => ({
+          subject: e.subject || '(No subject)',
+          from: e.from_address?.split('<')[0]?.trim() || e.from_address || 'Unknown',
+          received: e.received_at,
+          isUnread: !e.is_read,
+          hasAttachments: e.has_attachments,
+          snippet: e.snippet?.slice(0, 100) || ''
+        }));
+        
+        emailStatusSection = `
+**Email Status:** Connected (${connectedEmail})
+Unread emails: ${unreadCount}
+Total synced: ${emails.length}
+
+**Recent Emails (most recent first):**
+${recentEmails.length > 0 
+  ? recentEmails.map((e, i) => `${i + 1}. ${e.isUnread ? '🔵 ' : ''}**${e.subject}** from ${e.from}${e.hasAttachments ? ' 📎' : ''}
+   Preview: ${e.snippet}...`).join('\n')
+  : 'No emails synced yet.'}
+
+**IMPORTANT:** Only reference the emails listed above. Do NOT invent or hallucinate emails that are not in this list.`;
+      }
+
       return `You are an expert email communication assistant for ${companyName}.
 
 ${businessContext}
@@ -695,6 +732,8 @@ ${businessContext}
 ${userContext}
 
 ${teamContext}
+
+${emailStatusSection}
 
 **Expertise:** Email drafting, summarization, inbox management, and communication strategy.
 
@@ -704,8 +743,10 @@ ${teamContext}
 - **Task Extraction:** You can identify action items from emails and create tasks.
 - **Calendar Management:** You can extract event details and schedule meetings from emails.
 
-**Response Accuracy:**
-- Do not make up or hallucinate information.
+**CRITICAL - Response Accuracy:**
+- Do NOT make up or hallucinate ANY email information.
+- ONLY reference emails that are explicitly listed in the "Recent Emails" section above.
+- If the user asks about an email that is not in the list, say you don't see that email in the synced messages.
 - When summarizing, stick strictly to the content of the email provided.
 
 Your goal is to help the user manage their inbox efficiently and communicate effectively.

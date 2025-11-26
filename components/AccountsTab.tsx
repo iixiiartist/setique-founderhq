@@ -225,20 +225,20 @@ function AccountsTab({
         <div className="h-full flex flex-col">
             {/* Deleted Item Toast */}
             {showDeletedToast && (
-                <div className="fixed top-4 right-4 z-50 bg-red-600 text-white px-6 py-3 rounded shadow-lg border-2 border-black">
+                <div className="fixed top-4 right-4 z-50 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg border border-red-700">
                     ⚠️ Item was deleted or moved
                 </div>
             )}
 
             {/* Filter Bar */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-6 p-4 bg-white border-2 border-black shadow-neo">
+            <div className="flex flex-col sm:flex-row gap-4 mb-6 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
                 {/* Type Filters */}
                 <div className="flex flex-wrap gap-2">
                     <button
                         onClick={() => setTypeFilter('all')}
-                        className={`font-mono px-4 py-2 border-2 border-black rounded-none font-semibold transition-all ${
+                        className={`font-mono px-4 py-2 border border-gray-300 rounded-md font-semibold transition-all ${
                             typeFilter === 'all'
-                                ? 'bg-blue-500 text-white shadow-neo-sm'
+                                ? 'bg-blue-500 text-white'
                                 : 'bg-white text-black hover:bg-gray-100'
                         }`}
                     >
@@ -246,9 +246,9 @@ function AccountsTab({
                     </button>
                     <button
                         onClick={() => setTypeFilter('investor')}
-                        className={`font-mono px-4 py-2 border-2 border-black rounded-none font-semibold transition-all ${
+                        className={`font-mono px-4 py-2 border border-gray-300 rounded-md font-semibold transition-all ${
                             typeFilter === 'investor'
-                                ? 'bg-green-500 text-white shadow-neo-sm'
+                                ? 'bg-green-500 text-white'
                                 : 'bg-white text-black hover:bg-gray-100'
                         }`}
                     >
@@ -256,9 +256,9 @@ function AccountsTab({
                     </button>
                     <button
                         onClick={() => setTypeFilter('customer')}
-                        className={`font-mono px-4 py-2 border-2 border-black rounded-none font-semibold transition-all ${
+                        className={`font-mono px-4 py-2 border border-gray-300 rounded-md font-semibold transition-all ${
                             typeFilter === 'customer'
-                                ? 'bg-purple-500 text-white shadow-neo-sm'
+                                ? 'bg-purple-500 text-white'
                                 : 'bg-white text-black hover:bg-gray-100'
                         }`}
                     >
@@ -266,9 +266,9 @@ function AccountsTab({
                     </button>
                     <button
                         onClick={() => setTypeFilter('partner')}
-                        className={`font-mono px-4 py-2 border-2 border-black rounded-none font-semibold transition-all ${
+                        className={`font-mono px-4 py-2 border border-gray-300 rounded-md font-semibold transition-all ${
                             typeFilter === 'partner'
-                                ? 'bg-orange-500 text-white shadow-neo-sm'
+                                ? 'bg-orange-500 text-white'
                                 : 'bg-white text-black hover:bg-gray-100'
                         }`}
                     >
@@ -282,7 +282,7 @@ function AccountsTab({
                     placeholder="Search accounts, contacts..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="flex-1 px-4 py-2 border-2 border-black rounded-none font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-md font-mono focus:outline-none focus:ring-2 focus:ring-black"
                 />
             </div>
 
@@ -290,7 +290,7 @@ function AccountsTab({
             <div className="flex gap-2 mb-6 px-4">
                 <button
                     onClick={() => setActiveView('accounts')}
-                    className={`font-mono px-4 py-2 border-2 border-black rounded-none font-semibold transition-all ${
+                    className={`font-mono px-4 py-2 border border-gray-300 rounded-md font-semibold transition-all ${
                         activeView === 'accounts'
                             ? 'bg-black text-white'
                             : 'bg-white text-black hover:bg-gray-100'
@@ -300,7 +300,7 @@ function AccountsTab({
                 </button>
                 <button
                     onClick={() => setActiveView('contacts')}
-                    className={`font-mono px-4 py-2 border-2 border-black rounded-none font-semibold transition-all ${
+                    className={`font-mono px-4 py-2 border border-gray-300 rounded-md font-semibold transition-all ${
                         activeView === 'contacts'
                             ? 'bg-black text-white'
                             : 'bg-white text-black hover:bg-gray-100'
@@ -310,7 +310,7 @@ function AccountsTab({
                 </button>
                 <button
                     onClick={() => setActiveView('followups')}
-                    className={`font-mono px-4 py-2 border-2 border-black rounded-none font-semibold transition-all ${
+                    className={`font-mono px-4 py-2 border border-gray-300 rounded-md font-semibold transition-all ${
                         activeView === 'followups'
                             ? 'bg-black text-white'
                             : 'bg-white text-black hover:bg-gray-100'
@@ -320,7 +320,7 @@ function AccountsTab({
                 </button>
                 <button
                     onClick={() => setActiveView('deals')}
-                    className={`font-mono px-4 py-2 border-2 border-black rounded-none font-semibold transition-all ${
+                    className={`font-mono px-4 py-2 border border-gray-300 rounded-md font-semibold transition-all ${
                         activeView === 'deals'
                             ? 'bg-black text-white'
                             : 'bg-white text-black hover:bg-gray-100'

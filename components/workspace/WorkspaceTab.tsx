@@ -47,7 +47,7 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId,
             {isEditorOpen && (
                 <button
                     onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                    className="lg:hidden fixed top-20 left-4 z-50 p-2 bg-yellow-400 border-2 border-black shadow-neo-btn"
+                    className="lg:hidden fixed top-20 left-4 z-50 p-2 bg-yellow-400 border border-gray-300 rounded-md shadow-sm"
                     aria-label="Toggle document list"
                 >
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -59,7 +59,7 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId,
             {/* Left Sidebar: Document List */}
             <div className={`
                 lg:w-80 w-full lg:relative absolute inset-y-0 left-0 z-40
-                border-r-2 border-black bg-white overflow-y-auto
+                border-r border-gray-200 bg-white overflow-y-auto
                 transition-transform duration-300 ease-in-out
                 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
                 ${!isEditorOpen ? 'lg:translate-x-0' : 'lg:hidden'}
@@ -114,7 +114,7 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId,
                             </p>
                             <button
                                 onClick={handleCreateNew}
-                                className="px-4 lg:px-6 py-2 lg:py-3 text-sm lg:text-base bg-yellow-400 text-black font-bold border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+                                className="px-4 lg:px-6 py-2 lg:py-3 text-sm lg:text-base bg-yellow-400 text-black font-bold border border-yellow-500 rounded-md shadow-sm hover:bg-yellow-500 transition-colors"
                             >
                                 Create Your First Doc
                             </button>

@@ -1,4 +1,9 @@
 import React, { useState, useMemo } from 'react';
+import {
+    Search, Filter, Plus, Upload, Download, Users, Tag, Trash2, ChevronDown,
+    CheckSquare, Copy, Eye, Pencil, Mail, Phone, Briefcase, Building, ExternalLink,
+    X, FileText, Calendar, Clock, AlertTriangle, MoreVertical
+} from 'lucide-react';
 import { Contact, AnyCrmItem, AppActions, CrmCollectionName } from '../../types';
 import Modal from './Modal';
 
@@ -992,67 +997,78 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
         <div className="space-y-4">
             {/* Header */}
             <div className="flex items-center justify-between gap-4 flex-wrap">
-                <h3 className="font-mono font-bold text-lg">
-                    📇 Contact Management ({filteredContacts.length})
-                </h3>
+                <div className="flex items-center gap-3">
+                    <Users className="w-5 h-5 text-gray-600" />
+                    <h3 className="font-semibold text-lg text-gray-900">
+                        Contact Management
+                    </h3>
+                    <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
+                        {filteredContacts.length}
+                    </span>
+                </div>
                 <div className="flex gap-2 flex-wrap">
                     <button
                         onClick={exportContactsToCSV}
                         disabled={filteredContacts.length === 0}
-                        className="font-mono bg-purple-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-purple-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-1.5 rounded-md border border-gray-200 hover:border-gray-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        📥 Export CSV
+                        <Download className="w-4 h-4" />
+                        Export
                     </button>
                     <button
                         onClick={() => setShowImportModal(true)}
-                        className="font-mono bg-blue-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-blue-600 transition-all"
+                        className="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-1.5 rounded-md border border-gray-200 hover:border-gray-300 transition-all"
                     >
-                        📤 Import CSV
+                        <Upload className="w-4 h-4" />
+                        Import
                     </button>
                     <button
                         onClick={detectDuplicates}
                         disabled={allContacts.length < 2}
-                        className="font-mono bg-yellow-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-yellow-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-1.5 rounded-md border border-gray-200 hover:border-gray-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        🔍 Find Duplicates
+                        <Copy className="w-4 h-4" />
+                        Find Duplicates
                     </button>
                     <button
                         onClick={toggleBulkSelect}
-                        className={`font-mono border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn transition-all ${
+                        className={`flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md transition-all ${
                             bulkSelectMode
-                                ? 'bg-orange-600 text-white hover:bg-orange-700'
-                                : 'bg-orange-500 text-white hover:bg-orange-600'
+                                ? 'bg-gray-900 text-white'
+                                : 'text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-300'
                         }`}
                     >
-                        {bulkSelectMode ? '✕ Exit Bulk Select' : '☑️ Bulk Select'}
+                        <CheckSquare className="w-4 h-4" />
+                        {bulkSelectMode ? 'Exit Select' : 'Bulk Select'}
                     </button>
                     <button
                         onClick={() => setShowAddModal(true)}
-                        className="font-mono bg-green-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-green-600 transition-all"
+                        className="flex items-center gap-1.5 bg-gray-900 text-white text-sm font-medium px-3 py-1.5 rounded-md hover:bg-gray-800 transition-colors"
                     >
-                        + Add Contact
+                        <Plus className="w-4 h-4" />
+                        Add Contact
                     </button>
                 </div>
             </div>
 
             {/* Bulk Actions Bar */}
             {bulkSelectMode && (
-                <div className="bg-orange-50 border-2 border-orange-400 p-3">
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                     <div className="flex items-center justify-between flex-wrap gap-2">
-                        <div className="flex items-center gap-2">
-                            <span className="font-mono font-semibold">
+                        <div className="flex items-center gap-3">
+                            <span className="text-sm font-medium text-gray-700">
                                 {selectedContactIds.size} selected
                             </span>
                             <button
                                 onClick={selectAllFilteredContacts}
-                                className="text-xs font-mono text-blue-600 hover:underline"
+                                className="text-xs text-gray-500 hover:text-gray-700 underline"
                             >
                                 Select All ({filteredContacts.length})
                             </button>
                             {selectedContactIds.size > 0 && (
                                 <button
                                     onClick={deselectAllContacts}
-                                    className="text-xs font-mono text-gray-600 hover:underline"
+                                    className="text-xs text-gray-500 hover:text-gray-700 underline"
                                 >
                                     Deselect All
                                 </button>
@@ -1062,23 +1078,26 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                             <button
                                 onClick={() => handleBulkAction('tag')}
                                 disabled={selectedContactIds.size === 0}
-                                className="font-mono bg-purple-500 text-white border-2 border-black px-3 py-1 text-sm rounded-none font-semibold shadow-neo-btn hover:bg-purple-600 transition-all disabled:opacity-50"
+                                className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md bg-white border border-gray-200 text-gray-600 hover:border-gray-300 transition-all disabled:opacity-50"
                             >
-                                🏷️ Tag
+                                <Tag className="w-3.5 h-3.5" />
+                                Tag
                             </button>
                             <button
                                 onClick={() => handleBulkAction('export')}
                                 disabled={selectedContactIds.size === 0}
-                                className="font-mono bg-blue-500 text-white border-2 border-black px-3 py-1 text-sm rounded-none font-semibold shadow-neo-btn hover:bg-blue-600 transition-all disabled:opacity-50"
+                                className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md bg-white border border-gray-200 text-gray-600 hover:border-gray-300 transition-all disabled:opacity-50"
                             >
-                                📥 Export
+                                <Download className="w-3.5 h-3.5" />
+                                Export
                             </button>
                             <button
                                 onClick={() => handleBulkAction('delete')}
                                 disabled={selectedContactIds.size === 0}
-                                className="font-mono bg-red-500 text-white border-2 border-black px-3 py-1 text-sm rounded-none font-semibold shadow-neo-btn hover:bg-red-600 transition-all disabled:opacity-50"
+                                className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md bg-white border border-gray-200 text-red-500 hover:border-red-200 hover:bg-red-50 transition-all disabled:opacity-50"
                             >
-                                🗑️ Delete
+                                <Trash2 className="w-3.5 h-3.5" />
+                                Delete
                             </button>
                         </div>
                     </div>
@@ -1089,22 +1108,25 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
             <div className="space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <label htmlFor="contact-search" className="sr-only">Search contacts</label>
-                    <input
-                        id="contact-search"
-                        name="contact-search"
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search contacts by name, email, phone..."
-                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
-                    />
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                            id="contact-search"
+                            name="contact-search"
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search contacts..."
+                            className="w-full bg-white border border-gray-200 text-gray-900 pl-9 pr-3 py-2 rounded-md text-sm focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200"
+                        />
+                    </div>
                     <label htmlFor="contact-filter-by" className="sr-only">Filter by status</label>
                     <select
                         id="contact-filter-by"
                         name="contact-filter-by"
                         value={filterBy}
                         onChange={(e) => setFilterBy(e.target.value as any)}
-                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                        className="w-full bg-white border border-gray-200 text-gray-900 p-2 rounded-md text-sm focus:outline-none focus:border-gray-400"
                     >
                         <option value="all">All Contacts</option>
                         <option value="linked">Linked to {getCrmTypeLabel()}s</option>
@@ -1116,12 +1138,12 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                         name="contact-filter-tag"
                         value={filterByTag}
                         onChange={(e) => setFilterByTag(e.target.value)}
-                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                        className="w-full bg-white border border-gray-200 text-gray-900 p-2 rounded-md text-sm focus:outline-none focus:border-gray-400"
                     >
                         <option value="">All Tags</option>
                         {allTags.map(tag => (
                             <option key={tag} value={tag}>
-                                🏷️ {tag}
+                                {tag}
                             </option>
                         ))}
                     </select>
@@ -1131,9 +1153,11 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                 <div className="flex items-center justify-between">
                     <button
                         onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                        className="text-sm font-mono text-blue-600 hover:underline flex items-center gap-1"
+                        className="text-xs font-medium text-gray-500 hover:text-gray-700 flex items-center gap-1"
                     >
-                        {showAdvancedFilters ? '▼' : '▶'} Advanced Filters
+                        <Filter className="w-3.5 h-3.5" />
+                        {showAdvancedFilters ? 'Hide Advanced Filters' : 'Advanced Filters'}
+                        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showAdvancedFilters ? 'rotate-180' : ''}`} />
                     </button>
                     {(filterByTitle || filterByNoteCount !== 'any' || filterByMeetingCount !== 'any') && (
                         <button
@@ -1142,18 +1166,19 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                 setFilterByNoteCount('any');
                                 setFilterByMeetingCount('any');
                             }}
-                            className="text-xs font-mono text-gray-600 hover:text-red-600"
+                            className="text-xs text-gray-500 hover:text-red-600 flex items-center gap-1"
                         >
-                            Clear Advanced Filters
+                            <X className="w-3 h-3" />
+                            Clear Filters
                         </button>
                     )}
                 </div>
 
                 {/* Advanced Filters Panel */}
                 {showAdvancedFilters && (
-                    <div className="bg-gray-50 border-2 border-gray-300 p-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div>
-                            <label htmlFor="filter-by-title" className="block text-xs font-mono font-semibold text-gray-700 mb-1">
+                            <label htmlFor="filter-by-title" className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
                                 Title Contains
                             </label>
                             <input
@@ -1163,11 +1188,11 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                 value={filterByTitle}
                                 onChange={(e) => setFilterByTitle(e.target.value)}
                                 placeholder="e.g., CEO, Manager..."
-                                className="w-full bg-white border-2 border-gray-400 text-black p-2 text-sm rounded-none focus:outline-none focus:border-blue-500"
+                                className="w-full bg-white border border-gray-200 text-gray-900 p-2 text-sm rounded-md focus:outline-none focus:border-gray-400"
                             />
                         </div>
                         <div>
-                            <label htmlFor="filter-by-note-count" className="block text-xs font-mono font-semibold text-gray-700 mb-1">
+                            <label htmlFor="filter-by-note-count" className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
                                 Notes
                             </label>
                             <select
@@ -1175,7 +1200,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                 name="filter-by-note-count"
                                 value={filterByNoteCount}
                                 onChange={(e) => setFilterByNoteCount(e.target.value as any)}
-                                className="w-full bg-white border-2 border-gray-400 text-black p-2 text-sm rounded-none focus:outline-none focus:border-blue-500"
+                                className="w-full bg-white border border-gray-200 text-gray-900 p-2 text-sm rounded-md focus:outline-none focus:border-gray-400"
                             >
                                 <option value="any">Any</option>
                                 <option value="has">Has Notes</option>
@@ -1183,7 +1208,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                             </select>
                         </div>
                         <div>
-                            <label htmlFor="filter-by-meeting-count" className="block text-xs font-mono font-semibold text-gray-700 mb-1">
+                            <label htmlFor="filter-by-meeting-count" className="block text-xs text-gray-500 uppercase tracking-wide mb-1">
                                 Meetings
                             </label>
                             <select
@@ -1191,7 +1216,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                 name="filter-by-meeting-count"
                                 value={filterByMeetingCount}
                                 onChange={(e) => setFilterByMeetingCount(e.target.value as any)}
-                                className="w-full bg-white border-2 border-gray-400 text-black p-2 text-sm rounded-none focus:outline-none focus:border-blue-500"
+                                className="w-full bg-white border border-gray-200 text-gray-900 p-2 text-sm rounded-md focus:outline-none focus:border-gray-400"
                             >
                                 <option value="any">Any</option>
                                 <option value="has">Has Meetings</option>
@@ -1205,11 +1230,12 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
             {/* Contact List */}
             <div className="space-y-2 max-h-96 overflow-y-auto">
                 {filteredContacts.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                        <p>No contacts found</p>
+                    <div className="text-center py-8 text-gray-400">
+                        <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p className="text-sm">No contacts found</p>
                         <button
                             onClick={() => setShowAddModal(true)}
-                            className="mt-2 text-blue-600 hover:underline"
+                            className="mt-2 text-sm text-gray-500 hover:text-gray-700 underline"
                         >
                             Add your first contact
                         </button>
@@ -1221,8 +1247,10 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                         return (
                             <div
                                 key={contact.id}
-                                className={`bg-white border-2 p-4 shadow-neo hover:shadow-neo-lg transition-all ${
-                                    isSelected ? 'border-orange-500 bg-orange-50' : 'border-black'
+                                className={`bg-white rounded-lg border p-3 hover:shadow-sm transition-all ${
+                                    isSelected 
+                                        ? 'border-black bg-gray-50 ring-2 ring-black ring-opacity-20' 
+                                        : 'border-gray-200 hover:border-gray-300'
                                 }`}
                             >
                                 <div className="flex items-start justify-between gap-4">
@@ -1237,38 +1265,45 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                                 type="checkbox"
                                                 checked={isSelected}
                                                 onChange={() => toggleContactSelection(contact.id)}
-                                                className="w-5 h-5 cursor-pointer"
+                                                className="w-4 h-4 cursor-pointer accent-black rounded"
                                             />
                                         </div>
                                     )}
                                     <div className="flex-grow min-w-0">
-                                        <h4 className="font-bold text-lg text-black truncate">
+                                        <h4 className="font-medium text-sm text-gray-900 mb-0.5">
                                             {contact.name}
                                         </h4>
                                         {contact.title && (
-                                            <p className="text-sm text-gray-600">{contact.title}</p>
-                                        )}
-                                        <div className="mt-2 space-y-1">
-                                            <p className="text-sm font-mono">
-                                                📧 <a href={`mailto:${contact.email}`} className="text-blue-600 hover:underline">{contact.email}</a>
+                                            <p className="text-xs text-gray-500 flex items-center gap-1 mb-1.5">
+                                                <Briefcase className="w-3 h-3" />
+                                                {contact.title}
                                             </p>
+                                        )}
+                                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-600">
+                                            <a href={`mailto:${contact.email}`} className="flex items-center gap-1 hover:text-gray-900 transition-colors">
+                                                <Mail className="w-3 h-3" />
+                                                {contact.email}
+                                            </a>
                                             {contact.phone && (
-                                                <p className="text-sm font-mono">
-                                                    📞 <a href={`tel:${contact.phone}`} className="text-blue-600 hover:underline">{contact.phone}</a>
-                                                </p>
+                                                <a href={`tel:${contact.phone}`} className="flex items-center gap-1 hover:text-gray-900 transition-colors">
+                                                    <Phone className="w-3 h-3" />
+                                                    {contact.phone}
+                                                </a>
                                             )}
                                         </div>
                                         {linkedAccount && (
                                             <div className="mt-2">
-                                                <span className="inline-block px-3 py-1 bg-blue-50 border border-blue-300 text-xs font-mono text-blue-700 font-semibold">
-                                                    🔗 {linkedAccount.company}
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-xs text-gray-600 rounded">
+                                                    <Building className="w-3 h-3" />
+                                                    {linkedAccount.company}
                                                 </span>
                                             </div>
                                         )}
                                         {!linkedAccount && (
                                             <div className="mt-2">
-                                                <span className="inline-block px-3 py-1 bg-gray-100 border border-gray-300 text-xs font-mono text-gray-600">
-                                                    ⚠️ Not linked to any account
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-50 border border-yellow-200 text-xs text-yellow-700 rounded">
+                                                    <AlertTriangle className="w-3 h-3" />
+                                                    Not linked
                                                 </span>
                                             </div>
                                         )}
@@ -1278,52 +1313,52 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                                 {contact.tags.map(tag => (
                                                     <span
                                                         key={tag}
-                                                        className="inline-flex items-center gap-1 px-2 py-1 bg-purple-50 border border-purple-300 text-xs font-mono text-purple-700 font-semibold"
+                                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-xs text-gray-600 rounded group"
                                                     >
-                                                        🏷️ {tag}
+                                                        {tag}
                                                         <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 handleRemoveTag(contact, tag);
                                                             }}
-                                                            className="ml-1 text-purple-900 hover:text-red-600"
+                                                            className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                                                             title="Remove tag"
                                                         >
-                                                            ×
+                                                            <X className="w-3 h-3" />
                                                         </button>
                                                     </span>
                                                 ))}
                                             </div>
                                         )}
                                     </div>
-                                    <div className="flex gap-2 flex-shrink-0">
+                                    <div className="flex gap-1 flex-shrink-0">
                                         <button
                                             onClick={() => openRelationshipModal(contact)}
-                                            className="px-3 py-1 bg-pink-500 text-white border-2 border-black text-xs font-bold hover:bg-pink-600 transition-all"
+                                            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
                                             title="View relationships"
                                         >
-                                            🔗
+                                            <Users className="w-4 h-4" />
                                         </button>
                                         <button
                                             onClick={() => openTimelineModal(contact)}
-                                            className="px-3 py-1 bg-cyan-500 text-white border-2 border-black text-xs font-bold hover:bg-cyan-600 transition-all"
-                                            title="View activity timeline"
+                                            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                                            title="View timeline"
                                         >
-                                            📊
+                                            <Clock className="w-4 h-4" />
                                         </button>
                                         <button
                                             onClick={() => openNotesModal(contact)}
-                                            className="px-3 py-1 bg-green-500 text-white border-2 border-black text-xs font-bold hover:bg-green-600 transition-all"
-                                            title="View/add notes"
+                                            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                                            title="View notes"
                                         >
-                                            📝
+                                            <FileText className="w-4 h-4" />
                                         </button>
                                         <button
                                             onClick={() => openTagModal(contact)}
-                                            className="px-3 py-1 bg-purple-500 text-white border-2 border-black text-xs font-bold hover:bg-purple-600 transition-all"
+                                            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
                                             title="Manage tags"
                                         >
-                                            🏷️
+                                            <Tag className="w-4 h-4" />
                                         </button>
                                         {onViewContact && (() => {
                                             const parentItem = crmItems.find(item => 
@@ -1332,26 +1367,26 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                             return parentItem ? (
                                                 <button
                                                     onClick={() => onViewContact(contact, parentItem)}
-                                                    className="px-3 py-1 bg-green-500 text-white border-2 border-black text-xs font-bold hover:bg-green-600 transition-all"
-                                                    title="View contact details"
+                                                    className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                                                    title="View details"
                                                 >
-                                                    👁️
+                                                    <Eye className="w-4 h-4" />
                                                 </button>
                                             ) : null;
                                         })()}
                                         <button
                                             onClick={() => openEditModal(contact)}
-                                            className="px-3 py-1 bg-blue-500 text-white border-2 border-black text-xs font-bold hover:bg-blue-600 transition-all"
-                                            title="Edit contact"
+                                            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                                            title="Edit"
                                         >
-                                            ✏️
+                                            <Pencil className="w-4 h-4" />
                                         </button>
                                         <button
                                             onClick={() => handleDeleteContact(contact)}
-                                            className="px-3 py-1 bg-red-500 text-white border-2 border-black text-xs font-bold hover:bg-red-600 transition-all"
-                                            title="Delete contact"
+                                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                                            title="Delete"
                                         >
-                                            🗑️
+                                            <Trash2 className="w-4 h-4" />
                                         </button>
                                     </div>
                                 </div>

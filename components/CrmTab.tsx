@@ -318,61 +318,75 @@ function CrmTabComponent({
         <>
             {/* Deleted entity toast notification */}
             {showDeletedToast && (
-                <div className="fixed top-4 right-4 z-50 bg-red-500 text-white px-6 py-3 border-2 border-black shadow-neo animate-slide-in">
-                    <div className="flex items-center gap-2">
-                        <span className="text-xl">⚠️</span>
-                        <span className="font-semibold">Item was deleted</span>
-                    </div>
+                <div className="fixed top-4 right-4 z-50 bg-gray-900 text-white px-5 py-3 rounded-lg shadow-lg animate-slide-in flex items-center gap-3">
+                    <span className="text-lg">🗑️</span>
+                    <span className="font-medium">Item was deleted</span>
                 </div>
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
                 {/* View Navigation Tabs */}
-                <div className="bg-white border-2 border-black shadow-neo">
-                    <div className="flex border-b-2 border-black">
+                <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+                    <div className="flex border-b border-gray-200">
                         <button
                             onClick={() => setActiveView('accounts')}
-                            className={`flex-1 font-mono font-bold py-3 px-4 transition-all ${
+                            className={`flex-1 flex items-center justify-center gap-2 py-3.5 px-4 text-sm font-semibold transition-all relative ${
                                 activeView === 'accounts'
-                                    ? 'bg-black text-white'
-                                    : 'bg-white text-black hover:bg-gray-100'
+                                    ? 'text-black'
+                                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                             }`}
                         >
-                            📊 Account Management
+                            <span>📊</span>
+                            <span>Accounts</span>
+                            {activeView === 'accounts' && (
+                                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-black" />
+                            )}
                         </button>
                         <button
                             onClick={() => setActiveView('contacts')}
-                            className={`flex-1 font-mono font-bold py-3 px-4 border-l-2 border-r-2 border-black transition-all ${
+                            className={`flex-1 flex items-center justify-center gap-2 py-3.5 px-4 text-sm font-semibold transition-all relative ${
                                 activeView === 'contacts'
-                                    ? 'bg-black text-white'
-                                    : 'bg-white text-black hover:bg-gray-100'
+                                    ? 'text-black'
+                                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                             }`}
                         >
-                            👥 Contact Management
+                            <span>👥</span>
+                            <span>Contacts</span>
+                            {activeView === 'contacts' && (
+                                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-black" />
+                            )}
                         </button>
                         <button
                             onClick={() => setActiveView('followups')}
-                            className={`flex-1 font-mono font-bold py-3 px-4 transition-all ${
+                            className={`flex-1 flex items-center justify-center gap-2 py-3.5 px-4 text-sm font-semibold transition-all relative ${
                                 activeView === 'followups'
-                                    ? 'bg-black text-white'
-                                    : 'bg-white text-black hover:bg-gray-100'
+                                    ? 'text-black'
+                                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                             }`}
                         >
-                            📋 Follow Ups
+                            <span>📋</span>
+                            <span>Follow Ups</span>
+                            {activeView === 'followups' && (
+                                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-black" />
+                            )}
                         </button>
                         <button
                             onClick={() => setActiveView('deals')}
-                            className={`flex-1 font-mono font-bold py-3 px-4 border-l-2 border-black transition-all ${
+                            className={`flex-1 flex items-center justify-center gap-2 py-3.5 px-4 text-sm font-semibold transition-all relative ${
                                 activeView === 'deals'
-                                    ? 'bg-black text-white'
-                                    : 'bg-white text-black hover:bg-gray-100'
+                                    ? 'text-black'
+                                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                             }`}
                         >
-                            💼 Deal Pipeline
+                            <span>💼</span>
+                            <span>Deals</span>
+                            {activeView === 'deals' && (
+                                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-black" />
+                            )}
                         </button>
                     </div>
-                    <div className="p-6">
+                    <div className="p-5">
                         {activeView === 'accounts' && (
                             <AccountManager
                                 crmItems={crmItems}
@@ -418,92 +432,132 @@ function CrmTabComponent({
 
                 </div>
 
-                {/* Quick Access Sections */}
+                {/* Quick Access Sidebar */}
                 {userId && (
-                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-6 border-2 border-black shadow-neo">
-                        <h2 className="text-xl font-bold text-black mb-4 flex items-center gap-2">
+                    <div className="space-y-4">
+                        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-2">
                             <span>⚡</span> Quick Access
                         </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {/* My Accounts */}
-                            <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
-                                <h3 className="text-sm font-mono font-bold text-black mb-3 flex items-center gap-2 pb-2 border-b-2 border-black">
-                                    <span>📋</span> MY ACCOUNTS
-                                </h3>
-                                <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
-                                    {assignedAccounts.length > 0 ? (
-                                        assignedAccounts
-                                            .slice(0, 5)
-                                            .map(item => (
-                                                <button
-                                                    key={item.id}
-                                                    onClick={() => setSelectedItem(item)}
-                                                    className="w-full text-left p-3 bg-blue-50 border-2 border-black hover:bg-blue-100 hover:shadow-neo-sm transition-all text-sm group"
-                                                >
-                                                    <div className="font-semibold truncate group-hover:text-blue-600">{item.company}</div>
-                                                    <div className="text-xs text-gray-600 mt-1">{item.status}</div>
-                                                </button>
-                                            ))
-                                    ) : (
-                                        <p className="text-xs text-gray-400 italic text-center py-4">No accounts assigned to you</p>
+                        
+                        {/* My Accounts */}
+                        <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                                <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                                    <span>📋</span> My Accounts
+                                    {assignedAccounts.length > 0 && (
+                                        <span className="ml-auto text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
+                                            {assignedAccounts.length}
+                                        </span>
                                     )}
-                                </div>
+                                </h3>
                             </div>
-
-                            {/* My Contacts */}
-                            <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
-                                <h3 className="text-sm font-mono font-bold text-black mb-3 flex items-center gap-2 pb-2 border-b-2 border-black">
-                                    <span>👤</span> MY CONTACTS
-                                </h3>
-                                <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
-                                    {assignedContacts.length > 0 ? (
-                                        assignedContacts
-                                            .slice(0, 5)
-                                            .map(({ contact, parentItem }) => (
-                                                <button
-                                                    key={contact.id}
-                                                    onClick={() => {
-                                                        // Set both states atomically to avoid setTimeout hack
-                                                        setSelectedItem(parentItem);
-                                                        setSelectedContact(contact);
-                                                    }}
-                                                    className="w-full text-left p-3 bg-green-50 border-2 border-black hover:bg-green-100 hover:shadow-neo-sm transition-all text-sm group"
-                                                >
-                                                    <div className="font-semibold truncate group-hover:text-green-600">{contact.name}</div>
-                                                    <div className="text-xs text-gray-600 mt-1">{parentItem.company}</div>
-                                                </button>
-                                            ))
-                                    ) : (
-                                        <p className="text-xs text-gray-400 italic text-center py-4">No contacts assigned to you</p>
-                                    )}
-                                </div>
+                            <div className="divide-y divide-gray-100 max-h-52 overflow-y-auto">
+                                {assignedAccounts.length > 0 ? (
+                                    assignedAccounts.slice(0, 5).map(item => (
+                                        <button
+                                            key={item.id}
+                                            onClick={() => setSelectedItem(item)}
+                                            className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors group"
+                                        >
+                                            <div className="font-medium text-sm text-gray-900 truncate group-hover:text-black">
+                                                {item.company}
+                                            </div>
+                                            <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-2">
+                                                <span className={`inline-block w-2 h-2 rounded-full ${
+                                                    item.status === 'Active' ? 'bg-green-500' :
+                                                    item.status === 'Hot' ? 'bg-red-500' :
+                                                    item.status === 'Warm' ? 'bg-orange-500' :
+                                                    'bg-gray-400'
+                                                }`} />
+                                                {item.status}
+                                            </div>
+                                        </button>
+                                    ))
+                                ) : (
+                                    <div className="px-4 py-6 text-center">
+                                        <p className="text-sm text-gray-400">No accounts assigned</p>
+                                    </div>
+                                )}
                             </div>
+                        </div>
 
-                            {/* My Meetings */}
-                            <div className="bg-white p-4 border-2 border-black shadow-neo-sm">
-                                <h3 className="text-sm font-mono font-bold text-black mb-3 flex items-center gap-2 pb-2 border-b-2 border-black">
-                                    <span>📅</span> RECENT MEETINGS
-                                </h3>
-                                <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
-                                    {recentMeetings.length > 0 ? (
-                                        recentMeetings.map(meeting => (
-                                                <button
-                                                    key={meeting.id}
-                                                    onClick={() => {
-                                                        // Set both states atomically to avoid setTimeout hack
-                                                        setSelectedItem(meeting.parentItem);
-                                                        setSelectedContact(meeting.parentContact);
-                                                    }}
-                                                    className="w-full text-left p-3 bg-yellow-50 border-2 border-black hover:bg-yellow-100 hover:shadow-neo-sm transition-all text-sm group"
-                                                >
-                                                    <div className="font-semibold truncate group-hover:text-yellow-700">{meeting.title}</div>
-                                                    <div className="text-xs text-gray-600 mt-1">{meeting.contactName} - {new Date(meeting.timestamp).toLocaleDateString()}</div>
-                                                </button>
-                                            ))
-                                    ) : (
-                                        <p className="text-xs text-gray-400 italic text-center py-4">No meetings logged yet</p>
+                        {/* My Contacts */}
+                        <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                                <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                                    <span>👤</span> My Contacts
+                                    {assignedContacts.length > 0 && (
+                                        <span className="ml-auto text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
+                                            {assignedContacts.length}
+                                        </span>
                                     )}
-                                </div>
+                                </h3>
+                            </div>
+                            <div className="divide-y divide-gray-100 max-h-52 overflow-y-auto">
+                                {assignedContacts.length > 0 ? (
+                                    assignedContacts.slice(0, 5).map(({ contact, parentItem }) => (
+                                        <button
+                                            key={contact.id}
+                                            onClick={() => {
+                                                setSelectedItem(parentItem);
+                                                setSelectedContact(contact);
+                                            }}
+                                            className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors group"
+                                        >
+                                            <div className="font-medium text-sm text-gray-900 truncate group-hover:text-black">
+                                                {contact.name}
+                                            </div>
+                                            <div className="text-xs text-gray-500 mt-0.5 truncate">
+                                                {parentItem.company}
+                                            </div>
+                                        </button>
+                                    ))
+                                ) : (
+                                    <div className="px-4 py-6 text-center">
+                                        <p className="text-sm text-gray-400">No contacts assigned</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Recent Meetings */}
+                        <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                                <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                                    <span>📅</span> Recent Meetings
+                                    {recentMeetings.length > 0 && (
+                                        <span className="ml-auto text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
+                                            {recentMeetings.length}
+                                        </span>
+                                    )}
+                                </h3>
+                            </div>
+                            <div className="divide-y divide-gray-100 max-h-52 overflow-y-auto">
+                                {recentMeetings.length > 0 ? (
+                                    recentMeetings.map(meeting => (
+                                        <button
+                                            key={meeting.id}
+                                            onClick={() => {
+                                                setSelectedItem(meeting.parentItem);
+                                                setSelectedContact(meeting.parentContact);
+                                            }}
+                                            className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors group"
+                                        >
+                                            <div className="font-medium text-sm text-gray-900 truncate group-hover:text-black">
+                                                {meeting.title}
+                                            </div>
+                                            <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                                                <span className="truncate">{meeting.contactName}</span>
+                                                <span>•</span>
+                                                <span>{new Date(meeting.timestamp).toLocaleDateString()}</span>
+                                            </div>
+                                        </button>
+                                    ))
+                                ) : (
+                                    <div className="px-4 py-6 text-center">
+                                        <p className="text-sm text-gray-400">No meetings logged</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

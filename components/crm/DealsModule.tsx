@@ -310,59 +310,90 @@ function DealsModule({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Deals Pipeline</h2>
+          <p className="text-sm text-gray-500 mt-1">Track and manage your sales opportunities</p>
+        </div>
+        <button
+          onClick={() => {
+            if (showForm) {
+              handleCancelEdit();
+            } else {
+              setShowForm(true);
+            }
+          }}
+          className="flex items-center gap-2 px-4 py-2 bg-black text-white font-medium rounded-md hover:bg-gray-800 transition-colors"
+        >
+          {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+          {showForm ? 'Cancel' : 'New Deal'}
+        </button>
+      </div>
+
       {/* Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white border-2 border-black p-4">
+        <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold">Pipeline Value</span>
-            <TrendingUp className="w-5 h-5" />
+            <span className="text-sm font-medium text-gray-600">Pipeline Value</span>
+            <div className="p-2 bg-gray-100 rounded-lg">
+              <TrendingUp className="w-4 h-4 text-gray-700" />
+            </div>
           </div>
-          <div className="text-2xl font-bold">{formatCurrency(metrics.totalValue)}</div>
-          <div className="text-xs text-gray-600 mt-1">
+          <div className="text-2xl font-bold text-gray-900">{formatCurrency(metrics.totalValue)}</div>
+          <div className="text-xs text-gray-500 mt-1">
             Weighted: {formatCurrency(metrics.weightedValue)}
           </div>
         </div>
         
-        <div className="bg-white border-2 border-black p-4">
+        <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold">Won Value</span>
-            <DollarSign className="w-5 h-5 text-green-600" />
+            <span className="text-sm font-medium text-gray-600">Won Value</span>
+            <div className="p-2 bg-green-100 rounded-lg">
+              <DollarSign className="w-4 h-4 text-green-600" />
+            </div>
           </div>
           <div className="text-2xl font-bold text-green-600">{formatCurrency(metrics.wonValue)}</div>
-          <div className="text-xs text-gray-600 mt-1">
-            {metrics.wonCount} deals
+          <div className="text-xs text-gray-500 mt-1">
+            {metrics.wonCount} deals closed
           </div>
         </div>
         
-        <div className="bg-white border-2 border-black p-4">
+        <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold">Active Deals</span>
-            <Target className="w-5 h-5 text-blue-600" />
+            <span className="text-sm font-medium text-gray-600">Active Deals</span>
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Target className="w-4 h-4 text-blue-600" />
+            </div>
           </div>
-          <div className="text-2xl font-bold">{metrics.activeDeals}</div>
+          <div className="text-2xl font-bold text-gray-900">{metrics.activeDeals}</div>
+          <div className="text-xs text-gray-500 mt-1">In pipeline</div>
         </div>
         
-        <div className="bg-white border-2 border-black p-4">
+        <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold">Avg Deal Size</span>
-            <DollarSign className="w-5 h-5" />
+            <span className="text-sm font-medium text-gray-600">Avg Deal Size</span>
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <DollarSign className="w-4 h-4 text-purple-600" />
+            </div>
           </div>
-          <div className="text-2xl font-bold">
+          <div className="text-2xl font-bold text-gray-900">
             {deals.length > 0 ? formatCurrency(metrics.totalValue / deals.length) : '$0'}
           </div>
+          <div className="text-xs text-gray-500 mt-1">Per deal</div>
         </div>
       </div>
 
-      {/* Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
+      {/* Filters */}
+      <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+        <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4" />
+            <Filter className="w-4 h-4 text-gray-500" />
             <select
               value={filterStage}
               onChange={(e) => setFilterStage(e.target.value)}
-              className="p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
             >
               <option value="all">All Stages</option>
               {STAGES.map(stage => (
@@ -376,7 +407,7 @@ function DealsModule({
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
           >
             <option value="all">All Categories</option>
             {CATEGORIES.map(cat => (
@@ -389,53 +420,39 @@ function DealsModule({
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as 'value' | 'stage' | 'date')}
-            className="p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
           >
             <option value="date">Sort by Date</option>
             <option value="value">Sort by Value</option>
             <option value="stage">Sort by Stage</option>
           </select>
         </div>
-
-        <button
-          onClick={() => {
-            if (showForm) {
-              handleCancelEdit();
-            } else {
-              setShowForm(true);
-            }
-          }}
-          className="flex items-center gap-2 px-4 py-2 bg-black text-white font-bold hover:bg-gray-800"
-        >
-          {showForm ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-          {showForm ? 'Cancel' : 'New Deal'}
-        </button>
       </div>
 
       {/* Form */}
       {showForm && (
-        <div className="bg-white border-2 border-black p-6">
-          <h3 className="text-xl font-bold mb-4">{editingDeal ? 'Edit Deal' : 'Create New Deal'}</h3>
+        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{editingDeal ? 'Edit Deal' : 'Create New Deal'}</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold mb-1">Deal Title *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Deal Title *</label>
                 <input
                   type="text"
                   required
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                   placeholder="e.g., Acme Corp - Q1 2024"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-1">Category *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value as Deal['category'] })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                 >
                   {CATEGORIES.map(cat => (
                     <option key={cat} value={cat}>
@@ -448,11 +465,11 @@ function DealsModule({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold mb-1">Link to Company</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Link to Company</label>
                 <select
                   value={formData.crmItemId}
                   onChange={(e) => setFormData({ ...formData, crmItemId: e.target.value, contactId: '' })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                 >
                   <option value="">No company link</option>
                   {crmItems.map(item => (
@@ -462,11 +479,11 @@ function DealsModule({
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-1">Primary Contact</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Primary Contact</label>
                 <select
                   value={formData.contactId}
                   onChange={(e) => setFormData({ ...formData, contactId: e.target.value })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                   disabled={!formData.crmItemId}
                 >
                   <option value="">No contact</option>
@@ -480,19 +497,19 @@ function DealsModule({
             </div>
 
             {/* Product/Service Selection */}
-            <div className="p-4 bg-blue-50 border-2 border-blue-400">
+            <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
               <div className="flex items-center gap-2 mb-3">
-                <Package className="w-5 h-5 text-blue-600" />
-                <h3 className="font-bold text-blue-900">Product/Service (Optional)</h3>
+                <Package className="w-5 h-5 text-gray-600" />
+                <h3 className="font-medium text-gray-900">Product/Service (Optional)</h3>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold mb-1">Select Product/Service</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Select Product/Service</label>
                   <select
                     value={formData.productServiceId}
                     onChange={(e) => handleProductChange(e.target.value)}
-                    className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                   >
                     <option value="">No product/service</option>
                     {productsServices.filter(p => p.status === 'active').map(product => (
@@ -506,31 +523,31 @@ function DealsModule({
                 {formData.productServiceId && (
                   <>
                     <div>
-                      <label className="block text-sm font-semibold mb-1">Quantity</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
                       <input
                         type="number"
                         min="1"
                         step="1"
                         value={formData.quantity}
                         onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                        className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold mb-1">Unit Price</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Unit Price</label>
                       <input
                         type="number"
                         min="0"
                         step="0.01"
                         value={formData.unitPrice}
                         onChange={(e) => setFormData({ ...formData, unitPrice: e.target.value })}
-                        className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold mb-1">Discount %</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Discount %</label>
                       <input
                         type="number"
                         min="0"
@@ -538,25 +555,25 @@ function DealsModule({
                         step="0.1"
                         value={formData.discountPercent}
                         onChange={(e) => setFormData({ ...formData, discountPercent: e.target.value })}
-                        className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold mb-1">Calculated Total</label>
-                      <div className="w-full p-2 border-2 border-green-500 bg-green-50 font-bold text-green-800">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Calculated Total</label>
+                      <div className="w-full px-3 py-2 border border-green-300 bg-green-50 rounded-md font-semibold text-green-700">
                         {new Intl.NumberFormat('en-US', { style: 'currency', currency: formData.currency }).format(calculatedValue)}
                       </div>
                     </div>
                   </>
                 )}
               </div>
-              <p className="text-xs text-gray-600">Select a product/service to auto-fill pricing, or leave blank for custom deal value</p>
+              <p className="text-xs text-gray-500">Select a product/service to auto-fill pricing, or leave blank for custom deal value</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-semibold mb-1">Deal Value *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Deal Value *</label>
                 <input
                   type="number"
                   required
@@ -564,42 +581,42 @@ function DealsModule({
                   step="0.01"
                   value={formData.value}
                   onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                   placeholder="0.00"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-1">Currency</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
                 <input
                   type="text"
                   value={formData.currency}
                   onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                   placeholder="USD"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-1">Win Probability %</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Win Probability %</label>
                 <input
                   type="number"
                   min="0"
                   max="100"
                   value={formData.probability}
                   onChange={(e) => setFormData({ ...formData, probability: e.target.value })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-semibold mb-1">Stage *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Stage *</label>
                 <select
                   value={formData.stage}
                   onChange={(e) => setFormData({ ...formData, stage: e.target.value as Deal['stage'] })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                 >
                   {STAGES.filter(s => !s.includes('closed')).map(stage => (
                     <option key={stage} value={stage}>
@@ -610,11 +627,11 @@ function DealsModule({
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-1">Priority</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
                 <select
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: e.target.value as Priority })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                 >
                   <option value="Low">Low</option>
                   <option value="Medium">Medium</option>
@@ -623,34 +640,34 @@ function DealsModule({
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-1">Expected Close Date</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Expected Close Date</label>
                 <input
                   type="date"
                   value={formData.expectedCloseDate}
                   onChange={(e) => setFormData({ ...formData, expectedCloseDate: e.target.value })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold mb-1">Source</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Source</label>
                 <input
                   type="text"
                   value={formData.source}
                   onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                   placeholder="e.g., Referral, Inbound, Outbound"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-1">Assign To</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Assign To</label>
                 <select
                   value={formData.assignedTo}
                   onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                 >
                   <option value="">Unassigned</option>
                   {workspaceMembers.map(member => (
@@ -662,7 +679,7 @@ function DealsModule({
 
             <button
               type="submit"
-              className="w-full py-3 bg-black text-white font-bold hover:bg-gray-800"
+              className="w-full py-3 bg-black text-white font-medium rounded-md hover:bg-gray-800 transition-colors"
             >
               {editingDeal ? 'Save Changes' : 'Create Deal'}
             </button>
@@ -673,9 +690,11 @@ function DealsModule({
       {/* Deals List */}
       <div className="space-y-4">
         {filteredDeals.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 border-2 border-dashed border-gray-300">
-            <DollarSign className="w-12 h-12 mx-auto text-gray-400 mb-3" />
-            <p className="text-gray-600 font-semibold">No deals found</p>
+          <div className="text-center py-12 bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div className="p-3 bg-gray-100 rounded-full w-fit mx-auto mb-3">
+              <DollarSign className="w-8 h-8 text-gray-400" />
+            </div>
+            <p className="text-gray-900 font-medium">No deals found</p>
             <p className="text-sm text-gray-500 mt-1">Create your first deal to start tracking opportunities</p>
           </div>
         ) : (
@@ -685,36 +704,20 @@ function DealsModule({
             return (
               <div
                 key={deal.id}
-                className="bg-white border-2 border-black p-6 hover:shadow-lg transition-shadow"
+                className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-xl font-bold">{deal.title}</h3>
-                      <span className={`px-2 py-1 text-xs font-bold border ${STAGE_COLORS[deal.stage]}`}>
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
+                      <h3 className="text-lg font-semibold text-gray-900">{deal.title}</h3>
+                      <span className={`px-2.5 py-1 text-xs font-medium rounded-md border ${STAGE_COLORS[deal.stage]}`}>
                         {deal.stage.replace('_', ' ').toUpperCase()}
                       </span>
                       {deal.priority === 'High' && (
-                        <span className="px-2 py-1 text-xs font-bold bg-red-100 text-red-800 border border-red-400">
+                        <span className="px-2.5 py-1 text-xs font-medium bg-red-50 text-red-700 border border-red-200 rounded-md">
                           HIGH PRIORITY
                         </span>
                       )}
-                      <div className="flex items-center gap-2 ml-auto">
-                        <button
-                          onClick={() => handleEdit(deal)}
-                          className="p-1 hover:bg-gray-100 border-2 border-black"
-                          title="Edit deal"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(deal.id)}
-                          className="p-1 hover:bg-red-50 border-2 border-black text-red-600"
-                          title="Delete deal"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
                     </div>
                     {linkedCompany && (
                       <p className="text-sm text-gray-600 mb-1">
@@ -726,53 +729,74 @@ function DealsModule({
                     </p>
                   </div>
                   
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-green-600">
-                      {formatCurrency(deal.value, deal.currency)}
+                  <div className="flex items-start gap-3">
+                    <div className="text-right">
+                      <div className="text-xl font-bold text-green-600">
+                        {formatCurrency(deal.value, deal.currency)}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {deal.probability}% probability
+                      </div>
+                      <div className="text-xs text-gray-400 mt-0.5">
+                        Weighted: {formatCurrency(deal.value * (deal.probability / 100))}
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-600 mt-1">
-                      {deal.probability}% probability
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      Weighted: {formatCurrency(deal.value * (deal.probability / 100))}
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleEdit(deal)}
+                        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                        title="Edit deal"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(deal.id)}
+                        className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
+                        title="Delete deal"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-200">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-100">
                   {deal.expectedCloseDate && (
                     <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <Calendar className="w-4 h-4 text-gray-400" />
                       <div className="text-xs">
                         <div className="text-gray-500">Expected Close</div>
-                        <div className="font-semibold">{formatDate(deal.expectedCloseDate)}</div>
+                        <div className="font-medium text-gray-900">{formatDate(deal.expectedCloseDate)}</div>
                       </div>
                     </div>
                   )}
                   
                   {deal.assignedToName && (
                     <div className="flex items-center gap-2">
-                      <User className="w-4 h-4 text-gray-500" />
+                      <User className="w-4 h-4 text-gray-400" />
                       <div className="text-xs">
                         <div className="text-gray-500">Assigned To</div>
-                        <div className="font-semibold">{deal.assignedToName}</div>
+                        <div className="font-medium text-gray-900">{deal.assignedToName}</div>
                       </div>
                     </div>
                   )}
                   
                   {deal.source && (
                     <div className="flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-gray-500" />
+                      <TrendingUp className="w-4 h-4 text-gray-400" />
                       <div className="text-xs">
                         <div className="text-gray-500">Source</div>
-                        <div className="font-semibold">{deal.source}</div>
+                        <div className="font-medium text-gray-900">{deal.source}</div>
                       </div>
                     </div>
                   )}
                   
-                  <div className="text-xs">
-                    <div className="text-gray-500">Created</div>
-                    <div className="font-semibold">{formatDate(new Date(deal.createdAt).toISOString().split('T')[0])}</div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-gray-400" />
+                    <div className="text-xs">
+                      <div className="text-gray-500">Created</div>
+                      <div className="font-medium text-gray-900">{formatDate(new Date(deal.createdAt).toISOString().split('T')[0])}</div>
+                    </div>
                   </div>
                 </div>
               </div>

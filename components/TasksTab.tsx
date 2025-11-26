@@ -365,14 +365,14 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
     // 7. RENDER
     return (
         <>
-        <div className="flex h-full bg-white font-mono">
+        <div className="flex h-full bg-white">
             {/* SIDEBAR */}
-            <aside className="w-64 border-r-2 border-black p-4 flex flex-col gap-6 overflow-y-auto bg-gray-50">
+            <aside className="w-64 border-r border-gray-200 p-4 flex flex-col gap-6 overflow-y-auto bg-gray-50/50">
                 <div className="flex justify-between items-center">
-                    <h2 className="font-bold uppercase text-black">Filters</h2>
+                    <h2 className="font-semibold text-gray-900">Filters</h2>
                     <button 
                         onClick={clearAllFilters}
-                        className="text-xs text-blue-600 hover:underline font-bold"
+                        className="text-xs text-gray-500 hover:text-gray-700 font-medium"
                     >
                         Clear all
                     </button>
@@ -380,7 +380,7 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
 
                 {/* Module/Category */}
                 <div className="space-y-2">
-                    <h3 className="text-xs font-bold text-black uppercase border-b-2 border-black pb-1">Module</h3>
+                    <h3 className="text-xs font-medium text-gray-500 uppercase border-b border-gray-200 pb-1">Module</h3>
                     <div className="space-y-1">
                         {[
                             { id: 'productsServicesTasks', label: 'Products & Services' },
@@ -390,12 +390,12 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
                             { id: 'marketingTasks', label: 'Marketing' },
                             { id: 'financialTasks', label: 'Financials' }
                         ].map(category => (
-                            <label key={category.id} className="flex items-center gap-2 text-sm text-black cursor-pointer hover:bg-gray-200 p-1 transition-colors">
+                            <label key={category.id} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-100 p-1.5 rounded-md transition-colors">
                                 <input
                                     type="checkbox"
                                     checked={selectedCategories.includes(category.id as TaskCategory)}
                                     onChange={() => toggleCategory(category.id as TaskCategory)}
-                                    className="accent-black w-4 h-4 border-2 border-black rounded-none focus:ring-0"
+                                    className="w-4 h-4 rounded border-gray-300 text-black focus:ring-black"
                                 />
                                 {category.label}
                             </label>
@@ -405,19 +405,19 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
 
                 {/* Status */}
                 <div className="space-y-2">
-                    <h3 className="text-xs font-bold text-black uppercase border-b-2 border-black pb-1">Status</h3>
+                    <h3 className="text-xs font-medium text-gray-500 uppercase border-b border-gray-200 pb-1">Status</h3>
                     <div className="space-y-1">
                         {[
                             { id: 'Todo', label: 'To Do' },
                             { id: 'InProgress', label: 'In Progress' },
                             { id: 'Done', label: 'Done' }
                         ].map(status => (
-                            <label key={status.id} className="flex items-center gap-2 text-sm text-black cursor-pointer hover:bg-gray-200 p-1 transition-colors">
+                            <label key={status.id} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-100 p-1.5 rounded-md transition-colors">
                                 <input
                                     type="checkbox"
                                     checked={selectedStatuses.includes(status.id as TaskStatus)}
                                     onChange={() => toggleStatus(status.id as TaskStatus)}
-                                    className="accent-black w-4 h-4 border-2 border-black rounded-none focus:ring-0"
+                                    className="w-4 h-4 rounded border-gray-300 text-black focus:ring-black"
                                 />
                                 {status.label}
                             </label>
@@ -427,19 +427,19 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
 
                 {/* Priority */}
                 <div className="space-y-2">
-                    <h3 className="text-xs font-bold text-black uppercase border-b-2 border-black pb-1">Priority</h3>
+                    <h3 className="text-xs font-medium text-gray-500 uppercase border-b border-gray-200 pb-1">Priority</h3>
                     <div className="space-y-1">
                         {[
                             { id: 'High', label: 'High' },
                             { id: 'Medium', label: 'Medium' },
                             { id: 'Low', label: 'Low' }
                         ].map(priority => (
-                            <label key={priority.id} className="flex items-center gap-2 text-sm text-black cursor-pointer hover:bg-gray-200 p-1 transition-colors">
+                            <label key={priority.id} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-100 p-1.5 rounded-md transition-colors">
                                 <input
                                     type="checkbox"
                                     checked={selectedPriorities.includes(priority.id as Priority)}
                                     onChange={() => togglePriority(priority.id as Priority)}
-                                    className="accent-black w-4 h-4 border-2 border-black rounded-none focus:ring-0"
+                                    className="w-4 h-4 rounded border-gray-300 text-black focus:ring-black"
                                 />
                                 {priority.label}
                             </label>
@@ -448,22 +448,22 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
                 </div>
 
                 {/* Toggles */}
-                <div className="space-y-2 pt-2 border-t-2 border-black">
-                    <label className="flex items-center gap-2 text-sm text-black cursor-pointer hover:bg-gray-200 p-1 transition-colors">
+                <div className="space-y-2 pt-2 border-t border-gray-200">
+                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-100 p-1.5 rounded-md transition-colors">
                         <input
                             type="checkbox"
                             checked={onlyMyTasks}
                             onChange={(e) => setOnlyMyTasks(e.target.checked)}
-                            className="accent-black w-4 h-4 border-2 border-black rounded-none focus:ring-0"
+                            className="w-4 h-4 rounded border-gray-300 text-black focus:ring-black"
                         />
                         Assigned to me
                     </label>
-                    <label className="flex items-center gap-2 text-sm text-black cursor-pointer hover:bg-gray-200 p-1 transition-colors">
+                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-100 p-1.5 rounded-md transition-colors">
                         <input
                             type="checkbox"
                             checked={highPriorityOnly}
                             onChange={(e) => setHighPriorityOnly(e.target.checked)}
-                            className="accent-black w-4 h-4 border-2 border-black rounded-none focus:ring-0"
+                            className="w-4 h-4 rounded border-gray-300 text-black focus:ring-black"
                         />
                         High priority only
                     </label>
@@ -474,7 +474,7 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
                     <input 
                         type="text"
                         placeholder="Search tasks..."
-                        className="w-full text-xs border-2 border-black rounded-none px-2 py-2 focus:outline-none focus:ring-2 focus:ring-black bg-white"
+                        className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent bg-white"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -484,36 +484,36 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
             {/* MAIN CONTENT */}
             <div className="flex-1 flex flex-col min-w-0 bg-white">
                 {/* Stats Bar */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 border-b-2 border-black bg-white">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 border-b border-gray-200 bg-white">
                     <StatCard label="Total Tasks" value={totalCount} />
                     <StatCard label="Showing" value={filteredTasks.length} />
                     <StatCard label="To Do" value={todoCount} />
                     <StatCard label="Done" value={doneCount} />
                 </div>
 
-                <div className="border-b-2 border-black bg-white px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+                <div className="border-b border-gray-200 bg-white px-4 py-3 flex flex-wrap items-center justify-between gap-3">
                     <div>
-                        <p className="text-sm font-bold text-black uppercase">Working set</p>
-                        <p className="text-xs text-gray-600">Filtered view out of {totalCount} total workspace tasks</p>
+                        <p className="text-sm font-semibold text-gray-900">Working set</p>
+                        <p className="text-xs text-gray-500">Filtered view out of {totalCount} total workspace tasks</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
                         <button
                             onClick={() => setIsCreateModalOpen(true)}
                             data-testid="open-task-modal-button"
-                            className="text-xs font-bold border-2 border-black px-4 py-2 bg-black text-white shadow-neo-btn hover:translate-y-0.5 hover:shadow-none transition-all"
+                            className="text-sm font-medium px-4 py-2 bg-black text-white rounded-md shadow-sm hover:bg-gray-800 transition-colors"
                         >
                             + New task
                         </button>
                         <button
                             onClick={toggleBulkSelect}
-                            className={`text-xs font-bold border-2 border-black px-4 py-2 shadow-neo-btn hover:translate-y-0.5 hover:shadow-none transition-all ${bulkSelectMode ? 'bg-gray-800 text-white' : 'bg-white text-black'}`}
+                            className={`text-sm font-medium px-4 py-2 rounded-md border shadow-sm transition-colors ${bulkSelectMode ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
                         >
                             {bulkSelectMode ? 'Bulk select enabled' : 'Enable bulk select'}
                         </button>
                         <button
                             onClick={clearSelection}
                             disabled={selectionCount === 0}
-                            className={`text-xs font-bold border-2 border-black px-4 py-2 shadow-neo-btn hover:translate-y-0.5 hover:shadow-none transition-all ${selectionCount === 0 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-black'}`}
+                            className={`text-sm font-medium px-4 py-2 rounded-md border shadow-sm transition-colors ${selectionCount === 0 ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
                         >
                             Clear selection ({selectionCount})
                         </button>
@@ -641,14 +641,14 @@ function TaskColumn({
     return (
         <section
             ref={setNodeRef}
-            className="flex flex-col h-full border-2 border-black shadow-neo bg-white"
+            className="flex flex-col h-full border border-gray-200 rounded-lg shadow-sm bg-white"
             data-testid={`task-column-${column.id.toLowerCase()}`}
             data-task-status={column.id}
         >
-            <div className={`px-4 py-3 border-b-2 border-black ${column.accent}`}>
-                <p className="text-xs font-mono uppercase text-gray-600 font-bold">{column.title}</p>
-                <p className="text-sm text-black font-bold">{tasks.length} task{tasks.length === 1 ? '' : 's'}</p>
-                <p className="text-xs text-gray-600">{column.description}</p>
+            <div className={`px-4 py-3 border-b border-gray-200 rounded-t-lg ${column.accent}`}>
+                <p className="text-xs uppercase text-gray-600 font-medium">{column.title}</p>
+                <p className="text-sm text-gray-900 font-semibold">{tasks.length} task{tasks.length === 1 ? '' : 's'}</p>
+                <p className="text-xs text-gray-500">{column.description}</p>
             </div>
             <div className="flex-1 min-h-[200px]">
                 <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
@@ -665,7 +665,7 @@ function TaskColumn({
                             onCategoryNavigate={onCategoryNavigate}
                         />
                     ) : (
-                        <p className="text-xs text-gray-500 italic p-4">{column.emptyMessage}</p>
+                        <p className="text-xs text-gray-400 italic p-4">{column.emptyMessage}</p>
                     )}
                 </SortableContext>
             </div>

@@ -44,7 +44,7 @@ const QuickLinkEditor: React.FC<QuickLinkEditorProps> = ({ link, onUpdate, onDel
     };
 
     return (
-        <div className="flex items-center gap-2 p-3 bg-gray-50 border-2 border-black">
+        <div className="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
             <div className="text-2xl shrink-0">
                 🌐
             </div>
@@ -54,20 +54,20 @@ const QuickLinkEditor: React.FC<QuickLinkEditorProps> = ({ link, onUpdate, onDel
                     value={text || ''}
                     onChange={(e) => setText(e.target.value)}
                     placeholder="Link Text"
-                    className="border-2 border-black px-2 py-1 font-mono text-sm"
+                    className="border border-gray-300 rounded px-2 py-1 font-mono text-sm focus:ring-2 focus:ring-black focus:outline-none"
                 />
                 <input
                     type="url"
                     value={href || ''}
                     onChange={(e) => setHref(e.target.value)}
                     placeholder="https://example.com"
-                    className="border-2 border-black px-2 py-1 font-mono text-sm"
+                    className="border border-gray-300 rounded px-2 py-1 font-mono text-sm focus:ring-2 focus:ring-black focus:outline-none"
                 />
             </div>
             {hasChanges && (
                 <button
                     onClick={handleSave}
-                    className="bg-green-600 text-white px-3 py-1 text-sm font-mono font-semibold border-2 border-black hover:bg-green-700"
+                    className="bg-green-600 text-white px-3 py-1 text-sm font-mono font-semibold border border-green-700 rounded hover:bg-green-700"
                     title="Save changes"
                 >
                     Save
@@ -412,11 +412,11 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                 <ProfileSettings onSave={refreshMembers} />
             </div>
 
-            <div className="bg-white p-6 border-2 border-black shadow-neo">
+            <div className="bg-white p-6 border border-gray-200 rounded-lg shadow-sm">
                 <h2 className="text-2xl font-semibold text-black mb-6">Workspace Settings</h2>
 
                 <div className="space-y-8">
-                    <fieldset className="border-2 border-dashed border-black p-4">
+                    <fieldset className="border border-gray-200 rounded-lg p-4">
                         <legend className="text-lg font-mono font-semibold px-2">Business Profile & Copilot Personalization</legend>
                         <div className="space-y-6">
                             <p className="text-sm text-gray-600">
@@ -432,9 +432,9 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                                     <span>{aiContextSummary.completed} of {aiContextSummary.total} key fields complete</span>
                                                     <span>{aiContextSummary.percent}%</span>
                                                 </div>
-                                                <div className="h-3 border-2 border-black bg-white">
+                                                <div className="h-3 border border-gray-300 rounded-full bg-gray-100">
                                                     <div
-                                                        className="h-full bg-blue-600"
+                                                        className="h-full bg-blue-600 rounded-full"
                                                         style={{ width: `${aiContextSummary.percent}%` }}
                                                     />
                                                 </div>
@@ -444,7 +444,7 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                             {aiContextSummary.highlights.length > 0 && (
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                     {aiContextSummary.highlights.map(({ label, value }) => (
-                                                        <div key={label} className="border-2 border-black p-3 bg-white">
+                                                        <div key={label} className="border border-gray-200 rounded-md p-3 bg-white">
                                                             <div className="text-xs uppercase text-gray-500 font-mono">{label}</div>
                                                             <div className="text-sm font-semibold font-mono text-black mt-1 whitespace-pre-wrap">
                                                                 {value}
@@ -459,7 +459,7 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                                     <div className="text-xs uppercase text-gray-500 font-mono mb-1">Suggested next fields</div>
                                                     <div className="flex flex-wrap gap-2">
                                                         {aiContextSummary.missing.map(field => (
-                                                            <span key={field.key} className="text-xs font-mono border-2 border-black px-2 py-1 bg-yellow-50">
+                                                            <span key={field.key} className="text-xs font-mono border border-gray-300 rounded px-2 py-1 bg-yellow-50">
                                                                 {field.label}
                                                             </span>
                                                         ))}
@@ -468,15 +468,15 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                             )}
                                         </>
                                     ) : (
-                                        <div className="border-2 border-dashed border-black p-4 bg-white">
+                                        <div className="border border-dashed border-gray-300 rounded-md p-4 bg-white">
                                             <p className="text-sm font-mono text-gray-600">
-                                                You haven’t saved a full AI context yet. Share your ICP, positioning, and pricing so Copilot can tailor answers.
+                                                You haven't saved a full AI context yet. Share your ICP, positioning, and pricing so Copilot can tailor answers.
                                             </p>
                                         </div>
                                     )}
                                 </div>
 
-                                <div className="border-2 border-black bg-white p-4 space-y-3">
+                                <div className="border border-gray-200 rounded-lg bg-white p-4 space-y-3">
                                     <div className="flex items-center justify-between">
                                         <h3 className="font-mono font-semibold text-sm uppercase tracking-wide">Business Profile Snapshot</h3>
                                         {businessProfile?.isComplete ? (
@@ -513,7 +513,7 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                 <div className="flex flex-col gap-2">
                                     <button
                                         onClick={openBusinessProfileModal}
-                                        className="font-mono bg-black text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+                                        className="font-mono bg-black text-white border border-gray-300 px-4 py-2 rounded-md font-semibold hover:bg-gray-800 transition-colors"
                                     >
                                         Edit Business Profile & AI Context
                                     </button>
@@ -529,7 +529,7 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
 
                     {/* Team Management Section - Only show for team plans */}
                     {isTeamPlan && (
-                        <fieldset className="border-2 border-dashed border-black p-4">
+                        <fieldset className="border border-gray-200 rounded-lg p-4">
                             <legend className="text-lg font-mono font-semibold px-2">Team Management</legend>
                             <div className="space-y-4">
                                 <div>
@@ -553,7 +553,7 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                                 const displayEmail = member.email || 'No email found';
                                                 
                                                 return (
-                                                    <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 border-2 border-gray-200">
+                                                    <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-md">
                                                         <div className="flex-1">
                                                             <p className="font-mono text-sm font-semibold">
                                                                 {displayName}
@@ -563,13 +563,13 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                                             <p className="text-xs text-gray-600">{displayEmail}</p>
                                                         </div>
                                                         <div className="flex items-center gap-2">
-                                                            <span className="px-3 py-1 text-xs font-bold border-2 border-black bg-white">
+                                                            <span className="px-3 py-1 text-xs font-bold border border-gray-300 bg-white rounded">
                                                                 {member.role.toUpperCase()}
                                                             </span>
                                                             {!isCurrentUser && workspace?.ownerId === user?.id && (
                                                                 <button
                                                                     onClick={() => handleRemoveMember(member.id, member.email, member.role)}
-                                                                    className="px-3 py-1 text-xs font-bold border-2 border-black bg-red-500 text-white hover:bg-red-600 transition-colors"
+                                                                    className="px-3 py-1 text-xs font-bold border border-gray-300 bg-red-500 text-white hover:bg-red-600 transition-colors rounded"
                                                                     title={`Remove ${member.email}`}
                                                                     disabled={member.role === 'owner'}
                                                                 >
@@ -595,7 +595,7 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                         ) : (
                                             <div className="space-y-2">
                                                 {pendingInvitations.map((invitation: any) => (
-                                                    <div key={invitation.id} className="flex items-center justify-between p-3 bg-yellow-50 border-2 border-yellow-300">
+                                                    <div key={invitation.id} className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-300 rounded-md">
                                                         <div className="flex-1">
                                                             <p className="font-mono text-sm font-semibold">{invitation.email}</p>
                                                             <p className="text-xs text-gray-600">
@@ -604,12 +604,12 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                                             </p>
                                                         </div>
                                                         <div className="flex items-center gap-2">
-                                                            <span className="px-2 py-1 text-xs font-bold border-2 border-black bg-white">
+                                                            <span className="px-2 py-1 text-xs font-bold border border-gray-300 bg-white rounded">
                                                                 {invitation.role.toUpperCase()}
                                                             </span>
                                                             <button
                                                                 onClick={() => handleRevokeInvitation(invitation.id)}
-                                                                className="px-3 py-1 text-xs font-bold border-2 border-black bg-red-500 text-white hover:bg-red-600"
+                                                                className="px-3 py-1 text-xs font-bold border border-gray-300 bg-red-500 text-white hover:bg-red-600 rounded"
                                                                 title="Revoke invitation"
                                                             >
                                                                 Revoke
@@ -625,7 +625,7 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                 <div className="pt-4">
                                     <button
                                         onClick={() => setShowInviteModal(true)}
-                                            className="font-mono bg-green-600 border-2 border-black text-white cursor-pointer py-2 px-6 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-green-700 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+                                            className="font-mono bg-green-600 border border-gray-300 text-white cursor-pointer py-2 px-6 rounded-md font-semibold transition-colors hover:bg-green-700"
                                             data-testid="open-invite-team-modal"
                                     >
                                         + Invite Team Member
@@ -636,7 +636,7 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                     )}
 
                     {/* Subscription Section */}
-                    <fieldset className="border-2 border-dashed border-black p-4">
+                    <fieldset className="border border-gray-200 rounded-lg p-4">
                         <legend className="text-lg font-mono font-semibold px-2">Subscription</legend>
                         <div className="space-y-4">
                             <div>
@@ -650,7 +650,7 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                     {workspacePlanType !== 'team-pro' && workspacePlanType !== 'power-individual' && (
                                         <button
                                             onClick={() => setShowPricingPage(true)}
-                                            className="font-mono bg-blue-600 border-2 border-black text-white cursor-pointer py-2 px-6 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-blue-700 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+                                            className="font-mono bg-blue-600 border border-gray-300 text-white cursor-pointer py-2 px-6 rounded-md font-semibold transition-colors hover:bg-blue-700"
                                         >
                                             Upgrade Plan
                                         </button>
@@ -669,7 +669,7 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                                     alert('Failed to open customer portal. Please try again.');
                                                 }
                                             }}
-                                            className="font-mono bg-gray-800 border-2 border-black text-white cursor-pointer py-2 px-6 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-gray-900 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+                                            className="font-mono bg-gray-800 border border-gray-300 text-white cursor-pointer py-2 px-6 rounded-md font-semibold transition-colors hover:bg-gray-900"
                                         >
                                             Manage Subscription
                                         </button>
@@ -679,7 +679,7 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                         </div>
                     </fieldset>
 
-                    <fieldset className="border-2 border-dashed border-black p-4">
+                    <fieldset className="border border-gray-200 rounded-lg p-4">
                         <legend className="text-lg font-mono font-semibold px-2">Notifications</legend>
                         <div className="space-y-4">
                             {/* Desktop Notifications */}
@@ -696,7 +696,7 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                                 handleSettingChange('desktopNotifications', e.target.checked);
                                             }
                                         }}
-                                        className="focus:ring-blue-500 h-5 w-5 text-blue-600 border-2 border-black rounded-none accent-blue-500"
+                                        className="focus:ring-blue-500 h-5 w-5 text-blue-600 border border-gray-300 rounded accent-blue-500"
                                         aria-describedby="desktop-notifications-description"
                                     />
                                 </div>
@@ -715,14 +715,14 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                         </div>
                     </fieldset>
 
-                    <fieldset className="border-2 border-dashed border-black p-4">
+                    <fieldset className="border border-gray-200 rounded-lg p-4">
                         <legend className="text-lg font-mono font-semibold px-2">Quick Links</legend>
                         <div className="space-y-4">
                             <p className="text-sm text-gray-600">
                                 Add custom quick links to your dashboard for easy access to your frequently used tools.
                             </p>
                             {(!settings.quickLinks || settings.quickLinks.length === 0) ? (
-                                <div className="text-center py-8 border-2 border-dashed border-gray-300 bg-gray-50">
+                                <div className="text-center py-8 border border-dashed border-gray-300 rounded-lg bg-gray-50">
                                     <p className="text-gray-500 mb-4">No quick links added yet</p>
                                     <button
                                         onClick={() => {
@@ -738,7 +738,7 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                                 quickLinks: [newLink]
                                             });
                                         }}
-                                        className="font-mono bg-blue-600 border-2 border-black text-white py-2 px-4 font-semibold shadow-neo-btn hover:bg-blue-700"
+                                        className="font-mono bg-blue-600 border border-gray-300 text-white py-2 px-4 font-semibold rounded-md hover:bg-blue-700"
                                     >
                                         + Add First Quick Link
                                     </button>
@@ -774,7 +774,7 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                                 quickLinks: [...(settings.quickLinks || []), newLink]
                                             });
                                         }}
-                                        className="w-full font-mono bg-white border-2 border-black text-black py-2 px-4 font-semibold hover:bg-gray-100"
+                                        className="w-full font-mono bg-white border border-gray-300 text-black py-2 px-4 font-semibold hover:bg-gray-100 rounded-md"
                                     >
                                         + Add Another Link
                                     </button>
@@ -785,7 +785,7 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
 
                     {/* Automation Settings */}
                     {workspace?.id && (
-                        <fieldset className="border-2 border-dashed border-black p-4">
+                        <fieldset className="border border-gray-200 rounded-lg p-4">
                             <legend className="text-lg font-mono font-semibold px-2">⚙️ Automation Settings</legend>
                             <div className="mt-4">
                                 <AutomationSettings workspaceId={workspace.id} />
@@ -795,7 +795,7 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
 
                     {/* Integrations Settings */}
                     {workspace?.id && (
-                        <fieldset className="border-2 border-dashed border-black p-4">
+                        <fieldset className="border border-gray-200 rounded-lg p-4">
                             <legend className="text-lg font-mono font-semibold px-2">🔌 Integrations</legend>
                             <div className="mt-4">
                                 <IntegrationsSettings />
@@ -803,7 +803,7 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                         </fieldset>
                     )}
 
-                    <fieldset className="border-2 border-dashed border-red-600 p-4 bg-red-50">
+                    <fieldset className="border border-red-300 rounded-lg p-4 bg-red-50">
                         <legend className="text-lg font-mono font-semibold px-2 text-red-800">Danger Zone</legend>
                         <div className="space-y-4">
                             <div>
@@ -817,7 +817,7 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                 <button
                                     onClick={handleDeleteAccount}
                                     disabled={isDeleting}
-                                    className="font-mono bg-red-700 border-2 border-black text-white cursor-pointer py-2 px-4 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="font-mono bg-red-700 border border-red-800 text-white cursor-pointer py-2 px-4 rounded-md font-semibold transition-colors hover:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isDeleting ? 'Deleting...' : 'Delete My Account'}
                                 </button>
