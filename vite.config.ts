@@ -65,27 +65,15 @@ export default defineConfig(({ mode }) => {
         },
         rollupOptions: {
           output: {
-            // Split vendor chunks to reduce memory pressure during build
-            // ORDER MATTERS: Check specific packages before generic patterns
+            // Minimal chunk splitting to avoid circular dependency issues
+            // Only split truly independent large packages
             manualChunks: (id) => {
               if (id.includes('node_modules')) {
-                // UI libraries FIRST (before react check, since lucide-react contains 'react')
-                if (id.includes('lucide-react') || id.includes('recharts') || id.includes('date-fns') || id.includes('react-day-picker')) {
-                  return 'vendor-ui';
-                }
-                // TipTap/ProseMirror (large) - check before react since some have 'react' in path
-                if (id.includes('@tiptap') || id.includes('prosemirror') || id.includes('yjs') || id.includes('y-')) {
+                // TipTap/ProseMirror editor stack is large and self-contained
+                if (id.includes('@tiptap') || id.includes('prosemirror') || id.includes('yjs') || id.includes('y-supabase') || id.includes('y-protocols')) {
                   return 'vendor-editor';
                 }
-                // Supabase
-                if (id.includes('@supabase')) {
-                  return 'vendor-supabase';
-                }
-                // React core ecosystem (checked AFTER specific react-* packages)
-                if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/')) {
-                  return 'vendor-react';
-                }
-                // Everything else
+                // Everything else stays in one vendor chunk to avoid initialization order issues
                 return 'vendor';
               }
               
