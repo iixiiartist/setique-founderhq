@@ -85,10 +85,9 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
     }
 
     const limits = PLAN_LIMITS[planType];
-    const isTeamPlan = planType.startsWith('team-');
+    const isTeamPlan = planType === 'team-pro';
     const planSummary: Record<PlanType, string> = {
         'free': 'Includes 25 Copilot requests each month, unlimited documents & storage, and one seat. Credits reset on the 1st.',
-        'power-individual': 'Unlimited Copilot, unlimited storage/files, and advanced automations for a single seat.',
         'team-pro': 'Unlimited Copilot, docs, storage, and advanced collaboration for every seat in your workspace.',
     };
 
@@ -137,11 +136,8 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
                         {planType === 'free' && (
                             <span className="text-xs bg-gray-200 text-black px-2 py-1 border border-black font-mono">FREE</span>
                         )}
-                        {planType === 'power-individual' && (
-                            <span className="text-xs bg-blue-100 text-blue-900 px-2 py-1 border border-black font-mono">PRO SOLO</span>
-                        )}
                         {planType === 'team-pro' && (
-                            <span className="text-xs bg-green-100 text-green-900 px-2 py-1 border border-black font-mono">TEAM</span>
+                            <span className="text-xs bg-green-100 text-green-900 px-2 py-1 border border-black font-mono">PRO</span>
                         )}
                     </h3>
                     <p className="text-sm text-gray-700 mt-1 font-mono">
@@ -153,7 +149,7 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
                         </p>
                     )}
                 </div>
-                {planType !== 'power-individual' && planType !== 'team-pro' && (
+                {planType !== 'team-pro' && (
                     <button
                         onClick={onUpgrade}
                         className="font-mono bg-blue-600 border-2 border-black text-white cursor-pointer py-2 px-4 font-semibold shadow-neo-btn transition-all hover:bg-blue-700 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"

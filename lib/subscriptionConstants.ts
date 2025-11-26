@@ -4,19 +4,20 @@ import { PlanType } from '../types';
 export type { PlanType };
 
 // Plan pricing in cents
+// Simplified pricing: Free + Team Pro ($49 base including owner, +$25/extra seat)
 export const PLAN_PRICES = {
   'free': 0,
-  'power-individual': 4900, // $49/month
-  'team-pro': 9900, // $99/month base
+  'team-pro': 4900, // $49/month base (includes workspace owner)
 } as const;
 
 // Additional seat pricing for team plans (in cents)
+// First seat (owner) is included in base price, extra seats are $25/month each
 export const SEAT_PRICES = {
-  'team-pro': 2500, // $25/seat/month
+  'team-pro': 2500, // $25/extra seat/month
 } as const;
 
-// Minimum seats for team plans
-export const MINIMUM_TEAM_SEATS = 2;
+// Minimum seats for team plans (1 = owner only, can add more)
+export const MINIMUM_TEAM_SEATS = 1;
 
 // Plan limits
 export interface PlanLimits {
@@ -42,24 +43,6 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
       '25 AI Assistant requests/month'
     ]
   },
-  'power-individual': {
-    name: 'Power',
-    aiRequestsPerMonth: null, // Unlimited
-    storageBytes: null, // Unlimited
-    fileCount: null, // Unlimited
-    maxSeats: 1,
-    features: [
-      'Unlimited AI Assistant',
-      'Unlimited Tasks',
-      'Full CRM Features',
-      'Unlimited Documents',
-      'Advanced Analytics',
-      'Priority Support',
-      'Export Data',
-      'API Access',
-      'Custom Integrations'
-    ]
-  },
   'team-pro': {
     name: 'Team Pro',
     aiRequestsPerMonth: null, // Unlimited per user
@@ -67,17 +50,18 @@ export const PLAN_LIMITS: Record<PlanType, PlanLimits> = {
     fileCount: null, // Unlimited per user
     maxSeats: 999,
     features: [
-      'All Power Features',
+      'Unlimited AI Assistant',
+      'Unlimited Tasks & CRM',
+      'Full Document Management',
+      'Advanced Analytics',
       'Team Collaboration',
       'Shared Workspaces',
       'Team Achievements',
       'Member Management',
-      'Unlimited Documents',
-      'Team Analytics',
       'Role-Based Access',
-      'Advanced Permissions',
-      'Priority Team Support',
-      'Custom Onboarding'
+      'Priority Support',
+      'API Access',
+      'Custom Integrations'
     ]
   }
 };
@@ -87,16 +71,19 @@ export function isTeamPlan(planType: PlanType): boolean {
   return planType === 'team-pro';
 }
 
-// Helper function to check if plan is an individual plan
-export function isIndividualPlan(planType: PlanType): boolean {
-  return planType === 'free' || planType === 'power-individual';
+// Helper function to check if plan is a free plan
+export function isFreePlan(planType: PlanType): boolean {
+  return planType === 'free';
 }
 
 // Calculate total monthly price for team plans
+// Base price ($49) includes owner, extra seats are $25 each
 export function calculateTeamPlanPrice(planType: 'team-pro', seatCount: number): number {
   const basePriceInCents = PLAN_PRICES[planType] || 0;
   const seatPriceInCents = SEAT_PRICES['team-pro'] || 0;
-  return basePriceInCents + (seatCount * seatPriceInCents);
+  // Extra seats = total seats - 1 (owner is included in base)
+  const extraSeats = Math.max(0, seatCount - 1);
+  return basePriceInCents + (extraSeats * seatPriceInCents);
 }
 
 // Format price in cents to USD string
@@ -114,29 +101,23 @@ export function formatPrice(cents: number): string {
 export function getPlanDisplayName(planType: PlanType): string {
   const names: Record<PlanType, string> = {
     'free': 'Free',
-    'power-individual': 'Power',
     'team-pro': 'Team Pro'
   };
   return names[planType];
 }
 
-// Get plan category
-export function getPlanCategory(planType: PlanType): 'individual' | 'team' {
-  return isTeamPlan(planType) ? 'team' : 'individual';
+// Get plan category (simplified - free or paid)
+export function getPlanCategory(planType: PlanType): 'free' | 'paid' {
+  return planType === 'free' ? 'free' : 'paid';
 }
 
 // Check if user can upgrade to a specific plan
 export function canUpgradeToPlan(currentPlan: PlanType, targetPlan: PlanType): boolean {
-  const planHierarchy: PlanType[] = [
-    'free',
-    'power-individual',
-    'team-pro'
-  ];
-  
-  const currentIndex = planHierarchy.indexOf(currentPlan);
-  const targetIndex = planHierarchy.indexOf(targetPlan);
-  
-  return targetIndex > currentIndex;
+  // Simple hierarchy: free -> team-pro
+  if (currentPlan === 'free' && targetPlan === 'team-pro') {
+    return true;
+  }
+  return false;
 }
 
 // Format bytes to human-readable string
@@ -171,19 +152,16 @@ export function isLimitExceeded(used: number, limit: number | null): boolean {
 
 // Get recommended upgrade plan
 export function getRecommendedUpgrade(currentPlan: PlanType): PlanType | null {
-  const upgrades: Record<PlanType, PlanType | null> = {
-    'free': 'power-individual',
-    'power-individual': 'team-pro',
-    'team-pro': null // Already at highest plan
-  };
-  
-  return upgrades[currentPlan];
+  // Only free users can upgrade to team-pro
+  if (currentPlan === 'free') {
+    return 'team-pro';
+  }
+  return null; // Already at highest plan
 }
 
 // Stripe Price IDs (to be set via environment variables)
-// Note: Only active plans are included. Deprecated plans (pro-individual, team-starter) have been removed.
+// Simplified: only team-pro pricing (base + per-seat)
 export const STRIPE_PRICE_IDS = {
-  'power-individual': import.meta.env.VITE_STRIPE_PRICE_POWER_INDIVIDUAL,
   'team-pro-base': import.meta.env.VITE_STRIPE_PRICE_TEAM_PRO_BASE,
   'team-pro-seat': import.meta.env.VITE_STRIPE_PRICE_TEAM_PRO_SEAT,
 } as const;

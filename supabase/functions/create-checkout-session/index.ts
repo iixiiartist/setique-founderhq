@@ -36,19 +36,17 @@ serve(async (req) => {
 
     let lineItems: Array<{ price: string; quantity: number }> = [];
     const requestedSeatCount = Number(seatCount) || 1;
-    const sanitizedSeatCount = normalizedPlan === 'team-pro'
-      ? Math.max(MINIMUM_TEAM_SEATS, requestedSeatCount)
-      : 1;
+    const sanitizedSeatCount = Math.max(MINIMUM_TEAM_SEATS, requestedSeatCount);
 
-    if (normalizedPlan === 'power-individual') {
-      lineItems = [{ price: STRIPE_PRICE_IDS.powerIndividual!, quantity: 1 }];
-    } else if (normalizedPlan === 'team-pro') {
-      lineItems = [
-        { price: STRIPE_PRICE_IDS.teamProBase!, quantity: 1 },
-        { price: STRIPE_PRICE_IDS.teamProSeat!, quantity: sanitizedSeatCount },
-      ];
+    if (normalizedPlan === 'team-pro') {
+      // Team Pro: Base price ($49 includes owner) + extra seats at $25 each
+      const extraSeats = Math.max(0, sanitizedSeatCount - 1);
+      lineItems = [{ price: STRIPE_PRICE_IDS.teamProBase!, quantity: 1 }];
+      if (extraSeats > 0) {
+        lineItems.push({ price: STRIPE_PRICE_IDS.teamProSeat!, quantity: extraSeats });
+      }
     } else {
-      return jsonResponse({ error: 'Unsupported plan type' }, { status: 400 });
+      return jsonResponse({ error: 'Unsupported plan type. Only team-pro is available.' }, { status: 400 });
     }
 
     const { data: existingSubscription } = await supabaseAdmin

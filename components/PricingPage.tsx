@@ -19,7 +19,6 @@ interface PricingPageProps {
 }
 
 export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', workspaceId, onClose }) => {
-    const [planCategory, setPlanCategory] = useState<'individual' | 'team'>('individual');
     const [teamSeats, setTeamSeats] = useState(MINIMUM_TEAM_SEATS);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -33,8 +32,8 @@ export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', 
         try {
             const { url } = await stripeEdgeFunctions.createCheckoutSession({
                 workspaceId,
-                planType: planType as 'power-individual' | 'team-pro',
-                seatCount: isTeamPlan(planType) ? teamSeats : 1,
+                planType: 'team-pro',
+                seatCount: teamSeats,
                 successUrl: `${window.location.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
                 cancelUrl: window.location.href,
             });
@@ -50,14 +49,12 @@ export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', 
 
     const planSubheading: Record<PlanType, string> = {
         'free': '25 Copilot requests every month • unlimited documents & storage',
-        'power-individual': 'Unlimited Copilot + storage for one builder',
-        'team-pro': 'Unlimited Copilot plus shared automations for every seat',
+        'team-pro': 'Unlimited Copilot, storage, and team collaboration for all seats',
     };
 
     const planBadgeText: Partial<Record<PlanType, string>> = {
         'free': 'NOW INCLUDES AI',
-        'power-individual': 'UNLIMITED AI',
-        'team-pro': 'TEAM FAVORITE',
+        'team-pro': 'BEST VALUE',
     };
 
     const renderPlanCard = (planType: PlanType, isPopular: boolean = false) => {
@@ -93,13 +90,13 @@ export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', 
                     </div>
                     <div className="flex items-baseline justify-center gap-1">
                         <span className="text-4xl font-bold font-mono text-black">
-                            {formatPrice(isTeamPlan(planType) ? basePrice : totalPrice)}
+                            {formatPrice(basePrice)}
                         </span>
                         <span className="text-black font-mono">/month</span>
                     </div>
                     {isTeamPlan(planType) && (
                         <p className="text-sm text-black font-mono mt-1">
-                            + {formatPrice(seatPrice)}/user/month
+                            base (includes owner) + {formatPrice(seatPrice)}/extra user
                         </p>
                     )}
                     <p className="text-sm text-gray-700 font-mono mt-3">
@@ -110,7 +107,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', 
                 {isTeamPlan(planType) && (
                     <div className="mb-6 border-2 border-dashed border-black p-4">
                         <label className="block text-sm text-black font-mono font-bold mb-2">
-                            Number of seats
+                            Team size (including you)
                         </label>
                         <div className="flex items-center gap-2">
                             <button
@@ -135,7 +132,11 @@ export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', 
                             </button>
                         </div>
                         <p className="text-sm text-black font-mono mt-2">
-                            Total: <span className="font-bold">{formatPrice(totalPrice)}/month</span>
+                            {teamSeats === 1 ? (
+                                <span>Total: <span className="font-bold">{formatPrice(totalPrice)}/month</span> (just you)</span>
+                            ) : (
+                                <span>Total: <span className="font-bold">{formatPrice(totalPrice)}/month</span> ({teamSeats} users)</span>
+                            )}
                         </p>
                     </div>
                 )}
@@ -189,12 +190,11 @@ export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', 
         );
     };
 
-    const individualPlans: PlanType[] = ['free', 'power-individual'];
-    const teamPlans: PlanType[] = ['team-pro'];
+    const plans: PlanType[] = ['free', 'team-pro'];
 
     return (
         <div className="fixed inset-0 flex items-center justify-center z-[100] p-4 overflow-y-auto" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}>
-            <div className="bg-white border-2 border-black shadow-neo rounded-none max-w-7xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-white border-2 border-black shadow-neo rounded-none max-w-5xl w-full max-h-[90vh] overflow-y-auto">
                 <div className="sticky top-0 bg-white border-b-2 border-black p-6 flex justify-between items-center z-10">
                     <div>
                         <h2 className="text-3xl font-bold text-black font-mono">Choose Your Plan</h2>
@@ -209,49 +209,12 @@ export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', 
                 </div>
 
                 <div className="p-6">
-                    {/* Plan Category Tabs */}
-                    <div className="flex justify-center mb-8">
-                        <div className="inline-flex border-2 border-black">
-                            <button
-                                onClick={() => setPlanCategory('individual')}
-                                className={`px-6 py-2 font-mono font-semibold transition border-r-2 border-black ${
-                                    planCategory === 'individual'
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-white text-black hover:bg-gray-100'
-                                }`}
-                            >
-                                Individual Plans
-                            </button>
-                            <button
-                                onClick={() => setPlanCategory('team')}
-                                className={`px-6 py-2 font-mono font-semibold transition ${
-                                    planCategory === 'team'
-                                        ? 'bg-blue-600 text-white'
-                                        : 'bg-white text-black hover:bg-gray-100'
-                                }`}
-                            >
-                                Team Plans
-                            </button>
-                        </div>
+                    {/* Simplified Pricing - Two Plans Side by Side */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                        {plans.map((plan) => 
+                            renderPlanCard(plan, plan === 'team-pro')
+                        )}
                     </div>
-
-                    {/* Individual Plans */}
-                    {planCategory === 'individual' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {individualPlans.map((plan, idx) => 
-                                renderPlanCard(plan, plan === 'power-individual')
-                            )}
-                        </div>
-                    )}
-
-                    {/* Team Plans */}
-                    {planCategory === 'team' && (
-                        <div className="grid grid-cols-1 gap-6 max-w-2xl mx-auto">
-                            {teamPlans.map((plan, idx) => 
-                                renderPlanCard(plan, plan === 'team-pro')
-                            )}
-                        </div>
-                    )}
 
                     {/* FAQ/Info Section */}
                     <div className="mt-12 pt-8 border-t-2 border-black">

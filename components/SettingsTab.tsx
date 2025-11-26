@@ -124,13 +124,11 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
 
     // Get plan type from workspace (already mapped to camelCase by WorkspaceContext)
     const workspacePlanType = workspace?.planType || 'free';
-    const isTeamPlan = workspacePlanType.startsWith('team');
+    const isTeamPlan = workspacePlanType === 'team-pro';
     const subscriptionDescription = useMemo(() => {
         switch (workspacePlanType) {
             case 'team-pro':
                 return 'Team Pro unlocks unlimited Copilot access, automations, storage, and seat management for your entire workspace.';
-            case 'power-individual':
-                return 'Power plan includes unlimited Copilot and storage for one seat. Upgrade to Team Pro if you need multiple seats or advanced admin controls.';
             default:
                 return 'Free plan includes 25 Copilot requests per month (resets monthly) plus unlimited documents and storage. Upgrade for unlimited AI throughput and automations.';
         }
@@ -647,7 +645,7 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                     {subscriptionDescription}
                                 </p>
                                 <div className="flex gap-3">
-                                    {workspacePlanType !== 'team-pro' && workspacePlanType !== 'power-individual' && (
+                                    {workspacePlanType !== 'team-pro' && (
                                         <button
                                             onClick={() => setShowPricingPage(true)}
                                             className="font-mono bg-blue-600 border border-gray-300 text-white cursor-pointer py-2 px-6 rounded-md font-semibold transition-colors hover:bg-blue-700"

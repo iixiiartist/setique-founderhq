@@ -590,9 +590,9 @@ export interface MarketingCalendarLink {
 
 export type WorkspaceRole = 'owner' | 'member';
 
+// Simplified pricing: Free or Team Pro ($49/month base + $25/extra seat)
 export type PlanType = 
     | 'free' 
-    | 'power-individual' 
     | 'team-pro';
 
 export interface Workspace {

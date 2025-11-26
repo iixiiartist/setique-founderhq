@@ -4,8 +4,8 @@ const FUNCTIONS_BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
 
 interface CheckoutSessionParams {
   workspaceId: string;
-  planType: 'power-individual' | 'team-pro';
-  seatCount?: number;
+  planType: 'team-pro'; // Simplified: only team-pro available
+  seatCount?: number; // 1 = solo, 2+ = team
   successUrl: string;
   cancelUrl: string;
   customerEmail?: string;

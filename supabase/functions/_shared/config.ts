@@ -28,22 +28,19 @@ if (!supabaseServiceKey) {
 
 export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-const pricePowerIndividual = Deno.env.get('STRIPE_PRICE_POWER_INDIVIDUAL');
 const priceTeamProBase = Deno.env.get('STRIPE_PRICE_TEAM_PRO_BASE');
 const priceTeamProSeat = Deno.env.get('STRIPE_PRICE_TEAM_PRO_SEAT');
 
+// Simplified pricing: only Team Pro (base + per-seat)
 export const STRIPE_PRICE_IDS = {
-  powerIndividual: pricePowerIndividual,
   teamProBase: priceTeamProBase,
   teamProSeat: priceTeamProSeat,
 };
 
-export const MINIMUM_TEAM_SEATS = Number(Deno.env.get('STRIPE_MIN_TEAM_SEATS') ?? '2');
+// Minimum team seats is now 1 (owner included in base price)
+export const MINIMUM_TEAM_SEATS = Number(Deno.env.get('STRIPE_MIN_TEAM_SEATS') ?? '1');
 
 export function assertPriceIdsConfigured(plan: string) {
-  if (plan === 'power-individual' && !STRIPE_PRICE_IDS.powerIndividual) {
-    throw new Error('STRIPE_PRICE_POWER_INDIVIDUAL is not configured');
-  }
   if (plan === 'team-pro') {
     if (!STRIPE_PRICE_IDS.teamProBase) {
       throw new Error('STRIPE_PRICE_TEAM_PRO_BASE is not configured');

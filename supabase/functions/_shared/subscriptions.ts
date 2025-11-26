@@ -34,7 +34,8 @@ export async function updateSubscriptionRecord(
   subscription: Stripe.Subscription,
 ) {
   const seatCount = getSeatCountFromSubscription(subscription);
-  const planType = (subscription.metadata?.plan_type || 'power-individual') as string;
+  // Simplified: only team-pro is available as paid plan
+  const planType = (subscription.metadata?.plan_type || 'team-pro') as string;
   const payload = {
     workspace_id: workspaceId,
     plan_type: planType,

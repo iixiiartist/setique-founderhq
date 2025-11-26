@@ -19,7 +19,7 @@ interface UserSignup {
     isAdmin: boolean;
 }
 
-type PlanType = 'free' | 'power-individual' | 'team-pro';
+type PlanType = 'free' | 'team-pro';
 
 interface SignupStats {
     total: number;
@@ -372,7 +372,6 @@ function AdminTab() {
                         >
                             <option value="all">All Plans</option>
                             <option value="free">Free</option>
-                            <option value="power-individual">Power</option>
                             <option value="team-pro">Team Pro</option>
                         </select>
                     </div>
@@ -443,11 +442,9 @@ function AdminTab() {
                                     <td className="px-4 py-3">
                                         <span className={`px-2 py-1 text-xs font-mono border border-gray-300 rounded ${
                                             user.planType === 'free' ? 'bg-gray-100 text-gray-800' :
-                                            user.planType === 'power-individual' ? 'bg-yellow-100 text-yellow-800' :
                                             'bg-purple-100 text-purple-800'
                                         }`}>
                                             {user.planType === 'free' ? 'FREE' :
-                                             user.planType === 'power-individual' ? 'POWER' :
                                              user.planType === 'team-pro' ? 'TEAM PRO' :
                                              user.planType.toUpperCase()}
                                         </span>
@@ -465,16 +462,15 @@ function AdminTab() {
                                                     className="px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-black font-mono text-xs"
                                                 >
                                                     <option value="free">Free</option>
-                                                    <option value="power-individual">Power</option>
                                                     <option value="team-pro">Team Pro</option>
                                                 </select>
                                                 {selectedPlan === 'team-pro' && (
                                                     <input
                                                         type="number"
-                                                        min="2"
+                                                        min="1"
                                                         max="100"
                                                         value={selectedSeats}
-                                                        onChange={(e) => setSelectedSeats(parseInt(e.target.value) || 5)}
+                                                        onChange={(e) => setSelectedSeats(parseInt(e.target.value) || 1)}
                                                         disabled={isUpdatingPlan}
                                                         className="w-16 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-black font-mono text-xs"
                                                         placeholder="Seats"

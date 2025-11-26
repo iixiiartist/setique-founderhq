@@ -45,10 +45,10 @@ export interface CommandMatch {
   lockedReason?: string
 }
 
+// Simplified plan ranking: free (0) < team-pro (1)
 const PLAN_RANK: Record<PlanType, number> = {
   free: 0,
-  'power-individual': 1,
-  'team-pro': 2,
+  'team-pro': 1,
 }
 
 const planRank = (plan?: PlanType | null): number => {
@@ -187,7 +187,7 @@ const COMMAND_DEFINITIONS: CommandDefinition[] = [
     keywords: ['outbound', 'sequence', 'campaign'],
     priority: 5,
     docTypes: ['outbound_template', 'campaign'],
-    minPlan: 'power-individual',
+    minPlan: 'team-pro',
     build: (context) => ({
       prompt: `Develop a four-touch outbound sequence for ${baseSummarySnippet(context)}. Include channel, hook, CTA, suggested timing, and personalization angle for each touch.`,
       formatId: 'table',

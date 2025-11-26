@@ -7,15 +7,16 @@ import { logger } from '../logger'
 
 type Tables = Database['public']['Tables']
 
+// Map legacy plan names to current simplified plans
 const LEGACY_PLAN_MAP: Record<string, PlanType> = {
-  pro: 'power-individual',
-  'pro-individual': 'power-individual',
+  pro: 'team-pro',
+  'pro-individual': 'team-pro',
+  'power-individual': 'team-pro', // Legacy power-individual users migrate to team-pro
   'team-starter': 'team-pro'
 }
 
 const isPlanType = (value: string): value is PlanType => (
   value === 'free' ||
-  value === 'power-individual' ||
   value === 'team-pro'
 )
 

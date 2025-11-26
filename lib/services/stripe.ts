@@ -45,26 +45,24 @@ export class StripeService {
         cancelUrl = `${window.location.origin}?subscription=canceled`
       } = params;
 
-      // Validate team plan seat count
-      if (planType === 'team-pro' && seatCount < 2) {
-        throw new Error('Team plans require at least 2 seats');
+      // Validate seat count (minimum 1 for solo, can be more for teams)
+      if (seatCount < 1) {
+        throw new Error('Seat count must be at least 1');
       }
 
       // Get Stripe price IDs based on plan
-      let priceId: string | undefined;
       let lineItems: Array<{ price: string; quantity: number }> = [];
 
-      if (planType === 'power-individual') {
-        priceId = STRIPE_PRICE_IDS['power-individual'];
-        lineItems = [{ price: priceId!, quantity: 1 }];
-      } else if (planType === 'team-pro') {
-        // Team Pro: Base price + per-seat price
+      if (planType === 'team-pro') {
+        // Team Pro: Base price ($49 includes owner) + extra seats at $25 each
         const basePriceId = STRIPE_PRICE_IDS['team-pro-base'];
         const seatPriceId = STRIPE_PRICE_IDS['team-pro-seat'];
-        lineItems = [
-          { price: basePriceId!, quantity: 1 },
-          { price: seatPriceId!, quantity: seatCount }
-        ];
+        const extraSeats = Math.max(0, seatCount - 1); // First seat (owner) included in base
+        
+        lineItems = [{ price: basePriceId!, quantity: 1 }];
+        if (extraSeats > 0) {
+          lineItems.push({ price: seatPriceId!, quantity: extraSeats });
+        }
       } else {
         throw new Error('Free plan does not require checkout');
       }
@@ -232,18 +230,12 @@ export class StripeService {
   static calculatePrice(planType: PlanType, seatCount: number = 1): number {
     if (planType === 'free') return 0;
     
+    // Team Pro: $49 base + $25 per extra seat (owner included in base)
     if (planType === 'team-pro') {
       return calculateTeamPlanPrice(planType, seatCount);
     }
 
-    // Individual plans
-    const prices: Record<PlanType, number> = {
-      'free': 0,
-      'power-individual': 4900,
-      'team-pro': 0 // Calculated above
-    };
-
-    return prices[planType];
+    return 0;
   }
 
   /**
