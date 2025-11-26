@@ -27,6 +27,17 @@ const SignatureNodeView: React.FC<NodeViewProps> = ({ node, extension, updateAtt
     const [hasInk, setHasInk] = useState(Boolean(node.attrs.assetUrl));
     const [isDragging, setIsDragging] = useState(false);
 
+    // Use refs for ALL extension callbacks to avoid infinite loops
+    // These refs are updated silently without triggering re-renders
+    const extensionOptionsRef = useRef(extension?.options);
+    const cleanupCalledRef = useRef(false);
+    const initialMetadataEmittedRef = useRef(false);
+
+    // Silently update the ref when extension options change
+    useEffect(() => {
+        extensionOptionsRef.current = extension?.options;
+    });
+
     const blockId: string | null = node.attrs.blockId ?? null;
     const width = node.attrs.width ?? 320;
     const height = node.attrs.height ?? 160;
@@ -41,6 +52,7 @@ const SignatureNodeView: React.FC<NodeViewProps> = ({ node, extension, updateAtt
     const workspaceId: string | undefined = extension?.options?.workspaceId;
     const docId: string | undefined = extension?.options?.docId;
 
+    // Emit metadata using ref to avoid dependency on extension.options
     const emitMetadata = useCallback(() => {
         if (!blockId) {
             return;
@@ -70,18 +82,30 @@ const SignatureNodeView: React.FC<NodeViewProps> = ({ node, extension, updateAtt
             updatedAt: now,
         };
 
-        extension?.options?.onMetadataChange?.(metadata);
-    }, [blockId, extension?.options, height, node.attrs.assetPath, node.attrs.assetUrl, node.attrs.createdAt, node.attrs.rotation, node.attrs.x, node.attrs.y, node.attrs.zIndex, strokeColor, strokeWidth, width]);
+        // Use ref to call the callback without it being a dependency
+        extensionOptionsRef.current?.onMetadataChange?.(metadata);
+    }, [blockId, height, node.attrs.assetPath, node.attrs.assetUrl, node.attrs.createdAt, node.attrs.rotation, node.attrs.x, node.attrs.y, node.attrs.zIndex, strokeColor, strokeWidth, width]);
 
+    // Only emit initial metadata once when component mounts with a blockId
     useEffect(() => {
-        emitMetadata();
-    }, [emitMetadata]);
+        if (blockId && !initialMetadataEmittedRef.current) {
+            initialMetadataEmittedRef.current = true;
+            emitMetadata();
+        }
+    }, [blockId, emitMetadata]);
 
+    // Subscribe to block metadata updates
     useEffect(() => {
-        if (!blockId || !extension?.options?.subscribeToBlockMetadata) {
+        if (!blockId) {
             return;
         }
-        const unsubscribe = extension.options.subscribeToBlockMetadata(blockId, (metadata) => {
+        
+        const options = extensionOptionsRef.current;
+        if (!options?.subscribeToBlockMetadata) {
+            return;
+        }
+        
+        const unsubscribe = options.subscribeToBlockMetadata(blockId, (metadata) => {
             if (!metadata) {
                 return;
             }
@@ -114,15 +138,19 @@ const SignatureNodeView: React.FC<NodeViewProps> = ({ node, extension, updateAtt
         return () => {
             unsubscribe?.();
         };
-    }, [blockId, extension?.options, height, rotation, updateAttributes, width, x, y, zIndex]);
+    }, [blockId, height, rotation, updateAttributes, width, x, y, zIndex]);
 
+    // Cleanup effect for block removal - only runs on unmount
     useEffect(() => {
+        cleanupCalledRef.current = false;
+        
         return () => {
-            if (blockId) {
-                extension?.options?.onBlockRemoved?.(blockId);
+            if (blockId && !cleanupCalledRef.current) {
+                cleanupCalledRef.current = true;
+                extensionOptionsRef.current?.onBlockRemoved?.(blockId);
             }
         };
-    }, [blockId, extension?.options]);
+    }, [blockId]);
 
     const ensureCanvasContext = useCallback(() => {
         const canvas = canvasRef.current;

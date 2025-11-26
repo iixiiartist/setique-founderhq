@@ -60,17 +60,17 @@ function buildSafeSystemPrompt(
     data: rawContext.data, // data is from database queries, trusted
   });
 
-  // Append Chart Instructions
-  const promptWithCharts = `${prompt}\n\n${CHART_INSTRUCTIONS}`;
+  // Append Data Source Awareness and Chart Instructions
+  const promptWithContext = `${prompt}\n\n${DATA_SOURCE_AWARENESS}\n\n${CHART_INSTRUCTIONS}`;
 
   // Final validation before return
-  const validation = PromptSanitizer.validateSystemPrompt(promptWithCharts);
+  const validation = PromptSanitizer.validateSystemPrompt(promptWithContext);
   if (!validation.isValid) {
     console.error('[AssistantConfig] Final prompt validation failed:', validation);
     throw new Error('Unable to generate safe prompt. Please contact support.');
   }
 
-  return promptWithCharts;
+  return promptWithContext;
 }
 
 export const ASSISTANT_CONFIGS: AssistantConfig[] = [
@@ -683,6 +683,38 @@ Recent logs: ${JSON.stringify(financialsSummary.recentLogs)}
     },
   },
   {
+    tab: Tab.Email,
+    title: 'Email Assistant',
+    icon: '📧',
+    color: 'blue',
+    getSystemPrompt: ({ companyName, businessContext, userContext, teamContext, data }) => {
+      return `You are an expert email communication assistant for ${companyName}.
+
+${businessContext}
+
+${userContext}
+
+${teamContext}
+
+**Expertise:** Email drafting, summarization, inbox management, and communication strategy.
+
+**Capabilities:**
+- **Summarize Emails:** You can summarize long threads into concise bullet points.
+- **Draft Replies:** You can draft professional, tone-appropriate replies.
+- **Task Extraction:** You can identify action items from emails and create tasks.
+- **Calendar Management:** You can extract event details and schedule meetings from emails.
+
+**Response Accuracy:**
+- Do not make up or hallucinate information.
+- When summarizing, stick strictly to the content of the email provided.
+
+Your goal is to help the user manage their inbox efficiently and communicate effectively.
+Today's date is ${new Date().toISOString().split('T')[0]}.
+
+**Note:** Use functions to create tasks or calendar events from emails.`;
+    },
+  },
+  {
     tab: Tab.Calendar,
     title: 'Calendar AI',
     icon: '📅',
@@ -962,6 +994,25 @@ export const getAssistantIcon = (tab: TabType): string => {
   const config = getAssistantConfig(tab);
   return config?.icon || '✨';
 };
+
+const DATA_SOURCE_AWARENESS = `
+**Available Workspace Data Sources:**
+You have access to comprehensive workspace data that may be referenced or queried:
+
+• **Tasks** - Categorized by module (Platform, Investors, Customers, Partners, Marketing, Financials) with subtasks support
+• **CRM Data** - Unified view of Investors, Customers, and Partners with contacts, meetings, deal stages, and notes
+• **Email Integration** - Connected Gmail/Outlook accounts with synced messages, threads, and email metadata
+• **Marketing Campaigns** - Active campaigns with KPIs, channels, budgets, content, and analytics tracking
+• **Financial Data** - Revenue transactions, expenses, forecasts, budget plans, and financial logs
+• **Calendar Events** - Meetings, deadlines, reminders, and scheduled activities across all modules
+• **Documents** - Team docs, briefs, battlecards, outbound templates, personas, and shared notes
+• **Deals/Opportunities** - Pipeline stages, deal values, win probabilities, and expected close dates
+• **Products & Services** - Offerings, pricing tiers, bundles, and price history
+• **Notes** - Can be attached to any entity (tasks, CRM items, campaigns, contacts, etc.)
+• **Contacts** - Individual contacts within CRM accounts with meeting history and communication logs
+
+When users ask about data relationships (e.g., "what emails do we have from Acme Corp?", "show me tasks related to our Q4 campaign"), reference the appropriate data sources.
+`;
 
 const CHART_INSTRUCTIONS = `
 **Charts & Graphs:**

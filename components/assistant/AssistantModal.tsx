@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { Minus, X, Maximize2, Minimize2 } from 'lucide-react';
-import { TabType } from '../../constants';
+import { Minus, X, Maximize2, Minimize2, Sparkles, Bot, ChevronDown } from 'lucide-react';
+import { TabType, Tab } from '../../constants';
 import { AppActions, DashboardData } from '../../types';
 import { getAssistantConfig } from './assistantConfig';
 import ModuleAssistant from '../shared/ModuleAssistant';
@@ -26,6 +26,22 @@ interface AssistantModalProps {
   planType?: string;
 }
 
+// Map tab types to friendly display names and colors
+const TAB_DISPLAY_INFO: Record<TabType, { label: string; color: string; bgColor: string }> = {
+  [Tab.Dashboard]: { label: 'Dashboard', color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
+  [Tab.Investors]: { label: 'Investors', color: 'text-blue-600', bgColor: 'bg-blue-50' },
+  [Tab.Customers]: { label: 'Customers', color: 'text-green-600', bgColor: 'bg-green-50' },
+  [Tab.Partners]: { label: 'Partners', color: 'text-purple-600', bgColor: 'bg-purple-50' },
+  [Tab.Marketing]: { label: 'Marketing', color: 'text-orange-600', bgColor: 'bg-orange-50' },
+  [Tab.Financials]: { label: 'Financials', color: 'text-emerald-600', bgColor: 'bg-emerald-50' },
+  [Tab.Products]: { label: 'Products', color: 'text-cyan-600', bgColor: 'bg-cyan-50' },
+  [Tab.Documents]: { label: 'Documents', color: 'text-amber-600', bgColor: 'bg-amber-50' },
+  [Tab.Team]: { label: 'Team', color: 'text-rose-600', bgColor: 'bg-rose-50' },
+  [Tab.Accounts]: { label: 'Accounts', color: 'text-teal-600', bgColor: 'bg-teal-50' },
+  [Tab.Settings]: { label: 'Settings', color: 'text-gray-600', bgColor: 'bg-gray-50' },
+  [Tab.Calendar]: { label: 'Calendar', color: 'text-violet-600', bgColor: 'bg-violet-50' },
+};
+
 export const AssistantModal: React.FC<AssistantModalProps> = ({
   isOpen,
   onMinimize,
@@ -46,7 +62,9 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
   const modalRef = useRef<HTMLDivElement>(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showContextMenu, setShowContextMenu] = useState(false);
   const config = getAssistantConfig(currentTab);
+  const tabInfo = TAB_DISPLAY_INFO[currentTab] || { label: currentTab, color: 'text-gray-600', bgColor: 'bg-gray-50' };
   
   // Debug: Check if modal ref is set
   useEffect(() => {
@@ -71,6 +89,15 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
       console.log('[AssistantModal] Modal closed');
     }
   }, [isOpen, currentTab]);
+
+  // Close context menu on click outside
+  useEffect(() => {
+    const handleClickOutside = () => setShowContextMenu(false);
+    if (showContextMenu) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showContextMenu]);
   
   // Get system prompt for current context with actual data
   const systemPrompt = config.getSystemPrompt({
@@ -105,7 +132,9 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
-        if (isFullscreen) {
+        if (showContextMenu) {
+          setShowContextMenu(false);
+        } else if (isFullscreen) {
           setIsFullscreen(false);
         } else {
           onMinimize();
@@ -122,12 +151,15 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
     return () => {
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [isOpen, isFullscreen, onMinimize]);
+  }, [isOpen, isFullscreen, onMinimize, showContextMenu]);
   
   // Modal content component (reused for both normal and fullscreen)
   const modalContent = (
     <div
       ref={modalRef}
+      className={`
+        ${isAnimating ? 'modal-spring-enter' : ''}
+      `}
       style={{
         position: 'fixed',
         ...(isFullscreen ? {
@@ -139,86 +171,170 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
         } : {
           bottom: '96px',
           right: '24px',
-          width: 'min(450px, calc(100vw - 3rem))',
-          height: 'min(650px, calc(100vh - 8rem))',
-          border: '4px solid #2563eb',
-          borderRadius: '8px',
+          width: 'min(440px, calc(100vw - 3rem))',
+          height: 'min(620px, calc(100vh - 8rem))',
+          borderRadius: '16px',
+          border: '3px solid #000',
         }),
         zIndex: isFullscreen ? 100000 : 99998,
         backgroundColor: 'white',
-        boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+        boxShadow: isFullscreen 
+          ? 'none' 
+          : '0 25px 50px -12px rgb(0 0 0 / 0.25), 8px 8px 0px #000',
         display: 'flex',
         flexDirection: 'column',
         opacity: 1,
         pointerEvents: 'auto',
-        transition: 'all 0.3s ease-in-out',
+        overflow: 'hidden',
       }}
       role="dialog"
       aria-modal="true"
       aria-labelledby="assistant-title"
       tabIndex={-1}
     >
-      {/* Header */}
+      {/* Enhanced Header */}
       <div className="
-        h-14 px-4 border-b-3 border-black
-        flex items-center justify-end gap-4
-        bg-gradient-to-r from-blue-50 to-blue-100
+        relative
+        px-4 py-3
+        border-b-3 border-black
+        flex items-center justify-between
+        bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600
         flex-shrink-0
       ">
+        {/* Left side - Title and Context */}
+        <div className="flex items-center gap-3">
+          {/* AI Avatar */}
+          <div className="
+            w-10 h-10 rounded-full
+            bg-white/20 backdrop-blur-sm
+            flex items-center justify-center
+            border-2 border-white/40
+            shadow-inner
+          ">
+            <Bot className="w-5 h-5 text-white" strokeWidth={2.5} />
+          </div>
+          
+          {/* Title and Context Selector */}
+          <div className="flex flex-col">
+            <h2 id="assistant-title" className="text-white font-bold text-sm flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5" />
+              AI Assistant
+            </h2>
+            
+            {/* Context Badge/Dropdown */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowContextMenu(!showContextMenu);
+              }}
+              className="
+                flex items-center gap-1 mt-0.5
+                text-xs text-white/90 
+                hover:text-white
+                transition-colors
+              "
+            >
+              <span className={`
+                px-1.5 py-0.5 rounded
+                ${tabInfo.bgColor} ${tabInfo.color}
+                text-[10px] font-semibold uppercase tracking-wide
+              `}>
+                {tabInfo.label}
+              </span>
+              <ChevronDown className={`w-3 h-3 transition-transform ${showContextMenu ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
+        </div>
         
-        <div className="flex items-center gap-2">
+        {/* Right side - Actions */}
+        <div className="flex items-center gap-1.5">
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
             className="
-              p-2 rounded
-              hover:bg-gray-100 
-              border-2 border-black
-              transition-colors
+              p-2 rounded-lg
+              hover:bg-white/20
+              text-white/90 hover:text-white
+              transition-all duration-150
             "
             aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
             title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
           >
             {isFullscreen ? (
-              <Minimize2 className="w-4 h-4" strokeWidth={3} />
+              <Minimize2 className="w-4 h-4" strokeWidth={2.5} />
             ) : (
-              <Maximize2 className="w-4 h-4" strokeWidth={3} />
+              <Maximize2 className="w-4 h-4" strokeWidth={2.5} />
             )}
           </button>
           
           <button
             onClick={isFullscreen ? () => setIsFullscreen(false) : onMinimize}
             className="
-              p-2 rounded
-              hover:bg-gray-100 
-              border-2 border-black
-              transition-colors
+              p-2 rounded-lg
+              hover:bg-white/20
+              text-white/90 hover:text-white
+              transition-all duration-150
             "
             aria-label={isFullscreen ? "Exit fullscreen" : "Minimize assistant"}
             title={isFullscreen ? "Exit Fullscreen (Esc)" : "Minimize (Esc)"}
           >
-            <Minus className="w-4 h-4" strokeWidth={3} />
+            <Minus className="w-4 h-4" strokeWidth={2.5} />
           </button>
-          
+
           {onClose && !isFullscreen && (
             <button
               onClick={onClose}
               className="
-                p-2 rounded
-                hover:bg-red-100 
-                border-2 border-black
-                transition-colors
+                p-2 rounded-lg
+                hover:bg-red-500/30
+                text-white/90 hover:text-white
+                transition-all duration-150
               "
               aria-label="Close assistant"
               title="Close"
             >
-              <X className="w-4 h-4" strokeWidth={3} />
+              <X className="w-4 h-4" strokeWidth={2.5} />
             </button>
           )}
         </div>
+
+        {/* Context Menu Dropdown */}
+        {showContextMenu && (
+          <div className="
+            absolute top-full left-4 mt-1
+            bg-white border-2 border-black rounded-lg
+            shadow-neo-lg
+            py-1 min-w-[160px]
+            dropdown-spring
+            z-10
+          ">
+            {Object.entries(TAB_DISPLAY_INFO).map(([tab, info]) => (
+              <button
+                key={tab}
+                onClick={() => {
+                  onContextChange(tab as TabType);
+                  setShowContextMenu(false);
+                }}
+                className={`
+                  w-full px-3 py-2 text-left text-sm
+                  flex items-center gap-2
+                  hover:bg-gray-100
+                  transition-colors
+                  ${currentTab === tab ? 'bg-gray-50 font-semibold' : ''}
+                `}
+              >
+                <span className={`w-2 h-2 rounded-full ${info.bgColor.replace('50', '500')}`} />
+                {info.label}
+                {currentTab === tab && (
+                  <span className="ml-auto text-xs text-gray-400">✓</span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       
       {/* Content - ModuleAssistant */}
-      <div className="h-[calc(100%-56px)] overflow-hidden bg-white">
+      <div className="flex-1 overflow-hidden bg-white">
         <ModuleAssistant
           title="AI Assistant"
           systemPrompt={systemPrompt}
@@ -232,7 +348,7 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
           autoFullscreenMobile={false}
           businessContext={businessContext}
           teamContext={teamContext}
-      companyName={companyName}
+          companyName={companyName}
           crmItems={[...data.investors, ...data.customers, ...data.partners]}
           planType={planType}
         />
@@ -242,10 +358,15 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
 
   return (
     <>
-      {/* Backdrop - subtle for better UX, darker in fullscreen */}
+      {/* Backdrop - Glass morphism effect */}
       {isOpen && (
         <div
-          className={`fixed inset-0 ${isFullscreen ? 'bg-gray-200/10' : 'bg-gray-200/10'} backdrop-fade-enter`}
+          className={`
+            fixed inset-0 
+            ${isFullscreen ? 'bg-black/40' : 'bg-black/10'} 
+            backdrop-blur-[2px]
+            backdrop-fade-enter
+          `}
           style={{ zIndex: isFullscreen ? 99999 : 99997 }}
           onClick={isFullscreen ? () => setIsFullscreen(false) : onMinimize}
           aria-hidden="true"

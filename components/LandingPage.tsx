@@ -22,7 +22,10 @@ import {
   DollarSign,
   Handshake,
   Sparkles,
-  PlayCircle
+  PlayCircle,
+  Mail,
+  PieChart,
+  Layers
 } from 'lucide-react';
 
 type FeatureCluster = {
@@ -45,15 +48,20 @@ const FEATURE_CLUSTERS: FeatureCluster[] = [
     id: 'pipeline',
     badge: '1',
     title: 'Pipeline: Track Every Deal',
-    description: 'Unified CRM for fundraising, sales, and partnerships so every convo, doc, and metric lives in one view.',
+    description: 'Unified CRM for fundraising, sales, and partnerships with email integration so every convo, doc, and metric lives in one view.',
     accent: 'from-blue-100/70 via-white to-blue-50/60',
-  tagline: 'Live pipeline sync',
-  metric: '82% fewer manual updates',
+    tagline: 'Live pipeline sync',
+    metric: '82% fewer manual updates',
     features: [
       {
         title: '3-in-1 Smart CRM',
         description: 'Investor, customer, and partner boards stay perfectly in sync with shared notes, tags, and automations.',
         icon: <Users className="w-8 h-8" />,
+      },
+      {
+        title: 'Gmail Integration',
+        description: 'Connect your Gmail inbox and sync conversations directly to CRM accounts. Never lose track of deal communications again.',
+        icon: <Mail className="w-8 h-8" />,
       },
       {
         title: 'Deal Flow Analytics',
@@ -71,14 +79,19 @@ const FEATURE_CLUSTERS: FeatureCluster[] = [
     id: 'execution',
     badge: '2',
     title: 'Execution: Ship Revenue Work Fast',
-    description: 'Docs, tasks, and meetings aligned to the same source of truth keep every GTM lane moving in sync.',
+    description: 'Docs, tasks, products, and meetings aligned to the same source of truth keep every GTM lane moving in sync.',
     accent: 'from-green-100/70 via-white to-teal-50/60',
-  tagline: 'Workflow clarity',
-  metric: '12 hrs saved weekly',
+    tagline: 'Workflow clarity',
+    metric: '12 hrs saved weekly',
     features: [
       {
+        title: 'Products & Services Hub',
+        description: 'Manage your complete product catalog with pricing, descriptions, and categories. Link offerings directly to deals and proposals.',
+        icon: <Store className="w-8 h-8" />,
+      },
+      {
         title: 'GTM Task Graph',
-        description: 'Assign owners, priorities, and XP rewards so teams know what’s urgent without pinging ops leads.',
+        description: 'Assign owners, priorities, and XP rewards so teams know what is urgent without pinging ops leads.',
         icon: <Target className="w-8 h-8" />,
       },
       {
@@ -87,9 +100,9 @@ const FEATURE_CLUSTERS: FeatureCluster[] = [
         icon: <Calendar className="w-8 h-8" />,
       },
       {
-        title: 'Collaborative Deal Rooms',
-        description: 'Twenty-plus formatting tools—plus templates—to draft updates, proposals, and co-marketing briefs together.',
-        icon: <FileText className="w-8 h-8" />,
+        title: 'Professional Document Canvas',
+        description: 'Create stunning proposals with shapes, text boxes, signatures, charts, and frames. Export to PDF with one click.',
+        icon: <Layers className="w-8 h-8" />,
       },
     ],
   },
@@ -97,20 +110,25 @@ const FEATURE_CLUSTERS: FeatureCluster[] = [
     id: 'intelligence',
     badge: '3',
     title: 'Intelligence: Scale With AI',
-    description: 'Context-aware copilots summarize pipelines, prep meetings, and suggest next plays without leaving the workspace.',
+    description: 'Context-aware copilots with market research summarize pipelines, prep meetings, and suggest next plays without leaving the workspace.',
     accent: 'from-purple-100/70 via-white to-fuchsia-50/60',
-  tagline: 'AI boost on tap',
-  metric: '25 copilots/day free',
+    tagline: 'AI boost on tap',
+    metric: '25 copilots/day free',
     features: [
+      {
+        title: 'AI Market Research',
+        description: 'Get real-time competitive intel, industry trends, and prospect insights with AI-powered web search built right in.',
+        icon: <PieChart className="w-8 h-8" />,
+      },
       {
         title: 'AI Account Briefs',
         description: 'Instant dossiers on any investor, customer, or partner using your notes, docs, and historical touchpoints.',
         icon: <Brain className="w-8 h-8" />,
       },
       {
-        title: 'Automated Outreach',
-        description: 'Copilot drafts investor updates, follow-ups, and partner proposals using the context it already has.',
-        icon: <Sparkles className="w-8 h-8" />,
+        title: 'AI Chart Generation',
+        description: 'Ask for visualizations in plain English and get real bar, line, pie, or area charts inserted directly into documents.',
+        icon: <BarChart3 className="w-8 h-8" />,
       },
       {
         title: 'Deal Coaching & Strategy',
@@ -182,7 +200,11 @@ export function LandingPage() {
               </li>
               <li className="flex items-start gap-3">
                 <Sparkles className="w-5 h-5 mt-0.5" />
-                <span>Optional AI copilots summarize deal health, prep call briefs, and pull market intel—but the workflows still make sense without them.</span>
+                <span>AI copilots summarize deal health, prep call briefs, generate charts, and pull live market research—but the workflows still make sense without them.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <Mail className="w-5 h-5 mt-0.5" />
+                <span>Gmail integration syncs email conversations directly to your CRM accounts, plus a full product catalog to link to deals.</span>
               </li>
             </ul>
             <div className="flex flex-wrap gap-4">
@@ -193,18 +215,18 @@ export function LandingPage() {
                 Launch FounderHQ <ArrowRight size={20} />
               </Link>
             </div>
-            <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 gap-4 text-left">
-              <div className="p-4 border-2 border-black bg-white shadow-neo-sm animate-pulse-slow">
-                <p className="text-3xl font-bold">82h</p>
-                <p className="text-xs font-mono uppercase text-gray-500">Hours saved / founder / month</p>
+            <div className="mt-10 grid grid-cols-3 gap-3 sm:gap-4 text-left">
+              <div className="p-3 sm:p-4 border-2 border-black bg-white shadow-neo-sm">
+                <p className="text-2xl sm:text-3xl font-bold">82h</p>
+                <p className="text-[10px] sm:text-xs font-mono uppercase text-gray-500 leading-tight">Hours saved / month</p>
               </div>
-              <div className="p-4 border-2 border-black bg-white shadow-neo-sm animate-pulse-slow [animation-delay:0.3s]">
-                <p className="text-3xl font-bold">3️⃣-in-1</p>
-                <p className="text-xs font-mono uppercase text-gray-500">Investor • Sales • Partner CRM</p>
+              <div className="p-3 sm:p-4 border-2 border-black bg-white shadow-neo-sm">
+                <p className="text-2xl sm:text-3xl font-bold">3-in-1</p>
+                <p className="text-[10px] sm:text-xs font-mono uppercase text-gray-500 leading-tight">CRM pipelines</p>
               </div>
-              <div className="p-4 border-2 border-black bg-white shadow-neo-sm animate-pulse-slow [animation-delay:0.6s]">
-                <p className="text-3xl font-bold">15+</p>
-                <p className="text-xs font-mono uppercase text-gray-500">Automations your ops team needs</p>
+              <div className="p-3 sm:p-4 border-2 border-black bg-white shadow-neo-sm">
+                <p className="text-2xl sm:text-3xl font-bold">15+</p>
+                <p className="text-[10px] sm:text-xs font-mono uppercase text-gray-500 leading-tight">Automations</p>
               </div>
             </div>
             <p className="mt-4 text-sm text-gray-600">
@@ -214,40 +236,40 @@ export function LandingPage() {
           <div className="relative">
             <div className="absolute inset-0 blur-3xl bg-gradient-to-br from-blue-200/60 via-purple-200/40 to-pink-100/60 -z-10 rounded-full"></div>
             <div className="space-y-6">
-              <div className="floating-card">
-                <p className="text-xs font-mono text-gray-500">AI DAILY INTELLIGENCE</p>
-                <h3 className="text-xl font-bold mb-2">Investor + Revenue Briefing</h3>
-                <p className="text-sm text-gray-700 mb-3">“Apollo Ventures just led a $25M SaaS round. Queue outreach with updated pitch deck + attach traction dashboard.”</p>
-                <div className="flex items-center justify-between text-xs font-mono text-gray-500">
+              <div className="floating-card p-5 border-2 border-black bg-white shadow-neo">
+                <p className="text-xs font-mono text-gray-500 mb-2">AI DAILY INTELLIGENCE</p>
+                <h3 className="text-lg font-bold mb-2">Investor + Revenue Briefing</h3>
+                <p className="text-sm text-gray-700 mb-3 leading-relaxed">"Apollo Ventures just led a $25M SaaS round. Queue outreach with updated pitch deck + attach traction dashboard."</p>
+                <div className="flex items-center justify-between text-xs font-mono text-gray-400 border-t border-gray-200 pt-2">
                   <span>Powered by live data + web search</span>
                   <span>Updated 6:05 AM</span>
                 </div>
               </div>
-              <div className="floating-card delay-1">
-                <p className="text-xs font-mono text-gray-500">GTM TASK GRAPH</p>
+              <div className="floating-card delay-1 p-5 border-2 border-black bg-white shadow-neo">
+                <p className="text-xs font-mono text-gray-500 mb-3">GTM TASK GRAPH</p>
                 <div className="space-y-2">
                   {['Prep Seed Update', 'Revive Acme Deal', 'Spin up co-marketing draft'].map((task, idx) => (
-                    <div key={task} className="flex items-center justify-between border border-black px-3 py-2 bg-white">
+                    <div key={task} className="flex items-center justify-between border border-black px-3 py-2 bg-gray-50">
                       <span className="text-sm font-medium">{task}</span>
-                      <span className="text-xs text-gray-500">{idx === 0 ? 'Investor' : idx === 1 ? 'Sales' : 'Partner'}</span>
+                      <span className="text-xs font-mono text-gray-500 px-2 py-0.5 bg-white border border-gray-300">{idx === 0 ? 'Investor' : idx === 1 ? 'Sales' : 'Partner'}</span>
                     </div>
                   ))}
                 </div>
               </div>
-              <div className="floating-card delay-2">
-                <p className="text-xs font-mono text-gray-500">LIVE DASHBOARD</p>
+              <div className="floating-card delay-2 p-5 border-2 border-black bg-white shadow-neo">
+                <p className="text-xs font-mono text-gray-500 mb-3">LIVE DASHBOARD</p>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="border border-black bg-white p-3">
-                    <p className="text-xs text-gray-500">Pipeline Momentum</p>
-                    <p className="text-2xl font-bold">+38%</p>
+                  <div className="border border-black bg-gray-50 p-3">
+                    <p className="text-xs text-gray-500 mb-1">Pipeline Momentum</p>
+                    <p className="text-2xl font-bold text-green-600">+38%</p>
                   </div>
-                  <div className="border border-black bg-white p-3">
-                    <p className="text-xs text-gray-500">Runway</p>
+                  <div className="border border-black bg-gray-50 p-3">
+                    <p className="text-xs text-gray-500 mb-1">Runway</p>
                     <p className="text-2xl font-bold">17 mo</p>
                   </div>
-                  <div className="col-span-2 border border-black bg-black text-white p-4">
-                    <p className="text-xs uppercase font-mono text-gray-200">Next best action</p>
-                    <p className="text-lg font-semibold">Send 3-slide update to Tier 1 investors before Friday standup.</p>
+                  <div className="col-span-2 border-2 border-black bg-black text-white p-4">
+                    <p className="text-xs uppercase font-mono text-gray-400 mb-1">Next best action</p>
+                    <p className="text-base font-semibold leading-snug">Send 3-slide update to Tier 1 investors before Friday standup.</p>
                   </div>
                 </div>
               </div>
@@ -296,29 +318,35 @@ export function LandingPage() {
               Unlike generic ChatGPT, our AI has full context on your investor conversations, customer deals, and partnership discussions. Get actionable coaching on your actual GTM motion—not generic startup advice.
             </p>
             <div className="grid md:grid-cols-3 gap-6 text-left">
-              <div className="bg-white p-6 border-2 border-black shadow-neo">
-                <div className="flex items-center gap-2 mb-3">
-                  <BarChart3 className="w-6 h-6" />
+              <div className="h-full flex flex-col bg-white p-6 border-2 border-black shadow-neo">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-blue-100 border-2 border-black flex items-center justify-center flex-shrink-0">
+                    <BarChart3 className="w-5 h-5" />
+                  </div>
                   <h3 className="font-bold text-lg">Fundraising AI</h3>
                 </div>
-                <p className="text-gray-700 mb-4">Research investors matching your profile. Draft personalized outreach emails. Get coaching on pitch strategy and objection handling.</p>
-                <div className="text-sm text-gray-600 italic">"Which Series A investors have backed similar SaaS companies?"</div>
+                <p className="text-gray-700 mb-4 flex-grow leading-relaxed">Research investors matching your profile. Draft personalized outreach emails. Get coaching on pitch strategy and objection handling.</p>
+                <div className="text-sm text-gray-500 italic border-t border-gray-200 pt-3">"Which Series A investors have backed similar SaaS companies?"</div>
               </div>
-              <div className="bg-white p-6 border-2 border-black shadow-neo">
-                <div className="flex items-center gap-2 mb-3">
-                  <Briefcase className="w-6 h-6" />
+              <div className="h-full flex flex-col bg-white p-6 border-2 border-black shadow-neo">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-green-100 border-2 border-black flex items-center justify-center flex-shrink-0">
+                    <Briefcase className="w-5 h-5" />
+                  </div>
                   <h3 className="font-bold text-lg">Sales AI</h3>
                 </div>
-                <p className="text-gray-700 mb-4">Generate deal-specific proposals. Get coaching on deal progression. AI suggests next steps based on your CRM history and win patterns.</p>
-                <div className="text-sm text-gray-600 italic">"Draft a follow-up for Acme Corp based on our last meeting."</div>
+                <p className="text-gray-700 mb-4 flex-grow leading-relaxed">Generate deal-specific proposals. Get coaching on deal progression. AI suggests next steps based on your CRM history and win patterns.</p>
+                <div className="text-sm text-gray-500 italic border-t border-gray-200 pt-3">"Draft a follow-up for Acme Corp based on our last meeting."</div>
               </div>
-              <div className="bg-white p-6 border-2 border-black shadow-neo">
-                <div className="flex items-center gap-2 mb-3">
-                  <Handshake className="w-6 h-6" />
+              <div className="h-full flex flex-col bg-white p-6 border-2 border-black shadow-neo">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-purple-100 border-2 border-black flex items-center justify-center flex-shrink-0">
+                    <Handshake className="w-5 h-5" />
+                  </div>
                   <h3 className="font-bold text-lg">Partnership AI</h3>
                 </div>
-                <p className="text-gray-700 mb-4">Identify strategic partnership opportunities. Structure co-marketing campaigns. Generate partnership proposals and track relationship health.</p>
-                <div className="text-sm text-gray-600 italic">"What partners serve similar customers we could co-sell with?"</div>
+                <p className="text-gray-700 mb-4 flex-grow leading-relaxed">Identify strategic partnership opportunities. Structure co-marketing campaigns. Generate partnership proposals and track relationship health.</p>
+                <div className="text-sm text-gray-500 italic border-t border-gray-200 pt-3">"What partners serve similar customers we could co-sell with?"</div>
               </div>
             </div>
           </div>
@@ -369,7 +397,7 @@ export function LandingPage() {
                   </div>
                 </div>
 
-                <div className="relative z-10 grid md:grid-cols-3 gap-6">
+                <div className="relative z-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   {cluster.features.map((feature, featureIdx) => (
                     <FeatureCard
                       key={feature.title}
@@ -556,14 +584,14 @@ export function LandingPage() {
 
 function UseCase({ title, description, icon }: { title: string; description: string; icon: React.ReactNode }) {
   return (
-    <div className="p-6 border-2 border-black shadow-neo bg-white text-center transition-transform duration-300 hover:-translate-y-1">
-      <div className="flex justify-center mb-3">
-        <div className="w-12 h-12 bg-blue-100 border-2 border-black flex items-center justify-center animate-pulse-slow">
+    <div className="h-full flex flex-col p-6 border-2 border-black shadow-neo bg-white text-center transition-transform duration-300 hover:-translate-y-1">
+      <div className="flex justify-center mb-4">
+        <div className="w-14 h-14 bg-blue-100 border-2 border-black flex items-center justify-center flex-shrink-0">
           {icon}
         </div>
       </div>
-      <h3 className="text-lg font-bold mb-2">{title}</h3>
-      <p className="text-sm text-gray-600">{description}</p>
+      <h3 className="text-lg font-bold mb-3">{title}</h3>
+      <p className="text-sm text-gray-600 leading-relaxed flex-grow">{description}</p>
     </div>
   );
 }
@@ -571,14 +599,14 @@ function UseCase({ title, description, icon }: { title: string; description: str
 function FeatureCard({ icon, title, description, delayMs = 0 }: { icon: React.ReactNode; title: string; description: string; delayMs?: number }) {
   return (
     <div
-      className="p-6 border-2 border-black shadow-neo hover:-translate-y-1 hover:shadow-none transition-transform duration-500 bg-white"
+      className="h-full flex flex-col p-5 border-2 border-black shadow-neo hover:-translate-y-1 hover:shadow-none transition-transform duration-500 bg-white"
       style={{ transitionDelay: `${delayMs}ms` }}
     >
-      <div className="w-12 h-12 bg-blue-100 border-2 border-black flex items-center justify-center mb-4">
+      <div className="w-11 h-11 bg-blue-100 border-2 border-black flex items-center justify-center mb-3 flex-shrink-0">
         {icon}
       </div>
-      <h3 className="text-xl font-bold mb-2">{title}</h3>
-      <p className="text-gray-600">{description}</p>
+      <h3 className="text-lg font-bold mb-2 leading-tight">{title}</h3>
+      <p className="text-sm text-gray-600 leading-relaxed flex-grow">{description}</p>
     </div>
   );
 }

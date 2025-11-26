@@ -628,307 +628,315 @@ const FinancialsTab: React.FC<{
             )}
 
             {currentView === 'overview' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-                {/* KPI Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-4">
+                {/* Top Section: KPIs in a single row */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                     <KpiCard
-                        title="Monthly Recurring Revenue"
+                        title="MRR"
                         value={formatCurrency(latestMrr)}
                         description={snapshotDescription}
                         trend={mrrTrend}
                     />
                     <KpiCard
-                        title="Gross Merchandise Volume"
+                        title="GMV"
                         value={formatCurrency(latestGmv)}
                         description={snapshotDescription}
                         trend={gmvTrend}
                     />
                     <KpiCard
-                        title="New Signups"
+                        title="Signups"
                         value={formatNumber(latestSignups)}
                         description={signupsDescription}
                         trend={signupsTrend}
                     />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <KpiCard
                         title="Total Expenses"
                         value={formatSpend(totalExpenses)}
                         description={totalExpenseDescription}
                     />
                     <KpiCard
-                        title="Monthly Expenses"
+                        title="Monthly Spend"
                         value={formatSpend(monthlyExpenses)}
                         description={monthlyExpenseDescription}
                         trend={monthlyExpenseTrend}
                     />
                 </div>
 
-                {/* Charts Section */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white p-6 border-2 border-black shadow-neo">
-                        <h2 className="text-xl font-semibold text-black mb-4">Revenue Trends</h2>
-                        <div className="h-64">
-                            <ResponsiveContainer width="100%" height={256}>
-                                <LineChart data={chartData}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
-                                    <XAxis
-                                        dataKey="date"
-                                        tick={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10 }}
-                                        tickFormatter={(value: string) => new Date(`${value}T00:00:00Z`).toLocaleDateString(undefined, { timeZone: 'UTC', month: 'short', day: 'numeric' })}
-                                    />
-                                    <YAxis
-                                        tickFormatter={(value: number) => currencyFormatterNoCents.format(Number(value))}
-                                        tick={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10 }}
-                                    />
-                                    <Tooltip
-                                        contentStyle={{ fontFamily: "'Inter', sans-serif" }}
-                                        labelFormatter={(value) => formatDateLabel(String(value))}
-                                        formatter={(value: number, name: string) => [currencyFormatter.format(Number(value)), name]}
-                                    />
-                                    <Legend wrapperStyle={{ fontFamily: "'IBM Plex Mono', monospace" }} />
-                                    <Line type="monotone" dataKey="mrr" name="MRR" stroke="#3b82f6" strokeWidth={2} />
-                                    <Line type="monotone" dataKey="gmv" name="GMV" stroke="#10b981" strokeWidth={2} />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </div>
-                    
-                    <div className="bg-white p-6 border-2 border-black shadow-neo">
-                        <h2 className="text-xl font-semibold text-black mb-4">Expenses by Category</h2>
-                        {expensesByCategory.length > 0 ? (
-                            <div className="h-64">
-                                <ResponsiveContainer width="100%" height={256}>
-                                    <PieChart>
-                                        <Pie
-                                            data={expensesByCategory}
-                                            dataKey="value"
-                                            nameKey="name"
-                                            cx="50%"
-                                            cy="50%"
-                                            outerRadius={80}
-                                            label={(entry: any) => currencyFormatter.format(Number(entry.value))}
-                                        >
-                                            {expensesByCategory.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={EXPENSE_COLORS[index % EXPENSE_COLORS.length]} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip formatter={(value: number) => currencyFormatter.format(Number(value))} />
-                                    </PieChart>
+                {/* Main Content: 3-column layout on large screens */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    {/* Left Column: Charts stacked */}
+                    <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Revenue Trends Chart */}
+                        <div className="bg-white p-4 border-2 border-black shadow-neo">
+                            <h2 className="text-lg font-semibold text-black mb-2">Revenue Trends</h2>
+                            <div className="h-48">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={chartData}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
+                                        <XAxis
+                                            dataKey="date"
+                                            tick={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9 }}
+                                            tickFormatter={(value: string) => new Date(`${value}T00:00:00Z`).toLocaleDateString(undefined, { timeZone: 'UTC', month: 'short', day: 'numeric' })}
+                                        />
+                                        <YAxis
+                                            tickFormatter={(value: number) => currencyFormatterNoCents.format(Number(value))}
+                                            tick={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9 }}
+                                            width={60}
+                                        />
+                                        <Tooltip
+                                            contentStyle={{ fontFamily: "'Inter', sans-serif", fontSize: 12 }}
+                                            labelFormatter={(value) => formatDateLabel(String(value))}
+                                            formatter={(value: number, name: string) => [currencyFormatter.format(Number(value)), name]}
+                                        />
+                                        <Legend wrapperStyle={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11 }} />
+                                        <Line type="monotone" dataKey="mrr" name="MRR" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                                        <Line type="monotone" dataKey="gmv" name="GMV" stroke="#10b981" strokeWidth={2} dot={false} />
+                                    </LineChart>
                                 </ResponsiveContainer>
-                                <div className="mt-2 text-xs space-y-1">
-                                    {expensesByCategory.slice(0, 3).map((cat, idx) => (
-                                        <div key={cat.name} className="flex justify-between">
-                                            <span className="flex items-center gap-1">
-                                                <div className="w-3 h-3 border border-black" style={{ backgroundColor: EXPENSE_COLORS[idx] }}></div>
-                                                {cat.name}
-                                            </span>
-                                            <span className="font-bold">{currencyFormatter.format(cat.value)}</span>
-                                        </div>
-                                    ))}
+                            </div>
+                        </div>
+                        
+                        {/* Expenses Pie Chart */}
+                        <div className="bg-white p-4 border-2 border-black shadow-neo">
+                            <h2 className="text-lg font-semibold text-black mb-2">Expenses by Category</h2>
+                            {expensesByCategory.length > 0 ? (
+                                <div className="h-48 flex items-center">
+                                    <ResponsiveContainer width="60%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={expensesByCategory}
+                                                dataKey="value"
+                                                nameKey="name"
+                                                cx="50%"
+                                                cy="50%"
+                                                outerRadius={60}
+                                                label={false}
+                                            >
+                                                {expensesByCategory.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={EXPENSE_COLORS[index % EXPENSE_COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip formatter={(value: number) => currencyFormatter.format(Number(value))} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                    <div className="w-[40%] text-xs space-y-1 pl-2">
+                                        {expensesByCategory.slice(0, 5).map((cat, idx) => (
+                                            <div key={cat.name} className="flex justify-between items-center">
+                                                <span className="flex items-center gap-1 truncate">
+                                                    <div className="w-2 h-2 shrink-0 border border-black" style={{ backgroundColor: EXPENSE_COLORS[idx] }}></div>
+                                                    <span className="truncate">{cat.name}</span>
+                                                </span>
+                                                <span className="font-mono font-bold ml-1">{currencyFormatterNoCents.format(cat.value)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-gray-500 italic text-center py-8 text-sm">No expense data yet</p>
+                            )}
+                        </div>
+
+                        {/* Financial Log History */}
+                        <div className="bg-white p-4 border-2 border-black shadow-neo">
+                            <h2 className="text-lg font-semibold text-black mb-2">Financial History</h2>
+                            <ul className="max-h-48 overflow-y-auto custom-scrollbar pr-1 space-y-2">
+                                {sortedLogs.length > 0 ? (
+                                    sortedLogs.slice(0, 5).map(item => <FinancialLogItem key={item.id} item={item} onDelete={() => actions.deleteItem('financials', item.id)} />)
+                                ) : (
+                                    <p className="text-gray-500 italic text-sm">No financial data logged yet.</p>
+                                )}
+                            </ul>
+                            {sortedLogs.length > 5 && (
+                                <p className="text-xs text-gray-500 mt-2 text-center">+ {sortedLogs.length - 5} more entries</p>
+                            )}
+                        </div>
+
+                        {/* Expense History */}
+                        <div className="bg-white p-4 border-2 border-black shadow-neo">
+                            <div className="flex items-center justify-between mb-2">
+                                <h2 className="text-lg font-semibold text-black">Expense History</h2>
+                                <div className="flex gap-1">
+                                    <select
+                                        value={expenseFilter}
+                                        onChange={e => setExpenseFilter(e.target.value as ExpenseCategory | 'All')}
+                                        className="bg-white border border-black text-black px-1 py-0.5 text-xs font-mono rounded-none focus:outline-none"
+                                    >
+                                        {expenseFilterOptions.map(option => (
+                                            <option key={option} value={option}>{option}</option>
+                                        ))}
+                                    </select>
+                                    <select 
+                                        value={expenseSortBy} 
+                                        onChange={e => setExpenseSortBy(e.target.value as 'date' | 'amount')}
+                                        className="bg-white border border-black text-black px-1 py-0.5 text-xs font-mono rounded-none focus:outline-none"
+                                    >
+                                        <option value="date">Date</option>
+                                        <option value="amount">Amount</option>
+                                    </select>
                                 </div>
                             </div>
-                        ) : (
-                            <p className="text-gray-500 italic text-center py-8">No expense data yet</p>
-                        )}
-                    </div>
-                </div>
-
-                {/* Forms Section */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white p-6 border-2 border-black shadow-neo">
-                        <h2 className="text-xl font-semibold text-black mb-4">Log Financial Snapshot</h2>
-                        <Form
-                            schema={financialLogSchema}
-                            defaultValues={{
-                                date: new Date().toISOString().split('T')[0],
-                                mrr: 0,
-                                gmv: 0,
-                                signups: 0,
-                            }}
-                            onSubmit={handleLog}
-                            className="space-y-3"
-                        >
-                            {({ watch, formState }) => {
-                                const signups = watch('signups') || 0;
-                                const calculatedXp = 10 + (signups * 2);
-                                
-                                return (
-                                    <>
-                                        <FormField
-                                            name="date"
-                                            label="Date"
-                                            type="date"
-                                            required
+                            <ul className="max-h-48 overflow-y-auto custom-scrollbar pr-1 space-y-2">
+                                {filteredExpenses.length > 0 ? (
+                                    filteredExpenses.slice(0, 5).map(item => (
+                                        <ExpenseItem 
+                                            key={item.id} 
+                                            item={item} 
+                                            onDelete={() => actions.deleteItem('expenses', item.id)}
+                                            onUpdate={(updates) => actions.updateExpense(item.id, updates)}
                                         />
-                                        <div className="grid grid-cols-2 gap-3">
+                                    ))
+                                ) : (
+                                    <p className="text-gray-500 italic text-sm">No expenses logged yet.</p>
+                                )}
+                            </ul>
+                            {filteredExpenses.length > 5 && (
+                                <p className="text-xs text-gray-500 mt-2 text-center">+ {filteredExpenses.length - 5} more entries</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Right Column: Forms stacked vertically */}
+                    <div className="space-y-4">
+                        {/* Log Financial Snapshot Form */}
+                        <div className="bg-white p-4 border-2 border-black shadow-neo">
+                            <h2 className="text-lg font-semibold text-black mb-3">Log Snapshot</h2>
+                            <Form
+                                schema={financialLogSchema}
+                                defaultValues={{
+                                    date: new Date().toISOString().split('T')[0],
+                                    mrr: 0,
+                                    gmv: 0,
+                                    signups: 0,
+                                }}
+                                onSubmit={handleLog}
+                                className="space-y-2"
+                            >
+                                {({ watch, formState }) => {
+                                    const signups = watch('signups') || 0;
+                                    const calculatedXp = 10 + (signups * 2);
+                                    
+                                    return (
+                                        <>
                                             <FormField
-                                                name="mrr"
-                                                label="MRR ($)"
+                                                name="date"
+                                                label="Date"
+                                                type="date"
+                                                required
+                                            />
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <FormField
+                                                    name="mrr"
+                                                    label="MRR ($)"
+                                                    type="number"
+                                                    min={0}
+                                                    placeholder="1000"
+                                                    required
+                                                />
+                                                <FormField
+                                                    name="gmv"
+                                                    label="GMV ($)"
+                                                    type="number"
+                                                    min={0}
+                                                    placeholder="10000"
+                                                    required
+                                                />
+                                            </div>
+                                            <FormField
+                                                name="signups"
+                                                label="New Signups"
                                                 type="number"
                                                 min={0}
-                                                placeholder="1000"
+                                                step={1}
+                                                placeholder="100"
+                                                required
+                                            />
+                                            <div className="flex justify-between items-center pt-1">
+                                                <span className="font-mono text-xs font-semibold text-green-600">+{calculatedXp} XP</span>
+                                                <Button type="submit" size="sm" loading={formState.isSubmitting}>
+                                                    Log
+                                                </Button>
+                                            </div>
+                                        </>
+                                    );
+                                }}
+                            </Form>
+                        </div>
+
+                        {/* Log Expense Form */}
+                        <div className="bg-white p-4 border-2 border-black shadow-neo">
+                            <h2 className="text-lg font-semibold text-black mb-3">Log Expense</h2>
+                            <Form
+                                schema={expenseSchema}
+                                defaultValues={{
+                                    date: new Date().toISOString().split('T')[0],
+                                    amount: 0,
+                                    description: '',
+                                    category: 'Other' as ExpenseCategory,
+                                    vendor: '',
+                                    paymentMethod: undefined,
+                                }}
+                                onSubmit={handleExpense}
+                                className="space-y-2"
+                            >
+                                {({ formState }) => (
+                                    <>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <FormField
+                                                name="date"
+                                                label="Date"
+                                                type="date"
                                                 required
                                             />
                                             <FormField
-                                                name="gmv"
-                                                label="GMV ($)"
+                                                name="amount"
+                                                label="Amount ($)"
                                                 type="number"
+                                                step="0.01"
                                                 min={0}
-                                                placeholder="10000"
+                                                placeholder="0.00"
                                                 required
                                             />
                                         </div>
                                         <FormField
-                                            name="signups"
-                                            label="New Signups"
-                                            type="number"
-                                            min={0}
-                                            step={1}
-                                            placeholder="100"
+                                            name="description"
+                                            label="Description"
+                                            type="text"
+                                            placeholder="AWS hosting"
                                             required
                                         />
-                                        <div className="flex justify-end items-center gap-3 pt-2">
-                                            <span className="font-mono text-sm font-semibold text-green-600">+{calculatedXp} XP</span>
-                                            <Button type="submit" loading={formState.isSubmitting}>
-                                                Log
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <SelectField
+                                                name="category"
+                                                label="Category"
+                                                required
+                                                options={EXPENSE_CATEGORY_OPTIONS.map(cat => ({ value: cat, label: cat }))}
+                                            />
+                                            <FormField
+                                                name="vendor"
+                                                label="Vendor"
+                                                type="text"
+                                                placeholder="Optional"
+                                            />
+                                        </div>
+                                        <SelectField
+                                            name="paymentMethod"
+                                            label="Payment Method"
+                                            options={[
+                                                { value: '', label: 'Select' },
+                                                ...PAYMENT_METHOD_OPTIONS.map(method => ({ value: method, label: method }))
+                                            ]}
+                                        />
+                                        <div className="flex justify-end pt-1">
+                                            <Button type="submit" variant="danger" size="sm" loading={formState.isSubmitting}>
+                                                Log Expense
                                             </Button>
                                         </div>
                                     </>
-                                );
-                            }}
-                        </Form>
-                    </div>
-
-                    <div className="bg-white p-6 border-2 border-black shadow-neo">
-                        <h2 className="text-xl font-semibold text-black mb-4">Log Expense</h2>
-                        <Form
-                            schema={expenseSchema}
-                            defaultValues={{
-                                date: new Date().toISOString().split('T')[0],
-                                amount: 0,
-                                description: '',
-                                category: 'Other' as ExpenseCategory,
-                                vendor: '',
-                                paymentMethod: undefined,
-                            }}
-                            onSubmit={handleExpense}
-                            className="space-y-3"
-                        >
-                            {({ formState }) => (
-                                <>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <FormField
-                                            name="date"
-                                            label="Date"
-                                            type="date"
-                                            required
-                                        />
-                                        <FormField
-                                            name="amount"
-                                            label="Amount ($)"
-                                            type="number"
-                                            step="0.01"
-                                            min={0}
-                                            placeholder="0.00"
-                                            required
-                                        />
-                                    </div>
-                                    <FormField
-                                        name="description"
-                                        label="Description"
-                                        type="text"
-                                        placeholder="AWS hosting"
-                                        required
-                                    />
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <SelectField
-                                            name="category"
-                                            label="Category"
-                                            required
-                                            options={EXPENSE_CATEGORY_OPTIONS.map(cat => ({ value: cat, label: cat }))}
-                                        />
-                                        <FormField
-                                            name="vendor"
-                                            label="Vendor"
-                                            type="text"
-                                            placeholder="Optional"
-                                        />
-                                    </div>
-                                    <SelectField
-                                        name="paymentMethod"
-                                        label="Payment Method"
-                                        options={[
-                                            { value: '', label: 'Select' },
-                                            ...PAYMENT_METHOD_OPTIONS.map(method => ({ value: method, label: method }))
-                                        ]}
-                                    />
-                                    <div className="flex justify-end pt-2">
-                                        <Button type="submit" variant="danger" loading={formState.isSubmitting}>
-                                            Log
-                                        </Button>
-                                    </div>
-                                </>
-                            )}
-                        </Form>
-                    </div>
-                </div>
-
-                {/* History Lists */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white p-6 border-2 border-black shadow-neo">
-                        <h2 className="text-xl font-semibold text-black mb-4">Financial Log History</h2>
-                        <ul className="max-h-80 overflow-y-auto custom-scrollbar pr-2 space-y-3">
-                            {sortedLogs.length > 0 ? (
-                                sortedLogs.map(item => <FinancialLogItem key={item.id} item={item} onDelete={() => actions.deleteItem('financials', item.id)} />)
-                            ) : (
-                                <p className="text-gray-500 italic text-sm">No financial data logged yet.</p>
-                            )}
-                        </ul>
-                    </div>
-
-                    <div className="bg-white p-6 border-2 border-black shadow-neo">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl font-semibold text-black">Expense History</h2>
-                            <div className="flex gap-2">
-                                <select
-                                    value={expenseFilter}
-                                    onChange={e => setExpenseFilter(e.target.value as ExpenseCategory | 'All')}
-                                    className="bg-white border-2 border-black text-black px-2 py-1 text-xs font-mono rounded-none focus:outline-none focus:border-blue-500"
-                                >
-                                    {expenseFilterOptions.map(option => (
-                                        <option key={option} value={option}>{option}</option>
-                                    ))}
-                                </select>
-                                <select 
-                                    value={expenseSortBy} 
-                                    onChange={e => setExpenseSortBy(e.target.value as 'date' | 'amount')}
-                                    className="bg-white border-2 border-black text-black px-2 py-1 text-xs font-mono rounded-none focus:outline-none focus:border-blue-500"
-                                >
-                                    <option value="date">Date</option>
-                                    <option value="amount">Amount</option>
-                                </select>
-                            </div>
+                                )}
+                            </Form>
                         </div>
-                        <ul className="max-h-80 overflow-y-auto custom-scrollbar pr-2 space-y-3">
-                            {filteredExpenses.length > 0 ? (
-                                filteredExpenses.map(item => (
-                                    <ExpenseItem 
-                                        key={item.id} 
-                                        item={item} 
-                                        onDelete={() => actions.deleteItem('expenses', item.id)}
-                                        onUpdate={(updates) => actions.updateExpense(item.id, updates)}
-                                    />
-                                ))
-                            ) : (
-                                <p className="text-gray-500 italic text-sm">No expenses logged yet.</p>
-                            )}
-                        </ul>
                     </div>
                 </div>
-            </div>
             </div>
             )}
         </div>

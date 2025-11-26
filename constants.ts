@@ -13,6 +13,7 @@ export const Tab = {
     Financials: 'financials',
     Workspace: 'workspace',
     Documents: 'documents',
+    Email: 'email',
     Settings: 'settings',
     Admin: 'admin',
 } as const;
@@ -27,6 +28,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
     { id: Tab.Dashboard, label: 'Dashboard' },
     { id: Tab.Calendar, label: 'Calendar' },
+    { id: Tab.Email, label: 'Email' },
     { id: Tab.Tasks, label: 'Tasks' }, // NEW: Unified task management
     { id: Tab.ProductsServices, label: 'Products & Services' },
     { id: Tab.Accounts, label: 'Accounts' },

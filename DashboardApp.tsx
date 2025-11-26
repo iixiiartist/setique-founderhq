@@ -12,6 +12,7 @@ import { useAnalytics } from './hooks/useAnalytics';
 import { notifyTaskReassigned, notifyDeadlineChanged } from './lib/services/taskReminderService';
 import { notifyDealWon, notifyDealLost, notifyDealStageChanged, notifyDealReassigned } from './lib/services/dealNotificationService';
 import InAppNotificationsPanel from './components/shared/InAppNotificationsPanel';
+import { NotificationCenter, NotificationSettings } from './components/notifications';
 
 // Lazy load heavy tab components for code splitting
 // This reduces initial bundle size and improves first load performance
@@ -24,6 +25,7 @@ const SettingsTab = lazy(() => import('./components/SettingsTab'));
 const FileLibraryTab = lazy(() => import('./components/FileLibraryTab'));
 const AdminTab = lazy(() => import('./components/AdminTab'));
 const CalendarTab = lazy(() => import('./components/CalendarTab'));
+const EmailTab = lazy(() => import('./components/EmailTab'));
 const TasksTab = lazy(() => import('./components/TasksTab'));
 const WorkspaceTab = lazy(() => import('./components/workspace/WorkspaceTab'));
 import { BusinessProfileSetup } from './components/BusinessProfileSetup';
@@ -112,6 +114,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
     const [lastNotificationCheckDate, setLastNotificationCheckDate] = useState<string | null>(null);
     const [isTaskFocusModalOpen, setIsTaskFocusModal] = useState(false);
     const [isNotificationsPanelOpen, setIsNotificationsPanelOpen] = useState(false);
+    const [isNotificationSettingsOpen, setIsNotificationSettingsOpen] = useState(false);
 
     // Refs for notification permission tracking (prevents duplicate warnings)
     const notificationPermissionRequestRef = useRef(false);
@@ -791,8 +794,9 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
     const actions: AppActions = useMemo(() => ({
         createTask: async (category, text, priority, crmItemId, contactId, dueDate, assignedTo, dueTime, subtasks) => {
+            logger.info('[DashboardApp] createTask action called', { category, text, priority, assignedTo });
             if (!userId || !supabase) {
-                handleToast('Database not available', 'info');
+                logger.error('[DashboardApp] createTask failed: Database not connected');
                 return { success: false, message: 'Database not connected' };
             }
 
@@ -823,10 +827,12 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 );
 
                 if (result.error) {
+                    logger.error('[DashboardApp] Task creation error:', result.error);
                     throw new Error(result.error.message || 'Failed to create task');
                 }
 
                 if (result.data) {
+                    logger.info('[DashboardApp] Task created successfully:', result.data);
                     // Map database task to Task type with proper fields
                     const newTask: Task = {
                         id: result.data.id,
@@ -2427,6 +2433,14 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         </Suspense>
                     </SectionBoundary>
                 );
+            case Tab.Email:
+                return (
+                    <SectionBoundary sectionName="Email">
+                        <Suspense fallback={<TabLoadingFallback />}>
+                            <EmailTab />
+                        </Suspense>
+                    </SectionBoundary>
+                );
             case Tab.Tasks:
                 if (featureFlags.isEnabled('ui.unified-tasks')) {
                     return (
@@ -2775,10 +2789,29 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                                 <NotificationBell 
                                     userId={user.id}
                                     workspaceId={workspace.id}
+                                    onNotificationClick={() => setIsNotificationsPanelOpen(true)}
                                 />
-                                <InAppNotificationsPanel
+                                <NotificationCenter
                                     isOpen={isNotificationsPanelOpen}
                                     onClose={() => setIsNotificationsPanelOpen(false)}
+                                    onOpenSettings={() => {
+                                        setIsNotificationsPanelOpen(false);
+                                        setIsNotificationSettingsOpen(true);
+                                    }}
+                                    onNavigate={(entityType, entityId) => {
+                                        // Handle navigation to entity based on type
+                                        if (entityType === 'task') {
+                                            setActiveTab('tasks');
+                                        } else if (entityType === 'deal' || entityType === 'contact') {
+                                            setActiveTab('accounts');
+                                        } else if (entityType === 'document') {
+                                            setActiveTab('docs');
+                                        }
+                                    }}
+                                />
+                                <NotificationSettings
+                                    isOpen={isNotificationSettingsOpen}
+                                    onClose={() => setIsNotificationSettingsOpen(false)}
                                 />
                             </>
                         )}

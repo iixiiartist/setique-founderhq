@@ -479,3 +479,86 @@
 .floating-card.delay-2 {
     animation-delay: 1.2s;
 }
+
+/* ============================================
+   Email Composer - Resizable Images
+   ============================================ */
+.email-resizable-image {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    cursor: pointer;
+    display: block;
+    margin: 8px 0;
+    resize: both;
+    overflow: hidden;
+    border: 2px solid transparent;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.email-resizable-image:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.email-resizable-image:focus,
+.email-resizable-image.ProseMirror-selectednode {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+    outline: none;
+}
+
+/* Resizable image wrapper with handles */
+.ProseMirror .email-resizable-image {
+    position: relative;
+}
+
+/* Image resize wrapper styles */
+.ProseMirror img.email-resizable-image {
+    min-width: 100px;
+    min-height: 50px;
+    max-width: 100%;
+}
+
+/* Selected image state in TipTap */
+.ProseMirror-selectednode.email-resizable-image {
+    border: 2px solid #2563eb !important;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+/* Image size presets - can be applied via toolbar */
+.email-resizable-image.size-small {
+    max-width: 200px;
+}
+
+.email-resizable-image.size-medium {
+    max-width: 400px;
+}
+
+.email-resizable-image.size-large {
+    max-width: 600px;
+}
+
+.email-resizable-image.size-full {
+    max-width: 100%;
+    width: 100%;
+}
+
+/* Email composer specific prose overrides */
+.prose .email-resizable-image {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+/* Image loading placeholder */
+.email-resizable-image[src=""] {
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+    background-size: 200% 100%;
+    animation: image-shimmer 1.5s infinite;
+    min-height: 100px;
+}
+
+@keyframes image-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}

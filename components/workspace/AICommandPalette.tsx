@@ -86,81 +86,68 @@ interface AICommandPaletteProps {
 }
 
 const QUICK_ACTIONS: string[] = [
-	'Summarize this for an investor update',
-	'Rewrite to be more concise and active',
-	'Create bullet action items with owners and dates',
-	'Draft a follow-up email referencing this section',
-	'Highlight risks, blockers, and next steps',
-	'Translate this into a customer-facing snippet',
+	'Summarize this section',
+	'Make it more concise',
+	'Add action items',
+	'Fix grammar and tone',
 ];
 
 const DOC_TYPE_SUGGESTIONS: Partial<Record<DocType, string[]>> = {
 	campaign: [
-		'Draft a launch announcement for this campaign',
-		'Outline paid + organic channels with KPIs',
-		'Create experiment ideas with success metrics',
+		'Draft launch announcement',
+		'Add KPIs and metrics',
 	],
 	brief: [
-		'Turn this into an executive-ready GTM brief',
-		'Pull out the 3 must-win moments from this brief',
+		'Create executive summary',
+		'Extract key takeaways',
 	],
 	battlecard: [
-		'List differentiators vs top competitor',
-		'Rewrite objection handling for an AE call',
+		'List key differentiators',
+		'Write objection handlers',
 	],
 	outbound_template: [
-		'Create a 4-touch outbound sequence',
-		'Rewrite this template for a CFO buyer',
+		'Create outbound sequence',
+		'Personalize for persona',
 	],
 	persona: [
-		'Summarize pains, triggers, and desired outcomes',
-		'Turn persona insights into talk-track bullets',
+		'Summarize pain points',
+		'Create talk track',
 	],
 	competitive_snapshot: [
-		'Create a TL;DR of competitive threats',
-		'Write board-ready notes on this competitor',
+		'TL;DR competitive threats',
+		'Board-ready summary',
 	],
 };
 
 const TONE_OPTIONS: ToneOption[] = [
-	{ id: 'neutral', label: 'Neutral', icon: '🌤️', helper: 'Default balanced voice' },
-	{ id: 'friendly', label: 'Friendly', icon: '😊', helper: 'Warm, conversational language' },
-	{ id: 'authoritative', label: 'Authoritative', icon: '🏛️', helper: 'Executive, confident tone' },
-	{ id: 'bold', label: 'Bold', icon: '⚡', helper: 'Launch-ready hype copy' },
-	{ id: 'urgent', label: 'Urgent', icon: '⏱️', helper: 'Time-sensitive CTA focus' },
+	{ id: 'neutral', label: 'Neutral', icon: '🌤️', helper: 'Balanced' },
+	{ id: 'friendly', label: 'Casual', icon: '😊', helper: 'Conversational' },
+	{ id: 'authoritative', label: 'Formal', icon: '🏛️', helper: 'Executive' },
+	{ id: 'bold', label: 'Bold', icon: '⚡', helper: 'High energy' },
 ];
 
 const FORMAT_OPTIONS: FormatOption[] = [
-	{ id: 'auto', label: 'Auto', icon: '✨', helper: 'Let AI pick the structure', instruction: '' },
+	{ id: 'auto', label: 'Auto', icon: '✨', helper: 'AI decides', instruction: '' },
 	{
 		id: 'bullets',
 		label: 'Bullets',
 		icon: '•',
-		helper: 'Crisp bullets with emojis',
-		instruction: 'Respond as a bulleted list. Each bullet must start with an emoji + bold summary.',
+		helper: 'List format',
+		instruction: 'Respond as a bulleted list with emoji + bold summary per item.',
 	},
 	{
 		id: 'summary',
-		label: 'Exec summary',
+		label: 'Summary',
 		icon: '📝',
-		helper: '2 tight paragraphs',
-		instruction: 'Respond with two concise paragraphs aimed at executives. Highlight momentum + risks.',
-	},
-	{
-		id: 'actions',
-		label: 'Action plan',
-		icon: '#',
-		helper: 'Numbered list with owners',
-		instruction:
-			'Respond with a numbered list. Each line must include owner, due date, success metric, and blocker.',
+		helper: 'Paragraphs',
+		instruction: 'Respond with two concise paragraphs. Focus on key points.',
 	},
 	{
 		id: 'table',
 		label: 'Table',
 		icon: '⇵',
-		helper: 'Markdown table output',
-		instruction:
-			'Return a Markdown table with columns: Item, Summary, Owner, Due date, Source. Limit to 5 rows.',
+		helper: 'Structured',
+		instruction: 'Return a Markdown table. Limit to 5 rows max.',
 	},
 ];
 
@@ -749,15 +736,35 @@ export const AICommandPalette: React.FC<AICommandPaletteProps> = ({
 You specialize in ${label} documents and must produce high-signal output ready to paste into TipTap.
 Tone: ${tone.label} (${tone.helper}).
 Format: ${formatOption.label}${formatOption.instruction ? ` — ${formatOption.instruction}` : ''}.
+
+AVAILABLE WORKSPACE DATA SOURCES:
+You have access to the following workspace data that may be referenced in user context:
+• Tasks - Categorized by module (Platform, Investors, Customers, Partners, Marketing, Financials)
+• CRM Data - Investors, Customers, Partners with contacts, meetings, deal stages, and notes
+• Email Integration - Connected Gmail/Outlook accounts with synced messages and threads
+• Marketing Campaigns - Active campaigns with KPIs, channels, budgets, and analytics
+• Financial Data - Revenue transactions, expenses, forecasts, and budget plans
+• Calendar Events - Meetings, deadlines, and scheduled activities
+• Documents - Team docs, briefs, battlecards, templates, and notes
+• Deals/Opportunities - Pipeline stages, values, and probabilities
+• Products & Services - Offerings, pricing, and bundles
+• Notes - Attached to any entity above
+
 Rules:
 1. Cite live web research inline using [n] that maps to WEB SEARCH RESULTS.
 2. Do not fabricate metrics or companies—only use provided workspace data.
 3. When selection text is present, assume the user wants that exact section improved unless explicitly asked.
 4. Prefer Markdown-friendly output. Avoid trailing spaces or double newlines.
-5. Never include code fences, JSON blobs, or visualization configs—describe comparisons using sentences, bullets, or Markdown tables only.
-6. Always close with concise, actionable recommendations.
-7. Mirror the PREMIUM DOCUMENT BLUEPRINT so the draft feels like an executive-ready artifact.
-8. Lean into the Tiptap toolkit so your structure auto-maps to existing editor buttons.
+5. When the user explicitly requests a chart, graph, or visualization, output a CHART_CONFIG block using this exact format:
+   \`\`\`chart-config
+   {"chartType":"bar|line|pie|area","title":"Chart Title","data":[{"name":"Label1","value":123},{"name":"Label2","value":456}],"dataKeys":["value"],"xAxisKey":"name"}
+   \`\`\`
+   Use real data from web research when available. Include a brief text summary after the chart.
+6. For non-chart requests, use sentences, bullets, or Markdown tables—no code fences.
+7. Always close with concise, actionable recommendations.
+8. Mirror the PREMIUM DOCUMENT BLUEPRINT so the draft feels like an executive-ready artifact.
+9. Lean into the Tiptap toolkit so your structure auto-maps to existing editor buttons.
+10. Reference relevant workspace data when appropriate (e.g., mention specific investor names, deal values, campaign metrics, or recent emails if provided in context).
 
 ${PREMIUM_DOC_STYLE_GUIDE}
 
@@ -876,33 +883,72 @@ ${TIPTAP_TOOLKIT_HINT}`;
 
 	const insertResponseIntoEditor = useCallback(
 		(responseText: string) => {
-			const markdownSafe = convertChartBlocksToMarkdown(responseText);
-			const parserMode = hasSelection
-				? mode === 'improve'
-					? 'improve'
-					: 'rewrite'
-				: 'generate';
-			const html = parseAIResponse(markdownSafe, parserMode).trim();
-			if (!html) {
-				return;
-			}
-			if (!isSafeContent(html)) {
-				setErrorMessage('AI response was blocked because it looked unsafe.');
-				return;
+			// Extract and insert chart blocks as actual ChartNodes
+			const chartRegex = /```(?:json-chart|chart-config)\s*\n([\s\S]*?)```/gi;
+			const charts: Array<{ chartType: string; title: string; data: unknown[]; dataKeys: string[]; xAxisKey: string }> = [];
+			let textWithoutCharts = responseText.replace(chartRegex, (_, jsonPayload) => {
+				try {
+					const parsed = JSON.parse(jsonPayload.trim());
+					if (parsed && parsed.data && Array.isArray(parsed.data)) {
+						charts.push({
+							chartType: parsed.chartType || 'bar',
+							title: parsed.title || 'Chart',
+							data: parsed.data,
+							dataKeys: parsed.dataKeys || ['value'],
+							xAxisKey: parsed.xAxisKey || 'name',
+						});
+						return ''; // Remove chart JSON from text
+					}
+				} catch (error) {
+					console.warn('[AICommandPalette] failed to parse chart config', error);
+				}
+				return ''; // Remove invalid chart blocks
+			});
+
+			// Insert charts first
+			if (charts.length > 0) {
+				editor.chain().focus();
+				for (const chart of charts) {
+					editor.commands.insertChart({
+						chartType: chart.chartType as 'bar' | 'line' | 'pie' | 'area',
+						title: chart.title,
+						data: chart.data as Array<Record<string, string | number>>,
+						dataKeys: chart.dataKeys,
+						xAxisKey: chart.xAxisKey,
+					});
+				}
 			}
 
-			editor.chain().focus();
-			if (insertMode === 'block') {
-				const position = resolveBlockInsertionPosition(blockInsertDirection);
-				if (position !== null) {
-					editor.commands.insertContentAt(position, `${html}<p></p>`);
+			// Process remaining text content
+			const cleanedText = textWithoutCharts.trim();
+			if (cleanedText) {
+				const parserMode = hasSelection
+					? mode === 'improve'
+						? 'improve'
+						: 'rewrite'
+					: 'generate';
+				const html = parseAIResponse(cleanedText, parserMode).trim();
+				if (!html) {
+					return;
+				}
+				if (!isSafeContent(html)) {
+					setErrorMessage('AI response was blocked because it looked unsafe.');
+					return;
+				}
+
+				editor.chain().focus();
+				if (insertMode === 'block') {
+					const position = resolveBlockInsertionPosition(blockInsertDirection);
+					if (position !== null) {
+						editor.commands.insertContentAt(position, `${html}<p></p>`);
+					} else {
+						editor.commands.insertContent(`${html}<p></p>`);
+					}
+				} else if (hasSelection && (mode === 'replace' || mode === 'improve') && selection.range) {
+					editor.commands.insertContentAt(selection.range, html);
 				} else {
 					editor.commands.insertContent(`${html}<p></p>`);
 				}
-			} else if (hasSelection && (mode === 'replace' || mode === 'improve') && selection.range) {
-				editor.commands.insertContentAt(selection.range, html);
-			} else {
-				editor.commands.insertContent(`${html}<p></p>`);
 			}
 		},
 		[
@@ -972,216 +1018,48 @@ ${TIPTAP_TOOLKIT_HINT}`;
 		<div className="fixed inset-0 z-[120] pointer-events-none">
 			<div
 				ref={paletteRef}
-				className="pointer-events-auto absolute w-[min(560px,calc(100vw-32px))] rounded-2xl border border-slate-200 bg-white/95 shadow-2xl backdrop-blur-xl"
+				className="pointer-events-auto absolute w-[min(480px,calc(100vw-32px))] rounded-2xl border border-slate-200 bg-white shadow-2xl"
 				style={{ top: effectivePosition.top, left: effectivePosition.left }}
 			>
+				{/* Compact Header */}
 				<div
-					className="flex items-start justify-between gap-3 border-b border-slate-100 px-4 pb-3 pt-4 cursor-move"
+					className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 cursor-move"
 					onPointerDown={handleDragStart}
 				>
-					<div>
-						<p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">AI command palette</p>
-						<div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-600">
-							<span className="text-lg">{DOC_TYPE_ICONS[docType] ?? '✨'}</span>
-							<span>{DOC_TYPE_LABELS[docType] ?? docType}</span>
-							<span className="text-slate-300">•</span>
-							<span>{workspaceName ?? 'Workspace'}</span>
-						</div>
-					</div>
 					<div className="flex items-center gap-2">
-						<button
-							type="button"
-							onClick={resetPosition}
-							className="rounded-full border border-slate-200 p-1 text-slate-500 hover:bg-slate-100"
-							aria-label="Reset palette position"
-						>
-							<RefreshCw size={14} />
-						</button>
-						<button
-							type="button"
-							onClick={onClose}
-							className="rounded-full border border-slate-200 p-1 text-slate-500 hover:bg-slate-100"
-							aria-label="Close AI command palette"
-						>
-							<X size={16} />
-						</button>
+						<Sparkles size={16} className="text-purple-500" />
+						<span className="text-sm font-semibold text-slate-700">AI Assistant</span>
+						<span className="text-xs text-slate-400">• {DOC_TYPE_LABELS[docType] ?? docType}</span>
 					</div>
+					<button
+						type="button"
+						onClick={onClose}
+						className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+						aria-label="Close"
+					>
+						<X size={16} />
+					</button>
 				</div>
 
-				<div className="space-y-4 px-4 py-4">
-					<div className="rounded-xl border border-slate-200 bg-white/80 p-3">
-						<div className="flex items-center justify-between gap-2">
-							<div>
-								<p className="text-xs font-semibold text-slate-700">Command runner</p>
-								<p className="text-[11px] text-slate-400">Search workspace-aware AI recipes</p>
-							</div>
-							<span className="text-[10px] uppercase tracking-[0.25em] text-slate-400">⌘K</span>
-						</div>
-						<div className="relative mt-2">
-							<Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-							<input
-								type="text"
-								value={commandQuery}
-								onChange={(event) => setCommandQuery(event.target.value)}
-								placeholder="Try “summary”, “risk”, “outbound”…"
-								className="h-10 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-9 text-sm text-slate-700 outline-none focus:border-slate-400"
-							/>
-							{commandQuery ? (
-								<button
-									type="button"
-									onClick={() => setCommandQuery('')}
-									className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-slate-100"
-									aria-label="Clear command search"
-								>
-									<X size={14} />
-								</button>
-							) : null}
-						</div>
-						<div className="mt-3 max-h-44 space-y-2 overflow-y-auto pr-1">
-							{commandMatches.length ? (
-								commandMatches.map((match) => {
-									const isSelected = selectedCommandId === match.definition.id;
-									return (
-										<button
-											key={match.definition.id}
-											type="button"
-											onClick={() => handleCommandSelect(match)}
-											className={`w-full rounded-xl border px-3 py-2 text-left transition ${
-												isSelected
-													? 'border-slate-900 bg-slate-900/5'
-													: 'border-slate-200/70 hover:border-slate-300 hover:bg-slate-50'
-											}`}
-											aria-label={`Run ${match.definition.title}`}
-											data-locked={match.isLocked}
-											title={match.lockedReason ?? ''}
-										>
-											<div className="flex items-start justify-between gap-3">
-												<div className="space-y-1">
-													<p className="text-sm font-semibold text-slate-800">{match.definition.title}</p>
-													<p className="text-xs text-slate-500">{match.definition.description}</p>
-													{match.definition.docTypes?.length ? (
-														<div className="flex flex-wrap gap-1 pt-1">
-															{match.definition.docTypes.slice(0, 3).map((type) => (
-																<span
-																	key={`${match.definition.id}-${type}`}
-																	className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500"
-																>
-																	{DOC_TYPE_ICONS[type] ?? '📝'} {DOC_TYPE_LABELS[type] ?? type}
-																</span>
-															))}
-														</div>
-													) : null}
-												</div>
-												<div className="flex flex-col items-end gap-1 text-[10px] text-slate-400">
-													{match.definition.requiresSelection && <span>Needs selection</span>}
-													{match.isLocked ? (
-														<span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 font-medium text-rose-600">
-															<Lock size={12} /> Locked
-														</span>
-													) : (
-														<span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">
-															Score {Math.round(match.score)}
-														</span>
-													)}
-												</div>
-											</div>
-										</button>
-									);
-								})
-							) : (
-								<p className="text-xs text-slate-400">No commands available for this context yet.</p>
-							)}
-						</div>
-						{selectedCommandDefinition && (
-							<div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
-								<span>Ready: {selectedCommandDefinition.title}</span>
-								<button
-									type="button"
-									onClick={clearSelectedCommand}
-									className="text-slate-400 hover:text-slate-600"
-								>
-									Reset
-								</button>
-							</div>
-						)}
-					</div>
-					<div className="rounded-xl border border-slate-200 bg-white/70 p-3">
-						<div className="flex items-center justify-between gap-2">
-							<label className="text-xs font-medium text-slate-600">Prompt</label>
-							<div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
-								<button
-									type="button"
-									className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] ${
-										insertMode === 'replace' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
-									}`}
-									onClick={() => setInsertMode('replace')}
-								>
-									Rewrite
-								</button>
-								<button
-									type="button"
-									className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] ${
-										insertMode === 'append' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
-									}`}
-									onClick={() => setInsertMode('append')}
-								>
-									Append
-								</button>
-								<button
-									type="button"
-									className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] ${
-										insertMode === 'block' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
-									}`}
-									onClick={() => setInsertMode('block')}
-								>
-									Insert block
-								</button>
-							</div>
-						</div>
-						{insertMode === 'block' ? (
-							<div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
-								<span className="font-semibold text-slate-500">Block direction</span>
-								<div className="inline-flex rounded-full bg-slate-100 p-1">
-									<button
-										type="button"
-										className={`rounded-full px-3 py-1 text-[11px] font-medium ${
-											blockInsertDirection === 'before'
-												? 'bg-white text-slate-900 shadow'
-												: 'text-slate-500'
-										}`}
-										onClick={() => setBlockInsertDirection('before')}
-									>
-										Above block
-									</button>
-									<button
-										type="button"
-										className={`rounded-full px-3 py-1 text-[11px] font-medium ${
-											blockInsertDirection === 'after'
-												? 'bg-white text-slate-900 shadow'
-												: 'text-slate-500'
-										}`}
-										onClick={() => setBlockInsertDirection('after')}
-									>
-										Below block
-									</button>
-								</div>
-							</div>
-						) : null}
-						<p className={`mt-2 text-[11px] ${insertModeHintTone}`}>{insertModeHint}</p>
+				{/* Simplified Content */}
+				<div className="p-4 space-y-4">
+					{/* Prompt Input */}
+					<div>
 						<textarea
 							ref={textareaRef}
 							value={prompt}
 							onChange={(event) => setPrompt(event.target.value)}
-							className="mt-2 h-28 w-full resize-none rounded-lg border border-slate-200 bg-white/70 p-3 text-sm text-slate-800 outline-none focus:border-slate-400"
-							placeholder={hasSelection ? 'How should I change this text?' : 'Describe what you want to write or visualize...'}
+							className="w-full h-20 resize-none rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800 outline-none focus:border-purple-300 focus:bg-white"
+							placeholder={hasSelection ? 'How should I change this text?' : 'What do you want to create?'}
 						/>
-						<div className="mt-2 flex flex-wrap gap-2">
+						{/* Quick suggestions */}
+						<div className="mt-2 flex flex-wrap gap-1.5">
 							{[...(DOC_TYPE_SUGGESTIONS[docType] ?? []), ...QUICK_ACTIONS].slice(0, 4).map((pill) => (
 								<button
 									key={pill}
 									type="button"
 									onClick={() => setPrompt(pill)}
-									className="rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-600 hover:border-slate-400"
+									className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] text-slate-600 hover:bg-slate-200 transition"
 								>
 									{pill}
 								</button>
@@ -1189,244 +1067,124 @@ ${TIPTAP_TOOLKIT_HINT}`;
 						</div>
 					</div>
 
-					<div className="grid gap-3 md:grid-cols-2">
-						<div className="rounded-xl border border-slate-200/80 bg-slate-50/60 p-3">
-							<p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">Tone</p>
-							<div className="mt-2 flex flex-wrap gap-2">
-								{TONE_OPTIONS.map((option) => (
-									<button
-										key={option.id}
-										type="button"
-										className={`rounded-lg border px-3 py-1 text-xs ${
-											tone.id === option.id
-												? 'border-slate-900 bg-slate-900 text-white'
-												: 'border-transparent bg-white text-slate-600 shadow'
-										}`}
-										onClick={() => setTone(option)}
-									>
-										<span className="mr-1">{option.icon}</span>
-										{option.label}
-									</button>
-								))}
-							</div>
-						</div>
-
-						<div className="rounded-xl border border-slate-200/80 bg-slate-50/60 p-3">
-							<p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">Format</p>
-							<div className="mt-2 flex flex-wrap gap-2">
-								{FORMAT_OPTIONS.map((option) => (
-									<button
-										key={option.id}
-										type="button"
-										className={`rounded-lg border px-3 py-1 text-xs ${
-											formatOption.id === option.id
-												? 'border-slate-900 bg-slate-900 text-white'
-												: 'border-transparent bg-white text-slate-600 shadow'
-										}`}
-										onClick={() => setFormatOption(option)}
-									>
-										<span className="mr-1">{option.icon}</span>
-										{option.label}
-									</button>
-								))}
-							</div>
-						</div>
-					</div>
-
-					<div className="rounded-xl border border-slate-200/80 bg-white/70 p-3">
-						<div className="flex items-center justify-between">
-							<div className="flex items-center gap-2 text-sm text-slate-600">
-								<Globe size={16} />
-								<span>Live research</span>
-							</div>
-							<label className="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-500">
-								<span>{autoResearch ? 'Auto' : 'Manual'}</span>
-								<div
-									className={`relative h-5 w-9 rounded-full transition ${autoResearch ? 'bg-slate-900' : 'bg-slate-300'}`}
-									onClick={() => setAutoResearch((prev) => !prev)}
-								>
-									<span
-										className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 transform rounded-full bg-white shadow transition ${
-											autoResearch ? 'translate-x-4' : 'translate-x-1'
-										}`}
-									/>
-								</div>
-							</label>
-						</div>
-						<div className="mt-3 flex flex-wrap gap-2">
+					{/* Options Row */}
+					<div className="flex flex-wrap items-center gap-3">
+						{/* Mode */}
+						<div className="flex items-center gap-1 rounded-lg bg-slate-100 p-0.5">
 							<button
 								type="button"
-								className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs ${
-									isWebSearchEnabled ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'
+								className={`px-2.5 py-1 text-xs rounded-md transition ${
+									insertMode === 'replace' ? 'bg-white shadow text-slate-800' : 'text-slate-500'
 								}`}
-								onClick={() => setIsWebSearchEnabled((prev) => !prev)}
+								onClick={() => setInsertMode('replace')}
 							>
-								{isWebSearchEnabled ? 'Disable live search' : 'Enable live search'}
+								Replace
 							</button>
 							<button
 								type="button"
-								className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-600 hover:border-slate-400"
-								onClick={() => setWebSearchMode((prev) => (prev === 'text' ? 'images' : 'text'))}
+								className={`px-2.5 py-1 text-xs rounded-md transition ${
+									insertMode === 'append' ? 'bg-white shadow text-slate-800' : 'text-slate-500'
+								}`}
+								onClick={() => setInsertMode('append')}
 							>
-								Mode: {webSearchMode === 'text' ? 'Cited answers' : 'Image references'}
+								Insert
 							</button>
-							{isWebSearchEnabled && webSearchMode === 'text' && (
-								<button
-									type="button"
-									className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-600 hover:border-slate-400"
-									onClick={() => fetchResearch('manual')}
-									disabled={isFetchingResearch}
-								>
-									{isFetchingResearch ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-									Refresh sources
-								</button>
-							)}
-							{isWebSearchEnabled && webSearchMode === 'images' && (
-								<button
-									type="button"
-									className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-600 hover:border-slate-400"
-									onClick={() => fetchImageReferences(lastImageQuery ?? prompt)}
-									disabled={imageSearchLoading}
-								>
-									{imageSearchLoading ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={14} />}
-									Fetch visuals
-								</button>
-							)}
 						</div>
-						{researchError && (
-							<div className="mt-2 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-								<AlertTriangle size={14} />
-								{researchError}
-							</div>
-						)}
-						{isWebSearchEnabled && webSearchMode === 'text' && webResearch?.hits?.length ? (
-							<div className="mt-3 space-y-2 text-xs text-slate-600">
-								{webResearch.hits.slice(0, 3).map((hit, index) => (
-									<div key={hit.url ?? index} className="rounded-lg border border-slate-200/70 bg-white/70 p-2">
-										<p className="font-semibold text-slate-700">[{index + 1}] {hit.title ?? 'Untitled source'}</p>
-										<p className="line-clamp-2 text-slate-500">{hit.description}</p>
-										<p className="mt-1 text-[11px] text-slate-400">{hit.source ?? hit.url}</p>
-									</div>
-								))}
-							</div>
-						) : null}
-						{isWebSearchEnabled && webSearchMode === 'images' && (
-							<div className="mt-3 space-y-3">
-								{imageSearchError && (
-									<div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-										<AlertTriangle size={14} />
-										{imageSearchError}
-									</div>
-								)}
-								{imageResults.length > 0 && (
-									<div className="grid grid-cols-2 gap-2">
-										{imageResults.slice(0, 6).map((image) => {
-											const sourceHost = formatHostname(image.url) || image.source || 'Source';
-											return (
-												<div key={`${image.imageUrl}-${image.url}`} className="space-y-2 rounded-xl border border-slate-200 bg-gray-50 p-2">
-													<div className="aspect-video overflow-hidden rounded-lg bg-gray-200">
-														<img
-															src={image.thumbnail || image.imageUrl}
-															alt={image.title || 'Research visual'}
-															className="h-full w-full object-cover"
-														/>
-													</div>
-													<div>
-														<p className="text-xs font-semibold text-slate-800 leading-snug">{image.title || 'Untitled visual'}</p>
-														<div className="mt-1 flex items-center justify-between text-[10px] text-slate-500">
-															<span>{sourceHost}</span>
-															<button
-																type="button"
-																onClick={() => insertImageResult(image)}
-																className="font-semibold text-purple-600 hover:text-purple-800"
-															>
-																Insert
-															</button>
-														</div>
-													</div>
-												</div>
-											);
-										})}
-									</div>
-								)}
-								{imageSearchMetadata && (
-									<div className="flex flex-wrap gap-2 text-[10px] text-slate-500">
-										<span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5">
-											Provider: {imageSearchMetadata.provider || 'You.com'}
-										</span>
-										{imageSearchMetadata.fetchedAt && (
-											<span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5">
-												{formatRelativeTime(imageSearchMetadata.fetchedAt)}
-											</span>
-										)}
-										<span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5">
-											{imageSearchMetadata.count ?? imageResults.length} results
-										</span>
-									</div>
-								)}
-							</div>
-						)}
+
+						{/* Tone */}
+						<div className="flex items-center gap-1">
+							{TONE_OPTIONS.map((option) => (
+								<button
+									key={option.id}
+									type="button"
+									className={`px-2 py-1 text-xs rounded-md transition ${
+										tone.id === option.id
+											? 'bg-purple-100 text-purple-700'
+											: 'text-slate-500 hover:bg-slate-100'
+									}`}
+									onClick={() => setTone(option)}
+									title={option.helper}
+								>
+									{option.icon}
+								</button>
+							))}
+						</div>
+
+						{/* Format */}
+						<div className="flex items-center gap-1">
+							{FORMAT_OPTIONS.map((option) => (
+								<button
+									key={option.id}
+									type="button"
+									className={`px-2 py-1 text-xs rounded-md transition ${
+										formatOption.id === option.id
+											? 'bg-purple-100 text-purple-700'
+											: 'text-slate-500 hover:bg-slate-100'
+									}`}
+									onClick={() => setFormatOption(option)}
+									title={option.helper}
+								>
+									{option.icon}
+								</button>
+							))}
+						</div>
 					</div>
 
-					<div className="rounded-xl border border-slate-200 bg-white/80 p-3">
-						<div className="flex items-center gap-2 text-sm font-semibold text-slate-600">
-							<Sparkles size={16} />
-							<span>Output</span>
+					{/* Web Research Toggle */}
+					<div className="flex items-center justify-between py-2 border-t border-slate-100">
+						<div className="flex items-center gap-2 text-xs text-slate-500">
+							<Globe size={14} />
+							<span>Web research</span>
 						</div>
-						<div className="mt-3 flex items-center gap-2">
-							<button
-								type="button"
-								onClick={handleGenerate}
-								disabled={loading || !prompt.trim()}
-								className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${
-									loading || !prompt.trim()
-										? 'cursor-not-allowed bg-slate-200 text-slate-400'
-										: 'bg-purple-600 text-white hover:bg-purple-700'
-								}`}
-							>
-								{loading ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
-								{loading ? 'Working…' : 'Generate'}
-							</button>
-							<span className="text-xs text-slate-500">
-								Enter ↵ to run • {mode === 'insert' ? 'Insert at cursor' : mode === 'replace' ? 'Replace selection' : 'Improve selection'}
-							</span>
-						</div>
-						{statusMessage && (
-							<div className="mt-2 flex items-center gap-2 text-xs text-green-600">
-								<CheckCircle2 size={14} />
-								{statusMessage}
-							</div>
-						)}
-						{errorMessage && (
-							<div className="mt-2 flex items-center gap-2 text-xs text-rose-600">
-								<AlertTriangle size={14} />
-								{errorMessage}
-							</div>
-						)}
+						<button
+							type="button"
+							className={`px-2.5 py-1 text-[11px] rounded-full transition ${
+								isWebSearchEnabled ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-500'
+							}`}
+							onClick={() => setIsWebSearchEnabled((prev) => !prev)}
+						>
+							{isWebSearchEnabled ? 'On' : 'Off'}
+						</button>
 					</div>
+
+					{/* Generate Button */}
+					<button
+						type="button"
+						onClick={handleGenerate}
+						disabled={loading || !prompt.trim()}
+						className={`w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition ${
+							loading || !prompt.trim()
+								? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+								: 'bg-purple-600 text-white hover:bg-purple-700'
+						}`}
+					>
+						{loading ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+						{loading ? 'Generating...' : 'Generate'}
+					</button>
+
+					{/* Status Messages */}
+					{statusMessage && (
+						<div className="flex items-center gap-2 text-xs text-green-600 bg-green-50 rounded-lg px-3 py-2">
+							<CheckCircle2 size={14} />
+							{statusMessage}
+						</div>
+					)}
+					{errorMessage && (
+						<div className="flex items-center gap-2 text-xs text-rose-600 bg-rose-50 rounded-lg px-3 py-2">
+							<AlertTriangle size={14} />
+							{errorMessage}
+						</div>
+					)}
 				</div>
 
-				<div className="border-t border-slate-100 bg-white/80">
-					<div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-[10px] text-slate-500">
-						<div className="flex items-center gap-2">
-							<span
-								className={`rounded px-1.5 py-0.5 font-medium ${
-									hasSelection
-										? mode === 'improve'
-											? 'bg-blue-100 text-blue-700'
-											: 'bg-amber-100 text-amber-700'
-										: 'bg-green-100 text-green-700'
-								}`}
-							>
-								{hasSelection ? (mode === 'improve' ? 'IMPROVE' : 'REPLACE') : 'INSERT'}
-							</span>
-							<span>Context: {contextBadges.length} sources</span>
-						</div>
-						<div className="flex items-center gap-1 text-slate-400">
-							<BookOpenText size={12} />
-							<span>Cmd/Ctrl + Enter to run • Cmd/Ctrl + K to reopen</span>
-						</div>
-					</div>
+				{/* Footer */}
+				<div className="border-t border-slate-100 px-4 py-2 flex items-center justify-between text-[10px] text-slate-400">
+					<span className={`px-1.5 py-0.5 rounded font-medium ${
+						hasSelection ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'
+					}`}>
+						{hasSelection ? 'EDIT' : 'CREATE'}
+					</span>
+					<span>⌘K to toggle • Enter to run</span>
 				</div>
 			</div>
 		</div>

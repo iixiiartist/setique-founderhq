@@ -29,6 +29,8 @@ import { PageBreak } from '../../lib/tiptap/PageBreak';
 import ChartNode from '../../lib/tiptap/ChartNode';
 import TextBoxNode from '../../lib/tiptap/TextBoxNode';
 import SignatureNode from '../../lib/tiptap/SignatureNode';
+import ShapeNode, { ShapeType } from '../../lib/tiptap/ShapeNode';
+import FrameNode from '../../lib/tiptap/FrameNode';
 import { HexColorPicker } from 'react-colorful';
 import EmojiPicker from 'emoji-picker-react';
 import { GTMDoc, DocType, DocVisibility, AppActions, DashboardData, StructuredBlock, StructuredBlockMap, PlanType, WorkspaceRole } from '../../types';
@@ -59,10 +61,15 @@ import { supabase } from '../../lib/supabase';
 import BubbleMenuExtension from '@tiptap/extension-bubble-menu';
 import { useFeatureFlags } from '../../contexts/FeatureFlagContext';
 import { GridOverlay } from '../docs/canvas/GridOverlay';
-import { CanvasPalette } from '../docs/canvas/CanvasPalette';
+import { ProGridOverlay } from '../docs/canvas/ProGridOverlay';
+import { ProCanvasToolbar, CanvasTool as ProCanvasTool } from '../docs/canvas/ProCanvasToolbar';
+import { ZoomControls, Minimap } from '../docs/canvas/ZoomControls';
+import { SnapLinesOverlay } from '../../lib/docs/snapUtils';
 import { telemetry } from '../../lib/services/telemetry';
 import { startHeartbeatMonitor, COLLAB_RESYNC_INTERVAL_MS, CollabBackoffController } from '../../lib/collab/supabaseProviderConfig';
 import { v4 as uuidv4 } from 'uuid';
+
+type CanvasTool = 'select' | 'text' | 'signature' | 'shape' | 'frame' | 'inspect';
 
 interface DocEditorProps {
     workspaceId: string;
@@ -157,10 +164,20 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
     const [newPresetName, setNewPresetName] = useState('');
     const [presetFormError, setPresetFormError] = useState<string | null>(null);
-    const [isCanvasPaletteOpen, setIsCanvasPaletteOpen] = useState(isCanvasModeEnabled);
     const [isCanvasGridVisible, setIsCanvasGridVisible] = useState(true);
     const [canvasGridSize, setCanvasGridSize] = useState(16);
+    const [activeCanvasTool, setActiveCanvasTool] = useState<CanvasTool>('select');
     const [gridAnnouncement, setGridAnnouncement] = useState('');
+    
+    // Professional canvas state
+    const [showRulers, setShowRulers] = useState(true);
+    const [snapEnabled, setSnapEnabled] = useState(true);
+    const [showMinimap, setShowMinimap] = useState(false);
+    const [canvasGuides, setCanvasGuides] = useState<Array<{ id: string; position: number; orientation: 'horizontal' | 'vertical' }>>([]);
+    const [activeSnapLines, setActiveSnapLines] = useState<Array<{ position: number; orientation: 'horizontal' | 'vertical'; type: string }>>([]);
+    const [selectedElements, setSelectedElements] = useState<string[]>([]);
+    const [canvasScrollPosition, setCanvasScrollPosition] = useState({ x: 0, y: 0 });
+    
     const gridAnnouncementTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const blocksMetadataRef = useRef<StructuredBlockMap>({});
     const blockMetadataSubscribers = useRef<Map<string, Set<(metadata?: StructuredBlock) => void>>>(new Map());
@@ -342,17 +359,6 @@ export const DocEditor: React.FC<DocEditorProps> = ({
         gridAnnouncementTimeoutRef.current = setTimeout(() => setGridAnnouncement(''), 1800);
     }, []);
 
-    const toggleCanvasPalette = useCallback(() => {
-        if (!isCanvasModeEnabled) {
-            return;
-        }
-        setIsCanvasPaletteOpen((prev) => {
-            const next = !prev;
-            emitCanvasTelemetry('canvas_shell_toggled', { open: next });
-            return next;
-        });
-    }, [emitCanvasTelemetry, isCanvasModeEnabled]);
-
     const toggleCanvasGrid = useCallback(
         (nextState?: boolean) => {
             if (!isCanvasModeEnabled) {
@@ -370,6 +376,40 @@ export const DocEditor: React.FC<DocEditorProps> = ({
         },
         [announceGridState, emitCanvasTelemetry, isCanvasModeEnabled],
     );
+
+    const handleToggleRulers = useCallback(() => {
+        setShowRulers(prev => !prev);
+        emitCanvasTelemetry('canvas_palette_interaction', { action: 'rulers_toggle', value: !showRulers });
+    }, [showRulers, emitCanvasTelemetry]);
+
+    const handleToggleSnap = useCallback(() => {
+        setSnapEnabled(prev => !prev);
+        emitCanvasTelemetry('canvas_palette_interaction', { action: 'snap_toggle', value: !snapEnabled });
+    }, [snapEnabled, emitCanvasTelemetry]);
+
+    const handleToggleMinimap = useCallback(() => {
+        setShowMinimap(prev => !prev);
+    }, []);
+
+    const handleAddGuide = useCallback((guide: { id: string; position: number; orientation: 'horizontal' | 'vertical' }) => {
+        setCanvasGuides(prev => [...prev, guide]);
+        emitCanvasTelemetry('canvas_palette_interaction', { action: 'guide_add', value: guide.orientation });
+    }, [emitCanvasTelemetry]);
+
+    const handleRemoveGuide = useCallback((id: string) => {
+        setCanvasGuides(prev => prev.filter(g => g.id !== id));
+        emitCanvasTelemetry('canvas_palette_interaction', { action: 'guide_remove' });
+    }, [emitCanvasTelemetry]);
+
+    const handleMoveGuide = useCallback((id: string, position: number) => {
+        setCanvasGuides(prev => prev.map(g => g.id === id ? { ...g, position } : g));
+    }, []);
+
+    const handleCanvasNavigate = useCallback((x: number, y: number) => {
+        if (canvasScrollRef.current) {
+            canvasScrollRef.current.scrollTo({ left: x, top: y, behavior: 'smooth' });
+        }
+    }, []);
 
     const handleGridSizeChange = useCallback(
         (nextSize: number) => {
@@ -494,6 +534,126 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             })
         .run();
     }, [editorRef, emitCanvasTelemetry, isCanvasModeEnabled, persistBlockMetadata]);
+
+    const handleInsertShape = useCallback((shapeType: ShapeType) => {
+        const instance = editorRef.current;
+        if (!instance || !isCanvasModeEnabled) {
+            return;
+        }
+
+        const blockId = uuidv4();
+        const now = new Date().toISOString();
+        const siblings = Object.keys(blocksMetadataRef.current).length;
+        const block: StructuredBlock = {
+            id: blockId,
+            type: 'shape',
+            position: {
+                x: 0,
+                y: siblings * 24,
+                zIndex: siblings,
+            },
+            size: {
+                width: 200,
+                height: 150,
+            },
+            rotation: 0,
+            data: {
+                shapeType,
+                fillColor: '#3b82f6',
+                strokeColor: '#1e40af',
+                strokeWidth: 2,
+            },
+            createdAt: now,
+            updatedAt: now,
+        };
+
+        persistBlockMetadata(block);
+        emitCanvasTelemetry('canvas_palette_interaction', {
+            action: 'insert_shape',
+            value: { blockId, shapeType },
+        });
+
+        instance
+            .chain()
+            .focus()
+            .insertShape({
+                blockId,
+                shapeType,
+                width: block.size.width,
+                height: block.size.height,
+                x: block.position.x,
+                y: block.position.y,
+                zIndex: block.position.zIndex,
+                fillColor: '#3b82f6',
+                strokeColor: '#1e40af',
+                strokeWidth: 2,
+                createdAt: now,
+            })
+            .run();
+    }, [editorRef, emitCanvasTelemetry, isCanvasModeEnabled, persistBlockMetadata]);
+
+    const handleInsertFrame = useCallback(() => {
+        const instance = editorRef.current;
+        if (!instance || !isCanvasModeEnabled) {
+            return;
+        }
+
+        const blockId = uuidv4();
+        const now = new Date().toISOString();
+        const siblings = Object.keys(blocksMetadataRef.current).length;
+        const block: StructuredBlock = {
+            id: blockId,
+            type: 'frame',
+            position: {
+                x: 0,
+                y: siblings * 24,
+                zIndex: siblings,
+            },
+            size: {
+                width: 400,
+                height: 300,
+            },
+            rotation: 0,
+            data: {
+                label: 'Frame',
+                backgroundColor: '#ffffff',
+                borderColor: '#e5e7eb',
+            },
+            createdAt: now,
+            updatedAt: now,
+        };
+
+        persistBlockMetadata(block);
+        emitCanvasTelemetry('canvas_palette_interaction', {
+            action: 'insert_frame',
+            value: blockId,
+        });
+
+        instance
+            .chain()
+            .focus()
+            .insertFrame({
+                blockId,
+                width: block.size.width,
+                height: block.size.height,
+                x: block.position.x,
+                y: block.position.y,
+                zIndex: block.position.zIndex,
+                label: 'Frame',
+                backgroundColor: '#ffffff',
+                borderColor: '#e5e7eb',
+                createdAt: now,
+            })
+            .run();
+    }, [editorRef, emitCanvasTelemetry, isCanvasModeEnabled, persistBlockMetadata]);
+
+    const handleToolChange = useCallback((tool: CanvasTool) => {
+        setActiveCanvasTool(tool);
+        emitCanvasTelemetry('canvas_palette_interaction', {
+            action: 'tool_change',
+            value: tool,
+        });
+    }, [emitCanvasTelemetry]);
 
     useEffect(() => {
         if (docId) {
@@ -819,6 +979,16 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             SignatureNode.configure({
                 workspaceId,
                 docId,
+                onMetadataChange: persistBlockMetadata,
+                onBlockRemoved: removeBlockMetadata,
+                subscribeToBlockMetadata,
+            }),
+            ShapeNode.configure({
+                onMetadataChange: persistBlockMetadata,
+                onBlockRemoved: removeBlockMetadata,
+                subscribeToBlockMetadata,
+            }),
+            FrameNode.configure({
                 onMetadataChange: persistBlockMetadata,
                 onBlockRemoved: removeBlockMetadata,
                 subscribeToBlockMetadata,
@@ -1887,25 +2057,9 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                 </button>
             )}
 
-            {isCanvasModeEnabled && !isFocusMode && (
-                <CanvasPalette
-                    isOpen={isCanvasPaletteOpen}
-                    gridVisible={isCanvasGridVisible}
-                    gridSize={canvasGridSize}
-                    onToggleOpen={toggleCanvasPalette}
-                    onToggleGrid={() => toggleCanvasGrid()}
-                    onGridSizeChange={handleGridSizeChange}
-                    onInsertTextBox={handleInsertTextBox}
-                    onInsertSignature={handleInsertSignature}
-                    activeUsers={activeUsers}
-                    collabStatus={collabStatus}
-                    collabWarning={collabWarning}
-                />
-            )}
-
             {/* Main Content */}
             <div 
-                className={`flex-1 overflow-hidden relative ${isFocusMode ? 'bg-white' : 'bg-[#f7f7fb]'}`}
+                className={`flex-1 relative ${isFocusMode ? 'bg-white overflow-auto' : 'bg-[#f7f7fb] overflow-hidden'}`}
                 onContextMenu={(e) => {
                     if (isFocusMode) {
                         e.preventDefault();
@@ -2176,78 +2330,160 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                             </div>
                         </div>
 
-                        <div className="rounded-2xl border border-gray-200 bg-white/80 backdrop-blur px-4 py-3 shadow-sm flex flex-wrap items-center gap-3 text-[11px] uppercase tracking-[0.3em] text-gray-500">
-                            <span>Doc width 8.5"</span>
-                            <span className="text-gray-300">•</span>
-                            <span>Margins 1"</span>
-                            <span className="text-gray-300">•</span>
-                            <span>Line height {lineSpacing.toFixed(2)}</span>
-                            <span className="text-gray-300">•</span>
-                            <span>{docTypeLabel}</span>
-                            <div className="flex items-center gap-2 ml-auto tracking-normal text-[10px] text-gray-400">
-                                <span className="uppercase">Zoom</span>
-                                <select
-                                    onChange={(e) => setZoomLevel(Number(e.target.value))}
-                                    className="text-[12px] font-semibold text-gray-700 border border-gray-300 rounded-lg px-2 py-1 bg-white"
-                                >
-                                    {zoomOptions.map((option) => (
-                                        <option key={option} value={option}>{option}%</option>
-                                    ))}
-                                </select>
+                        {/* Professional Canvas Toolbar */}
+                        {isCanvasModeEnabled && (
+                            <ProCanvasToolbar
+                                activeTool={activeCanvasTool as ProCanvasTool}
+                                onToolChange={(tool) => setActiveCanvasTool(tool as CanvasTool)}
+                                zoom={zoomLevel}
+                                onZoomChange={setZoomLevel}
+                                canUndo={editor?.can().undo() ?? false}
+                                canRedo={editor?.can().redo() ?? false}
+                                onUndo={() => editor?.chain().focus().undo().run()}
+                                onRedo={() => editor?.chain().focus().redo().run()}
+                                gridVisible={isCanvasGridVisible}
+                                onToggleGrid={() => toggleCanvasGrid()}
+                                rulersVisible={showRulers}
+                                onToggleRulers={handleToggleRulers}
+                                snapEnabled={snapEnabled}
+                                onToggleSnap={handleToggleSnap}
+                                selectedCount={selectedElements.length}
+                                onInsertTextBox={handleInsertTextBox}
+                                onInsertSignature={handleInsertSignature}
+                                onInsertShape={handleInsertShape}
+                                onInsertFrame={handleInsertFrame}
+                                onDelete={() => editor?.chain().focus().deleteSelection().run()}
+                                onDuplicate={() => {
+                                    // TODO: Implement duplicate
+                                }}
+                            />
+                        )}
+
+                        {/* Document Info Bar - Minimized */}
+                        <div className="flex items-center justify-between px-4 py-2 text-[11px] text-gray-500 border-b border-gray-100 bg-gray-50/50">
+                            <div className="flex items-center gap-4">
+                                <span>Doc: 8.5" × 11"</span>
+                                <span>•</span>
+                                <span>Margins: 1"</span>
+                                <span>•</span>
+                                <span>{docTypeLabel}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="font-medium">{wordCount.toLocaleString()} words</span>
+                                <span>•</span>
+                                <span>{estimatedReadMinutes} min read</span>
                             </div>
                         </div>
 
-                        <div className="relative">
-                            <div className="absolute inset-x-14 -top-8 h-8 rounded-t-2xl border border-gray-200 bg-gradient-to-b from-white via-white to-gray-50 shadow-sm flex items-end px-6 gap-6 overflow-hidden">
-                                {Array.from({ length: 9 }).map((_, idx) => (
-                                    <div key={idx} className="flex-1 relative h-full flex justify-center">
-                                        <span className="absolute -top-4 text-[10px] text-gray-400 font-semibold">{idx}"</span>
-                                        <span className="w-px h-4 bg-gray-300" />
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="flex gap-4">
-                                <div className="hidden xl:flex flex-col items-center pt-10">
-                                    <div className="text-[10px] uppercase tracking-[0.35em] text-gray-400 mb-2">Margin</div>
-                                    <div className="w-12 rounded-2xl border border-gray-200 bg-white shadow-inner overflow-hidden">
-                                        <div
-                                            className="h-full w-full"
-                                            style={{ backgroundImage: 'linear-gradient(#e5e7eb 1px, transparent 1px)', backgroundSize: '100% 16px' }}
-                                        />
-                                    </div>
-                                </div>
-                                <GridOverlay
-                                    show={isCanvasModeEnabled && isCanvasGridVisible}
-                                    gridSize={canvasGridSize}
-                                    zoom={zoomLevel}
-                                    className="flex-1"
+                        {/* Professional Canvas Area */}
+                        <div className="relative flex-1 overflow-auto" ref={canvasScrollRef}>
+                            <ProGridOverlay
+                                show={isCanvasModeEnabled && isCanvasGridVisible}
+                                zoom={zoomLevel}
+                                gridSize={canvasGridSize}
+                                showRulers={showRulers}
+                                showGuides={true}
+                                guides={canvasGuides}
+                                onAddGuide={handleAddGuide}
+                                onRemoveGuide={handleRemoveGuide}
+                                onMoveGuide={handleMoveGuide}
+                                snapThreshold={snapEnabled ? 8 : 0}
+                                pageWidth={816}
+                                pageHeight={1056}
+                                className="min-h-full p-8"
+                            >
+                                {/* Snap Lines Overlay */}
+                                {activeSnapLines.length > 0 && (
+                                    <SnapLinesOverlay
+                                        lines={activeSnapLines as any}
+                                        zoom={zoomLevel}
+                                        offsetX={showRulers ? 24 : 0}
+                                        offsetY={showRulers ? 24 : 0}
+                                    />
+                                )}
+
+                                {/* Document Page */}
+                                <div 
+                                    className="relative mx-auto bg-white shadow-[0_4px_20px_rgba(0,0,0,0.08)] transition-transform"
+                                    style={{
+                                        width: 816 * (zoomLevel / 100),
+                                        minHeight: 1056 * (zoomLevel / 100),
+                                        transformOrigin: 'top center',
+                                    }}
                                 >
-                                    <div className="relative bg-white rounded-[32px] border border-gray-200 shadow-[0_40px_80px_rgba(15,23,42,0.12)] px-10 sm:px-14 py-14 sm:py-16">
-                                        <div className="absolute inset-x-10 top-10 border-b border-dashed border-gray-200 text-[11px] text-gray-400 uppercase tracking-[0.35em] pb-2 flex items-center justify-between pointer-events-none select-none">
-                                            <span>{workspaceName}</span>
-                                            <span>Page 1</span>
-                                        </div>
+                                    {/* Page Header */}
+                                    <div className="absolute top-4 left-8 right-8 flex items-center justify-between text-[10px] text-gray-400 font-medium tracking-wide pointer-events-none select-none">
+                                        <span>{workspaceName}</span>
+                                        <span>Page 1</span>
+                                    </div>
+
+                                    {/* Editor Content */}
+                                    <div className="px-12 py-16" style={{ fontSize: `${14 * (zoomLevel / 100)}px` }}>
                                         <EditorContent 
                                             editor={editor} 
-                                            className="mt-12 h-full min-h-[900px] focus:outline-none prose prose-lg max-w-none text-[#1c1d21] leading-[1.75]"
+                                            className="h-full min-h-[800px] focus:outline-none prose prose-sm max-w-none text-gray-900"
+                                            style={{ 
+                                                lineHeight: lineSpacing,
+                                            }}
                                         />
                                     </div>
-                                </GridOverlay>
-                            </div>
+
+                                    {/* Page Footer */}
+                                    <div className="absolute bottom-4 left-8 right-8 flex items-center justify-center text-[10px] text-gray-400 font-medium pointer-events-none select-none">
+                                        <span>1</span>
+                                    </div>
+                                </div>
+                            </ProGridOverlay>
                         </div>
 
-                        <div className="sticky bottom-4 self-end flex flex-wrap items-center gap-3 bg-white/90 border border-gray-200 rounded-full px-5 py-2 text-xs text-gray-600 shadow-lg backdrop-blur">
-                            <span className="font-semibold text-gray-900">{wordCount.toLocaleString()} words</span>
-                            <span className="text-gray-300">•</span>
-                            <span>{estimatedReadMinutes} min read</span>
-                            <span className="text-gray-300">•</span>
-                            <span>{characterCount.toLocaleString()} chars</span>
-                            <span className="text-gray-300">•</span>
-                            <span>{lastSavedLabel}</span>
+                        {/* Bottom Status Bar */}
+                        <div className="flex items-center justify-between px-4 py-2 text-xs text-gray-500 border-t border-gray-200 bg-white">
+                            <div className="flex items-center gap-3">
+                                <span className="font-semibold text-gray-700">{characterCount.toLocaleString()} characters</span>
+                                <span>•</span>
+                                <span>{lastSavedLabel}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-[10px]">
+                                <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-500">⌘K</kbd>
+                                <span>AI Assistant</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            {/* Zoom Controls */}
+            {isCanvasModeEnabled && !isFocusMode && (
+                <ZoomControls
+                    zoom={zoomLevel}
+                    onZoomChange={setZoomLevel}
+                    showMinimap={true}
+                    onToggleMinimap={handleToggleMinimap}
+                    minimapVisible={showMinimap}
+                />
+            )}
+
+            {/* Minimap */}
+            {isCanvasModeEnabled && showMinimap && (
+                <Minimap
+                    visible={showMinimap}
+                    canvasWidth={816}
+                    canvasHeight={1056}
+                    viewportWidth={800}
+                    viewportHeight={600}
+                    scrollX={canvasScrollPosition.x}
+                    scrollY={canvasScrollPosition.y}
+                    zoom={zoomLevel}
+                    onNavigate={handleCanvasNavigate}
+                    elements={Object.values(blocksMetadataRef.current).map(block => ({
+                        x: block.position?.x ?? 0,
+                        y: block.position?.y ?? 0,
+                        width: block.size?.width ?? 100,
+                        height: block.size?.height ?? 50,
+                        type: block.type,
+                    }))}
+                />
+            )}
 
             {/* Template Shelf - Top Floating */}
             {!isFocusMode && isCanvasModeEnabled && (

@@ -840,7 +840,7 @@ export type DocVisibility = 'private' | 'team';
 
 export type LinkedEntityType = 'task' | 'event' | 'crm' | 'chat' | 'contact';
 
-export type StructuredBlockType = 'textbox' | 'signature';
+export type StructuredBlockType = 'textbox' | 'signature' | 'shape' | 'frame';
 
 export interface StructuredBlockPosition {
     x: number;

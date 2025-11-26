@@ -6,6 +6,7 @@ import Modal from './shared/Modal';
 import NotesManager from './shared/NotesManager';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/Button';
+import { EmailComposer } from './email/EmailComposer';
 import { 
   Grid, 
   List, 
@@ -22,7 +23,8 @@ import {
   File,
   LayoutGrid,
   ChevronRight,
-  Info
+  Info,
+  Send
 } from 'lucide-react';
 
 // --- Types & Helpers ---
@@ -76,6 +78,11 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
     const [notesModalDoc, setNotesModalDoc] = useState<Document | null>(null);
     const notesModalTriggerRef = useRef<HTMLButtonElement | null>(null);
 
+    // Email Composer
+    const [showEmailComposer, setShowEmailComposer] = useState(false);
+    const [emailSubject, setEmailSubject] = useState('');
+    const [emailBody, setEmailBody] = useState('');
+
     // --- Handlers ---
 
     const handleFileSelect = (selectedFile: File | null) => {
@@ -122,6 +129,12 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
             actions.deleteDocument(doc.id);
             if (selectedDocId === doc.id) setSelectedDocId(null);
         }
+    };
+
+    const handleShare = (doc: Document) => {
+        setEmailSubject(`Document: ${doc.name}`);
+        setEmailBody(`Hi,\n\nI'm sharing the document "${doc.name}" with you.\n\nBest regards,`);
+        setShowEmailComposer(true);
     };
 
     // --- Filtering ---
@@ -387,6 +400,9 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                                                             <button onClick={(e) => { e.stopPropagation(); handleDownload(doc); }} className="p-1.5 border-2 border-black bg-white hover:bg-black hover:text-white">
                                                                 <Download size={16} />
                                                             </button>
+                                                            <button onClick={(e) => { e.stopPropagation(); handleShare(doc); }} className="p-1.5 border-2 border-black bg-white hover:bg-blue-600 hover:text-white" title="Share via Email">
+                                                                <Send size={16} />
+                                                            </button>
                                                             <button onClick={(e) => { e.stopPropagation(); handleDelete(doc); }} className="p-1.5 border-2 border-black bg-white hover:bg-red-600 hover:text-white">
                                                                 <Trash2 size={16} />
                                                             </button>
@@ -439,6 +455,13 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                             <Download size={16} /> Download
                         </Button>
                         <Button 
+                            onClick={() => handleShare(selectedDoc)}
+                            variant="secondary"
+                            className="w-full justify-center gap-2"
+                        >
+                            <Send size={16} /> Share via Email
+                        </Button>
+                        <Button 
                             onClick={() => setNotesModalDoc(selectedDoc)}
                             variant="secondary"
                             className="w-full justify-center gap-2"
@@ -455,6 +478,13 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                     </div>
                 </div>
             )}
+
+            <EmailComposer
+                isOpen={showEmailComposer}
+                onClose={() => setShowEmailComposer(false)}
+                initialSubject={emailSubject}
+                initialBody={emailBody}
+            />
         </div>
     );
 }
