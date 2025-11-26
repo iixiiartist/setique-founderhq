@@ -66,13 +66,14 @@ export default defineConfig(({ mode }) => {
         rollupOptions: {
           output: {
             // Split vendor chunks to reduce memory pressure during build
+            // ORDER MATTERS: Check specific packages before generic patterns
             manualChunks: (id) => {
               if (id.includes('node_modules')) {
-                // React ecosystem
-                if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler')) {
-                  return 'vendor-react';
+                // UI libraries FIRST (before react check, since lucide-react contains 'react')
+                if (id.includes('lucide-react') || id.includes('recharts') || id.includes('date-fns') || id.includes('react-day-picker')) {
+                  return 'vendor-ui';
                 }
-                // TipTap/ProseMirror (large)
+                // TipTap/ProseMirror (large) - check before react since some have 'react' in path
                 if (id.includes('@tiptap') || id.includes('prosemirror') || id.includes('yjs') || id.includes('y-')) {
                   return 'vendor-editor';
                 }
@@ -80,9 +81,9 @@ export default defineConfig(({ mode }) => {
                 if (id.includes('@supabase')) {
                   return 'vendor-supabase';
                 }
-                // UI libraries
-                if (id.includes('lucide') || id.includes('recharts') || id.includes('date-fns') || id.includes('react-day-picker')) {
-                  return 'vendor-ui';
+                // React core ecosystem (checked AFTER specific react-* packages)
+                if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/')) {
+                  return 'vendor-react';
                 }
                 // Everything else
                 return 'vendor';
