@@ -78,6 +78,41 @@ export interface AutomationPreferences {
     max_automations_per_hour: number;
 }
 
+export async function fetchOrCreateAutomationPreferences(
+    workspaceId: string
+): Promise<AutomationPreferences | null> {
+    if (!workspaceId) return null;
+
+    const { data, error } = await supabase
+        .from('automation_preferences')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .maybeSingle();
+
+    if (error) {
+        logger.error('Failed to fetch automation preferences', { workspaceId, error });
+        return null;
+    }
+
+    if (data) {
+        return data as AutomationPreferences;
+    }
+
+    const { data: inserted, error: insertError } = await supabase
+        .from('automation_preferences')
+        .insert({ workspace_id: workspaceId })
+        .select('*')
+        .single();
+
+    if (insertError) {
+        logger.error('Failed to bootstrap automation preferences', { workspaceId, error: insertError });
+        return null;
+    }
+
+    logger.info('Created default automation preferences', { workspaceId });
+    return inserted as AutomationPreferences;
+}
+
 export interface TriggerContext {
     workspaceId: string;
     userId?: string;
@@ -205,18 +240,7 @@ export class AutomationEngine {
      * Get workspace automation preferences
      */
     async getPreferences(workspaceId: string): Promise<AutomationPreferences | null> {
-        const { data, error } = await supabase
-            .from('automation_preferences')
-            .select('*')
-            .eq('workspace_id', workspaceId)
-            .single();
-
-        if (error) {
-            logger.error('Failed to fetch automation preferences:', error);
-            return null;
-        }
-
-        return data;
+        return fetchOrCreateAutomationPreferences(workspaceId);
     }
 
     /**

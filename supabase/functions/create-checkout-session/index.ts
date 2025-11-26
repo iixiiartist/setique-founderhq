@@ -8,9 +8,14 @@ import {
   supabaseAdmin,
   assertPriceIdsConfigured,
   jsonResponse,
+  corsHeaders,
 } from '../_shared/config.ts';
 
 serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
   if (req.method !== 'POST') {
     return jsonResponse({ error: 'Method not allowed' }, { status: 405 });
   }

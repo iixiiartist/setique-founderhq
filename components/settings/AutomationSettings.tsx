@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { logger } from '../../lib/logger';
+import { fetchOrCreateAutomationPreferences } from '../../lib/services/automationService';
 
 interface AutomationPreferences {
     workspace_id: string;
@@ -36,15 +37,10 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
     async function loadPreferences() {
         try {
             setIsLoading(true);
-            const { data, error } = await supabase
-                .from('automation_preferences')
-                .select('*')
-                .eq('workspace_id', workspaceId)
-                .single();
+            const data = await fetchOrCreateAutomationPreferences(workspaceId);
 
-            if (error) {
-                logger.error('Failed to load automation preferences:', error);
-                throw error;
+            if (!data) {
+                throw new Error('Preferences unavailable');
             }
 
             setPreferences(data);

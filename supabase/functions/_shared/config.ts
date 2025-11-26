@@ -51,9 +51,27 @@ export function assertPriceIdsConfigured(plan: string) {
   }
 }
 
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
 export function jsonResponse(body: Record<string, unknown>, init?: ResponseInit) {
-  return new Response(JSON.stringify(body), {
-    headers: { 'Content-Type': 'application/json' },
-    ...init,
+  const headers = new Headers({
+    'Content-Type': 'application/json',
+    ...corsHeaders,
   });
+
+  if (init?.headers) {
+    const extra = new Headers(init.headers);
+    extra.forEach((value, key) => headers.set(key, value));
+  }
+
+  const responseInit: ResponseInit = {
+    ...init,
+    headers,
+  };
+
+  return new Response(JSON.stringify(body), responseInit);
 }
