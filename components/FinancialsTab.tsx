@@ -277,7 +277,7 @@ const ExpenseItem: React.FC<{
                     <input
                         type="text"
                         value={editForm.vendor || ''}
-                        onChange={(e) => setEditForm({ ...editForm, vendor: e.target.value })}}
+                        onChange={(e) => setEditForm({ ...editForm, vendor: e.target.value })}
                         className="w-full p-2 border-2 border-black"
                         placeholder="Vendor (optional)"
                     />
