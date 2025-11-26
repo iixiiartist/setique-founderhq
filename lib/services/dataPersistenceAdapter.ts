@@ -632,9 +632,14 @@ export class DataPersistenceAdapter {
       module: string
       companyId?: string
       contactId?: string
+      description?: string
+      tags?: string[]
+      isStarred?: boolean
+      fileSize?: number
     }
   ) {
     const normalized = normalizeDocumentContent(docData.content)
+    const inferredSize = docData.fileSize ?? Math.ceil((normalized.value.length * 3) / 4)
     
     const document = {
       name: docData.name,
@@ -643,7 +648,11 @@ export class DataPersistenceAdapter {
       module: docData.module,
       company_id: docData.companyId || null,
       contact_id: docData.contactId || null,
-      notes: []
+      notes: [],
+      description: docData.description || null,
+      tags: docData.tags || [],
+      is_starred: docData.isStarred ?? false,
+      file_size: inferredSize,
     }
 
     const { data, error } = await DatabaseService.createDocument(userId, workspaceId, document)
@@ -653,10 +662,22 @@ export class DataPersistenceAdapter {
   static async updateDocument(docId: string, updates: Partial<Document>) {
     const dbUpdates: any = {}
     
-    if (updates.name) dbUpdates.name = updates.name
-    if (updates.mimeType) dbUpdates.mime_type = updates.mimeType
-    if (updates.content) dbUpdates.content = updates.content
+    if (typeof updates.name === 'string') dbUpdates.name = updates.name
+    if (typeof updates.mimeType === 'string') dbUpdates.mime_type = updates.mimeType
+    if (typeof updates.content === 'string') dbUpdates.content = updates.content
     if (updates.notes) dbUpdates.notes = updates.notes
+    if (updates.module) dbUpdates.module = updates.module
+    if ('companyId' in updates) dbUpdates.company_id = updates.companyId || null
+    if ('contactId' in updates) dbUpdates.contact_id = updates.contactId || null
+    if ('isStarred' in updates) dbUpdates.is_starred = Boolean(updates.isStarred)
+    if (updates.tags !== undefined) dbUpdates.tags = updates.tags
+    if ('description' in updates) dbUpdates.description = updates.description || null
+    if (typeof updates.lastAccessedAt === 'number') dbUpdates.last_accessed_at = new Date(updates.lastAccessedAt).toISOString()
+    if (typeof updates.viewCount === 'number') dbUpdates.view_count = updates.viewCount
+    if (typeof updates.fileSize === 'number') dbUpdates.file_size = updates.fileSize
+    if ('linkTaskId' in updates) dbUpdates.link_task_id = updates.linkTaskId || null
+    if ('linkDealId' in updates) dbUpdates.link_deal_id = updates.linkDealId || null
+    if ('linkEventId' in updates) dbUpdates.link_event_id = updates.linkEventId || null
 
     const { data, error } = await DatabaseService.updateDocument(docId, dbUpdates)
     return { data, error }

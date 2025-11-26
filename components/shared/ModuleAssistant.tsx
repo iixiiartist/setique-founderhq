@@ -17,7 +17,6 @@ import { supabase } from '../../lib/supabase';
 import { searchWeb } from '@/src/lib/services/youSearchService';
 import type { YouSearchImageResult, YouSearchMetadata } from '@/src/lib/services/youSearch.types';
 
-// Keep using Content format for compatibility
 interface Part {
     text?: string;
     inlineData?: { mimeType: string; data: string };
@@ -617,7 +616,11 @@ function ModuleAssistant({
                 case 'uploadDocument':
                     return await actions.uploadDocument(args.name, args.mimeType, args.content, args.module as TabType, args.companyId, args.contactId);
                 case 'updateDocument':
-                    return await actions.updateDocument(args.docId, args.name, args.mimeType, args.content);
+                    return await actions.updateDocument(args.docId, {
+                        name: args.name,
+                        mimeType: args.mimeType,
+                        content: args.content,
+                    });
                 case 'createEvent':
                     return await actions.createTask(
                         'productsServicesTasks',

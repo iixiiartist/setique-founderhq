@@ -1,8 +1,8 @@
 import { supabase } from '../supabase'
 import { Database } from '../types/database'
-import { DashboardData, Task, AnyCrmItem, Contact, Meeting, MarketingItem, FinancialLog, Document, SettingsData, Priority, GTMDoc, GTMDocMetadata, GTMDocLink, LinkedDoc, PlanType, StructuredBlockMap } from '../../types'
+import { DashboardData, Task, AnyCrmItem, Contact, Meeting, MarketingItem, FinancialLog, Document, SettingsData, Priority, GTMDoc, GTMDocMetadata, GTMDocLink, LinkedDoc, PlanType, StructuredBlockMap, DocumentActivity } from '../../types'
 import { PLAN_LIMITS } from '../subscriptionConstants'
-import { dbToTasks, dbToMarketingItems, dbToFinancialLogs, dbToCrmItem, dbToContacts } from '../utils/fieldTransformers'
+import { dbToTasks, dbToMarketingItems, dbToFinancialLogs, dbToCrmItem, dbToContacts, dbToDocument, dbToDocumentActivity } from '../utils/fieldTransformers'
 import { logger } from '../logger'
 
 type Tables = Database['public']['Tables']
@@ -647,7 +647,8 @@ export class DatabaseService {
         .limit(100) // Limit to 100 most recent documents
 
       if (error) throw error
-      return { data, error: null }
+      const documents = (data || []).map(dbToDocument)
+      return { data: documents, error: null }
     } catch (error) {
       logger.error('Error fetching documents:', error)
       return { data: [], error }
@@ -663,10 +664,65 @@ export class DatabaseService {
         .single()
 
       if (error) throw error
-      return { data, error: null }
+      return { data: data ? dbToDocument(data) : null, error: null }
     } catch (error) {
       logger.error('Error fetching document by ID:', error)
       return { data: null, error }
+    }
+  }
+
+  static async getDocumentActivity(workspaceId: string, options: { documentId?: string; limit?: number } = {}) {
+    try {
+      let query = supabase
+        .from('document_activity')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .order('created_at', { ascending: false })
+
+      if (options.documentId) {
+        query = query.eq('document_id', options.documentId)
+      }
+
+      if (options.limit) {
+        query = query.limit(options.limit)
+      }
+
+      const { data, error } = await query
+
+      if (error) throw error
+      const activity = (data || []).map(dbToDocumentActivity)
+      return { data: activity, error: null }
+    } catch (error) {
+      logger.error('Error fetching document activity:', error)
+      return { data: [], error }
+    }
+  }
+
+  static async logDocumentActivity(params: {
+    documentId: string
+    workspaceId: string
+    userId: string
+    userName: string
+    action: DocumentActivity['action']
+    details?: Record<string, unknown>
+  }) {
+    try {
+      const { error } = await supabase
+        .from('document_activity')
+        .insert({
+          document_id: params.documentId,
+          workspace_id: params.workspaceId,
+          user_id: params.userId,
+          user_name: params.userName,
+          action: params.action,
+          details: params.details || null,
+        })
+
+      if (error) throw error
+      return { error: null }
+    } catch (error) {
+      logger.error('Error logging document activity:', error)
+      return { error }
     }
   }
 

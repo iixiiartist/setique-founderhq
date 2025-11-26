@@ -24,6 +24,7 @@ import type {
   TaskCollectionName,
   Expense,
   AnyCrmItem,
+  DocumentActivity,
 } from '../../types';
 
 // ============================================================================
@@ -144,6 +145,15 @@ interface DbDocument {
   uploaded_by?: string | null;
   uploaded_by_name?: string | null;
   user_id?: string | null;
+  is_starred?: boolean | null;
+  tags?: string[] | null;
+  description?: string | null;
+  last_accessed_at?: string | null;
+  view_count?: number | null;
+  file_size?: number | null;
+  link_task_id?: string | null;
+  link_deal_id?: string | null;
+  link_event_id?: string | null;
 }
 
 interface DbExpense {
@@ -355,6 +365,39 @@ export function dbToDocument(dbDocument: DbDocument): Document {
     uploadedBy: dbDocument.uploaded_by || dbDocument.user_id || undefined,
     uploadedByName: dbDocument.uploaded_by_name || undefined,
     notes: (dbDocument.notes as Note[] | undefined) || [],
+    isStarred: Boolean(dbDocument.is_starred),
+    tags: dbDocument.tags || [],
+    description: dbDocument.description || undefined,
+    lastAccessedAt: dbDocument.last_accessed_at ? new Date(dbDocument.last_accessed_at).getTime() : undefined,
+    viewCount: dbDocument.view_count || 0,
+    fileSize: dbDocument.file_size || undefined,
+    linkTaskId: dbDocument.link_task_id || undefined,
+    linkDealId: dbDocument.link_deal_id || undefined,
+    linkEventId: dbDocument.link_event_id || undefined,
+  };
+}
+
+interface DbDocumentActivity {
+  id: string;
+  document_id: string;
+  workspace_id: string;
+  user_id: string | null;
+  user_name: string | null;
+  action: string;
+  details?: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export function dbToDocumentActivity(record: DbDocumentActivity): DocumentActivity {
+  return {
+    id: record.id,
+    documentId: record.document_id,
+    workspaceId: record.workspace_id,
+    userId: record.user_id || 'system',
+    userName: record.user_name || 'System',
+    action: record.action as DocumentActivity['action'],
+    details: record.details || undefined,
+    createdAt: new Date(record.created_at).getTime(),
   };
 }
 

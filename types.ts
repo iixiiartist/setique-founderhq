@@ -823,6 +823,29 @@ export interface Document {
     uploadedBy?: string; // User ID who uploaded the document
     uploadedByName?: string; // Display name of uploader
     notes: Note[];
+    // Enhanced file library fields
+    isStarred?: boolean;
+    tags?: string[];
+    description?: string;
+    lastAccessedAt?: number;
+    viewCount?: number;
+    fileSize?: number;
+    // Entity linking
+    linkTaskId?: string;
+    linkDealId?: string;
+    linkEventId?: string;
+}
+
+// Document Activity for file library activity feed
+export interface DocumentActivity {
+    id: string;
+    documentId: string;
+    workspaceId: string;
+    userId: string;
+    userName: string;
+    action: 'uploaded' | 'downloaded' | 'shared' | 'renamed' | 'tagged' | 'starred' | 'linked' | 'viewed';
+    details?: Record<string, unknown>;
+    createdAt: number;
 }
 
 // GTM Docs - Rich text document authoring system
@@ -995,7 +1018,7 @@ export interface AppActions {
     deleteMarketingItem: (itemId: string) => Promise<{ success: boolean; message: string; }>;
     updateSettings: (updates: Partial<SettingsData>) => Promise<{ success: boolean; message: string; }>;
     uploadDocument: (name: string, mimeType: string, content: string, module: TabType, companyId?: string, contactId?: string) => Promise<{ success: boolean; message: string; }>;
-    updateDocument: (docId: string, name: string, mimeType: string, content: string) => Promise<{ success: boolean; message: string; }>;
+    updateDocument: (docId: string, updates: Partial<Document>, options?: { reload?: boolean; silent?: boolean }) => Promise<{ success: boolean; message: string; }>;
     deleteDocument: (docId: string) => Promise<{ success: boolean; message: string; }>;
     getFileContent: (fileId: string) => Promise<{ success: boolean; message: string; content?: string; }>;
     

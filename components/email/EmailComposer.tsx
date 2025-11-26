@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   X, Send, Sparkles, Globe, Wand2, ChevronDown, 
@@ -13,6 +13,7 @@ import { getAiResponse, Content, AILimitError } from '../../services/groqService
 import { searchWeb } from '../../src/lib/services/youSearchService';
 import { showSuccess, showError } from '../../lib/utils/toast';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { GTM_TEMPLATES, DocumentTemplate } from '../../lib/templates/gtmTemplates';
 
 // Rich text editor imports
@@ -30,6 +31,13 @@ import CharacterCount from '@tiptap/extension-character-count';
 import Subscript from '@tiptap/extension-subscript';
 import Superscript from '@tiptap/extension-superscript';
 
+export interface EmailAttachment {
+  name: string;
+  url?: string;
+  type?: string;
+  data?: string; // base64-encoded content without data URI prefix
+}
+
 interface DraftData {
   id: string;
   provider_message_id: string;
@@ -39,7 +47,7 @@ interface DraftData {
   body?: {
     html?: string;
     text?: string;
-    attachments?: { name: string; url: string; type: string }[];
+    attachments?: EmailAttachment[];
   };
 }
 
@@ -53,6 +61,7 @@ interface EmailComposerProps {
   initialBody?: string;
   editDraft?: DraftData | null;
   onDraftDeleted?: () => void;
+  initialAttachments?: EmailAttachment[];
 }
 
 interface AIAction {
@@ -192,6 +201,8 @@ const AI_ACTIONS: AIAction[] = [
   { id: 'suggest', label: 'Suggest Points', icon: <Search size={14} />, description: 'Key points to include', action: 'suggest' },
 ];
 
+const EMPTY_ATTACHMENTS: EmailAttachment[] = [];
+
 export const EmailComposer: React.FC<EmailComposerProps> = ({ 
   isOpen, 
   onClose, 
@@ -201,9 +212,11 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
   initialSubject = '',
   initialBody = '',
   editDraft = null,
-  onDraftDeleted
+  onDraftDeleted,
+  initialAttachments = EMPTY_ATTACHMENTS,
 }) => {
   const { workspace } = useWorkspace();
+  const { user } = useAuth();
   
   // Initialize state from draft if editing, otherwise use defaults
   const [to, setTo] = useState('');
@@ -229,61 +242,9 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
   const [showImageSizeMenu, setShowImageSizeMenu] = useState(false);
   
   // Attachments
-  const [attachments, setAttachments] = useState<{ name: string; url: string; type: string }[]>([]);
-
-  // Initialize form when opening or when draft changes
-  useEffect(() => {
-    if (!isOpen) return;
-    
-    if (editDraft) {
-      // Editing a draft
-      setTo(editDraft.to_addresses?.join(', ') || '');
-      setCc(editDraft.cc_addresses?.join(', ') || '');
-      setSubject(editDraft.subject || '');
-      setCurrentDraftId(editDraft.provider_message_id);
-      setAttachments(editDraft.body?.attachments || []);
-      setShowCc((editDraft.cc_addresses?.length || 0) > 0);
-      // Set editor content after editor is ready
-      setTimeout(() => {
-        if (editor && editDraft.body?.html) {
-          editor.commands.setContent(editDraft.body.html);
-        }
-      }, 100);
-    } else if (replyTo) {
-      // Replying to an email
-      setTo(extractEmail(replyTo.from_address));
-      setCc('');
-      setSubject(replyTo.subject?.startsWith('Re:') ? replyTo.subject : `Re: ${replyTo.subject}`);
-      setCurrentDraftId(null);
-      setAttachments([]);
-    } else {
-      // New email
-      setTo('');
-      setCc('');
-      setSubject(initialSubject);
-      setCurrentDraftId(null);
-      setAttachments([]);
-      // Set initial body if provided
-      if (initialBody && editor) {
-        setTimeout(() => {
-          editor?.commands.setContent(`<p>${initialBody.replace(/\n/g, '</p><p>')}</p>`);
-        }, 100);
-      }
-    }
-  }, [isOpen, editDraft, replyTo, initialSubject, initialBody]);
-  const [uploadingAttachment, setUploadingAttachment] = useState(false);
-  const [aiMenuPosition, setAiMenuPosition] = useState<{ top: number; left: number } | null>(null);
-
-  const aiMenuRef = useRef<HTMLDivElement>(null);
-  const aiButtonRef = useRef<HTMLButtonElement>(null);
-  const fontSizeRef = useRef<HTMLDivElement>(null);
-  const colorRef = useRef<HTMLDivElement>(null);
-  const highlightRef = useRef<HTMLDivElement>(null);
-  const templateRef = useRef<HTMLDivElement>(null);
-  const attachmentRef = useRef<HTMLDivElement>(null);
-  const imageSizeRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [attachments, setAttachments] = useState<EmailAttachment[]>([]);
+  const [resolvedAccountId, setResolvedAccountId] = useState<string | null>(null);
+  const [accountError, setAccountError] = useState<string | null>(null);
 
   // Rich text editor with more extensions
   const editor = useEditor({
@@ -329,6 +290,106 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
       },
     },
   });
+
+  // Initialize form when opening or when draft changes
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const fetchDefaultAccount = async () => {
+      if (defaultAccountId || replyTo?.account_id) {
+        setResolvedAccountId(defaultAccountId || replyTo?.account_id || null);
+        setAccountError(null);
+        return;
+      }
+
+      if (!workspace?.id || !user?.id) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('integrated_accounts')
+          .select('id, status, email_address')
+          .eq('workspace_id', workspace.id)
+          .eq('user_id', user.id)
+          .eq('provider', 'gmail')
+          .eq('status', 'active')
+          .maybeSingle();
+
+        if (error) {
+          console.warn('[EmailComposer] Failed to fetch Gmail account', error.message);
+          setAccountError('Unable to load your Gmail account. Check Settings → Integrations.');
+          setResolvedAccountId(null);
+          return;
+        }
+
+        if (data?.id) {
+          setResolvedAccountId(data.id);
+          setAccountError(null);
+        } else {
+          setResolvedAccountId(null);
+          setAccountError('Connect a Gmail account in Settings → Integrations before sending emails.');
+        }
+      } catch (err: any) {
+        console.error('[EmailComposer] Account lookup failed', err);
+        setAccountError('Unable to load your Gmail account.');
+        setResolvedAccountId(null);
+      }
+    };
+
+    fetchDefaultAccount();
+    
+    if (editDraft) {
+      // Editing a draft
+      setTo(editDraft.to_addresses?.join(', ') || '');
+      setCc(editDraft.cc_addresses?.join(', ') || '');
+      setSubject(editDraft.subject || '');
+      setCurrentDraftId(editDraft.provider_message_id);
+      setAttachments(editDraft.body?.attachments || []);
+      setShowCc((editDraft.cc_addresses?.length || 0) > 0);
+      // Set editor content after editor is ready
+      setTimeout(() => {
+        if (editor && editDraft.body?.html) {
+          editor.commands.setContent(editDraft.body.html);
+        }
+      }, 100);
+    } else if (replyTo) {
+      // Replying to an email
+      setTo(extractEmail(replyTo.from_address));
+      setCc('');
+      setSubject(replyTo.subject?.startsWith('Re:') ? replyTo.subject : `Re: ${replyTo.subject}`);
+      setCurrentDraftId(null);
+      setAttachments([]);
+    } else {
+      // New email
+      setTo('');
+      setCc('');
+      setSubject(initialSubject);
+      setCurrentDraftId(null);
+      setAttachments(initialAttachments || []);
+      // Set initial body if provided
+      if (initialBody && editor) {
+        setTimeout(() => {
+          editor?.commands.setContent(`<p>${initialBody.replace(/\n/g, '</p><p>')}</p>`);
+        }, 100);
+      }
+    }
+  }, [isOpen, editDraft, replyTo, initialSubject, initialBody, workspace?.id, user?.id, defaultAccountId, editor, initialAttachments]);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [aiMenuPosition, setAiMenuPosition] = useState<{ top: number; left: number } | null>(null);
+
+  const aiMenuRef = useRef<HTMLDivElement>(null);
+  const aiButtonRef = useRef<HTMLButtonElement>(null);
+  const fontSizeRef = useRef<HTMLDivElement>(null);
+  const colorRef = useRef<HTMLDivElement>(null);
+  const highlightRef = useRef<HTMLDivElement>(null);
+  const templateRef = useRef<HTMLDivElement>(null);
+  const attachmentRef = useRef<HTMLDivElement>(null);
+  const imageSizeRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  const replyAccountId = replyTo?.account_id || null;
+  const effectiveAccountId = useMemo(() => replyAccountId || defaultAccountId || resolvedAccountId || null, [replyAccountId, defaultAccountId, resolvedAccountId]);
+  const accountReady = Boolean(effectiveAccountId);
 
   // Image upload handler - defined before conditional return to satisfy hook rules
   const handleImageUpload = useCallback(async (file: File) => {
@@ -488,6 +549,12 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
       return;
     }
 
+    const accountId = effectiveAccountId;
+    if (!accountId) {
+      showError('Connect a Gmail account in Settings → Integrations before sending emails.');
+      return;
+    }
+
     setSending(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -499,7 +566,7 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          accountId: defaultAccountId || replyTo?.account_id,
+          accountId,
           to: to.split(',').map(e => e.trim()),
           cc: cc ? cc.split(',').map(e => e.trim()) : undefined,
           subject,
@@ -514,12 +581,12 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
       }
       
       // If we were editing a draft, delete it after successful send
-      if (currentDraftId && defaultAccountId) {
+      if (currentDraftId && accountId) {
         await supabase
           .from('email_messages')
           .delete()
           .eq('provider_message_id', currentDraftId)
-          .eq('account_id', defaultAccountId);
+          .eq('account_id', accountId);
         onDraftDeleted?.();
       }
       
@@ -534,6 +601,12 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
   };
 
   const handleSaveDraft = async () => {
+    const accountId = effectiveAccountId;
+    if (!accountId) {
+      showError('Connect a Gmail account before saving drafts.');
+      return;
+    }
+
     const bodyContent = getEditorHtml();
     const textContent = getEditorText();
     
@@ -548,13 +621,7 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const accountId = defaultAccountId || replyTo?.account_id;
       
-      if (!accountId) {
-        showError('No email account selected');
-        setSavingDraft(false);
-        return;
-      }
       
       // Use existing draft ID if editing, otherwise generate new one
       const draftId = currentDraftId || `draft-${Date.now()}-${Math.random().toString(36).substring(7)}`;
@@ -1417,6 +1484,16 @@ Format as a bulleted list. Consider: goals, objections to address, questions to 
           </div>
         </div>
 
+        {accountError && (
+          <div className="mx-4 mt-3 mb-1 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <span className="text-lg">⚠️</span>
+            <div className="flex-1">
+              <p className="font-semibold">Email account required</p>
+              <p className="text-xs mt-0.5">{accountError}</p>
+            </div>
+          </div>
+        )}
+
         {/* AI Limit Warning Banner */}
         {aiLimitError && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3 mx-4 mt-2 flex items-start gap-3">
@@ -1519,7 +1596,7 @@ Format as a bulleted list. Consider: goals, objections to address, questions to 
           </button>
           <button 
             onClick={handleSaveDraft}
-            disabled={savingDraft || sending}
+            disabled={savingDraft || sending || !accountReady}
             className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 flex items-center gap-2 transition-all"
           >
             {savingDraft ? (
@@ -1531,7 +1608,7 @@ Format as a bulleted list. Consider: goals, objections to address, questions to 
           </button>
           <button 
             onClick={handleSend}
-            disabled={sending || savingDraft || !to.trim()}
+            disabled={sending || savingDraft || !to.trim() || !accountReady}
             className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 shadow-sm hover:shadow transition-all"
           >
             <Send size={16} />

@@ -1750,14 +1750,26 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 // Calculate file size (content is base64)
                 const fileSizeBytes = content ? Math.ceil((content.length * 3) / 4) : 0;
 
-                await DataPersistenceAdapter.uploadDocument(userId, workspace.id, {
+                const { data: createdDoc } = await DataPersistenceAdapter.uploadDocument(userId, workspace.id, {
                     name,
                     mimeType,
                     content,
                     module,
                     companyId,
-                    contactId
+                    contactId,
+                    fileSize: fileSizeBytes
                 });
+
+                if (createdDoc?.id && user?.id && workspace?.id) {
+                    await DatabaseService.logDocumentActivity({
+                        documentId: createdDoc.id,
+                        workspaceId: workspace.id,
+                        userId: user.id,
+                        userName: user.user_metadata?.full_name || user.email || 'Unknown',
+                        action: 'uploaded',
+                        details: { module }
+                    });
+                }
 
                 // Increment file count and storage usage
                 await DatabaseService.incrementFileCount(workspace.id, fileSizeBytes);
@@ -1781,19 +1793,43 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             }
         },
 
-        updateDocument: async (docId, name, mimeType, content) => {
+        updateDocument: async (docId, updates, actionOptions) => {
             if (!supabase) {
                 return { success: false, message: 'Database not connected' };
             }
 
+            const options = {
+                reload: true,
+                silent: false,
+                ...(actionOptions || {})
+            };
+
+            const resolvedName = updates?.name || data.documents.find(d => d.id === docId)?.name || 'Document';
+
             try {
-                await DataPersistenceAdapter.updateDocument(docId, { name, mimeType, content });
-                await reload();
+                await DataPersistenceAdapter.updateDocument(docId, updates);
+
+                setData(prev => ({
+                    ...prev,
+                    documents: prev.documents.map(doc => doc.id === docId ? { ...doc, ...updates } : doc)
+                }));
+
+                if (options.reload !== false) {
+                    await reload();
+                }
+
                 invalidateCache('documents');
-                handleToast(`Document "${name}" updated successfully.`, 'success');
+
+                if (!options.silent) {
+                    handleToast(`Document "${resolvedName}" updated successfully.`, 'success');
+                }
+
                 return { success: true, message: `Document ${docId} updated.` };
             } catch (error) {
                 logger.error('Error updating document:', error);
+                if (!options.silent) {
+                    handleToast('Failed to update document', 'info');
+                }
                 return { success: false, message: 'Failed to update document' };
             }
         },
@@ -1828,6 +1864,17 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 // Decrement file count and storage usage
                 if (fileSizeBytes > 0) {
                     await DatabaseService.decrementFileCount(workspace.id, fileSizeBytes);
+                }
+
+                if (doc && user?.id && workspace?.id) {
+                    await DatabaseService.logDocumentActivity({
+                        documentId: doc.id,
+                        workspaceId: workspace.id,
+                        userId: user.id,
+                        userName: user.user_metadata?.full_name || user.email || 'Unknown',
+                        action: 'deleted',
+                        details: { module: doc.module }
+                    });
                 }
 
                 // Reload to ensure consistency

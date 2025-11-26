@@ -92,7 +92,12 @@ async function handleGetMessage(messageId: string, supabase: any) {
 }
 
 async function handleSendEmail(payload: any, supabase: any) {
-  const { accountId, to, subject, htmlBody, replyToMessageId } = payload;
+  const { accountId, to, cc, subject, htmlBody, attachments = [], replyToMessageId } = payload;
+  const toArray = (Array.isArray(to) ? to : [to]).filter((value) => Boolean(value));
+  const ccArray = (Array.isArray(cc) ? cc : (cc ? [cc] : [])).filter((value) => Boolean(value));
+  if (!toArray.length) throw new Error('At least one recipient is required');
+  const normalizedAttachments = await normalizeAttachments(attachments);
+  const textBody = stripHtml(htmlBody || '');
   
   // 1. Get account info
   const { data: account, error } = await supabase
@@ -108,20 +113,15 @@ async function handleSendEmail(payload: any, supabase: any) {
 
   // 3. Send via provider
   if (account.provider === 'gmail') {
-    // Construct MIME message
-    // Note: This is a basic implementation. For attachments and complex structures, 
-    // a proper MIME builder library is recommended.
-    const toHeader = Array.isArray(to) ? to.join(', ') : to;
-    const messageParts = [
-      `To: ${toHeader}`,
-      `Subject: ${subject}`,
-      `Content-Type: text/html; charset=utf-8`,
-      `MIME-Version: 1.0`,
-      ``,
-      htmlBody
-    ];
-    
-    const rawMessage = messageParts.join('\r\n');
+    const rawMessage = buildGmailMessage({
+      to: toArray,
+      cc: ccArray,
+      subject,
+      htmlBody: htmlBody || '',
+      textBody,
+      attachments: normalizedAttachments,
+      from: account.email_address,
+    });
     const encodedMessage = btoa(unescape(encodeURIComponent(rawMessage)))
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
@@ -146,19 +146,19 @@ async function handleSendEmail(payload: any, supabase: any) {
     const sentData = await res.json();
     
     // Store the sent email in our database immediately
-    const toArray = Array.isArray(to) ? to : [to];
     await supabase.from('email_messages').insert({
       account_id: accountId,
       provider_message_id: sentData.id,
       thread_id: sentData.threadId,
       subject: subject,
-      snippet: htmlBody.replace(/<[^>]*>/g, '').substring(0, 200),
+      snippet: textBody.substring(0, 200),
       from_address: account.email_address,
       to_addresses: toArray,
+      cc_addresses: ccArray,
       folder_id: 'SENT',
       received_at: new Date().toISOString(),
       is_read: true,
-      has_attachments: false,
+      has_attachments: normalizedAttachments.length > 0,
     });
     
     return new Response(JSON.stringify({ success: true, messageId: sentData.id }), {
@@ -166,8 +166,11 @@ async function handleSendEmail(payload: any, supabase: any) {
     });
   } 
   else if (account.provider === 'outlook') {
-    const recipients = (Array.isArray(to) ? to : [to]).map((email: string) => ({ 
+    const recipients = toArray.map((email: string) => ({ 
       emailAddress: { address: email } 
+    }));
+    const ccRecipients = ccArray.map((email: string) => ({
+      emailAddress: { address: email }
     }));
 
     const message = {
@@ -180,6 +183,19 @@ async function handleSendEmail(payload: any, supabase: any) {
         toRecipients: recipients
       }
     };
+
+    if (ccRecipients.length) {
+      message.message.ccRecipients = ccRecipients;
+    }
+
+    if (normalizedAttachments.length) {
+      message.message.attachments = normalizedAttachments.map(att => ({
+        '@odata.type': '#microsoft.graph.fileAttachment',
+        name: att.name,
+        contentType: att.type,
+        contentBytes: att.base64,
+      }));
+    }
 
     const res = await fetch('https://graph.microsoft.com/v1.0/me/sendMail', {
       method: 'POST',
@@ -198,20 +214,20 @@ async function handleSendEmail(payload: any, supabase: any) {
 
     // Store the sent email in our database immediately
     // Note: Outlook sendMail doesn't return message ID, so we generate one
-    const toArray = Array.isArray(to) ? to : [to];
     const messageId = `outlook-sent-${Date.now()}-${Math.random().toString(36).substring(7)}`;
     
     await supabase.from('email_messages').insert({
       account_id: accountId,
       provider_message_id: messageId,
       subject: subject,
-      snippet: htmlBody.replace(/<[^>]*>/g, '').substring(0, 200),
+      snippet: textBody.substring(0, 200),
       from_address: account.email_address,
       to_addresses: toArray,
+      cc_addresses: ccArray,
       folder_id: 'SENT',
       received_at: new Date().toISOString(),
       is_read: true,
-      has_attachments: false,
+      has_attachments: normalizedAttachments.length > 0,
     });
 
     return new Response(JSON.stringify({ success: true }), {
@@ -270,6 +286,147 @@ async function refreshAccessToken(account: any, supabase: any): Promise<string> 
     .eq('id', account.id);
 
   return newTokens.access_token;
+}
+
+type NormalizedAttachment = {
+  name: string;
+  type: string;
+  base64: string;
+};
+
+async function normalizeAttachments(rawAttachments: any[] = []): Promise<NormalizedAttachment[]> {
+  const normalized: NormalizedAttachment[] = [];
+  for (const attachment of rawAttachments) {
+    if (!attachment?.name) continue;
+    let base64Content = attachment.data as string | undefined;
+    if (base64Content) {
+      // Remove potential data URI prefix and whitespace
+      base64Content = base64Content.replace(/^data:[^,]+,/, '').replace(/\s+/g, '');
+    }
+
+    if (!base64Content && attachment.url) {
+      const response = await fetch(attachment.url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch attachment: ${attachment.name}`);
+      }
+      const buffer = await response.arrayBuffer();
+      base64Content = arrayBufferToBase64(buffer);
+    }
+
+    if (!base64Content) continue;
+
+    // Ensure the string is valid base64 by decoding/encoding once
+    try {
+      const binary = atob(base64Content);
+      base64Content = btoa(binary);
+    } catch (_err) {
+      throw new Error(`Attachment data for ${attachment.name} is not valid base64`);
+    }
+
+    normalized.push({
+      name: attachment.name,
+      type: attachment.type || 'application/octet-stream',
+      base64: base64Content,
+    });
+  }
+  return normalized;
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
+}
+
+function chunkBase64(base64: string, length = 76): string {
+  const chunks = [];
+  for (let i = 0; i < base64.length; i += length) {
+    chunks.push(base64.slice(i, i + length));
+  }
+  return chunks.join('\r\n');
+}
+
+function stripHtml(html: string): string {
+  return (html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function generateBoundary(prefix: string): string {
+  const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `${prefix}-${id}`;
+}
+
+function buildGmailMessage(params: {
+  to: string[];
+  cc: string[];
+  subject: string;
+  htmlBody: string;
+  textBody: string;
+  attachments: NormalizedAttachment[];
+  from?: string;
+}): string {
+  const { to, cc, subject, htmlBody, textBody, attachments, from } = params;
+  const headers: string[] = [];
+  headers.push(`To: ${to.join(', ')}`);
+  if (cc.length) {
+    headers.push(`Cc: ${cc.join(', ')}`);
+  }
+  if (from) {
+    headers.push(`From: ${from}`);
+  }
+  headers.push(`Date: ${new Date().toUTCString()}`);
+  headers.push(`Subject: ${subject}`);
+  headers.push('MIME-Version: 1.0');
+
+  if (!attachments.length) {
+    headers.push('Content-Type: text/html; charset="UTF-8"');
+    headers.push('');
+    headers.push(htmlBody);
+    return headers.join('\r\n');
+  }
+
+  const mixedBoundary = generateBoundary('mixed');
+  const altBoundary = generateBoundary('alt');
+
+  headers.push(`Content-Type: multipart/mixed; boundary="${mixedBoundary}"`);
+  headers.push('');
+  headers.push(`--${mixedBoundary}`);
+  headers.push(`Content-Type: multipart/alternative; boundary="${altBoundary}"`);
+  headers.push('');
+  headers.push(`--${altBoundary}`);
+  headers.push('Content-Type: text/plain; charset="UTF-8"');
+  headers.push('Content-Transfer-Encoding: 7bit');
+  headers.push('');
+  headers.push(textBody);
+  headers.push('');
+  headers.push(`--${altBoundary}`);
+  headers.push('Content-Type: text/html; charset="UTF-8"');
+  headers.push('Content-Transfer-Encoding: 7bit');
+  headers.push('');
+  headers.push(htmlBody);
+  headers.push('');
+  headers.push(`--${altBoundary}--`);
+
+  for (const attachment of attachments) {
+    headers.push('');
+    headers.push(`--${mixedBoundary}`);
+    headers.push(`Content-Type: ${attachment.type}; name="${attachment.name}"`);
+    headers.push('Content-Transfer-Encoding: base64');
+    headers.push(`Content-Disposition: attachment; filename="${attachment.name}"`);
+    headers.push('');
+    headers.push(chunkBase64(attachment.base64));
+    headers.push('');
+  }
+
+  headers.push(`--${mixedBoundary}--`);
+  headers.push('');
+  return headers.join('\r\n');
 }
 
 function parseGmailBody(data: any) {
