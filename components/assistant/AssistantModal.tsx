@@ -29,17 +29,20 @@ interface AssistantModalProps {
 // Map tab types to friendly display names and colors
 const TAB_DISPLAY_INFO: Record<TabType, { label: string; color: string; bgColor: string }> = {
   [Tab.Dashboard]: { label: 'Dashboard', color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
+  [Tab.Calendar]: { label: 'Calendar', color: 'text-violet-600', bgColor: 'bg-violet-50' },
+  [Tab.Tasks]: { label: 'Tasks', color: 'text-amber-600', bgColor: 'bg-amber-50' },
+  [Tab.ProductsServices]: { label: 'Products & Services', color: 'text-cyan-600', bgColor: 'bg-cyan-50' },
+  [Tab.Accounts]: { label: 'Accounts', color: 'text-teal-600', bgColor: 'bg-teal-50' },
   [Tab.Investors]: { label: 'Investors', color: 'text-blue-600', bgColor: 'bg-blue-50' },
   [Tab.Customers]: { label: 'Customers', color: 'text-green-600', bgColor: 'bg-green-50' },
   [Tab.Partners]: { label: 'Partners', color: 'text-purple-600', bgColor: 'bg-purple-50' },
   [Tab.Marketing]: { label: 'Marketing', color: 'text-orange-600', bgColor: 'bg-orange-50' },
   [Tab.Financials]: { label: 'Financials', color: 'text-emerald-600', bgColor: 'bg-emerald-50' },
-  [Tab.Products]: { label: 'Products', color: 'text-cyan-600', bgColor: 'bg-cyan-50' },
+  [Tab.Workspace]: { label: 'Workspace', color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
   [Tab.Documents]: { label: 'Documents', color: 'text-amber-600', bgColor: 'bg-amber-50' },
-  [Tab.Team]: { label: 'Team', color: 'text-rose-600', bgColor: 'bg-rose-50' },
-  [Tab.Accounts]: { label: 'Accounts', color: 'text-teal-600', bgColor: 'bg-teal-50' },
+  [Tab.Email]: { label: 'Email', color: 'text-sky-600', bgColor: 'bg-sky-50' },
   [Tab.Settings]: { label: 'Settings', color: 'text-gray-600', bgColor: 'bg-gray-50' },
-  [Tab.Calendar]: { label: 'Calendar', color: 'text-violet-600', bgColor: 'bg-violet-50' },
+  [Tab.Admin]: { label: 'Admin', color: 'text-red-600', bgColor: 'bg-red-50' },
 };
 
 export const AssistantModal: React.FC<AssistantModalProps> = ({

@@ -475,7 +475,7 @@ export const EmailInbox: React.FC = () => {
         isOpen={isComposerOpen}
         onClose={handleComposerClose}
         defaultAccountId={defaultAccountId || undefined}
-        editingDraft={editingDraft || undefined}
+        editDraft={editingDraft || undefined}
         onDraftDeleted={handleDraftDeleted}
       />
     </div>

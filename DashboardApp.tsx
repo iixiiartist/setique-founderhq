@@ -2852,7 +2852,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                                         } else if (entityType === 'deal' || entityType === 'contact') {
                                             setActiveTab('accounts');
                                         } else if (entityType === 'document') {
-                                            setActiveTab('docs');
+                                            setActiveTab('documents');
                                         }
                                     }}
                                 />

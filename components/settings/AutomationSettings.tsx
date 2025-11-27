@@ -1,27 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { logger } from '../../lib/logger';
-import { fetchOrCreateAutomationPreferences } from '../../lib/services/automationService';
-
-interface AutomationPreferences {
-    workspace_id: string;
-    auto_create_revenue_enabled: boolean;
-    auto_create_tasks_enabled: boolean;
-    auto_invoice_enabled: boolean;
-    auto_notifications_enabled: boolean;
-    inventory_reorder_threshold: number;
-    contract_renewal_lead_time_days: number;
-    deal_follow_up_days: number;
-    notification_preferences: {
-        deal_closed: boolean;
-        revenue_created: boolean;
-        inventory_low: boolean;
-        contract_expiring: boolean;
-        automation_failed: boolean;
-    };
-    automation_enabled: boolean;
-    max_automations_per_hour: number;
-}
+import { fetchOrCreateAutomationPreferences, AutomationPreferences } from '../../lib/services/automationService';
 
 interface AutomationSettingsProps {
     workspaceId: string;

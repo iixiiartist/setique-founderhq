@@ -843,7 +843,7 @@ export interface DocumentActivity {
     workspaceId: string;
     userId: string;
     userName: string;
-    action: 'uploaded' | 'downloaded' | 'shared' | 'renamed' | 'tagged' | 'starred' | 'linked' | 'viewed';
+    action: 'uploaded' | 'downloaded' | 'shared' | 'renamed' | 'tagged' | 'starred' | 'linked' | 'viewed' | 'deleted';
     details?: Record<string, unknown>;
     createdAt: number;
 }

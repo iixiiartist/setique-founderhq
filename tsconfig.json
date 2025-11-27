@@ -38,6 +38,6 @@
     "dist",
     "build",
     "supabase/functions",
-    "LAZY_LOADING_IMPLEMENTATION.tsx"
+    "docs/archive/**"
   ]
 }
