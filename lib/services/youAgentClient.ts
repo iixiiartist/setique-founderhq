@@ -66,6 +66,14 @@ export async function runYouAgent(params: RunAgentParams): Promise<RunAgentRespo
     throw new YouAgentError(`Agent "${agentConfig.label}" is not configured with a You.com agent ID`, 'config');
   }
 
+  // Get the current session to ensure we have auth
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    throw new YouAgentError('You must be logged in to use AI agents', 'auth');
+  }
+
+  console.log('[youAgentClient] Invoking agent:', agentConfig.id, 'with session:', !!session);
+
   const { data, error } = await supabase.functions.invoke('you-agent-run', {
     body: {
       agentId: agentConfig.id,
