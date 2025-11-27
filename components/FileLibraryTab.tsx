@@ -227,9 +227,22 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
     const handleShare = (doc: Document) => {
         setEmailSubject(`Document: ${doc.name}`);
         setEmailBody(`Hi,\n\nI wanted to share "${doc.name}" with you.\n\nBest,`);
+        
+        // Convert text/HTML content to base64 for email attachment
+        let attachmentData: string | undefined;
+        if (doc.content) {
+            try {
+                // Convert string content to base64
+                attachmentData = btoa(unescape(encodeURIComponent(doc.content)));
+            } catch (e) {
+                console.error('[FileLibraryTab] Failed to encode content:', e);
+                attachmentData = btoa(doc.content);
+            }
+        }
+        
         setEmailAttachments(
-            doc.content
-                ? [{ name: doc.name, type: doc.mimeType || 'application/octet-stream', data: doc.content }]
+            attachmentData
+                ? [{ name: doc.name, type: doc.mimeType || 'text/html', data: attachmentData }]
                 : []
         );
         setShowEmailComposer(true);
