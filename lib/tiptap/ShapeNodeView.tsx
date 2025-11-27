@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
-import { ShapeType } from './ShapeNode';
+import { ShapeType, ShapeAlignment } from './ShapeNode';
 
 const ShapeNodeView: React.FC<NodeViewProps> = ({ node, updateAttributes, selected, deleteNode }) => {
     const {
@@ -13,7 +13,14 @@ const ShapeNodeView: React.FC<NodeViewProps> = ({ node, updateAttributes, select
         strokeWidth,
         opacity,
         rotation,
+        alignment = 'center',
     } = node.attrs;
+
+    const alignmentClasses: Record<ShapeAlignment, string> = {
+        left: 'mr-auto',
+        center: 'mx-auto',
+        right: 'ml-auto',
+    };
 
     const handleResize = useCallback(
         (e: React.MouseEvent) => {
@@ -102,44 +109,86 @@ const ShapeNodeView: React.FC<NodeViewProps> = ({ node, updateAttributes, select
 
     return (
         <NodeViewWrapper
-            className={`relative inline-block cursor-move ${selected ? 'ring-2 ring-indigo-500' : ''}`}
+            className={`relative block ${alignmentClasses[alignment as ShapeAlignment] || 'mx-auto'}`}
             style={{
-                transform: rotation ? `rotate(${rotation}deg)` : undefined,
+                width: 'fit-content',
             }}
             data-block-id={blockId}
-            draggable="true"
-            data-drag-handle
+            data-alignment={alignment}
         >
-            <svg
-                width={width}
-                height={height}
-                viewBox={`0 0 ${width} ${height}`}
-                className="block"
+            <div
+                className={`relative inline-block cursor-move ${selected ? 'ring-2 ring-indigo-500 ring-offset-2' : ''}`}
+                style={{
+                    transform: rotation ? `rotate(${rotation}deg)` : undefined,
+                }}
+                draggable="true"
+                data-drag-handle
             >
-                {renderShape}
-            </svg>
+                <svg
+                    width={width}
+                    height={height}
+                    viewBox={`0 0 ${width} ${height}`}
+                    className="block"
+                >
+                    {renderShape}
+                </svg>
 
-            {/* Resize handle */}
+                {/* Resize handle */}
+                {selected && (
+                    <>
+                        <div
+                            className="absolute bottom-0 right-0 w-4 h-4 bg-indigo-500 rounded-bl cursor-se-resize"
+                            onMouseDown={handleResize}
+                        />
+                        <button
+                            onClick={() => deleteNode()}
+                            className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600"
+                            title="Delete shape"
+                        >
+                            ×
+                        </button>
+                    </>
+                )}
+            </div>
+
+            {/* Alignment and info toolbar when selected */}
             {selected && (
-                <>
-                    <div
-                        className="absolute bottom-0 right-0 w-4 h-4 bg-indigo-500 rounded-bl cursor-se-resize"
-                        onMouseDown={handleResize}
-                    />
+                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-white border border-gray-200 rounded-lg shadow-lg px-1 py-0.5">
                     <button
-                        onClick={() => deleteNode()}
-                        className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600"
-                        title="Delete shape"
+                        onClick={() => updateAttributes({ alignment: 'left' })}
+                        className={`p-1 rounded hover:bg-gray-100 ${alignment === 'left' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-600'}`}
+                        title="Align Left"
                     >
-                        ×
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="3" y1="6" x2="21" y2="6"/>
+                            <line x1="3" y1="12" x2="15" y2="12"/>
+                            <line x1="3" y1="18" x2="18" y2="18"/>
+                        </svg>
                     </button>
-                </>
-            )}
-
-            {/* Shape type indicator when selected */}
-            {selected && (
-                <div className="absolute -bottom-6 left-0 text-xs text-gray-500 capitalize">
-                    {shapeType}
+                    <button
+                        onClick={() => updateAttributes({ alignment: 'center' })}
+                        className={`p-1 rounded hover:bg-gray-100 ${alignment === 'center' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-600'}`}
+                        title="Align Center"
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="3" y1="6" x2="21" y2="6"/>
+                            <line x1="6" y1="12" x2="18" y2="12"/>
+                            <line x1="4" y1="18" x2="20" y2="18"/>
+                        </svg>
+                    </button>
+                    <button
+                        onClick={() => updateAttributes({ alignment: 'right' })}
+                        className={`p-1 rounded hover:bg-gray-100 ${alignment === 'right' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-600'}`}
+                        title="Align Right"
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="3" y1="6" x2="21" y2="6"/>
+                            <line x1="9" y1="12" x2="21" y2="12"/>
+                            <line x1="6" y1="18" x2="21" y2="18"/>
+                        </svg>
+                    </button>
+                    <div className="w-px h-4 bg-gray-200 mx-0.5"></div>
+                    <span className="text-xs text-gray-500 capitalize px-1">{shapeType}</span>
                 </div>
             )}
         </NodeViewWrapper>

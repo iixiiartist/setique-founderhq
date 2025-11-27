@@ -5,6 +5,8 @@ import type { StructuredBlock } from '../../types';
 
 export type ShapeType = 'rectangle' | 'circle' | 'triangle' | 'line' | 'arrow';
 
+export type ShapeAlignment = 'left' | 'center' | 'right';
+
 export interface ShapeNodeAttributes {
     blockId: string | null;
     shapeType: ShapeType;
@@ -18,6 +20,7 @@ export interface ShapeNodeAttributes {
     strokeColor: string;
     strokeWidth: number;
     opacity: number;
+    alignment: ShapeAlignment;
     createdAt?: string | null;
     updatedAt?: string | null;
 }
@@ -90,6 +93,15 @@ const ShapeNode = Node.create<ShapeNodeOptions>({
             opacity: {
                 default: 1,
             },
+            alignment: {
+                default: 'center',
+                parseHTML: element => element.getAttribute('data-alignment') || 'center',
+                renderHTML: attributes => {
+                    return {
+                        'data-alignment': attributes.alignment || 'center',
+                    };
+                },
+            },
             createdAt: {
                 default: null,
             },
@@ -108,7 +120,10 @@ const ShapeNode = Node.create<ShapeNodeOptions>({
     },
 
     renderHTML({ HTMLAttributes }) {
-        return ['div', mergeAttributes(HTMLAttributes, { 'data-block-type': 'shape' }), 0];
+        return ['div', mergeAttributes(HTMLAttributes, { 
+            'data-block-type': 'shape',
+            'data-alignment': HTMLAttributes.alignment || 'center',
+        }), 0];
     },
 
     addNodeView() {
