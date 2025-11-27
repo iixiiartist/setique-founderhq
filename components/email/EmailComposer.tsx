@@ -6,7 +6,8 @@ import {
   AlignLeft, AlignCenter, AlignRight, Loader2, Search, Lightbulb, RefreshCw,
   Type, Highlighter, Palette, Image as ImageIcon, FileText, Minus as HrIcon,
   Strikethrough, Quote, Undo, Redo, Check,
-  Paperclip, FileUp, LayoutTemplate, Maximize2, Minimize2, Square, Save
+  Paperclip, FileUp, LayoutTemplate, Maximize2, Minimize2, Square, Save,
+  Circle, Triangle, ArrowRight, Shapes
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getAiResponse, Content, AILimitError } from '../../services/groqService';
@@ -30,6 +31,8 @@ import Image from '@tiptap/extension-image';
 import CharacterCount from '@tiptap/extension-character-count';
 import Subscript from '@tiptap/extension-subscript';
 import Superscript from '@tiptap/extension-superscript';
+import ShapeNode, { ShapeType } from '../../lib/tiptap/ShapeNode';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface EmailAttachment {
   name: string;
@@ -240,6 +243,7 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
   const [showGTMTemplateMenu, setShowGTMTemplateMenu] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [showImageSizeMenu, setShowImageSizeMenu] = useState(false);
+  const [showShapeMenu, setShowShapeMenu] = useState(false);
   
   // Attachments
   const [attachments, setAttachments] = useState<EmailAttachment[]>([]);
@@ -282,6 +286,7 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
       CharacterCount,
       Subscript,
       Superscript,
+      ShapeNode.configure({}),
     ],
     content: initialBody ? `<p>${initialBody.replace(/\n/g, '</p><p>')}</p>` : '',
     editorProps: {
@@ -384,6 +389,7 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
   const templateRef = useRef<HTMLDivElement>(null);
   const attachmentRef = useRef<HTMLDivElement>(null);
   const imageSizeRef = useRef<HTMLDivElement>(null);
+  const shapeRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
@@ -410,6 +416,34 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
       editor?.chain().focus().setImage({ src: base64 }).run();
     };
     reader.readAsDataURL(file);
+  }, [editor]);
+
+  // Insert shape handler
+  const handleInsertShape = useCallback((shapeType: ShapeType) => {
+    if (!editor) return;
+    
+    const blockId = uuidv4();
+    const now = new Date().toISOString();
+    
+    editor
+      .chain()
+      .focus()
+      .insertShape({
+        blockId,
+        shapeType,
+        width: 200,
+        height: shapeType === 'line' || shapeType === 'arrow' ? 50 : 150,
+        x: 0,
+        y: 0,
+        zIndex: 0,
+        fillColor: '#3b82f6',
+        strokeColor: '#1e40af',
+        strokeWidth: 2,
+        createdAt: now,
+      })
+      .run();
+    
+    setShowShapeMenu(false);
   }, [editor]);
 
   // File attachment handler
@@ -478,6 +512,9 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
       }
       if (imageSizeRef.current && !imageSizeRef.current.contains(e.target as Node)) {
         setShowImageSizeMenu(false);
+      }
+      if (shapeRef.current && !shapeRef.current.contains(e.target as Node)) {
+        setShowShapeMenu(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -1267,6 +1304,58 @@ Format as a bulleted list. Consider: goals, objections to address, questions to 
         >
           <Quote size={16} />
         </ToolbarButton>
+
+        {/* Insert Shapes */}
+        <div className="relative" ref={shapeRef}>
+          <DropdownButton
+            onClick={() => setShowShapeMenu(!showShapeMenu)}
+            isOpen={showShapeMenu}
+            title="Insert Shape"
+          >
+            <Shapes size={16} />
+          </DropdownButton>
+          {showShapeMenu && (
+            <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[160px] z-50">
+              <div className="px-3 py-1 text-xs font-medium text-gray-500 uppercase">Shapes</div>
+              <button
+                onClick={() => handleInsertShape('rectangle')}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 text-left"
+              >
+                <Square size={16} />
+                Rectangle
+              </button>
+              <button
+                onClick={() => handleInsertShape('circle')}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 text-left"
+              >
+                <Circle size={16} />
+                Circle
+              </button>
+              <button
+                onClick={() => handleInsertShape('triangle')}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 text-left"
+              >
+                <Triangle size={16} />
+                Triangle
+              </button>
+              <div className="border-t border-gray-100 my-1" />
+              <button
+                onClick={() => handleInsertShape('line')}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 text-left"
+              >
+                <HrIcon size={16} />
+                Line
+              </button>
+              <button
+                onClick={() => handleInsertShape('arrow')}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 text-left"
+              >
+                <ArrowRight size={16} />
+                Arrow
+              </button>
+            </div>
+          )}
+        </div>
 
         <div className="w-px h-5 bg-gray-300 mx-1" />
 
