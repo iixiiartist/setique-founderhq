@@ -12,27 +12,12 @@ const RATE_LIMIT = 10; // requests per minute per user (lower for agents as they
 const RATE_WINDOW_MS = 60_000;
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
 
-// Allowed origins for CORS
-const ALLOWED_ORIGINS = [
-  Deno.env.get('ALLOWED_ORIGIN') || 'https://founderhq.setique.com',
-  'http://localhost:3001',
-  'http://localhost:3000',
-];
-
-const getAllowedOrigin = (req: Request): string => {
-  const origin = req.headers.get('origin') || '';
-  if (ALLOWED_ORIGINS.includes(origin)) {
-    return origin;
-  }
-  return ALLOWED_ORIGINS[0];
-};
-
-const corsHeaders = (req: Request): Record<string, string> => ({
-  'Access-Control-Allow-Origin': getAllowedOrigin(req),
+// CORS headers - using wildcard for simplicity like other functions
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-workspace-id',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Max-Age': '86400',
-});
+};
 
 const checkRateLimit = (userId: string): { allowed: boolean; remaining: number; resetIn: number } => {
   const now = Date.now();
@@ -76,10 +61,7 @@ interface AgentRunResponse {
 serve(async (req: Request): Promise<Response> => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: corsHeaders(req),
-    });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   if (req.method !== 'POST') {
@@ -87,7 +69,7 @@ serve(async (req: Request): Promise<Response> => {
       JSON.stringify({ error: 'Method Not Allowed' }),
       {
         status: 405,
-        headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
   }
@@ -100,7 +82,7 @@ serve(async (req: Request): Promise<Response> => {
         JSON.stringify({ error: 'Missing authorization header' }),
         {
           status: 401,
-          headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
     }
@@ -119,7 +101,7 @@ serve(async (req: Request): Promise<Response> => {
         JSON.stringify({ error: 'Unauthorized' }),
         {
           status: 401,
-          headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
     }
@@ -136,7 +118,7 @@ serve(async (req: Request): Promise<Response> => {
         {
           status: 429,
           headers: {
-            ...corsHeaders(req),
+            ...corsHeaders,
             'Content-Type': 'application/json',
             'X-RateLimit-Remaining': String(rateCheck.remaining),
             'X-RateLimit-Reset': String(Math.ceil(rateCheck.resetIn / 1000)),
@@ -153,7 +135,7 @@ serve(async (req: Request): Promise<Response> => {
         JSON.stringify({ error: 'You.com API key not configured. Contact support.' }),
         {
           status: 500,
-          headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
     }
@@ -166,7 +148,7 @@ serve(async (req: Request): Promise<Response> => {
         JSON.stringify({ error: 'agentId is required' }),
         {
           status: 400,
-          headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
     }
@@ -176,7 +158,7 @@ serve(async (req: Request): Promise<Response> => {
         JSON.stringify({ error: 'input is required' }),
         {
           status: 400,
-          headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
     }
@@ -219,7 +201,7 @@ serve(async (req: Request): Promise<Response> => {
           }),
           {
             status: youRes.status >= 500 ? 502 : youRes.status,
-            headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           }
         );
       }
@@ -234,7 +216,7 @@ serve(async (req: Request): Promise<Response> => {
       return new Response(JSON.stringify(normalizedResponse), {
         status: 200,
         headers: {
-          ...corsHeaders(req),
+          ...corsHeaders,
           'Content-Type': 'application/json',
           'X-RateLimit-Remaining': String(rateCheck.remaining),
         },
@@ -249,7 +231,7 @@ serve(async (req: Request): Promise<Response> => {
           JSON.stringify({ error: 'Agent request timed out. Please try again.' }),
           {
             status: 504,
-            headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           }
         );
       }
@@ -262,7 +244,7 @@ serve(async (req: Request): Promise<Response> => {
       JSON.stringify({ error: 'Internal server error' }),
       {
         status: 500,
-        headers: { ...corsHeaders(req), 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
   }
