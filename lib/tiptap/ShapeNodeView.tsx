@@ -1,6 +1,107 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState, useRef, useEffect } from 'react';
 import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
 import { ShapeType, ShapeAlignment } from './ShapeNode';
+
+// Preset colors for quick selection
+const PRESET_COLORS = [
+    '#3b82f6', // Blue
+    '#ef4444', // Red
+    '#22c55e', // Green
+    '#f59e0b', // Amber
+    '#8b5cf6', // Purple
+    '#ec4899', // Pink
+    '#06b6d4', // Cyan
+    '#f97316', // Orange
+    '#1e40af', // Dark Blue
+    '#dc2626', // Dark Red
+    '#16a34a', // Dark Green
+    '#000000', // Black
+    '#6b7280', // Gray
+    '#ffffff', // White
+    'transparent', // Transparent
+];
+
+interface ColorPickerProps {
+    label: string;
+    color: string;
+    onChange: (color: string) => void;
+    allowTransparent?: boolean;
+}
+
+const ColorPicker: React.FC<ColorPickerProps> = ({ label, color, onChange, allowTransparent = false }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const popoverRef = useRef<HTMLDivElement>(null);
+    
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isOpen]);
+
+    const displayColors = allowTransparent ? PRESET_COLORS : PRESET_COLORS.filter(c => c !== 'transparent');
+
+    return (
+        <div className="relative" ref={popoverRef}>
+            <button
+                onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}
+                className="flex items-center gap-1 p-1 rounded hover:bg-gray-100"
+                title={label}
+            >
+                <div 
+                    className="w-4 h-4 rounded border border-gray-300"
+                    style={{ 
+                        backgroundColor: color === 'transparent' ? 'transparent' : color,
+                        backgroundImage: color === 'transparent' ? 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)' : 'none',
+                        backgroundSize: '8px 8px',
+                        backgroundPosition: '0 0, 0 4px, 4px -4px, -4px 0px'
+                    }}
+                />
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M6 9l6 6 6-6"/>
+                </svg>
+            </button>
+            {isOpen && (
+                <div 
+                    className="absolute bottom-full left-0 mb-1 p-2 bg-white border border-gray-200 rounded-lg shadow-xl z-50"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div className="text-xs text-gray-500 mb-1.5 font-medium">{label}</div>
+                    <div className="grid grid-cols-5 gap-1 mb-2">
+                        {displayColors.map((c) => (
+                            <button
+                                key={c}
+                                onClick={() => { onChange(c); setIsOpen(false); }}
+                                className={`w-5 h-5 rounded border-2 ${color === c ? 'border-indigo-500' : 'border-gray-200'} hover:scale-110 transition-transform`}
+                                style={{ 
+                                    backgroundColor: c === 'transparent' ? 'transparent' : c,
+                                    backgroundImage: c === 'transparent' ? 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)' : 'none',
+                                    backgroundSize: '6px 6px',
+                                    backgroundPosition: '0 0, 0 3px, 3px -3px, -3px 0px'
+                                }}
+                                title={c === 'transparent' ? 'Transparent' : c}
+                            />
+                        ))}
+                    </div>
+                    <div className="flex items-center gap-1.5 pt-1 border-t border-gray-100">
+                        <label className="text-xs text-gray-500">Custom:</label>
+                        <input
+                            type="color"
+                            value={color === 'transparent' ? '#ffffff' : color}
+                            onChange={(e) => onChange(e.target.value)}
+                            className="w-6 h-6 rounded cursor-pointer border-0 p-0"
+                        />
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
 
 const ShapeNodeView: React.FC<NodeViewProps> = ({ node, updateAttributes, selected, deleteNode }) => {
     const {
@@ -151,9 +252,24 @@ const ShapeNodeView: React.FC<NodeViewProps> = ({ node, updateAttributes, select
                 )}
             </div>
 
-            {/* Alignment and info toolbar when selected */}
+            {/* Alignment, color and info toolbar when selected */}
             {selected && (
                 <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-white border border-gray-200 rounded-lg shadow-lg px-1 py-0.5">
+                    {/* Fill color picker */}
+                    <ColorPicker
+                        label="Fill Color"
+                        color={fillColor}
+                        onChange={(color) => updateAttributes({ fillColor: color })}
+                        allowTransparent={true}
+                    />
+                    {/* Stroke color picker */}
+                    <ColorPicker
+                        label="Stroke Color"
+                        color={strokeColor}
+                        onChange={(color) => updateAttributes({ strokeColor: color })}
+                        allowTransparent={false}
+                    />
+                    <div className="w-px h-4 bg-gray-200 mx-0.5"></div>
                     <button
                         onClick={() => updateAttributes({ alignment: 'left' })}
                         className={`p-1 rounded hover:bg-gray-100 ${alignment === 'left' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-600'}`}
