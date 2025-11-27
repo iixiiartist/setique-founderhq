@@ -2099,7 +2099,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                 )}
                 {/* Editor Area */}
                 <div ref={canvasScrollRef} className="flex-1 overflow-y-auto overflow-x-visible w-full flex justify-center px-4 lg:px-12 py-6">
-                    <style>{`
+                    <style key={`editor-styles-${lineSpacing}-${paragraphSpacing}`}>{`
                         /* Page Break Styles */
                         .ProseMirror .page-break {
                             margin: 2rem 0;
@@ -2286,9 +2286,14 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                         .ProseMirror {
                             font-family: 'Inter', 'Google Sans', 'Helvetica Neue', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
                             font-size: 1.05rem;
-                            line-height: ${lineSpacing};
+                            line-height: ${lineSpacing} !important;
                             letter-spacing: 0.01em;
                             color: #1c1d21;
+                        }
+                        .ProseMirror p,
+                        .ProseMirror li,
+                        .ProseMirror blockquote {
+                            line-height: ${lineSpacing} !important;
                         }
                         .ProseMirror h1 {
                             font-size: 2.35rem;
