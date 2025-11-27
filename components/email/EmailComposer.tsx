@@ -3,11 +3,12 @@ import { createPortal } from 'react-dom';
 import { 
   X, Send, Sparkles, Globe, Wand2, ChevronDown, 
   Bold, Italic, Underline as UnderlineIcon, List, ListOrdered, Link as LinkIcon,
-  AlignLeft, AlignCenter, AlignRight, Loader2, Search, Lightbulb, RefreshCw,
+  AlignLeft, AlignCenter, AlignRight, AlignJustify, Loader2, Search, Lightbulb, RefreshCw,
   Type, Highlighter, Palette, Image as ImageIcon, FileText, Minus as HrIcon,
-  Strikethrough, Quote, Undo, Redo, Check,
+  Strikethrough, Quote, Undo, Redo, Check, Printer, CheckSquare,
   Paperclip, FileUp, LayoutTemplate, Maximize2, Minimize2, Square, Save,
-  Circle, Triangle, ArrowRight, Shapes
+  Circle, Triangle, ArrowRight, Shapes, Table as TableIcon, FilePlus, Youtube as YoutubeIcon,
+  Subscript as SubscriptIcon, Superscript as SuperscriptIcon, RemoveFormatting
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getAiResponse, Content, AILimitError } from '../../services/groqService';
@@ -31,7 +32,17 @@ import Image from '@tiptap/extension-image';
 import CharacterCount from '@tiptap/extension-character-count';
 import Subscript from '@tiptap/extension-subscript';
 import Superscript from '@tiptap/extension-superscript';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
+import { TaskList } from '@tiptap/extension-task-list';
+import { TaskItem } from '@tiptap/extension-task-item';
+import { FontFamily } from '@tiptap/extension-font-family';
+import { Youtube } from '@tiptap/extension-youtube';
+import { HexColorPicker } from 'react-colorful';
 import ShapeNode, { ShapeType } from '../../lib/tiptap/ShapeNode';
+import { FontSize } from '../../lib/tiptap/FontSize';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface EmailAttachment {
@@ -107,6 +118,26 @@ const HIGHLIGHT_COLORS = [
   { label: 'Purple', value: '#DDD6FE' },
   { label: 'Pink', value: '#FBCFE8' },
   { label: 'Orange', value: '#FED7AA' },
+];
+
+// Font family options
+const FONT_FAMILIES = [
+  { id: 'system', label: 'System Default', stack: 'ui-sans-serif, system-ui, sans-serif' },
+  { id: 'inter', label: 'Inter', stack: 'Inter, ui-sans-serif, system-ui, sans-serif' },
+  { id: 'roboto', label: 'Roboto', stack: 'Roboto, ui-sans-serif, system-ui, sans-serif' },
+  { id: 'georgia', label: 'Georgia', stack: 'Georgia, ui-serif, serif' },
+  { id: 'times', label: 'Times New Roman', stack: '"Times New Roman", Times, serif' },
+  { id: 'arial', label: 'Arial', stack: 'Arial, Helvetica, sans-serif' },
+  { id: 'courier', label: 'Courier New', stack: '"Courier New", Courier, monospace' },
+  { id: 'verdana', label: 'Verdana', stack: 'Verdana, Geneva, sans-serif' },
+];
+
+// Line spacing options
+const LINE_SPACING_OPTIONS = [
+  { label: 'Single', value: 1.0 },
+  { label: '1.15', value: 1.15 },
+  { label: '1.5', value: 1.5 },
+  { label: 'Double', value: 2.0 },
 ];
 
 // Email templates for quick access
@@ -237,13 +268,23 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
   
   // Dropdown states
   const [showFontSizeMenu, setShowFontSizeMenu] = useState(false);
+  const [showFontFamilyMenu, setShowFontFamilyMenu] = useState(false);
+  const [showLineSpacingMenu, setShowLineSpacingMenu] = useState(false);
   const [showColorMenu, setShowColorMenu] = useState(false);
   const [showHighlightMenu, setShowHighlightMenu] = useState(false);
+  const [showAdvancedColorPicker, setShowAdvancedColorPicker] = useState(false);
+  const [showAdvancedHighlightPicker, setShowAdvancedHighlightPicker] = useState(false);
   const [showTemplateMenu, setShowTemplateMenu] = useState(false);
   const [showGTMTemplateMenu, setShowGTMTemplateMenu] = useState(false);
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [showImageSizeMenu, setShowImageSizeMenu] = useState(false);
   const [showShapeMenu, setShowShapeMenu] = useState(false);
+  const [showHeadingMenu, setShowHeadingMenu] = useState(false);
+  
+  // Color picker states
+  const [selectedColor, setSelectedColor] = useState('#000000');
+  const [selectedHighlight, setSelectedHighlight] = useState('#FEF08A');
+  const [lineSpacing, setLineSpacing] = useState(1.5);
   
   // Attachments
   const [attachments, setAttachments] = useState<EmailAttachment[]>([]);
@@ -286,6 +327,31 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
       CharacterCount,
       Subscript,
       Superscript,
+      // Table extensions
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableCell,
+      TableHeader,
+      // Task list
+      TaskList,
+      TaskItem.configure({
+        nested: true,
+      }),
+      // Font family
+      FontFamily.configure({
+        types: ['textStyle'],
+      }),
+      // Font size
+      FontSize.configure({
+        types: ['textStyle'],
+      }),
+      // YouTube
+      Youtube.configure({
+        controls: true,
+        nocookie: true,
+      }),
       ShapeNode.configure({}),
     ],
     content: initialBody ? `<p>${initialBody.replace(/\n/g, '</p><p>')}</p>` : '',
@@ -925,7 +991,7 @@ Format as a bulleted list. Consider: goals, objections to address, questions to 
     <div className="border-b border-gray-200 bg-gray-50/80 relative z-40 overflow-visible">
       {/* Main Toolbar Row */}
       <div className="flex items-center gap-0.5 px-2 py-1.5 flex-wrap overflow-visible">
-        {/* Undo/Redo */}
+        {/* Undo/Redo/Print */}
         <ToolbarButton
           onClick={() => editor?.chain().focus().undo().run()}
           disabled={!editor?.can().undo()}
@@ -940,8 +1006,56 @@ Format as a bulleted list. Consider: goals, objections to address, questions to 
         >
           <Redo size={16} />
         </ToolbarButton>
+        <ToolbarButton
+          onClick={() => window.print()}
+          title="Print"
+        >
+          <Printer size={16} />
+        </ToolbarButton>
 
         <div className="w-px h-5 bg-gray-300 mx-1" />
+
+        {/* Heading Dropdown */}
+        <div className="relative">
+          <select
+            className="h-7 px-2 text-sm bg-transparent hover:bg-gray-200 rounded border-none focus:ring-0 cursor-pointer text-gray-700 font-medium"
+            onChange={(e) => {
+              if (e.target.value.startsWith('h')) {
+                editor?.chain().focus().toggleHeading({ level: parseInt(e.target.value.substring(1)) as 1 | 2 | 3 }).run();
+              } else {
+                editor?.chain().focus().setParagraph().run();
+              }
+            }}
+            value={editor?.isActive('heading', { level: 1 }) ? 'h1' : editor?.isActive('heading', { level: 2 }) ? 'h2' : editor?.isActive('heading', { level: 3 }) ? 'h3' : 'p'}
+          >
+            <option value="p">Normal</option>
+            <option value="h1">Heading 1</option>
+            <option value="h2">Heading 2</option>
+            <option value="h3">Heading 3</option>
+          </select>
+        </div>
+
+        {/* Font Family Dropdown */}
+        <div className="relative">
+          <select
+            className="h-7 px-2 text-sm bg-transparent hover:bg-gray-200 rounded border-none focus:ring-0 cursor-pointer text-gray-700 w-28"
+            onChange={(e) => {
+              const family = FONT_FAMILIES.find(f => f.id === e.target.value);
+              if (family) {
+                if (family.id === 'system') {
+                  editor?.chain().focus().unsetFontFamily().run();
+                } else {
+                  editor?.chain().focus().setFontFamily(family.stack).run();
+                }
+              }
+            }}
+            value={FONT_FAMILIES.find(f => editor?.isActive('textStyle', { fontFamily: f.stack }))?.id || 'system'}
+          >
+            {FONT_FAMILIES.map(family => (
+              <option key={family.id} value={family.id}>{family.label}</option>
+            ))}
+          </select>
+        </div>
 
         {/* Font Size Dropdown */}
         <div className="relative" ref={fontSizeRef}>
@@ -954,11 +1068,20 @@ Format as a bulleted list. Consider: goals, objections to address, questions to 
           </DropdownButton>
           {showFontSizeMenu && (
             <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[120px] z-50">
+              <button
+                onClick={() => {
+                  editor?.chain().focus().unsetFontSize().run();
+                  setShowFontSizeMenu(false);
+                }}
+                className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-100"
+              >
+                Default
+              </button>
               {FONT_SIZES.map(size => (
                 <button
                   key={size.value}
                   onClick={() => {
-                    editor?.chain().focus().setMark('textStyle', { fontSize: size.value }).run();
+                    editor?.chain().focus().setFontSize(size.value).run();
                     setShowFontSizeMenu(false);
                   }}
                   className="w-full px-3 py-1.5 text-left text-sm hover:bg-gray-100 flex items-center justify-between"
@@ -1002,88 +1125,119 @@ Format as a bulleted list. Consider: goals, objections to address, questions to 
         >
           <Strikethrough size={16} />
         </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor?.chain().focus().toggleSubscript().run()}
+          isActive={editor?.isActive('subscript')}
+          title="Subscript"
+        >
+          <SubscriptIcon size={16} />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor?.chain().focus().toggleSuperscript().run()}
+          isActive={editor?.isActive('superscript')}
+          title="Superscript"
+        >
+          <SuperscriptIcon size={16} />
+        </ToolbarButton>
 
         <div className="w-px h-5 bg-gray-300 mx-1" />
 
-        {/* Text Color Dropdown */}
+        {/* Text Color - Advanced Picker */}
         <div className="relative" ref={colorRef}>
-          <DropdownButton
-            onClick={() => setShowColorMenu(!showColorMenu)}
-            isOpen={showColorMenu}
+          <button
+            onClick={() => {
+              setShowAdvancedColorPicker(!showAdvancedColorPicker);
+              setShowColorMenu(false);
+            }}
+            className="p-1.5 rounded hover:bg-gray-200 flex items-center gap-1 text-gray-700"
             title="Text Color"
-            indicator={
-              <div 
-                className="w-3 h-3 rounded-sm border border-gray-300" 
-                style={{ backgroundColor: editor?.getAttributes('textStyle').color || '#000000' }}
-              />
-            }
           >
             <Palette size={16} />
-          </DropdownButton>
-          {showColorMenu && (
-            <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 p-2 z-50">
-              <div className="grid grid-cols-3 gap-1">
+            <div className="w-3 h-3 border border-gray-300 rounded-sm" style={{ backgroundColor: selectedColor }}></div>
+          </button>
+          {showAdvancedColorPicker && (
+            <div className="absolute top-full left-0 mt-1 z-50 bg-white p-3 shadow-xl border border-gray-200 rounded-lg w-52">
+              <div className="text-xs font-medium text-gray-500 mb-2">Text Color</div>
+              <HexColorPicker 
+                color={selectedColor} 
+                onChange={(color) => { 
+                  setSelectedColor(color); 
+                  editor?.chain().focus().setColor(color).run(); 
+                }} 
+              />
+              <div className="grid grid-cols-5 gap-1 mt-2 pt-2 border-t border-gray-100">
                 {TEXT_COLORS.map(color => (
                   <button
                     key={color.value}
                     onClick={() => {
+                      setSelectedColor(color.value);
                       editor?.chain().focus().setColor(color.value).run();
-                      setShowColorMenu(false);
                     }}
-                    className="w-8 h-8 rounded-md border border-gray-200 hover:scale-110 transition-transform flex items-center justify-center"
-                    style={{ backgroundColor: color.value === '#000000' ? 'white' : color.value }}
+                    className="w-7 h-7 rounded border border-gray-200 hover:scale-110 transition-transform"
+                    style={{ backgroundColor: color.value }}
                     title={color.label}
-                  >
-                    {color.value === '#000000' && <span className="text-xs">A</span>}
-                    {editor?.getAttributes('textStyle').color === color.value && (
-                      <Check size={14} className="text-white drop-shadow" />
-                    )}
-                  </button>
+                  />
                 ))}
               </div>
+              <button 
+                onClick={() => setShowAdvancedColorPicker(false)} 
+                className="w-full mt-2 text-xs bg-gray-100 hover:bg-gray-200 py-1.5 rounded"
+              >
+                Close
+              </button>
             </div>
           )}
         </div>
 
-        {/* Highlight Dropdown */}
+        {/* Highlight - Advanced Picker */}
         <div className="relative" ref={highlightRef}>
-          <DropdownButton
-            onClick={() => setShowHighlightMenu(!showHighlightMenu)}
-            isOpen={showHighlightMenu}
+          <button
+            onClick={() => {
+              setShowAdvancedHighlightPicker(!showAdvancedHighlightPicker);
+              setShowHighlightMenu(false);
+            }}
+            className="p-1.5 rounded hover:bg-gray-200 flex items-center gap-1 text-gray-700"
             title="Highlight"
-            indicator={
-              editor?.isActive('highlight') ? (
-                <div 
-                  className="w-3 h-3 rounded-sm border border-gray-300" 
-                  style={{ backgroundColor: editor?.getAttributes('highlight').color || '#FEF08A' }}
-                />
-              ) : null
-            }
           >
-            <Highlighter size={16} />
-          </DropdownButton>
-          {showHighlightMenu && (
-            <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 p-2 z-50">
-              <div className="grid grid-cols-4 gap-1">
-                {HIGHLIGHT_COLORS.map(color => (
+            <Highlighter size={16} className={editor?.isActive('highlight') ? 'text-yellow-500' : ''} />
+          </button>
+          {showAdvancedHighlightPicker && (
+            <div className="absolute top-full left-0 mt-1 z-50 bg-white p-3 shadow-xl border border-gray-200 rounded-lg w-52">
+              <div className="text-xs font-medium text-gray-500 mb-2">Highlight Color</div>
+              <HexColorPicker 
+                color={selectedHighlight} 
+                onChange={(color) => { 
+                  setSelectedHighlight(color); 
+                  editor?.chain().focus().toggleHighlight({ color }).run(); 
+                }} 
+              />
+              <div className="grid grid-cols-4 gap-1 mt-2 pt-2 border-t border-gray-100">
+                {HIGHLIGHT_COLORS.filter(c => c.value).map(color => (
                   <button
-                    key={color.value || 'none'}
+                    key={color.value}
                     onClick={() => {
-                      if (color.value) {
-                        editor?.chain().focus().toggleHighlight({ color: color.value }).run();
-                      } else {
-                        editor?.chain().focus().unsetHighlight().run();
-                      }
-                      setShowHighlightMenu(false);
+                      setSelectedHighlight(color.value);
+                      editor?.chain().focus().toggleHighlight({ color: color.value }).run();
                     }}
-                    className="w-8 h-8 rounded-md border border-gray-200 hover:scale-110 transition-transform flex items-center justify-center"
-                    style={{ backgroundColor: color.value || 'white' }}
+                    className="w-7 h-7 rounded border border-gray-200 hover:scale-110 transition-transform"
+                    style={{ backgroundColor: color.value }}
                     title={color.label}
-                  >
-                    {!color.value && <X size={14} className="text-gray-400" />}
-                  </button>
+                  />
                 ))}
+                <button
+                  onClick={() => editor?.chain().focus().unsetHighlight().run()}
+                  className="w-7 h-7 rounded border border-gray-200 hover:scale-110 transition-transform bg-white flex items-center justify-center"
+                  title="Remove Highlight"
+                >
+                  <X size={12} className="text-gray-400" />
+                </button>
               </div>
+              <button 
+                onClick={() => setShowAdvancedHighlightPicker(false)} 
+                className="w-full mt-2 text-xs bg-gray-100 hover:bg-gray-200 py-1.5 rounded"
+              >
+                Close
+              </button>
             </div>
           )}
         </div>
@@ -1104,6 +1258,13 @@ Format as a bulleted list. Consider: goals, objections to address, questions to 
           title="Numbered List"
         >
           <ListOrdered size={16} />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor?.chain().focus().toggleTaskList().run()}
+          isActive={editor?.isActive('taskList')}
+          title="Task List"
+        >
+          <CheckSquare size={16} />
         </ToolbarButton>
 
         <div className="w-px h-5 bg-gray-300 mx-1" />
@@ -1129,6 +1290,13 @@ Format as a bulleted list. Consider: goals, objections to address, questions to 
           title="Align Right"
         >
           <AlignRight size={16} />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor?.chain().focus().setTextAlign('justify').run()}
+          isActive={editor?.isActive({ textAlign: 'justify' })}
+          title="Justify"
+        >
+          <AlignJustify size={16} />
         </ToolbarButton>
 
         <div className="w-px h-5 bg-gray-300 mx-1" />
@@ -1303,6 +1471,27 @@ Format as a bulleted list. Consider: goals, objections to address, questions to 
           title="Quote"
         >
           <Quote size={16} />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+          title="Insert Table"
+        >
+          <TableIcon size={16} />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => {
+            const url = prompt('Enter YouTube URL');
+            if (url) editor?.chain().focus().setYoutubeVideo({ src: url }).run();
+          }}
+          title="Insert YouTube Video"
+        >
+          <YoutubeIcon size={16} />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor?.chain().focus().clearNodes().unsetAllMarks().run()}
+          title="Clear Formatting"
+        >
+          <RemoveFormatting size={16} />
         </ToolbarButton>
 
         {/* Insert Shapes */}
@@ -1659,6 +1848,58 @@ Format as a bulleted list. Consider: goals, objections to address, questions to 
 
         {/* Editor Content */}
         <div className="flex-1 overflow-y-auto bg-white">
+          <style>{`
+            /* Table Styles */
+            .ProseMirror table {
+              border-collapse: collapse;
+              table-layout: fixed;
+              width: 100%;
+              margin: 1rem 0;
+            }
+            .ProseMirror table td,
+            .ProseMirror table th {
+              min-width: 1em;
+              border: 1px solid #ced4da;
+              padding: 0.5rem;
+              vertical-align: top;
+            }
+            .ProseMirror table th {
+              background-color: #f8f9fa;
+              font-weight: bold;
+            }
+            .ProseMirror table .selectedCell {
+              background-color: #e9ecef;
+            }
+            
+            /* Task List Styles */
+            .ProseMirror ul[data-type="taskList"] {
+              list-style: none;
+              padding: 0;
+            }
+            .ProseMirror ul[data-type="taskList"] li {
+              display: flex;
+              align-items: flex-start;
+              margin: 0.25rem 0;
+            }
+            .ProseMirror ul[data-type="taskList"] li > label {
+              flex: 0 0 auto;
+              margin-right: 0.5rem;
+            }
+            .ProseMirror ul[data-type="taskList"] li > div {
+              flex: 1 1 auto;
+            }
+            .ProseMirror ul[data-type="taskList"] input[type="checkbox"] {
+              width: 1rem;
+              height: 1rem;
+              cursor: pointer;
+            }
+            
+            /* YouTube Embed */
+            .ProseMirror iframe {
+              max-width: 100%;
+              margin: 1rem 0;
+            }
+          `}</style>
           <EditorContent editor={editor} className="h-full" />
         </div>
 
