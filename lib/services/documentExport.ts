@@ -483,14 +483,42 @@ export const exportToMarkdown = (editor: Editor, filename: string = 'document.md
 
 const createHiddenRenderContainer = (html: string): HTMLElement => {
   const container = document.createElement('div');
-  container.style.position = 'fixed';
-  container.style.top = '-10000px';
-  container.style.left = '-10000px';
+  container.style.position = 'absolute';
+  container.style.top = '-9999px';
+  container.style.left = '-9999px';
   container.style.width = '900px';
+  container.style.minHeight = '100px';
   container.style.backgroundColor = '#ffffff';
+  container.style.visibility = 'hidden';
+  container.style.pointerEvents = 'none';
   container.innerHTML = html;
   document.body.appendChild(container);
   return container;
+};
+
+const waitForImages = async (container: HTMLElement): Promise<void> => {
+  const images = container.querySelectorAll('img');
+  if (images.length === 0) return;
+  
+  const promises = Array.from(images).map((img) => {
+    if (img.complete) return Promise.resolve();
+    return new Promise<void>((resolve) => {
+      img.onload = () => resolve();
+      img.onerror = () => resolve(); // Continue even if image fails
+    });
+  });
+  
+  await Promise.all(promises);
+};
+
+const waitForRender = (): Promise<void> => {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        resolve();
+      });
+    });
+  });
 };
 
 const hexToRgb = (hex?: string): { r: number; g: number; b: number } | null => {
@@ -591,10 +619,20 @@ export const exportToPDF = async (
   const container = createHiddenRenderContainer(fullHtml);
 
   try {
+    // Wait for the container to be rendered and images to load
+    await waitForRender();
+    await waitForImages(container);
+    
+    // Force layout calculation
+    const containerWidth = container.scrollWidth || 900;
+    
     const pdf = new jsPDF({ orientation, unit: 'pt', format });
     const renderWidth = pdf.internal.pageSize.getWidth() - margin * 2;
     const renderStartY = margin + 32; // Leave room for header overlay
 
+    // Make container visible for html2canvas (but still off-screen)
+    container.style.visibility = 'visible';
+    
     await pdf.html(container, {
       x: margin,
       y: renderStartY,
@@ -603,7 +641,10 @@ export const exportToPDF = async (
       html2canvas: {
         scale: 0.9,
         useCORS: true,
-        windowWidth: container.clientWidth,
+        allowTaint: true,
+        logging: false,
+        windowWidth: containerWidth,
+        backgroundColor: '#ffffff',
       },
     });
     decoratePdfPages(pdf, {

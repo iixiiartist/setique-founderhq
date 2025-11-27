@@ -267,7 +267,7 @@ export const ProCanvasToolbar: React.FC<ProCanvasToolbarProps> = ({
     const Divider = () => <div className="w-px h-6 bg-gray-200 mx-1" />;
 
     return (
-        <div className="flex items-center gap-1 px-2 py-1.5 bg-white border-b border-gray-200 shadow-sm overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+        <div className="flex items-center gap-1 px-2 py-1.5 bg-white border-b border-gray-200 shadow-sm overflow-visible">
             {/* History */}
             <div className="flex items-center gap-0.5 flex-shrink-0">
                 <button

@@ -2098,7 +2098,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                     />
                 )}
                 {/* Editor Area */}
-                <div ref={canvasScrollRef} className="flex-1 overflow-y-auto w-full flex justify-center px-4 lg:px-12 py-6">
+                <div ref={canvasScrollRef} className="flex-1 overflow-y-auto overflow-x-visible w-full flex justify-center px-4 lg:px-12 py-6">
                     <style>{`
                         /* Page Break Styles */
                         .ProseMirror .page-break {
@@ -2331,7 +2331,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                         }
                     `}</style>
 
-                    <div className="w-full max-w-[1100px] flex flex-col gap-5">
+                    <div className="w-full max-w-[1100px] flex flex-col gap-5 overflow-visible">
                         <div className="flex flex-wrap items-center justify-between text-xs text-gray-600 font-medium px-1">
                             <div className="flex flex-wrap items-center gap-3">
                                 <span className="uppercase tracking-[0.35em] text-gray-400">Canvas</span>
