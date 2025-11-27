@@ -1522,17 +1522,37 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     ];
     const fontFamilyOptions = [
         { id: 'system', label: 'System Sans', stack: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', isDefault: true },
+        { id: 'arial', label: 'Arial', stack: 'Arial, "Helvetica Neue", Helvetica, sans-serif' },
+        { id: 'times', label: 'Times New Roman', stack: '"Times New Roman", Times, serif' },
+        { id: 'calibri', label: 'Calibri', stack: 'Calibri, "Segoe UI", Arial, sans-serif' },
+        { id: 'comic-sans', label: 'Comic Sans', stack: '"Comic Sans MS", "Comic Sans", cursive' },
+        { id: 'impact', label: 'Impact', stack: 'Impact, "Arial Black", sans-serif' },
+        { id: 'georgia', label: 'Georgia', stack: 'Georgia, "Times New Roman", Times, serif' },
+        { id: 'verdana', label: 'Verdana', stack: 'Verdana, Geneva, sans-serif' },
+        { id: 'trebuchet', label: 'Trebuchet MS', stack: '"Trebuchet MS", "Lucida Grande", sans-serif' },
+        { id: 'palatino', label: 'Palatino', stack: '"Palatino Linotype", "Book Antiqua", Palatino, serif' },
+        { id: 'garamond', label: 'Garamond', stack: 'Garamond, "Times New Roman", Times, serif' },
         { id: 'inter', label: 'Inter', stack: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' },
         { id: 'roboto', label: 'Roboto', stack: 'Roboto, "Helvetica Neue", Arial, sans-serif' },
+        { id: 'raleway', label: 'Raleway', stack: 'Raleway, "Helvetica Neue", Arial, sans-serif' },
+        { id: 'open-sans', label: 'Open Sans', stack: '"Open Sans", "Helvetica Neue", Arial, sans-serif' },
+        { id: 'lato', label: 'Lato', stack: 'Lato, "Helvetica Neue", Arial, sans-serif' },
+        { id: 'montserrat', label: 'Montserrat', stack: 'Montserrat, "Helvetica Neue", Arial, sans-serif' },
+        { id: 'poppins', label: 'Poppins', stack: 'Poppins, "Helvetica Neue", Arial, sans-serif' },
+        { id: 'nunito', label: 'Nunito', stack: 'Nunito, "Helvetica Neue", Arial, sans-serif' },
+        { id: 'oswald', label: 'Oswald', stack: 'Oswald, "Arial Narrow", sans-serif' },
         { id: 'space-grotesk', label: 'Space Grotesk', stack: '"Space Grotesk", "Helvetica Neue", Arial, sans-serif' },
         { id: 'ibm-plex', label: 'IBM Plex Sans', stack: '"IBM Plex Sans", "Helvetica Neue", Arial, sans-serif' },
         { id: 'source-serif', label: 'Source Serif Pro', stack: '"Source Serif Pro", Georgia, serif' },
         { id: 'merriweather', label: 'Merriweather', stack: 'Merriweather, Georgia, serif' },
         { id: 'playfair', label: 'Playfair Display', stack: '"Playfair Display", Georgia, serif' },
         { id: 'dm-sans', label: 'DM Sans', stack: '"DM Sans", "Helvetica Neue", Arial, sans-serif' },
-        { id: 'courier-prime', label: 'Courier Prime', stack: '"Courier Prime", "Courier New", monospace' }
+        { id: 'courier-prime', label: 'Courier Prime', stack: '"Courier Prime", "Courier New", monospace' },
+        { id: 'courier-new', label: 'Courier New', stack: '"Courier New", Courier, monospace' },
+        { id: 'consolas', label: 'Consolas', stack: 'Consolas, Monaco, "Courier New", monospace' },
+        { id: 'monaco', label: 'Monaco', stack: 'Monaco, Consolas, "Courier New", monospace' }
     ];
-    const fontSizeOptions = ['11px', '12px', '13px', '14px', '15px', '16px', '17px', '18px', '20px', '22px', '24px', '28px', '32px'];
+    const fontSizeOptions = ['8px', '9px', '10px', '11px', '12px', '13px', '14px', '15px', '16px', '17px', '18px', '20px', '22px', '24px', '28px', '32px', '36px', '42px', '48px', '56px', '72px'];
     const lineSpacingOptions = [
         { label: 'Compact', value: 1.35 },
         { label: 'Editorial', value: 1.5 },
@@ -2994,7 +3014,49 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             {/* Bubble Menu - Full Toolbar */}
             {editor && (
                 <BubbleMenu editor={editor}>
-                    <div className="bg-white shadow-xl border border-gray-200 rounded-lg p-1.5 flex flex-wrap items-center gap-1 max-w-[500px]">
+                    <div className="bg-white shadow-xl border border-gray-200 rounded-lg p-1.5 flex flex-wrap items-center gap-1 max-w-[600px]">
+                        {/* Font Family & Size */}
+                        <select
+                            className="h-6 px-1 text-xs bg-transparent hover:bg-gray-100 rounded border border-gray-200 focus:ring-0 cursor-pointer text-gray-700 max-w-[90px]"
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                if (value === 'system') {
+                                    editor.chain().focus().unsetFontFamily().run();
+                                } else {
+                                    const stack = getFontStackById(value);
+                                    if (stack) {
+                                        editor.chain().focus().setFontFamily(stack).run();
+                                    }
+                                }
+                            }}
+                            value={currentFontFamilyId}
+                            title="Font Family"
+                        >
+                            {fontFamilyOptions.map((option) => (
+                                <option key={option.id} value={option.id}>{option.label}</option>
+                            ))}
+                        </select>
+                        <select
+                            className="h-6 px-1 text-xs bg-transparent hover:bg-gray-100 rounded border border-gray-200 focus:ring-0 cursor-pointer text-gray-700 w-[52px]"
+                            value={currentFontSizeValue}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                if (value === 'default') {
+                                    editor.chain().focus().unsetFontSize().run();
+                                } else {
+                                    editor.chain().focus().setFontSize(value).run();
+                                }
+                            }}
+                            title="Font Size"
+                        >
+                            <option value="default">Size</option>
+                            {fontSizeOptions.map((size) => (
+                                <option key={size} value={size}>{size}</option>
+                            ))}
+                        </select>
+                        
+                        <div className="w-px h-4 bg-gray-200 mx-0.5"></div>
+                        
                         {/* Text Formatting */}
                         <button onClick={() => editor.chain().focus().toggleBold().run()} className={`p-1.5 rounded hover:bg-gray-100 ${editor.isActive('bold') ? 'text-blue-600 bg-blue-50' : 'text-gray-600'}`} title="Bold"><Bold size={14} /></button>
                         <button onClick={() => editor.chain().focus().toggleItalic().run()} className={`p-1.5 rounded hover:bg-gray-100 ${editor.isActive('italic') ? 'text-blue-600 bg-blue-50' : 'text-gray-600'}`} title="Italic"><Italic size={14} /></button>
