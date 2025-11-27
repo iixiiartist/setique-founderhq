@@ -483,14 +483,18 @@ export const exportToMarkdown = (editor: Editor, filename: string = 'document.md
 
 const createHiddenRenderContainer = (html: string): HTMLElement => {
   const container = document.createElement('div');
-  container.style.position = 'absolute';
-  container.style.top = '-9999px';
-  container.style.left = '-9999px';
+  // Use opacity and z-index instead of off-screen positioning
+  // html2canvas needs the element to be in the viewport for proper rendering
+  container.style.position = 'fixed';
+  container.style.top = '0';
+  container.style.left = '0';
   container.style.width = '900px';
   container.style.minHeight = '100px';
   container.style.backgroundColor = '#ffffff';
-  container.style.visibility = 'hidden';
+  container.style.opacity = '0';
+  container.style.zIndex = '-9999';
   container.style.pointerEvents = 'none';
+  container.style.overflow = 'visible';
   container.innerHTML = html;
   document.body.appendChild(container);
   return container;
@@ -625,13 +629,17 @@ export const exportToPDF = async (
     
     // Force layout calculation
     const containerWidth = container.scrollWidth || 900;
+    const containerHeight = container.scrollHeight || 500;
     
     const pdf = new jsPDF({ orientation, unit: 'pt', format });
     const renderWidth = pdf.internal.pageSize.getWidth() - margin * 2;
     const renderStartY = margin + 32; // Leave room for header overlay
 
-    // Make container visible for html2canvas (but still off-screen)
-    container.style.visibility = 'visible';
+    // Make container visible for html2canvas (opacity must be 1 for proper capture)
+    container.style.opacity = '1';
+    
+    // Wait for browser to apply styles
+    await waitForRender();
     
     await pdf.html(container, {
       x: margin,
@@ -644,7 +652,16 @@ export const exportToPDF = async (
         allowTaint: true,
         logging: false,
         windowWidth: containerWidth,
+        windowHeight: containerHeight,
         backgroundColor: '#ffffff',
+        onclone: (clonedDoc) => {
+          // Ensure cloned element is fully visible
+          const clonedContainer = clonedDoc.body.querySelector('div');
+          if (clonedContainer) {
+            (clonedContainer as HTMLElement).style.opacity = '1';
+            (clonedContainer as HTMLElement).style.position = 'static';
+          }
+        }
       },
     });
     decoratePdfPages(pdf, {
