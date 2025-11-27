@@ -115,23 +115,32 @@
         outline-color: #ffcc00;
     }
 
-    /* Skip to content link (accessibility) */
+    /* Skip to content link (accessibility) - hidden until focused */
     .skip-to-content {
         position: absolute;
-        top: -40px;
-        left: 0;
+        left: -9999px;
+        top: auto;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        z-index: 9999;
+    }
+
+    .skip-to-content:focus {
+        position: fixed;
+        top: 4px;
+        left: 4px;
+        width: auto;
+        height: auto;
+        overflow: visible;
         background: #0066ff;
         color: white;
         padding: 8px 16px;
         text-decoration: none;
         font-weight: bold;
         border: 2px solid #000;
-        z-index: 1000;
-        transition: top 0.2s;
-    }
-
-    .skip-to-content:focus {
-        top: 0;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     }
 
     /* Screen reader only text */
