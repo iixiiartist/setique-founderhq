@@ -2,13 +2,14 @@
 // Modal for running the Research & Briefing agent
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { X, Loader2, Globe, FileText, AlertCircle, Sparkles, Save, Check } from 'lucide-react';
+import { X, Loader2, Globe, FileText, AlertCircle, Sparkles, Save, Check, Download, FolderPlus, ChevronDown } from 'lucide-react';
 import { useYouAgent } from '../../hooks/useYouAgent';
 import { useAgentReports } from '../../hooks/useAgentReports';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { YOU_AGENTS } from '../../lib/config/youAgents';
 import { AgentResponsePresenter } from './AgentResponsePresenter';
+import { exportReportToHtml, exportReportToPdf, saveReportToFileLibrary } from '../../lib/services/agentReportExport';
 import type { AgentReport } from '../../lib/services/agentReportService';
 import type { RunAgentResponse } from '../../lib/services/youAgentClient';
 
@@ -48,6 +49,10 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
   const [notes, setNotes] = useState('');
   const [reportSaved, setReportSaved] = useState(false);
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [savingToLibrary, setSavingToLibrary] = useState(false);
+  const [savedToLibrary, setSavedToLibrary] = useState(false);
 
   // If viewing a saved report, create a response object from it
   const displayResponse: RunAgentResponse | null = savedReport 
@@ -67,11 +72,22 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
       setUrls(savedReport.urls?.join(', ') || '');
       setCurrentReportId(savedReport.id);
       setReportSaved(true);
+      setSavedToLibrary(false);
     } else {
       setReportSaved(false);
       setCurrentReportId(null);
+      setSavedToLibrary(false);
     }
   }, [savedReport]);
+
+  // Close export menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setShowExportMenu(false);
+    if (showExportMenu) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showExportMenu]);
 
   const handleClose = useCallback(() => {
     reset();
@@ -103,6 +119,70 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
       setCurrentReportId(saved.id);
     }
   }, [displayResponse, reportSaved, currentReportId, saveReport, target, goal, notes, urls]);
+
+  // Build report object for exports
+  const getReportForExport = useCallback((): AgentReport | null => {
+    if (savedReport) return savedReport;
+    if (!displayResponse?.output) return null;
+    
+    return {
+      id: currentReportId || 'temp',
+      workspace_id: workspace?.id || '',
+      user_id: user?.id || '',
+      agent_slug: 'research_briefing',
+      target: target.trim(),
+      goal,
+      notes: notes.trim() || null,
+      urls: urls.split(',').map(u => u.trim()).filter(Boolean),
+      output: displayResponse.output,
+      sources: displayResponse.sources || [],
+      metadata: displayResponse.metadata || {},
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+  }, [savedReport, displayResponse, currentReportId, workspace, user, target, goal, notes, urls]);
+
+  const handleExportHtml = useCallback(() => {
+    const report = getReportForExport();
+    if (!report) return;
+    exportReportToHtml(report, { title: target.trim() });
+    setShowExportMenu(false);
+  }, [getReportForExport, target]);
+
+  const handleExportPdf = useCallback(async () => {
+    const report = getReportForExport();
+    if (!report) return;
+    
+    setExportingPdf(true);
+    try {
+      await exportReportToPdf(report, { title: target.trim() });
+    } catch (err) {
+      console.error('PDF export failed:', err);
+    } finally {
+      setExportingPdf(false);
+      setShowExportMenu(false);
+    }
+  }, [getReportForExport, target]);
+
+  const handleSaveToLibrary = useCallback(async () => {
+    const report = getReportForExport();
+    if (!report || !user?.id || !workspace?.id) return;
+    
+    setSavingToLibrary(true);
+    try {
+      const result = await saveReportToFileLibrary(report, user.id, workspace.id);
+      if (result.success) {
+        setSavedToLibrary(true);
+      } else {
+        console.error('Failed to save to library:', result.error);
+      }
+    } catch (err) {
+      console.error('Save to library failed:', err);
+    } finally {
+      setSavingToLibrary(false);
+      setShowExportMenu(false);
+    }
+  }, [getReportForExport, user, workspace]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -274,7 +354,7 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
           ) : (
             <div className="space-y-4">
               {/* Header with actions */}
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <h3 className="text-sm font-medium text-gray-700">
                   Research: <span className="text-gray-900">{target}</span>
                   {savedReport && (
@@ -283,7 +363,71 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
                     </span>
                   )}
                 </h3>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  {/* Export dropdown */}
+                  {displayResponse?.output && (
+                    <div className="relative">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowExportMenu(!showExportMenu);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+                      >
+                        <Download size={14} />
+                        Export
+                        <ChevronDown size={12} />
+                      </button>
+                      
+                      {showExportMenu && (
+                        <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                          <button
+                            onClick={handleExportHtml}
+                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                          >
+                            <FileText size={14} />
+                            Export as HTML
+                          </button>
+                          <button
+                            onClick={handleExportPdf}
+                            disabled={exportingPdf}
+                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 text-left disabled:opacity-50"
+                          >
+                            {exportingPdf ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <Download size={14} />
+                            )}
+                            {exportingPdf ? 'Exporting...' : 'Export as PDF'}
+                          </button>
+                          <div className="border-t border-gray-100 my-1" />
+                          <button
+                            onClick={handleSaveToLibrary}
+                            disabled={savingToLibrary || savedToLibrary}
+                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 text-left disabled:opacity-50"
+                          >
+                            {savedToLibrary ? (
+                              <>
+                                <Check size={14} className="text-green-500" />
+                                Saved to Library
+                              </>
+                            ) : savingToLibrary ? (
+                              <>
+                                <Loader2 size={14} className="animate-spin" />
+                                Saving...
+                              </>
+                            ) : (
+                              <>
+                                <FolderPlus size={14} />
+                                Save to File Library
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Save button - only show for new reports */}
                   {!savedReport && displayResponse?.output && (
                     <button
@@ -314,6 +458,7 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
                       reset();
                       setReportSaved(false);
                       setCurrentReportId(null);
+                      setSavedToLibrary(false);
                     }}
                     className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
                   >
