@@ -28,6 +28,7 @@ const CalendarTab = lazy(() => import('./components/CalendarTab'));
 const EmailTab = lazy(() => import('./components/EmailTab'));
 const TasksTab = lazy(() => import('./components/TasksTab'));
 const WorkspaceTab = lazy(() => import('./components/workspace/WorkspaceTab'));
+const AgentsTab = lazy(() => import('./components/agents/AgentsTab')); // AI Agents
 import { BusinessProfileSetup } from './components/BusinessProfileSetup';
 import { AcceptInviteNotification } from './components/shared/AcceptInviteNotification';
 import { NotificationBell } from './components/shared/NotificationBell';
@@ -2667,6 +2668,12 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 return (
                     <Suspense fallback={<TabLoadingFallback />}>
                         <FileLibraryTab documents={data.documents} actions={actions} companies={allCompanies} contacts={allContacts} />
+                    </Suspense>
+                );
+            case Tab.Agents:
+                return (
+                    <Suspense fallback={<TabLoadingFallback />}>
+                        <AgentsTab actions={actions} />
                     </Suspense>
                 );
             case Tab.Settings:

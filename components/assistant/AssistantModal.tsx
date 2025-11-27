@@ -41,6 +41,7 @@ const TAB_DISPLAY_INFO: Record<TabType, { label: string; color: string; bgColor:
   [Tab.Workspace]: { label: 'Workspace', color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
   [Tab.Documents]: { label: 'Documents', color: 'text-amber-600', bgColor: 'bg-amber-50' },
   [Tab.Email]: { label: 'Email', color: 'text-sky-600', bgColor: 'bg-sky-50' },
+  [Tab.Agents]: { label: 'AI Agents', color: 'text-yellow-600', bgColor: 'bg-yellow-50' },
   [Tab.Settings]: { label: 'Settings', color: 'text-gray-600', bgColor: 'bg-gray-50' },
   [Tab.Admin]: { label: 'Admin', color: 'text-red-600', bgColor: 'bg-red-50' },
 };

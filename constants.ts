@@ -14,6 +14,7 @@ export const Tab = {
     Workspace: 'workspace',
     Documents: 'documents',
     Email: 'email',
+    Agents: 'agents', // AI Agents tab
     Settings: 'settings',
     Admin: 'admin',
 } as const;
@@ -39,6 +40,7 @@ export const NAV_ITEMS: NavItem[] = [
     { id: Tab.Financials, label: 'Financials' },
     { id: Tab.Workspace, label: 'GTM Docs' },
     { id: Tab.Documents, label: 'File Library' },
+    { id: Tab.Agents, label: 'AI Agents' },
     { id: Tab.Settings, label: 'Settings' },
     { id: Tab.Admin, label: '🔐 Admin' },
 ];
