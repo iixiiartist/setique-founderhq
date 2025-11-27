@@ -2,11 +2,16 @@
 // Main Agents tab - grid of AI agents available in FounderHQ
 
 import React, { useState, useCallback } from 'react';
-import { Bot, Sparkles } from 'lucide-react';
+import { Bot, Sparkles, FileText } from 'lucide-react';
 import { YOU_AGENTS, getEnabledAgents, type YouAgentSlug } from '../../lib/config/youAgents';
 import { AgentCard } from './AgentCard';
 import { ResearchAgentModal } from './ResearchAgentModal';
+import { SavedReportsList } from './SavedReportsList';
+import { useAgentReports } from '../../hooks/useAgentReports';
+import { useWorkspace } from '../../contexts/WorkspaceContext';
+import { useAuth } from '../../contexts/AuthContext';
 import type { AppActions } from '../../types';
+import type { AgentReport } from '../../lib/services/agentReportService';
 
 interface AgentsTabProps {
   actions?: AppActions;
@@ -14,15 +19,35 @@ interface AgentsTabProps {
 }
 
 export const AgentsTab: React.FC<AgentsTabProps> = ({ actions, onInsertToDoc }) => {
+  const { workspace } = useWorkspace();
+  const { user } = useAuth();
+  const { reports, isLoading: reportsLoading, deleteReport, refreshReports } = useAgentReports(workspace?.id, user?.id);
+  
   const [activeModal, setActiveModal] = useState<YouAgentSlug | null>(null);
+  const [viewingReport, setViewingReport] = useState<AgentReport | null>(null);
 
   const handleOpenAgent = useCallback((slug: YouAgentSlug) => {
     setActiveModal(slug);
+    setViewingReport(null);
   }, []);
 
   const handleCloseModal = useCallback(() => {
     setActiveModal(null);
+    setViewingReport(null);
+    // Refresh reports when modal closes (in case new report was saved)
+    refreshReports();
+  }, [refreshReports]);
+
+  const handleViewReport = useCallback((report: AgentReport) => {
+    setViewingReport(report);
+    setActiveModal('research_briefing');
   }, []);
+
+  const handleDeleteReport = useCallback(async (reportId: string) => {
+    if (confirm('Delete this report? This cannot be undone.')) {
+      await deleteReport(reportId);
+    }
+  }, [deleteReport]);
 
   // Only show enabled agents
   const enabledAgentSlugs = getEnabledAgents();
@@ -80,6 +105,29 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({ actions, onInsertToDoc }) 
           </div>
         </div>
 
+        {/* Saved Reports Section */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FileText size={18} className="text-gray-500" />
+              <h2 className="text-lg font-semibold text-gray-900">Saved Reports</h2>
+              {reports.length > 0 && (
+                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                  {reports.length}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="p-4">
+            <SavedReportsList
+              reports={reports}
+              isLoading={reportsLoading}
+              onViewReport={handleViewReport}
+              onDeleteReport={handleDeleteReport}
+            />
+          </div>
+        </div>
+
         {/* Coming Soon Section */}
         <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200">
           <h3 className="font-semibold text-gray-900 mb-2">🚀 More Agents Coming Soon</h3>
@@ -96,6 +144,7 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({ actions, onInsertToDoc }) 
           open={true}
           onClose={handleCloseModal}
           onInsertToDoc={onInsertToDoc}
+          savedReport={viewingReport}
         />
       )}
 

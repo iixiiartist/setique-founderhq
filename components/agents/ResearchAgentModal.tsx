@@ -1,17 +1,23 @@
 // components/agents/ResearchAgentModal.tsx
 // Modal for running the Research & Briefing agent
 
-import React, { useState, useCallback } from 'react';
-import { X, Loader2, Globe, FileText, AlertCircle, Sparkles } from 'lucide-react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { X, Loader2, Globe, FileText, AlertCircle, Sparkles, Save, Check } from 'lucide-react';
 import { useYouAgent } from '../../hooks/useYouAgent';
+import { useAgentReports } from '../../hooks/useAgentReports';
+import { useWorkspace } from '../../contexts/WorkspaceContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { YOU_AGENTS } from '../../lib/config/youAgents';
 import { AgentResponsePresenter } from './AgentResponsePresenter';
+import type { AgentReport } from '../../lib/services/agentReportService';
+import type { RunAgentResponse } from '../../lib/services/youAgentClient';
 
 interface ResearchAgentModalProps {
   open: boolean;
   onClose: () => void;
   onInsertToDoc?: (content: string) => void;
   initialTarget?: string;
+  savedReport?: AgentReport | null;
 }
 
 type GoalType = 'icp' | 'competitive' | 'angles' | 'market';
@@ -28,19 +34,75 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
   onClose,
   onInsertToDoc,
   initialTarget = '',
+  savedReport = null,
 }) => {
   const agentConfig = YOU_AGENTS.research_briefing;
   const { run, loading, error, errorCode, lastResponse, resetIn, reset } = useYouAgent('research_briefing');
+  const { workspace } = useWorkspace();
+  const { user } = useAuth();
+  const { saveReport, isSaving } = useAgentReports(workspace?.id, user?.id);
 
   const [target, setTarget] = useState(initialTarget);
   const [urls, setUrls] = useState('');
   const [goal, setGoal] = useState<GoalType>('icp');
   const [notes, setNotes] = useState('');
+  const [reportSaved, setReportSaved] = useState(false);
+  const [currentReportId, setCurrentReportId] = useState<string | null>(null);
+
+  // If viewing a saved report, create a response object from it
+  const displayResponse: RunAgentResponse | null = savedReport 
+    ? {
+        output: savedReport.output,
+        sources: savedReport.sources,
+        metadata: savedReport.metadata,
+      }
+    : lastResponse;
+
+  // Reset saved state when modal opens fresh
+  useEffect(() => {
+    if (savedReport) {
+      setTarget(savedReport.target);
+      setGoal(savedReport.goal as GoalType);
+      setNotes(savedReport.notes || '');
+      setUrls(savedReport.urls?.join(', ') || '');
+      setCurrentReportId(savedReport.id);
+      setReportSaved(true);
+    } else {
+      setReportSaved(false);
+      setCurrentReportId(null);
+    }
+  }, [savedReport]);
 
   const handleClose = useCallback(() => {
     reset();
+    setTarget('');
+    setUrls('');
+    setGoal('icp');
+    setNotes('');
+    setReportSaved(false);
+    setCurrentReportId(null);
     onClose();
   }, [reset, onClose]);
+
+  const handleSaveReport = useCallback(async () => {
+    if (!displayResponse?.output || reportSaved || currentReportId) return;
+
+    const saved = await saveReport({
+      agentSlug: 'research_briefing',
+      target: target.trim(),
+      goal,
+      notes: notes.trim() || undefined,
+      urls: urls.split(',').map(u => u.trim()).filter(Boolean),
+      output: displayResponse.output,
+      sources: displayResponse.sources,
+      metadata: displayResponse.metadata,
+    });
+
+    if (saved) {
+      setReportSaved(true);
+      setCurrentReportId(saved.id);
+    }
+  }, [displayResponse, reportSaved, currentReportId, saveReport, target, goal, notes, urls]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,7 +142,7 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
             </div>
             <div>
               <h2 className="text-lg font-semibold text-gray-900">{agentConfig.label}</h2>
-              <p className="text-sm text-gray-500">Powered by You.com AI</p>
+              <p className="text-sm text-gray-500">AI-powered research assistant</p>
             </div>
           </div>
           <button
@@ -93,7 +155,7 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
 
         {/* Content */}
         <div className="flex-1 overflow-auto p-6">
-          {!lastResponse ? (
+          {!displayResponse ? (
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Target Input */}
               <div>
@@ -211,22 +273,58 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
             </form>
           ) : (
             <div className="space-y-4">
-              {/* New Research Button */}
+              {/* Header with actions */}
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-medium text-gray-700">
                   Research: <span className="text-gray-900">{target}</span>
+                  {savedReport && (
+                    <span className="ml-2 text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
+                      Saved
+                    </span>
+                  )}
                 </h3>
-                <button
-                  onClick={() => reset()}
-                  className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
-                >
-                  ← New Research
-                </button>
+                <div className="flex items-center gap-3">
+                  {/* Save button - only show for new reports */}
+                  {!savedReport && displayResponse?.output && (
+                    <button
+                      onClick={handleSaveReport}
+                      disabled={isSaving || reportSaved}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-50"
+                    >
+                      {reportSaved ? (
+                        <>
+                          <Check size={14} className="text-green-500" />
+                          Saved
+                        </>
+                      ) : isSaving ? (
+                        <>
+                          <Loader2 size={14} className="animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save size={14} />
+                          Save Report
+                        </>
+                      )}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      reset();
+                      setReportSaved(false);
+                      setCurrentReportId(null);
+                    }}
+                    className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                  >
+                    ← New Research
+                  </button>
+                </div>
               </div>
 
               {/* Response */}
               <AgentResponsePresenter 
-                response={lastResponse} 
+                response={displayResponse!} 
                 onInsertToDoc={onInsertToDoc}
               />
             </div>
