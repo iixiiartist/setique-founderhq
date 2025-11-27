@@ -1118,89 +1118,140 @@ Format as a bulleted list. Consider: goals, objections to address, questions to 
         
         {/* Image Size Controls - Only show when image is selected */}
         {editor?.isActive('image') && (
-          <div className="relative" ref={imageSizeRef}>
-            <DropdownButton
-              onClick={() => setShowImageSizeMenu(!showImageSizeMenu)}
-              isOpen={showImageSizeMenu}
-              title="Resize Image"
-            >
-              <Maximize2 size={16} />
-            </DropdownButton>
-            {showImageSizeMenu && (
-              <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[140px] z-50">
-                <div className="px-3 py-1 text-xs font-medium text-gray-500 uppercase">Image Size</div>
-                <button
-                  onClick={() => {
-                    // Get current selection and update image width
-                    const { state } = editor;
-                    const { selection } = state;
-                    const node = state.doc.nodeAt(selection.from);
-                    if (node?.type.name === 'image') {
-                      editor.chain().focus().updateAttributes('image', { 
-                        class: 'email-resizable-image size-small'
-                      }).run();
-                    }
-                    setShowImageSizeMenu(false);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 text-left"
-                >
-                  <Minimize2 size={14} />
-                  Small (200px)
-                </button>
-                <button
-                  onClick={() => {
-                    const { state } = editor;
-                    const { selection } = state;
-                    const node = state.doc.nodeAt(selection.from);
-                    if (node?.type.name === 'image') {
-                      editor.chain().focus().updateAttributes('image', { 
-                        class: 'email-resizable-image size-medium'
-                      }).run();
-                    }
-                    setShowImageSizeMenu(false);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 text-left"
-                >
-                  <Square size={14} />
-                  Medium (400px)
-                </button>
-                <button
-                  onClick={() => {
-                    const { state } = editor;
-                    const { selection } = state;
-                    const node = state.doc.nodeAt(selection.from);
-                    if (node?.type.name === 'image') {
-                      editor.chain().focus().updateAttributes('image', { 
-                        class: 'email-resizable-image size-large'
-                      }).run();
-                    }
-                    setShowImageSizeMenu(false);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 text-left"
-                >
-                  <Maximize2 size={14} />
-                  Large (600px)
-                </button>
-                <button
-                  onClick={() => {
-                    const { state } = editor;
-                    const { selection } = state;
-                    const node = state.doc.nodeAt(selection.from);
-                    if (node?.type.name === 'image') {
-                      editor.chain().focus().updateAttributes('image', { 
-                        class: 'email-resizable-image size-full'
-                      }).run();
-                    }
-                    setShowImageSizeMenu(false);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 text-left"
-                >
-                  <Maximize2 size={14} className="text-blue-600" />
-                  Full Width
-                </button>
-              </div>
-            )}
-          </div>
+          <>
+            {/* Image Alignment */}
+            <div className="flex items-center border-l border-gray-200 pl-2 ml-1">
+              <ToolbarButton
+                onClick={() => {
+                  const { state } = editor;
+                  const { selection } = state;
+                  const node = state.doc.nodeAt(selection.from);
+                  if (node?.type.name === 'image') {
+                    const currentClass = node.attrs.class || 'email-resizable-image';
+                    const newClass = currentClass.replace(/align-(left|center|right)/g, '').trim() + ' align-left';
+                    editor.chain().focus().updateAttributes('image', { class: newClass }).run();
+                  }
+                }}
+                title="Align Left"
+              >
+                <AlignLeft size={16} />
+              </ToolbarButton>
+              <ToolbarButton
+                onClick={() => {
+                  const { state } = editor;
+                  const { selection } = state;
+                  const node = state.doc.nodeAt(selection.from);
+                  if (node?.type.name === 'image') {
+                    const currentClass = node.attrs.class || 'email-resizable-image';
+                    const newClass = currentClass.replace(/align-(left|center|right)/g, '').trim() + ' align-center';
+                    editor.chain().focus().updateAttributes('image', { class: newClass }).run();
+                  }
+                }}
+                title="Align Center"
+              >
+                <AlignCenter size={16} />
+              </ToolbarButton>
+              <ToolbarButton
+                onClick={() => {
+                  const { state } = editor;
+                  const { selection } = state;
+                  const node = state.doc.nodeAt(selection.from);
+                  if (node?.type.name === 'image') {
+                    const currentClass = node.attrs.class || 'email-resizable-image';
+                    const newClass = currentClass.replace(/align-(left|center|right)/g, '').trim() + ' align-right';
+                    editor.chain().focus().updateAttributes('image', { class: newClass }).run();
+                  }
+                }}
+                title="Align Right"
+              >
+                <AlignRight size={16} />
+              </ToolbarButton>
+            </div>
+            
+            {/* Image Size Dropdown */}
+            <div className="relative" ref={imageSizeRef}>
+              <DropdownButton
+                onClick={() => setShowImageSizeMenu(!showImageSizeMenu)}
+                isOpen={showImageSizeMenu}
+                title="Resize Image"
+              >
+                <Maximize2 size={16} />
+              </DropdownButton>
+              {showImageSizeMenu && (
+                <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[140px] z-50">
+                  <div className="px-3 py-1 text-xs font-medium text-gray-500 uppercase">Image Size</div>
+                  <button
+                    onClick={() => {
+                      const { state } = editor;
+                      const { selection } = state;
+                      const node = state.doc.nodeAt(selection.from);
+                      if (node?.type.name === 'image') {
+                        const currentClass = node.attrs.class || 'email-resizable-image';
+                        const newClass = currentClass.replace(/size-(small|medium|large|full)/g, '').trim() + ' size-small';
+                        editor.chain().focus().updateAttributes('image', { class: newClass }).run();
+                      }
+                      setShowImageSizeMenu(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 text-left"
+                  >
+                    <Minimize2 size={14} />
+                    Small (200px)
+                  </button>
+                  <button
+                    onClick={() => {
+                      const { state } = editor;
+                      const { selection } = state;
+                      const node = state.doc.nodeAt(selection.from);
+                      if (node?.type.name === 'image') {
+                        const currentClass = node.attrs.class || 'email-resizable-image';
+                        const newClass = currentClass.replace(/size-(small|medium|large|full)/g, '').trim() + ' size-medium';
+                        editor.chain().focus().updateAttributes('image', { class: newClass }).run();
+                      }
+                      setShowImageSizeMenu(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 text-left"
+                  >
+                    <Square size={14} />
+                    Medium (400px)
+                  </button>
+                  <button
+                    onClick={() => {
+                      const { state } = editor;
+                      const { selection } = state;
+                      const node = state.doc.nodeAt(selection.from);
+                      if (node?.type.name === 'image') {
+                        const currentClass = node.attrs.class || 'email-resizable-image';
+                        const newClass = currentClass.replace(/size-(small|medium|large|full)/g, '').trim() + ' size-large';
+                        editor.chain().focus().updateAttributes('image', { class: newClass }).run();
+                      }
+                      setShowImageSizeMenu(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 text-left"
+                  >
+                    <Maximize2 size={14} />
+                    Large (600px)
+                  </button>
+                  <button
+                    onClick={() => {
+                      const { state } = editor;
+                      const { selection } = state;
+                      const node = state.doc.nodeAt(selection.from);
+                      if (node?.type.name === 'image') {
+                        const currentClass = node.attrs.class || 'email-resizable-image';
+                        const newClass = currentClass.replace(/size-(small|medium|large|full)/g, '').trim() + ' size-full';
+                        editor.chain().focus().updateAttributes('image', { class: newClass }).run();
+                      }
+                      setShowImageSizeMenu(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 text-left"
+                  >
+                    <Maximize2 size={14} className="text-blue-600" />
+                    Full Width
+                  </button>
+                </div>
+              )}
+            </div>
+          </>
         )}
 
         <ToolbarButton

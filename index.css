@@ -810,6 +810,22 @@
     width: 100%;
 }
 
+/* Image alignment classes */
+.email-resizable-image.align-left {
+    margin-left: 0;
+    margin-right: auto;
+}
+
+.email-resizable-image.align-center {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.email-resizable-image.align-right {
+    margin-left: auto;
+    margin-right: 0;
+}
+
 /* Email composer specific prose overrides */
 .prose .email-resizable-image {
     margin-left: 0;
