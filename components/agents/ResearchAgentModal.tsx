@@ -188,7 +188,7 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
               <div className="flex items-center justify-between pt-2">
                 <p className="text-xs text-gray-500 flex items-center gap-1">
                   <Sparkles size={12} />
-                  Results typically take 10-30 seconds
+                  Results typically take 30-90 seconds for comprehensive research
                 </p>
                 <button
                   type="submit"
@@ -198,7 +198,7 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
                   {loading ? (
                     <>
                       <Loader2 size={18} className="animate-spin" />
-                      Running Research...
+                      Researching (may take up to 60s)...
                     </>
                   ) : (
                     <>

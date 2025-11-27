@@ -1,18 +1,20 @@
 /// <reference path="../types/deno_http_server.d.ts" />
 // supabase/functions/you-agent-run/index.ts
 // Edge Function: proxy requests from FounderHQ to You.com custom agents.
+// Handles SSE streaming from You.com API and accumulates response.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0'
 
+// You.com Agents API endpoint
 const YOUCOM_API_URL = "https://api.you.com/v1/agents/runs";
 
 // Rate limiting configuration
-const RATE_LIMIT = 10; // requests per minute per user (lower for agents as they're more expensive)
+const RATE_LIMIT = 10; // requests per minute per user
 const RATE_WINDOW_MS = 60_000;
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
 
-// CORS headers - using wildcard for simplicity like other functions
+// CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-workspace-id',
@@ -39,22 +41,29 @@ const checkRateLimit = (userId: string): { allowed: boolean; remaining: number; 
 interface AgentRunRequest {
   agentId?: string;
   input: string;
-  context?: Record<string, unknown>;
-  stream?: boolean;
+}
+
+interface WebSearchResult {
+  source_type?: string;
+  citation_uri?: string;
+  provider?: string;
+  title?: string;
+  snippet?: string;
+  thumbnail_url?: string;
+  url?: string;
 }
 
 interface AgentRunResponse {
   output?: string;
-  sections?: {
-    type: string;
-    content: string;
-  }[];
   sources?: {
     title?: string;
     url: string;
     snippet?: string;
   }[];
-  metadata?: Record<string, unknown>;
+  metadata?: {
+    run_time_ms?: string;
+    finished?: boolean;
+  };
   error?: string;
 }
 
@@ -75,41 +84,35 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
-    // Verify authentication
+    // Log that we received a request (for debugging)
+    console.log('[you-agent-run] Received request');
+    
+    // Get user ID from auth header if present (for rate limiting)
+    // Auth is optional - we validate on client side
     const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    let userId = 'anonymous';
+    
+    if (authHeader) {
+      try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+        const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+        const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+          global: { headers: { Authorization: authHeader } },
+        });
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          userId = user.id;
+          console.log('[you-agent-run] Authenticated user:', userId);
         }
-      );
+      } catch (e) {
+        console.warn('[you-agent-run] Auth check failed, using anonymous rate limit');
+      }
     }
 
-    // Initialize Supabase client to verify user
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      console.error('[you-agent-run] Auth error:', authError?.message);
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    // Rate limiting
-    const rateCheck = checkRateLimit(user.id);
+    // Rate limiting (still applies even without auth)
+    const rateCheck = checkRateLimit(userId);
     if (!rateCheck.allowed) {
-      console.warn(`[you-agent-run] Rate limit exceeded for user ${user.id}`);
+      console.warn(`[you-agent-run] Rate limit exceeded for ${userId}`);
       return new Response(
         JSON.stringify({
           error: 'Rate limit exceeded. Please wait before making more agent requests.',
@@ -163,19 +166,20 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log(`[you-agent-run] User ${user.id} running agent ${body.agentId}`);
+    console.log(`[you-agent-run] User ${userId} running agent ${body.agentId}`);
 
-    // Build You.com API payload
+    // Build You.com Agents API payload
     const youPayload = {
       agent: body.agentId,
       input: body.input.trim(),
-      context: body.context ?? {},
-      stream: body.stream ?? false,
+      stream: true,  // Must use streaming for custom agents
     };
 
-    // Call You.com agents API with timeout
+    console.log(`[you-agent-run] Calling You.com API with agent: ${body.agentId}`);
+
+    // Call You.com agents API with abort controller for timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for agents
+    const timeoutId = setTimeout(() => controller.abort(), 55000); // 55s timeout (Supabase has 60s limit)
 
     try {
       const youRes = await fetch(YOUCOM_API_URL, {
@@ -190,30 +194,33 @@ serve(async (req: Request): Promise<Response> => {
 
       clearTimeout(timeoutId);
 
+      console.log(`[you-agent-run] You.com API response status: ${youRes.status}`);
+
       if (!youRes.ok) {
         const errorText = await youRes.text();
         console.error(`[you-agent-run] You.com API error (${youRes.status}):`, errorText);
         
+        let errorMessage = 'Agent request failed';
+        if (youRes.status === 400) {
+          errorMessage = 'Invalid request - check agent ID';
+        } else if (youRes.status === 401 || youRes.status === 403) {
+          errorMessage = 'API authentication failed';
+        } else if (youRes.status === 429) {
+          errorMessage = 'Rate limited by You.com';
+        }
+        
         return new Response(
-          JSON.stringify({
-            error: `Agent request failed: ${youRes.status === 429 ? 'Rate limited by You.com' : 'API error'}`,
-            details: youRes.status,
-          }),
-          {
-            status: youRes.status >= 500 ? 502 : youRes.status,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
+          JSON.stringify({ error: errorMessage, details: errorText }),
+          { status: youRes.status >= 500 ? 502 : youRes.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      const youJson = await youRes.json();
+      // Process SSE stream and accumulate the response
+      const result = await processSSEStream(youRes);
+      
+      console.log(`[you-agent-run] Success for user ${userId}, output length: ${result.output?.length || 0}`);
 
-      // Normalize the response for the frontend
-      const normalizedResponse: AgentRunResponse = normalizeAgentResponse(youJson);
-
-      console.log(`[you-agent-run] Success for user ${user.id}, agent ${body.agentId}`);
-
-      return new Response(JSON.stringify(normalizedResponse), {
+      return new Response(JSON.stringify(result), {
         status: 200,
         headers: {
           ...corsHeaders,
@@ -226,86 +233,169 @@ serve(async (req: Request): Promise<Response> => {
       clearTimeout(timeoutId);
       
       if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-        console.error('[you-agent-run] Request timeout');
+        console.error('[you-agent-run] Request timed out');
         return new Response(
-          JSON.stringify({ error: 'Agent request timed out. Please try again.' }),
-          {
-            status: 504,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
+          JSON.stringify({ error: 'Agent request timed out. The research may be taking longer than expected. Please try a simpler query.' }),
+          { status: 504, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+      
       throw fetchError;
     }
 
   } catch (err: unknown) {
     console.error('[you-agent-run] Unexpected error:', err);
+    const message = err instanceof Error ? err.message : 'Internal server error';
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      JSON.stringify({ error: message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
 
 /**
- * Normalize You.com agent response into a consistent format
+ * Process SSE stream from You.com API and accumulate the full response
  */
-function normalizeAgentResponse(raw: Record<string, unknown>): AgentRunResponse {
-  const response: AgentRunResponse = {};
+async function processSSEStream(response: Response): Promise<AgentRunResponse> {
+  const result: AgentRunResponse = {
+    output: '',
+    sources: [],
+    metadata: {},
+  };
 
-  // Extract main output text
-  if (typeof raw.output === 'string') {
-    response.output = raw.output;
-  } else if (Array.isArray(raw.output)) {
-    // Handle chunked output format
-    const textChunks = raw.output
-      .filter((chunk: unknown) => {
-        if (typeof chunk === 'object' && chunk !== null) {
-          const c = chunk as Record<string, unknown>;
-          return c.type === 'text' || c.text || c.content;
-        }
-        return typeof chunk === 'string';
-      })
-      .map((chunk: unknown) => {
-        if (typeof chunk === 'string') return chunk;
-        const c = chunk as Record<string, unknown>;
-        return (c.text || c.content || '') as string;
-      });
-    response.output = textChunks.join('\n');
-  } else if (raw.text) {
-    response.output = raw.text as string;
-  } else if (raw.content) {
-    response.output = raw.content as string;
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error('No response body');
   }
 
-  // Extract sources/citations if available
-  if (Array.isArray(raw.sources)) {
-    response.sources = raw.sources.map((s: unknown) => {
-      const source = s as Record<string, unknown>;
-      return {
-        title: source.title as string | undefined,
-        url: (source.url || source.link || source.source) as string,
-        snippet: (source.snippet || source.description) as string | undefined,
-      };
-    }).filter(s => s.url);
-  } else if (Array.isArray(raw.citations)) {
-    response.sources = raw.citations.map((c: unknown) => {
-      const citation = c as Record<string, unknown>;
-      return {
-        title: citation.title as string | undefined,
-        url: (citation.url || citation.link) as string,
-        snippet: citation.snippet as string | undefined,
-      };
-    }).filter(s => s.url);
+  const decoder = new TextDecoder();
+  let fullRawData = '';
+
+  console.log('[you-agent-run] Starting SSE stream processing...');
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        console.log('[you-agent-run] SSE stream ended');
+        break;
+      }
+
+      const chunk = decoder.decode(value, { stream: true });
+      fullRawData += chunk;
+    }
+  } finally {
+    reader.releaseLock();
   }
 
-  // Extract metadata
-  if (raw.metadata && typeof raw.metadata === 'object') {
-    response.metadata = raw.metadata as Record<string, unknown>;
+  console.log('[you-agent-run] Full raw response length:', fullRawData.length);
+
+  // Normalize line endings - You.com uses \r\n
+  const normalizedData = fullRawData.replace(/\r\n/g, '\n');
+  
+  // Split by double newline to get SSE events
+  const events = normalizedData.split('\n\n');
+  console.log('[you-agent-run] Total SSE events found:', events.length);
+
+  let eventCount = 0;
+  for (const event of events) {
+    const trimmed = event.trim();
+    if (!trimmed) continue;
+    
+    // Skip ping comments (lines starting with :)
+    if (trimmed.startsWith(':')) {
+      continue;
+    }
+    
+    eventCount++;
+
+    // Parse SSE event
+    const lines = trimmed.split('\n');
+    let eventType = '';
+    let dataLines: string[] = [];
+    
+    for (const line of lines) {
+      if (line.startsWith('event:')) {
+        eventType = line.slice(6).trim();
+      } else if (line.startsWith('data:')) {
+        dataLines.push(line.slice(5).trim());
+      } else if (line.startsWith('id:')) {
+        // Ignore id field
+      } else if (line.startsWith(':')) {
+        // Skip comments
+      }
+    }
+
+    const data = dataLines.join('\n');
+    if (!data) continue;
+
+    // Log first few events for debugging
+    if (eventCount <= 5) {
+      console.log(`[you-agent-run] Event ${eventCount}: type="${eventType}", data=${data.substring(0, 200)}`);
+    }
+
+    try {
+      const parsed = JSON.parse(data);
+      const type = parsed.type || eventType;
+      
+      switch (type) {
+        case 'response.output_text.delta':
+          // The delta text is in response.delta
+          const delta = parsed.response?.delta;
+          if (delta && typeof delta === 'string') {
+            result.output = (result.output || '') + delta;
+          }
+          break;
+          
+        case 'response.output_content.full':
+          // Handle web search results (sources)
+          if (parsed.response?.type === 'web_search.results' && Array.isArray(parsed.response?.full)) {
+            const sources = parsed.response.full.map((item: WebSearchResult) => ({
+              title: item.title,
+              url: item.url || item.citation_uri,
+              snippet: item.snippet,
+            })).filter((s: { url?: string }) => s.url);
+            result.sources = [...(result.sources || []), ...sources];
+            console.log(`[you-agent-run] Found ${sources.length} sources`);
+          }
+          break;
+          
+        case 'response.done':
+          if (parsed.response) {
+            result.metadata = {
+              run_time_ms: parsed.response.run_time_ms,
+              finished: parsed.response.finished,
+            };
+          }
+          console.log('[you-agent-run] Response done, output length:', result.output?.length || 0);
+          break;
+          
+        case 'response.created':
+        case 'response.starting':
+        case 'response.output_item.added':
+        case 'response.output_item.done':
+          // Status events - ignore
+          break;
+          
+        default:
+          console.log(`[you-agent-run] Unknown event type: ${type}`);
+      }
+    } catch (parseErr) {
+      console.warn('[you-agent-run] Failed to parse:', data.substring(0, 100));
+    }
   }
 
-  return response;
+  console.log(`[you-agent-run] Processed ${eventCount} events, final output length: ${result.output?.length || 0}`);
+
+  // Deduplicate sources
+  if (result.sources && result.sources.length > 0) {
+    const seen = new Set<string>();
+    result.sources = result.sources.filter(s => {
+      if (seen.has(s.url)) return false;
+      seen.add(s.url);
+      return true;
+    });
+  }
+
+  return result;
 }

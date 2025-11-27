@@ -81,6 +81,9 @@ export async function runYouAgent(params: RunAgentParams): Promise<RunAgentRespo
       context,
       stream: false,
     },
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
   });
 
   if (error) {
