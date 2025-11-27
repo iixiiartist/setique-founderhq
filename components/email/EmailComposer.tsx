@@ -286,6 +286,9 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
   const [selectedHighlight, setSelectedHighlight] = useState('#FEF08A');
   const [lineSpacing, setLineSpacing] = useState(1.5);
   
+  // Fullscreen mode
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  
   // Attachments
   const [attachments, setAttachments] = useState<EmailAttachment[]>([]);
   const [resolvedAccountId, setResolvedAccountId] = useState<string | null>(null);
@@ -1466,9 +1469,17 @@ Format as a bulleted list. Consider: goals, objections to address, questions to 
           <HrIcon size={16} />
         </ToolbarButton>
         <ToolbarButton
-          onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+          onClick={() => {
+            if (editor?.isActive('blockquote')) {
+              // If already in blockquote, lift it out
+              editor?.chain().focus().lift('blockquote').run();
+            } else {
+              // Wrap only the current paragraph in a blockquote
+              editor?.chain().focus().setBlockquote().run();
+            }
+          }}
           isActive={editor?.isActive('blockquote')}
-          title="Quote"
+          title="Quote (toggle)"
         >
           <Quote size={16} />
         </ToolbarButton>
@@ -1747,13 +1758,19 @@ Format as a bulleted list. Consider: goals, objections to address, questions to 
   };
 
   const content = (
-    <div className={`bg-white w-full flex flex-col ${isInline ? 'h-full border-none shadow-none' : 'max-w-4xl max-h-[85vh] min-h-[500px] shadow-2xl border border-gray-200 rounded-xl animate-in fade-in zoom-in duration-200'}`}>
+    <div className={`bg-white w-full flex flex-col ${
+      isInline 
+        ? 'h-full border-none shadow-none' 
+        : isFullscreen 
+          ? 'fixed inset-0 z-50 max-w-none max-h-none rounded-none animate-in fade-in duration-200' 
+          : 'max-w-4xl max-h-[85vh] min-h-[500px] shadow-2xl border border-gray-200 rounded-xl animate-in fade-in zoom-in duration-200'
+    }`}>
       <FileInputs />
       <GTMTemplateModal />
       
       {/* Header */}
       {!isInline && (
-        <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white rounded-t-xl">
+        <div className={`flex items-center justify-between p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white ${isFullscreen ? '' : 'rounded-t-xl'}`}>
           <h3 className="font-semibold text-gray-900 text-lg flex items-center gap-2">
             {replyTo ? 'Reply' : 'New Message'}
             <span className="text-xs font-normal text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -1761,9 +1778,18 @@ Format as a bulleted list. Consider: goals, objections to address, questions to 
               AI-Powered
             </span>
           </h3>
-          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-            <X size={20} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button 
+              onClick={() => setIsFullscreen(!isFullscreen)} 
+              className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+            >
+              {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+            </button>
+            <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+              <X size={20} />
+            </button>
+          </div>
         </div>
       )}
 
@@ -1898,6 +1924,22 @@ Format as a bulleted list. Consider: goals, objections to address, questions to 
             .ProseMirror iframe {
               max-width: 100%;
               margin: 1rem 0;
+            }
+            
+            /* Blockquote Styles */
+            .ProseMirror blockquote {
+              border-left: 4px solid #3b82f6;
+              background-color: #f8fafc;
+              margin: 0.75rem 0;
+              padding: 0.75rem 1rem;
+              color: #475569;
+              font-style: italic;
+            }
+            .ProseMirror blockquote p {
+              margin: 0;
+            }
+            .ProseMirror blockquote::before {
+              content: none;
             }
           `}</style>
           <EditorContent editor={editor} className="h-full" />

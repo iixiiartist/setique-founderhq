@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { Sparkles, Loader2, Lock, MessageCircle } from 'lucide-react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { Sparkles, Loader2, Lock, MessageCircle, GripVertical } from 'lucide-react';
 import './animations.css';
 
 interface FloatingButtonProps {
@@ -11,6 +11,25 @@ interface FloatingButtonProps {
   variant?: 'default' | 'locked';
   tooltip?: string;
 }
+
+// Get initial position from localStorage or default to bottom-right
+const getInitialPosition = () => {
+  if (typeof window === 'undefined') return { x: 24, y: 24 };
+  try {
+    const saved = localStorage.getItem('floatingButtonPosition');
+    if (saved) {
+      const pos = JSON.parse(saved);
+      // Validate position is within viewport
+      const maxX = window.innerWidth - 80;
+      const maxY = window.innerHeight - 80;
+      return {
+        x: Math.min(Math.max(0, pos.x), maxX),
+        y: Math.min(Math.max(0, pos.y), maxY),
+      };
+    }
+  } catch {}
+  return { x: 24, y: 24 }; // Default bottom-right (using right/bottom offsets)
+};
 
 export const FloatingButton: React.FC<FloatingButtonProps> = ({
   onClick,
@@ -24,7 +43,12 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
   const [isFirstRender, setIsFirstRender] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [position, setPosition] = useState(getInitialPosition);
+  const [hasDragged, setHasDragged] = useState(false);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const dragStartRef = useRef<{ x: number; y: number; posX: number; posY: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
     console.log('[FloatingButton] MOUNTED and VISIBLE - Check bottom-right corner');
@@ -35,7 +59,7 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
 
   // Show tooltip after short hover delay
   useEffect(() => {
-    if (isHovered) {
+    if (isHovered && !isDragging) {
       hoverTimeoutRef.current = setTimeout(() => setShowTooltip(true), 400);
     } else {
       if (hoverTimeoutRef.current) {
@@ -48,7 +72,113 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
         clearTimeout(hoverTimeoutRef.current);
       }
     };
-  }, [isHovered]);
+  }, [isHovered, isDragging]);
+
+  // Drag handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    // Only start drag on left click
+    if (e.button !== 0) return;
+    e.preventDefault();
+    setHasDragged(false);
+    dragStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      posX: position.x,
+      posY: position.y,
+    };
+    setIsDragging(true);
+  }, [position]);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDragging || !dragStartRef.current) return;
+    
+    const deltaX = dragStartRef.current.x - e.clientX;
+    const deltaY = dragStartRef.current.y - e.clientY;
+    
+    // Only count as drag if moved more than 5px
+    if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+      setHasDragged(true);
+    }
+    
+    const newX = Math.max(0, Math.min(window.innerWidth - 80, dragStartRef.current.posX + deltaX));
+    const newY = Math.max(0, Math.min(window.innerHeight - 80, dragStartRef.current.posY + deltaY));
+    
+    setPosition({ x: newX, y: newY });
+  }, [isDragging]);
+
+  const handleMouseUp = useCallback(() => {
+    if (isDragging) {
+      setIsDragging(false);
+      dragStartRef.current = null;
+      // Save position to localStorage
+      try {
+        localStorage.setItem('floatingButtonPosition', JSON.stringify(position));
+      } catch {}
+    }
+  }, [isDragging, position]);
+
+  // Touch handlers for mobile
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    setHasDragged(false);
+    dragStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      posX: position.x,
+      posY: position.y,
+    };
+    setIsDragging(true);
+  }, [position]);
+
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (!isDragging || !dragStartRef.current) return;
+    
+    const touch = e.touches[0];
+    const deltaX = dragStartRef.current.x - touch.clientX;
+    const deltaY = dragStartRef.current.y - touch.clientY;
+    
+    if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+      setHasDragged(true);
+    }
+    
+    const newX = Math.max(0, Math.min(window.innerWidth - 80, dragStartRef.current.posX + deltaX));
+    const newY = Math.max(0, Math.min(window.innerHeight - 80, dragStartRef.current.posY + deltaY));
+    
+    setPosition({ x: newX, y: newY });
+  }, [isDragging]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (isDragging) {
+      setIsDragging(false);
+      dragStartRef.current = null;
+      try {
+        localStorage.setItem('floatingButtonPosition', JSON.stringify(position));
+      } catch {}
+    }
+  }, [isDragging, position]);
+
+  // Global mouse/touch listeners for drag
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('touchmove', handleTouchMove);
+      window.addEventListener('touchend', handleTouchEnd);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
+
+  // Handle click - only trigger if not dragged
+  const handleClick = useCallback(() => {
+    if (!hasDragged) {
+      onClick();
+    }
+  }, [hasDragged, onClick]);
 
   const isLockedVariant = variant === 'locked';
   const defaultTooltip = isLoading
@@ -80,14 +210,21 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
   };
   
   return (
-    <div className="fixed bottom-6 right-6 z-[99999]">
+    <div 
+      ref={containerRef}
+      className={`fixed z-[99999] ${isDragging ? 'cursor-grabbing' : ''}`}
+      style={{
+        right: `${position.x}px`,
+        bottom: `${position.y}px`,
+      }}
+    >
       {/* Animated Tooltip */}
       <div
         className={`
           absolute bottom-full right-0 mb-3
           pointer-events-none
           transition-all duration-200 ease-out
-          ${showTooltip && !isLoading ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
+          ${showTooltip && !isLoading && !isDragging ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}
         `}
       >
         <div className="
@@ -99,14 +236,21 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
           text-sm font-medium
         ">
           <MessageCircle className="w-4 h-4 text-blue-400" />
-          <span>{tooltipText}</span>
+          <span>{isDragging ? 'Drag to reposition' : tooltipText}</span>
           {/* Tooltip arrow */}
           <div className="absolute -bottom-1.5 right-6 w-3 h-3 bg-gray-900/95 transform rotate-45 rounded-sm" />
         </div>
       </div>
 
+      {/* Drag hint on hover */}
+      {isHovered && !isDragging && !isLoading && (
+        <div className="absolute -left-2 top-1/2 -translate-y-1/2 opacity-60 pointer-events-none">
+          <GripVertical size={14} className="text-gray-400" />
+        </div>
+      )}
+
       {/* Ripple effect ring */}
-      {hasUnread && !isLoading && (
+      {hasUnread && !isLoading && !isDragging && (
         <div className="absolute inset-0 w-14 h-14">
           <span className="absolute inset-0 rounded-full bg-blue-400/60 fab-ripple" />
           <span className="absolute inset-0 rounded-full bg-blue-400/60 fab-ripple animation-delay-300" />
@@ -115,7 +259,9 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
 
       {/* Main Button */}
       <button
-        onClick={onClick}
+        onClick={handleClick}
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         className={`
@@ -125,18 +271,20 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
           gpu-accelerate
           transition-all duration-300 ease-out
           ${isFirstRender ? 'fab-spring-enter' : ''}
-          ${isHovered && !isLoading ? 'shadow-soft-2xl scale-105 -translate-y-1' : 'shadow-soft-xl'}
+          ${isHovered && !isLoading && !isDragging ? 'shadow-soft-2xl scale-105 -translate-y-1' : 'shadow-soft-xl'}
+          ${isDragging ? 'scale-110 shadow-2xl ring-2 ring-blue-400/50' : ''}
           ${isLockedVariant 
             ? 'bg-gradient-to-br from-gray-400 to-gray-500 text-white' 
             : 'bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 text-white'
           }
-          ${isLoading ? 'cursor-wait' : 'cursor-pointer'}
+          ${isLoading ? 'cursor-wait' : isDragging ? 'cursor-grabbing' : 'cursor-grab'}
           ${className}
           active:scale-95 active:shadow-soft-lg
         `}
         style={{
           willChange: 'transform, box-shadow',
-          pointerEvents: 'auto'
+          pointerEvents: 'auto',
+          touchAction: 'none', // Prevent scroll while dragging on mobile
         }}
         aria-label={tooltipText}
         disabled={isLoading}
