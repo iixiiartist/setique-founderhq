@@ -154,7 +154,13 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
     const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(() => new Set());
     const [bulkSelectMode, setBulkSelectMode] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [activeTask, setActiveTask] = useState<Task | null>(null);
+    const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+    
+    // Derive activeTask from allTasks to ensure it stays in sync with updates
+    const activeTask = useMemo(() => {
+        if (!activeTaskId) return null;
+        return allTasks.find(t => t.id === activeTaskId) || null;
+    }, [activeTaskId, allTasks]);
 
     // DnD State
     const [activeId, setActiveId] = useState<string | null>(null);
@@ -306,12 +312,12 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
 
     const handleTaskClick = useCallback((task: Task) => {
         logger.info('[TasksTab] Task clicked', { taskId: task.id, status: task.status });
-        setActiveTask(task);
-    }, [setActiveTask]);
+        setActiveTaskId(task.id);
+    }, []);
 
     const handleCloseDetail = useCallback(() => {
-        setActiveTask(null);
-    }, [setActiveTask]);
+        setActiveTaskId(null);
+    }, []);
 
     const handleOpenTaskModule = useCallback((task: Task) => {
         if (!onNavigateToTab) return;
@@ -323,14 +329,14 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
         if (!onNavigateToTab || !task.crmType) return;
         const targetTab = CRM_TAB_TARGET[task.crmType] || Tab.Accounts;
         onNavigateToTab(targetTab);
-        setActiveTask(null);
+        setActiveTaskId(null);
     }, [onNavigateToTab]);
 
     const handleNavigateToEntity = useCallback((entityType: string) => {
         if (!onNavigateToTab) return;
         const targetTab = ENTITY_TAB_TARGET[entityType] || Tab.Accounts;
         onNavigateToTab(targetTab);
-        setActiveTask(null);
+        setActiveTaskId(null);
     }, [onNavigateToTab]);
 
     const toggleBulkSelect = useCallback(() => {
