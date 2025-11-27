@@ -1,22 +1,9 @@
 // lib/services/agentReportExport.ts
 // Export agent reports to HTML, PDF, and save to file library
 
-import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
 import { DatabaseService } from './database';
 import type { AgentReport } from './agentReportService';
 import type { AgentSource } from './youAgentClient';
-
-// Ensure html2canvas is available globally for jsPDF
-declare global {
-  interface Window {
-    html2canvas?: typeof html2canvas;
-  }
-}
-
-if (typeof window !== 'undefined') {
-  window.html2canvas = html2canvas;
-}
 
 // ============================================================================
 // Types
@@ -815,132 +802,100 @@ export function exportReportToHtml(report: AgentReport, options: ExportOptions =
 }
 
 /**
- * Export agent report to PDF file using html2canvas
+ * Export agent report to PDF file using browser print
+ * This approach uses the browser's native print-to-PDF which handles
+ * page breaks naturally and produces cleaner multi-page documents
  */
 export async function exportReportToPdf(report: AgentReport, options: ExportOptions = {}): Promise<void> {
-  const filename = options.filename || `${sanitizeFilename(report.target)}_report.pdf`;
   const html = buildReportHtml(report, { ...options, includeCoverPage: true });
-
-  // Create render container
-  const container = createRenderContainer(html);
   
-  // Save current scroll position
-  const scrollX = window.scrollX;
-  const scrollY = window.scrollY;
-
-  try {
-    // Wait for styles and fonts to load
-    await waitForRender();
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Scroll to top to ensure proper rendering
-    window.scrollTo(0, 0);
-    
-    // Get container dimensions
-    const containerWidth = container.offsetWidth || 794;
-    const containerHeight = container.scrollHeight || container.offsetHeight;
-
-    console.log('[agentReportExport] Container dimensions:', containerWidth, containerHeight);
-
-    // Capture the container with html2canvas
-    const canvas = await html2canvas(container, {
-      scale: 2, // Higher quality
-      useCORS: true,
-      allowTaint: true,
-      logging: false,
-      backgroundColor: '#ffffff',
-      width: containerWidth,
-      height: containerHeight,
-      windowWidth: containerWidth,
-      windowHeight: containerHeight,
-      scrollX: 0,
-      scrollY: 0,
-      x: 0,
-      y: 0,
-    });
-
-    console.log('[agentReportExport] Canvas dimensions:', canvas.width, canvas.height);
-
-    // Create PDF
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'pt',
-      format: 'a4',
-    });
-
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const margin = 30;
-    
-    // Calculate dimensions
-    const contentWidth = pageWidth - (margin * 2);
-    const scaleFactor = contentWidth / canvas.width;
-    const scaledHeight = canvas.height * scaleFactor;
-    
-    // Available height per page (leaving room for page numbers)
-    const availableHeight = pageHeight - (margin * 2) - 20;
-    
-    // If content fits on one page
-    if (scaledHeight <= availableHeight) {
-      const imgData = canvas.toDataURL('image/png', 1.0);
-      pdf.addImage(imgData, 'PNG', margin, margin, contentWidth, scaledHeight);
-    } else {
-      // Multi-page: split canvas into pages
-      const pageContentHeight = availableHeight / scaleFactor; // Height in canvas pixels per page
-      const totalPages = Math.ceil(canvas.height / pageContentHeight);
-      
-      for (let page = 0; page < totalPages; page++) {
-        if (page > 0) {
-          pdf.addPage();
-        }
-        
-        // Create a temporary canvas for this page slice
-        const pageCanvas = document.createElement('canvas');
-        pageCanvas.width = canvas.width;
-        pageCanvas.height = Math.min(pageContentHeight, canvas.height - (page * pageContentHeight));
-        
-        const ctx = pageCanvas.getContext('2d');
-        if (ctx) {
-          // Draw the portion of the main canvas for this page
-          ctx.drawImage(
-            canvas,
-            0, page * pageContentHeight, // Source x, y
-            canvas.width, pageCanvas.height, // Source width, height
-            0, 0, // Dest x, y
-            pageCanvas.width, pageCanvas.height // Dest width, height
-          );
-          
-          const pageImgData = pageCanvas.toDataURL('image/png', 1.0);
-          const pageScaledHeight = pageCanvas.height * scaleFactor;
-          pdf.addImage(pageImgData, 'PNG', margin, margin, contentWidth, pageScaledHeight);
-        }
-      }
-    }
-
-    // Add page numbers
-    const pageCount = pdf.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      pdf.setPage(i);
-      pdf.setFontSize(9);
-      pdf.setTextColor(150);
-      pdf.text(
-        `Page ${i} of ${pageCount}`,
-        pageWidth / 2,
-        pageHeight - 15,
-        { align: 'center' }
-      );
-    }
-
-    pdf.save(filename);
-    console.log('[agentReportExport] PDF saved successfully');
-  } catch (error) {
-    console.error('[agentReportExport] PDF export error:', error);
-    throw new Error('Failed to export PDF. Please try the HTML export instead.');
-  } finally {
-    // Restore scroll position and clean up
-    window.scrollTo(scrollX, scrollY);
-    document.body.removeChild(container);
+  // Create a new window for printing
+  const printWindow = window.open('', '_blank', 'width=800,height=600');
+  
+  if (!printWindow) {
+    throw new Error('Could not open print window. Please allow popups and try again.');
   }
+
+  // Write the HTML content with print-optimized styles
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>${escapeHtml(report.target)} - Research Report</title>
+      <style>
+        ${getReportStyles(options.brandColor || BRAND_YELLOW)}
+        
+        /* Additional print-specific styles */
+        @media print {
+          body {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          
+          .report-container {
+            max-width: 100%;
+            padding: 0;
+          }
+          
+          /* Prevent awkward page breaks */
+          h1, h2, h3, h4 {
+            page-break-after: avoid;
+            break-after: avoid;
+          }
+          
+          p, li, blockquote {
+            orphans: 3;
+            widows: 3;
+          }
+          
+          ul, ol, table, pre, blockquote {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          
+          .source-card {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          
+          .sources-section {
+            page-break-before: auto;
+          }
+          
+          .cover-page {
+            page-break-after: always;
+            break-after: page;
+            min-height: auto;
+            padding-bottom: 40px;
+          }
+        }
+        
+        @page {
+          margin: 0.75in;
+          size: A4;
+        }
+      </style>
+    </head>
+    <body>
+      ${html.match(/<body[^>]*>([\s\S]*)<\/body>/)?.[1] || ''}
+      <script>
+        // Auto-print when loaded
+        window.onload = function() {
+          setTimeout(function() {
+            window.print();
+            // Close the window after a delay to allow print dialog
+            setTimeout(function() {
+              window.close();
+            }, 1000);
+          }, 250);
+        };
+      </script>
+    </body>
+    </html>
+  `);
+  
+  printWindow.document.close();
 }
 
 /**
