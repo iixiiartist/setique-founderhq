@@ -766,17 +766,15 @@ function sanitizeFilename(name: string): string {
 // Create a visible render container for html2canvas
 function createRenderContainer(html: string): HTMLElement {
   const container = document.createElement('div');
-  // Use opacity and z-index - html2canvas needs element in viewport
-  container.style.position = 'fixed';
-  container.style.top = '0';
+  // Position absolutely but visible - html2canvas needs to see it
+  container.style.position = 'absolute';
   container.style.left = '0';
-  container.style.width = '800px';
-  container.style.minHeight = '100px';
+  container.style.top = '0';
+  container.style.width = '794px'; // A4 width at 96 DPI
   container.style.backgroundColor = '#ffffff';
-  container.style.opacity = '0';
-  container.style.zIndex = '-9999';
-  container.style.pointerEvents = 'none';
-  container.style.overflow = 'visible';
+  container.style.zIndex = '99999';
+  container.style.visibility = 'visible';
+  container.style.opacity = '1';
   container.innerHTML = html;
   document.body.appendChild(container);
   return container;
@@ -817,7 +815,7 @@ export function exportReportToHtml(report: AgentReport, options: ExportOptions =
 }
 
 /**
- * Export agent report to PDF file
+ * Export agent report to PDF file using html2canvas
  */
 export async function exportReportToPdf(report: AgentReport, options: ExportOptions = {}): Promise<void> {
   const filename = options.filename || `${sanitizeFilename(report.target)}_report.pdf`;
@@ -825,15 +823,45 @@ export async function exportReportToPdf(report: AgentReport, options: ExportOpti
 
   // Create render container
   const container = createRenderContainer(html);
+  
+  // Save current scroll position
+  const scrollX = window.scrollX;
+  const scrollY = window.scrollY;
 
   try {
-    // Wait for styles to apply
+    // Wait for styles and fonts to load
     await waitForRender();
+    await new Promise(resolve => setTimeout(resolve, 100));
     
-    // Force layout calculation
-    const containerWidth = container.scrollWidth || 800;
-    const containerHeight = container.scrollHeight || 500;
+    // Scroll to top to ensure proper rendering
+    window.scrollTo(0, 0);
+    
+    // Get container dimensions
+    const containerWidth = container.offsetWidth || 794;
+    const containerHeight = container.scrollHeight || container.offsetHeight;
 
+    console.log('[agentReportExport] Container dimensions:', containerWidth, containerHeight);
+
+    // Capture the container with html2canvas
+    const canvas = await html2canvas(container, {
+      scale: 2, // Higher quality
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+      backgroundColor: '#ffffff',
+      width: containerWidth,
+      height: containerHeight,
+      windowWidth: containerWidth,
+      windowHeight: containerHeight,
+      scrollX: 0,
+      scrollY: 0,
+      x: 0,
+      y: 0,
+    });
+
+    console.log('[agentReportExport] Canvas dimensions:', canvas.width, canvas.height);
+
+    // Create PDF
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'pt',
@@ -842,57 +870,75 @@ export async function exportReportToPdf(report: AgentReport, options: ExportOpti
 
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
-    const margin = 40;
-    const renderWidth = pageWidth - margin * 2;
-
-    // Make container visible for html2canvas
-    container.style.opacity = '1';
-    await waitForRender();
-
-    await pdf.html(container, {
-      x: margin,
-      y: margin,
-      width: renderWidth,
-      windowWidth: containerWidth,
-      autoPaging: 'text',
-      html2canvas: {
-        scale: 0.85,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        windowWidth: containerWidth,
-        windowHeight: containerHeight,
-        backgroundColor: '#ffffff',
-        onclone: (clonedDoc) => {
-          // Ensure cloned element is fully visible
-          const clonedContainer = clonedDoc.body.querySelector('div');
-          if (clonedContainer) {
-            (clonedContainer as HTMLElement).style.opacity = '1';
-            (clonedContainer as HTMLElement).style.position = 'static';
-          }
+    const margin = 30;
+    
+    // Calculate dimensions
+    const contentWidth = pageWidth - (margin * 2);
+    const scaleFactor = contentWidth / canvas.width;
+    const scaledHeight = canvas.height * scaleFactor;
+    
+    // Available height per page (leaving room for page numbers)
+    const availableHeight = pageHeight - (margin * 2) - 20;
+    
+    // If content fits on one page
+    if (scaledHeight <= availableHeight) {
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      pdf.addImage(imgData, 'PNG', margin, margin, contentWidth, scaledHeight);
+    } else {
+      // Multi-page: split canvas into pages
+      const pageContentHeight = availableHeight / scaleFactor; // Height in canvas pixels per page
+      const totalPages = Math.ceil(canvas.height / pageContentHeight);
+      
+      for (let page = 0; page < totalPages; page++) {
+        if (page > 0) {
+          pdf.addPage();
         }
-      },
-    });
+        
+        // Create a temporary canvas for this page slice
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = Math.min(pageContentHeight, canvas.height - (page * pageContentHeight));
+        
+        const ctx = pageCanvas.getContext('2d');
+        if (ctx) {
+          // Draw the portion of the main canvas for this page
+          ctx.drawImage(
+            canvas,
+            0, page * pageContentHeight, // Source x, y
+            canvas.width, pageCanvas.height, // Source width, height
+            0, 0, // Dest x, y
+            pageCanvas.width, pageCanvas.height // Dest width, height
+          );
+          
+          const pageImgData = pageCanvas.toDataURL('image/png', 1.0);
+          const pageScaledHeight = pageCanvas.height * scaleFactor;
+          pdf.addImage(pageImgData, 'PNG', margin, margin, contentWidth, pageScaledHeight);
+        }
+      }
+    }
 
     // Add page numbers
     const pageCount = pdf.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       pdf.setPage(i);
-      pdf.setFontSize(10);
+      pdf.setFontSize(9);
       pdf.setTextColor(150);
       pdf.text(
         `Page ${i} of ${pageCount}`,
         pageWidth / 2,
-        pageHeight - 20,
+        pageHeight - 15,
         { align: 'center' }
       );
     }
 
     pdf.save(filename);
+    console.log('[agentReportExport] PDF saved successfully');
   } catch (error) {
     console.error('[agentReportExport] PDF export error:', error);
     throw new Error('Failed to export PDF. Please try the HTML export instead.');
   } finally {
+    // Restore scroll position and clean up
+    window.scrollTo(scrollX, scrollY);
     document.body.removeChild(container);
   }
 }
