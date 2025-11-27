@@ -109,21 +109,21 @@ const FEATURE_CLUSTERS: FeatureCluster[] = [
   {
     id: 'intelligence',
     badge: '3',
-    title: 'Intelligence: Scale With AI',
-    description: 'Context-aware copilots with market research summarize pipelines, prep meetings, and suggest next plays without leaving the workspace.',
+    title: 'Intelligence: Scale With AI Agents',
+    description: 'Autonomous AI Agents research competitors, analyze markets, and execute multi-step GTM tasks. Context-aware copilots summarize pipelines, prep meetings, and suggest next plays.',
     accent: 'from-purple-100/70 via-white to-fuchsia-50/60',
-    tagline: 'AI boost on tap',
+    tagline: 'Autonomous AI agents',
     metric: '25 copilots/day free',
     features: [
       {
-        title: 'AI Market Research',
-        description: 'Get real-time competitive intel, industry trends, and prospect insights with AI-powered web search built right in.',
-        icon: <PieChart className="w-8 h-8" />,
+        title: 'AI Research Agent',
+        description: 'Autonomous agent researches competitors, analyzes markets, and generates comprehensive reports with charts—all while you focus on closing deals.',
+        icon: <Brain className="w-8 h-8" />,
       },
       {
-        title: 'AI Account Briefs',
-        description: 'Instant dossiers on any investor, customer, or partner using your notes, docs, and historical touchpoints.',
-        icon: <Brain className="w-8 h-8" />,
+        title: 'AI Market Intelligence',
+        description: 'Get real-time competitive intel, industry trends, and prospect insights with AI-powered web search built right in.',
+        icon: <PieChart className="w-8 h-8" />,
       },
       {
         title: 'AI Chart Generation',
@@ -200,7 +200,7 @@ export function LandingPage() {
               </li>
               <li className="flex items-start gap-3">
                 <Sparkles className="w-5 h-5 mt-0.5" />
-                <span>AI copilots summarize deal health, prep call briefs, generate charts, and pull live market research—but the workflows still make sense without them.</span>
+                <span>Autonomous AI Agents research competitors, analyze markets, generate reports with charts, and execute multi-step GTM tasks—while you focus on closing.</span>
               </li>
               <li className="flex items-start gap-3">
                 <Mail className="w-5 h-5 mt-0.5" />
