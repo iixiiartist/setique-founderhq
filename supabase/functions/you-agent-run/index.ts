@@ -178,8 +178,9 @@ serve(async (req: Request): Promise<Response> => {
     console.log(`[you-agent-run] Calling You.com API with agent: ${body.agentId}`);
 
     // Call You.com agents API with abort controller for timeout
+    // Supabase Edge Functions have a 150s hard limit, but we set 120s to give time for cleanup
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 55000); // 55s timeout (Supabase has 60s limit)
+    const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout
 
     try {
       const youRes = await fetch(YOUCOM_API_URL, {

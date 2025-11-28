@@ -360,6 +360,11 @@ Notes: They're evaluating 3 vendors...`}
                         Please contact support to configure this agent.
                       </p>
                     )}
+                    {(errorCode === 'timeout' || errorCode === 'network') && (
+                      <p className="text-xs text-red-600 mt-1">
+                        Tip: Try providing less context or focus on a single analysis type.
+                      </p>
+                    )}
                   </div>
                 </div>
               )}

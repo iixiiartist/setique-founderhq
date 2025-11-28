@@ -14,6 +14,10 @@ export interface RunAgentParams {
       goal?: string;
       notes?: string;
       businessContext?: string;
+      product?: string;
+      icp?: string;
+      region?: string;
+      deal_context?: string;
     };
     [key: string]: unknown;
   };
@@ -39,7 +43,7 @@ export interface RunAgentResponse {
 export class YouAgentError extends Error {
   constructor(
     message: string,
-    public readonly code: 'rate_limit' | 'auth' | 'config' | 'api' | 'timeout' | 'unknown',
+    public readonly code: 'rate_limit' | 'auth' | 'config' | 'api' | 'timeout' | 'network' | 'unknown',
     public readonly resetIn?: number
   ) {
     super(message);
@@ -49,6 +53,7 @@ export class YouAgentError extends Error {
 
 /**
  * Run a You.com custom agent via the edge function
+ * Note: This can take 30-120+ seconds for complex research queries
  */
 export async function runYouAgent(params: RunAgentParams): Promise<RunAgentResponse> {
   const { agent, input, context } = params;
@@ -74,59 +79,118 @@ export async function runYouAgent(params: RunAgentParams): Promise<RunAgentRespo
 
   console.log('[youAgentClient] Invoking agent:', agentConfig.id, 'with session:', !!session);
 
-  const { data, error } = await supabase.functions.invoke('you-agent-run', {
-    body: {
-      agentId: agentConfig.id,
-      input,
-      context,
-      stream: false,
-    },
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-    },
-  });
+  // Create an AbortController for client-side timeout
+  // We set this slightly higher than the edge function timeout to let it handle errors gracefully
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 130000); // 130s timeout (edge function has 120s)
 
-  if (error) {
-    console.error('[youAgentClient] Edge function error:', error);
-    
-    // Try to extract error details
-    const errorContext = error as { context?: { status?: number; response_body?: string } };
-    const status = errorContext?.context?.status;
-    
-    if (status === 429) {
-      const body = tryParseJson(errorContext?.context?.response_body);
-      const resetIn = typeof body?.resetIn === 'number' ? body.resetIn : undefined;
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/you-agent-run`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          agentId: agentConfig.id,
+          input,
+          context,
+          stream: false,
+        }),
+        signal: controller.signal,
+      }
+    );
+
+    clearTimeout(timeoutId);
+
+    // Handle non-OK responses
+    if (!response.ok) {
+      let errorData: { error?: string; resetIn?: number } = {};
+      try {
+        errorData = await response.json();
+      } catch {
+        // Response might not be JSON
+      }
+
+      if (response.status === 429) {
+        throw new YouAgentError(
+          errorData.error || 'Rate limit exceeded. Please wait before making more requests.',
+          'rate_limit',
+          errorData.resetIn
+        );
+      }
+
+      if (response.status === 401 || response.status === 403) {
+        throw new YouAgentError('Authentication required. Please sign in again.', 'auth');
+      }
+
+      if (response.status === 504) {
+        throw new YouAgentError(
+          'The AI agent is taking longer than expected. This can happen with complex research queries. Please try again with a simpler query.',
+          'timeout'
+        );
+      }
+
+      if (response.status >= 500) {
+        throw new YouAgentError(
+          errorData.error || 'Server error. Please try again in a moment.',
+          'api'
+        );
+      }
+
       throw new YouAgentError(
-        'Rate limit exceeded. Please wait before making more requests.',
-        'rate_limit',
-        resetIn
+        errorData.error || `Request failed with status ${response.status}`,
+        'api'
       );
     }
-    
-    if (status === 401) {
-      throw new YouAgentError('Authentication required. Please sign in.', 'auth');
-    }
-    
-    if (status === 504) {
-      throw new YouAgentError('Agent request timed out. Please try again.', 'timeout');
+
+    const data = await response.json();
+
+    // Check for error in response body
+    if (data.error) {
+      throw new YouAgentError(data.error, 'api');
     }
 
+    if (!data.output) {
+      throw new YouAgentError('No response from agent', 'api');
+    }
+
+    return data as RunAgentResponse;
+
+  } catch (err: unknown) {
+    clearTimeout(timeoutId);
+
+    // Re-throw YouAgentError as-is
+    if (err instanceof YouAgentError) {
+      throw err;
+    }
+
+    // Handle abort (timeout)
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new YouAgentError(
+        'The request timed out. AI research can take up to 2 minutes for complex queries. Please try again.',
+        'timeout'
+      );
+    }
+
+    // Handle network errors (including CORS failures which happen on 504 without proper headers)
+    if (err instanceof TypeError && err.message.includes('fetch')) {
+      throw new YouAgentError(
+        'Network error. The AI agent may have timed out. Please try again with a simpler query.',
+        'network'
+      );
+    }
+
+    // Unknown error
+    console.error('[youAgentClient] Unexpected error:', err);
     throw new YouAgentError(
-      error.message || 'Failed to run agent',
-      'api'
+      err instanceof Error ? err.message : 'An unexpected error occurred',
+      'unknown'
     );
   }
-
-  if (!data) {
-    throw new YouAgentError('No response from agent', 'api');
-  }
-
-  // Check for error in response body
-  if (data.error) {
-    throw new YouAgentError(data.error, 'api');
-  }
-
-  return data as RunAgentResponse;
 }
 
 function tryParseJson(str: unknown): Record<string, unknown> | null {

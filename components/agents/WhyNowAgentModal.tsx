@@ -340,6 +340,11 @@ export const WhyNowAgentModal: React.FC<WhyNowAgentModalProps> = ({
                         Please contact support to configure this agent.
                       </p>
                     )}
+                    {(errorCode === 'timeout' || errorCode === 'network') && (
+                      <p className="text-xs text-red-600 mt-1">
+                        Tip: Try a single company name instead of a segment, or use a specific domain.
+                      </p>
+                    )}
                   </div>
                 </div>
               )}

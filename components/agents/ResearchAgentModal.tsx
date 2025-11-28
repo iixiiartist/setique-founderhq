@@ -322,6 +322,11 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
                         Please contact support to configure this agent.
                       </p>
                     )}
+                    {(errorCode === 'timeout' || errorCode === 'network') && (
+                      <p className="text-xs text-red-600 mt-1">
+                        Tip: Try a more specific company or topic, or reduce the scope of your query.
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
