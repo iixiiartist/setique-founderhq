@@ -2,7 +2,7 @@
 // Reusable card component for displaying an agent
 
 import React from 'react';
-import { Zap, ZapOff, ExternalLink, Settings } from 'lucide-react';
+import { Zap, ZapOff, ExternalLink, Settings, Crown } from 'lucide-react';
 import type { YouAgentConfig, YouAgentSlug } from '../../lib/config/youAgents';
 
 interface AgentCardProps {
@@ -20,6 +20,36 @@ export const AgentCard: React.FC<AgentCardProps> = ({
 }) => {
   const isConfigured = Boolean(config.id);
   const canOpen = config.enabled && isConfigured;
+  const isPro = config.tier === 'pro';
+
+  // Determine gradient based on agent type
+  const getGradient = () => {
+    switch (slug) {
+      case 'why_now':
+        return 'from-amber-100 to-orange-100';
+      case 'deal_strategist':
+        return 'from-indigo-100 to-purple-100';
+      default:
+        return 'from-yellow-100 to-amber-100';
+    }
+  };
+
+  const getButtonColor = () => {
+    switch (slug) {
+      case 'why_now':
+        return canOpen 
+          ? 'bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white'
+          : 'bg-gray-100 text-gray-400 cursor-not-allowed';
+      case 'deal_strategist':
+        return canOpen 
+          ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white'
+          : 'bg-gray-100 text-gray-400 cursor-not-allowed';
+      default:
+        return canOpen
+          ? 'bg-yellow-400 hover:bg-yellow-500 text-black'
+          : 'bg-gray-100 text-gray-400 cursor-not-allowed';
+    }
+  };
 
   return (
     <div className={`
@@ -30,15 +60,23 @@ export const AgentCard: React.FC<AgentCardProps> = ({
       <div className="space-y-3">
         {/* Header */}
         <div className="flex items-start justify-between">
-          <div className="w-12 h-12 bg-gradient-to-br from-yellow-100 to-amber-100 rounded-xl flex items-center justify-center text-2xl shadow-inner">
+          <div className={`w-12 h-12 bg-gradient-to-br ${getGradient()} rounded-xl flex items-center justify-center text-2xl shadow-inner`}>
             {config.icon}
           </div>
-          {!isConfigured && (
-            <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full flex items-center gap-1">
-              <Settings size={10} />
-              Setup Required
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {isPro && (
+              <span className="text-xs bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2 py-1 rounded-full flex items-center gap-1 font-medium shadow-sm">
+                <Crown size={10} />
+                Pro
+              </span>
+            )}
+            {!isConfigured && (
+              <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full flex items-center gap-1">
+                <Settings size={10} />
+                Setup Required
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Title & Description */}
@@ -96,10 +134,7 @@ export const AgentCard: React.FC<AgentCardProps> = ({
           disabled={!canOpen}
           className={`
             flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg font-medium transition-colors
-            ${canOpen
-              ? 'bg-yellow-400 hover:bg-yellow-500 text-black'
-              : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            }
+            ${getButtonColor()}
           `}
         >
           Open

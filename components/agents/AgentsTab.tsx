@@ -6,6 +6,8 @@ import { Bot, Sparkles, FileText } from 'lucide-react';
 import { YOU_AGENTS, getEnabledAgents, type YouAgentSlug } from '../../lib/config/youAgents';
 import { AgentCard } from './AgentCard';
 import { ResearchAgentModal } from './ResearchAgentModal';
+import { WhyNowAgentModal } from './WhyNowAgentModal';
+import { DealStrategistModal } from './DealStrategistModal';
 import { SavedReportsList } from './SavedReportsList';
 import { useAgentReports } from '../../hooks/useAgentReports';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
@@ -148,7 +150,23 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({ actions, onInsertToDoc }) 
         />
       )}
 
-      {/* Add more modals for other agents as they're implemented */}
+      {activeModal === 'why_now' && (
+        <WhyNowAgentModal
+          open={true}
+          onClose={handleCloseModal}
+          onInsertToDoc={onInsertToDoc}
+          savedReport={viewingReport}
+        />
+      )}
+
+      {activeModal === 'deal_strategist' && (
+        <DealStrategistModal
+          open={true}
+          onClose={handleCloseModal}
+          onInsertToDoc={onInsertToDoc}
+          savedReport={viewingReport}
+        />
+      )}
     </div>
   );
 };
