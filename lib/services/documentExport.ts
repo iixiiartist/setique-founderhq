@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import TurndownService from 'turndown';
 import { Editor } from '@tiptap/core';
+import { convertYouTubeForHtmlExport } from '../utils/youtubeEmbed';
 
 declare global {
   interface Window {
@@ -154,6 +155,22 @@ const BASE_DOCUMENT_STYLES = `
     margin: 0 0 12px 0;
     font-size: 1.1em;
     color: #333;
+  }
+  /* YouTube video embed styles */
+  [data-youtube-video] {
+    margin: 24px 0;
+  }
+  [data-youtube-video] iframe {
+    max-width: 100%;
+    border-radius: 8px;
+    border: none;
+  }
+  iframe[src*="youtube.com"], iframe[src*="youtube-nocookie.com"] {
+    max-width: 100%;
+    aspect-ratio: 16/9;
+    height: auto;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
   }
   @media print {
     .page-break {
@@ -692,7 +709,10 @@ export const exportToHTML = (
   const { html } = transformCitations(editor.getHTML(), {
     referenceHeading: DEFAULT_REFERENCE_HEADING,
   });
-  const fullHtml = buildDocumentHtml(html, { title, accentColor: DEFAULT_ACCENT_COLOR, includeCoverPage: false });
+  
+  // Convert YouTube embeds from nocookie domain to standard domain for better compatibility
+  const processedHtml = convertYouTubeForHtmlExport(html);
+  const fullHtml = buildDocumentHtml(processedHtml, { title, accentColor: DEFAULT_ACCENT_COLOR, includeCoverPage: false });
 
   const blob = new Blob([fullHtml], { type: 'text/html' });
   const url = URL.createObjectURL(blob);

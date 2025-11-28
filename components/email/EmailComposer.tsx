@@ -44,6 +44,7 @@ import { HexColorPicker } from 'react-colorful';
 import ShapeNode, { ShapeType } from '../../lib/tiptap/ShapeNode';
 import { FontSize } from '../../lib/tiptap/FontSize';
 import { v4 as uuidv4 } from 'uuid';
+import { convertYouTubeForEmailSimple, hasYouTubeEmbed } from '../../lib/utils/youtubeEmbed';
 
 export interface EmailAttachment {
   name: string;
@@ -615,6 +616,16 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
     return editor?.getHTML() || '';
   };
 
+  /**
+   * Get HTML content formatted for email sending
+   * Converts YouTube embeds to clickable thumbnails (iframes not supported in email)
+   */
+  const getEditorHtmlForEmail = () => {
+    const html = editor?.getHTML() || '';
+    // Convert YouTube embeds to email-friendly thumbnails
+    return convertYouTubeForEmailSimple(html);
+  };
+
   const getEditorText = () => {
     return editor?.getText() || '';
   };
@@ -676,7 +687,7 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
           to: to.split(',').map(e => e.trim()),
           cc: cc ? cc.split(',').map(e => e.trim()) : undefined,
           subject,
-          htmlBody: getEditorHtml(),
+          htmlBody: getEditorHtmlForEmail(), // Use email-friendly HTML (converts YouTube embeds to thumbnails)
           attachments: attachments.length > 0 ? attachments : undefined,
         })
       });
