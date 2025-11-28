@@ -1,0 +1,7 @@
+# Supabase configuration
+[api]
+# Disables JWT verification globally for local development
+# Production functions should handle auth themselves
+
+[functions.you-agent-run]
+verify_jwt = false

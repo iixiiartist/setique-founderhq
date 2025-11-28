@@ -258,14 +258,19 @@ const MarketingTab: React.FC<{
     }, [items]);
 
     const handleSaveCampaign = async (campaignData: Partial<MarketingItem>) => {
+        console.log('[MarketingTab] handleSaveCampaign called with:', campaignData);
         let result;
         if (editingItem) {
             // Update existing campaign
+            console.log('[MarketingTab] Updating existing campaign:', editingItem.id);
             result = await actions.updateMarketingItem(editingItem.id, campaignData);
         } else {
             // Create new campaign
+            console.log('[MarketingTab] Creating new campaign');
             result = await actions.createMarketingItem(campaignData as Omit<MarketingItem, 'id' | 'createdAt' | 'notes'>);
         }
+        
+        console.log('[MarketingTab] Operation result:', result);
         
         // Only close modal if operation succeeded
         if (result.success) {

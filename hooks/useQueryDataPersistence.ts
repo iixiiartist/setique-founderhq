@@ -110,7 +110,7 @@ export const useQueryDataPersistence = () => {
    */
   const loadMarketing = useCallback(async (options: LoadOptions = {}) => {
     if (!userId || !workspaceId) {
-      return [];
+      return { marketing: [] };
     }
 
     try {
@@ -120,10 +120,11 @@ export const useQueryDataPersistence = () => {
       const { dbToMarketingItem } = await import('../lib/utils/fieldTransformers');
       const transformedMarketing = (data || []).map(dbToMarketingItem);
       
-      return transformedMarketing;
+      // Return as object structure expected by DashboardData
+      return { marketing: transformedMarketing };
     } catch (err) {
       console.error('Error loading marketing:', err);
-      return [];
+      return { marketing: [] };
     }
   }, [userId, workspaceId]);
 

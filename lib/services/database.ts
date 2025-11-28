@@ -493,7 +493,7 @@ export class DatabaseService {
   // Marketing Items operations
   static async getMarketingItems(workspaceId: string) {
     try {
-      const { data, error} = await supabase
+      const { data, error } = await supabase
         .from('marketing_items')
         .select('*')
         .eq('workspace_id', workspaceId)
@@ -525,16 +525,22 @@ export class DatabaseService {
 
   static async createMarketingItem(userId: string, workspaceId: string, itemData: Omit<Tables['marketing_items']['Insert'], 'user_id' | 'workspace_id'>) {
     try {
+      console.log('[DatabaseService] createMarketingItem called:', { userId, workspaceId, itemData });
+      const insertData = { ...itemData, user_id: userId, workspace_id: workspaceId };
+      console.log('[DatabaseService] Insert payload:', insertData);
+      
       const { data, error } = await supabase
         .from('marketing_items')
-        .insert({ ...itemData, user_id: userId, workspace_id: workspaceId })
+        .insert(insertData)
         .select()
         .single()
 
+      console.log('[DatabaseService] createMarketingItem result:', { data, error: error?.message || null });
       if (error) throw error
       return { data, error: null }
     } catch (error) {
       logger.error('Error creating marketing item:', error)
+      console.error('[DatabaseService] createMarketingItem FAILED:', error);
       return { data: null, error }
     }
   }

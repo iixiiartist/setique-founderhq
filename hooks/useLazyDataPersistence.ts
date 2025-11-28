@@ -329,8 +329,13 @@ export const useLazyDataPersistence = () => {
         DatabaseService.getMarketingCalendarLinks(workspace.id)
       ])
 
+      console.log('[useLazyDataPersistence] RAW marketingRes:', marketingRes);
+      console.log('[useLazyDataPersistence] marketingRes.data length:', marketingRes.data?.length);
+
       // Transform raw database rows to application models (snake_case → camelCase)
       const transformedMarketing = (marketingRes.data || []).map(dbToMarketingItem);
+      
+      console.log('[useLazyDataPersistence] transformedMarketing length:', transformedMarketing.length);
 
       const result = {
         marketing: transformedMarketing,
@@ -338,6 +343,8 @@ export const useLazyDataPersistence = () => {
         marketingAnalytics: analyticsRes.data || [],
         marketingCalendarLinks: calendarLinksRes.data || []
       }
+      
+      console.log('[useLazyDataPersistence] result.marketing length:', result.marketing.length);
 
       setDataCache(prev => ({
         ...prev,

@@ -125,6 +125,11 @@ export function CampaignFormModal({
     }, [isOpen, editingCampaign]);
 
     const handleSubmit = async (data: CampaignFormData) => {
+        console.log('[CampaignFormModal] handleSubmit called');
+        console.log('[CampaignFormModal] Form data:', data);
+        console.log('[CampaignFormModal] selectedChannels:', Array.from(selectedChannels));
+        console.log('[CampaignFormModal] selectedProducts:', Array.from(selectedProducts));
+        console.log('[CampaignFormModal] tags:', tags);
         try {
             setGlobalError(null);
             // Merge form data with multi-selects
@@ -134,8 +139,11 @@ export function CampaignFormModal({
                 productServiceIds: Array.from(selectedProducts),
                 tags,
             };
+            console.log('[CampaignFormModal] Merged campaignData:', campaignData);
             await onSave(campaignData);
+            console.log('[CampaignFormModal] onSave completed successfully');
         } catch (err) {
+            console.error('[CampaignFormModal] Error in handleSubmit:', err);
             setGlobalError(err instanceof Error ? err.message : 'Failed to save campaign');
             throw err; // Re-throw so form knows submission failed
         }
