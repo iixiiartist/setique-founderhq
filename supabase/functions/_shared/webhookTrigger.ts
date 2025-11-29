@@ -28,6 +28,15 @@ export type WebhookEventType =
   | 'document.created'
   | 'document.updated'
   | 'document.deleted'
+  // CRM item events
+  | 'crm.created'
+  | 'crm.updated'
+  | 'crm.stage_changed'
+  | 'crm.deleted'
+  // Agent events
+  | 'agent.run_started'
+  | 'agent.run_completed'
+  | 'agent.run_failed'
   // Test events
   | 'test.ping';
 

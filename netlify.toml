@@ -11,7 +11,7 @@
 # Routes /api/v1/* to Supabase Edge Functions
 # ============================================
 
-# Premium API endpoints
+# Premium API endpoints - Contacts
 [[redirects]]
   from = "/api/v1/contacts"
   to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/api-v1-contacts"
@@ -26,6 +26,7 @@
   force = true
   headers = {X-Forwarded-Host = "founderhq.setique.com"}
 
+# Premium API endpoints - Tasks
 [[redirects]]
   from = "/api/v1/tasks"
   to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/api-v1-tasks"
@@ -40,6 +41,7 @@
   force = true
   headers = {X-Forwarded-Host = "founderhq.setique.com"}
 
+# Premium API endpoints - Deals
 [[redirects]]
   from = "/api/v1/deals"
   to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/api-v1-deals"
@@ -50,6 +52,51 @@
 [[redirects]]
   from = "/api/v1/deals/*"
   to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/api-v1-deals/:splat"
+  status = 200
+  force = true
+  headers = {X-Forwarded-Host = "founderhq.setique.com"}
+
+# Premium API endpoints - Documents
+[[redirects]]
+  from = "/api/v1/documents"
+  to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/api-v1-documents"
+  status = 200
+  force = true
+  headers = {X-Forwarded-Host = "founderhq.setique.com"}
+
+[[redirects]]
+  from = "/api/v1/documents/*"
+  to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/api-v1-documents/:splat"
+  status = 200
+  force = true
+  headers = {X-Forwarded-Host = "founderhq.setique.com"}
+
+# Premium API endpoints - CRM (Pipeline)
+[[redirects]]
+  from = "/api/v1/crm"
+  to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/api-v1-crm"
+  status = 200
+  force = true
+  headers = {X-Forwarded-Host = "founderhq.setique.com"}
+
+[[redirects]]
+  from = "/api/v1/crm/*"
+  to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/api-v1-crm/:splat"
+  status = 200
+  force = true
+  headers = {X-Forwarded-Host = "founderhq.setique.com"}
+
+# Premium API endpoints - AI Agents
+[[redirects]]
+  from = "/api/v1/agents"
+  to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/api-v1-agents"
+  status = 200
+  force = true
+  headers = {X-Forwarded-Host = "founderhq.setique.com"}
+
+[[redirects]]
+  from = "/api/v1/agents/*"
+  to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/api-v1-agents/:splat"
   status = 200
   force = true
   headers = {X-Forwarded-Host = "founderhq.setique.com"}

@@ -17,6 +17,11 @@ const AVAILABLE_SCOPES: { value: ApiScope; label: string; description: string }[
   { value: 'tasks:write', label: 'Tasks (Write)', description: 'Create, update, delete tasks' },
   { value: 'deals:read', label: 'Deals (Read)', description: 'View deals and pipeline' },
   { value: 'deals:write', label: 'Deals (Write)', description: 'Create, update, delete deals' },
+  { value: 'documents:read', label: 'Documents (Read)', description: 'View documents and files' },
+  { value: 'documents:write', label: 'Documents (Write)', description: 'Create, update, delete documents' },
+  { value: 'crm:read', label: 'CRM (Read)', description: 'View CRM items (accounts, leads)' },
+  { value: 'crm:write', label: 'CRM (Write)', description: 'Create, update, delete CRM items' },
+  { value: 'agents:run', label: 'AI Agents', description: 'Run AI agent queries' },
 ];
 
 // ============================================
@@ -369,10 +374,19 @@ export const ApiKeysSettings: React.FC<ApiKeysSettingsProps> = ({ workspaceId })
           <p><span className="text-blue-500">GET/POST</span> {apiBaseUrl}/contacts</p>
           <p><span className="text-blue-500">GET/POST</span> {apiBaseUrl}/tasks</p>
           <p><span className="text-blue-500">GET/POST</span> {apiBaseUrl}/deals</p>
+          <p><span className="text-blue-500">GET/POST</span> {apiBaseUrl}/documents</p>
+          <p><span className="text-blue-500">GET/POST</span> {apiBaseUrl}/crm</p>
+          <p><span className="text-blue-500">POST</span> {apiBaseUrl}/agents/run</p>
         </div>
         <p className="text-xs text-blue-600 mt-2">
           Use <code className="bg-blue-100 px-1">Authorization: Bearer fhq_live_...</code> header
         </p>
+        <a 
+          href="/api-docs" 
+          className="inline-block mt-2 text-xs text-blue-700 hover:text-blue-900 underline"
+        >
+          View full API documentation →
+        </a>
       </div>
 
       {/* Loading */}

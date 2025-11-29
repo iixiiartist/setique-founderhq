@@ -23,9 +23,18 @@ const AVAILABLE_EVENTS = [
   { value: 'deal.won', label: 'Deal Won', category: 'Deals' },
   { value: 'deal.lost', label: 'Deal Lost', category: 'Deals' },
   { value: 'deal.deleted', label: 'Deal Deleted', category: 'Deals' },
+  { value: 'document.created', label: 'Document Created', category: 'Documents' },
+  { value: 'document.updated', label: 'Document Updated', category: 'Documents' },
+  { value: 'document.deleted', label: 'Document Deleted', category: 'Documents' },
+  { value: 'crm.created', label: 'CRM Item Created', category: 'CRM' },
+  { value: 'crm.updated', label: 'CRM Item Updated', category: 'CRM' },
+  { value: 'crm.stage_changed', label: 'CRM Stage Changed', category: 'CRM' },
+  { value: 'crm.deleted', label: 'CRM Item Deleted', category: 'CRM' },
+  { value: 'agent.run_completed', label: 'Agent Run Completed', category: 'Agents' },
+  { value: 'agent.run_failed', label: 'Agent Run Failed', category: 'Agents' },
 ];
 
-const EVENT_CATEGORIES = ['Contacts', 'Tasks', 'Deals'];
+const EVENT_CATEGORIES = ['Contacts', 'Tasks', 'Deals', 'Documents', 'CRM', 'Agents'];
 
 // ============================================
 // TYPES

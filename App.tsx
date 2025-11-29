@@ -13,6 +13,7 @@ import { LandingPage } from './components/LandingPage'
 import { PrivacyPolicyPage } from './components/PrivacyPolicyPage'
 import { TermsOfServicePage } from './components/TermsOfServicePage'
 import { CheckoutSuccessPage } from './components/CheckoutSuccessPage'
+import { ApiDocsPage } from './pages/ApiDocsPage'
 import DashboardApp from './DashboardApp'
 import { initializeSentry, ErrorBoundary, ErrorFallback } from './lib/sentry.tsx'
 import { analytics } from './lib/services/analytics'
@@ -60,6 +61,10 @@ const App: React.FC = () => {
           {/* Legal pages */}
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/terms" element={<TermsOfServicePage />} />
+          
+          {/* API Documentation (public) */}
+          <Route path="/docs" element={<ApiDocsPage />} />
+          <Route path="/api-docs" element={<ApiDocsPage />} />
           
           {/* Stripe checkout success */}
           <Route path="/success" element={<CheckoutSuccessPage />} />
