@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
-import { supabase } from '../../lib/supabase';
+import { useNotifications, CATEGORY_TYPES, type NotificationCategory } from '../../hooks/useNotifications';
 import { logger } from '../../lib/logger';
 import type { NotificationType, Notification } from '../../lib/services/notificationService';
 
@@ -28,7 +28,8 @@ import type { NotificationType, Notification } from '../../lib/services/notifica
 // TYPES
 // ============================================
 
-type NotificationCategory = 'all' | 'mentions' | 'tasks' | 'deals' | 'documents' | 'team' | 'achievements';
+// Re-export NotificationCategory from the hook for external use
+export type { NotificationCategory } from '../../hooks/useNotifications';
 
 interface NotificationCenterProps {
   isOpen: boolean;
@@ -144,174 +145,49 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 }) => {
   const { user } = useAuth();
   const { workspace } = useWorkspace();
-  
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<NotificationCategory>('all');
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
 
-  // Load notifications
-  const loadNotifications = useCallback(async (showRefreshing = false) => {
-    if (!user || !workspace) return;
+  // Use the unified notifications hook
+  const {
+    notifications,
+    filteredNotifications,
+    unreadCount,
+    loading,
+    refreshing,
+    markAsRead,
+    markAllAsRead: markAllAsReadHook,
+    deleteNotification: deleteNotificationHook,
+    deleteAllRead: deleteAllReadHook,
+    refresh,
+    setFilters,
+    getCategoryCount,
+  } = useNotifications({
+    userId: user?.id || '',
+    workspaceId: workspace?.id,
+    limit: 100,
+    realtime: isOpen, // Only subscribe when open
+    respectPreferences: true,
+  });
 
-    if (showRefreshing) setRefreshing(true);
-    else setLoading(true);
-
-    try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('workspace_id', workspace.id)
-        .order('created_at', { ascending: false })
-        .limit(100);
-
-      if (error) throw error;
-
-      const transformedNotifications: Notification[] = (data || []).map((row: any) => ({
-        id: row.id,
-        userId: row.user_id,
-        workspaceId: row.workspace_id,
-        type: row.type as NotificationType,
-        title: row.title,
-        message: row.message,
-        entityType: row.entity_type,
-        entityId: row.entity_id,
-        read: row.read,
-        createdAt: row.created_at,
-        actionUrl: row.action_url,
-        priority: row.priority,
-        metadata: row.metadata,
-      }));
-
-      setNotifications(transformedNotifications);
-    } catch (error) {
-      logger.error('Failed to load notifications:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [user, workspace]);
-
-  // Setup real-time subscription
+  // Update filters when category/unread changes
   useEffect(() => {
-    if (!isOpen || !user || !workspace) return;
+    setFilters({
+      category: selectedCategory,
+      unreadOnly: showUnreadOnly,
+    });
+  }, [selectedCategory, showUnreadOnly, setFilters]);
 
-    loadNotifications();
-
-    const subscription = supabase
-      .channel('notification-center')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            const newNotification: Notification = {
-              id: payload.new.id,
-              userId: payload.new.user_id,
-              workspaceId: payload.new.workspace_id,
-              type: payload.new.type as NotificationType,
-              title: payload.new.title,
-              message: payload.new.message,
-              entityType: payload.new.entity_type,
-              entityId: payload.new.entity_id,
-              read: payload.new.read,
-              createdAt: payload.new.created_at,
-            };
-            setNotifications((prev) => [newNotification, ...prev]);
-          } else if (payload.eventType === 'UPDATE') {
-            setNotifications((prev) =>
-              prev.map((n) =>
-                n.id === payload.new.id
-                  ? { ...n, read: payload.new.read }
-                  : n
-              )
-            );
-          } else if (payload.eventType === 'DELETE') {
-            setNotifications((prev) => prev.filter((n) => n.id !== payload.old.id));
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [isOpen, user, workspace, loadNotifications]);
-
-  // Mark notification as read
-  const markAsRead = async (notificationId: string) => {
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('id', notificationId);
-
-      if (error) throw error;
-    } catch (error) {
-      logger.error('Failed to mark notification as read:', error);
+  // Refresh on open
+  useEffect(() => {
+    if (isOpen && user && workspace) {
+      refresh();
     }
-  };
-
-  // Mark all as read
-  const markAllAsRead = async () => {
-    if (!user || !workspace) return;
-
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('user_id', user.id)
-        .eq('workspace_id', workspace.id)
-        .eq('read', false);
-
-      if (error) throw error;
-    } catch (error) {
-      logger.error('Failed to mark all as read:', error);
-    }
-  };
-
-  // Delete notification
-  const deleteNotification = async (notificationId: string) => {
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', notificationId);
-
-      if (error) throw error;
-    } catch (error) {
-      logger.error('Failed to delete notification:', error);
-    }
-  };
-
-  // Delete all read notifications
-  const deleteAllRead = async () => {
-    if (!user || !workspace) return;
-
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('workspace_id', workspace.id)
-        .eq('read', true);
-
-      if (error) throw error;
-    } catch (error) {
-      logger.error('Failed to delete read notifications:', error);
-    }
-  };
+  }, [isOpen, user, workspace, refresh]);
 
   // Handle notification click
-  const handleNotificationClick = (notification: Notification) => {
-    markAsRead(notification.id);
+  const handleNotificationClick = async (notification: Notification) => {
+    await markAsRead(notification.id);
     
     if (onNavigate && notification.entityType && notification.entityId) {
       onNavigate(notification.entityType, notification.entityId);
@@ -319,30 +195,9 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     }
   };
 
-  // Filter notifications
-  const filteredNotifications = notifications.filter((notification) => {
-    // Filter by read status
-    if (showUnreadOnly && notification.read) return false;
-
-    // Filter by category
-    if (selectedCategory === 'all') return true;
-
-    const category = CATEGORIES.find((c) => c.id === selectedCategory);
-    if (!category) return true;
-
-    return category.types.includes(notification.type);
-  });
-
-  // Calculate counts
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  // Calculate category counts
   const categoryCounts = CATEGORIES.reduce((acc, category) => {
-    if (category.id === 'all') {
-      acc[category.id] = notifications.filter((n) => !n.read).length;
-    } else {
-      acc[category.id] = notifications.filter(
-        (n) => !n.read && category.types.includes(n.type)
-      ).length;
-    }
+    acc[category.id] = getCategoryCount(category.id);
     return acc;
   }, {} as Record<NotificationCategory, number>);
 
@@ -398,7 +253,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
               </button>
             )}
             <button
-              onClick={() => loadNotifications(true)}
+              onClick={() => refresh()}
               disabled={refreshing}
               className="p-2 hover:bg-white hover:text-black rounded transition-colors disabled:opacity-50"
               aria-label="Refresh notifications"
@@ -454,7 +309,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
           
           <div className="flex gap-2">
             <button
-              onClick={markAllAsRead}
+              onClick={() => markAllAsReadHook()}
               disabled={unreadCount === 0}
               className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium bg-blue-500 text-white border-2 border-black hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -462,7 +317,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
               Mark All Read
             </button>
             <button
-              onClick={deleteAllRead}
+              onClick={() => deleteAllReadHook()}
               className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium bg-red-500 text-white border-2 border-black hover:bg-red-600 transition-colors"
             >
               <Trash2 className="w-4 h-4" />
@@ -554,7 +409,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                deleteNotification(notification.id);
+                                deleteNotificationHook(notification.id);
                               }}
                               className="text-xs text-red-600 hover:underline flex items-center gap-1"
                             >

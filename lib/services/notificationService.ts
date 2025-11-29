@@ -1,5 +1,6 @@
 import { supabase } from '../supabase';
-import { logger } from '../logger'
+import { logger } from '../logger';
+import { shouldNotifyUser } from './notificationPreferencesService';
 
 // Notification types
 export type NotificationType = 
@@ -61,6 +62,8 @@ interface CreateNotificationParams {
   message: string;
   entityType?: NotificationEntityType;
   entityId?: string;
+  /** Skip preference check - use for system-critical notifications */
+  bypassPreferences?: boolean;
 }
 
 interface GetNotificationsParams {
@@ -70,20 +73,96 @@ interface GetNotificationsParams {
   unreadOnly?: boolean;
 }
 
+// Map notification type to preference check type
+const TYPE_TO_PREFERENCE_TYPE: Record<NotificationType, string> = {
+  mention: 'mention',
+  comment_reply: 'comment',
+  comment_added: 'comment',
+  document_comment: 'comment',
+  task_assigned: 'task_assignment',
+  task_reassigned: 'task_assignment',
+  assignment: 'task_assignment',
+  task_completed: 'task_update',
+  task_updated: 'task_update',
+  task_deadline_changed: 'task_update',
+  task_due_soon: 'task_due_soon',
+  task_overdue: 'task_overdue',
+  subtask_completed: 'task_update',
+  deal_won: 'deal_won',
+  deal_lost: 'deal_lost',
+  deal_stage_changed: 'deal_update',
+  document_shared: 'document_share',
+  team_invitation: 'team_update',
+  workspace_role_changed: 'team_update',
+  crm_contact_added: 'team_update',
+  achievement_unlocked: 'achievement',
+};
+
+/**
+ * Check if a notification should be created based on user preferences
+ */
+async function checkNotificationPreference(
+  userId: string,
+  workspaceId: string,
+  type: NotificationType
+): Promise<boolean> {
+  try {
+    const prefType = TYPE_TO_PREFERENCE_TYPE[type] || type;
+    return await shouldNotifyUser(userId, workspaceId, prefType, 'in_app');
+  } catch (err) {
+    // Default to true on error - better to over-notify than miss important notifications
+    logger.warn('[NotificationService] Preference check failed, defaulting to true:', err);
+    return true;
+  }
+}
+
 /**
  * Create multiple notifications in batch (e.g., for mentions)
+ * Respects user notification preferences unless bypassPreferences is true
  */
-export async function createNotificationsBatch(notifications: CreateNotificationParams[]): Promise<{ success: boolean; created: number; error: string | null }> {
+export async function createNotificationsBatch(
+  notifications: CreateNotificationParams[]
+): Promise<{ success: boolean; created: number; skipped: number; error: string | null }> {
   try {
     if (notifications.length === 0) {
-      return { success: true, created: 0, error: null };
+      return { success: true, created: 0, skipped: 0, error: null };
     }
 
     if (process.env.NODE_ENV !== 'production') {
       logger.debug(`[NotificationService] Creating ${notifications.length} notifications in batch`);
     }
 
-    const rows = notifications.map(params => ({
+    // Filter notifications based on preferences
+    const filteredNotifications: CreateNotificationParams[] = [];
+    let skippedCount = 0;
+    
+    for (const notif of notifications) {
+      if (notif.bypassPreferences) {
+        filteredNotifications.push(notif);
+        continue;
+      }
+      
+      const shouldCreate = await checkNotificationPreference(
+        notif.userId,
+        notif.workspaceId,
+        notif.type
+      );
+      
+      if (shouldCreate) {
+        filteredNotifications.push(notif);
+      } else {
+        skippedCount++;
+        if (process.env.NODE_ENV !== 'production') {
+          logger.debug(`[NotificationService] Skipped notification for user ${notif.userId} - preferences disabled for ${notif.type}`);
+        }
+      }
+    }
+
+    if (filteredNotifications.length === 0) {
+      return { success: true, created: 0, skipped: skippedCount, error: null };
+    }
+
+    const rows = filteredNotifications.map(params => ({
       user_id: params.userId,
       workspace_id: params.workspaceId,
       type: params.type,
@@ -101,23 +180,42 @@ export async function createNotificationsBatch(notifications: CreateNotification
 
     if (error) {
       logger.error('[NotificationService] Batch creation failed:', error);
-      return { success: false, created: 0, error: error.message };
+      return { success: false, created: 0, skipped: skippedCount, error: error.message };
     }
 
-    return { success: true, created: data?.length || 0, error: null };
+    return { success: true, created: data?.length || 0, skipped: skippedCount, error: null };
   } catch (err) {
     logger.error('[NotificationService] Batch creation unexpected error:', err);
-    return { success: false, created: 0, error: 'Failed to create notifications' };
+    return { success: false, created: 0, skipped: 0, error: 'Failed to create notifications' };
   }
 }
 
 /**
  * Create a new notification for a user
+ * Respects user notification preferences unless bypassPreferences is true
  */
-export async function createNotification(params: CreateNotificationParams): Promise<{ notification: Notification | null; error: string | null }> {
+export async function createNotification(
+  params: CreateNotificationParams
+): Promise<{ notification: Notification | null; error: string | null; skipped?: boolean }> {
   try {
     if (process.env.NODE_ENV !== 'production') {
       logger.debug('[NotificationService] Creating notification:', params);
+    }
+
+    // Check user preferences before creating
+    if (!params.bypassPreferences) {
+      const shouldCreate = await checkNotificationPreference(
+        params.userId,
+        params.workspaceId,
+        params.type
+      );
+      
+      if (!shouldCreate) {
+        if (process.env.NODE_ENV !== 'production') {
+          logger.debug(`[NotificationService] Skipped notification - user preferences disabled for ${params.type}`);
+        }
+        return { notification: null, error: null, skipped: true };
+      }
     }
 
     const { data, error } = await supabase
