@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { SettingsData, AppActions, QuickLink, BusinessProfile } from '../types';
 import { SubscriptionBanner } from './SubscriptionBanner';
 import { PricingPage } from './PricingPage';
@@ -14,6 +14,47 @@ import { useWorkspace } from '../contexts/WorkspaceContext';
 import { AuthService } from '../lib/services/auth';
 import { DatabaseService } from '../lib/services/database';
 import { stripeEdgeFunctions } from '../src/services/stripeEdgeFunctions';
+
+// ============================================
+// SETTINGS NAVIGATION TYPES
+// ============================================
+
+type SettingsSection = 
+    | 'profile'
+    | 'business'
+    | 'team'
+    | 'subscription'
+    | 'notifications'
+    | 'quick-links'
+    | 'automation'
+    | 'integrations'
+    | 'api-keys'
+    | 'api-balance'
+    | 'webhooks'
+    | 'danger';
+
+interface NavItem {
+    id: SettingsSection;
+    label: string;
+    icon: string;
+    requiresTeamPlan?: boolean;
+    description: string;
+}
+
+const NAV_ITEMS: NavItem[] = [
+    { id: 'profile', label: 'Profile', icon: '👤', description: 'Your personal information' },
+    { id: 'business', label: 'Business Profile', icon: '🏢', description: 'Company & AI context' },
+    { id: 'team', label: 'Team', icon: '👥', description: 'Manage members', requiresTeamPlan: true },
+    { id: 'subscription', label: 'Subscription', icon: '💳', description: 'Plan & billing' },
+    { id: 'notifications', label: 'Notifications', icon: '🔔', description: 'Alert preferences' },
+    { id: 'quick-links', label: 'Quick Links', icon: '🔗', description: 'Dashboard shortcuts' },
+    { id: 'automation', label: 'Automation', icon: '⚙️', description: 'Auto-create settings' },
+    { id: 'integrations', label: 'Integrations', icon: '🔌', description: 'Connected apps' },
+    { id: 'api-keys', label: 'API Keys', icon: '🔑', description: 'Developer access', requiresTeamPlan: true },
+    { id: 'api-balance', label: 'API Balance', icon: '💰', description: 'Usage & billing', requiresTeamPlan: true },
+    { id: 'webhooks', label: 'Webhooks', icon: '📡', description: 'Event notifications', requiresTeamPlan: true },
+    { id: 'danger', label: 'Danger Zone', icon: '⚠️', description: 'Delete account' },
+];
 
 // Quick Link Editor component with local state and manual save button
 interface QuickLinkEditorProps {
@@ -106,6 +147,7 @@ interface SettingsTabProps {
 
 function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: SettingsTabProps) {
     const [localSettings, setLocalSettings] = useState<SettingsData>(settings);
+    const [activeSection, setActiveSection] = useState<SettingsSection>('profile');
     const [notificationPermission, setNotificationPermission] = useState(
         typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default'
     );
@@ -122,6 +164,7 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
         usedSeats: 1
     });
     const [isLoadingUsage, setIsLoadingUsage] = useState(true);
+    const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
     const { user } = useAuth();
     const { workspace, businessProfile, workspaceMembers, isLoadingMembers, refreshMembers } = useWorkspace();
 
@@ -393,149 +436,291 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
         }
     };
 
-    return (
-        <div className="max-w-3xl mx-auto">
-            {/* Subscription Banner */}
-            {!isLoadingUsage && (
-                <SubscriptionBanner
-                    planType={workspacePlanType as any}
-                    aiRequestsUsed={usageData.aiRequestsUsed}
-                    storageUsed={usageData.storageUsed}
-                    fileCountUsed={usageData.fileCountUsed}
-                    seatCount={usageData.seatCount}
-                    usedSeats={usageData.usedSeats}
-                    onUpgrade={() => setShowPricingPage(true)}
-                />
-            )}
+    // Filter nav items based on plan
+    const filteredNavItems = useMemo(() => {
+        return NAV_ITEMS.filter(item => {
+            if (item.requiresTeamPlan && !isTeamPlan) return false;
+            return true;
+        });
+    }, [isTeamPlan]);
 
-            {/* Profile Settings Section */}
-            <div className="mb-8">
-                <ProfileSettings onSave={refreshMembers} />
+    // Group nav items for better organization
+    const navGroups = useMemo(() => [
+        {
+            label: 'Account',
+            items: filteredNavItems.filter(i => ['profile', 'business', 'team', 'subscription'].includes(i.id))
+        },
+        {
+            label: 'Preferences',
+            items: filteredNavItems.filter(i => ['notifications', 'quick-links'].includes(i.id))
+        },
+        {
+            label: 'Developer',
+            items: filteredNavItems.filter(i => ['automation', 'integrations', 'api-keys', 'api-balance', 'webhooks'].includes(i.id))
+        },
+        {
+            label: 'Account Management',
+            items: filteredNavItems.filter(i => i.id === 'danger')
+        }
+    ].filter(g => g.items.length > 0), [filteredNavItems]);
+
+    const handleNavClick = useCallback((section: SettingsSection) => {
+        setActiveSection(section);
+        setIsMobileNavOpen(false);
+    }, []);
+
+    return (
+        <div className="flex flex-col lg:flex-row gap-6 max-w-7xl mx-auto">
+            {/* Mobile Navigation Toggle */}
+            <div className="lg:hidden">
+                <button
+                    onClick={() => setIsMobileNavOpen(!isMobileNavOpen)}
+                    className="w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg shadow-sm"
+                >
+                    <span className="font-semibold text-black">
+                        {filteredNavItems.find(i => i.id === activeSection)?.icon}{' '}
+                        {filteredNavItems.find(i => i.id === activeSection)?.label}
+                    </span>
+                    <svg
+                        className={`w-5 h-5 transition-transform ${isMobileNavOpen ? 'rotate-180' : ''}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                
+                {/* Mobile Navigation Menu */}
+                {isMobileNavOpen && (
+                    <div className="mt-2 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+                        {navGroups.map((group, idx) => (
+                            <div key={group.label}>
+                                {idx > 0 && <div className="border-t border-gray-100" />}
+                                <div className="px-4 py-2 bg-gray-50">
+                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                        {group.label}
+                                    </span>
+                                </div>
+                                {group.items.map(item => (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => handleNavClick(item.id)}
+                                        className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
+                                            activeSection === item.id
+                                                ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600'
+                                                : 'hover:bg-gray-50 text-gray-700'
+                                        }`}
+                                    >
+                                        <span className="text-lg">{item.icon}</span>
+                                        <div>
+                                            <div className="font-semibold text-sm">{item.label}</div>
+                                            <div className="text-xs text-gray-500">{item.description}</div>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
-            <div className="bg-white p-6 border border-gray-200 rounded-lg shadow-sm">
-                <h2 className="text-2xl font-semibold text-black mb-6">Workspace Settings</h2>
+            {/* Desktop Sidebar Navigation */}
+            <aside className="hidden lg:block w-64 flex-shrink-0">
+                <div className="sticky top-4 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                    <div className="p-4 border-b border-gray-200 bg-gray-50">
+                        <h2 className="text-lg font-bold text-black">Settings</h2>
+                    </div>
+                    <nav className="py-2">
+                        {navGroups.map((group, idx) => (
+                            <div key={group.label} className={idx > 0 ? 'mt-4 pt-4 border-t border-gray-100' : ''}>
+                                <div className="px-4 py-1">
+                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                        {group.label}
+                                    </span>
+                                </div>
+                                {group.items.map(item => (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => handleNavClick(item.id)}
+                                        className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
+                                            activeSection === item.id
+                                                ? 'bg-blue-50 text-blue-700 border-r-4 border-blue-600'
+                                                : 'hover:bg-gray-50 text-gray-700'
+                                        } ${item.id === 'danger' ? 'text-red-700 hover:bg-red-50' : ''}`}
+                                    >
+                                        <span className="text-base">{item.icon}</span>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-medium text-sm truncate">{item.label}</div>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        ))}
+                    </nav>
+                </div>
+            </aside>
 
-                <div className="space-y-8">
-                    <fieldset className="border border-gray-200 rounded-lg p-4">
-                        <legend className="text-lg font-mono font-semibold px-2">Business Profile & Copilot Personalization</legend>
-                        <div className="space-y-6">
-                            <p className="text-sm text-gray-600">
-                                Keep one source of truth for your ICP, positioning, pricing, and operating metrics. Copilot, notifications, and calendar deadlines all pull from the same autosaving profile.
-                            </p>
+            {/* Main Content Area */}
+            <main className="flex-1 min-w-0">
+                {/* Subscription Banner - Always visible at top */}
+                {!isLoadingUsage && (
+                    <div className="mb-6">
+                        <SubscriptionBanner
+                            planType={workspacePlanType as any}
+                            aiRequestsUsed={usageData.aiRequestsUsed}
+                            storageUsed={usageData.storageUsed}
+                            fileCountUsed={usageData.fileCountUsed}
+                            seatCount={usageData.seatCount}
+                            usedSeats={usageData.usedSeats}
+                            onUpgrade={() => setShowPricingPage(true)}
+                        />
+                    </div>
+                )}
 
-                            <div className="grid gap-6 md:grid-cols-2">
-                                <div className="space-y-4">
-                                    {businessProfile && aiContextSummary ? (
-                                        <>
-                                            <div>
-                                                <div className="flex items-center justify-between text-sm font-mono mb-1">
-                                                    <span>{aiContextSummary.completed} of {aiContextSummary.total} key fields complete</span>
-                                                    <span>{aiContextSummary.percent}%</span>
-                                                </div>
-                                                <div className="h-3 border border-gray-300 rounded-full bg-gray-100">
-                                                    <div
-                                                        className="h-full bg-blue-600 rounded-full"
-                                                        style={{ width: `${aiContextSummary.percent}%` }}
-                                                    />
-                                                </div>
-                                                <p className="text-xs text-gray-500 font-mono mt-1">Last updated {aiContextSummary.lastUpdated}</p>
-                                            </div>
+                {/* Section Content */}
+                <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+                    {/* Section Header */}
+                    <div className="p-6 border-b border-gray-200">
+                        <div className="flex items-center gap-3">
+                            <span className="text-2xl">
+                                {filteredNavItems.find(i => i.id === activeSection)?.icon}
+                            </span>
+                            <div>
+                                <h1 className="text-xl font-bold text-black">
+                                    {filteredNavItems.find(i => i.id === activeSection)?.label}
+                                </h1>
+                                <p className="text-sm text-gray-500">
+                                    {filteredNavItems.find(i => i.id === activeSection)?.description}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
 
-                                            {aiContextSummary.highlights.length > 0 && (
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                    {aiContextSummary.highlights.map(({ label, value }) => (
-                                                        <div key={label} className="border border-gray-200 rounded-md p-3 bg-white">
-                                                            <div className="text-xs uppercase text-gray-500 font-mono">{label}</div>
-                                                            <div className="text-sm font-semibold font-mono text-black mt-1 whitespace-pre-wrap">
-                                                                {value}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
+                    {/* Section Body */}
+                    <div className="p-6">
+                        {/* Profile Section */}
+                        {activeSection === 'profile' && (
+                            <ProfileSettings onSave={refreshMembers} />
+                        )}
 
-                                            {aiContextSummary.missing.length > 0 && (
+                        {/* Business Profile Section */}
+                        {activeSection === 'business' && (
+                            <div className="space-y-6">
+                                <p className="text-sm text-gray-600">
+                                    Keep one source of truth for your ICP, positioning, pricing, and operating metrics. Copilot, notifications, and calendar deadlines all pull from the same autosaving profile.
+                                </p>
+
+                                <div className="grid gap-6 md:grid-cols-2">
+                                    <div className="space-y-4">
+                                        {businessProfile && aiContextSummary ? (
+                                            <>
                                                 <div>
-                                                    <div className="text-xs uppercase text-gray-500 font-mono mb-1">Suggested next fields</div>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {aiContextSummary.missing.map(field => (
-                                                            <span key={field.key} className="text-xs font-mono border border-gray-300 rounded px-2 py-1 bg-yellow-50">
-                                                                {field.label}
-                                                            </span>
+                                                    <div className="flex items-center justify-between text-sm font-mono mb-1">
+                                                        <span>{aiContextSummary.completed} of {aiContextSummary.total} key fields complete</span>
+                                                        <span>{aiContextSummary.percent}%</span>
+                                                    </div>
+                                                    <div className="h-3 border border-gray-300 rounded-full bg-gray-100">
+                                                        <div
+                                                            className="h-full bg-blue-600 rounded-full"
+                                                            style={{ width: `${aiContextSummary.percent}%` }}
+                                                        />
+                                                    </div>
+                                                    <p className="text-xs text-gray-500 font-mono mt-1">Last updated {aiContextSummary.lastUpdated}</p>
+                                                </div>
+
+                                                {aiContextSummary.highlights.length > 0 && (
+                                                    <div className="grid grid-cols-1 gap-3">
+                                                        {aiContextSummary.highlights.map(({ label, value }) => (
+                                                            <div key={label} className="border border-gray-200 rounded-md p-3 bg-gray-50">
+                                                                <div className="text-xs uppercase text-gray-500 font-mono">{label}</div>
+                                                                <div className="text-sm font-semibold font-mono text-black mt-1 whitespace-pre-wrap">
+                                                                    {value}
+                                                                </div>
+                                                            </div>
                                                         ))}
                                                     </div>
-                                                </div>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <div className="border border-dashed border-gray-300 rounded-md p-4 bg-white">
-                                            <p className="text-sm font-mono text-gray-600">
-                                                You haven't saved a full AI context yet. Share your ICP, positioning, and pricing so Copilot can tailor answers.
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
+                                                )}
 
-                                <div className="border border-gray-200 rounded-lg bg-white p-4 space-y-3">
-                                    <div className="flex items-center justify-between">
-                                        <h3 className="font-mono font-semibold text-sm uppercase tracking-wide">Business Profile Snapshot</h3>
-                                        {businessProfile?.isComplete ? (
-                                            <span className="text-xs font-bold text-green-600">Complete</span>
+                                                {aiContextSummary.missing.length > 0 && (
+                                                    <div>
+                                                        <div className="text-xs uppercase text-gray-500 font-mono mb-1">Suggested next fields</div>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {aiContextSummary.missing.map(field => (
+                                                                <span key={field.key} className="text-xs font-mono border border-gray-300 rounded px-2 py-1 bg-yellow-50">
+                                                                    {field.label}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </>
                                         ) : (
-                                            <span className="text-xs font-bold text-yellow-600">Draft</span>
+                                            <div className="border border-dashed border-gray-300 rounded-md p-4 bg-gray-50">
+                                                <p className="text-sm font-mono text-gray-600">
+                                                    You haven't saved a full AI context yet. Share your ICP, positioning, and pricing so Copilot can tailor answers.
+                                                </p>
+                                            </div>
                                         )}
                                     </div>
-                                    <dl className="grid grid-cols-1 gap-3">
-                                        <div>
-                                            <dt className="text-xs uppercase text-gray-500 font-mono">Company</dt>
-                                            <dd className="text-sm font-semibold text-black">{businessProfile?.companyName || 'Not set'}</dd>
+
+                                    <div className="border border-gray-200 rounded-lg bg-gray-50 p-4 space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="font-mono font-semibold text-sm uppercase tracking-wide">Business Profile Snapshot</h3>
+                                            {businessProfile?.isComplete ? (
+                                                <span className="text-xs font-bold text-green-600">Complete</span>
+                                            ) : (
+                                                <span className="text-xs font-bold text-yellow-600">Draft</span>
+                                            )}
                                         </div>
-                                        <div>
-                                            <dt className="text-xs uppercase text-gray-500 font-mono">Industry</dt>
-                                            <dd className="text-sm font-semibold text-black">{businessProfile?.industry || 'Not set'}</dd>
-                                        </div>
-                                        <div>
-                                            <dt className="text-xs uppercase text-gray-500 font-mono">Team Size</dt>
-                                            <dd className="text-sm font-semibold text-black">{businessProfile?.teamSize || businessProfile?.companySize || 'Not set'}</dd>
-                                        </div>
-                                        <div>
-                                            <dt className="text-xs uppercase text-gray-500 font-mono">Growth Stage</dt>
-                                            <dd className="text-sm font-semibold text-black">{businessProfile?.growthStage || 'Not set'}</dd>
-                                        </div>
-                                    </dl>
-                                    <p className="text-xs text-gray-600 font-mono">
-                                        All changes in the Business Profile modal autosave every few seconds (even mid-step) and immediately update Copilot, notifications, and calendar context—close it anytime without losing progress.
+                                        <dl className="grid grid-cols-1 gap-3">
+                                            <div>
+                                                <dt className="text-xs uppercase text-gray-500 font-mono">Company</dt>
+                                                <dd className="text-sm font-semibold text-black">{businessProfile?.companyName || 'Not set'}</dd>
+                                            </div>
+                                            <div>
+                                                <dt className="text-xs uppercase text-gray-500 font-mono">Industry</dt>
+                                                <dd className="text-sm font-semibold text-black">{businessProfile?.industry || 'Not set'}</dd>
+                                            </div>
+                                            <div>
+                                                <dt className="text-xs uppercase text-gray-500 font-mono">Team Size</dt>
+                                                <dd className="text-sm font-semibold text-black">{businessProfile?.teamSize || businessProfile?.companySize || 'Not set'}</dd>
+                                            </div>
+                                            <div>
+                                                <dt className="text-xs uppercase text-gray-500 font-mono">Growth Stage</dt>
+                                                <dd className="text-sm font-semibold text-black">{businessProfile?.growthStage || 'Not set'}</dd>
+                                            </div>
+                                        </dl>
+                                        <p className="text-xs text-gray-600 font-mono">
+                                            All changes autosave immediately and update Copilot context.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {workspace?.ownerId === user?.id ? (
+                                    <div className="flex flex-col gap-2">
+                                        <button
+                                            onClick={openBusinessProfileModal}
+                                            className="font-mono bg-black text-white border border-gray-300 px-4 py-2 rounded-md font-semibold hover:bg-gray-800 transition-colors"
+                                        >
+                                            Edit Business Profile & AI Context
+                                        </button>
+                                        <span className="text-xs text-gray-500 font-mono">Need to finish later? Close the modal—your draft stays synced.</span>
+                                    </div>
+                                ) : (
+                                    <p className="text-xs text-gray-500 font-mono">
+                                        Only workspace owners can edit the shared business profile.
                                     </p>
-                                </div>
+                                )}
                             </div>
+                        )}
 
-                            {workspace?.ownerId === user?.id ? (
-                                <div className="flex flex-col gap-2">
-                                    <button
-                                        onClick={openBusinessProfileModal}
-                                        className="font-mono bg-black text-white border border-gray-300 px-4 py-2 rounded-md font-semibold hover:bg-gray-800 transition-colors"
-                                    >
-                                        Edit Business Profile & AI Context
-                                    </button>
-                                    <span className="text-xs text-gray-500 font-mono">Need to finish later? Close the modal—your draft stays synced to secure storage.</span>
-                                </div>
-                            ) : (
-                                <p className="text-xs text-gray-500 font-mono">
-                                    Only workspace owners can edit the shared business profile. Ask your admin to update it if details are outdated.
-                                </p>
-                            )}
-                        </div>
-                    </fieldset>
-
-                    {/* Team Management Section - Only show for team plans */}
-                    {isTeamPlan && (
-                        <fieldset className="border border-gray-200 rounded-lg p-4">
-                            <legend className="text-lg font-mono font-semibold px-2">Team Management</legend>
-                            <div className="space-y-4">
+                        {/* Team Section */}
+                        {activeSection === 'team' && isTeamPlan && (
+                            <div className="space-y-6">
                                 <div>
                                     <h3 className="font-bold text-black mb-2">Workspace: {workspace?.name || 'My Workspace'}</h3>
-                                    <p className="text-sm text-gray-600 mb-4">
+                                    <p className="text-sm text-gray-600">
                                         Plan: <span className="font-mono font-semibold">{workspacePlanType}</span>
                                     </p>
                                 </div>
@@ -548,8 +733,6 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                         <div className="space-y-2">
                                             {workspaceMembers.map((member: any) => {
                                                 const isCurrentUser = member.email === user?.email;
-                                                const isOwner = member.role === 'owner';
-                                                // Fallback: if no profile, show user_id with warning
                                                 const displayName = member.fullName || member.email || `User (${member.userId.substring(0, 8)}...)`;
                                                 const displayEmail = member.email || 'No email found';
                                                 
@@ -587,7 +770,6 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                     )}
                                 </div>
 
-                                {/* Pending Invitations */}
                                 {pendingInvitations.length > 0 && (
                                     <div>
                                         <h4 className="font-bold text-black mb-3">Pending Invitations ({pendingInvitations.length})</h4>
@@ -623,240 +805,213 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                     </div>
                                 )}
 
-                                <div className="pt-4">
+                                <div>
                                     <button
                                         onClick={() => setShowInviteModal(true)}
-                                            className="font-mono bg-green-600 border border-gray-300 text-white cursor-pointer py-2 px-6 rounded-md font-semibold transition-colors hover:bg-green-700"
-                                            data-testid="open-invite-team-modal"
+                                        className="font-mono bg-green-600 border border-gray-300 text-white cursor-pointer py-2 px-6 rounded-md font-semibold transition-colors hover:bg-green-700"
+                                        data-testid="open-invite-team-modal"
                                     >
                                         + Invite Team Member
                                     </button>
                                 </div>
                             </div>
-                        </fieldset>
-                    )}
+                        )}
 
-                    {/* Subscription Section */}
-                    <fieldset className="border border-gray-200 rounded-lg p-4">
-                        <legend className="text-lg font-mono font-semibold px-2">Subscription</legend>
-                        <div className="space-y-4">
-                            <div>
-                                <h3 className="font-bold text-black mb-2">
-                                    Current Plan: {workspacePlanType.split('-').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                                </h3>
-                                <p className="text-sm text-gray-600 mb-4">
-                                    {subscriptionDescription}
-                                </p>
-                                <div className="flex gap-3">
-                                    {workspacePlanType !== 'team-pro' && (
-                                        <button
-                                            onClick={() => setShowPricingPage(true)}
-                                            className="font-mono bg-blue-600 border border-gray-300 text-white cursor-pointer py-2 px-6 rounded-md font-semibold transition-colors hover:bg-blue-700"
-                                        >
-                                            Upgrade Plan
-                                        </button>
-                                    )}
-                                    {workspace?.stripeCustomerId && (
-                                        <button
-                                            onClick={async () => {
-                                                try {
-                                                    const { url } = await stripeEdgeFunctions.createPortalSession({
-                                                        customerId: workspace.stripeCustomerId!,
-                                                        returnUrl: window.location.href,
-                                                    });
-                                                    window.location.href = url;
-                                                } catch (error) {
-                                                    console.error('Failed to open customer portal:', error);
-                                                    alert('Failed to open customer portal. Please try again.');
+                        {/* Subscription Section */}
+                        {activeSection === 'subscription' && (
+                            <div className="space-y-4">
+                                <div>
+                                    <h3 className="font-bold text-black mb-2">
+                                        Current Plan: {workspacePlanType.split('-').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                                    </h3>
+                                    <p className="text-sm text-gray-600 mb-4">
+                                        {subscriptionDescription}
+                                    </p>
+                                    <div className="flex flex-wrap gap-3">
+                                        {workspacePlanType !== 'team-pro' && (
+                                            <button
+                                                onClick={() => setShowPricingPage(true)}
+                                                className="font-mono bg-blue-600 border border-gray-300 text-white cursor-pointer py-2 px-6 rounded-md font-semibold transition-colors hover:bg-blue-700"
+                                            >
+                                                Upgrade Plan
+                                            </button>
+                                        )}
+                                        {workspace?.stripeCustomerId && (
+                                            <button
+                                                onClick={async () => {
+                                                    try {
+                                                        const { url } = await stripeEdgeFunctions.createPortalSession({
+                                                            customerId: workspace.stripeCustomerId!,
+                                                            returnUrl: window.location.href,
+                                                        });
+                                                        window.location.href = url;
+                                                    } catch (error) {
+                                                        console.error('Failed to open customer portal:', error);
+                                                        alert('Failed to open customer portal. Please try again.');
+                                                    }
+                                                }}
+                                                className="font-mono bg-gray-800 border border-gray-300 text-white cursor-pointer py-2 px-6 rounded-md font-semibold transition-colors hover:bg-gray-900"
+                                            >
+                                                Manage Subscription
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Notifications Section */}
+                        {activeSection === 'notifications' && (
+                            <div className="space-y-4">
+                                <div className="flex items-start">
+                                    <div className="flex items-center h-5">
+                                        <input
+                                            id="desktop-notifications"
+                                            type="checkbox"
+                                            checked={localSettings.desktopNotifications && notificationPermission === 'granted'}
+                                            onChange={(e) => {
+                                                if (e.target.checked && notificationPermission !== 'granted') {
+                                                    handlePermissionRequest();
+                                                } else {
+                                                    handleSettingChange('desktopNotifications', e.target.checked);
                                                 }
                                             }}
-                                            className="font-mono bg-gray-800 border border-gray-300 text-white cursor-pointer py-2 px-6 rounded-md font-semibold transition-colors hover:bg-gray-900"
-                                        >
-                                            Manage Subscription
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </fieldset>
-
-                    <fieldset className="border border-gray-200 rounded-lg p-4">
-                        <legend className="text-lg font-mono font-semibold px-2">Notifications</legend>
-                        <div className="space-y-4">
-                            {/* Desktop Notifications */}
-                            <div className="flex items-start">
-                                <div className="flex items-center h-5">
-                                    <input
-                                        id="desktop-notifications"
-                                        type="checkbox"
-                                        checked={localSettings.desktopNotifications && notificationPermission === 'granted'}
-                                        onChange={(e) => {
-                                            if (e.target.checked && notificationPermission !== 'granted') {
-                                                handlePermissionRequest();
-                                            } else {
-                                                handleSettingChange('desktopNotifications', e.target.checked);
-                                            }
-                                        }}
-                                        className="focus:ring-blue-500 h-5 w-5 text-blue-600 border border-gray-300 rounded accent-blue-500"
-                                        aria-describedby="desktop-notifications-description"
-                                    />
-                                </div>
-                                <div className="ml-3 text-sm">
-                                    <label htmlFor="desktop-notifications" className="font-bold text-black">
-                                        Desktop Notifications
-                                    </label>
-                                    <p id="desktop-notifications-description" className="text-gray-600">
-                                        Receive a native desktop notification for any CRM next actions that become overdue.
-                                        {notificationPermission === 'denied' && (
-                                            <span className="block font-bold text-red-600 mt-1">Permission denied. You must enable notifications in your browser settings.</span>
-                                        )}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </fieldset>
-
-                    <fieldset className="border border-gray-200 rounded-lg p-4">
-                        <legend className="text-lg font-mono font-semibold px-2">Quick Links</legend>
-                        <div className="space-y-4">
-                            <p className="text-sm text-gray-600">
-                                Add custom quick links to your dashboard for easy access to your frequently used tools.
-                            </p>
-                            {(!settings.quickLinks || settings.quickLinks.length === 0) ? (
-                                <div className="text-center py-8 border border-dashed border-gray-300 rounded-lg bg-gray-50">
-                                    <p className="text-gray-500 mb-4">No quick links added yet</p>
-                                    <button
-                                        onClick={() => {
-                                            const newLink = {
-                                                id: Date.now().toString(),
-                                                text: 'New Link',
-                                                href: 'https://example.com',
-                                                iconChar: 'L',
-                                                iconBg: 'bg-blue-100',
-                                                iconColor: 'text-black'
-                                            };
-                                            onUpdateSettings({
-                                                quickLinks: [newLink]
-                                            });
-                                        }}
-                                        className="font-mono bg-blue-600 border border-gray-300 text-white py-2 px-4 font-semibold rounded-md hover:bg-blue-700"
-                                    >
-                                        + Add First Quick Link
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    {settings.quickLinks.map((link, index) => (
-                                        <QuickLinkEditor
-                                            key={link.id}
-                                            link={link}
-                                            onUpdate={(updatedLink) => {
-                                                const newLinks = [...settings.quickLinks!];
-                                                newLinks[index] = updatedLink;
-                                                onUpdateSettings({ quickLinks: newLinks });
-                                            }}
-                                            onDelete={() => {
-                                                const newLinks = settings.quickLinks!.filter((_, i) => i !== index);
-                                                onUpdateSettings({ quickLinks: newLinks });
-                                            }}
+                                            className="focus:ring-blue-500 h-5 w-5 text-blue-600 border border-gray-300 rounded accent-blue-500"
+                                            aria-describedby="desktop-notifications-description"
                                         />
-                                    ))}
+                                    </div>
+                                    <div className="ml-3 text-sm">
+                                        <label htmlFor="desktop-notifications" className="font-bold text-black">
+                                            Desktop Notifications
+                                        </label>
+                                        <p id="desktop-notifications-description" className="text-gray-600">
+                                            Receive a native desktop notification for any CRM next actions that become overdue.
+                                            {notificationPermission === 'denied' && (
+                                                <span className="block font-bold text-red-600 mt-1">Permission denied. You must enable notifications in your browser settings.</span>
+                                            )}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Quick Links Section */}
+                        {activeSection === 'quick-links' && (
+                            <div className="space-y-4">
+                                <p className="text-sm text-gray-600">
+                                    Add custom quick links to your dashboard for easy access to your frequently used tools.
+                                </p>
+                                {(!settings.quickLinks || settings.quickLinks.length === 0) ? (
+                                    <div className="text-center py-8 border border-dashed border-gray-300 rounded-lg bg-gray-50">
+                                        <p className="text-gray-500 mb-4">No quick links added yet</p>
+                                        <button
+                                            onClick={() => {
+                                                const newLink = {
+                                                    id: Date.now().toString(),
+                                                    text: 'New Link',
+                                                    href: 'https://example.com',
+                                                    iconChar: 'L',
+                                                    iconBg: 'bg-blue-100',
+                                                    iconColor: 'text-black'
+                                                };
+                                                onUpdateSettings({
+                                                    quickLinks: [newLink]
+                                                });
+                                            }}
+                                            className="font-mono bg-blue-600 border border-gray-300 text-white py-2 px-4 font-semibold rounded-md hover:bg-blue-700"
+                                        >
+                                            + Add First Quick Link
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {settings.quickLinks.map((link, index) => (
+                                            <QuickLinkEditor
+                                                key={link.id}
+                                                link={link}
+                                                onUpdate={(updatedLink) => {
+                                                    const newLinks = [...settings.quickLinks!];
+                                                    newLinks[index] = updatedLink;
+                                                    onUpdateSettings({ quickLinks: newLinks });
+                                                }}
+                                                onDelete={() => {
+                                                    const newLinks = settings.quickLinks!.filter((_, i) => i !== index);
+                                                    onUpdateSettings({ quickLinks: newLinks });
+                                                }}
+                                            />
+                                        ))}
+                                        <button
+                                            onClick={() => {
+                                                const newLink = {
+                                                    id: Date.now().toString(),
+                                                    text: 'New Link',
+                                                    href: 'https://example.com',
+                                                    iconChar: 'L',
+                                                    iconBg: 'bg-blue-100',
+                                                    iconColor: 'text-black'
+                                                };
+                                                onUpdateSettings({
+                                                    quickLinks: [...(settings.quickLinks || []), newLink]
+                                                });
+                                            }}
+                                            className="w-full font-mono bg-white border border-gray-300 text-black py-2 px-4 font-semibold hover:bg-gray-100 rounded-md"
+                                        >
+                                            + Add Another Link
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Automation Section */}
+                        {activeSection === 'automation' && workspace?.id && (
+                            <AutomationSettings workspaceId={workspace.id} />
+                        )}
+
+                        {/* Integrations Section */}
+                        {activeSection === 'integrations' && workspace?.id && (
+                            <IntegrationsSettings />
+                        )}
+
+                        {/* API Keys Section */}
+                        {activeSection === 'api-keys' && workspace?.id && isTeamPlan && (
+                            <ApiKeysSettings workspaceId={workspace.id} />
+                        )}
+
+                        {/* API Balance Section */}
+                        {activeSection === 'api-balance' && workspace?.id && isTeamPlan && (
+                            <ApiBalanceSettings workspaceId={workspace.id} />
+                        )}
+
+                        {/* Webhooks Section */}
+                        {activeSection === 'webhooks' && workspace?.id && isTeamPlan && (
+                            <WebhooksSettings workspaceId={workspace.id} />
+                        )}
+
+                        {/* Danger Zone Section */}
+                        {activeSection === 'danger' && (
+                            <div className="space-y-4">
+                                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                                    <h3 className="font-bold text-red-800 mb-2">Delete Account</h3>
+                                    <p className="text-sm text-gray-700 mb-2">
+                                        Permanently delete your account and all associated data. This action cannot be undone.
+                                    </p>
+                                    <p className="text-xs text-gray-600 mb-4">
+                                        Email: <span className="font-mono font-semibold">{user?.email}</span>
+                                    </p>
                                     <button
-                                        onClick={() => {
-                                            const newLink = {
-                                                id: Date.now().toString(),
-                                                text: 'New Link',
-                                                href: 'https://example.com',
-                                                iconChar: 'L',
-                                                iconBg: 'bg-blue-100',
-                                                iconColor: 'text-black'
-                                            };
-                                            onUpdateSettings({
-                                                quickLinks: [...(settings.quickLinks || []), newLink]
-                                            });
-                                        }}
-                                        className="w-full font-mono bg-white border border-gray-300 text-black py-2 px-4 font-semibold hover:bg-gray-100 rounded-md"
+                                        onClick={handleDeleteAccount}
+                                        disabled={isDeleting}
+                                        className="font-mono bg-red-700 border border-red-800 text-white cursor-pointer py-2 px-4 rounded-md font-semibold transition-colors hover:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        + Add Another Link
+                                        {isDeleting ? 'Deleting...' : 'Delete My Account'}
                                     </button>
                                 </div>
-                            )}
-                        </div>
-                    </fieldset>
-
-                    {/* Automation Settings */}
-                    {workspace?.id && (
-                        <fieldset className="border border-gray-200 rounded-lg p-4">
-                            <legend className="text-lg font-mono font-semibold px-2">⚙️ Automation Settings</legend>
-                            <div className="mt-4">
-                                <AutomationSettings workspaceId={workspace.id} />
                             </div>
-                        </fieldset>
-                    )}
-
-                    {/* Integrations Settings */}
-                    {workspace?.id && (
-                        <fieldset className="border border-gray-200 rounded-lg p-4">
-                            <legend className="text-lg font-mono font-semibold px-2">🔌 Integrations</legend>
-                            <div className="mt-4">
-                                <IntegrationsSettings />
-                            </div>
-                        </fieldset>
-                    )}
-
-                    {/* API Keys Settings - Premium Feature */}
-                    {workspace?.id && isTeamPlan && (
-                        <fieldset className="border border-gray-200 rounded-lg p-4">
-                            <legend className="text-lg font-mono font-semibold px-2">🔑 Developer API</legend>
-                            <div className="mt-4">
-                                <ApiKeysSettings workspaceId={workspace.id} />
-                            </div>
-                        </fieldset>
-                    )}
-
-                    {/* API Balance Settings - Premium Feature */}
-                    {workspace?.id && isTeamPlan && (
-                        <fieldset className="border border-gray-200 rounded-lg p-4">
-                            <legend className="text-lg font-mono font-semibold px-2">💰 API Balance</legend>
-                            <div className="mt-4">
-                                <ApiBalanceSettings workspaceId={workspace.id} />
-                            </div>
-                        </fieldset>
-                    )}
-
-                    {/* Webhooks Settings - Premium Feature */}
-                    {workspace?.id && isTeamPlan && (
-                        <fieldset className="border border-gray-200 rounded-lg p-4">
-                            <legend className="text-lg font-mono font-semibold px-2">📡 Webhooks</legend>
-                            <div className="mt-4">
-                                <WebhooksSettings workspaceId={workspace.id} />
-                            </div>
-                        </fieldset>
-                    )}
-
-                    <fieldset className="border border-red-300 rounded-lg p-4 bg-red-50">
-                        <legend className="text-lg font-mono font-semibold px-2 text-red-800">Danger Zone</legend>
-                        <div className="space-y-4">
-                            <div>
-                                <h3 className="font-bold text-red-800 mb-2">Delete Account</h3>
-                                <p className="text-sm text-gray-700 mb-2">
-                                    Permanently delete your account and all associated data. This action cannot be undone.
-                                </p>
-                                <p className="text-xs text-gray-600 mb-4">
-                                    Email: <span className="font-mono font-semibold">{user?.email}</span>
-                                </p>
-                                <button
-                                    onClick={handleDeleteAccount}
-                                    disabled={isDeleting}
-                                    className="font-mono bg-red-700 border border-red-800 text-white cursor-pointer py-2 px-4 rounded-md font-semibold transition-colors hover:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {isDeleting ? 'Deleting...' : 'Delete My Account'}
-                                </button>
-                            </div>
-                        </div>
-                    </fieldset>
+                        )}
+                    </div>
                 </div>
-            </div>
+            </main>
 
             {/* Pricing Page Modal */}
             {showPricingPage && (
