@@ -9,13 +9,26 @@ interface WorkspaceTabProps {
     actions: AppActions;
     data: DashboardData;
     onUpgradeNeeded?: () => void;
+    initialDocId?: string | null; // Open a specific doc on mount (e.g., from file library)
+    onClearInitialDoc?: () => void; // Callback to clear initial doc after opening
 }
 
-export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId, actions, data, onUpgradeNeeded }) => {
+export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId, actions, data, onUpgradeNeeded, initialDocId, onClearInitialDoc }) => {
     const [selectedDoc, setSelectedDoc] = useState<GTMDocMetadata | null>(null);
     const [isCreatingNew, setIsCreatingNew] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [reloadKey, setReloadKey] = useState(0); // Force reload of docs list
+
+    // Handle opening a doc passed via initialDocId (e.g., from file library)
+    useEffect(() => {
+        if (initialDocId && workspaceId) {
+            // Set the doc to open by its ID - DocEditor will load the full content
+            setSelectedDoc({ id: initialDocId } as GTMDocMetadata);
+            setIsCreatingNew(false);
+            // Clear the initial doc after handling
+            onClearInitialDoc?.();
+        }
+    }, [initialDocId, workspaceId, onClearInitialDoc]);
 
     const handleDocSelect = (doc: GTMDocMetadata) => {
         setSelectedDoc(doc);

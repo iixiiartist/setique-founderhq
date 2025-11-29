@@ -35,7 +35,8 @@ import {
     Activity as ActivityIcon,
     CheckSquare,
     Square,
-    RefreshCw
+    RefreshCw,
+    Edit2
 } from 'lucide-react';
 
 type ViewMode = 'grid' | 'list';
@@ -47,6 +48,7 @@ interface FileLibraryTabProps {
     actions: AppActions;
     companies: AnyCrmItem[];
     contacts: (Contact & { companyName: string })[];
+    onOpenInEditor?: (docId: string) => void; // Callback to open doc in GTM editor
 }
 
 const QUICK_FILTERS: { id: QuickFilter; label: string; icon: React.ReactNode }[] = [
@@ -67,7 +69,21 @@ const SORT_OPTIONS: { id: SortOption; label: string }[] = [
 const PANEL_CLASS = 'bg-white border border-gray-200 rounded-lg shadow-sm';
 const MAX_ACTIVITY_ITEMS = 80;
 
-export default function FileLibraryTab({ documents, actions, companies, contacts }: FileLibraryTabProps) {
+// Helper to check if a document can be edited in the GTM editor
+function isEditableDocument(mimeType: string | undefined): boolean {
+    if (!mimeType) return false;
+    return mimeType.includes('text') || 
+           mimeType.includes('markdown') || 
+           mimeType.includes('html') ||
+           mimeType.includes('json') ||
+           mimeType.includes('xml') ||
+           mimeType === 'application/json' ||
+           mimeType === 'text/plain' ||
+           mimeType === 'text/markdown' ||
+           mimeType === 'text/html';
+}
+
+export default function FileLibraryTab({ documents, actions, companies, contacts, onOpenInEditor }: FileLibraryTabProps) {
     const { user } = useAuth();
     const { workspace } = useWorkspace();
 
@@ -252,6 +268,86 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
     const handleCloseComposer = () => {
         setShowEmailComposer(false);
         setEmailAttachments([]);
+    };
+
+    // Open document in GTM editor (converts file to GTM doc if needed)
+    const handleEditInEditor = async (doc: Document) => {
+        if (!workspace?.id || !user?.id || !onOpenInEditor) return;
+        
+        try {
+            // Decode base64 content to text
+            let textContent = '';
+            try {
+                textContent = atob(doc.content);
+            } catch (e) {
+                // If base64 decode fails, try using content directly
+                textContent = doc.content || '';
+            }
+            
+            // Convert to HTML for Tiptap editor
+            let htmlContent = textContent;
+            if (doc.mimeType?.includes('markdown') || doc.name.endsWith('.md')) {
+                // Simple markdown to HTML conversion (basic)
+                htmlContent = textContent
+                    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+                    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+                    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+                    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                    .replace(/\n/g, '<br/>');
+            } else if (doc.mimeType?.includes('text/plain')) {
+                // Wrap plain text in paragraphs
+                htmlContent = textContent
+                    .split('\n\n')
+                    .map(p => `<p>${p.replace(/\n/g, '<br/>')}</p>`)
+                    .join('');
+            }
+            // If HTML, use as-is
+            
+            // Create a new GTM doc from the file content
+            const { data: newDoc, error } = await DatabaseService.createGTMDoc({
+                workspaceId: workspace.id,
+                userId: user.id,
+                title: doc.name.replace(/\.[^/.]+$/, ''), // Remove extension from name
+                docType: 'brief',
+                contentJson: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: '' }] }] },
+                contentPlain: textContent,
+                visibility: 'team',
+                tags: doc.tags || [],
+            });
+            
+            if (error || !newDoc) {
+                console.error('[FileLibraryTab] Failed to create GTM doc:', error);
+                alert('Failed to open document in editor');
+                return;
+            }
+            
+            // Update the doc with HTML content (Tiptap will parse it)
+            await DatabaseService.updateGTMDoc(newDoc.id, workspace.id, {
+                contentJson: { 
+                    type: 'doc', 
+                    content: [
+                        { 
+                            type: 'heading', 
+                            attrs: { level: 1 }, 
+                            content: [{ type: 'text', text: doc.name.replace(/\.[^/.]+$/, '') }] 
+                        },
+                        ...textContent.split('\n').filter(Boolean).map(line => ({
+                            type: 'paragraph',
+                            content: line ? [{ type: 'text', text: line }] : []
+                        }))
+                    ]
+                },
+                contentPlain: textContent,
+            });
+            
+            // Navigate to the editor with the new doc
+            onOpenInEditor(newDoc.id);
+            recordActivity(doc.id, 'viewed', { editedInGtmEditor: true });
+        } catch (err) {
+            console.error('[FileLibraryTab] Error opening in editor:', err);
+            alert('Failed to open document in editor');
+        }
     };
 
     const handleToggleStar = async (doc: Document, isStarred: boolean) => {
@@ -705,6 +801,11 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                                                 <Download size={14} /> Open
                                             </button>
                                             <div className="flex items-center gap-2">
+                                                {isEditableDocument(doc.mimeType) && onOpenInEditor && (
+                                                    <button onClick={() => handleEditInEditor(doc)} title="Edit in GTM Editor" className="text-purple-600 hover:text-purple-800">
+                                                        <Edit2 size={14} />
+                                                    </button>
+                                                )}
                                                 <button onClick={() => handleShare(doc)}><Send size={14} /></button>
                                                 <button onClick={() => setNotesModalDoc(doc)} ref={notesModalTriggerRef}><FileText size={14} /></button>
                                                 <button onClick={() => handleDelete(doc)}><Trash2 size={14} /></button>
@@ -755,6 +856,11 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                                             <td className="px-4 py-2 text-xs">{formatSize(doc.fileSize || calculateDocSize(doc))}</td>
                                             <td className="px-4 py-2">
                                                 <div className="flex items-center justify-end gap-2">
+                                                    {isEditableDocument(doc.mimeType) && onOpenInEditor && (
+                                                        <button onClick={e => { e.stopPropagation(); handleEditInEditor(doc); }} title="Edit in GTM Editor" className="text-purple-600 hover:text-purple-800">
+                                                            <Edit2 size={14} />
+                                                        </button>
+                                                    )}
                                                     <button onClick={e => { e.stopPropagation(); handleOpenDocument(doc); }}><Download size={14} /></button>
                                                     <button onClick={e => { e.stopPropagation(); handleShare(doc); }}><Send size={14} /></button>
                                                     <button onClick={e => { e.stopPropagation(); handleToggleStar(doc, !doc.isStarred); }}>
@@ -910,6 +1016,11 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                         </div>
 
                         <div className="grid gap-2">
+                            {isEditableDocument(selectedDoc.mimeType) && onOpenInEditor && (
+                                <Button onClick={() => handleEditInEditor(selectedDoc)} className="justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white">
+                                    <Edit2 size={16} /> Edit in GTM Editor
+                                </Button>
+                            )}
                             <Button onClick={() => handleDownload(selectedDoc)} className="justify-center gap-2">
                                 <Download size={16} /> Download
                             </Button>

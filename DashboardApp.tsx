@@ -52,6 +52,9 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
     const [showBusinessProfileModal, setShowBusinessProfileModal] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
     
+    // State for opening a document in the GTM editor from file library
+    const [pendingEditorDocId, setPendingEditorDocId] = useState<string | null>(null);
+    
     // Persist active tab in localStorage so it survives page refresh
     const [activeTab, setActiveTab] = useState<TabType>(() => {
         const savedTab = localStorage.getItem('activeTab');
@@ -2661,13 +2664,24 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             actions={actions}
                             data={data}
                             onUpgradeNeeded={() => setActiveTab(Tab.Settings)}
+                            initialDocId={pendingEditorDocId}
+                            onClearInitialDoc={() => setPendingEditorDocId(null)}
                         />
                     </Suspense>
                 );
             case Tab.Documents:
                 return (
                     <Suspense fallback={<TabLoadingFallback />}>
-                        <FileLibraryTab documents={data.documents} actions={actions} companies={allCompanies} contacts={allContacts} />
+                        <FileLibraryTab 
+                            documents={data.documents} 
+                            actions={actions} 
+                            companies={allCompanies} 
+                            contacts={allContacts}
+                            onOpenInEditor={(docId) => {
+                                setPendingEditorDocId(docId);
+                                setActiveTab(Tab.Workspace);
+                            }}
+                        />
                     </Suspense>
                 );
             case Tab.Agents:
