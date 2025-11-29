@@ -665,7 +665,7 @@ Return the JSON array of contacts found.`;
                 <iframe 
                     srcDoc={fixHtmlEncoding(data.body.html)}
                     className="w-full h-full min-h-[600px]"
-                    sandbox="allow-popups"
+                    sandbox="allow-scripts allow-popups"
                     title="Email Content"
                     style={{ border: 'none', width: '100%', height: '100%' }}
                 />
