@@ -12,28 +12,53 @@
  */
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
-import {
-  stripe,
-  supabaseAdmin,
-  jsonResponse,
-  corsHeaders,
-} from '../_shared/config.ts';
+import Stripe from 'https://esm.sh/stripe@16.10.0?target=deno';
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
+
+// CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
+// Helper for JSON responses
+const jsonResponse = (body: Record<string, unknown>, status = 200) => {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+};
 
 serve(async (req) => {
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { status: 200, headers: corsHeaders });
   }
 
   if (req.method !== 'POST') {
-    return jsonResponse({ error: 'Method not allowed' }, { status: 405 });
+    return jsonResponse({ error: 'Method not allowed' }, 405);
   }
 
   try {
+    // Initialize Stripe
+    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
+    if (!stripeSecretKey) {
+      console.error('STRIPE_SECRET_KEY not configured');
+      return jsonResponse({ error: 'Payment system not configured' }, 500);
+    }
+    const stripe = new Stripe(stripeSecretKey, { apiVersion: '2023-10-16' });
+
+    // Initialize Supabase
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
     const body = await req.json();
     const { action, workspaceId } = body;
 
     if (!workspaceId) {
-      return jsonResponse({ error: 'Missing workspaceId' }, { status: 400 });
+      return jsonResponse({ error: 'Missing workspaceId' }, 400);
     }
 
     // Verify workspace exists
@@ -44,26 +69,27 @@ serve(async (req) => {
       .single();
 
     if (workspaceError || !workspace) {
-      return jsonResponse({ error: 'Workspace not found' }, { status: 404 });
+      return jsonResponse({ error: 'Workspace not found' }, 404);
     }
 
     switch (action) {
       case 'setup':
-        return await handleSetup(body, workspace);
+        return await handleSetup(body, workspace, stripe, supabaseAdmin);
       case 'toggle':
-        return await handleToggle(body);
+        return await handleToggle(body, supabaseAdmin);
       case 'update':
-        return await handleUpdate(body);
+        return await handleUpdate(body, supabaseAdmin);
       case 'remove':
-        return await handleRemove(body);
+        return await handleRemove(body, stripe, supabaseAdmin);
       case 'trigger':
-        return await handleTrigger(body);
+        return await handleTrigger(body, stripe, supabaseAdmin);
       default:
-        return jsonResponse({ error: 'Invalid action' }, { status: 400 });
+        return jsonResponse({ error: 'Invalid action' }, 400);
     }
   } catch (error) {
     console.error('api-balance-auto-reload error:', error);
-    return jsonResponse({ error: error.message }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return jsonResponse({ error: message }, 500);
   }
 });
 
@@ -72,20 +98,22 @@ serve(async (req) => {
  */
 async function handleSetup(
   body: { workspaceId: string; thresholdCents: number; reloadAmountCents: number; successUrl: string; cancelUrl: string },
-  workspace: { id: string; name: string; owner_id: string }
+  workspace: { id: string; name: string; owner_id: string },
+  stripe: Stripe,
+  supabaseAdmin: SupabaseClient
 ) {
   const { workspaceId, thresholdCents, reloadAmountCents, successUrl, cancelUrl } = body;
 
   if (!successUrl || !cancelUrl) {
-    return jsonResponse({ error: 'Missing successUrl or cancelUrl' }, { status: 400 });
+    return jsonResponse({ error: 'Missing successUrl or cancelUrl' }, 400);
   }
 
   // Validate thresholds
   if (thresholdCents < 100 || thresholdCents > 10000) {
-    return jsonResponse({ error: 'Threshold must be between $1 and $100' }, { status: 400 });
+    return jsonResponse({ error: 'Threshold must be between $1 and $100' }, 400);
   }
   if (reloadAmountCents < 500 || reloadAmountCents > 50000) {
-    return jsonResponse({ error: 'Reload amount must be between $5 and $500' }, { status: 400 });
+    return jsonResponse({ error: 'Reload amount must be between $5 and $500' }, 400);
   }
 
   // Check for existing Stripe customer from subscription
@@ -129,7 +157,7 @@ async function handleSetup(
 /**
  * Toggle: Enable/disable auto-reload
  */
-async function handleToggle(body: { workspaceId: string; enabled: boolean }) {
+async function handleToggle(body: { workspaceId: string; enabled: boolean }, supabaseAdmin: SupabaseClient) {
   const { workspaceId, enabled } = body;
 
   // Check if auto-reload settings exist
@@ -141,15 +169,15 @@ async function handleToggle(body: { workspaceId: string; enabled: boolean }) {
 
   if (fetchError) {
     console.error('Error fetching auto-reload settings:', fetchError);
-    return jsonResponse({ error: 'Failed to fetch settings' }, { status: 500 });
+    return jsonResponse({ error: 'Failed to fetch settings' }, 500);
   }
 
   if (!existing) {
-    return jsonResponse({ error: 'Auto-reload not set up yet' }, { status: 400 });
+    return jsonResponse({ error: 'Auto-reload not set up yet' }, 400);
   }
 
   if (!existing.stripe_payment_method_id && enabled) {
-    return jsonResponse({ error: 'No payment method on file' }, { status: 400 });
+    return jsonResponse({ error: 'No payment method on file' }, 400);
   }
 
   // Update enabled status
@@ -163,7 +191,7 @@ async function handleToggle(body: { workspaceId: string; enabled: boolean }) {
 
   if (updateError) {
     console.error('Error updating auto-reload:', updateError);
-    return jsonResponse({ error: 'Failed to update settings' }, { status: 500 });
+    return jsonResponse({ error: 'Failed to update settings' }, 500);
   }
 
   return jsonResponse({ success: true, enabled });
@@ -172,15 +200,15 @@ async function handleToggle(body: { workspaceId: string; enabled: boolean }) {
 /**
  * Update: Change threshold and reload amount
  */
-async function handleUpdate(body: { workspaceId: string; thresholdCents: number; reloadAmountCents: number }) {
+async function handleUpdate(body: { workspaceId: string; thresholdCents: number; reloadAmountCents: number }, supabaseAdmin: SupabaseClient) {
   const { workspaceId, thresholdCents, reloadAmountCents } = body;
 
   // Validate
   if (thresholdCents < 100 || thresholdCents > 10000) {
-    return jsonResponse({ error: 'Threshold must be between $1 and $100' }, { status: 400 });
+    return jsonResponse({ error: 'Threshold must be between $1 and $100' }, 400);
   }
   if (reloadAmountCents < 500 || reloadAmountCents > 50000) {
-    return jsonResponse({ error: 'Reload amount must be between $5 and $500' }, { status: 400 });
+    return jsonResponse({ error: 'Reload amount must be between $5 and $500' }, 400);
   }
 
   // Update settings
@@ -195,7 +223,7 @@ async function handleUpdate(body: { workspaceId: string; thresholdCents: number;
 
   if (updateError) {
     console.error('Error updating auto-reload settings:', updateError);
-    return jsonResponse({ error: 'Failed to update settings' }, { status: 500 });
+    return jsonResponse({ error: 'Failed to update settings' }, 500);
   }
 
   return jsonResponse({ success: true });
@@ -204,7 +232,7 @@ async function handleUpdate(body: { workspaceId: string; thresholdCents: number;
 /**
  * Remove: Delete payment method and disable auto-reload
  */
-async function handleRemove(body: { workspaceId: string }) {
+async function handleRemove(body: { workspaceId: string }, stripe: Stripe, supabaseAdmin: SupabaseClient) {
   const { workspaceId } = body;
 
   // Get current settings
@@ -232,7 +260,7 @@ async function handleRemove(body: { workspaceId: string }) {
 
   if (deleteError) {
     console.error('Error deleting auto-reload settings:', deleteError);
-    return jsonResponse({ error: 'Failed to remove settings' }, { status: 500 });
+    return jsonResponse({ error: 'Failed to remove settings' }, 500);
   }
 
   return jsonResponse({ success: true });
@@ -242,7 +270,7 @@ async function handleRemove(body: { workspaceId: string }) {
  * Trigger: Process auto-reload when balance is low
  * This is called by the API balance check function
  */
-async function handleTrigger(body: { workspaceId: string }) {
+async function handleTrigger(body: { workspaceId: string }, stripe: Stripe, supabaseAdmin: SupabaseClient) {
   const { workspaceId } = body;
 
   // Get auto-reload settings
@@ -253,15 +281,15 @@ async function handleTrigger(body: { workspaceId: string }) {
     .single();
 
   if (settingsError || !settings) {
-    return jsonResponse({ error: 'Auto-reload not configured' }, { status: 400 });
+    return jsonResponse({ error: 'Auto-reload not configured' }, 400);
   }
 
   if (!settings.is_enabled) {
-    return jsonResponse({ error: 'Auto-reload is disabled' }, { status: 400 });
+    return jsonResponse({ error: 'Auto-reload is disabled' }, 400);
   }
 
   if (!settings.stripe_payment_method_id) {
-    return jsonResponse({ error: 'No payment method on file' }, { status: 400 });
+    return jsonResponse({ error: 'No payment method on file' }, 400);
   }
 
   // Check current balance
@@ -272,7 +300,7 @@ async function handleTrigger(body: { workspaceId: string }) {
     .single();
 
   if (!workspace) {
-    return jsonResponse({ error: 'Workspace not found' }, { status: 404 });
+    return jsonResponse({ error: 'Workspace not found' }, 404);
   }
 
   // Only trigger if balance is below threshold
@@ -293,8 +321,8 @@ async function handleTrigger(body: { workspaceId: string }) {
     .maybeSingle();
 
   if (!subscription?.stripe_customer_id) {
-    await recordReloadError(workspaceId, 'No Stripe customer found');
-    return jsonResponse({ error: 'No Stripe customer found' }, { status: 400 });
+    await recordReloadError(supabaseAdmin, workspaceId, 'No Stripe customer found');
+    return jsonResponse({ error: 'No Stripe customer found' }, 400);
   }
 
   try {
@@ -326,9 +354,8 @@ async function handleTrigger(body: { workspaceId: string }) {
 
       if (balanceError) {
         console.error('Failed to add balance after successful payment:', balanceError);
-        // Payment succeeded but balance add failed - needs manual intervention
-        await recordReloadError(workspaceId, 'Payment succeeded but balance add failed');
-        return jsonResponse({ error: 'Balance add failed after payment' }, { status: 500 });
+        await recordReloadError(supabaseAdmin, workspaceId, 'Payment succeeded but balance add failed');
+        return jsonResponse({ error: 'Balance add failed after payment' }, 500);
       }
 
       // Update auto-reload record
@@ -348,15 +375,16 @@ async function handleTrigger(body: { workspaceId: string }) {
         paymentIntentId: paymentIntent.id,
       });
     } else {
-      await recordReloadError(workspaceId, `Payment status: ${paymentIntent.status}`);
+      await recordReloadError(supabaseAdmin, workspaceId, `Payment status: ${paymentIntent.status}`);
       return jsonResponse({ 
         error: 'Payment not completed',
         status: paymentIntent.status,
-      }, { status: 400 });
+      }, 400);
     }
   } catch (err) {
     console.error('Auto-reload payment failed:', err);
-    await recordReloadError(workspaceId, err.message);
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    await recordReloadError(supabaseAdmin, workspaceId, message);
     
     // Check if we should disable auto-reload after too many failures
     const { data: updated } = await supabaseAdmin
@@ -373,19 +401,26 @@ async function handleTrigger(body: { workspaceId: string }) {
         .eq('workspace_id', workspaceId);
     }
 
-    return jsonResponse({ error: err.message }, { status: 400 });
+    return jsonResponse({ error: message }, 400);
   }
 }
 
 /**
  * Record a reload error
  */
-async function recordReloadError(workspaceId: string, errorMessage: string) {
+async function recordReloadError(supabaseAdmin: SupabaseClient, workspaceId: string, errorMessage: string) {
+  // First get current failures count
+  const { data: current } = await supabaseAdmin
+    .from('api_balance_auto_reload')
+    .select('consecutive_failures')
+    .eq('workspace_id', workspaceId)
+    .single();
+
   await supabaseAdmin
     .from('api_balance_auto_reload')
     .update({
       last_reload_error: errorMessage,
-      consecutive_failures: supabaseAdmin.sql`consecutive_failures + 1`,
+      consecutive_failures: (current?.consecutive_failures || 0) + 1,
       updated_at: new Date().toISOString(),
     })
     .eq('workspace_id', workspaceId);

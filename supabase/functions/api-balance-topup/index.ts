@@ -11,12 +11,15 @@
  */
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
-import {
-  stripe,
-  supabaseAdmin,
-  jsonResponse,
-  corsHeaders,
-} from '../_shared/config.ts';
+import Stripe from 'https://esm.sh/stripe@16.10.0?target=deno';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
+
+// CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
 
 // Minimum top-up is $5
 const MINIMUM_TOPUP_CENTS = 500;
@@ -24,15 +27,37 @@ const MINIMUM_TOPUP_CENTS = 500;
 const MAXIMUM_TOPUP_CENTS = 100000;
 
 serve(async (req) => {
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { status: 200, headers: corsHeaders });
   }
 
+  // Helper for JSON responses
+  const jsonResponse = (body: Record<string, unknown>, status = 200) => {
+    return new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  };
+
   if (req.method !== 'POST') {
-    return jsonResponse({ error: 'Method not allowed' }, { status: 405 });
+    return jsonResponse({ error: 'Method not allowed' }, 405);
   }
 
   try {
+    // Initialize Stripe
+    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
+    if (!stripeSecretKey) {
+      console.error('STRIPE_SECRET_KEY not configured');
+      return jsonResponse({ error: 'Payment system not configured' }, 500);
+    }
+    const stripe = new Stripe(stripeSecretKey, { apiVersion: '2023-10-16' });
+
+    // Initialize Supabase
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
     const body = await req.json();
     const {
       workspaceId,
@@ -46,7 +71,7 @@ serve(async (req) => {
     if (!workspaceId || !amountCents || !successUrl || !cancelUrl) {
       return jsonResponse({ 
         error: 'Missing required fields: workspaceId, amountCents, successUrl, cancelUrl' 
-      }, { status: 400 });
+      }, 400);
     }
 
     // Validate amount
@@ -54,13 +79,13 @@ serve(async (req) => {
     if (isNaN(amount) || amount < MINIMUM_TOPUP_CENTS) {
       return jsonResponse({ 
         error: `Minimum top-up amount is $${(MINIMUM_TOPUP_CENTS / 100).toFixed(2)}` 
-      }, { status: 400 });
+      }, 400);
     }
 
     if (amount > MAXIMUM_TOPUP_CENTS) {
       return jsonResponse({ 
         error: `Maximum top-up amount is $${(MAXIMUM_TOPUP_CENTS / 100).toFixed(2)}` 
-      }, { status: 400 });
+      }, 400);
     }
 
     // Verify workspace exists
@@ -71,7 +96,7 @@ serve(async (req) => {
       .single();
 
     if (workspaceError || !workspace) {
-      return jsonResponse({ error: 'Workspace not found' }, { status: 404 });
+      return jsonResponse({ error: 'Workspace not found' }, 404);
     }
 
     // Check for existing Stripe customer from subscription
@@ -116,7 +141,6 @@ serve(async (req) => {
           quantity: 1,
         },
       ],
-      // Allow customer to adjust quantity up to reasonable limit
       payment_intent_data: {
         metadata: {
           type: 'api_balance_topup',
@@ -133,6 +157,6 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('api-balance-topup error:', error);
-    return jsonResponse({ error: error.message }, { status: 500 });
+    return jsonResponse({ error: error.message }, 500);
   }
 });
