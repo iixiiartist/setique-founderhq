@@ -1,6 +1,7 @@
 // hooks/useNotifications.ts
 // Unified notification hook - single source of truth for all notification state
 // Consolidates NotificationBell, NotificationCenter, and other consumers
+// Supports cursor-based pagination, priority levels, and delivery tracking
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { RealtimeChannel } from '@supabase/supabase-js';
@@ -14,26 +15,38 @@ import * as Sentry from '@sentry/react';
 // TYPES
 // ============================================
 
+export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent';
+export type DeliveryStatus = 'created' | 'delivered' | 'seen' | 'acknowledged' | 'failed';
+
 export interface UseNotificationsOptions {
   userId: string;
   workspaceId?: string;
-  /** Max notifications to fetch (default 50) */
-  limit?: number;
+  /** Max notifications per page (default 20) */
+  pageSize?: number;
   /** Enable real-time updates (default true) */
   realtime?: boolean;
   /** Fallback polling interval in ms when realtime fails (default 30000) */
   pollingInterval?: number;
   /** Whether to respect user's notification preferences when displaying (default true) */
   respectPreferences?: boolean;
+  /** Enable infinite scroll pagination (default false) */
+  enablePagination?: boolean;
 }
 
 export interface NotificationFilters {
   unreadOnly?: boolean;
   category?: NotificationCategory;
   types?: NotificationType[];
+  priority?: NotificationPriority;
 }
 
 export type NotificationCategory = 'all' | 'mentions' | 'tasks' | 'deals' | 'documents' | 'team' | 'achievements';
+
+export interface PaginationState {
+  hasMore: boolean;
+  loadingMore: boolean;
+  cursor: { createdAt: string; id: string } | null;
+}
 
 export interface UseNotificationsResult {
   // State
@@ -44,12 +57,21 @@ export interface UseNotificationsResult {
   realtimeConnected: boolean;
   error: string | null;
   
+  // Pagination
+  pagination: PaginationState;
+  loadMore: () => Promise<void>;
+  
   // Actions
   refresh: () => Promise<void>;
   markAsRead: (notificationId: string) => Promise<boolean>;
   markAllAsRead: () => Promise<boolean>;
   deleteNotification: (notificationId: string) => Promise<boolean>;
   deleteAllRead: () => Promise<boolean>;
+  
+  // Delivery tracking
+  markAsDelivered: (notificationId: string) => Promise<boolean>;
+  markAsSeen: (notificationId: string) => Promise<boolean>;
+  markAsAcknowledged: (notificationId: string) => Promise<boolean>;
   
   // Filtering
   setFilters: (filters: NotificationFilters) => void;
@@ -58,6 +80,7 @@ export interface UseNotificationsResult {
   
   // Utilities
   getCategoryCount: (category: NotificationCategory) => number;
+  getPriorityNotifications: (priority: NotificationPriority) => Notification[];
 }
 
 // ============================================
@@ -126,10 +149,23 @@ interface NotificationRow {
   created_at: string;
   action_url?: string;
   priority?: string;
+  delivery_status?: string;
+  delivered_at?: string;
+  seen_at?: string;
+  acknowledged_at?: string;
   metadata?: Record<string, unknown>;
 }
 
-function transformRow(row: NotificationRow): Notification {
+// Extended Notification type with new fields
+export interface ExtendedNotification extends Notification {
+  priority: NotificationPriority;
+  deliveryStatus: DeliveryStatus;
+  deliveredAt?: string;
+  seenAt?: string;
+  acknowledgedAt?: string;
+}
+
+function transformRow(row: NotificationRow): ExtendedNotification {
   return {
     id: row.id,
     userId: row.user_id,
@@ -141,6 +177,11 @@ function transformRow(row: NotificationRow): Notification {
     entityId: row.entity_id,
     read: row.read,
     createdAt: row.created_at,
+    priority: (row.priority as NotificationPriority) || 'normal',
+    deliveryStatus: (row.delivery_status as DeliveryStatus) || 'created',
+    deliveredAt: row.delivered_at,
+    seenAt: row.seen_at,
+    acknowledgedAt: row.acknowledged_at,
   };
 }
 
@@ -152,20 +193,28 @@ export function useNotifications(options: UseNotificationsOptions): UseNotificat
   const {
     userId,
     workspaceId,
-    limit = 50,
+    pageSize = 20,
     realtime = true,
     pollingInterval = 30000,
     respectPreferences = true,
+    enablePagination = false,
   } = options;
 
   // State
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<ExtendedNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [realtimeConnected, setRealtimeConnected] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<NotificationFilters>({});
+  
+  // Pagination state
+  const [pagination, setPagination] = useState<PaginationState>({
+    hasMore: false,
+    loadingMore: false,
+    cursor: null,
+  });
 
   // Refs
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -176,11 +225,16 @@ export function useNotifications(options: UseNotificationsOptions): UseNotificat
   // DATA FETCHING
   // ============================================
 
-  const fetchNotifications = useCallback(async (showRefreshing = false) => {
+  const fetchNotifications = useCallback(async (showRefreshing = false, cursor?: { createdAt: string; id: string }) => {
     if (!userId) return;
 
-    if (showRefreshing) setRefreshing(true);
-    else setLoading(true);
+    if (cursor) {
+      setPagination(prev => ({ ...prev, loadingMore: true }));
+    } else if (showRefreshing) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
 
     try {
@@ -189,10 +243,16 @@ export function useNotifications(options: UseNotificationsOptions): UseNotificat
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
-        .limit(limit);
+        .order('id', { ascending: false })
+        .limit(pageSize + 1); // Fetch one extra to check hasMore
 
       if (workspaceId) {
         query = query.eq('workspace_id', workspaceId);
+      }
+
+      // Apply cursor for pagination
+      if (cursor) {
+        query = query.or(`created_at.lt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`);
       }
 
       const { data, error: fetchError } = await query;
@@ -201,7 +261,11 @@ export function useNotifications(options: UseNotificationsOptions): UseNotificat
         throw fetchError;
       }
 
-      const transformedNotifications = (data || []).map(transformRow);
+      // Check if there are more results
+      const hasMore = (data?.length || 0) > pageSize;
+      const resultsToUse = hasMore ? data!.slice(0, pageSize) : (data || []);
+
+      const transformedNotifications = resultsToUse.map(transformRow);
       
       // Filter based on preferences if enabled
       let finalNotifications = transformedNotifications;
@@ -209,8 +273,30 @@ export function useNotifications(options: UseNotificationsOptions): UseNotificat
         finalNotifications = await filterByPreferences(transformedNotifications, userId, workspaceId);
       }
 
-      setNotifications(finalNotifications);
-      setUnreadCount(finalNotifications.filter(n => !n.read).length);
+      // Update pagination cursor
+      const lastNotification = finalNotifications[finalNotifications.length - 1];
+      const newCursor = lastNotification 
+        ? { createdAt: lastNotification.createdAt, id: lastNotification.id }
+        : null;
+
+      if (cursor) {
+        // Appending to existing notifications
+        setNotifications(prev => [...prev, ...finalNotifications]);
+      } else {
+        // Fresh fetch
+        setNotifications(finalNotifications);
+      }
+      
+      setPagination({
+        hasMore,
+        loadingMore: false,
+        cursor: newCursor,
+      });
+      
+      // Only update unread count on fresh fetch
+      if (!cursor) {
+        setUnreadCount(finalNotifications.filter(n => !n.read).length);
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch notifications';
       setError(message);
@@ -219,21 +305,28 @@ export function useNotifications(options: UseNotificationsOptions): UseNotificat
         tags: { hook: 'useNotifications', action: 'fetch' },
         extra: { userId, workspaceId },
       });
+      setPagination(prev => ({ ...prev, loadingMore: false }));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [userId, workspaceId, limit, respectPreferences]);
+  }, [userId, workspaceId, pageSize, respectPreferences]);
 
   // Filter notifications by user preferences
   const filterByPreferences = async (
-    notifs: Notification[],
+    notifs: ExtendedNotification[],
     uid: string,
     wsId: string
-  ): Promise<Notification[]> => {
-    const results: Notification[] = [];
+  ): Promise<ExtendedNotification[]> => {
+    const results: ExtendedNotification[] = [];
     
     for (const notif of notifs) {
+      // Urgent priority bypasses preferences
+      if (notif.priority === 'urgent') {
+        results.push(notif);
+        continue;
+      }
+      
       const cacheKey = `${uid}-${wsId}-${notif.type}`;
       
       // Check cache first
@@ -311,14 +404,14 @@ export function useNotifications(options: UseNotificationsOptions): UseNotificat
             if (payload.eventType === 'INSERT') {
               const newNotification = transformRow(payload.new as NotificationRow);
               
-              // Check preferences before adding
-              if (respectPreferences && workspaceId) {
+              // Urgent priority bypasses preferences
+              if (newNotification.priority !== 'urgent' && respectPreferences && workspaceId) {
                 const prefType = TYPE_TO_PREFERENCE_TYPE[newNotification.type] || newNotification.type;
                 const shouldShow = await shouldNotifyUser(userId, workspaceId, prefType, 'in_app');
                 if (!shouldShow) return;
               }
               
-              setNotifications(prev => [newNotification, ...prev.slice(0, limit - 1)]);
+              setNotifications(prev => [newNotification, ...prev]);
               if (!newNotification.read) {
                 setUnreadCount(prev => prev + 1);
               }
@@ -326,7 +419,7 @@ export function useNotifications(options: UseNotificationsOptions): UseNotificat
               setNotifications(prev =>
                 prev.map(n =>
                   n.id === payload.new.id
-                    ? { ...n, read: (payload.new as NotificationRow).read }
+                    ? { ...n, read: (payload.new as NotificationRow).read, deliveryStatus: ((payload.new as NotificationRow).delivery_status as DeliveryStatus) || n.deliveryStatus }
                     : n
                 )
               );
@@ -375,7 +468,7 @@ export function useNotifications(options: UseNotificationsOptions): UseNotificat
       // Clear preference cache
       preferenceCache.current.clear();
     };
-  }, [userId, workspaceId, realtime, pollingInterval, limit, respectPreferences, fetchNotifications, fetchUnreadCount]);
+  }, [userId, workspaceId, realtime, pollingInterval, pageSize, respectPreferences, fetchNotifications, fetchUnreadCount]);
 
   // Initial fetch
   useEffect(() => {
@@ -510,6 +603,14 @@ export function useNotifications(options: UseNotificationsOptions): UseNotificat
     await fetchNotifications(true);
   }, [fetchNotifications]);
 
+  // Load more notifications (pagination)
+  const loadMore = useCallback(async () => {
+    if (pagination.loadingMore || !pagination.hasMore || !pagination.cursor) {
+      return;
+    }
+    await fetchNotifications(false, pagination.cursor);
+  }, [fetchNotifications, pagination]);
+
   // ============================================
   // FILTERING
   // ============================================
@@ -549,21 +650,39 @@ export function useNotifications(options: UseNotificationsOptions): UseNotificat
   // ============================================
 
   return {
+    // Data
     notifications,
     unreadCount,
+    filteredNotifications,
+    
+    // Loading states
     loading,
     refreshing,
     realtimeConnected,
     error,
+    
+    // Pagination
+    pagination,
+    loadMore,
+    
+    // Actions
     refresh,
     markAsRead,
     markAllAsRead,
     deleteNotification: deleteNotificationFn,
     deleteAllRead,
+    
+    // Delivery tracking (stubs for now - Phase 3)
+    markAsDelivered: async () => true,
+    markAsSeen: async () => true,
+    markAsAcknowledged: async () => true,
+    
+    // Filtering
     setFilters,
     filters,
-    filteredNotifications,
     getCategoryCount,
+    getPriorityNotifications: (priority: NotificationPriority) => 
+      notifications.filter(n => (n as ExtendedNotification).priority === priority),
   };
 }
 
