@@ -276,7 +276,7 @@ export const EmailInbox: React.FC = () => {
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm h-full flex overflow-hidden">
       {/* Sidebar with Folders */}
-      <div className="w-48 border-r border-gray-200 bg-gray-50/50 flex-shrink-0 hidden lg:flex flex-col">
+      <div className="w-48 border-r border-gray-200 bg-gray-50/50 flex-shrink-0 hidden lg:flex flex-col h-full">
         <div className="p-4">
           <button
             onClick={handleComposeClick}
@@ -315,9 +315,9 @@ export const EmailInbox: React.FC = () => {
       </div>
 
       {/* List Panel */}
-      <div className={`flex flex-col border-r border-gray-200 bg-white min-h-0 ${selectedMessageId ? 'w-full md:w-96 hidden md:flex' : 'flex-1 lg:w-96 lg:flex-none'}`}>
+      <div className={`flex flex-col border-r border-gray-200 bg-white h-full ${selectedMessageId ? 'w-full md:w-96 hidden md:flex' : 'flex-1 lg:w-96 lg:flex-none'}`}>
         {/* Toolbar */}
-        <div className="p-4 border-b border-gray-200 flex flex-col gap-3 bg-white">
+        <div className="p-4 border-b border-gray-200 flex flex-col gap-3 bg-white flex-shrink-0">
           <div className="flex justify-between items-center">
             <h2 className="text-lg font-semibold text-gray-900 capitalize">{activeFolder}</h2>
             <div className="flex items-center gap-2">
@@ -381,7 +381,7 @@ export const EmailInbox: React.FC = () => {
         </div>
 
         {/* List */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 p-8 text-center text-gray-500">
               <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
