@@ -6,6 +6,7 @@ import { InviteTeamMemberModal } from './shared/InviteTeamMemberModal';
 import { ProfileSettings } from './shared/ProfileSettings';
 import { AutomationSettings } from './settings/AutomationSettings';
 import { IntegrationsSettings } from './settings/IntegrationsSettings';
+import { ApiKeysSettings } from './settings/ApiKeysSettings';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { AuthService } from '../lib/services/auth';
@@ -797,6 +798,16 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                             <legend className="text-lg font-mono font-semibold px-2">🔌 Integrations</legend>
                             <div className="mt-4">
                                 <IntegrationsSettings />
+                            </div>
+                        </fieldset>
+                    )}
+
+                    {/* API Keys Settings - Premium Feature */}
+                    {workspace?.id && isTeamPlan && (
+                        <fieldset className="border border-gray-200 rounded-lg p-4">
+                            <legend className="text-lg font-mono font-semibold px-2">🔑 Developer API</legend>
+                            <div className="mt-4">
+                                <ApiKeysSettings workspaceId={workspace.id} />
                             </div>
                         </fieldset>
                     )}

@@ -4,6 +4,29 @@
 -- Phase 1 of Premium API implementation
 
 -- ============================================
+-- 0. HELPER FUNCTION (if not exists)
+-- ============================================
+-- is_workspace_member: checks if current user is owner or member of a workspace
+-- This function may already exist from earlier migrations, so we use CREATE OR REPLACE
+
+CREATE OR REPLACE FUNCTION is_workspace_member(workspace_uuid UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    -- Check if user is workspace owner
+    SELECT 1 FROM workspaces
+    WHERE id = workspace_uuid AND owner_id = auth.uid()
+    UNION
+    -- Check if user is invited member
+    SELECT 1 FROM workspace_members
+    WHERE workspace_id = workspace_uuid AND user_id = auth.uid()
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+COMMENT ON FUNCTION is_workspace_member(UUID) IS 'Returns true if current user is owner or member of the workspace';
+
+-- ============================================
 -- 1. API KEYS TABLE
 -- ============================================
 -- Stores hashed API keys with scopes and rate limits
