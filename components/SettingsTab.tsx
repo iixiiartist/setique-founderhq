@@ -7,6 +7,7 @@ import { ProfileSettings } from './shared/ProfileSettings';
 import { AutomationSettings } from './settings/AutomationSettings';
 import { IntegrationsSettings } from './settings/IntegrationsSettings';
 import { ApiKeysSettings } from './settings/ApiKeysSettings';
+import { ApiBalanceSettings } from './settings/ApiBalanceSettings';
 import { WebhooksSettings } from './settings/WebhooksSettings';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '../contexts/WorkspaceContext';
@@ -809,6 +810,16 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                             <legend className="text-lg font-mono font-semibold px-2">🔑 Developer API</legend>
                             <div className="mt-4">
                                 <ApiKeysSettings workspaceId={workspace.id} />
+                            </div>
+                        </fieldset>
+                    )}
+
+                    {/* API Balance Settings - Premium Feature */}
+                    {workspace?.id && isTeamPlan && (
+                        <fieldset className="border border-gray-200 rounded-lg p-4">
+                            <legend className="text-lg font-mono font-semibold px-2">💰 API Balance</legend>
+                            <div className="mt-4">
+                                <ApiBalanceSettings workspaceId={workspace.id} />
                             </div>
                         </fieldset>
                     )}

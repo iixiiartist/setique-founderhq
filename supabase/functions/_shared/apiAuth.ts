@@ -236,6 +236,80 @@ export function hasAllScopes(scopes: ApiScope[], requiredScopes: ApiScope[]): bo
 }
 
 // ============================================
+// BALANCE CHECKING
+// ============================================
+
+export interface BalanceCheckResult {
+  hasBalance: boolean;
+  currentBalanceCents: number;
+  costCents: number;
+}
+
+/**
+ * Check if workspace has sufficient API balance
+ * Cost: $0.001 per call = 0.1 cents per call
+ */
+export async function checkApiBalance(workspaceId: string): Promise<BalanceCheckResult> {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  const { data, error } = await supabase.rpc('check_api_balance', {
+    p_workspace_id: workspaceId,
+    p_call_count: 1,
+  });
+
+  if (error) {
+    console.error('[apiAuth] Balance check error:', error);
+    // Fail open with warning - don't block if balance check fails
+    return {
+      hasBalance: true,
+      currentBalanceCents: 0,
+      costCents: 0.1,
+    };
+  }
+
+  const result = data?.[0];
+  return {
+    hasBalance: result?.has_balance ?? false,
+    currentBalanceCents: result?.current_balance_cents ?? 0,
+    costCents: result?.cost_cents ?? 0.1,
+  };
+}
+
+/**
+ * Deduct balance for API usage
+ */
+export async function deductApiBalance(
+  workspaceId: string,
+  keyId: string,
+  description?: string
+): Promise<{ success: boolean; newBalanceCents: number; error?: string }> {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  const { data, error } = await supabase.rpc('deduct_api_balance', {
+    p_workspace_id: workspaceId,
+    p_api_key_id: keyId,
+    p_call_count: 1,
+    p_description: description || 'API usage',
+  });
+
+  if (error) {
+    console.error('[apiAuth] Balance deduction error:', error);
+    return { success: false, newBalanceCents: 0, error: error.message };
+  }
+
+  const result = data?.[0];
+  return {
+    success: result?.success ?? false,
+    newBalanceCents: result?.new_balance_cents ?? 0,
+    error: result?.error_message,
+  };
+}
+
+// ============================================
 // REQUEST LOGGING
 // ============================================
 
@@ -356,10 +430,11 @@ export function rateLimitHeaders(
 export interface ApiHandlerOptions {
   requiredScopes?: ApiScope[];
   allowedMethods?: string[];
+  skipBalanceCheck?: boolean; // For free endpoints or internal use
 }
 
 /**
- * Wrap an API handler with authentication, rate limiting, and logging
+ * Wrap an API handler with authentication, rate limiting, balance checking, and logging
  */
 export function createApiHandler(
   handler: (ctx: ApiRequestContext, req: Request) => Promise<Response>,
@@ -431,6 +506,35 @@ export function createApiHandler(
       );
     }
 
+    // Check API balance (unless explicitly skipped)
+    if (!options.skipBalanceCheck) {
+      const balance = await checkApiBalance(auth.workspaceId!);
+      if (!balance.hasBalance) {
+        return new Response(
+          JSON.stringify({
+            error: {
+              message: 'Insufficient API balance',
+              code: 'insufficient_balance',
+              details: {
+                current_balance_cents: balance.currentBalanceCents,
+                current_balance_dollars: (balance.currentBalanceCents / 100).toFixed(2),
+                cost_per_call_cents: 0.1,
+                cost_per_call_dollars: '0.001',
+                topup_url: '/settings?tab=api', // Direct to settings
+              },
+            },
+          }),
+          {
+            status: 402, // Payment Required
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      }
+    }
+
     // Create context
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -458,6 +562,20 @@ export function createApiHandler(
       errorCode = 'internal_error';
       errorMessage = err instanceof Error ? err.message : 'Unknown error';
       response = errorResponse('Internal server error', 500, errorCode);
+    }
+
+    // Deduct balance ONLY for successful responses (2xx status codes)
+    // This ensures users don't pay for failed requests
+    if (!options.skipBalanceCheck && response.status >= 200 && response.status < 300) {
+      const deductResult = await deductApiBalance(
+        auth.workspaceId!,
+        auth.keyId!,
+        `${method} ${endpoint}`
+      );
+      if (!deductResult.success) {
+        console.warn('[apiAuth] Balance deduction failed:', deductResult.error);
+        // Don't fail the request - it already succeeded. Just log the issue.
+      }
     }
 
     // Add rate limit headers to response

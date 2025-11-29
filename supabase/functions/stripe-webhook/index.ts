@@ -74,6 +74,14 @@ async function finalizeEvent(eventId: string, success: boolean, errorMessage?: s
 
 async function handleCheckoutSessionCompleted(event: Stripe.Event) {
   const session = event.data.object as Stripe.Checkout.Session;
+  
+  // Check if this is an API balance top-up (one-time payment)
+  if (session.metadata?.type === 'api_balance_topup' && session.mode === 'payment') {
+    await handleApiBalanceTopup(session);
+    return;
+  }
+
+  // Otherwise handle as subscription checkout
   const subscriptionId = typeof session.subscription === 'string'
     ? session.subscription
     : session.subscription?.id;
@@ -93,6 +101,58 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
   }
 
   await updateSubscriptionRecord(resolvedWorkspaceId, subscription);
+}
+
+// Handle API balance top-up payment
+async function handleApiBalanceTopup(session: Stripe.Checkout.Session) {
+  const supabase = getAdminClient();
+  
+  const workspaceId = session.metadata?.workspace_id;
+  const amountCents = parseInt(session.metadata?.amount_cents || '0', 10);
+  
+  if (!workspaceId || !amountCents) {
+    console.error('[api-balance] Missing workspace_id or amount_cents in metadata', session.metadata);
+    throw new Error('Invalid API balance topup metadata');
+  }
+
+  // Verify payment was successful
+  if (session.payment_status !== 'paid') {
+    console.log('[api-balance] Payment not completed yet, status:', session.payment_status);
+    return;
+  }
+
+  const paymentIntentId = typeof session.payment_intent === 'string' 
+    ? session.payment_intent 
+    : session.payment_intent?.id;
+
+  console.log(`[api-balance] Processing top-up: workspace=${workspaceId}, amount=${amountCents} cents`);
+
+  // Use the add_api_balance function to atomically add balance
+  const { data, error } = await supabase.rpc('add_api_balance', {
+    p_workspace_id: workspaceId,
+    p_amount_cents: amountCents,
+    p_type: 'topup',
+    p_description: `Added $${(amountCents / 100).toFixed(2)} via Stripe`,
+    p_stripe_payment_intent_id: paymentIntentId,
+    p_stripe_checkout_session_id: session.id,
+    p_metadata: { 
+      stripe_customer: session.customer,
+      estimated_calls: amountCents * 10, // 0.1 cents per call
+    },
+  });
+
+  if (error) {
+    console.error('[api-balance] Failed to add balance:', error);
+    throw error;
+  }
+
+  const result = data?.[0];
+  if (!result?.success) {
+    console.error('[api-balance] add_api_balance returned failure:', result?.error_message);
+    throw new Error(result?.error_message || 'Failed to add balance');
+  }
+
+  console.log(`[api-balance] Successfully added ${amountCents} cents. New balance: ${result.new_balance_cents} cents`);
 }
 
 async function handleSubscriptionEvent(event: Stripe.Event) {
