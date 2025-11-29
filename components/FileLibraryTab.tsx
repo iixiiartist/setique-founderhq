@@ -10,10 +10,21 @@ import { DatabaseService } from '../lib/services/database';
 import { Button } from './ui/Button';
 import { EmailComposer, EmailAttachment } from './email/EmailComposer';
 import mammoth from 'mammoth';
-import * as pdfjsLib from 'pdfjs-dist';
 
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Dynamic PDF.js import to avoid worker issues at module load time
+let pdfjsLib: typeof import('pdfjs-dist') | null = null;
+let pdfWorkerInitialized = false;
+
+async function initPdfJs() {
+    if (pdfWorkerInitialized) return pdfjsLib;
+    
+    pdfjsLib = await import('pdfjs-dist');
+    // Use CDN worker for reliability
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+    pdfWorkerInitialized = true;
+    console.log('[FileLibraryTab] PDF.js initialized, version:', pdfjsLib.version);
+    return pdfjsLib;
+}
 
 import {
     Grid,
@@ -111,6 +122,10 @@ function isEditableDocument(mimeType: string | undefined, fileName?: string): bo
 // Extract text from PDF using pdfjs-dist
 async function extractTextFromPDF(base64Content: string): Promise<string> {
     try {
+        // Initialize PDF.js on demand
+        const pdfjs = await initPdfJs();
+        if (!pdfjs) throw new Error('Failed to load PDF.js library');
+        
         // Convert base64 to Uint8Array
         const binaryString = atob(base64Content);
         const bytes = new Uint8Array(binaryString.length);
@@ -118,8 +133,17 @@ async function extractTextFromPDF(base64Content: string): Promise<string> {
             bytes[i] = binaryString.charCodeAt(i);
         }
         
-        // Load PDF document
-        const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+        console.log('[FileLibraryTab] Loading PDF, size:', bytes.length, 'bytes');
+        
+        // Load PDF document with explicit options
+        const loadingTask = pdfjs.getDocument({
+            data: bytes,
+            useSystemFonts: true,
+        });
+        
+        const pdf = await loadingTask.promise;
+        console.log('[FileLibraryTab] PDF loaded, pages:', pdf.numPages);
+        
         const textParts: string[] = [];
         
         // Extract text from each page
@@ -127,15 +151,17 @@ async function extractTextFromPDF(base64Content: string): Promise<string> {
             const page = await pdf.getPage(pageNum);
             const textContent = await page.getTextContent();
             const pageText = textContent.items
-                .map((item: any) => item.str)
+                .map((item: any) => item.str || '')
                 .join(' ');
             textParts.push(pageText);
         }
         
-        return textParts.join('\n\n');
+        const result = textParts.join('\n\n');
+        console.log('[FileLibraryTab] PDF text extracted, length:', result.length);
+        return result;
     } catch (error) {
         console.error('[FileLibraryTab] PDF extraction error:', error);
-        throw new Error('Failed to extract text from PDF');
+        throw new Error(`Failed to extract text from PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 }
 
