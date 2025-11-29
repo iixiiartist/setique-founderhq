@@ -30,6 +30,7 @@ export interface ApiAuthResult {
   requestsPerMinute: number;
   error: string | null;
   statusCode: number;
+  isAdmin?: boolean; // Admin users get unlimited access
 }
 
 export interface RateLimitResult {
@@ -155,7 +156,33 @@ export async function authenticateRequest(req: Request): Promise<ApiAuthResult> 
       requestsPerMinute: 0,
       error: result?.error_message || 'Invalid API key',
       statusCode: 401,
+      isAdmin: false,
     };
+  }
+
+  // Check if workspace owner is an admin (gets unlimited API access)
+  let isAdmin = false;
+  try {
+    const { data: workspace } = await supabase
+      .from('workspaces')
+      .select('owner_id')
+      .eq('id', result.workspace_id)
+      .single();
+
+    if (workspace?.owner_id) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', workspace.owner_id)
+        .single();
+
+      isAdmin = profile?.is_admin === true;
+      if (isAdmin) {
+        console.log('[apiAuth] Admin workspace detected - unlimited access granted');
+      }
+    }
+  } catch (err) {
+    console.warn('[apiAuth] Admin check failed, continuing with normal limits:', err);
   }
 
   return {
@@ -163,9 +190,10 @@ export async function authenticateRequest(req: Request): Promise<ApiAuthResult> 
     keyId: result.key_id,
     workspaceId: result.workspace_id,
     scopes: result.scopes || [],
-    requestsPerMinute: result.requests_per_minute || 100,
+    requestsPerMinute: isAdmin ? 999999 : (result.requests_per_minute || 100),
     error: null,
     statusCode: 200,
+    isAdmin,
   };
 }
 
@@ -539,9 +567,9 @@ export function createApiHandler(
       }
     }
 
-    // Check rate limit
+    // Check rate limit (skip for admins - they get unlimited)
     const rateLimit = await checkRateLimit(auth.keyId!, auth.requestsPerMinute);
-    if (!rateLimit.allowed) {
+    if (!rateLimit.allowed && !auth.isAdmin) {
       const headers = rateLimitHeaders(
         auth.requestsPerMinute,
         rateLimit.remaining,
@@ -570,8 +598,9 @@ export function createApiHandler(
       );
     }
 
-    // Check API balance (unless explicitly skipped)
-    if (!options.skipBalanceCheck) {
+    // Check API balance (skip for admins or if explicitly skipped)
+    const skipBalance = options.skipBalanceCheck || auth.isAdmin;
+    if (!skipBalance) {
       const balance = await checkApiBalance(auth.workspaceId!);
       if (!balance.hasBalance) {
         return new Response(
@@ -630,7 +659,9 @@ export function createApiHandler(
 
     // Deduct balance ONLY for successful responses (2xx status codes)
     // This ensures users don't pay for failed requests
-    if (!options.skipBalanceCheck && response.status >= 200 && response.status < 300) {
+    // Skip balance deduction for admin users (unlimited access)
+    const shouldDeductBalance = !options.skipBalanceCheck && !auth.isAdmin && response.status >= 200 && response.status < 300;
+    if (shouldDeductBalance) {
       const deductResult = await deductApiBalance(
         auth.workspaceId!,
         auth.keyId!,
