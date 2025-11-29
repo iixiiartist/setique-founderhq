@@ -200,101 +200,125 @@ async function formatDocumentWithAI(rawText: string, fileName: string): Promise<
     contentPlain: string;
 }> {
     try {
-        console.log('[FileLibraryTab] Formatting document with AI...');
+        console.log('[FileLibraryTab] Formatting document with AI, text length:', rawText.length);
         
-        const systemPrompt = `You are a document formatting assistant. Your task is to take raw extracted text from a document and return it as properly structured content for a rich text editor.
+        const systemPrompt = `You are a document structure analyzer. Convert raw text into a Tiptap JSON document.
 
-IMPORTANT: Return ONLY valid JSON, no explanations or markdown code blocks.
+OUTPUT FORMAT - Return ONLY this JSON structure, no other text:
+{"type":"doc","content":[...nodes...]}
 
-Analyze the content and identify:
-- Headings (main title, section headers, subheadings)
-- Paragraphs of text
-- Lists (bullet points, numbered lists)
-- Contact information sections
-- Any other structural elements
+NODE TYPES you can use:
+1. Heading: {"type":"heading","attrs":{"level":1},"content":[{"type":"text","text":"Title"}]}
+   - level 1 for main title/name
+   - level 2 for major sections  
+   - level 3 for subsections
+2. Paragraph: {"type":"paragraph","content":[{"type":"text","text":"Text here"}]}
+3. Bullet List: {"type":"bulletList","content":[{"type":"listItem","content":[{"type":"paragraph","content":[{"type":"text","text":"Item"}]}]}]}
 
-Return the content as a JSON object with this exact structure:
-{
-  "type": "doc",
-  "content": [
-    // Array of content blocks, each can be:
-    // Heading: { "type": "heading", "attrs": { "level": 1|2|3 }, "content": [{ "type": "text", "text": "..." }] }
-    // Paragraph: { "type": "paragraph", "content": [{ "type": "text", "text": "..." }] }
-    // Bullet list: { "type": "bulletList", "content": [{ "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "..." }] }] }] }
-    // Ordered list: { "type": "orderedList", "content": [{ "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "..." }] }] }] }
-  ]
-}
+RULES:
+- Return ONLY valid JSON, nothing else
+- Keep ALL original text content
+- Identify document structure (headings, sections, lists)
+- For resumes: name=h1, sections like Experience/Education=h2, job titles=h3
+- Use bullet lists for items with • or - or numbered items
+- Separate logical sections with appropriate headings`;
 
-For documents like resumes:
-- The person's name should be level 1 heading
-- Major sections (Experience, Education, Skills) should be level 2 headings
-- Job titles/roles can be level 3 headings or bold text
-- Dates and locations can be regular paragraph text
-- Bullet points for responsibilities/achievements
+        const userPrompt = `Convert this extracted document text to Tiptap JSON:
 
-Keep all original content - do not summarize or remove text. Just restructure it properly.`;
+${rawText.slice(0, 12000)}`;
 
-        const userPrompt = `Please format the following document content extracted from "${fileName}":
-
----
-${rawText.slice(0, 15000)}
----
-
-Return ONLY the JSON structure, nothing else.`;
-
+        console.log('[FileLibraryTab] Calling Groq API...');
         const response = await supabase.functions.invoke('groq-chat', {
             body: {
                 messages: [
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: userPrompt }
                 ],
-                temperature: 0.3,
+                temperature: 0.2,
                 max_tokens: 8000,
                 model: 'llama-3.3-70b-versatile'
             }
         });
 
+        console.log('[FileLibraryTab] Groq response received:', {
+            hasError: !!response.error,
+            hasData: !!response.data,
+            dataKeys: response.data ? Object.keys(response.data) : []
+        });
+
         if (response.error) {
             console.error('[FileLibraryTab] Groq API error:', response.error);
-            throw new Error('AI formatting failed');
+            throw new Error('AI formatting failed: ' + response.error.message);
         }
 
         const data = response.data;
-        let aiContent = data?.choices?.[0]?.message?.content || data?.content || '';
+        // The groq-chat edge function returns { response: string, ... }
+        let aiContent = data?.response || '';
         
-        console.log('[FileLibraryTab] AI response received, length:', aiContent.length);
+        console.log('[FileLibraryTab] AI response length:', aiContent.length);
+        console.log('[FileLibraryTab] AI response first 300 chars:', aiContent.slice(0, 300));
 
-        // Try to parse the JSON response
-        // First, try to extract JSON if it's wrapped in code blocks
-        const jsonMatch = aiContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-        if (jsonMatch) {
-            aiContent = jsonMatch[1];
+        if (!aiContent) {
+            console.error('[FileLibraryTab] Empty AI response, data:', JSON.stringify(data).slice(0, 500));
+            throw new Error('Empty AI response');
+        }
+
+        // Extract JSON from response - try multiple patterns
+        let jsonString = aiContent.trim();
+        
+        // Remove markdown code blocks if present
+        const codeBlockMatch = jsonString.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+        if (codeBlockMatch) {
+            jsonString = codeBlockMatch[1].trim();
+            console.log('[FileLibraryTab] Extracted from code block');
         }
         
-        // Clean up any potential issues
-        aiContent = aiContent.trim();
-        
-        try {
-            const parsedContent = JSON.parse(aiContent);
-            
-            // Validate it has the expected structure
-            if (parsedContent.type === 'doc' && Array.isArray(parsedContent.content)) {
-                console.log('[FileLibraryTab] Successfully parsed AI-formatted content');
-                return {
-                    contentJson: parsedContent,
-                    contentPlain: rawText
-                };
+        // Find the JSON object if there's extra text
+        if (!jsonString.startsWith('{')) {
+            const jsonStart = jsonString.indexOf('{"type":"doc"');
+            if (jsonStart !== -1) {
+                jsonString = jsonString.slice(jsonStart);
+                console.log('[FileLibraryTab] Found JSON start at position', jsonStart);
             }
-        } catch (parseError) {
-            console.error('[FileLibraryTab] Failed to parse AI response as JSON:', parseError);
         }
-
-        // Fallback: return basic structure
-        throw new Error('Could not parse AI response');
+        
+        // Find the end of the JSON object
+        if (jsonString.startsWith('{')) {
+            let depth = 0;
+            let endIndex = 0;
+            for (let i = 0; i < jsonString.length; i++) {
+                if (jsonString[i] === '{') depth++;
+                else if (jsonString[i] === '}') {
+                    depth--;
+                    if (depth === 0) {
+                        endIndex = i + 1;
+                        break;
+                    }
+                }
+            }
+            if (endIndex > 0) {
+                jsonString = jsonString.slice(0, endIndex);
+            }
+        }
+        
+        console.log('[FileLibraryTab] Attempting to parse JSON, length:', jsonString.length);
+        
+        const parsedContent = JSON.parse(jsonString);
+        
+        // Validate structure
+        if (parsedContent.type === 'doc' && Array.isArray(parsedContent.content)) {
+            console.log('[FileLibraryTab] ✓ Successfully parsed AI content with', parsedContent.content.length, 'blocks');
+            return {
+                contentJson: parsedContent,
+                contentPlain: rawText
+            };
+        }
+        
+        console.error('[FileLibraryTab] Invalid structure:', { type: parsedContent.type, hasContent: !!parsedContent.content });
+        throw new Error('Invalid document structure from AI');
         
     } catch (error) {
         console.error('[FileLibraryTab] AI formatting error:', error);
-        // Return null to signal fallback to basic formatting
         throw error;
     }
 }
