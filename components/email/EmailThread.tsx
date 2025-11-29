@@ -9,7 +9,7 @@ import { showSuccess, showError } from '../../lib/utils/toast';
 import { fixEmailEncoding, fixHtmlEncoding } from '../../lib/utils/textDecoder';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Paperclip, Download, FolderPlus, Loader2, FileText, Image, File, UserPlus, X, Check, Save, Link2 } from 'lucide-react';
+import { Paperclip, Download, FolderPlus, Loader2, FileText, Image, File, UserPlus, X, Check, Save, Link2, Maximize2, Minimize2 } from 'lucide-react';
 
 interface EmailAttachment {
   id: string;
@@ -52,6 +52,9 @@ export const EmailThread: React.FC<EmailThreadProps> = ({ messageId, onClose }) 
   
   // Save email modal state
   const [showSaveEmailModal, setShowSaveEmailModal] = useState(false);
+  
+  // Fullscreen mode
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     fetchMessageDetails();
@@ -477,19 +480,32 @@ Return the JSON array of contacts found.`;
   }
 
   return (
-    <div className="h-full min-h-0 flex flex-col bg-white overflow-hidden">
+    <>
+      {/* Fullscreen overlay */}
+      {isFullscreen && (
+        <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setIsFullscreen(false)} />
+      )}
+      
+      <div className={`${isFullscreen ? 'fixed inset-4 z-50 rounded-xl shadow-2xl' : 'h-full'} min-h-0 flex flex-col bg-white overflow-hidden`}>
       {/* Header */}
-      <div className="p-6 border-b border-gray-100">
+      <div className="p-6 border-b border-gray-100 flex-shrink-0">
         <div className="flex justify-between items-start mb-4">
-          <h2 className="text-xl font-semibold text-gray-900 leading-tight">{fixEmailEncoding(data.subject)}</h2>
-          <button 
-            onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors md:hidden"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <h2 className="text-xl font-semibold text-gray-900 leading-tight flex-1 pr-4">{fixEmailEncoding(data.subject)}</h2>
+          <div className="flex items-center gap-1">
+            <button 
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+              title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+            >
+              {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+            </button>
+            <button 
+              onClick={() => { setIsFullscreen(false); onClose(); }}
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <div className="flex justify-between items-center mb-6">
@@ -786,5 +802,6 @@ Return the JSON array of contacts found.`;
         />
       )}
     </div>
+    </>
   );
 };

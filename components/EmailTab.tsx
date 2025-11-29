@@ -3,8 +3,8 @@ import { EmailInbox } from './email/EmailInbox';
 
 export const EmailTab: React.FC = () => {
   return (
-    <div className="h-full flex flex-col bg-gray-50 overflow-hidden">
-      <div className="p-4 pb-0 flex-shrink-0">
+    <div className="bg-gray-50">
+      <div className="p-4 pb-0">
         <div className="mb-4 flex justify-between items-end">
           <div>
               <h1 className="text-2xl font-bold text-gray-900">
@@ -17,8 +17,11 @@ export const EmailTab: React.FC = () => {
         </div>
       </div>
       
-      <div className="flex-1 min-h-0 p-4 pt-0">
-        <EmailInbox />
+      {/* Fixed height container for email inbox - approximately 10 emails visible */}
+      <div className="p-4 pt-0">
+        <div className="h-[calc(100vh-200px)] min-h-[600px]">
+          <EmailInbox />
+        </div>
       </div>
     </div>
   );

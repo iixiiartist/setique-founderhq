@@ -2825,8 +2825,8 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 workspaceId={workspace?.id}
                 userId={user?.id}
             />
-            <div className="h-screen flex flex-col p-3 sm:p-4 md:p-8 overflow-hidden">
-                <header role="banner" className="mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 flex-shrink-0">
+            <div className="min-h-screen p-3 sm:p-4 md:p-8">
+                <header role="banner" className="mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
                     <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
                         <button
                             onClick={() => setIsMenuOpen(true)}
@@ -2905,7 +2905,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         <span className="ml-3 text-gray-500">Connecting to dashboard...</span>
                     </div>
                 ) : (
-                    <main id="main-content" role="main" aria-label={`${activeTab} tab`} className="flex-1 min-h-0 overflow-hidden">
+                    <main id="main-content" role="main" aria-label={`${activeTab} tab`}>
                        {renderTabContent()}
                     </main>
                 )}
