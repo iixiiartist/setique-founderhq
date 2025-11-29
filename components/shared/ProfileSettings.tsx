@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { DatabaseService } from '../../lib/services/database';
-import { Upload, User, Mail, Save, X } from 'lucide-react';
+import { uploadBinary } from '../../lib/services/uploadService';
+import { Upload, User, Mail, Save, X, Camera, Loader2, Trash2 } from 'lucide-react';
 
 interface ProfileSettingsProps {
   onSave?: () => void;
@@ -9,8 +11,12 @@ interface ProfileSettingsProps {
 
 export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
   const { user } = useAuth();
+  const { workspace } = useWorkspace();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState<{
     full_name: string;
     email: string;
@@ -24,6 +30,10 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
 
   const [isDirty, setIsDirty] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Allowed file types and max size
+  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
   // Load profile data
   useEffect(() => {
@@ -96,6 +106,82 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
     setSaveSuccess(false);
   };
 
+  const handleFileSelect = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+      return;
+    }
+
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      alert('Image size must be less than 5MB');
+      return;
+    }
+
+    if (!user) {
+      alert('You must be logged in to upload an avatar');
+      return;
+    }
+
+    setUploading(true);
+    setUploadProgress(0);
+
+    try {
+      // Generate a unique path for the avatar
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const timestamp = Date.now();
+      const path = `avatars/${user.id}/${timestamp}.${fileExt}`;
+
+      // Upload to Supabase storage
+      const result = await uploadBinary({
+        bucket: 'workspace-images',
+        path,
+        file,
+        cacheControl: '3600',
+        upsert: true,
+        makePublic: true,
+        onProgress: (progress) => {
+          if (progress.total) {
+            setUploadProgress(Math.round((progress.loaded / progress.total) * 100));
+          }
+        },
+      });
+
+      if (result.publicUrl) {
+        // Update form data with new URL
+        setFormData(prev => ({ ...prev, avatarUrl: result.publicUrl! }));
+        setIsDirty(true);
+        setSaveSuccess(false);
+      } else {
+        throw new Error('Upload succeeded but no public URL was returned');
+      }
+    } catch (error) {
+      console.error('Failed to upload avatar:', error);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+      // Reset the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveAvatar = () => {
+    setFormData(prev => ({ ...prev, avatarUrl: '' }));
+    setIsDirty(true);
+    setSaveSuccess(false);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -149,34 +235,90 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
 
       <div className="bg-white border-2 border-black shadow-neo p-6 space-y-6">
         {/* Avatar Section */}
-        <div className="flex items-start gap-6">
-          <div className="flex-shrink-0">
+        <div className="flex flex-col sm:flex-row items-start gap-6">
+          {/* Avatar Preview with Upload Overlay */}
+          <div className="relative group flex-shrink-0">
             {formData.avatarUrl ? (
               <img
                 src={formData.avatarUrl}
                 alt="Profile"
-                className="w-24 h-24 rounded-full object-cover border-2 border-black"
+                className="w-28 h-28 rounded-full object-cover border-2 border-black"
               />
             ) : (
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white text-3xl font-bold border-2 border-black">
+              <div className="w-28 h-28 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white text-3xl font-bold border-2 border-black">
                 {getInitials()}
+              </div>
+            )}
+            
+            {/* Upload Overlay */}
+            {!uploading && (
+              <button
+                onClick={handleFileSelect}
+                className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+                title="Upload new photo"
+              >
+                <Camera className="w-8 h-8 text-white" />
+              </button>
+            )}
+            
+            {/* Upload Progress Overlay */}
+            {uploading && (
+              <div className="absolute inset-0 rounded-full bg-black/70 flex flex-col items-center justify-center">
+                <Loader2 className="w-8 h-8 text-white animate-spin" />
+                <span className="text-white text-xs mt-1 font-mono">{uploadProgress}%</span>
               </div>
             )}
           </div>
 
-          <div className="flex-1 space-y-2">
+          {/* Upload Controls */}
+          <div className="flex-1 space-y-3">
             <label className="block text-sm font-semibold text-gray-700">
-              Avatar URL
+              <Camera className="w-4 h-4 inline mr-1" />
+              Profile Photo
             </label>
+            
+            {/* Hidden File Input */}
             <input
-              type="text"
-              value={formData.avatarUrl}
-              onChange={(e) => handleInputChange('avatarUrl', e.target.value)}
-              placeholder="https://example.com/avatar.jpg"
-              className="w-full px-3 py-2 border-2 border-black rounded-none focus:outline-none focus:border-blue-500"
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              onChange={handleFileChange}
+              className="hidden"
             />
+            
+            {/* Upload Buttons */}
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={handleFileSelect}
+                disabled={uploading}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-none hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border-2 border-blue-700"
+              >
+                {uploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4" />
+                    Upload Photo
+                  </>
+                )}
+              </button>
+              
+              {formData.avatarUrl && !uploading && (
+                <button
+                  onClick={handleRemoveAvatar}
+                  className="flex items-center gap-2 px-4 py-2 bg-white text-red-600 font-semibold rounded-none hover:bg-red-50 transition-colors border-2 border-red-300"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Remove
+                </button>
+              )}
+            </div>
+            
             <p className="text-xs text-gray-500">
-              Enter a URL to your profile picture. We recommend using a square image.
+              Upload a square image (JPEG, PNG, GIF, or WebP). Max size: 5MB.
             </p>
           </div>
         </div>
@@ -245,7 +387,8 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
         <h3 className="font-semibold text-blue-900 mb-2">💡 Tips</h3>
         <ul className="text-sm text-blue-800 space-y-1">
           <li>• Use your real name so team members can easily identify you</li>
-          <li>• A profile picture helps personalize your workspace presence</li>
+          <li>• Upload a square photo for the best results</li>
+          <li>• Supported formats: JPEG, PNG, GIF, WebP (max 5MB)</li>
           <li>• Your changes will be visible immediately to all workspace members</li>
         </ul>
       </div>
