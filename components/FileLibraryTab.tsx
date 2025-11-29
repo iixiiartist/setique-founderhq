@@ -9,6 +9,12 @@ import { useWorkspace } from '../contexts/WorkspaceContext';
 import { DatabaseService } from '../lib/services/database';
 import { Button } from './ui/Button';
 import { EmailComposer, EmailAttachment } from './email/EmailComposer';
+import mammoth from 'mammoth';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Configure PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
 import {
     Grid,
     List,
@@ -36,7 +42,8 @@ import {
     CheckSquare,
     Square,
     RefreshCw,
-    Edit2
+    Edit2,
+    Loader2
 } from 'lucide-react';
 
 type ViewMode = 'grid' | 'list';
@@ -70,17 +77,93 @@ const PANEL_CLASS = 'bg-white border border-gray-200 rounded-lg shadow-sm';
 const MAX_ACTIVITY_ITEMS = 80;
 
 // Helper to check if a document can be edited in the GTM editor
-function isEditableDocument(mimeType: string | undefined): boolean {
+function isEditableDocument(mimeType: string | undefined, fileName?: string): boolean {
     if (!mimeType) return false;
-    return mimeType.includes('text') || 
-           mimeType.includes('markdown') || 
-           mimeType.includes('html') ||
-           mimeType.includes('json') ||
-           mimeType.includes('xml') ||
-           mimeType === 'application/json' ||
-           mimeType === 'text/plain' ||
-           mimeType === 'text/markdown' ||
-           mimeType === 'text/html';
+    // Text-based formats
+    if (mimeType.includes('text') || 
+        mimeType.includes('markdown') || 
+        mimeType.includes('html') ||
+        mimeType.includes('json') ||
+        mimeType.includes('xml') ||
+        mimeType === 'application/json' ||
+        mimeType === 'text/plain' ||
+        mimeType === 'text/markdown' ||
+        mimeType === 'text/html') {
+        return true;
+    }
+    // PDF support
+    if (mimeType === 'application/pdf' || mimeType.includes('pdf')) {
+        return true;
+    }
+    // DOCX support
+    if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+        mimeType.includes('wordprocessingml') ||
+        fileName?.endsWith('.docx')) {
+        return true;
+    }
+    // DOC (older Word format) - limited support
+    if (mimeType === 'application/msword' || fileName?.endsWith('.doc')) {
+        return true;
+    }
+    return false;
+}
+
+// Extract text from PDF using pdfjs-dist
+async function extractTextFromPDF(base64Content: string): Promise<string> {
+    try {
+        // Convert base64 to Uint8Array
+        const binaryString = atob(base64Content);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        
+        // Load PDF document
+        const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+        const textParts: string[] = [];
+        
+        // Extract text from each page
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+            const page = await pdf.getPage(pageNum);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items
+                .map((item: any) => item.str)
+                .join(' ');
+            textParts.push(pageText);
+        }
+        
+        return textParts.join('\n\n');
+    } catch (error) {
+        console.error('[FileLibraryTab] PDF extraction error:', error);
+        throw new Error('Failed to extract text from PDF');
+    }
+}
+
+// Extract text from DOCX using mammoth
+async function extractTextFromDOCX(base64Content: string): Promise<{ text: string; html: string }> {
+    try {
+        // Convert base64 to ArrayBuffer
+        const binaryString = atob(base64Content);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        const arrayBuffer = bytes.buffer;
+        
+        // Extract both HTML and plain text
+        const [htmlResult, textResult] = await Promise.all([
+            mammoth.convertToHtml({ arrayBuffer }),
+            mammoth.extractRawText({ arrayBuffer })
+        ]);
+        
+        return {
+            text: textResult.value,
+            html: htmlResult.value
+        };
+    } catch (error) {
+        console.error('[FileLibraryTab] DOCX extraction error:', error);
+        throw new Error('Failed to extract text from DOCX');
+    }
 }
 
 export default function FileLibraryTab({ documents, actions, companies, contacts, onOpenInEditor }: FileLibraryTabProps) {
@@ -271,38 +354,84 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
     };
 
     // Open document in GTM editor (converts file to GTM doc if needed)
+    const [isConverting, setIsConverting] = useState(false);
+    
     const handleEditInEditor = async (doc: Document) => {
         if (!workspace?.id || !user?.id || !onOpenInEditor) return;
         
+        setIsConverting(true);
         try {
-            // Decode base64 content to text
             let textContent = '';
-            try {
-                textContent = atob(doc.content);
-            } catch (e) {
-                // If base64 decode fails, try using content directly
-                textContent = doc.content || '';
-            }
+            let htmlContent = '';
+            const mimeType = doc.mimeType || '';
+            const fileName = doc.name || '';
             
-            // Convert to HTML for Tiptap editor
-            let htmlContent = textContent;
-            if (doc.mimeType?.includes('markdown') || doc.name.endsWith('.md')) {
-                // Simple markdown to HTML conversion (basic)
-                htmlContent = textContent
-                    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-                    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-                    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-                    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-                    .replace(/\n/g, '<br/>');
-            } else if (doc.mimeType?.includes('text/plain')) {
-                // Wrap plain text in paragraphs
+            // Handle PDF files
+            if (mimeType === 'application/pdf' || mimeType.includes('pdf')) {
+                textContent = await extractTextFromPDF(doc.content);
                 htmlContent = textContent
                     .split('\n\n')
                     .map(p => `<p>${p.replace(/\n/g, '<br/>')}</p>`)
                     .join('');
             }
-            // If HTML, use as-is
+            // Handle DOCX files
+            else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+                     mimeType.includes('wordprocessingml') ||
+                     fileName.endsWith('.docx')) {
+                const result = await extractTextFromDOCX(doc.content);
+                textContent = result.text;
+                htmlContent = result.html; // Mammoth provides good HTML output
+            }
+            // Handle older DOC files (limited - treat as binary text extraction attempt)
+            else if (mimeType === 'application/msword' || fileName.endsWith('.doc')) {
+                // Try to extract what text we can from older .doc format
+                try {
+                    const result = await extractTextFromDOCX(doc.content);
+                    textContent = result.text;
+                    htmlContent = result.html;
+                } catch {
+                    // Fallback: try basic text extraction
+                    textContent = atob(doc.content).replace(/[^\x20-\x7E\n\r\t]/g, ' ').trim();
+                    htmlContent = `<p>${textContent.replace(/\n/g, '</p><p>')}</p>`;
+                }
+            }
+            // Handle text-based formats
+            else {
+                // Decode base64 content to text
+                try {
+                    textContent = atob(doc.content);
+                } catch (e) {
+                    // If base64 decode fails, try using content directly
+                    textContent = doc.content || '';
+                }
+                
+                // Convert to HTML for Tiptap editor
+                if (mimeType.includes('markdown') || fileName.endsWith('.md')) {
+                    // Simple markdown to HTML conversion (basic)
+                    htmlContent = textContent
+                        .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+                        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+                        .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+                        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                        .replace(/\n/g, '<br/>');
+                } else if (mimeType.includes('text/plain')) {
+                    // Wrap plain text in paragraphs
+                    htmlContent = textContent
+                        .split('\n\n')
+                        .map(p => `<p>${p.replace(/\n/g, '<br/>')}</p>`)
+                        .join('');
+                } else if (mimeType.includes('html')) {
+                    // HTML - use as-is
+                    htmlContent = textContent;
+                } else {
+                    // Default: treat as plain text
+                    htmlContent = textContent
+                        .split('\n\n')
+                        .map(p => `<p>${p.replace(/\n/g, '<br/>')}</p>`)
+                        .join('');
+                }
+            }
             
             // Create a new GTM doc from the file content
             const { data: newDoc, error } = await DatabaseService.createGTMDoc({
@@ -322,7 +451,7 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                 return;
             }
             
-            // Update the doc with HTML content (Tiptap will parse it)
+            // Update the doc with structured content for Tiptap
             await DatabaseService.updateGTMDoc(newDoc.id, workspace.id, {
                 contentJson: { 
                     type: 'doc', 
@@ -334,7 +463,7 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                         },
                         ...textContent.split('\n').filter(Boolean).map(line => ({
                             type: 'paragraph',
-                            content: line ? [{ type: 'text', text: line }] : []
+                            content: line.trim() ? [{ type: 'text', text: line }] : []
                         }))
                     ]
                 },
@@ -346,7 +475,9 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
             recordActivity(doc.id, 'viewed', { editedInGtmEditor: true });
         } catch (err) {
             console.error('[FileLibraryTab] Error opening in editor:', err);
-            alert('Failed to open document in editor');
+            alert('Failed to open document in editor. The file format may not be supported.');
+        } finally {
+            setIsConverting(false);
         }
     };
 
@@ -801,8 +932,13 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                                                 <Download size={14} /> Open
                                             </button>
                                             <div className="flex items-center gap-2">
-                                                {isEditableDocument(doc.mimeType) && onOpenInEditor && (
-                                                    <button onClick={() => handleEditInEditor(doc)} title="Edit in GTM Editor" className="text-purple-600 hover:text-purple-800">
+                                                {isEditableDocument(doc.mimeType, doc.name) && onOpenInEditor && (
+                                                    <button 
+                                                        onClick={() => handleEditInEditor(doc)} 
+                                                        title="Edit in GTM Editor" 
+                                                        className="text-purple-600 hover:text-purple-800 disabled:opacity-50"
+                                                        disabled={isConverting}
+                                                    >
                                                         <Edit2 size={14} />
                                                     </button>
                                                 )}
@@ -856,8 +992,13 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                                             <td className="px-4 py-2 text-xs">{formatSize(doc.fileSize || calculateDocSize(doc))}</td>
                                             <td className="px-4 py-2">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    {isEditableDocument(doc.mimeType) && onOpenInEditor && (
-                                                        <button onClick={e => { e.stopPropagation(); handleEditInEditor(doc); }} title="Edit in GTM Editor" className="text-purple-600 hover:text-purple-800">
+                                                    {isEditableDocument(doc.mimeType, doc.name) && onOpenInEditor && (
+                                                        <button 
+                                                            onClick={e => { e.stopPropagation(); handleEditInEditor(doc); }} 
+                                                            title="Edit in GTM Editor" 
+                                                            className="text-purple-600 hover:text-purple-800 disabled:opacity-50"
+                                                            disabled={isConverting}
+                                                        >
                                                             <Edit2 size={14} />
                                                         </button>
                                                     )}
@@ -1016,9 +1157,17 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                         </div>
 
                         <div className="grid gap-2">
-                            {isEditableDocument(selectedDoc.mimeType) && onOpenInEditor && (
-                                <Button onClick={() => handleEditInEditor(selectedDoc)} className="justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white">
-                                    <Edit2 size={16} /> Edit in GTM Editor
+                            {isEditableDocument(selectedDoc.mimeType, selectedDoc.name) && onOpenInEditor && (
+                                <Button 
+                                    onClick={() => handleEditInEditor(selectedDoc)} 
+                                    className="justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
+                                    disabled={isConverting}
+                                >
+                                    {isConverting ? (
+                                        <><Loader2 size={16} className="animate-spin" /> Converting...</>
+                                    ) : (
+                                        <><Edit2 size={16} /> Edit in GTM Editor</>
+                                    )}
                                 </Button>
                             )}
                             <Button onClick={() => handleDownload(selectedDoc)} className="justify-center gap-2">
