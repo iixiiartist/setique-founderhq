@@ -334,7 +334,8 @@ export const ApiKeysSettings: React.FC<ApiKeysSettingsProps> = ({ workspaceId })
     return create(input);
   }, [create]);
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
+  // Use branded API URL for display (actual URL is handled by apiClient)
+  const apiBaseUrl = 'https://api.founderhq.app/v1';
 
   return (
     <div className="space-y-6">
@@ -365,9 +366,9 @@ export const ApiKeysSettings: React.FC<ApiKeysSettingsProps> = ({ workspaceId })
       <div className="p-4 bg-blue-50 border-2 border-blue-300">
         <h4 className="font-bold text-blue-800 mb-2">🔗 API Endpoints</h4>
         <div className="text-sm font-mono text-blue-700 space-y-1">
-          <p><span className="text-blue-500">GET/POST</span> {supabaseUrl}/functions/v1/api-v1-contacts</p>
-          <p><span className="text-blue-500">GET/POST</span> {supabaseUrl}/functions/v1/api-v1-tasks</p>
-          <p><span className="text-blue-500">GET/POST</span> {supabaseUrl}/functions/v1/api-v1-deals</p>
+          <p><span className="text-blue-500">GET/POST</span> {apiBaseUrl}/contacts</p>
+          <p><span className="text-blue-500">GET/POST</span> {apiBaseUrl}/tasks</p>
+          <p><span className="text-blue-500">GET/POST</span> {apiBaseUrl}/deals</p>
         </div>
         <p className="text-xs text-blue-600 mt-2">
           Use <code className="bg-blue-100 px-1">Authorization: Bearer fhq_live_...</code> header
