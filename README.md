@@ -72,10 +72,16 @@ FounderHQ is a Setique tool designed specifically for startup founders and early
 - Calendar integration for campaign scheduling
 
 ### AI-Powered Features
+- **AI Agents** - Specialized research and strategy assistants:
+  - **Research & Briefing Agent**: Deep-dive company research, ICP analysis, competitive intelligence
+  - **Why Now Agent**: Timing signals, buying triggers, and outreach recommendations
+  - **Deal Strategist Agent**: CRM-to-strategy analysis, pipeline risks, and next moves
+- SSE streaming for real-time response delivery (prevents timeouts)
 - Context-aware AI assistant for each module
 - Natural language task creation and management
 - Automated insights and recommendations
 - Function calling for direct data manipulation
+- Report saving, exporting (HTML/PDF), and file library integration
 
 ---
 
@@ -99,6 +105,7 @@ FounderHQ is a Setique tool designed specifically for startup founders and early
   - Authentication & authorization
 - **Stripe** - Payment processing
 - **Groq** - AI inference (via Edge Functions)
+- **You.com Agents API** - Custom AI research agents with SSE streaming
 
 ### Development Tools
 - **ESLint** - Code linting
@@ -311,13 +318,21 @@ Deploy Edge Functions separately:
 
 ```bash
 cd supabase/functions
+
+# AI Chat assistant
 supabase functions deploy groq-chat
+
+# AI Research Agents (with streaming support)
+supabase functions deploy you-agent-run --no-verify-jwt
+
+# Payment webhooks
 supabase functions deploy stripe-webhook
 ```
 
-Set Edge Function secrets via Supabase dashboard:
+Set Edge Function secrets via Supabase dashboard or CLI:
 ```bash
 supabase secrets set GROQ_API_KEY=your-key-here
+supabase secrets set YOUCOM_API_KEY=your-you-com-api-key
 supabase secrets set STRIPE_SECRET_KEY=your-key-here
 supabase secrets set STRIPE_WEBHOOK_SECRET=your-key-here
 ```
@@ -330,6 +345,7 @@ supabase secrets set STRIPE_WEBHOOK_SECRET=your-key-here
 setique-founderhq/
 ├── src/
 │   ├── components/          # React components
+│   │   ├── agents/          # AI agents (Research, Why Now, Deal Strategist)
 │   │   ├── assistant/       # AI assistant UI
 │   │   ├── crm/            # CRM modules
 │   │   ├── financials/     # Financial dashboards
@@ -403,6 +419,12 @@ We welcome contributions! Please follow these guidelines:
 - Verify Edge Function `groq-chat` is deployed
 - Check `GROQ_API_KEY` is set in Supabase secrets
 - Ensure workspace has AI usage quota remaining
+
+**❌ "AI Agents timing out or returning 504"**
+- Ensure `you-agent-run` Edge Function is deployed with latest streaming support
+- Check `YOUCOM_API_KEY` is set in Supabase secrets
+- Try a more specific query (e.g., company name instead of broad market segment)
+- The agents use SSE streaming to prevent timeouts on long-running research
 
 **❌ "Payment features not working"**
 - Verify Stripe publishable key is set
