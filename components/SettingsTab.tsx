@@ -475,7 +475,7 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
             <div className="lg:hidden">
                 <button
                     onClick={() => setIsMobileNavOpen(!isMobileNavOpen)}
-                    className="w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg shadow-sm"
+                    className="w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg shadow-sm font-mono"
                 >
                     <span className="font-semibold text-black">
                         {filteredNavItems.find(i => i.id === activeSection)?.icon}{' '}
@@ -493,12 +493,12 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                 
                 {/* Mobile Navigation Menu */}
                 {isMobileNavOpen && (
-                    <div className="mt-2 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+                    <div className="mt-2 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
                         {navGroups.map((group, idx) => (
                             <div key={group.label}>
-                                {idx > 0 && <div className="border-t border-gray-100" />}
-                                <div className="px-4 py-2 bg-gray-50">
-                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                {idx > 0 && <div className="border-t border-gray-200" />}
+                                <div className="px-4 py-2 bg-gray-100 border-b border-gray-200">
+                                    <span className="text-xs font-bold text-gray-600 uppercase tracking-wider font-mono">
                                         {group.label}
                                     </span>
                                 </div>
@@ -506,16 +506,16 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                     <button
                                         key={item.id}
                                         onClick={() => handleNavClick(item.id)}
-                                        className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
+                                        className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors font-mono ${
                                             activeSection === item.id
-                                                ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600'
-                                                : 'hover:bg-gray-50 text-gray-700'
-                                        }`}
+                                                ? 'bg-black text-white'
+                                                : 'bg-white text-black hover:bg-gray-50'
+                                        } ${item.id === 'danger' && activeSection !== item.id ? 'text-red-700 hover:bg-red-50' : ''}`}
                                     >
                                         <span className="text-lg">{item.icon}</span>
                                         <div>
                                             <div className="font-semibold text-sm">{item.label}</div>
-                                            <div className="text-xs text-gray-500">{item.description}</div>
+                                            <div className={`text-xs ${activeSection === item.id ? 'text-gray-300' : 'text-gray-500'}`}>{item.description}</div>
                                         </div>
                                     </button>
                                 ))}
@@ -528,14 +528,18 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
             {/* Desktop Sidebar Navigation */}
             <aside className="hidden lg:block w-64 flex-shrink-0">
                 <div className="sticky top-4 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-                    <div className="p-4 border-b border-gray-200 bg-gray-50">
-                        <h2 className="text-lg font-bold text-black">Settings</h2>
+                    {/* Header */}
+                    <div className="p-4 bg-black">
+                        <h2 className="text-lg font-bold text-yellow-400 font-mono">⚙️ Settings</h2>
+                        <p className="text-xs text-gray-300 font-mono mt-0.5">Workspace configuration</p>
                     </div>
+                    
+                    {/* Navigation */}
                     <nav className="py-2">
                         {navGroups.map((group, idx) => (
-                            <div key={group.label} className={idx > 0 ? 'mt-4 pt-4 border-t border-gray-100' : ''}>
-                                <div className="px-4 py-1">
-                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                            <div key={group.label} className={idx > 0 ? 'mt-2 pt-2 border-t border-gray-200' : ''}>
+                                <div className="px-4 py-2 bg-gray-50">
+                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider font-mono">
                                         {group.label}
                                     </span>
                                 </div>
@@ -543,16 +547,14 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                     <button
                                         key={item.id}
                                         onClick={() => handleNavClick(item.id)}
-                                        className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
+                                        className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors font-mono text-sm ${
                                             activeSection === item.id
-                                                ? 'bg-blue-50 text-blue-700 border-r-4 border-blue-600'
-                                                : 'hover:bg-gray-50 text-gray-700'
-                                        } ${item.id === 'danger' ? 'text-red-700 hover:bg-red-50' : ''}`}
+                                                ? 'bg-black text-white'
+                                                : 'bg-white text-black hover:bg-gray-50'
+                                        } ${item.id === 'danger' && activeSection !== item.id ? 'text-red-700 hover:bg-red-50' : ''}`}
                                     >
                                         <span className="text-base">{item.icon}</span>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="font-medium text-sm truncate">{item.label}</div>
-                                        </div>
+                                        <span className="font-semibold truncate">{item.label}</span>
                                     </button>
                                 ))}
                             </div>
@@ -581,16 +583,16 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                 {/* Section Content */}
                 <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
                     {/* Section Header */}
-                    <div className="p-6 border-b border-gray-200">
+                    <div className="p-4 bg-black rounded-t-lg">
                         <div className="flex items-center gap-3">
                             <span className="text-2xl">
                                 {filteredNavItems.find(i => i.id === activeSection)?.icon}
                             </span>
                             <div>
-                                <h1 className="text-xl font-bold text-black">
+                                <h1 className="text-xl font-bold text-yellow-400 font-mono">
                                     {filteredNavItems.find(i => i.id === activeSection)?.label}
                                 </h1>
-                                <p className="text-sm text-gray-500">
+                                <p className="text-sm text-gray-300 font-mono">
                                     {filteredNavItems.find(i => i.id === activeSection)?.description}
                                 </p>
                             </div>
