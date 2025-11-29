@@ -15,6 +15,7 @@ import {
   type ApiRequestContext,
   type ApiScope,
 } from '../_shared/apiAuth.ts';
+import { triggerWebhook, type WebhookEventType } from '../_shared/webhookTrigger.ts';
 
 // ============================================
 // TYPES
@@ -311,6 +312,14 @@ async function createDeal(
     return errorResponse('Failed to create deal', 500, 'database_error');
   }
 
+  // Trigger webhook event
+  triggerWebhook(supabase, {
+    workspaceId,
+    eventType: 'deal.created',
+    entityId: data.id,
+    payload: { deal: data },
+  }).catch(err => console.error('[api-v1-deals] Webhook trigger error:', err));
+
   return successResponse({ deal: data }, 201);
 }
 
@@ -419,6 +428,20 @@ async function updateDeal(
     return errorResponse('Failed to update deal', 500, 'database_error');
   }
 
+  // Determine webhook event type based on changes
+  let eventType: WebhookEventType = 'deal.updated';
+  if (input.stage === 'closed_won') eventType = 'deal.won';
+  else if (input.stage === 'closed_lost') eventType = 'deal.lost';
+  else if (input.stage) eventType = 'deal.stage_changed';
+
+  // Trigger webhook event
+  triggerWebhook(supabase, {
+    workspaceId,
+    eventType,
+    entityId: data.id,
+    payload: { deal: data, updated_fields: Object.keys(updates), previous_stage: input.stage ? undefined : null },
+  }).catch(err => console.error('[api-v1-deals] Webhook trigger error:', err));
+
   return successResponse({ deal: data });
 }
 
@@ -427,6 +450,14 @@ async function deleteDeal(
   dealId: string
 ): Promise<Response> {
   const { supabase, workspaceId } = ctx;
+
+  // First get the deal for webhook payload
+  const { data: existingDeal } = await supabase
+    .from('deals')
+    .select('*')
+    .eq('id', dealId)
+    .eq('workspace_id', workspaceId)
+    .single();
 
   const { error } = await supabase
     .from('deals')
@@ -437,6 +468,16 @@ async function deleteDeal(
   if (error) {
     console.error('[api-v1-deals] Delete error:', error);
     return errorResponse('Failed to delete deal', 500, 'database_error');
+  }
+
+  // Trigger webhook event
+  if (existingDeal) {
+    triggerWebhook(supabase, {
+      workspaceId,
+      eventType: 'deal.deleted',
+      entityId: dealId,
+      payload: { deal: existingDeal },
+    }).catch(err => console.error('[api-v1-deals] Webhook trigger error:', err));
   }
 
   return successResponse({ deleted: true });

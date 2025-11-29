@@ -15,6 +15,7 @@ import {
   type ApiRequestContext,
   type ApiScope,
 } from '../_shared/apiAuth.ts';
+import { triggerWebhook } from '../_shared/webhookTrigger.ts';
 
 // ============================================
 // TYPES
@@ -261,6 +262,14 @@ async function createTask(
     return errorResponse('Failed to create task', 500, 'database_error');
   }
 
+  // Trigger webhook event
+  triggerWebhook(supabase, {
+    workspaceId,
+    eventType: 'task.created',
+    entityId: data.id,
+    payload: { task: data },
+  }).catch(err => console.error('[api-v1-tasks] Webhook trigger error:', err));
+
   return successResponse({ task: data }, 201);
 }
 
@@ -353,6 +362,15 @@ async function updateTask(
     return errorResponse('Failed to update task', 500, 'database_error');
   }
 
+  // Trigger webhook events
+  const eventType = input.status === 'Done' ? 'task.completed' : 'task.updated';
+  triggerWebhook(supabase, {
+    workspaceId,
+    eventType,
+    entityId: data.id,
+    payload: { task: data, updated_fields: Object.keys(updates) },
+  }).catch(err => console.error('[api-v1-tasks] Webhook trigger error:', err));
+
   return successResponse({ task: data });
 }
 
@@ -361,6 +379,14 @@ async function deleteTask(
   taskId: string
 ): Promise<Response> {
   const { supabase, workspaceId } = ctx;
+
+  // First get the task for webhook payload
+  const { data: existingTask } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('id', taskId)
+    .eq('workspace_id', workspaceId)
+    .single();
 
   const { error } = await supabase
     .from('tasks')
@@ -371,6 +397,16 @@ async function deleteTask(
   if (error) {
     console.error('[api-v1-tasks] Delete error:', error);
     return errorResponse('Failed to delete task', 500, 'database_error');
+  }
+
+  // Trigger webhook event
+  if (existingTask) {
+    triggerWebhook(supabase, {
+      workspaceId,
+      eventType: 'task.deleted',
+      entityId: taskId,
+      payload: { task: existingTask },
+    }).catch(err => console.error('[api-v1-tasks] Webhook trigger error:', err));
   }
 
   return successResponse({ deleted: true });

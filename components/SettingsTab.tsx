@@ -7,6 +7,7 @@ import { ProfileSettings } from './shared/ProfileSettings';
 import { AutomationSettings } from './settings/AutomationSettings';
 import { IntegrationsSettings } from './settings/IntegrationsSettings';
 import { ApiKeysSettings } from './settings/ApiKeysSettings';
+import { WebhooksSettings } from './settings/WebhooksSettings';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { AuthService } from '../lib/services/auth';
@@ -808,6 +809,16 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                             <legend className="text-lg font-mono font-semibold px-2">🔑 Developer API</legend>
                             <div className="mt-4">
                                 <ApiKeysSettings workspaceId={workspace.id} />
+                            </div>
+                        </fieldset>
+                    )}
+
+                    {/* Webhooks Settings - Premium Feature */}
+                    {workspace?.id && isTeamPlan && (
+                        <fieldset className="border border-gray-200 rounded-lg p-4">
+                            <legend className="text-lg font-mono font-semibold px-2">📡 Webhooks</legend>
+                            <div className="mt-4">
+                                <WebhooksSettings workspaceId={workspace.id} />
                             </div>
                         </fieldset>
                     )}

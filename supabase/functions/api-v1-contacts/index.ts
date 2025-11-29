@@ -15,6 +15,7 @@ import {
   type ApiRequestContext,
   type ApiScope,
 } from '../_shared/apiAuth.ts';
+import { triggerWebhook } from '../_shared/webhookTrigger.ts';
 
 // ============================================
 // TYPES
@@ -194,6 +195,14 @@ async function createContact(
     return errorResponse('Failed to create contact', 500, 'database_error');
   }
 
+  // Trigger webhook event
+  triggerWebhook(supabase, {
+    workspaceId,
+    eventType: 'contact.created',
+    entityId: data.id,
+    payload: { contact: data },
+  }).catch(err => console.error('[api-v1-contacts] Webhook trigger error:', err));
+
   return successResponse({ contact: data }, 201);
 }
 
@@ -251,6 +260,14 @@ async function updateContact(
     return errorResponse('Failed to update contact', 500, 'database_error');
   }
 
+  // Trigger webhook event
+  triggerWebhook(supabase, {
+    workspaceId,
+    eventType: 'contact.updated',
+    entityId: data.id,
+    payload: { contact: data, updated_fields: Object.keys(updates) },
+  }).catch(err => console.error('[api-v1-contacts] Webhook trigger error:', err));
+
   return successResponse({ contact: data });
 }
 
@@ -259,6 +276,14 @@ async function deleteContact(
   contactId: string
 ): Promise<Response> {
   const { supabase, workspaceId } = ctx;
+
+  // First get the contact for webhook payload
+  const { data: existingContact } = await supabase
+    .from('contacts')
+    .select('*')
+    .eq('id', contactId)
+    .eq('workspace_id', workspaceId)
+    .single();
 
   const { error } = await supabase
     .from('contacts')
@@ -269,6 +294,16 @@ async function deleteContact(
   if (error) {
     console.error('[api-v1-contacts] Delete error:', error);
     return errorResponse('Failed to delete contact', 500, 'database_error');
+  }
+
+  // Trigger webhook event
+  if (existingContact) {
+    triggerWebhook(supabase, {
+      workspaceId,
+      eventType: 'contact.deleted',
+      entityId: contactId,
+      payload: { contact: existingContact },
+    }).catch(err => console.error('[api-v1-contacts] Webhook trigger error:', err));
   }
 
   return successResponse({ deleted: true });

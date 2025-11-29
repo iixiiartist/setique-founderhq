@@ -4,7 +4,7 @@
 import React, { useState, useCallback } from 'react';
 import { useApiKeys, type CreateApiKeyInput } from '../../hooks/useApiKeys';
 import { useAuth } from '../../contexts/AuthContext';
-import { ApiScope, RateLimitTier, ApiKey } from '../../lib/services/apiKeyService';
+import { ApiScope, ApiKey } from '../../lib/services/apiKeyService';
 
 // ============================================
 // CONSTANTS
@@ -17,12 +17,6 @@ const AVAILABLE_SCOPES: { value: ApiScope; label: string; description: string }[
   { value: 'tasks:write', label: 'Tasks (Write)', description: 'Create, update, delete tasks' },
   { value: 'deals:read', label: 'Deals (Read)', description: 'View deals and pipeline' },
   { value: 'deals:write', label: 'Deals (Write)', description: 'Create, update, delete deals' },
-];
-
-const RATE_LIMIT_TIERS: { value: RateLimitTier; label: string; description: string }[] = [
-  { value: 'standard', label: 'Standard', description: '100 requests/minute' },
-  { value: 'elevated', label: 'Elevated', description: '500 requests/minute' },
-  { value: 'unlimited', label: 'Unlimited', description: 'No rate limits' },
 ];
 
 // ============================================
@@ -46,7 +40,6 @@ interface CreateKeyModalProps {
 const CreateKeyModal: React.FC<CreateKeyModalProps> = ({ onClose, onCreate, isCreating }) => {
   const [name, setName] = useState('');
   const [scopes, setScopes] = useState<ApiScope[]>(['contacts:read', 'tasks:read', 'deals:read']);
-  const [rateLimitTier, setRateLimitTier] = useState<RateLimitTier>('standard');
   const [expiresInDays, setExpiresInDays] = useState<number | null>(null);
   const [newKey, setNewKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -72,7 +65,6 @@ const CreateKeyModal: React.FC<CreateKeyModalProps> = ({ onClose, onCreate, isCr
     const result = await onCreate({
       name: name.trim(),
       scopes,
-      rateLimitTier,
       expiresInDays,
     });
 
@@ -102,7 +94,7 @@ const CreateKeyModal: React.FC<CreateKeyModalProps> = ({ onClose, onCreate, isCr
   // Show the new key screen after creation
   if (newKey) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
         <div className="bg-white border-2 border-black p-6 max-w-lg w-full mx-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
           <h3 className="text-xl font-bold font-mono mb-4">✅ API Key Created</h3>
           
@@ -136,7 +128,7 @@ const CreateKeyModal: React.FC<CreateKeyModalProps> = ({ onClose, onCreate, isCr
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-white border-2 border-black p-6 max-w-lg w-full mx-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] max-h-[90vh] overflow-y-auto">
         <h3 className="text-xl font-bold font-mono mb-4">Create API Key</h3>
 
@@ -178,22 +170,6 @@ const CreateKeyModal: React.FC<CreateKeyModalProps> = ({ onClose, onCreate, isCr
               </label>
             ))}
           </div>
-        </div>
-
-        {/* Rate Limit */}
-        <div className="mb-4">
-          <label className="block text-sm font-bold mb-2">Rate Limit</label>
-          <select
-            value={rateLimitTier}
-            onChange={(e) => setRateLimitTier(e.target.value as RateLimitTier)}
-            className="w-full border-2 border-black px-3 py-2 font-mono"
-          >
-            {RATE_LIMIT_TIERS.map(tier => (
-              <option key={tier.value} value={tier.value}>
-                {tier.label} - {tier.description}
-              </option>
-            ))}
-          </select>
         </div>
 
         {/* Expiration */}
