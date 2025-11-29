@@ -19,10 +19,11 @@ async function initPdfJs() {
     if (pdfWorkerInitialized) return pdfjsLib;
     
     pdfjsLib = await import('pdfjs-dist');
-    // Use CDN worker for reliability
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+    // Use unpkg CDN which mirrors npm packages directly
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
     pdfWorkerInitialized = true;
     console.log('[FileLibraryTab] PDF.js initialized, version:', pdfjsLib.version);
+    console.log('[FileLibraryTab] Worker URL:', pdfjsLib.GlobalWorkerOptions.workerSrc);
     return pdfjsLib;
 }
 
