@@ -609,6 +609,8 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
             }
             
             // Try AI formatting for PDF and DOCX files (which need structure restoration)
+            // AI formatting is a Team Pro feature
+            const isTeamPro = workspace?.planType === 'team-pro';
             const needsAiFormatting = mimeType === 'application/pdf' || 
                                        mimeType.includes('pdf') ||
                                        mimeType.includes('wordprocessingml') ||
@@ -617,7 +619,7 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
             
             let finalContentJson: any;
             
-            if (needsAiFormatting && textContent.length > 50) {
+            if (needsAiFormatting && textContent.length > 50 && isTeamPro) {
                 try {
                     console.log('[FileLibraryTab] Attempting AI formatting for:', fileName);
                     const aiFormatted = await formatDocumentWithAI(textContent, fileName);
@@ -642,7 +644,10 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                     };
                 }
             } else {
-                // Basic formatting for text files
+                // Basic formatting for text files or non-Team Pro users
+                if (needsAiFormatting && !isTeamPro) {
+                    console.log('[FileLibraryTab] AI formatting skipped - Team Pro feature');
+                }
                 finalContentJson = { 
                     type: 'doc', 
                     content: [
