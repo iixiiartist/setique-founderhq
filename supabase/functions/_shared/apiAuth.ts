@@ -302,11 +302,71 @@ export async function deductApiBalance(
   }
 
   const result = data?.[0];
-  return {
+  const deductResult = {
     success: result?.success ?? false,
     newBalanceCents: result?.new_balance_cents ?? 0,
     error: result?.error_message,
   };
+
+  // Check if auto-reload should be triggered (async, don't wait)
+  if (deductResult.success) {
+    triggerAutoReloadIfNeeded(workspaceId, deductResult.newBalanceCents).catch(err => {
+      console.warn('[apiAuth] Auto-reload trigger failed:', err);
+    });
+  }
+
+  return deductResult;
+}
+
+/**
+ * Trigger auto-reload if balance is below threshold
+ * This runs asynchronously and doesn't block the API response
+ */
+async function triggerAutoReloadIfNeeded(workspaceId: string, currentBalance: number): Promise<void> {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  // Check if auto-reload is configured and enabled
+  const { data: settings } = await supabase
+    .from('api_balance_auto_reload')
+    .select('is_enabled, threshold_cents')
+    .eq('workspace_id', workspaceId)
+    .maybeSingle();
+
+  if (!settings?.is_enabled) return;
+
+  // Check if balance is below threshold
+  if (currentBalance >= settings.threshold_cents) return;
+
+  console.log(`[apiAuth] Balance ${currentBalance} below threshold ${settings.threshold_cents}, triggering auto-reload`);
+
+  // Call the auto-reload Edge Function
+  try {
+    const response = await fetch(
+      `${supabaseUrl}/functions/v1/api-balance-auto-reload`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+        },
+        body: JSON.stringify({
+          action: 'trigger',
+          workspaceId,
+        }),
+      }
+    );
+
+    const result = await response.json();
+    if (result.triggered) {
+      console.log(`[apiAuth] Auto-reload triggered successfully: ${result.amount} cents`);
+    } else {
+      console.log(`[apiAuth] Auto-reload not triggered: ${result.reason || 'unknown'}`);
+    }
+  } catch (err) {
+    console.error('[apiAuth] Failed to trigger auto-reload:', err);
+  }
 }
 
 // ============================================

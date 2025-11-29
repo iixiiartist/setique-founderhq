@@ -81,6 +81,12 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
     return;
   }
 
+  // Check if this is auto-reload setup (setup mode)
+  if (session.metadata?.type === 'api_auto_reload_setup' && session.mode === 'setup') {
+    await handleAutoReloadSetup(session);
+    return;
+  }
+
   // Otherwise handle as subscription checkout
   const subscriptionId = typeof session.subscription === 'string'
     ? session.subscription
@@ -101,6 +107,63 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
   }
 
   await updateSubscriptionRecord(resolvedWorkspaceId, subscription);
+}
+
+// Handle auto-reload setup (save payment method)
+async function handleAutoReloadSetup(session: Stripe.Checkout.Session) {
+  const supabase = getAdminClient();
+  
+  const workspaceId = session.metadata?.workspace_id;
+  const thresholdCents = parseInt(session.metadata?.threshold_cents || '500', 10);
+  const reloadAmountCents = parseInt(session.metadata?.reload_amount_cents || '2500', 10);
+  
+  if (!workspaceId) {
+    console.error('[auto-reload] Missing workspace_id in metadata', session.metadata);
+    throw new Error('Invalid auto-reload setup metadata');
+  }
+
+  // Get the SetupIntent to find the payment method
+  const setupIntentId = typeof session.setup_intent === 'string'
+    ? session.setup_intent
+    : session.setup_intent?.id;
+
+  if (!setupIntentId) {
+    console.error('[auto-reload] No setup_intent in session');
+    throw new Error('No setup intent found');
+  }
+
+  const setupIntent = await stripe.setupIntents.retrieve(setupIntentId);
+  const paymentMethodId = typeof setupIntent.payment_method === 'string'
+    ? setupIntent.payment_method
+    : setupIntent.payment_method?.id;
+
+  if (!paymentMethodId) {
+    console.error('[auto-reload] No payment method in setup intent');
+    throw new Error('No payment method found');
+  }
+
+  console.log(`[auto-reload] Setting up auto-reload: workspace=${workspaceId}, paymentMethod=${paymentMethodId}`);
+
+  // Upsert auto-reload settings
+  const { error: upsertError } = await supabase
+    .from('api_balance_auto_reload')
+    .upsert({
+      workspace_id: workspaceId,
+      is_enabled: true,
+      threshold_cents: thresholdCents,
+      reload_amount_cents: reloadAmountCents,
+      stripe_payment_method_id: paymentMethodId,
+      last_reload_error: null,
+      consecutive_failures: 0,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'workspace_id' });
+
+  if (upsertError) {
+    console.error('[auto-reload] Failed to save settings:', upsertError);
+    throw upsertError;
+  }
+
+  console.log(`[auto-reload] Successfully configured auto-reload for workspace ${workspaceId}`);
 }
 
 // Handle API balance top-up payment

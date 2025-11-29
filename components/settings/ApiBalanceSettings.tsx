@@ -33,6 +33,17 @@ interface BalanceTransaction {
   api_request_count: number | null;
 }
 
+interface AutoReloadSettings {
+  id: string;
+  is_enabled: boolean;
+  threshold_cents: number;
+  reload_amount_cents: number;
+  stripe_payment_method_id: string | null;
+  last_reload_at: string | null;
+  last_reload_error: string | null;
+  consecutive_failures: number;
+}
+
 // Preset amounts for top-up
 const TOPUP_AMOUNTS = [
   { cents: 500, label: '$5', calls: '5,000 calls' },
@@ -42,6 +53,22 @@ const TOPUP_AMOUNTS = [
   { cents: 10000, label: '$100', calls: '100,000 calls' },
 ];
 
+// Auto-reload threshold options
+const THRESHOLD_OPTIONS = [
+  { cents: 100, label: '$1' },
+  { cents: 500, label: '$5' },
+  { cents: 1000, label: '$10' },
+  { cents: 2500, label: '$25' },
+];
+
+// Auto-reload amount options
+const RELOAD_AMOUNT_OPTIONS = [
+  { cents: 1000, label: '$10' },
+  { cents: 2500, label: '$25' },
+  { cents: 5000, label: '$50' },
+  { cents: 10000, label: '$100' },
+];
+
 // ============================================
 // MAIN COMPONENT
 // ============================================
@@ -49,11 +76,16 @@ const TOPUP_AMOUNTS = [
 export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspaceId }) => {
   const [summary, setSummary] = useState<BalanceSummary | null>(null);
   const [transactions, setTransactions] = useState<BalanceTransaction[]>([]);
+  const [autoReload, setAutoReload] = useState<AutoReloadSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingTopup, setLoadingTopup] = useState(false);
+  const [loadingAutoReload, setLoadingAutoReload] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCustomAmount, setShowCustomAmount] = useState(false);
   const [customAmountDollars, setCustomAmountDollars] = useState('');
+  const [showAutoReloadSetup, setShowAutoReloadSetup] = useState(false);
+  const [autoReloadThreshold, setAutoReloadThreshold] = useState(500);
+  const [autoReloadAmount, setAutoReloadAmount] = useState(2500);
 
   // Fetch balance summary
   const fetchSummary = useCallback(async () => {
@@ -101,15 +133,35 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
     }
   }, [workspaceId]);
 
+  // Fetch auto-reload settings
+  const fetchAutoReload = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('api_balance_auto_reload')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (data) {
+        setAutoReload(data);
+        setAutoReloadThreshold(data.threshold_cents);
+        setAutoReloadAmount(data.reload_amount_cents);
+      }
+    } catch (err) {
+      console.error('Error fetching auto-reload settings:', err);
+    }
+  }, [workspaceId]);
+
   // Initial load
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      await Promise.all([fetchSummary(), fetchTransactions()]);
+      await Promise.all([fetchSummary(), fetchTransactions(), fetchAutoReload()]);
       setLoading(false);
     };
     load();
-  }, [fetchSummary, fetchTransactions]);
+  }, [fetchSummary, fetchTransactions, fetchAutoReload]);
 
   // Handle top-up
   const handleTopup = async (amountCents: number) => {
@@ -169,6 +221,176 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
     handleTopup(Math.round(dollars * 100));
   };
 
+  // Setup auto-reload with Stripe SetupIntent
+  const handleSetupAutoReload = async () => {
+    setLoadingAutoReload(true);
+    setError(null);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-balance-auto-reload`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({
+            action: 'setup',
+            workspaceId,
+            thresholdCents: autoReloadThreshold,
+            reloadAmountCents: autoReloadAmount,
+            successUrl: `${window.location.origin}/settings?tab=api&auto_reload_setup=true`,
+            cancelUrl: `${window.location.origin}/settings?tab=api&auto_reload_cancelled=true`,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to setup auto-reload');
+      }
+
+      // Redirect to Stripe to add payment method
+      if (result.url) {
+        window.location.href = result.url;
+      }
+    } catch (err) {
+      console.error('Auto-reload setup error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to setup auto-reload');
+    } finally {
+      setLoadingAutoReload(false);
+    }
+  };
+
+  // Toggle auto-reload on/off
+  const handleToggleAutoReload = async (enabled: boolean) => {
+    setLoadingAutoReload(true);
+    setError(null);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-balance-auto-reload`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({
+            action: 'toggle',
+            workspaceId,
+            enabled,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update auto-reload');
+      }
+
+      // Refresh auto-reload settings
+      await fetchAutoReload();
+    } catch (err) {
+      console.error('Auto-reload toggle error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update auto-reload');
+    } finally {
+      setLoadingAutoReload(false);
+    }
+  };
+
+  // Update auto-reload settings
+  const handleUpdateAutoReloadSettings = async () => {
+    setLoadingAutoReload(true);
+    setError(null);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-balance-auto-reload`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({
+            action: 'update',
+            workspaceId,
+            thresholdCents: autoReloadThreshold,
+            reloadAmountCents: autoReloadAmount,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update settings');
+      }
+
+      // Refresh auto-reload settings
+      await fetchAutoReload();
+      setShowAutoReloadSetup(false);
+    } catch (err) {
+      console.error('Auto-reload update error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update settings');
+    } finally {
+      setLoadingAutoReload(false);
+    }
+  };
+
+  // Remove payment method
+  const handleRemovePaymentMethod = async () => {
+    if (!confirm('Remove your saved payment method? Auto-reload will be disabled.')) {
+      return;
+    }
+
+    setLoadingAutoReload(true);
+    setError(null);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-balance-auto-reload`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({
+            action: 'remove',
+            workspaceId,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to remove payment method');
+      }
+
+      // Refresh auto-reload settings
+      setAutoReload(null);
+    } catch (err) {
+      console.error('Remove payment method error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to remove payment method');
+    } finally {
+      setLoadingAutoReload(false);
+    }
+  };
+
   // Check for success/cancel query params
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -179,7 +401,13 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
       // Clean URL
       window.history.replaceState({}, '', window.location.pathname + '?tab=api');
     }
-  }, [fetchSummary, fetchTransactions]);
+    if (params.get('auto_reload_setup') === 'true') {
+      // Refresh auto-reload settings after setup
+      fetchAutoReload();
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname + '?tab=api');
+    }
+  }, [fetchSummary, fetchTransactions, fetchAutoReload]);
 
   // Format date
   const formatDate = (dateStr: string | null) => {
@@ -320,7 +548,7 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
       </div>
 
       {/* Low Balance Warning */}
-      {summary && summary.balance_cents < 500 && (
+      {summary && summary.balance_cents < 500 && !autoReload?.is_enabled && (
         <div className="p-4 bg-yellow-50 border-2 border-yellow-400">
           <div className="flex items-center gap-2">
             <span className="text-xl">⚠️</span>
@@ -328,11 +556,183 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
               <div className="font-bold text-yellow-800">Low Balance Warning</div>
               <div className="text-sm text-yellow-700">
                 Your balance is running low. API calls will fail with a 402 error when balance reaches $0.
+                <button 
+                  onClick={() => setShowAutoReloadSetup(true)}
+                  className="ml-1 underline hover:no-underline"
+                >
+                  Set up auto-reload →
+                </button>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Auto-Reload Section */}
+      <div className="p-4 border-2 border-black">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="font-bold">🔄 Auto-Reload</h4>
+          {autoReload?.stripe_payment_method_id && (
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={autoReload?.is_enabled || false}
+                onChange={(e) => handleToggleAutoReload(e.target.checked)}
+                disabled={loadingAutoReload}
+                className="w-5 h-5"
+              />
+              <span className="text-sm font-medium">
+                {autoReload?.is_enabled ? 'Enabled' : 'Disabled'}
+              </span>
+            </label>
+          )}
+        </div>
+
+        {/* No payment method saved yet */}
+        {!autoReload?.stripe_payment_method_id && !showAutoReloadSetup && (
+          <div className="text-center py-6 border-2 border-dashed border-gray-300 bg-gray-50">
+            <p className="text-gray-600 mb-3">
+              Never run out of API balance! Set up automatic reloading.
+            </p>
+            <button
+              onClick={() => setShowAutoReloadSetup(true)}
+              className="bg-black text-white px-4 py-2 font-bold hover:bg-gray-800"
+            >
+              Set Up Auto-Reload
+            </button>
+          </div>
+        )}
+
+        {/* Auto-reload setup form */}
+        {showAutoReloadSetup && (
+          <div className="space-y-4 p-4 bg-gray-50 border border-gray-200">
+            <div>
+              <label className="block text-sm font-bold mb-2">
+                Reload when balance drops below:
+              </label>
+              <div className="flex gap-2 flex-wrap">
+                {THRESHOLD_OPTIONS.map(opt => (
+                  <button
+                    key={opt.cents}
+                    onClick={() => setAutoReloadThreshold(opt.cents)}
+                    className={`px-4 py-2 border-2 font-mono transition-colors ${
+                      autoReloadThreshold === opt.cents
+                        ? 'border-black bg-black text-white'
+                        : 'border-gray-300 hover:border-black'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold mb-2">
+                Reload amount:
+              </label>
+              <div className="flex gap-2 flex-wrap">
+                {RELOAD_AMOUNT_OPTIONS.map(opt => (
+                  <button
+                    key={opt.cents}
+                    onClick={() => setAutoReloadAmount(opt.cents)}
+                    className={`px-4 py-2 border-2 font-mono transition-colors ${
+                      autoReloadAmount === opt.cents
+                        ? 'border-black bg-black text-white'
+                        : 'border-gray-300 hover:border-black'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-2 flex gap-3">
+              {autoReload?.stripe_payment_method_id ? (
+                // Already has payment method - just update settings
+                <button
+                  onClick={handleUpdateAutoReloadSettings}
+                  disabled={loadingAutoReload}
+                  className="bg-black text-white px-4 py-2 font-bold hover:bg-gray-800 disabled:opacity-50"
+                >
+                  {loadingAutoReload ? 'Saving...' : 'Save Settings'}
+                </button>
+              ) : (
+                // Need to add payment method
+                <button
+                  onClick={handleSetupAutoReload}
+                  disabled={loadingAutoReload}
+                  className="bg-black text-white px-4 py-2 font-bold hover:bg-gray-800 disabled:opacity-50"
+                >
+                  {loadingAutoReload ? 'Processing...' : 'Add Payment Method'}
+                </button>
+              )}
+              <button
+                onClick={() => setShowAutoReloadSetup(false)}
+                className="px-4 py-2 border-2 border-black hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Active auto-reload display */}
+        {autoReload?.stripe_payment_method_id && !showAutoReloadSetup && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between py-2 px-3 bg-gray-50 border border-gray-200">
+              <span className="text-sm text-gray-600">Payment Method</span>
+              <span className="font-mono text-sm">•••• Card on file</span>
+            </div>
+            <div className="flex items-center justify-between py-2 px-3 bg-gray-50 border border-gray-200">
+              <span className="text-sm text-gray-600">Reload when below</span>
+              <span className="font-mono font-bold">${(autoReload.threshold_cents / 100).toFixed(0)}</span>
+            </div>
+            <div className="flex items-center justify-between py-2 px-3 bg-gray-50 border border-gray-200">
+              <span className="text-sm text-gray-600">Reload amount</span>
+              <span className="font-mono font-bold">${(autoReload.reload_amount_cents / 100).toFixed(0)}</span>
+            </div>
+            {autoReload.last_reload_at && (
+              <div className="flex items-center justify-between py-2 px-3 bg-gray-50 border border-gray-200">
+                <span className="text-sm text-gray-600">Last reload</span>
+                <span className="text-sm">{formatDate(autoReload.last_reload_at)}</span>
+              </div>
+            )}
+            {autoReload.last_reload_error && (
+              <div className="p-3 bg-red-50 border border-red-300 text-sm text-red-700">
+                <strong>Last error:</strong> {autoReload.last_reload_error}
+                {autoReload.consecutive_failures > 0 && (
+                  <span className="ml-2">({autoReload.consecutive_failures} failures)</span>
+                )}
+              </div>
+            )}
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => setShowAutoReloadSetup(true)}
+                className="text-sm text-gray-600 hover:text-black underline"
+              >
+                Edit settings
+              </button>
+              <span className="text-gray-300">|</span>
+              <button
+                onClick={handleRemovePaymentMethod}
+                disabled={loadingAutoReload}
+                className="text-sm text-red-600 hover:text-red-800 underline disabled:opacity-50"
+              >
+                Remove payment method
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Info about auto-reload */}
+        {!autoReload?.stripe_payment_method_id && !showAutoReloadSetup && (
+          <p className="text-xs text-gray-500 mt-3">
+            Your card will be charged automatically when your balance drops below the threshold.
+          </p>
+        )}
+      </div>
 
       {/* Recent Transactions */}
       <div className="p-4 border-2 border-black">
