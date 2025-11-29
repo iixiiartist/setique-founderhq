@@ -179,6 +179,8 @@ async function processSSEStream(
 
   const decoder = new TextDecoder();
   let buffer = '';
+  let eventCount = 0;
+  let rawDataLength = 0;
 
   console.log('[youAgentClient] Starting SSE stream processing...');
 
@@ -186,33 +188,43 @@ async function processSSEStream(
     while (true) {
       const { done, value } = await reader.read();
       if (done) {
-        console.log('[youAgentClient] Stream ended');
+        // Process any remaining buffer data
+        if (buffer.trim()) {
+          console.log('[youAgentClient] Processing final buffer, length:', buffer.length);
+          processBufferedEvents(buffer, result, onProgress, (count) => { eventCount += count; });
+        }
+        console.log('[youAgentClient] Stream ended. Total events:', eventCount, 'Raw data length:', rawDataLength);
         break;
       }
 
-      buffer += decoder.decode(value, { stream: true });
+      const chunk = decoder.decode(value, { stream: true });
+      rawDataLength += chunk.length;
+      buffer += chunk;
       
-      // Process complete events in buffer
-      const lines = buffer.split('\n\n');
-      buffer = lines.pop() || ''; // Keep incomplete event in buffer
-
-      for (const eventBlock of lines) {
-        const event = parseSSEEvent(eventBlock);
-        if (!event) continue;
-
-        // Handle keepalive
-        if (event.type === 'keepalive') {
-          onProgress?.({ type: 'keepalive' });
-          continue;
-        }
-
-        // Process event data
-        processEventData(event, result, onProgress);
+      // Log first chunk for debugging
+      if (rawDataLength === chunk.length) {
+        console.log('[youAgentClient] First chunk received:', chunk.substring(0, 300));
+      }
+      
+      // Process complete events in buffer (events are separated by double newlines)
+      // But we need to handle both \n\n and \r\n\r\n
+      const normalizedBuffer = buffer.replace(/\r\n/g, '\n');
+      const parts = normalizedBuffer.split('\n\n');
+      
+      // Keep the last incomplete part in buffer
+      buffer = parts.pop() || '';
+      
+      // Process complete events
+      for (const eventBlock of parts) {
+        const processed = processEventBlock(eventBlock, result, onProgress);
+        if (processed) eventCount++;
       }
     }
   } finally {
     reader.releaseLock();
   }
+
+  console.log('[youAgentClient] Stream complete. Output length:', result.output?.length || 0, 'Events processed:', eventCount);
 
   // Notify completion
   onProgress?.({ 
@@ -232,42 +244,102 @@ async function processSSEStream(
     });
   }
 
-  console.log('[youAgentClient] Stream complete, output length:', result.output?.length || 0);
+  console.log('[youAgentClient] Final output length:', result.output?.length || 0);
   return result;
+}
+
+/**
+ * Process buffered SSE events (used when stream ends with data in buffer)
+ */
+function processBufferedEvents(
+  buffer: string,
+  result: RunAgentResponse,
+  onProgress?: (event: StreamProgressEvent) => void,
+  onEventProcessed?: (count: number) => void
+): void {
+  const normalizedBuffer = buffer.replace(/\r\n/g, '\n');
+  const parts = normalizedBuffer.split('\n\n');
+  let count = 0;
+  
+  for (const eventBlock of parts) {
+    if (processEventBlock(eventBlock, result, onProgress)) {
+      count++;
+    }
+  }
+  
+  onEventProcessed?.(count);
+}
+
+/**
+ * Process a single SSE event block
+ */
+function processEventBlock(
+  eventBlock: string,
+  result: RunAgentResponse,
+  onProgress?: (event: StreamProgressEvent) => void
+): boolean {
+  const event = parseSSEEvent(eventBlock);
+  if (!event) return false;
+  
+  // Handle keepalive
+  if (event.type === 'keepalive') {
+    onProgress?.({ type: 'keepalive' });
+    return true;
+  }
+
+  // Process event data
+  processEventData(event, result, onProgress);
+  return true;
 }
 
 interface SSEEvent {
   type: string;
   data: string;
+  id?: string;
 }
 
 function parseSSEEvent(eventBlock: string): SSEEvent | null {
   const trimmed = eventBlock.trim();
   if (!trimmed) return null;
 
-  // Handle keepalive comments
-  if (trimmed.startsWith(': keepalive') || trimmed === ':') {
+  // Handle keepalive comments (lines starting with :)
+  if (trimmed === ':' || trimmed === ': keepalive' || trimmed.startsWith(': keepalive')) {
     return { type: 'keepalive', data: '' };
   }
 
-  // Skip other comments
-  if (trimmed.startsWith(':')) {
+  // Skip empty comment lines
+  if (trimmed === ':') {
     return null;
   }
 
   let eventType = '';
+  let eventId = '';
   const dataLines: string[] = [];
 
   for (const line of trimmed.split('\n')) {
-    if (line.startsWith('event:')) {
-      eventType = line.slice(6).trim();
-    } else if (line.startsWith('data:')) {
-      dataLines.push(line.slice(5).trim());
+    const trimmedLine = line.trim();
+    
+    // Skip comment lines
+    if (trimmedLine.startsWith(':')) {
+      continue;
+    }
+    
+    if (trimmedLine.startsWith('event:')) {
+      eventType = trimmedLine.slice(6).trim();
+    } else if (trimmedLine.startsWith('data:')) {
+      dataLines.push(trimmedLine.slice(5).trim());
+    } else if (trimmedLine.startsWith('id:')) {
+      eventId = trimmedLine.slice(3).trim();
     }
   }
 
+  // If we have no event type or data, skip
+  if (!eventType && dataLines.length === 0) {
+    return null;
+  }
+
   const data = dataLines.join('\n');
-  return { type: eventType || 'message', data };
+  return { type: eventType || 'message', data, id: eventId };
 }
 
 interface WebSearchResult {
@@ -290,6 +362,9 @@ function processEventData(
   try {
     const parsed = JSON.parse(event.data);
     const type = parsed.type || event.type;
+    
+    // Debug logging to see what event types we're receiving
+    console.log('[youAgentClient] Event type:', type, 'Event.type:', event.type, 'Parsed.type:', parsed.type);
 
     switch (type) {
       case 'response.output_text.delta': {

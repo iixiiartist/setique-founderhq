@@ -224,7 +224,7 @@ serve(async (req: Request): Promise<Response> => {
 
       // If client requested streaming, pass through the SSE stream
       if (body.stream) {
-        console.log('[you-agent-run] Streaming response to client');
+        console.log('[you-agent-run] Streaming response to client. You.com status:', youRes.status, 'Headers:', JSON.stringify(Object.fromEntries(youRes.headers.entries())));
         return streamResponse(youRes, rateCheck.remaining);
       }
 
@@ -310,8 +310,14 @@ function streamResponse(youRes: Response, remaining: number): Response {
         if (done) {
           if (keepaliveTimer) clearInterval(keepaliveTimer);
           controller.close();
-          console.log('[you-agent-run] Stream complete');
+          console.log('[you-agent-run] Stream complete - closed by You.com');
           return;
+        }
+        
+        // Log data chunks for debugging (first 200 chars of first chunk)
+        if (value && value.length > 0) {
+          const text = new TextDecoder().decode(value);
+          console.log('[you-agent-run] Received chunk, length:', value.length, 'preview:', text.substring(0, 200));
         }
         
         controller.enqueue(value);
