@@ -6,6 +6,7 @@ import {
 import { AnyCrmItem, Task, AppActions, CrmCollectionName, TaskCollectionName, Investor, Customer, Partner, Priority, Note, Contact, WorkspaceMember, Subtask } from '../../types';
 import Modal from './Modal';
 import NotesManager from './NotesManager';
+import { LinkedDocumentsSection } from './LinkedDocumentsSection';
 import { TASK_TAG_BG_COLORS } from '../../constants';
 import { AssignmentDropdown } from './AssignmentDropdown';
 import { SubtaskManager } from './SubtaskManager';
@@ -594,6 +595,11 @@ function AccountDetailView({
                                 )}
                             </ul>
                         </div>
+                    </div>
+                    
+                    {/* Linked Documents Section */}
+                    <div className="mt-6">
+                        <LinkedDocumentsSection companyId={item.id} />
                     </div>
                 </div>
             </div>

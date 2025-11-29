@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { EmailComposer } from './EmailComposer';
+import { SaveEmailModal } from './SaveEmailModal';
 import { supabase } from '../../lib/supabase';
 import { DatabaseService } from '../../lib/services/database';
 import { getAiResponse, Content, AILimitError } from '../../services/groqService';
@@ -8,7 +9,7 @@ import { showSuccess, showError } from '../../lib/utils/toast';
 import { fixEmailEncoding, fixHtmlEncoding } from '../../lib/utils/textDecoder';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Paperclip, Download, FolderPlus, Loader2, FileText, Image, File, UserPlus, X, Check } from 'lucide-react';
+import { Paperclip, Download, FolderPlus, Loader2, FileText, Image, File, UserPlus, X, Check, Save, Link2 } from 'lucide-react';
 
 interface EmailAttachment {
   id: string;
@@ -48,6 +49,9 @@ export const EmailThread: React.FC<EmailThreadProps> = ({ messageId, onClose }) 
   const [showContactsPanel, setShowContactsPanel] = useState(false);
   const [savingContact, setSavingContact] = useState<string | null>(null);
   const [savedContacts, setSavedContacts] = useState<Set<string>>(new Set());
+  
+  // Save email modal state
+  const [showSaveEmailModal, setShowSaveEmailModal] = useState(false);
 
   useEffect(() => {
     fetchMessageDetails();
@@ -536,6 +540,14 @@ Return the JSON array of contacts found.`;
                 <UserPlus className="w-3.5 h-3.5" />
                 Scan Contacts
             </button>
+            <button 
+                onClick={() => setShowSaveEmailModal(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 hover:text-green-900 transition-colors"
+                title="Save email snapshot to File Library and link to Account/Contact"
+            >
+                <Link2 className="w-3.5 h-3.5" />
+                Save &amp; Link
+            </button>
           </div>
         </div>
       </div>
@@ -761,6 +773,18 @@ Return the JSON array of contacts found.`;
             </div>
         )}
       </div>
+      
+      {/* Save Email Modal */}
+      {data && (
+        <SaveEmailModal
+          isOpen={showSaveEmailModal}
+          onClose={() => setShowSaveEmailModal(false)}
+          email={data}
+          onSaved={() => {
+            // Could refresh related data here if needed
+          }}
+        />
+      )}
     </div>
   );
 };
