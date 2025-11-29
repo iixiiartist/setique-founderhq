@@ -9,6 +9,7 @@ import { useWorkspace } from '../contexts/WorkspaceContext';
 import { DatabaseService } from '../lib/services/database';
 import { Button } from './ui/Button';
 import { EmailComposer, EmailAttachment } from './email/EmailComposer';
+import { supabase } from '../lib/supabase';
 import mammoth from 'mammoth';
 
 // Dynamic PDF.js import to avoid worker issues at module load time
@@ -190,6 +191,111 @@ async function extractTextFromDOCX(base64Content: string): Promise<{ text: strin
     } catch (error) {
         console.error('[FileLibraryTab] DOCX extraction error:', error);
         throw new Error('Failed to extract text from DOCX');
+    }
+}
+
+// Use Groq AI to intelligently structure and format extracted document content
+async function formatDocumentWithAI(rawText: string, fileName: string): Promise<{
+    contentJson: any;
+    contentPlain: string;
+}> {
+    try {
+        console.log('[FileLibraryTab] Formatting document with AI...');
+        
+        const systemPrompt = `You are a document formatting assistant. Your task is to take raw extracted text from a document and return it as properly structured content for a rich text editor.
+
+IMPORTANT: Return ONLY valid JSON, no explanations or markdown code blocks.
+
+Analyze the content and identify:
+- Headings (main title, section headers, subheadings)
+- Paragraphs of text
+- Lists (bullet points, numbered lists)
+- Contact information sections
+- Any other structural elements
+
+Return the content as a JSON object with this exact structure:
+{
+  "type": "doc",
+  "content": [
+    // Array of content blocks, each can be:
+    // Heading: { "type": "heading", "attrs": { "level": 1|2|3 }, "content": [{ "type": "text", "text": "..." }] }
+    // Paragraph: { "type": "paragraph", "content": [{ "type": "text", "text": "..." }] }
+    // Bullet list: { "type": "bulletList", "content": [{ "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "..." }] }] }] }
+    // Ordered list: { "type": "orderedList", "content": [{ "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "..." }] }] }] }
+  ]
+}
+
+For documents like resumes:
+- The person's name should be level 1 heading
+- Major sections (Experience, Education, Skills) should be level 2 headings
+- Job titles/roles can be level 3 headings or bold text
+- Dates and locations can be regular paragraph text
+- Bullet points for responsibilities/achievements
+
+Keep all original content - do not summarize or remove text. Just restructure it properly.`;
+
+        const userPrompt = `Please format the following document content extracted from "${fileName}":
+
+---
+${rawText.slice(0, 15000)}
+---
+
+Return ONLY the JSON structure, nothing else.`;
+
+        const response = await supabase.functions.invoke('groq-chat', {
+            body: {
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: userPrompt }
+                ],
+                temperature: 0.3,
+                max_tokens: 8000,
+                model: 'llama-3.3-70b-versatile'
+            }
+        });
+
+        if (response.error) {
+            console.error('[FileLibraryTab] Groq API error:', response.error);
+            throw new Error('AI formatting failed');
+        }
+
+        const data = response.data;
+        let aiContent = data?.choices?.[0]?.message?.content || data?.content || '';
+        
+        console.log('[FileLibraryTab] AI response received, length:', aiContent.length);
+
+        // Try to parse the JSON response
+        // First, try to extract JSON if it's wrapped in code blocks
+        const jsonMatch = aiContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+        if (jsonMatch) {
+            aiContent = jsonMatch[1];
+        }
+        
+        // Clean up any potential issues
+        aiContent = aiContent.trim();
+        
+        try {
+            const parsedContent = JSON.parse(aiContent);
+            
+            // Validate it has the expected structure
+            if (parsedContent.type === 'doc' && Array.isArray(parsedContent.content)) {
+                console.log('[FileLibraryTab] Successfully parsed AI-formatted content');
+                return {
+                    contentJson: parsedContent,
+                    contentPlain: rawText
+                };
+            }
+        } catch (parseError) {
+            console.error('[FileLibraryTab] Failed to parse AI response as JSON:', parseError);
+        }
+
+        // Fallback: return basic structure
+        throw new Error('Could not parse AI response');
+        
+    } catch (error) {
+        console.error('[FileLibraryTab] AI formatting error:', error);
+        // Return null to signal fallback to basic formatting
+        throw error;
     }
 }
 
@@ -478,9 +584,42 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                 return;
             }
             
-            // Update the doc with structured content for Tiptap
-            await DatabaseService.updateGTMDoc(newDoc.id, workspace.id, {
-                contentJson: { 
+            // Try AI formatting for PDF and DOCX files (which need structure restoration)
+            const needsAiFormatting = mimeType === 'application/pdf' || 
+                                       mimeType.includes('pdf') ||
+                                       mimeType.includes('wordprocessingml') ||
+                                       fileName.endsWith('.docx') ||
+                                       fileName.endsWith('.doc');
+            
+            let finalContentJson: any;
+            
+            if (needsAiFormatting && textContent.length > 50) {
+                try {
+                    console.log('[FileLibraryTab] Attempting AI formatting for:', fileName);
+                    const aiFormatted = await formatDocumentWithAI(textContent, fileName);
+                    finalContentJson = aiFormatted.contentJson;
+                    console.log('[FileLibraryTab] AI formatting successful');
+                } catch (aiError) {
+                    console.warn('[FileLibraryTab] AI formatting failed, using basic formatting:', aiError);
+                    // Fallback to basic formatting
+                    finalContentJson = { 
+                        type: 'doc', 
+                        content: [
+                            { 
+                                type: 'heading', 
+                                attrs: { level: 1 }, 
+                                content: [{ type: 'text', text: doc.name.replace(/\.[^/.]+$/, '') }] 
+                            },
+                            ...textContent.split('\n').filter(Boolean).map(line => ({
+                                type: 'paragraph',
+                                content: line.trim() ? [{ type: 'text', text: line }] : []
+                            }))
+                        ]
+                    };
+                }
+            } else {
+                // Basic formatting for text files
+                finalContentJson = { 
                     type: 'doc', 
                     content: [
                         { 
@@ -493,7 +632,12 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                             content: line.trim() ? [{ type: 'text', text: line }] : []
                         }))
                     ]
-                },
+                };
+            }
+            
+            // Update the doc with structured content for Tiptap
+            await DatabaseService.updateGTMDoc(newDoc.id, workspace.id, {
+                contentJson: finalContentJson,
                 contentPlain: textContent,
             });
             
