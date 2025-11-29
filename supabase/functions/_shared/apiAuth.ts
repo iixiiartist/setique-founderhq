@@ -14,6 +14,10 @@ export type ApiScope =
   | 'deals:read' | 'deals:write'
   | 'documents:read' | 'documents:write'
   | 'crm:read' | 'crm:write'
+  | 'financials:read' | 'financials:write'
+  | 'marketing:read' | 'marketing:write'
+  | 'products:read' | 'products:write'
+  | 'calendar:read' | 'calendar:write'
   | 'agents:run'
   | 'webhooks:manage'
   | 'context:read';

@@ -91,6 +91,69 @@ const codeExamples = {
     "source": "referral"
   }'`,
   },
+  financials: {
+    list: `curl -X GET "https://founderhq.setique.com/api/v1/financials?start_date=2025-01-01&end_date=2025-12-31" \\
+  -H "Authorization: Bearer fhq_live_your_api_key"`,
+    create: `curl -X POST "https://founderhq.setique.com/api/v1/financials" \\
+  -H "Authorization: Bearer fhq_live_your_api_key" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "date": "2025-01-15",
+    "mrr": 50000,
+    "gmv": 120000,
+    "new_signups": 45,
+    "churned_users": 3,
+    "notes": "Strong Q1 start"
+  }'`,
+  },
+  marketing: {
+    list: `curl -X GET "https://founderhq.setique.com/api/v1/marketing?type=campaign&status=active" \\
+  -H "Authorization: Bearer fhq_live_your_api_key"`,
+    create: `curl -X POST "https://founderhq.setique.com/api/v1/marketing" \\
+  -H "Authorization: Bearer fhq_live_your_api_key" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "title": "Product Launch Campaign",
+    "type": "campaign",
+    "status": "planned",
+    "campaign_budget": 10000,
+    "campaign_channel": "social",
+    "start_date": "2025-02-01",
+    "due_date": "2025-02-28"
+  }'`,
+  },
+  products: {
+    list: `curl -X GET "https://founderhq.setique.com/api/v1/products?category=subscription&status=active" \\
+  -H "Authorization: Bearer fhq_live_your_api_key"`,
+    create: `curl -X POST "https://founderhq.setique.com/api/v1/products" \\
+  -H "Authorization: Bearer fhq_live_your_api_key" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "name": "Enterprise Plan",
+    "category": "subscription",
+    "type": "product",
+    "base_price": 299,
+    "currency": "USD",
+    "pricing_model": "monthly",
+    "status": "active"
+  }'`,
+  },
+  calendar: {
+    list: `curl -X GET "https://founderhq.setique.com/api/v1/calendar?start_date=2025-01-01&end_date=2025-01-31" \\
+  -H "Authorization: Bearer fhq_live_your_api_key"`,
+    create: `curl -X POST "https://founderhq.setique.com/api/v1/calendar" \\
+  -H "Authorization: Bearer fhq_live_your_api_key" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "title": "Team Standup",
+    "event_date": "2025-01-20",
+    "event_time": "09:00",
+    "end_time": "09:30",
+    "recurrence": "weekly",
+    "location": "Zoom",
+    "attendees": ["john@example.com", "jane@example.com"]
+  }'`,
+  },
   agents: {
     run: `curl -X POST "https://founderhq.setique.com/api/v1/agents/run" \\
   -H "Authorization: Bearer fhq_live_your_api_key" \\
@@ -109,7 +172,7 @@ const codeExamples = {
 // TYPES
 // ============================================
 
-type EndpointCategory = 'contacts' | 'tasks' | 'deals' | 'documents' | 'crm' | 'agents';
+type EndpointCategory = 'contacts' | 'tasks' | 'deals' | 'documents' | 'crm' | 'financials' | 'marketing' | 'products' | 'calendar' | 'agents';
 
 interface Endpoint {
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
@@ -354,6 +417,201 @@ const endpoints: Record<EndpointCategory, { title: string; description: string; 
         path: '/crm/:id',
         description: 'Delete a CRM item (cascades to contacts)',
         scopes: ['crm:write'],
+      },
+    ],
+  },
+  financials: {
+    title: 'Financials',
+    description: 'Track financial metrics and logs',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/financials',
+        description: 'List financial logs with date filtering',
+        scopes: ['financials:read'],
+        params: [
+          { name: 'start_date', type: 'date', required: true, description: 'Start date (ISO 8601)' },
+          { name: 'end_date', type: 'date', required: true, description: 'End date (ISO 8601)' },
+          { name: 'limit', type: 'number', required: false, description: 'Max results (default: 50)' },
+          { name: 'offset', type: 'number', required: false, description: 'Skip results for pagination' },
+        ],
+      },
+      {
+        method: 'GET',
+        path: '/financials/summary',
+        description: 'Get aggregated financial summary for a date range',
+        scopes: ['financials:read'],
+        params: [
+          { name: 'start_date', type: 'date', required: true, description: 'Start date (ISO 8601)' },
+          { name: 'end_date', type: 'date', required: true, description: 'End date (ISO 8601)' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/financials',
+        description: 'Create a new financial log entry',
+        scopes: ['financials:write'],
+        body: [
+          { name: 'date', type: 'date', required: true, description: 'Log date (ISO 8601)' },
+          { name: 'mrr', type: 'number', required: false, description: 'Monthly recurring revenue' },
+          { name: 'gmv', type: 'number', required: false, description: 'Gross merchandise value' },
+          { name: 'new_signups', type: 'number', required: false, description: 'New user signups' },
+          { name: 'churned_users', type: 'number', required: false, description: 'Churned users count' },
+          { name: 'notes', type: 'string', required: false, description: 'Notes or comments' },
+        ],
+      },
+      {
+        method: 'PATCH',
+        path: '/financials/:id',
+        description: 'Update a financial log entry',
+        scopes: ['financials:write'],
+      },
+      {
+        method: 'DELETE',
+        path: '/financials/:id',
+        description: 'Delete a financial log entry',
+        scopes: ['financials:write'],
+      },
+    ],
+  },
+  marketing: {
+    title: 'Marketing',
+    description: 'Manage marketing items and campaigns',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/marketing',
+        description: 'List marketing items with filtering',
+        scopes: ['marketing:read'],
+        params: [
+          { name: 'type', type: 'string', required: false, description: 'Filter by type (task, campaign, content, event)' },
+          { name: 'status', type: 'string', required: false, description: 'Filter by status (planned, active, completed, cancelled)' },
+          { name: 'channel', type: 'string', required: false, description: 'Filter by campaign channel' },
+          { name: 'limit', type: 'number', required: false, description: 'Max results (default: 50)' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/marketing',
+        description: 'Create a new marketing item',
+        scopes: ['marketing:write'],
+        body: [
+          { name: 'title', type: 'string', required: true, description: 'Item title' },
+          { name: 'type', type: 'string', required: false, description: 'Item type' },
+          { name: 'status', type: 'string', required: false, description: 'Status' },
+          { name: 'campaign_budget', type: 'number', required: false, description: 'Campaign budget' },
+          { name: 'campaign_channel', type: 'string', required: false, description: 'Campaign channel (email, social, paid, etc.)' },
+          { name: 'due_date', type: 'date', required: false, description: 'Due date' },
+        ],
+      },
+      {
+        method: 'PATCH',
+        path: '/marketing/:id',
+        description: 'Update a marketing item',
+        scopes: ['marketing:write'],
+      },
+      {
+        method: 'DELETE',
+        path: '/marketing/:id',
+        description: 'Delete a marketing item',
+        scopes: ['marketing:write'],
+      },
+    ],
+  },
+  products: {
+    title: 'Products & Services',
+    description: 'Manage products, services, and inventory',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/products',
+        description: 'List products and services with filtering',
+        scopes: ['products:read'],
+        params: [
+          { name: 'category', type: 'string', required: false, description: 'Filter by category (physical, digital, subscription, service)' },
+          { name: 'type', type: 'string', required: false, description: 'Filter by type (product, service)' },
+          { name: 'status', type: 'string', required: false, description: 'Filter by status (active, inactive, discontinued)' },
+          { name: 'search', type: 'string', required: false, description: 'Search by name or SKU' },
+        ],
+      },
+      {
+        method: 'POST',
+        path: '/products',
+        description: 'Create a new product or service',
+        scopes: ['products:write'],
+        body: [
+          { name: 'name', type: 'string', required: true, description: 'Product name' },
+          { name: 'category', type: 'string', required: false, description: 'Product category' },
+          { name: 'type', type: 'string', required: false, description: 'Product or service' },
+          { name: 'base_price', type: 'number', required: false, description: 'Base price' },
+          { name: 'currency', type: 'string', required: false, description: 'Currency code (default: USD)' },
+          { name: 'pricing_model', type: 'string', required: false, description: 'Pricing model (one-time, monthly, yearly, hourly)' },
+          { name: 'inventory_quantity', type: 'number', required: false, description: 'Current inventory quantity' },
+        ],
+      },
+      {
+        method: 'PATCH',
+        path: '/products/:id',
+        description: 'Update a product or service',
+        scopes: ['products:write'],
+      },
+      {
+        method: 'DELETE',
+        path: '/products/:id',
+        description: 'Delete a product or service',
+        scopes: ['products:write'],
+      },
+    ],
+  },
+  calendar: {
+    title: 'Calendar',
+    description: 'Manage calendar events and view aggregated schedule',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/calendar',
+        description: 'List calendar events (aggregates tasks, marketing, CRM, and custom events)',
+        scopes: ['calendar:read'],
+        params: [
+          { name: 'start_date', type: 'date', required: true, description: 'Start date (ISO 8601)' },
+          { name: 'end_date', type: 'date', required: true, description: 'End date (ISO 8601)' },
+          { name: 'types', type: 'string', required: false, description: 'Filter by types (comma-separated: task,marketing,meeting,crm-action,custom)' },
+          { name: 'limit', type: 'number', required: false, description: 'Max results (default: 100)' },
+        ],
+      },
+      {
+        method: 'GET',
+        path: '/calendar/:id',
+        description: 'Get a single calendar event with source data',
+        scopes: ['calendar:read'],
+      },
+      {
+        method: 'POST',
+        path: '/calendar',
+        description: 'Create a custom calendar event',
+        scopes: ['calendar:write'],
+        body: [
+          { name: 'title', type: 'string', required: true, description: 'Event title' },
+          { name: 'event_date', type: 'date', required: true, description: 'Event date (ISO 8601)' },
+          { name: 'event_time', type: 'time', required: false, description: 'Event start time' },
+          { name: 'end_time', type: 'time', required: false, description: 'Event end time' },
+          { name: 'all_day', type: 'boolean', required: false, description: 'All-day event flag' },
+          { name: 'location', type: 'string', required: false, description: 'Event location' },
+          { name: 'recurrence', type: 'string', required: false, description: 'Recurrence pattern (daily, weekly, monthly)' },
+          { name: 'attendees', type: 'string[]', required: false, description: 'List of attendee emails' },
+        ],
+      },
+      {
+        method: 'PATCH',
+        path: '/calendar/:id',
+        description: 'Update a calendar event',
+        scopes: ['calendar:write'],
+      },
+      {
+        method: 'DELETE',
+        path: '/calendar/:id',
+        description: 'Delete a custom calendar event (cannot delete virtual events)',
+        scopes: ['calendar:write'],
       },
     ],
   },
@@ -676,7 +934,7 @@ export const ApiDocsPage: React.FC = () => {
               </p>
               <div className="p-4 bg-gray-50 border-2 border-gray-300">
                 <h4 className="font-bold mb-3">Available Events</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 text-sm">
                   <div>
                     <div className="font-bold text-gray-700 mb-1">Contacts</div>
                     <div className="font-mono text-gray-600 space-y-0.5">
@@ -720,6 +978,38 @@ export const ApiDocsPage: React.FC = () => {
                       <div>crm.updated</div>
                       <div>crm.stage_changed</div>
                       <div>crm.deleted</div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-bold text-gray-700 mb-1">Financials</div>
+                    <div className="font-mono text-gray-600 space-y-0.5">
+                      <div>financial.created</div>
+                      <div>financial.updated</div>
+                      <div>financial.deleted</div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-bold text-gray-700 mb-1">Marketing</div>
+                    <div className="font-mono text-gray-600 space-y-0.5">
+                      <div>marketing.created</div>
+                      <div>marketing.updated</div>
+                      <div>marketing.deleted</div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-bold text-gray-700 mb-1">Products</div>
+                    <div className="font-mono text-gray-600 space-y-0.5">
+                      <div>product.created</div>
+                      <div>product.updated</div>
+                      <div>product.deleted</div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-bold text-gray-700 mb-1">Calendar</div>
+                    <div className="font-mono text-gray-600 space-y-0.5">
+                      <div>calendar.created</div>
+                      <div>calendar.updated</div>
+                      <div>calendar.deleted</div>
                     </div>
                   </div>
                   <div>

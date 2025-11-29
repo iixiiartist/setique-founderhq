@@ -21,6 +21,14 @@ const AVAILABLE_SCOPES: { value: ApiScope; label: string; description: string }[
   { value: 'documents:write', label: 'Documents (Write)', description: 'Create, update, delete documents' },
   { value: 'crm:read', label: 'CRM (Read)', description: 'View CRM items (accounts, leads)' },
   { value: 'crm:write', label: 'CRM (Write)', description: 'Create, update, delete CRM items' },
+  { value: 'financials:read', label: 'Financials (Read)', description: 'View financial logs and metrics' },
+  { value: 'financials:write', label: 'Financials (Write)', description: 'Create, update, delete financials' },
+  { value: 'marketing:read', label: 'Marketing (Read)', description: 'View marketing items and campaigns' },
+  { value: 'marketing:write', label: 'Marketing (Write)', description: 'Create, update, delete marketing' },
+  { value: 'products:read', label: 'Products (Read)', description: 'View products and services' },
+  { value: 'products:write', label: 'Products (Write)', description: 'Create, update, delete products' },
+  { value: 'calendar:read', label: 'Calendar (Read)', description: 'View calendar events' },
+  { value: 'calendar:write', label: 'Calendar (Write)', description: 'Create, update, delete events' },
   { value: 'agents:run', label: 'AI Agents', description: 'Run AI agent queries' },
 ];
 
@@ -376,6 +384,10 @@ export const ApiKeysSettings: React.FC<ApiKeysSettingsProps> = ({ workspaceId })
           <p><span className="text-blue-500">GET/POST</span> {apiBaseUrl}/deals</p>
           <p><span className="text-blue-500">GET/POST</span> {apiBaseUrl}/documents</p>
           <p><span className="text-blue-500">GET/POST</span> {apiBaseUrl}/crm</p>
+          <p><span className="text-blue-500">GET/POST</span> {apiBaseUrl}/financials</p>
+          <p><span className="text-blue-500">GET/POST</span> {apiBaseUrl}/marketing</p>
+          <p><span className="text-blue-500">GET/POST</span> {apiBaseUrl}/products</p>
+          <p><span className="text-blue-500">GET/POST</span> {apiBaseUrl}/calendar</p>
           <p><span className="text-blue-500">POST</span> {apiBaseUrl}/agents/run</p>
         </div>
         <p className="text-xs text-blue-600 mt-2">

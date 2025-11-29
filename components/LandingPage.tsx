@@ -260,11 +260,11 @@ export function LandingPage() {
                 <p className="text-[10px] sm:text-xs font-mono uppercase text-gray-500 leading-tight">CRM pipelines</p>
               </div>
               <div className="p-3 sm:p-4 border-2 border-black bg-white shadow-neo-sm">
-                <p className="text-xl sm:text-2xl font-bold">6</p>
+                <p className="text-xl sm:text-2xl font-bold">10</p>
                 <p className="text-[10px] sm:text-xs font-mono uppercase text-gray-500 leading-tight">API endpoints</p>
               </div>
               <div className="p-3 sm:p-4 border-2 border-black bg-white shadow-neo-sm">
-                <p className="text-xl sm:text-2xl font-bold">22</p>
+                <p className="text-xl sm:text-2xl font-bold">34</p>
                 <p className="text-[10px] sm:text-xs font-mono uppercase text-gray-500 leading-tight">Webhook events</p>
               </div>
             </div>

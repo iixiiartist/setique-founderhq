@@ -16,6 +16,10 @@ export type ApiScope =
   | 'deals:read' | 'deals:write'
   | 'documents:read' | 'documents:write'
   | 'crm:read' | 'crm:write'
+  | 'financials:read' | 'financials:write'
+  | 'marketing:read' | 'marketing:write'
+  | 'products:read' | 'products:write'
+  | 'calendar:read' | 'calendar:write'
   | 'agents:run'
   | 'webhooks:manage'
   | 'context:read';
@@ -84,6 +88,10 @@ export const API_SCOPES: Record<string, ApiScope[]> = {
   deals: ['deals:read', 'deals:write'],
   documents: ['documents:read', 'documents:write'],
   crm: ['crm:read', 'crm:write'],
+  financials: ['financials:read', 'financials:write'],
+  marketing: ['marketing:read', 'marketing:write'],
+  products: ['products:read', 'products:write'],
+  calendar: ['calendar:read', 'calendar:write'],
   agents: ['agents:run'],
   webhooks: ['webhooks:manage'],
   context: ['context:read'],

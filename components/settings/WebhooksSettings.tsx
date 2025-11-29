@@ -30,11 +30,23 @@ const AVAILABLE_EVENTS = [
   { value: 'crm.updated', label: 'CRM Item Updated', category: 'CRM' },
   { value: 'crm.stage_changed', label: 'CRM Stage Changed', category: 'CRM' },
   { value: 'crm.deleted', label: 'CRM Item Deleted', category: 'CRM' },
+  { value: 'financial.created', label: 'Financial Created', category: 'Financials' },
+  { value: 'financial.updated', label: 'Financial Updated', category: 'Financials' },
+  { value: 'financial.deleted', label: 'Financial Deleted', category: 'Financials' },
+  { value: 'marketing.created', label: 'Marketing Created', category: 'Marketing' },
+  { value: 'marketing.updated', label: 'Marketing Updated', category: 'Marketing' },
+  { value: 'marketing.deleted', label: 'Marketing Deleted', category: 'Marketing' },
+  { value: 'product.created', label: 'Product Created', category: 'Products' },
+  { value: 'product.updated', label: 'Product Updated', category: 'Products' },
+  { value: 'product.deleted', label: 'Product Deleted', category: 'Products' },
+  { value: 'calendar.created', label: 'Event Created', category: 'Calendar' },
+  { value: 'calendar.updated', label: 'Event Updated', category: 'Calendar' },
+  { value: 'calendar.deleted', label: 'Event Deleted', category: 'Calendar' },
   { value: 'agent.run_completed', label: 'Agent Run Completed', category: 'Agents' },
   { value: 'agent.run_failed', label: 'Agent Run Failed', category: 'Agents' },
 ];
 
-const EVENT_CATEGORIES = ['Contacts', 'Tasks', 'Deals', 'Documents', 'CRM', 'Agents'];
+const EVENT_CATEGORIES = ['Contacts', 'Tasks', 'Deals', 'Documents', 'CRM', 'Financials', 'Marketing', 'Products', 'Calendar', 'Agents'];
 
 // ============================================
 // TYPES

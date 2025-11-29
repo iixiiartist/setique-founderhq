@@ -33,6 +33,22 @@ export type WebhookEventType =
   | 'crm.updated'
   | 'crm.stage_changed'
   | 'crm.deleted'
+  // Financial events
+  | 'financial.created'
+  | 'financial.updated'
+  | 'financial.deleted'
+  // Marketing events
+  | 'marketing.created'
+  | 'marketing.updated'
+  | 'marketing.deleted'
+  // Product events
+  | 'product.created'
+  | 'product.updated'
+  | 'product.deleted'
+  // Calendar events
+  | 'calendar.created'
+  | 'calendar.updated'
+  | 'calendar.deleted'
   // Agent events
   | 'agent.run_started'
   | 'agent.run_completed'

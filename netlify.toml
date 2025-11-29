@@ -101,6 +101,66 @@
   force = true
   headers = {X-Forwarded-Host = "founderhq.setique.com"}
 
+# Premium API endpoints - Financials
+[[redirects]]
+  from = "/api/v1/financials"
+  to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/api-v1-financials"
+  status = 200
+  force = true
+  headers = {X-Forwarded-Host = "founderhq.setique.com"}
+
+[[redirects]]
+  from = "/api/v1/financials/*"
+  to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/api-v1-financials/:splat"
+  status = 200
+  force = true
+  headers = {X-Forwarded-Host = "founderhq.setique.com"}
+
+# Premium API endpoints - Marketing
+[[redirects]]
+  from = "/api/v1/marketing"
+  to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/api-v1-marketing"
+  status = 200
+  force = true
+  headers = {X-Forwarded-Host = "founderhq.setique.com"}
+
+[[redirects]]
+  from = "/api/v1/marketing/*"
+  to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/api-v1-marketing/:splat"
+  status = 200
+  force = true
+  headers = {X-Forwarded-Host = "founderhq.setique.com"}
+
+# Premium API endpoints - Products
+[[redirects]]
+  from = "/api/v1/products"
+  to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/api-v1-products"
+  status = 200
+  force = true
+  headers = {X-Forwarded-Host = "founderhq.setique.com"}
+
+[[redirects]]
+  from = "/api/v1/products/*"
+  to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/api-v1-products/:splat"
+  status = 200
+  force = true
+  headers = {X-Forwarded-Host = "founderhq.setique.com"}
+
+# Premium API endpoints - Calendar
+[[redirects]]
+  from = "/api/v1/calendar"
+  to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/api-v1-calendar"
+  status = 200
+  force = true
+  headers = {X-Forwarded-Host = "founderhq.setique.com"}
+
+[[redirects]]
+  from = "/api/v1/calendar/*"
+  to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/api-v1-calendar/:splat"
+  status = 200
+  force = true
+  headers = {X-Forwarded-Host = "founderhq.setique.com"}
+
 # SPA fallback - all other routes go to index.html
 [[redirects]]
   from = "/*"
