@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
+import { createBalanceTopup, manageAutoReload } from '../../lib/services/apiClient';
 
 // ============================================
 // TYPES
@@ -171,37 +172,25 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-balance-topup`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({
-            workspaceId,
-            amountCents,
-            successUrl: `${window.location.origin}/settings?tab=api&balance_added=true`,
-            cancelUrl: `${window.location.origin}/settings?tab=api&balance_cancelled=true`,
-            customerEmail: session?.user?.email,
-          }),
-        }
-      );
+      const { data, error } = await createBalanceTopup({
+        workspaceId,
+        amountCents,
+        successUrl: `${window.location.origin}/settings?tab=api&balance_added=true`,
+        cancelUrl: `${window.location.origin}/settings?tab=api&balance_cancelled=true`,
+        customerEmail: session?.user?.email,
+      });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to create checkout session');
+      if (error) {
+        throw new Error(error);
       }
 
       // Redirect to Stripe checkout
-      if (result.url) {
-        window.location.href = result.url;
+      if (data?.url) {
+        window.location.href = data.url;
       }
     } catch (err) {
       console.error('Top-up error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to initiate top-up');
+      setError(err instanceof Error ? err.message : 'Failed to add balance');
     } finally {
       setLoadingTopup(false);
     }
@@ -227,36 +216,22 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
     setError(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-balance-auto-reload`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({
-            action: 'setup',
-            workspaceId,
-            thresholdCents: autoReloadThreshold,
-            reloadAmountCents: autoReloadAmount,
-            successUrl: `${window.location.origin}/settings?tab=api&auto_reload_setup=true`,
-            cancelUrl: `${window.location.origin}/settings?tab=api&auto_reload_cancelled=true`,
-          }),
-        }
-      );
+      const { data, error } = await manageAutoReload({
+        action: 'setup',
+        workspaceId,
+        thresholdCents: autoReloadThreshold,
+        reloadAmountCents: autoReloadAmount,
+        successUrl: `${window.location.origin}/settings?tab=api&auto_reload_setup=true`,
+        cancelUrl: `${window.location.origin}/settings?tab=api&auto_reload_cancelled=true`,
+      });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to setup auto-reload');
+      if (error) {
+        throw new Error(error);
       }
 
       // Redirect to Stripe to add payment method
-      if (result.url) {
-        window.location.href = result.url;
+      if (data?.url) {
+        window.location.href = data.url;
       }
     } catch (err) {
       console.error('Auto-reload setup error:', err);
@@ -272,28 +247,14 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
     setError(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-balance-auto-reload`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({
-            action: 'toggle',
-            workspaceId,
-            enabled,
-          }),
-        }
-      );
+      const { error } = await manageAutoReload({
+        action: 'toggle',
+        workspaceId,
+        enabled,
+      });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to update auto-reload');
+      if (error) {
+        throw new Error(error);
       }
 
       // Refresh auto-reload settings
@@ -312,29 +273,15 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
     setError(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-balance-auto-reload`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({
-            action: 'update',
-            workspaceId,
-            thresholdCents: autoReloadThreshold,
-            reloadAmountCents: autoReloadAmount,
-          }),
-        }
-      );
+      const { error } = await manageAutoReload({
+        action: 'update',
+        workspaceId,
+        thresholdCents: autoReloadThreshold,
+        reloadAmountCents: autoReloadAmount,
+      });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to update settings');
+      if (error) {
+        throw new Error(error);
       }
 
       // Refresh auto-reload settings
@@ -358,27 +305,13 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
     setError(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-balance-auto-reload`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({
-            action: 'remove',
-            workspaceId,
-          }),
-        }
-      );
+      const { error } = await manageAutoReload({
+        action: 'remove',
+        workspaceId,
+      });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to remove payment method');
+      if (error) {
+        throw new Error(error);
       }
 
       // Refresh auto-reload settings

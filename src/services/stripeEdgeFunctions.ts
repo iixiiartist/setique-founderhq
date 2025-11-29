@@ -1,157 +1,72 @@
-import { supabase } from "../../lib/supabase";
+// src/services/stripeEdgeFunctions.ts
+// Stripe Edge Functions wrapper using centralized API client
 
-const FUNCTIONS_BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
-
-interface CheckoutSessionParams {
-  workspaceId: string;
-  planType: 'team-pro'; // Simplified: only team-pro available
-  seatCount?: number; // 1 = solo, 2+ = team
-  successUrl: string;
-  cancelUrl: string;
-  customerEmail?: string;
-  metadata?: Record<string, string>;
-}
-
-interface PortalSessionParams {
-  customerId: string;
-  returnUrl: string;
-}
-
-interface UpdateSeatsParams {
-  subscriptionId: string;
-  workspaceId: string;
-  seatCount: number;
-}
-
-interface CancelSubscriptionParams {
-  subscriptionId: string;
-  workspaceId: string;
-  immediate?: boolean;
-}
-
-interface ReactivateSubscriptionParams {
-  subscriptionId: string;
-  workspaceId: string;
-}
+import {
+  createCheckoutSession as apiCreateCheckout,
+  createPortalSession as apiCreatePortal,
+  updateSubscriptionSeats as apiUpdateSeats,
+  cancelSubscription as apiCancel,
+  reactivateSubscription as apiReactivate,
+  type CheckoutParams,
+  type PortalParams,
+  type UpdateSeatsParams,
+  type CancelParams,
+  type ReactivateParams,
+} from "../../lib/services/apiClient";
 
 export const stripeEdgeFunctions = {
   /**
    * Create a Stripe Checkout session for a new subscription
    */
-  async createCheckoutSession(params: CheckoutSessionParams): Promise<{ sessionId: string; url: string }> {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error('Not authenticated');
-
-    const response = await fetch(`${FUNCTIONS_BASE_URL}/create-checkout-session`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify(params),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to create checkout session');
+  async createCheckoutSession(params: CheckoutParams): Promise<{ sessionId: string; url: string }> {
+    const { data, error } = await apiCreateCheckout(params);
+    if (error || !data) {
+      throw new Error(error || 'Failed to create checkout session');
     }
-
-    return response.json();
+    return data;
   },
 
   /**
    * Create a Stripe Customer Portal session for managing subscriptions
    */
-  async createPortalSession(params: PortalSessionParams): Promise<{ url: string }> {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error('Not authenticated');
-
-    const response = await fetch(`${FUNCTIONS_BASE_URL}/create-portal-session`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify(params),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to create portal session');
+  async createPortalSession(params: PortalParams): Promise<{ url: string }> {
+    const { data, error } = await apiCreatePortal(params);
+    if (error || !data) {
+      throw new Error(error || 'Failed to create portal session');
     }
-
-    return response.json();
+    return data;
   },
 
   /**
    * Update the seat count for a team subscription
    */
   async updateSubscriptionSeats(params: UpdateSeatsParams): Promise<{ success: boolean }> {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error('Not authenticated');
-
-    const response = await fetch(`${FUNCTIONS_BASE_URL}/update-subscription-seats`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify(params),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to update subscription seats');
+    const { data, error } = await apiUpdateSeats(params);
+    if (error || !data) {
+      throw new Error(error || 'Failed to update subscription seats');
     }
-
-    return response.json();
+    return data;
   },
 
   /**
    * Cancel a subscription (immediate or at period end)
    */
-  async cancelSubscription(params: CancelSubscriptionParams): Promise<{ success: boolean; status: string }> {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error('Not authenticated');
-
-    const response = await fetch(`${FUNCTIONS_BASE_URL}/cancel-subscription`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify(params),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to cancel subscription');
+  async cancelSubscription(params: CancelParams): Promise<{ success: boolean; status: string }> {
+    const { data, error } = await apiCancel(params);
+    if (error || !data) {
+      throw new Error(error || 'Failed to cancel subscription');
     }
-
-    return response.json();
+    return data;
   },
 
   /**
    * Reactivate a canceled subscription
    */
-  async reactivateSubscription(params: ReactivateSubscriptionParams): Promise<{ success: boolean; status: string }> {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error('Not authenticated');
-
-    const response = await fetch(`${FUNCTIONS_BASE_URL}/reactivate-subscription`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify(params),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to reactivate subscription');
+  async reactivateSubscription(params: ReactivateParams): Promise<{ success: boolean; status: string }> {
+    const { data, error } = await apiReactivate(params);
+    if (error || !data) {
+      throw new Error(error || 'Failed to reactivate subscription');
     }
-
-    return response.json();
+    return data;
   },
 };
