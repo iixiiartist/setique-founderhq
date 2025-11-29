@@ -42,7 +42,8 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({ actions, onInsertToDoc }) 
 
   const handleViewReport = useCallback((report: AgentReport) => {
     setViewingReport(report);
-    setActiveModal('research_briefing');
+    // Open the correct modal based on the report's agent slug
+    setActiveModal(report.agent_slug as YouAgentSlug);
   }, []);
 
   const handleDeleteReport = useCallback(async (reportId: string) => {

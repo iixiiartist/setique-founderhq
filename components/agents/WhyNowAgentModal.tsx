@@ -1,7 +1,7 @@
 // components/agents/WhyNowAgentModal.tsx
 // Modal for running the Why Now timing intelligence agent
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { X, Loader2, Globe, FileText, AlertCircle, Sparkles, Save, Check, Download, FolderPlus, ChevronDown, Zap, Clock } from 'lucide-react';
 import { useYouAgent } from '../../hooks/useYouAgent';
 import { useAgentReports } from '../../hooks/useAgentReports';
@@ -10,6 +10,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { YOU_AGENTS } from '../../lib/config/youAgents';
 import { AgentResponsePresenter } from './AgentResponsePresenter';
 import { exportReportToHtml, exportReportToPdf, saveReportToFileLibrary } from '../../lib/services/agentReportExport';
+import { 
+  VALIDATION_LIMITS, 
+  validateTarget, 
+  validateNotes, 
+  parseAndValidateUrls 
+} from '../../lib/utils/agentValidation';
 import type { AgentReport } from '../../lib/services/agentReportService';
 import type { RunAgentResponse } from '../../lib/services/youAgentClient';
 
@@ -38,7 +44,7 @@ export const WhyNowAgentModal: React.FC<WhyNowAgentModalProps> = ({
   savedReport = null,
 }) => {
   const agentConfig = YOU_AGENTS.why_now;
-  const { run, loading, error, errorCode, lastResponse, resetIn, reset } = useYouAgent('why_now');
+  const { run, loading, error, errorCode, lastResponse, resetIn, reset, streamingOutput, isStreaming } = useYouAgent('why_now');
   const { workspace } = useWorkspace();
   const { user } = useAuth();
   const { saveReport, isSaving } = useAgentReports(workspace?.id, user?.id);
@@ -47,12 +53,18 @@ export const WhyNowAgentModal: React.FC<WhyNowAgentModalProps> = ({
   const [urls, setUrls] = useState('');
   const [goal, setGoal] = useState<GoalType>('full');
   const [notes, setNotes] = useState('');
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [reportSaved, setReportSaved] = useState(false);
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [savingToLibrary, setSavingToLibrary] = useState(false);
   const [savedToLibrary, setSavedToLibrary] = useState(false);
+
+  // Validation state
+  const targetValidation = useMemo(() => validateTarget(target), [target]);
+  const notesValidation = useMemo(() => validateNotes(notes), [notes]);
+  const urlsValidation = useMemo(() => parseAndValidateUrls(urls), [urls]);
 
   // If viewing a saved report, create a response object from it
   const displayResponse: RunAgentResponse | null = savedReport 
@@ -95,6 +107,7 @@ export const WhyNowAgentModal: React.FC<WhyNowAgentModalProps> = ({
     setUrls('');
     setGoal('full');
     setNotes('');
+    setValidationError(null);
     setReportSaved(false);
     setCurrentReportId(null);
     onClose();
@@ -186,21 +199,40 @@ export const WhyNowAgentModal: React.FC<WhyNowAgentModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationError(null);
 
-    if (!target.trim()) return;
+    // Validate all inputs
+    if (!targetValidation.isValid) {
+      setValidationError(targetValidation.error || 'Invalid target');
+      return;
+    }
+    
+    if (!notesValidation.isValid) {
+      setValidationError(notesValidation.error || 'Invalid notes');
+      return;
+    }
+    
+    if (urlsValidation.error) {
+      setValidationError(urlsValidation.error);
+      return;
+    }
 
     // Build the prompt with FounderHQ context
-    const input = buildPrompt({ target: target.trim(), goal, notes: notes.trim() });
+    const input = buildPrompt({ 
+      target: targetValidation.sanitized, 
+      goal, 
+      notes: notesValidation.sanitized 
+    });
     
-    // Build context
+    // Build context with validated URLs
     const context = {
-      urls: urls.split(',').map((u) => u.trim()).filter(Boolean),
+      urls: urlsValidation.validUrls,
       founderhq_context: {
         product: 'AI-powered GTM workspace for SaaS teams',
         icp: 'Seed–Series B SaaS companies hiring GTM roles',
         region: 'North America',
         goal,
-        notes: notes.trim(),
+        notes: notesValidation.sanitized,
       },
     };
 
@@ -353,17 +385,17 @@ export const WhyNowAgentModal: React.FC<WhyNowAgentModalProps> = ({
               <div className="flex items-center justify-between pt-2">
                 <p className="text-xs text-gray-500 flex items-center gap-1">
                   <Clock size={12} />
-                  Analysis typically takes 30-90 seconds
+                  {isStreaming ? 'Streaming response...' : 'Analysis typically takes 30-90 seconds'}
                 </p>
                 <button
                   type="submit"
-                  disabled={loading || !target.trim()}
+                  disabled={loading || !targetValidation.isValid || !notesValidation.isValid || !!urlsValidation.error}
                   className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all shadow-sm"
                 >
                   {loading ? (
                     <>
                       <Loader2 size={18} className="animate-spin" />
-                      Analyzing signals...
+                      {isStreaming ? 'Receiving data...' : 'Analyzing signals...'}
                     </>
                   ) : (
                     <>
@@ -373,6 +405,24 @@ export const WhyNowAgentModal: React.FC<WhyNowAgentModalProps> = ({
                   )}
                 </button>
               </div>
+
+              {/* Streaming Preview */}
+              {isStreaming && streamingOutput && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex gap-1">
+                      <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
+                      <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse delay-75"></span>
+                      <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse delay-150"></span>
+                    </div>
+                    <span className="text-xs font-medium text-gray-600">Receiving analysis...</span>
+                  </div>
+                  <div className="text-sm text-gray-700 whitespace-pre-wrap max-h-40 overflow-y-auto">
+                    {streamingOutput.slice(-500)}
+                    {streamingOutput.length > 500 && <span className="text-gray-400">...</span>}
+                  </div>
+                </div>
+              )}
             </form>
           ) : (
             <div className="space-y-4">

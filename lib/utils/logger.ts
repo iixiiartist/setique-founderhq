@@ -1,5 +1,5 @@
 /**
- * Production-safe logging utility
+ * Production-safe logging utility with structured logging support
  * 
  * In production, only error logs are emitted.
  * In development, all log levels are available.
@@ -10,6 +10,9 @@
  *   logger.warn('API rate limit approaching', { remaining: 10 })
  *   logger.error('Failed to save data', error)
  *   logger.debug('Component rendered', { props })
+ *   
+ * Structured logging:
+ *   logger.structured('operation', 'info', { action: 'save', result: 'success' })
  */
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
@@ -18,7 +21,26 @@ interface LoggerConfig {
   enabled: boolean;
   level: LogLevel;
   timestamp: boolean;
+  structured: boolean;
 }
+
+interface StructuredLogEntry {
+  timestamp: string;
+  level: LogLevel;
+  operation: string;
+  message?: string;
+  duration?: number;
+  context?: Record<string, unknown>;
+  error?: {
+    message: string;
+    stack?: string;
+    code?: string;
+  };
+}
+
+// Log buffer for batch operations or export
+const logBuffer: StructuredLogEntry[] = [];
+const MAX_BUFFER_SIZE = 100;
 
 class Logger {
   private config: LoggerConfig;
@@ -37,6 +59,7 @@ class Logger {
       enabled: !isProduction,
       level: isProduction ? 'error' : 'debug',
       timestamp: !isProduction,
+      structured: false, // Enable for JSON logging
     };
   }
 
@@ -142,6 +165,97 @@ class Logger {
   getConfig(): LoggerConfig {
     return { ...this.config };
   }
+
+  /**
+   * Create a structured log entry for operations
+   * Useful for tracking operation timings and results
+   */
+  structured(
+    operation: string,
+    level: LogLevel,
+    data: {
+      message?: string;
+      duration?: number;
+      context?: Record<string, unknown>;
+      error?: Error;
+    } = {}
+  ): void {
+    if (!this.shouldLog(level)) return;
+
+    const entry: StructuredLogEntry = {
+      timestamp: new Date().toISOString(),
+      level,
+      operation,
+      message: data.message,
+      duration: data.duration,
+      context: data.context,
+    };
+
+    if (data.error) {
+      entry.error = {
+        message: data.error.message,
+        stack: data.error.stack,
+        code: (data.error as { code?: string }).code,
+      };
+    }
+
+    // Add to buffer
+    logBuffer.push(entry);
+    if (logBuffer.length > MAX_BUFFER_SIZE) {
+      logBuffer.shift();
+    }
+
+    // Output based on config
+    if (this.config.structured) {
+      console[level === 'debug' ? 'log' : level](JSON.stringify(entry));
+    } else {
+      const parts = this.formatMessage(level, `[${operation}] ${data.message || ''}`);
+      if (data.duration !== undefined) {
+        parts.push(`(${data.duration}ms)`);
+      }
+      if (data.context) {
+        parts.push(data.context);
+      }
+      console[level === 'debug' ? 'log' : level](...parts);
+    }
+  }
+
+  /**
+   * Start timing an operation - returns a function to call when done
+   */
+  startOperation(
+    operation: string, 
+    context?: Record<string, unknown>
+  ): (result?: { success?: boolean; error?: Error; context?: Record<string, unknown> }) => void {
+    const startTime = performance.now();
+    this.debug(`[${operation}] Started`, context);
+
+    return (result?: { success?: boolean; error?: Error; context?: Record<string, unknown> }) => {
+      const duration = Math.round(performance.now() - startTime);
+      const level: LogLevel = result?.error ? 'error' : 'info';
+      
+      this.structured(operation, level, {
+        message: result?.error ? 'Failed' : 'Completed',
+        duration,
+        context: { ...context, ...result?.context },
+        error: result?.error,
+      });
+    };
+  }
+
+  /**
+   * Get buffered log entries (useful for debugging or export)
+   */
+  getLogBuffer(): readonly StructuredLogEntry[] {
+    return [...logBuffer];
+  }
+
+  /**
+   * Clear the log buffer
+   */
+  clearLogBuffer(): void {
+    logBuffer.length = 0;
+  }
 }
 
 /**
@@ -168,10 +282,21 @@ class NamespacedLogger {
   error(message: string, error?: Error | any): void {
     this.parent.error(`[${this.namespace}] ${message}`, error);
   }
+
+  startOperation(operation: string, context?: Record<string, unknown>) {
+    return this.parent.startOperation(`${this.namespace}:${operation}`, context);
+  }
 }
+
+// Type for startOperation return function
+export type EndOperationFn = (result?: { 
+  success?: boolean; 
+  error?: Error; 
+  context?: Record<string, unknown>; 
+}) => void;
 
 // Export singleton instance
 export const logger = new Logger();
 
-// Export type for consumers who want to create namespaced loggers
-export type { Logger, NamespacedLogger };
+// Export types for consumers
+export type { Logger, NamespacedLogger, LogLevel, StructuredLogEntry };

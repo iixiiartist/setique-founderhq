@@ -3,6 +3,7 @@
 
 import { supabase } from '../supabase';
 import { logger } from '../logger';
+import { withRetry } from '../utils/retry';
 import type { AgentSource } from './youAgentClient';
 
 export interface AgentReport {
@@ -36,36 +37,47 @@ export interface CreateReportParams {
 
 export class AgentReportService {
   /**
-   * Save a new agent report
+   * Save a new agent report (with retry for transient failures)
    */
   static async saveReport(params: CreateReportParams): Promise<AgentReport | null> {
     try {
-      const { data, error } = await supabase
-        .from('agent_reports')
-        .insert({
-          workspace_id: params.workspaceId,
-          user_id: params.userId,
-          agent_slug: params.agentSlug,
-          target: params.target,
-          goal: params.goal,
-          notes: params.notes || null,
-          urls: params.urls || null,
-          output: params.output,
-          sources: params.sources || [],
-          metadata: params.metadata || {},
-        })
-        .select()
-        .single();
+      return await withRetry(
+        async () => {
+          const { data, error } = await supabase
+            .from('agent_reports')
+            .insert({
+              workspace_id: params.workspaceId,
+              user_id: params.userId,
+              agent_slug: params.agentSlug,
+              target: params.target,
+              goal: params.goal,
+              notes: params.notes || null,
+              urls: params.urls || null,
+              output: params.output,
+              sources: params.sources || [],
+              metadata: params.metadata || {},
+            })
+            .select()
+            .single();
 
-      if (error) {
-        logger.error('[AgentReportService] Error saving report:', error);
-        return null;
-      }
+          if (error) {
+            logger.error('[AgentReportService] Error saving report:', error);
+            throw error; // Throw to trigger retry
+          }
 
-      logger.info('[AgentReportService] Report saved:', data.id);
-      return data as AgentReport;
+          logger.info('[AgentReportService] Report saved:', data.id);
+          return data as AgentReport;
+        },
+        {
+          maxAttempts: 3,
+          initialDelayMs: 500,
+          onRetry: (attempt, err) => {
+            logger.warn(`[AgentReportService] Save retry attempt ${attempt}:`, err);
+          },
+        }
+      );
     } catch (err) {
-      logger.error('[AgentReportService] Unexpected error saving report:', err);
+      logger.error('[AgentReportService] Failed to save report after retries:', err);
       return null;
     }
   }
@@ -118,24 +130,35 @@ export class AgentReportService {
   }
 
   /**
-   * Delete a report
+   * Delete a report (with retry for transient failures)
    */
   static async deleteReport(reportId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('agent_reports')
-        .delete()
-        .eq('id', reportId);
+      await withRetry(
+        async () => {
+          const { error } = await supabase
+            .from('agent_reports')
+            .delete()
+            .eq('id', reportId);
 
-      if (error) {
-        logger.error('[AgentReportService] Error deleting report:', error);
-        return false;
-      }
+          if (error) {
+            logger.error('[AgentReportService] Error deleting report:', error);
+            throw error; // Throw to trigger retry
+          }
 
-      logger.info('[AgentReportService] Report deleted:', reportId);
+          logger.info('[AgentReportService] Report deleted:', reportId);
+        },
+        {
+          maxAttempts: 3,
+          initialDelayMs: 500,
+          onRetry: (attempt, err) => {
+            logger.warn(`[AgentReportService] Delete retry attempt ${attempt}:`, err);
+          },
+        }
+      );
       return true;
     } catch (err) {
-      logger.error('[AgentReportService] Unexpected error deleting report:', err);
+      logger.error('[AgentReportService] Failed to delete report after retries:', err);
       return false;
     }
   }

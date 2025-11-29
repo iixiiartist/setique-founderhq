@@ -1,10 +1,12 @@
 // hooks/useAgentReports.ts
 // React hook for managing Research Agent reports
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
 import { AgentReportService, type AgentReport, type CreateReportParams } from '../lib/services/agentReportService';
 import { logger } from '../lib/logger';
+import { showSuccess, showError } from '../lib/utils/toast';
+import { OperationQueue, OperationQueueError } from '../lib/utils/operationQueue';
 
 const REPORTS_QUERY_KEY = 'agent-reports';
 
@@ -16,11 +18,15 @@ export interface UseAgentReportsReturn {
   deleteReport: (reportId: string) => Promise<boolean>;
   refreshReports: () => void;
   isSaving: boolean;
+  isDeleting: boolean;
 }
 
 export function useAgentReports(workspaceId: string | undefined, userId: string | undefined): UseAgentReportsReturn {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  
+  // Operation queue for deduplication
+  const operationQueueRef = useRef(new OperationQueue({ dedupeDelayMs: 1000 }));
 
   // Fetch reports
   const { data: reports = [], isLoading, refetch } = useQuery({
@@ -52,10 +58,13 @@ export function useAgentReports(workspaceId: string | undefined, userId: string 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [REPORTS_QUERY_KEY, workspaceId] });
       setError(null);
+      showSuccess('Report saved successfully');
     },
     onError: (err) => {
       logger.error('[useAgentReports] Save error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to save report');
+      const message = err instanceof Error ? err.message : 'Failed to save report';
+      setError(message);
+      showError(message);
     },
   });
 
@@ -71,26 +80,47 @@ export function useAgentReports(workspaceId: string | undefined, userId: string 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [REPORTS_QUERY_KEY, workspaceId] });
       setError(null);
+      showSuccess('Report deleted');
     },
     onError: (err) => {
       logger.error('[useAgentReports] Delete error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to delete report');
+      const message = err instanceof Error ? err.message : 'Failed to delete report';
+      setError(message);
+      showError(message);
     },
   });
 
   const saveReport = useCallback(async (params: Omit<CreateReportParams, 'workspaceId' | 'userId'>) => {
+    // Use operation queue to prevent duplicate saves
+    const operationKey = `save-${params.target}-${params.agentSlug}`;
     try {
-      return await saveMutation.mutateAsync(params);
-    } catch {
+      return await operationQueueRef.current.enqueue(operationKey, async () => {
+        return await saveMutation.mutateAsync(params);
+      });
+    } catch (err) {
+      // Don't show error for debounced operations
+      if (err instanceof OperationQueueError && err.code === 'debounced') {
+        logger.debug('[useAgentReports] Save debounced');
+        return null;
+      }
       return null;
     }
   }, [saveMutation]);
 
   const deleteReport = useCallback(async (reportId: string) => {
+    // Use operation queue to prevent duplicate deletes
+    const operationKey = `delete-${reportId}`;
     try {
-      await deleteMutation.mutateAsync(reportId);
+      await operationQueueRef.current.enqueue(operationKey, async () => {
+        await deleteMutation.mutateAsync(reportId);
+      });
       return true;
-    } catch {
+    } catch (err) {
+      // Don't show error for debounced operations
+      if (err instanceof OperationQueueError && err.code === 'debounced') {
+        logger.debug('[useAgentReports] Delete debounced');
+        return false;
+      }
       return false;
     }
   }, [deleteMutation]);
@@ -107,5 +137,6 @@ export function useAgentReports(workspaceId: string | undefined, userId: string 
     deleteReport,
     refreshReports,
     isSaving: saveMutation.isPending,
+    isDeleting: deleteMutation.isPending,
   };
 }

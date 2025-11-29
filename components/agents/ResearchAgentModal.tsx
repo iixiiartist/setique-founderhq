@@ -1,7 +1,7 @@
 // components/agents/ResearchAgentModal.tsx
 // Modal for running the Research & Briefing agent
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { X, Loader2, Globe, FileText, AlertCircle, Sparkles, Save, Check, Download, FolderPlus, ChevronDown } from 'lucide-react';
 import { useYouAgent } from '../../hooks/useYouAgent';
 import { useAgentReports } from '../../hooks/useAgentReports';
@@ -10,6 +10,13 @@ import { useAuth } from '../../contexts/AuthContext';
 import { YOU_AGENTS } from '../../lib/config/youAgents';
 import { AgentResponsePresenter } from './AgentResponsePresenter';
 import { exportReportToHtml, exportReportToPdf, saveReportToFileLibrary } from '../../lib/services/agentReportExport';
+import { 
+  VALIDATION_LIMITS, 
+  validateTarget, 
+  validateNotes, 
+  parseAndValidateUrls,
+  getRemainingChars 
+} from '../../lib/utils/agentValidation';
 import type { AgentReport } from '../../lib/services/agentReportService';
 import type { RunAgentResponse } from '../../lib/services/youAgentClient';
 
@@ -38,7 +45,7 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
   savedReport = null,
 }) => {
   const agentConfig = YOU_AGENTS.research_briefing;
-  const { run, loading, error, errorCode, lastResponse, resetIn, reset } = useYouAgent('research_briefing');
+  const { run, loading, error, errorCode, lastResponse, resetIn, reset, streamingOutput, isStreaming } = useYouAgent('research_briefing');
   const { workspace } = useWorkspace();
   const { user } = useAuth();
   const { saveReport, isSaving } = useAgentReports(workspace?.id, user?.id);
@@ -47,12 +54,18 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
   const [urls, setUrls] = useState('');
   const [goal, setGoal] = useState<GoalType>('icp');
   const [notes, setNotes] = useState('');
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [reportSaved, setReportSaved] = useState(false);
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [savingToLibrary, setSavingToLibrary] = useState(false);
   const [savedToLibrary, setSavedToLibrary] = useState(false);
+
+  // Validation state
+  const targetValidation = useMemo(() => validateTarget(target), [target]);
+  const notesValidation = useMemo(() => validateNotes(notes), [notes]);
+  const urlsValidation = useMemo(() => parseAndValidateUrls(urls), [urls]);
 
   // If viewing a saved report, create a response object from it
   const displayResponse: RunAgentResponse | null = savedReport 
@@ -95,6 +108,7 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
     setUrls('');
     setGoal('icp');
     setNotes('');
+    setValidationError(null);
     setReportSaved(false);
     setCurrentReportId(null);
     onClose();
@@ -186,18 +200,37 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationError(null);
 
-    if (!target.trim()) return;
-
-    // Build the prompt
-    const input = buildPrompt({ target: target.trim(), goal, notes: notes.trim() });
+    // Validate all inputs
+    if (!targetValidation.isValid) {
+      setValidationError(targetValidation.error || 'Invalid target');
+      return;
+    }
     
-    // Build context
+    if (!notesValidation.isValid) {
+      setValidationError(notesValidation.error || 'Invalid notes');
+      return;
+    }
+    
+    if (urlsValidation.error) {
+      setValidationError(urlsValidation.error);
+      return;
+    }
+
+    // Build the prompt with sanitized values
+    const input = buildPrompt({ 
+      target: targetValidation.sanitized, 
+      goal, 
+      notes: notesValidation.sanitized 
+    });
+    
+    // Build context with validated URLs
     const context = {
-      urls: urls.split(',').map((u) => u.trim()).filter(Boolean),
+      urls: urlsValidation.validUrls,
       founderhq_context: {
         goal,
-        notes: notes.trim(),
+        notes: notesValidation.sanitized,
       },
     };
 
@@ -239,21 +272,32 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Target Input */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Company / Market / Topic <span className="text-red-500">*</span>
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Company / Market / Topic <span className="text-red-500">*</span>
+                  </label>
+                  <span className={`text-xs ${target.length > VALIDATION_LIMITS.TARGET_MAX_LENGTH ? 'text-red-500' : 'text-gray-400'}`}>
+                    {target.length}/{VALIDATION_LIMITS.TARGET_MAX_LENGTH}
+                  </span>
+                </div>
                 <div className="relative">
                   <Globe size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type="text"
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition-colors"
+                    className={`w-full pl-10 pr-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition-colors ${
+                      !targetValidation.isValid && target.length > 0 ? 'border-red-300' : 'border-gray-300'
+                    }`}
                     value={target}
                     onChange={(e) => setTarget(e.target.value)}
                     placeholder={agentConfig.placeholder}
+                    maxLength={VALIDATION_LIMITS.TARGET_MAX_LENGTH + 50} // Allow slight overflow for feedback
                     required
                     autoFocus
                   />
                 </div>
+                {!targetValidation.isValid && target.length > 0 && (
+                  <p className="mt-1 text-xs text-red-500">{targetValidation.error}</p>
+                )}
               </div>
 
               {/* Two-column layout */}
@@ -265,12 +309,26 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
                   </label>
                   <input
                     type="text"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition-colors"
+                    className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition-colors ${
+                      urlsValidation.error || urlsValidation.invalidCount > 0 ? 'border-orange-300' : 'border-gray-300'
+                    }`}
                     value={urls}
                     onChange={(e) => setUrls(e.target.value)}
                     placeholder="https://example.com, https://blog.example.com"
                   />
-                  <p className="mt-1 text-xs text-gray-500">Comma-separated URLs for deeper analysis</p>
+                  <div className="mt-1 flex items-center justify-between">
+                    <p className="text-xs text-gray-500">
+                      Comma-separated URLs (max {VALIDATION_LIMITS.MAX_URLS})
+                    </p>
+                    {urlsValidation.invalidCount > 0 && !urlsValidation.error && (
+                      <p className="text-xs text-orange-500">
+                        {urlsValidation.invalidCount} invalid URL{urlsValidation.invalidCount > 1 ? 's' : ''} will be ignored
+                      </p>
+                    )}
+                  </div>
+                  {urlsValidation.error && (
+                    <p className="mt-1 text-xs text-red-500">{urlsValidation.error}</p>
+                  )}
                 </div>
 
                 {/* Goal */}
@@ -294,24 +352,35 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
 
               {/* Notes */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Additional Context (optional)
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Additional Context (optional)
+                  </label>
+                  <span className={`text-xs ${notes.length > VALIDATION_LIMITS.NOTES_MAX_LENGTH ? 'text-red-500' : 'text-gray-400'}`}>
+                    {notes.length}/{VALIDATION_LIMITS.NOTES_MAX_LENGTH}
+                  </span>
+                </div>
                 <textarea
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition-colors resize-none"
+                  className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition-colors resize-none ${
+                    !notesValidation.isValid ? 'border-red-300' : 'border-gray-300'
+                  }`}
                   rows={3}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
+                  maxLength={VALIDATION_LIMITS.NOTES_MAX_LENGTH + 100} // Allow slight overflow for feedback
                   placeholder="e.g. Our product: AI GTM hub for SaaS founders doing $1–10M ARR. Focus on enterprise sales angles."
                 />
+                {!notesValidation.isValid && (
+                  <p className="mt-1 text-xs text-red-500">{notesValidation.error}</p>
+                )}
               </div>
 
               {/* Error Display */}
-              {error && (
+              {(error || validationError) && (
                 <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
                   <AlertCircle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium text-red-700">{error}</p>
+                    <p className="text-sm font-medium text-red-700">{validationError || error}</p>
                     {errorCode === 'rate_limit' && resetIn && (
                       <p className="text-xs text-red-600 mt-1">
                         Try again in {resetIn} seconds
@@ -335,17 +404,17 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
               <div className="flex items-center justify-between pt-2">
                 <p className="text-xs text-gray-500 flex items-center gap-1">
                   <Sparkles size={12} />
-                  Results typically take 30-90 seconds for comprehensive research
+                  {isStreaming ? 'Streaming response...' : 'Results typically take 30-90 seconds for comprehensive research'}
                 </p>
                 <button
                   type="submit"
-                  disabled={loading || !target.trim()}
+                  disabled={loading || !targetValidation.isValid || !notesValidation.isValid || !!urlsValidation.error}
                   className="flex items-center gap-2 px-5 py-2.5 bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-300 disabled:cursor-not-allowed text-black font-semibold rounded-lg transition-colors"
                 >
                   {loading ? (
                     <>
                       <Loader2 size={18} className="animate-spin" />
-                      Researching (may take up to 60s)...
+                      {isStreaming ? 'Receiving data...' : 'Researching...'}
                     </>
                   ) : (
                     <>
@@ -355,6 +424,24 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
                   )}
                 </button>
               </div>
+
+              {/* Streaming Preview */}
+              {isStreaming && streamingOutput && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex gap-1">
+                      <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></span>
+                      <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse delay-75"></span>
+                      <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse delay-150"></span>
+                    </div>
+                    <span className="text-xs font-medium text-gray-600">Receiving research...</span>
+                  </div>
+                  <div className="text-sm text-gray-700 whitespace-pre-wrap max-h-40 overflow-y-auto">
+                    {streamingOutput.slice(-500)}
+                    {streamingOutput.length > 500 && <span className="text-gray-400">...</span>}
+                  </div>
+                </div>
+              )}
             </form>
           ) : (
             <div className="space-y-4">

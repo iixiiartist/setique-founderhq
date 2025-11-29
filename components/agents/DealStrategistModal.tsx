@@ -1,7 +1,7 @@
 // components/agents/DealStrategistModal.tsx
 // Modal for running the Deal & Account Strategist agent
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { X, Loader2, FileText, AlertCircle, Sparkles, Save, Check, Download, FolderPlus, ChevronDown, Target, AlertTriangle, Users } from 'lucide-react';
 import { useYouAgent } from '../../hooks/useYouAgent';
 import { useAgentReports } from '../../hooks/useAgentReports';
@@ -10,6 +10,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { YOU_AGENTS } from '../../lib/config/youAgents';
 import { AgentResponsePresenter } from './AgentResponsePresenter';
 import { exportReportToHtml, exportReportToPdf, saveReportToFileLibrary } from '../../lib/services/agentReportExport';
+import { 
+  VALIDATION_LIMITS, 
+  validateTarget, 
+  validateNotes 
+} from '../../lib/utils/agentValidation';
 import type { AgentReport } from '../../lib/services/agentReportService';
 import type { RunAgentResponse } from '../../lib/services/youAgentClient';
 
@@ -49,7 +54,7 @@ export const DealStrategistModal: React.FC<DealStrategistModalProps> = ({
   accountData,
 }) => {
   const agentConfig = YOU_AGENTS.deal_strategist;
-  const { run, loading, error, errorCode, lastResponse, resetIn, reset } = useYouAgent('deal_strategist');
+  const { run, loading, error, errorCode, lastResponse, resetIn, reset, streamingOutput, isStreaming } = useYouAgent('deal_strategist');
   const { workspace } = useWorkspace();
   const { user } = useAuth();
   const { saveReport, isSaving } = useAgentReports(workspace?.id, user?.id);
@@ -57,12 +62,17 @@ export const DealStrategistModal: React.FC<DealStrategistModalProps> = ({
   const [target, setTarget] = useState(initialTarget || accountData?.name || '');
   const [goal, setGoal] = useState<GoalType>('strategy');
   const [dealContext, setDealContext] = useState('');
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [reportSaved, setReportSaved] = useState(false);
   const [currentReportId, setCurrentReportId] = useState<string | null>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [savingToLibrary, setSavingToLibrary] = useState(false);
   const [savedToLibrary, setSavedToLibrary] = useState(false);
+
+  // Validation state
+  const targetValidation = useMemo(() => validateTarget(target), [target]);
+  const notesValidation = useMemo(() => validateNotes(dealContext), [dealContext]);
 
   // If viewing a saved report, create a response object from it
   const displayResponse: RunAgentResponse | null = savedReport 
@@ -121,6 +131,7 @@ export const DealStrategistModal: React.FC<DealStrategistModalProps> = ({
     setTarget('');
     setGoal('strategy');
     setDealContext('');
+    setValidationError(null);
     setReportSaved(false);
     setCurrentReportId(null);
     onClose();
@@ -212,17 +223,36 @@ export const DealStrategistModal: React.FC<DealStrategistModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationError(null);
 
-    if (!target.trim() && !dealContext.trim()) return;
+    // Validate all inputs
+    if (!targetValidation.isValid && !notesValidation.sanitized) {
+      setValidationError('Please provide either an account/deal name or deal context');
+      return;
+    }
+    
+    if (target.length > 0 && !targetValidation.isValid) {
+      setValidationError(targetValidation.error || 'Invalid target');
+      return;
+    }
+    
+    if (!notesValidation.isValid) {
+      setValidationError(notesValidation.error || 'Invalid deal context');
+      return;
+    }
 
-    // Build the prompt with deal context
-    const input = buildPrompt({ target: target.trim(), goal, dealContext: dealContext.trim() });
+    // Build the prompt with sanitized values
+    const input = buildPrompt({ 
+      target: targetValidation.sanitized, 
+      goal, 
+      dealContext: notesValidation.sanitized 
+    });
     
     // Build context (no URLs needed for this agent)
     const context = {
       founderhq_context: {
         goal,
-        deal_context: dealContext.trim(),
+        deal_context: notesValidation.sanitized,
       },
     };
 
@@ -373,17 +403,17 @@ Notes: They're evaluating 3 vendors...`}
               <div className="flex items-center justify-between pt-2">
                 <p className="text-xs text-gray-500 flex items-center gap-1">
                   <Users size={12} />
-                  Works best with detailed CRM context
+                  {isStreaming ? 'Streaming response...' : 'Works best with detailed CRM context'}
                 </p>
                 <button
                   type="submit"
-                  disabled={loading || (!target.trim() && !dealContext.trim())}
+                  disabled={loading || (!targetValidation.sanitized && !notesValidation.sanitized) || (target.length > 0 && !targetValidation.isValid) || !notesValidation.isValid}
                   className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all shadow-sm"
                 >
                   {loading ? (
                     <>
                       <Loader2 size={18} className="animate-spin" />
-                      Analyzing deal...
+                      {isStreaming ? 'Receiving strategy...' : 'Analyzing deal...'}
                     </>
                   ) : (
                     <>
@@ -393,6 +423,24 @@ Notes: They're evaluating 3 vendors...`}
                   )}
                 </button>
               </div>
+
+              {/* Streaming Preview */}
+              {isStreaming && streamingOutput && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex gap-1">
+                      <span className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></span>
+                      <span className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse delay-75"></span>
+                      <span className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse delay-150"></span>
+                    </div>
+                    <span className="text-xs font-medium text-gray-600">Receiving strategy...</span>
+                  </div>
+                  <div className="text-sm text-gray-700 whitespace-pre-wrap max-h-40 overflow-y-auto">
+                    {streamingOutput.slice(-500)}
+                    {streamingOutput.length > 500 && <span className="text-gray-400">...</span>}
+                  </div>
+                </div>
+              )}
             </form>
           ) : (
             <div className="space-y-4">

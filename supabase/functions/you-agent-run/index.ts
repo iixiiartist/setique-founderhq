@@ -1,7 +1,8 @@
 /// <reference path="../types/deno_http_server.d.ts" />
 // supabase/functions/you-agent-run/index.ts
 // Edge Function: proxy requests from FounderHQ to You.com custom agents.
-// Handles SSE streaming from You.com API and accumulates response.
+// Supports both streaming (SSE passthrough) and non-streaming modes.
+// Streaming keeps connection alive to prevent 504 timeouts on long-running queries.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0'
@@ -13,6 +14,10 @@ const YOUCOM_API_URL = "https://api.you.com/v1/agents/runs";
 const RATE_LIMIT = 10; // requests per minute per user
 const RATE_WINDOW_MS = 60_000;
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
+
+// Timeout configuration
+const STREAM_TIMEOUT_MS = 300_000; // 5 minutes for streaming (client handles keepalive)
+const NON_STREAM_TIMEOUT_MS = 120_000; // 2 minutes for non-streaming
 
 // CORS headers
 const corsHeaders = {
@@ -41,6 +46,7 @@ const checkRateLimit = (userId: string): { allowed: boolean; remaining: number; 
 interface AgentRunRequest {
   agentId?: string;
   input: string;
+  stream?: boolean; // If true, returns SSE stream to client instead of accumulating
 }
 
 interface WebSearchResult {
@@ -166,21 +172,21 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log(`[you-agent-run] User ${userId} running agent ${body.agentId}`);
+    console.log(`[you-agent-run] User ${userId} running agent ${body.agentId}, stream=${body.stream ?? false}`);
 
     // Build You.com Agents API payload
     const youPayload = {
       agent: body.agentId,
       input: body.input.trim(),
-      stream: true,  // Must use streaming for custom agents
+      stream: true,  // Always use streaming from You.com for best results
     };
 
     console.log(`[you-agent-run] Calling You.com API with agent: ${body.agentId}`);
 
     // Call You.com agents API with abort controller for timeout
-    // Supabase Edge Functions have a 150s hard limit, but we set 120s to give time for cleanup
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout
+    const timeoutMs = body.stream ? STREAM_TIMEOUT_MS : NON_STREAM_TIMEOUT_MS;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const youRes = await fetch(YOUCOM_API_URL, {
@@ -216,7 +222,13 @@ serve(async (req: Request): Promise<Response> => {
         );
       }
 
-      // Process SSE stream and accumulate the response
+      // If client requested streaming, pass through the SSE stream
+      if (body.stream) {
+        console.log('[you-agent-run] Streaming response to client');
+        return streamResponse(youRes, rateCheck.remaining);
+      }
+
+      // Otherwise, process the SSE stream and accumulate the response (original behavior)
       const result = await processSSEStream(youRes);
       
       console.log(`[you-agent-run] Success for user ${userId}, output length: ${result.output?.length || 0}`);
@@ -253,6 +265,80 @@ serve(async (req: Request): Promise<Response> => {
     );
   }
 });
+
+/**
+ * Stream SSE response from You.com API directly to client
+ * This keeps the connection alive and prevents 504 timeouts
+ */
+function streamResponse(youRes: Response, remaining: number): Response {
+  const reader = youRes.body?.getReader();
+  if (!reader) {
+    return new Response(
+      JSON.stringify({ error: 'No response body from You.com API' }),
+      { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Create a transform stream that passes through data and sends periodic keepalives
+  let lastActivity = Date.now();
+  const KEEPALIVE_INTERVAL = 15000; // Send keepalive every 15 seconds
+  let keepaliveTimer: number | undefined;
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      // Send initial comment as keepalive to establish connection
+      controller.enqueue(new TextEncoder().encode(': keepalive\n\n'));
+      
+      // Set up keepalive timer
+      keepaliveTimer = setInterval(() => {
+        const now = Date.now();
+        if (now - lastActivity > KEEPALIVE_INTERVAL - 1000) {
+          try {
+            controller.enqueue(new TextEncoder().encode(': keepalive\n\n'));
+            console.log('[you-agent-run] Sent keepalive');
+          } catch {
+            // Stream may be closed
+          }
+        }
+      }, KEEPALIVE_INTERVAL) as unknown as number;
+    },
+    async pull(controller) {
+      try {
+        const { done, value } = await reader.read();
+        lastActivity = Date.now();
+        
+        if (done) {
+          if (keepaliveTimer) clearInterval(keepaliveTimer);
+          controller.close();
+          console.log('[you-agent-run] Stream complete');
+          return;
+        }
+        
+        controller.enqueue(value);
+      } catch (err) {
+        if (keepaliveTimer) clearInterval(keepaliveTimer);
+        console.error('[you-agent-run] Stream error:', err);
+        controller.error(err);
+      }
+    },
+    cancel() {
+      if (keepaliveTimer) clearInterval(keepaliveTimer);
+      reader.releaseLock();
+      console.log('[you-agent-run] Stream cancelled');
+    }
+  });
+
+  return new Response(stream, {
+    status: 200,
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'X-RateLimit-Remaining': String(remaining),
+    },
+  });
+}
 
 /**
  * Process SSE stream from You.com API and accumulate the full response
