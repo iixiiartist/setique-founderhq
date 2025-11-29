@@ -6,6 +6,16 @@ import { DatabaseService } from '../../lib/services/database';
 import { getAiResponse, Content, AILimitError } from '../../services/groqService';
 import { showSuccess, showError } from '../../lib/utils/toast';
 import { fixEmailEncoding, fixHtmlEncoding } from '../../lib/utils/textDecoder';
+import { useWorkspace } from '../../contexts/WorkspaceContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { Paperclip, Download, FolderPlus, Loader2, FileText, Image, File } from 'lucide-react';
+
+interface EmailAttachment {
+  id: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+}
 
 interface EmailThreadProps {
   messageId: string;
@@ -13,12 +23,15 @@ interface EmailThreadProps {
 }
 
 export const EmailThread: React.FC<EmailThreadProps> = ({ messageId, onClose }) => {
+  const { workspace } = useWorkspace();
+  const { user } = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [processingAi, setProcessingAi] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
+  const [savingAttachment, setSavingAttachment] = useState<string | null>(null);
   const [aiLimitError, setAiLimitError] = useState<AILimitError | null>(null);
 
   useEffect(() => {
@@ -160,6 +173,110 @@ Content: ${cleanedBody}`;
     } finally {
         setProcessingAi(false);
     }
+  };
+
+  // Download attachment to user's device
+  const handleDownloadAttachment = async (attachment: EmailAttachment) => {
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/email-api?action=get_attachment&messageId=${messageId}&attachmentId=${attachment.id}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+          }
+        }
+      );
+      
+      if (!res.ok) throw new Error('Failed to fetch attachment');
+      
+      const { data: base64Data } = await res.json();
+      
+      // Convert base64 to blob and download
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: attachment.mimeType });
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = attachment.filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      showSuccess(`Downloaded ${attachment.filename}`);
+    } catch (err: any) {
+      console.error('[EmailThread] Download error:', err);
+      showError(`Failed to download: ${err.message}`);
+    }
+  };
+
+  // Save attachment to file library
+  const handleSaveToLibrary = async (attachment: EmailAttachment) => {
+    if (!workspace?.id || !user?.id) {
+      showError('Please ensure you are logged in');
+      return;
+    }
+    
+    setSavingAttachment(attachment.id);
+    try {
+      // Fetch the attachment data
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/email-api?action=get_attachment&messageId=${messageId}&attachmentId=${attachment.id}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+          }
+        }
+      );
+      
+      if (!res.ok) throw new Error('Failed to fetch attachment');
+      
+      const { data: base64Data } = await res.json();
+      
+      // Create document in the file library
+      const { data: newDoc, error } = await DatabaseService.createDocument(user.id, workspace.id, {
+        name: attachment.filename,
+        content: base64Data,
+        mime_type: attachment.mimeType,
+        size: attachment.size,
+        tags: ['email-attachment'],
+      });
+      
+      if (error) throw error;
+      
+      if (newDoc) {
+        showSuccess(`Saved "${attachment.filename}" to File Library`);
+      } else {
+        throw new Error('Failed to create document');
+      }
+    } catch (err: any) {
+      console.error('[EmailThread] Save to library error:', err);
+      showError(`Failed to save: ${err.message}`);
+    } finally {
+      setSavingAttachment(null);
+    }
+  };
+
+  // Helper to get icon for attachment type
+  const getAttachmentIcon = (mimeType: string) => {
+    if (mimeType.startsWith('image/')) return <Image size={16} className="text-blue-500" />;
+    if (mimeType.includes('pdf') || mimeType.includes('document') || mimeType.includes('word')) 
+      return <FileText size={16} className="text-red-500" />;
+    return <File size={16} className="text-gray-500" />;
+  };
+
+  // Format file size
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   const fetchMessageDetails = async () => {
@@ -339,6 +456,59 @@ Content: ${cleanedBody}`;
             </div>
         )}
       </div>
+
+      {/* Attachments Section */}
+      {data.attachments && data.attachments.length > 0 && (
+        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+          <div className="flex items-center gap-2 mb-3">
+            <Paperclip size={16} className="text-gray-500" />
+            <span className="text-sm font-medium text-gray-700">
+              {data.attachments.length} Attachment{data.attachments.length > 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="grid gap-2">
+            {data.attachments.map((attachment: EmailAttachment) => (
+              <div 
+                key={attachment.id}
+                className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  {getAttachmentIcon(attachment.mimeType)}
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-gray-900 truncate">
+                      {attachment.filename}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {formatFileSize(attachment.size)}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 ml-4">
+                  <button
+                    onClick={() => handleDownloadAttachment(attachment)}
+                    className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                    title="Download"
+                  >
+                    <Download size={16} />
+                  </button>
+                  <button
+                    onClick={() => handleSaveToLibrary(attachment)}
+                    disabled={savingAttachment === attachment.id}
+                    className="p-2 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                    title="Save to File Library"
+                  >
+                    {savingAttachment === attachment.id ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <FolderPlus size={16} />
+                    )}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Reply Box */}
       <div className="p-4 border-t border-gray-100 bg-gray-50">

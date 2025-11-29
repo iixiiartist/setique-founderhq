@@ -30,6 +30,13 @@ serve(async (req) => {
       return await handleGetMessage(messageId, supabaseAdmin);
     }
 
+    if (action === 'get_attachment') {
+      const messageId = url.searchParams.get('messageId');
+      const attachmentId = url.searchParams.get('attachmentId');
+      if (!messageId || !attachmentId) throw new Error('Missing messageId or attachmentId');
+      return await handleGetAttachment(messageId, attachmentId, supabaseAdmin);
+    }
+
     if (action === 'send_email' && req.method === 'POST') {
       const body = await req.json();
       return await handleSendEmail(body, supabaseAdmin);
@@ -65,6 +72,7 @@ async function handleGetMessage(messageId: string, supabase: any) {
 
   // 3. Fetch full content from provider
   let fullContent: any = {};
+  let attachments: any[] = [];
 
   if (account.provider === 'gmail') {
     const res = await fetch(
@@ -73,10 +81,11 @@ async function handleGetMessage(messageId: string, supabase: any) {
     );
     const data = await res.json();
     fullContent = parseGmailBody(data);
+    attachments = parseGmailAttachments(data);
   } 
   else if (account.provider === 'outlook') {
     const res = await fetch(
-      `https://graph.microsoft.com/v1.0/me/messages/${message.provider_message_id}?$select=body,uniqueBody`,
+      `https://graph.microsoft.com/v1.0/me/messages/${message.provider_message_id}?$select=body,uniqueBody,hasAttachments`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     const data = await res.json();
@@ -84,9 +93,82 @@ async function handleGetMessage(messageId: string, supabase: any) {
       html: data.body?.content || '',
       text: data.uniqueBody?.content || ''
     };
+    
+    // Fetch attachments list if message has attachments
+    if (data.hasAttachments || message.has_attachments) {
+      const attachRes = await fetch(
+        `https://graph.microsoft.com/v1.0/me/messages/${message.provider_message_id}/attachments`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      const attachData = await attachRes.json();
+      attachments = (attachData.value || []).map((att: any) => ({
+        id: att.id,
+        filename: att.name,
+        mimeType: att.contentType,
+        size: att.size,
+      }));
+    }
   }
 
-  return new Response(JSON.stringify({ ...message, body: fullContent }), {
+  return new Response(JSON.stringify({ ...message, body: fullContent, attachments }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+async function handleGetAttachment(messageId: string, attachmentId: string, supabase: any) {
+  // 1. Get message metadata + account info
+  const { data: message, error } = await supabase
+    .from('email_messages')
+    .select(`
+      *,
+      integrated_accounts (*)
+    `)
+    .eq('id', messageId)
+    .single();
+
+  if (error || !message) throw new Error('Message not found');
+
+  const account = message.integrated_accounts;
+  
+  // 2. Get fresh token
+  const accessToken = await refreshAccessToken(account, supabase);
+
+  // 3. Fetch attachment data from provider
+  let attachmentData: { data: string; filename?: string; mimeType?: string } | null = null;
+
+  if (account.provider === 'gmail') {
+    const res = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.provider_message_id}/attachments/${attachmentId}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    
+    if (!res.ok) throw new Error('Failed to fetch attachment');
+    
+    const data = await res.json();
+    // Gmail returns base64url encoded data
+    attachmentData = {
+      data: data.data.replace(/-/g, '+').replace(/_/g, '/'),
+    };
+  } 
+  else if (account.provider === 'outlook') {
+    const res = await fetch(
+      `https://graph.microsoft.com/v1.0/me/messages/${message.provider_message_id}/attachments/${attachmentId}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    
+    if (!res.ok) throw new Error('Failed to fetch attachment');
+    
+    const data = await res.json();
+    attachmentData = {
+      data: data.contentBytes,
+      filename: data.name,
+      mimeType: data.contentType,
+    };
+  }
+
+  if (!attachmentData) throw new Error('Provider not supported');
+
+  return new Response(JSON.stringify(attachmentData), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 }
@@ -455,4 +537,32 @@ function parseGmailBody(data: any) {
   }
 
   return { html, text };
+}
+
+function parseGmailAttachments(data: any): any[] {
+  const attachments: any[] = [];
+
+  const findAttachments = (parts: any[]) => {
+    for (const part of parts) {
+      // Check if this part is an attachment
+      if (part.filename && part.filename.length > 0 && part.body?.attachmentId) {
+        attachments.push({
+          id: part.body.attachmentId,
+          filename: part.filename,
+          mimeType: part.mimeType,
+          size: part.body.size || 0,
+        });
+      }
+      // Recursively check nested parts
+      if (part.parts) {
+        findAttachments(part.parts);
+      }
+    }
+  };
+
+  if (data.payload?.parts) {
+    findAttachments(data.payload.parts);
+  }
+
+  return attachments;
 }
