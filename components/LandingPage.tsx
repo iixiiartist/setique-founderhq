@@ -25,7 +25,11 @@ import {
   PlayCircle,
   Mail,
   PieChart,
-  Layers
+  Layers,
+  Webhook,
+  Terminal,
+  Key,
+  Plug
 } from 'lucide-react';
 
 type FeatureCluster = {
@@ -44,6 +48,37 @@ type FeatureCluster = {
 };
 
 const FEATURE_CLUSTERS: FeatureCluster[] = [
+  {
+    id: 'developer',
+    badge: '⚡',
+    title: 'Developer API: Build & Integrate',
+    description: 'Premium REST API with full CRUD operations, real-time webhooks, and AI agent access. Build custom integrations or automate your GTM workflows programmatically.',
+    accent: 'from-orange-100/70 via-white to-amber-50/60',
+    tagline: 'Full REST API',
+    metric: '$0.001/call',
+    features: [
+      {
+        title: '6 RESTful Endpoints',
+        description: 'Contacts, Tasks, Deals, Documents, CRM, and AI Agents—all accessible via simple HTTP calls with JSON responses.',
+        icon: <Terminal className="w-8 h-8" />,
+      },
+      {
+        title: '22 Webhook Events',
+        description: 'Real-time notifications for creates, updates, deletes, stage changes, and AI completions. Never poll for changes again.',
+        icon: <Webhook className="w-8 h-8" />,
+      },
+      {
+        title: 'Secure API Keys',
+        description: 'Granular scopes, rate limiting, and usage tracking. Create multiple keys for different integrations with full audit logs.',
+        icon: <Key className="w-8 h-8" />,
+      },
+      {
+        title: 'AI Agents via API',
+        description: 'Run AI research queries programmatically. Get structured responses with sources—perfect for automated workflows.',
+        icon: <Brain className="w-8 h-8" />,
+      },
+    ],
+  },
   {
     id: 'pipeline',
     badge: '1',
@@ -215,18 +250,22 @@ export function LandingPage() {
                 Launch FounderHQ <ArrowRight size={20} />
               </Link>
             </div>
-            <div className="mt-10 grid grid-cols-3 gap-3 sm:gap-4 text-left">
+            <div className="mt-10 grid grid-cols-4 gap-2 sm:gap-3 text-left">
               <div className="p-3 sm:p-4 border-2 border-black bg-white shadow-neo-sm">
-                <p className="text-2xl sm:text-3xl font-bold">82h</p>
-                <p className="text-[10px] sm:text-xs font-mono uppercase text-gray-500 leading-tight">Hours saved / month</p>
+                <p className="text-xl sm:text-2xl font-bold">82h</p>
+                <p className="text-[10px] sm:text-xs font-mono uppercase text-gray-500 leading-tight">Hours saved / mo</p>
               </div>
               <div className="p-3 sm:p-4 border-2 border-black bg-white shadow-neo-sm">
-                <p className="text-2xl sm:text-3xl font-bold">3-in-1</p>
+                <p className="text-xl sm:text-2xl font-bold">3-in-1</p>
                 <p className="text-[10px] sm:text-xs font-mono uppercase text-gray-500 leading-tight">CRM pipelines</p>
               </div>
               <div className="p-3 sm:p-4 border-2 border-black bg-white shadow-neo-sm">
-                <p className="text-2xl sm:text-3xl font-bold">15+</p>
-                <p className="text-[10px] sm:text-xs font-mono uppercase text-gray-500 leading-tight">Automations</p>
+                <p className="text-xl sm:text-2xl font-bold">6</p>
+                <p className="text-[10px] sm:text-xs font-mono uppercase text-gray-500 leading-tight">API endpoints</p>
+              </div>
+              <div className="p-3 sm:p-4 border-2 border-black bg-white shadow-neo-sm">
+                <p className="text-xl sm:text-2xl font-bold">22</p>
+                <p className="text-[10px] sm:text-xs font-mono uppercase text-gray-500 leading-tight">Webhook events</p>
               </div>
             </div>
             <p className="mt-4 text-sm text-gray-600">
@@ -353,6 +392,93 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* Developer API Section */}
+      <section className="bg-gray-900 text-white py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <div className="inline-block mb-4 px-4 py-2 bg-orange-400 text-black border-2 border-black shadow-neo font-mono text-sm font-bold">
+                <Code className="w-4 h-4 inline mr-2" />
+                DEVELOPER API
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-6">Build Custom Integrations</h2>
+              <p className="text-lg text-gray-300 mb-6 leading-relaxed">
+                Full REST API access to your GTM data. Sync contacts with your marketing tools, automate deal updates from your product, 
+                or build custom dashboards—all with simple HTTP calls.
+              </p>
+              <div className="space-y-4 mb-8">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-orange-400 text-black flex items-center justify-center flex-shrink-0 border border-black">
+                    <Terminal className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold">6 RESTful Endpoints</h4>
+                    <p className="text-sm text-gray-400">Contacts, Tasks, Deals, Documents, CRM Items, and AI Agents</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-orange-400 text-black flex items-center justify-center flex-shrink-0 border border-black">
+                    <Webhook className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold">22 Webhook Events</h4>
+                    <p className="text-sm text-gray-400">Real-time notifications for all data changes</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-orange-400 text-black flex items-center justify-center flex-shrink-0 border border-black">
+                    <DollarSign className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold">Pay-Per-Call Pricing</h4>
+                    <p className="text-sm text-gray-400">$0.001 per API call — 1,000 calls for just $1</p>
+                  </div>
+                </div>
+              </div>
+              <Link
+                to="/docs"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-orange-400 text-black border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all font-bold"
+              >
+                View API Documentation <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+            <div className="font-mono text-sm">
+              <div className="bg-gray-800 border-2 border-gray-700 rounded-lg overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-2 bg-gray-700 border-b border-gray-600">
+                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  <span className="ml-2 text-gray-400 text-xs">API Example</span>
+                </div>
+                <pre className="p-4 overflow-x-auto text-xs">
+                  <code className="text-gray-300">{`curl -X POST "https://founderhq.setique.com/api/v1/deals" \\
+  -H "Authorization: Bearer fhq_live_..." \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "title": "Series A - Acme Ventures",
+    "value": 2000000,
+    "stage": "proposal",
+    "probability": 40
+  }'
+
+# Response
+{
+  "success": true,
+  "data": {
+    "id": "deal_abc123",
+    "title": "Series A - Acme Ventures",
+    "value": 2000000,
+    "stage": "proposal",
+    "created_at": "2025-11-29T..."
+  }
+}`}</code>
+                </pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Features Grid */}
       <section id="features" className="relative py-20 overflow-hidden bg-gradient-to-b from-white via-indigo-50 to-white">
         <div className="absolute inset-0 pointer-events-none">
@@ -433,7 +559,8 @@ export function LandingPage() {
                 "Unified task management",
                 "3-in-1 CRM",
                 "Calendar & deal tracking",
-                "Pipeline analytics"
+                "Pipeline analytics",
+                "Read-only API access"
               ]}
               cta="Get Started"
               highlighted={false}
@@ -447,15 +574,15 @@ export function LandingPage() {
               features={[
                 "Unlimited Copilot requests & automations",
                 "AI account briefs & deal coaching",
-                "Automated investor outreach",
+                "Full Developer API access (pay-per-call)",
+                "22 real-time webhook events",
+                "AI Agents via API",
                 "Unlimited CRM contacts & deals",
                 "Collaborative deal rooms",
                 "All GTM document templates",
                 "Advanced pipeline analytics",
                 "Financial tracking & runway",
-                "Unlimited storage & files",
                 "Shared team workspaces",
-                "Role-based permissions",
                 "Priority support"
               ]}
               cta="Get Started"
@@ -535,6 +662,7 @@ export function LandingPage() {
               <ul className="space-y-2 text-sm text-gray-600">
                 <li><a href="#features" className="hover:text-black">Features</a></li>
                 <li><a href="#pricing" className="hover:text-black">Pricing</a></li>
+                <li><Link to="/docs" className="hover:text-black">API Docs</Link></li>
                 <li><Link to="/app" className="hover:text-black">Sign In</Link></li>
               </ul>
             </div>
