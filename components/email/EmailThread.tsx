@@ -473,7 +473,7 @@ Return the JSON array of contacts found.`;
   }
 
   return (
-    <div className="h-full flex flex-col bg-white">
+    <div className="h-full min-h-0 flex flex-col bg-white overflow-hidden">
       {/* Header */}
       <div className="p-6 border-b border-gray-100">
         <div className="flex justify-between items-start mb-4">
@@ -659,12 +659,12 @@ Return the JSON array of contacts found.`;
       )}
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto p-6 bg-white relative">
+      <div className="flex-1 min-h-0 overflow-y-auto p-6 bg-white relative">
         {data.body?.html ? (
-            <div className="w-full min-h-[500px] bg-white rounded-lg border border-gray-100 overflow-hidden">
+            <div className="w-full h-full bg-white rounded-lg border border-gray-100 overflow-hidden">
                 <iframe 
                     srcDoc={fixHtmlEncoding(data.body.html)}
-                    className="w-full h-full min-h-[600px]"
+                    className="w-full h-full min-h-[400px]"
                     sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
                     title="Email Content"
                     style={{ border: 'none', width: '100%', height: '100%' }}

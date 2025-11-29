@@ -315,7 +315,7 @@ export const EmailInbox: React.FC = () => {
       </div>
 
       {/* List Panel */}
-      <div className={`flex flex-col border-r border-gray-200 bg-white ${selectedMessageId ? 'w-full md:w-96 hidden md:flex' : 'flex-1 lg:w-96 lg:flex-none'}`}>
+      <div className={`flex flex-col border-r border-gray-200 bg-white min-h-0 ${selectedMessageId ? 'w-full md:w-96 hidden md:flex' : 'flex-1 lg:w-96 lg:flex-none'}`}>
         {/* Toolbar */}
         <div className="p-4 border-b border-gray-200 flex flex-col gap-3 bg-white">
           <div className="flex justify-between items-center">
@@ -452,7 +452,7 @@ export const EmailInbox: React.FC = () => {
 
       {/* Thread View Panel */}
       {selectedMessageId ? (
-        <div className="flex-1 h-full bg-white overflow-hidden flex flex-col">
+        <div className="flex-1 h-full min-h-0 bg-white overflow-hidden flex flex-col">
           <EmailThread 
             messageId={selectedMessageId} 
             onClose={() => setSelectedMessageId(null)} 
