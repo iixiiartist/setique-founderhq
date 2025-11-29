@@ -6,7 +6,55 @@
   NODE_VERSION = "20"
   NODE_OPTIONS = "--max-old-space-size=4096"
 
-# SPA fallback - all routes go to index.html
+# ============================================
+# API Proxy Redirects (must be before SPA fallback)
+# Routes /api/v1/* to Supabase Edge Functions
+# ============================================
+
+# Premium API endpoints
+[[redirects]]
+  from = "/api/v1/contacts"
+  to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/api-v1-contacts"
+  status = 200
+  force = true
+  headers = {X-Forwarded-Host = "founderhq.setique.com"}
+
+[[redirects]]
+  from = "/api/v1/contacts/*"
+  to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/api-v1-contacts/:splat"
+  status = 200
+  force = true
+  headers = {X-Forwarded-Host = "founderhq.setique.com"}
+
+[[redirects]]
+  from = "/api/v1/tasks"
+  to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/api-v1-tasks"
+  status = 200
+  force = true
+  headers = {X-Forwarded-Host = "founderhq.setique.com"}
+
+[[redirects]]
+  from = "/api/v1/tasks/*"
+  to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/api-v1-tasks/:splat"
+  status = 200
+  force = true
+  headers = {X-Forwarded-Host = "founderhq.setique.com"}
+
+[[redirects]]
+  from = "/api/v1/deals"
+  to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/api-v1-deals"
+  status = 200
+  force = true
+  headers = {X-Forwarded-Host = "founderhq.setique.com"}
+
+[[redirects]]
+  from = "/api/v1/deals/*"
+  to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/api-v1-deals/:splat"
+  status = 200
+  force = true
+  headers = {X-Forwarded-Host = "founderhq.setique.com"}
+
+# SPA fallback - all other routes go to index.html
 [[redirects]]
   from = "/*"
   to = "/index.html"

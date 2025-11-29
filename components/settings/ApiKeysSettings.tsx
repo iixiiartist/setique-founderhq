@@ -334,8 +334,8 @@ export const ApiKeysSettings: React.FC<ApiKeysSettingsProps> = ({ workspaceId })
     return create(input);
   }, [create]);
 
-  // Use branded API URL for display (actual URL is handled by apiClient)
-  const apiBaseUrl = 'https://api.founderhq.app/v1';
+  // Use branded API URL for display (proxied via Netlify to Supabase)
+  const apiBaseUrl = 'https://founderhq.setique.com/api/v1';
 
   return (
     <div className="space-y-6">
