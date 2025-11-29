@@ -646,6 +646,102 @@ export function useNotifications(options: UseNotificationsOptions): UseNotificat
   }, [notifications]);
 
   // ============================================
+  // DELIVERY TRACKING (Phase 3)
+  // ============================================
+
+  const markAsDelivered = useCallback(async (notificationId: string): Promise<boolean> => {
+    try {
+      const { data, error: rpcError } = await supabase.rpc('mark_notification_delivered', {
+        p_notification_id: notificationId,
+        p_user_id: userId,
+      });
+
+      if (rpcError) {
+        throw rpcError;
+      }
+
+      // Optimistic update
+      setNotifications(prev =>
+        prev.map(n =>
+          n.id === notificationId
+            ? { ...n, deliveryStatus: 'delivered' as DeliveryStatus, deliveredAt: new Date().toISOString() }
+            : n
+        )
+      );
+
+      return data ?? true;
+    } catch (err) {
+      logger.error('[useNotifications] Mark as delivered error:', err);
+      return false;
+    }
+  }, [userId]);
+
+  const markAsSeen = useCallback(async (notificationId: string): Promise<boolean> => {
+    try {
+      const { data, error: rpcError } = await supabase.rpc('mark_notification_seen', {
+        p_notification_id: notificationId,
+        p_user_id: userId,
+      });
+
+      if (rpcError) {
+        throw rpcError;
+      }
+
+      // Optimistic update
+      setNotifications(prev =>
+        prev.map(n =>
+          n.id === notificationId
+            ? { ...n, deliveryStatus: 'seen' as DeliveryStatus, seenAt: new Date().toISOString() }
+            : n
+        )
+      );
+
+      return data ?? true;
+    } catch (err) {
+      logger.error('[useNotifications] Mark as seen error:', err);
+      return false;
+    }
+  }, [userId]);
+
+  const markAsAcknowledged = useCallback(async (notificationId: string): Promise<boolean> => {
+    try {
+      const { data, error: rpcError } = await supabase.rpc('mark_notification_acknowledged', {
+        p_notification_id: notificationId,
+        p_user_id: userId,
+      });
+
+      if (rpcError) {
+        throw rpcError;
+      }
+
+      // Optimistic update - also marks as read
+      setNotifications(prev =>
+        prev.map(n =>
+          n.id === notificationId
+            ? { 
+                ...n, 
+                deliveryStatus: 'acknowledged' as DeliveryStatus, 
+                acknowledgedAt: new Date().toISOString(),
+                read: true 
+              }
+            : n
+        )
+      );
+      
+      // Update unread count
+      const notification = notifications.find(n => n.id === notificationId);
+      if (notification && !notification.read) {
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+
+      return data ?? true;
+    } catch (err) {
+      logger.error('[useNotifications] Mark as acknowledged error:', err);
+      return false;
+    }
+  }, [userId, notifications]);
+
+  // ============================================
   // RETURN
   // ============================================
 
@@ -672,10 +768,10 @@ export function useNotifications(options: UseNotificationsOptions): UseNotificat
     deleteNotification: deleteNotificationFn,
     deleteAllRead,
     
-    // Delivery tracking (stubs for now - Phase 3)
-    markAsDelivered: async () => true,
-    markAsSeen: async () => true,
-    markAsAcknowledged: async () => true,
+    // Delivery tracking
+    markAsDelivered,
+    markAsSeen,
+    markAsAcknowledged,
     
     // Filtering
     setFilters,

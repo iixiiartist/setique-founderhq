@@ -54,6 +54,8 @@ interface NotificationRow {
   created_at: string;
 }
 
+export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent';
+
 interface CreateNotificationParams {
   userId: string;
   workspaceId: string;
@@ -62,6 +64,8 @@ interface CreateNotificationParams {
   message: string;
   entityType?: NotificationEntityType;
   entityId?: string;
+  /** Priority level - urgent bypasses quiet hours (default: 'normal') */
+  priority?: NotificationPriority;
   /** Skip preference check - use for system-critical notifications */
   bypassPreferences?: boolean;
 }
@@ -170,6 +174,8 @@ export async function createNotificationsBatch(
       message: params.message,
       entity_type: params.entityType,
       entity_id: params.entityId,
+      priority: params.priority || 'normal',
+      delivery_status: 'created',
       read: false,
     }));
 
@@ -228,6 +234,8 @@ export async function createNotification(
         message: params.message,
         entity_type: params.entityType,
         entity_id: params.entityId,
+        priority: params.priority || 'normal',
+        delivery_status: 'created',
         read: false,
       })
       .select()
