@@ -393,88 +393,56 @@ export function LandingPage() {
       </section>
 
       {/* Developer API Section */}
-      <section className="bg-gray-900 text-white py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="inline-block mb-4 px-4 py-2 bg-orange-400 text-black border-2 border-black shadow-neo font-mono text-sm font-bold">
-                <Code className="w-4 h-4 inline mr-2" />
-                DEVELOPER API
-              </div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-6">Build Custom Integrations</h2>
-              <p className="text-lg text-gray-300 mb-6 leading-relaxed">
-                Full REST API access to your GTM data. Sync contacts with your marketing tools, automate deal updates from your product, 
-                or build custom dashboards—all with simple HTTP calls.
-              </p>
-              <div className="space-y-4 mb-8">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 bg-orange-400 text-black flex items-center justify-center flex-shrink-0 border border-black">
-                    <Terminal className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold">6 RESTful Endpoints</h4>
-                    <p className="text-sm text-gray-400">Contacts, Tasks, Deals, Documents, CRM Items, and AI Agents</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 bg-orange-400 text-black flex items-center justify-center flex-shrink-0 border border-black">
-                    <Webhook className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold">22 Webhook Events</h4>
-                    <p className="text-sm text-gray-400">Real-time notifications for all data changes</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 bg-orange-400 text-black flex items-center justify-center flex-shrink-0 border border-black">
-                    <DollarSign className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold">Pay-Per-Call Pricing</h4>
-                    <p className="text-sm text-gray-400">$0.001 per API call — 1,000 calls for just $1</p>
-                  </div>
-                </div>
-              </div>
-              <Link
-                to="/docs"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-orange-400 text-black border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all font-bold"
-              >
-                View API Documentation <ArrowRight className="w-4 h-4" />
-              </Link>
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-black shadow-neo-lg p-8 md:p-12">
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 bg-orange-300 border-2 border-black shadow-neo font-mono text-sm font-bold">
+              <Code className="w-4 h-4" />
+              DEVELOPER API
             </div>
-            <div className="font-mono text-sm">
-              <div className="bg-gray-800 border-2 border-gray-700 rounded-lg overflow-hidden">
-                <div className="flex items-center gap-2 px-4 py-2 bg-gray-700 border-b border-gray-600">
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                  <span className="ml-2 text-gray-400 text-xs">API Example</span>
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">Build Custom Integrations</h2>
+            <p className="text-lg text-gray-700 mb-6 leading-relaxed">
+              Full REST API access to your GTM data. Sync contacts with your marketing tools, automate deal updates from your product, 
+              or build custom dashboards—all with simple HTTP calls.
+            </p>
+            <div className="grid md:grid-cols-3 gap-6 text-left">
+              <div className="h-full flex flex-col bg-white p-6 border-2 border-black shadow-neo">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-orange-100 border-2 border-black flex items-center justify-center flex-shrink-0">
+                    <Terminal className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-bold text-lg">6 Endpoints</h3>
                 </div>
-                <pre className="p-4 overflow-x-auto text-xs">
-                  <code className="text-gray-300">{`curl -X POST "https://founderhq.setique.com/api/v1/deals" \\
-  -H "Authorization: Bearer fhq_live_..." \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "title": "Series A - Acme Ventures",
-    "value": 2000000,
-    "stage": "proposal",
-    "probability": 40
-  }'
-
-# Response
-{
-  "success": true,
-  "data": {
-    "id": "deal_abc123",
-    "title": "Series A - Acme Ventures",
-    "value": 2000000,
-    "stage": "proposal",
-    "created_at": "2025-11-29T..."
-  }
-}`}</code>
-                </pre>
+                <p className="text-gray-700 mb-4 flex-grow leading-relaxed">Contacts, Tasks, Deals, Documents, CRM Items, and AI Agents—all via simple REST calls.</p>
+                <div className="text-sm text-gray-500 italic border-t border-gray-200 pt-3">GET, POST, PATCH, DELETE</div>
+              </div>
+              <div className="h-full flex flex-col bg-white p-6 border-2 border-black shadow-neo">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-orange-100 border-2 border-black flex items-center justify-center flex-shrink-0">
+                    <Webhook className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-bold text-lg">22 Webhooks</h3>
+                </div>
+                <p className="text-gray-700 mb-4 flex-grow leading-relaxed">Real-time notifications for creates, updates, deletes, and stage changes. Never poll again.</p>
+                <div className="text-sm text-gray-500 italic border-t border-gray-200 pt-3">Instant event delivery</div>
+              </div>
+              <div className="h-full flex flex-col bg-white p-6 border-2 border-black shadow-neo">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-orange-100 border-2 border-black flex items-center justify-center flex-shrink-0">
+                    <DollarSign className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-bold text-lg">Pay-Per-Call</h3>
+                </div>
+                <p className="text-gray-700 mb-4 flex-grow leading-relaxed">$0.001 per API call. 1,000 calls for just $1. No monthly minimums or commitments.</p>
+                <div className="text-sm text-gray-500 italic border-t border-gray-200 pt-3">Scale as you grow</div>
               </div>
             </div>
+            <Link
+              to="/docs"
+              className="inline-flex items-center gap-2 mt-8 px-6 py-3 bg-black text-white border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all font-bold"
+            >
+              View API Documentation <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
         </div>
       </section>
