@@ -8,13 +8,22 @@ import { showSuccess, showError } from '../../lib/utils/toast';
 import { fixEmailEncoding, fixHtmlEncoding } from '../../lib/utils/textDecoder';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Paperclip, Download, FolderPlus, Loader2, FileText, Image, File } from 'lucide-react';
+import { Paperclip, Download, FolderPlus, Loader2, FileText, Image, File, UserPlus, X, Check } from 'lucide-react';
 
 interface EmailAttachment {
   id: string;
   filename: string;
   mimeType: string;
   size: number;
+}
+
+interface ExtractedContact {
+  name: string;
+  email: string;
+  phone?: string;
+  title?: string;
+  company?: string;
+  linkedin?: string;
 }
 
 interface EmailThreadProps {
@@ -33,6 +42,12 @@ export const EmailThread: React.FC<EmailThreadProps> = ({ messageId, onClose }) 
   const [summary, setSummary] = useState<string | null>(null);
   const [savingAttachment, setSavingAttachment] = useState<string | null>(null);
   const [aiLimitError, setAiLimitError] = useState<AILimitError | null>(null);
+  
+  // Contact extraction state
+  const [extractedContacts, setExtractedContacts] = useState<ExtractedContact[]>([]);
+  const [showContactsPanel, setShowContactsPanel] = useState(false);
+  const [savingContact, setSavingContact] = useState<string | null>(null);
+  const [savedContacts, setSavedContacts] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchMessageDetails();
@@ -172,6 +187,138 @@ Content: ${cleanedBody}`;
         }
     } finally {
         setProcessingAi(false);
+    }
+  };
+
+  // Scan email for contacts using AI
+  const handleScanForContacts = async () => {
+    if (!data) return;
+    setProcessingAi(true);
+    setShowContactsPanel(false);
+    setExtractedContacts([]);
+    
+    try {
+      const workspaceId = data.integrated_accounts?.workspace_id;
+      if (!workspaceId) {
+        showError('Unable to determine workspace. Please refresh the page.');
+        return;
+      }
+
+      const systemPrompt = `You are a contact extraction assistant. Analyze the email and extract any contact information mentioned.
+
+Look for:
+- Names of people (from signature, mentioned in text, CC'd)
+- Email addresses
+- Phone numbers
+- Job titles/roles
+- Company names
+- LinkedIn URLs
+
+Return a JSON array of contacts found. Each contact should have these fields (include only if found):
+- name (required): Full name of the person
+- email (required): Email address
+- phone: Phone number
+- title: Job title or role
+- company: Company or organization name
+- linkedin: LinkedIn profile URL
+
+Return ONLY the JSON array, nothing else. Example:
+[{"name": "John Smith", "email": "john@company.com", "title": "Sales Manager", "company": "Acme Inc"}]
+
+If no contacts are found, return an empty array: []`;
+
+      const cleanedBody = cleanEmailContent(data.body?.text || data.snippet || '');
+      
+      // Also include the sender info
+      const senderInfo = `From: ${data.from_address}`;
+      const toInfo = data.to_addresses?.length ? `To: ${data.to_addresses.join(', ')}` : '';
+      const ccInfo = data.cc_addresses?.length ? `CC: ${data.cc_addresses.join(', ')}` : '';
+      
+      const userPrompt = `Extract contacts from this email:
+
+${senderInfo}
+${toInfo}
+${ccInfo}
+Subject: ${data.subject}
+
+Body:
+${cleanedBody}
+
+Return the JSON array of contacts found.`;
+
+      const history: Content[] = [{ role: 'user', parts: [{ text: userPrompt }] }];
+      
+      const response = await getAiResponse(history, systemPrompt, false, workspaceId, 'email');
+
+      if (response.candidates && response.candidates.length > 0) {
+        const responseText = response.candidates[0]?.content?.parts?.[0]?.text || '';
+        
+        // Try to parse JSON from response
+        let contacts: ExtractedContact[] = [];
+        try {
+          // Extract JSON array from response
+          const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+          if (jsonMatch) {
+            contacts = JSON.parse(jsonMatch[0]);
+          }
+        } catch (parseErr) {
+          console.error('[EmailThread] Failed to parse contacts JSON:', parseErr);
+        }
+
+        if (contacts.length > 0) {
+          setExtractedContacts(contacts);
+          setShowContactsPanel(true);
+          showSuccess(`Found ${contacts.length} contact${contacts.length > 1 ? 's' : ''}`);
+        } else {
+          showError('No contacts found in this email');
+        }
+      } else {
+        showError('Failed to analyze email for contacts');
+      }
+    } catch (e: any) {
+      console.error('[EmailThread] Contact extraction error:', e);
+      if (e instanceof AILimitError) {
+        setAiLimitError(e);
+        showError(`AI limit reached: ${e.usage}/${e.limit} requests used.`);
+      } else {
+        showError(`Failed to scan for contacts: ${e.message}`);
+      }
+    } finally {
+      setProcessingAi(false);
+    }
+  };
+
+  // Add extracted contact to CRM
+  const handleAddContactToCRM = async (contact: ExtractedContact) => {
+    if (!workspace?.id || !user?.id) {
+      showError('Please ensure you are logged in');
+      return;
+    }
+
+    const contactKey = contact.email;
+    setSavingContact(contactKey);
+
+    try {
+      const { data: newContact, error } = await DatabaseService.createContact(user.id, workspace.id, {
+        name: contact.name,
+        email: contact.email,
+        phone: contact.phone || null,
+        title: contact.title || null,
+        linkedin: contact.linkedin || '',
+        tags: ['from-email'],
+      });
+
+      if (error) throw error;
+
+      if (newContact) {
+        setSavedContacts(prev => new Set(prev).add(contactKey));
+        showSuccess(`Added "${contact.name}" to CRM`);
+      }
+    } catch (err: any) {
+      console.error('[EmailThread] Add contact error:', err);
+      showError(`Failed to add contact: ${err.message}`);
+    } finally {
+      setSavingContact(null);
     }
   };
 
@@ -357,7 +504,7 @@ Content: ${cleanedBody}`;
           </div>
           
           {/* AI Actions Toolbar */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <button 
                 onClick={handleSummarize}
                 disabled={processingAi}
@@ -379,6 +526,15 @@ Content: ${cleanedBody}`;
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                 </svg>
                 Create Task
+            </button>
+            <button 
+                onClick={handleScanForContacts}
+                disabled={processingAi}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 hover:text-purple-900 transition-colors disabled:opacity-50"
+                title="Scan for contacts to add to CRM"
+            >
+                <UserPlus className="w-3.5 h-3.5" />
+                Scan Contacts
             </button>
           </div>
         </div>
@@ -410,7 +566,7 @@ Content: ${cleanedBody}`;
             {processingAi ? (
                 <div className="flex items-center gap-3 text-blue-600">
                     <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                    <span className="text-sm font-medium">Generating summary...</span>
+                    <span className="text-sm font-medium">Processing...</span>
                 </div>
             ) : summary ? (
                 <div className="relative">
@@ -435,6 +591,70 @@ Content: ${cleanedBody}`;
                     </div>
                 </div>
             ) : null}
+        </div>
+      )}
+
+      {/* Extracted Contacts Panel */}
+      {showContactsPanel && extractedContacts.length > 0 && (
+        <div className="px-6 py-4 bg-purple-50/50 border-b border-purple-100">
+          <div className="flex items-start justify-between gap-4 mb-3">
+            <h3 className="text-sm font-bold text-purple-800 flex items-center gap-2">
+              <UserPlus className="w-4 h-4" />
+              Found {extractedContacts.length} Contact{extractedContacts.length > 1 ? 's' : ''}
+            </h3>
+            <button 
+              onClick={() => setShowContactsPanel(false)}
+              className="text-purple-400 hover:text-purple-600 p-1 hover:bg-purple-100 rounded"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="space-y-2">
+            {extractedContacts.map((contact, idx) => {
+              const contactKey = contact.email;
+              const isSaved = savedContacts.has(contactKey);
+              const isSaving = savingContact === contactKey;
+              
+              return (
+                <div 
+                  key={idx}
+                  className="flex items-center justify-between p-3 bg-white rounded-lg border border-purple-200"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-gray-900 text-sm truncate">
+                      {contact.name}
+                    </div>
+                    <div className="text-xs text-gray-500 truncate">
+                      {contact.email}
+                      {contact.title && ` • ${contact.title}`}
+                      {contact.company && ` at ${contact.company}`}
+                    </div>
+                    {contact.phone && (
+                      <div className="text-xs text-gray-400">{contact.phone}</div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleAddContactToCRM(contact)}
+                    disabled={isSaving || isSaved}
+                    className={`ml-3 p-2 rounded-lg transition-colors ${
+                      isSaved 
+                        ? 'bg-green-100 text-green-600 cursor-default' 
+                        : 'bg-purple-100 text-purple-600 hover:bg-purple-200'
+                    } disabled:opacity-50`}
+                    title={isSaved ? 'Added to CRM' : 'Add to CRM'}
+                  >
+                    {isSaving ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : isSaved ? (
+                      <Check className="w-4 h-4" />
+                    ) : (
+                      <UserPlus className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
