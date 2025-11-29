@@ -131,14 +131,20 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
       return;
     }
 
+    if (!workspace?.id) {
+      alert('No workspace found. Please refresh the page.');
+      return;
+    }
+
     setUploading(true);
     setUploadProgress(0);
 
     try {
       // Generate a unique path for the avatar
+      // Path must start with workspace ID to pass RLS policies
       const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
       const timestamp = Date.now();
-      const path = `avatars/${user.id}/${timestamp}.${fileExt}`;
+      const path = `${workspace.id}/avatars/${user.id}/${timestamp}.${fileExt}`;
 
       // Upload to Supabase storage
       const result = await uploadBinary({
