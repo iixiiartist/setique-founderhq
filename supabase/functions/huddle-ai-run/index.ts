@@ -480,17 +480,22 @@ async function buildContext(
   // Web research via You.com
   if (options.include_web_research && options.web_research_query && youComApiKey) {
     try {
-      const searchResponse = await fetch(`https://api.you.com/api/web/search?query=${encodeURIComponent(options.web_research_query)}`, {
+      const params = new URLSearchParams();
+      params.set('query', options.web_research_query);
+      params.set('num_web_results', '5');
+      const searchResponse = await fetch(`https://api.ydc-index.io/search?${params.toString()}`, {
         headers: { 'X-API-Key': youComApiKey },
       });
       
       if (searchResponse.ok) {
         const searchData = await searchResponse.json();
-        context.webSources = (searchData.hits || []).slice(0, 5).map((hit: any) => ({
-          title: hit.title,
-          url: hit.url,
-          snippet: hit.snippet,
-        }));
+        // Handle multiple response structures from You.com API
+        const hitsSource = searchData.hits || searchData.results?.web || searchData.results || [];
+        context.webSources = (Array.isArray(hitsSource) ? hitsSource : []).slice(0, 5).map((hit: any) => ({
+          title: hit.title || hit.name || '',
+          url: hit.url || hit.link || '',
+          snippet: hit.description || hit.snippet || hit.summary || '',
+        })).filter((s: any) => s.url || s.title);
       }
     } catch (e) {
       console.error('You.com search error:', e);
@@ -1004,19 +1009,24 @@ async function executeToolCall(
       }
       try {
         const searchQuery = args.query;
+        const params = new URLSearchParams();
+        params.set('query', searchQuery);
+        params.set('num_web_results', '5');
         const searchResponse = await fetch(
-          `https://api.you.com/api/web/search?query=${encodeURIComponent(searchQuery)}`,
+          `https://api.ydc-index.io/search?${params.toString()}`,
           { headers: { 'X-API-Key': youComApiKey } }
         );
         if (!searchResponse.ok) {
           throw new Error(`Search API returned ${searchResponse.status}`);
         }
         const searchData = await searchResponse.json();
-        const results = (searchData.hits || []).slice(0, 5).map((hit: any) => ({
-          title: hit.title,
-          url: hit.url,
-          snippet: hit.snippet,
-        }));
+        // Handle multiple response structures from You.com API
+        const hitsSource = searchData.hits || searchData.results?.web || searchData.results || [];
+        const results = (Array.isArray(hitsSource) ? hitsSource : []).slice(0, 5).map((hit: any) => ({
+          title: hit.title || hit.name || '',
+          url: hit.url || hit.link || '',
+          snippet: hit.description || hit.snippet || hit.summary || '',
+        })).filter((r: any) => r.url || r.title);
         return {
           success: true,
           query: searchQuery,
