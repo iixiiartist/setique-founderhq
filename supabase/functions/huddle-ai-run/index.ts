@@ -175,8 +175,35 @@ serve(async (req) => {
           });
 
           if (!groqResponse.ok) {
-            const error = await groqResponse.text();
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'AI request failed', detail: error })}\n\n`));
+            const errorText = await groqResponse.text();
+            console.error('Groq API error:', groqResponse.status, errorText);
+            
+            // If we have web sources, still provide a helpful response
+            if (context.webSources?.length > 0) {
+              const fallbackContent = `I encountered an issue with AI processing, but here are the web search results:\n\n${context.webSources.map((s: any, i: number) => 
+                `**${i + 1}. ${s.title}**\n${s.snippet || 'No description available.'}\n[Source](${s.url})`
+              ).join('\n\n')}`;
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'content', content: fallbackContent })}\n\n`));
+              
+              // Save the fallback message
+              await supabaseAdmin
+                .from('huddle_messages')
+                .insert({
+                  room_id,
+                  workspace_id: room.workspace_id,
+                  user_id: null,
+                  body: fallbackContent,
+                  thread_root_id: thread_root_id || null,
+                  is_ai: true,
+                  metadata: { web_sources: context.webSources, error: `Groq API error: ${groqResponse.status}` },
+                });
+              
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'complete', web_sources: context.webSources })}\n\n`));
+              controller.close();
+              return;
+            }
+            
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'AI request failed', detail: errorText })}\n\n`));
             controller.close();
             return;
           }
@@ -324,13 +351,23 @@ serve(async (req) => {
             aiMetadata.web_sources = context.webSources;
           }
 
+          // If no content was generated but we have web sources, create a summary response
+          let messageBody = finalContent;
+          if (!messageBody && context.webSources?.length > 0) {
+            messageBody = `Based on my web search, here's what I found:\n\n${context.webSources.map((s: any, i: number) => 
+              `**${i + 1}. ${s.title}**\n${s.snippet || 'No description available.'}\n[Source](${s.url})`
+            ).join('\n\n')}`;
+            // Stream this content to the client
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'content', content: messageBody })}\n\n`));
+          }
+
           const { data: aiMessage } = await supabaseAdmin
             .from('huddle_messages')
             .insert({
               room_id,
               workspace_id: room.workspace_id,
               user_id: null, // AI message
-              body: finalContent || 'I apologize, but I was unable to generate a response.',
+              body: messageBody || 'I apologize, but I was unable to generate a response. Please try again.',
               thread_root_id: thread_root_id || userMessage?.id, // Reply in thread
               is_ai: true,
               metadata: aiMetadata,
