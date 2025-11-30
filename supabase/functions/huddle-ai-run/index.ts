@@ -51,7 +51,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const groqApiKey = Deno.env.get('GROQ_API_KEY')!;
-    const youComApiKey = Deno.env.get('YOU_COM_API_KEY');
+    const youComApiKey = Deno.env.get('YOUCOM_API_KEY');
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
