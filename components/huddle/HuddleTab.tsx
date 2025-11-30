@@ -79,12 +79,18 @@ export const HuddleTab: React.FC<HuddleTabProps> = ({ isMainMenuOpen = false }) 
   // Mobile state
   const [showMobileRoomList, setShowMobileRoomList] = useState(false);
   
-  // Close mobile room list when main menu opens
+  // Close mobile room list, thread drawer, and AI sheet when main menu opens
   useEffect(() => {
     if (isMainMenuOpen) {
       setShowMobileRoomList(false);
+      setThreadMessage(null);
+      setShowAISheet(false);
     }
   }, [isMainMenuOpen]);
+  
+  // Dynamic z-index class for Huddle overlays - drop below main menu when it's open
+  const huddleOverlayZIndex = isMainMenuOpen ? 'z-10 pointer-events-none' : 'z-50';
+  const huddleBackdropZIndex = isMainMenuOpen ? 'z-5 pointer-events-none' : 'z-40';
   
   // Linked entity modal state
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -502,10 +508,10 @@ export const HuddleTab: React.FC<HuddleTabProps> = ({ isMainMenuOpen = false }) 
 
   return (
     <div className="flex h-full bg-white relative">
-      {/* Mobile backdrop for room list */}
-      {showMobileRoomList && (
+      {/* Mobile backdrop for room list - hidden when main menu is open */}
+      {showMobileRoomList && !isMainMenuOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 sm:hidden"
+          className={`fixed inset-0 bg-black/50 ${huddleBackdropZIndex} sm:hidden`}
           onClick={() => setShowMobileRoomList(false)}
         />
       )}
@@ -513,7 +519,7 @@ export const HuddleTab: React.FC<HuddleTabProps> = ({ isMainMenuOpen = false }) 
       {/* Left sidebar - Room list (desktop: fixed sidebar, mobile: slide-in overlay) */}
       <div className={`
         w-64 border-r-2 border-black flex flex-col bg-gray-50
-        fixed sm:relative inset-y-0 left-0 z-50
+        fixed sm:relative inset-y-0 left-0 ${huddleOverlayZIndex}
         transform transition-transform duration-300 ease-out
         ${showMobileRoomList ? 'translate-x-0' : '-translate-x-full sm:translate-x-0'}
       `}>
@@ -688,14 +694,16 @@ export const HuddleTab: React.FC<HuddleTabProps> = ({ isMainMenuOpen = false }) 
       {/* Thread drawer - Desktop: fixed sidebar, Mobile: bottom sheet */}
       {threadMessage && (
         <>
-          {/* Mobile backdrop for thread */}
-          <div 
-            className="fixed inset-0 bg-black/50 z-40 sm:hidden"
-            onClick={() => setThreadMessage(null)}
-          />
+          {/* Mobile backdrop for thread - hidden when main menu is open */}
+          {!isMainMenuOpen && (
+            <div 
+              className={`fixed inset-0 bg-black/50 ${huddleBackdropZIndex} sm:hidden`}
+              onClick={() => setThreadMessage(null)}
+            />
+          )}
           <div className={`
             flex flex-col bg-white
-            fixed sm:relative z-50
+            fixed sm:relative ${huddleOverlayZIndex}
             inset-x-0 bottom-0 sm:inset-auto
             max-h-[80vh] sm:max-h-none sm:h-auto
             w-full sm:w-96
