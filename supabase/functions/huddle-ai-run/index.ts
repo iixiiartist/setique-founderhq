@@ -269,7 +269,7 @@ serve(async (req) => {
           for (const tc of toolCalls) {
             try {
               console.log('Executing tool:', tc.name, 'with args:', tc.arguments);
-              const result = await executeToolCall(supabaseAdmin, tc, room.workspace_id, user.id);
+              const result = await executeToolCall(supabaseAdmin, tc, room.workspace_id, user.id, youComApiKey);
               console.log('Tool result:', tc.name, result);
               toolResults.push({ ...tc, result });
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'tool_result', tool: tc.name, result })}\n\n`));
@@ -297,12 +297,13 @@ serve(async (req) => {
                 if (tr.name === 'create_note') return `✅ Created note: "${tr.result.title}"`;
                 if (tr.name === 'create_calendar_event') return `✅ Created event: "${tr.result.title}" on ${tr.result.start_time}`;
                 if (tr.name === 'create_marketing_campaign') return `✅ Created campaign: "${tr.result.name}" (${tr.result.channel})`;
+                if (tr.name === 'web_search') return tr.result.summary || `🔍 Web search completed`;
                 return `✅ ${tr.name} completed`;
               });
             
             const errorMessages = toolResults
-              .filter(tr => tr.error)
-              .map(tr => `❌ ${tr.name} failed: ${tr.error}`);
+              .filter(tr => tr.error || tr.result?.error)
+              .map(tr => `❌ ${tr.name} failed: ${tr.error || tr.result?.error}`);
             
             // Use success/error messages as the response
             const allMessages = [...successMessages, ...errorMessages];
@@ -812,7 +813,8 @@ async function executeToolCall(
   supabase: any,
   toolCall: { name: string; arguments: string },
   workspace_id: string,
-  user_id: string
+  user_id: string,
+  youComApiKey?: string
 ): Promise<any> {
   const args = JSON.parse(toolCall.arguments);
 
@@ -996,8 +998,37 @@ async function executeToolCall(
       return { success: true, campaign_id: campaign.id, name: campaign.name, channel: campaign.channel };
 
     case 'web_search':
-      // This would be handled in the context building phase
-      return { success: true, message: 'Web search results included in context' };
+      // Perform actual web search via You.com
+      if (!youComApiKey) {
+        return { success: false, error: 'Web search not configured - missing API key' };
+      }
+      try {
+        const searchQuery = args.query;
+        const searchResponse = await fetch(
+          `https://api.you.com/api/web/search?query=${encodeURIComponent(searchQuery)}`,
+          { headers: { 'X-API-Key': youComApiKey } }
+        );
+        if (!searchResponse.ok) {
+          throw new Error(`Search API returned ${searchResponse.status}`);
+        }
+        const searchData = await searchResponse.json();
+        const results = (searchData.hits || []).slice(0, 5).map((hit: any) => ({
+          title: hit.title,
+          url: hit.url,
+          snippet: hit.snippet,
+        }));
+        return {
+          success: true,
+          query: searchQuery,
+          results,
+          summary: results.length > 0
+            ? `Found ${results.length} results for "${searchQuery}":\n${results.map((r: any, i: number) => `${i + 1}. ${r.title}\n   ${r.snippet}\n   Source: ${r.url}`).join('\n\n')}`
+            : `No results found for "${searchQuery}"`,
+        };
+      } catch (e) {
+        console.error('Web search error:', e);
+        return { success: false, error: `Web search failed: ${e.message}` };
+      }
 
     default:
       throw new Error(`Unknown tool: ${toolCall.name}`);

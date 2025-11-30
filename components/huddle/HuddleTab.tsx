@@ -255,6 +255,7 @@ export const HuddleTab: React.FC = () => {
         include_workspace_data: contextTypes.length > 0,
         workspace_data_types: contextTypes,
         include_web_research: useWebSearch,
+        web_research_query: useWebSearch ? prompt : undefined,
       },
       tool_options: {
         allow_task_creation: true,
