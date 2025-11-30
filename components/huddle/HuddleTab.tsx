@@ -39,7 +39,11 @@ import AIInvokeSheet from './AIInvokeSheet';
 import CreateRoomModal, { CreateRoomData } from './CreateRoomModal';
 import RoomSettingsModal from './RoomSettingsModal';
 
-export const HuddleTab: React.FC = () => {
+interface HuddleTabProps {
+  isMainMenuOpen?: boolean;
+}
+
+export const HuddleTab: React.FC<HuddleTabProps> = ({ isMainMenuOpen = false }) => {
   const { user } = useAuth();
   const { workspace, workspaceMembers } = useWorkspace();
   const workspaceId = workspace?.id;
@@ -56,6 +60,13 @@ export const HuddleTab: React.FC = () => {
   
   // Mobile state
   const [showMobileRoomList, setShowMobileRoomList] = useState(false);
+  
+  // Close mobile room list when main menu opens
+  useEffect(() => {
+    if (isMainMenuOpen) {
+      setShowMobileRoomList(false);
+    }
+  }, [isMainMenuOpen]);
   
   // Linked entity modal state
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);

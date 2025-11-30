@@ -2695,7 +2695,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 return (
                     <SectionBoundary sectionName="Huddle">
                         <Suspense fallback={<TabLoadingFallback />}>
-                            <HuddleTab />
+                            <HuddleTab isMainMenuOpen={isMenuOpen} />
                         </Suspense>
                     </SectionBoundary>
                 );
