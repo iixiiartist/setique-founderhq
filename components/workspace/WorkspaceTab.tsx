@@ -1,7 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { GTMDocMetadata, AppActions, DashboardData } from '../../types';
 import { DocsList } from './DocsList';
 import { DocEditor } from './DocEditor';
+import { Form, FormField as FormFieldType } from '../../types/forms';
+import { createForm, updateForm, bulkSaveFields, getForm } from '../../services/formService';
+
+// Lazy load forms components (from root components folder)
+const FormBuilder = lazy(() => import('../forms/FormBuilder'));
+const FormsList = lazy(() => import('../forms/FormsList'));
+const FormAnalytics = lazy(() => import('../forms/FormAnalytics'));
+
+type WorkspaceView = 'docs' | 'forms';
 
 interface WorkspaceTabProps {
     workspaceId: string;
@@ -9,37 +18,43 @@ interface WorkspaceTabProps {
     actions: AppActions;
     data: DashboardData;
     onUpgradeNeeded?: () => void;
-    initialDocId?: string | null; // Open a specific doc on mount (e.g., from file library)
-    onClearInitialDoc?: () => void; // Callback to clear initial doc after opening
+    initialDocId?: string | null;
+    onClearInitialDoc?: () => void;
 }
 
 export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId, actions, data, onUpgradeNeeded, initialDocId, onClearInitialDoc }) => {
+    const [view, setView] = useState<WorkspaceView>('docs');
     const [selectedDoc, setSelectedDoc] = useState<GTMDocMetadata | null>(null);
     const [isCreatingNew, setIsCreatingNew] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [reloadKey, setReloadKey] = useState(0); // Force reload of docs list
+    const [reloadKey, setReloadKey] = useState(0);
+    
+    // Forms state
+    const [selectedForm, setSelectedForm] = useState<Form | null>(null);
+    const [isCreatingForm, setIsCreatingForm] = useState(false);
+    const [analyticsForm, setAnalyticsForm] = useState<Form | null>(null);
 
-    // Handle opening a doc passed via initialDocId (e.g., from file library)
+    // Handle opening a doc passed via initialDocId
     useEffect(() => {
         if (initialDocId && workspaceId) {
-            // Set the doc to open by its ID - DocEditor will load the full content
+            setView('docs');
             setSelectedDoc({ id: initialDocId } as GTMDocMetadata);
             setIsCreatingNew(false);
-            // Clear the initial doc after handling
             onClearInitialDoc?.();
         }
     }, [initialDocId, workspaceId, onClearInitialDoc]);
 
+    // Docs handlers
     const handleDocSelect = (doc: GTMDocMetadata) => {
         setSelectedDoc(doc);
         setIsCreatingNew(false);
-        setIsSidebarOpen(false); // Close sidebar on mobile after selection
+        setIsSidebarOpen(false);
     };
 
-    const handleCreateNew = () => {
+    const handleCreateNewDoc = () => {
         setSelectedDoc(null);
         setIsCreatingNew(true);
-        setIsSidebarOpen(false); // Close sidebar on mobile after selection
+        setIsSidebarOpen(false);
     };
 
     const handleCloseEditor = () => {
@@ -48,90 +63,208 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId,
     };
 
     const handleReloadDocs = () => {
-        // Increment key to force DocsList to reload
         setReloadKey(prev => prev + 1);
     };
 
-    const isEditorOpen = !!(selectedDoc || isCreatingNew);
+    // Forms handlers
+    const handleCreateForm = () => {
+        setSelectedForm(null);
+        setIsCreatingForm(true);
+    };
+
+    const handleEditForm = async (form: Form) => {
+        // Fetch the complete form with fields before opening editor
+        const { data: fullForm, error } = await getForm(form.id);
+        if (error || !fullForm) {
+            console.error('Error loading form:', error);
+            // Fallback to the form without fields
+            setSelectedForm(form);
+        } else {
+            setSelectedForm(fullForm);
+        }
+        setIsCreatingForm(false);
+    };
+
+    const handleViewAnalytics = (form: Form) => {
+        setAnalyticsForm(form);
+    };
+
+    const handleFormSave = async (formData: Partial<Form>, fields: Partial<FormFieldType>[]) => {
+        try {
+            if (selectedForm?.id) {
+                // Update existing form
+                await updateForm(selectedForm.id, formData);
+                await bulkSaveFields(selectedForm.id, fields);
+            } else {
+                // Create new form
+                const { data: newForm, error } = await createForm(workspaceId, userId, formData);
+                if (error || !newForm) {
+                    throw new Error(error || 'Failed to create form');
+                }
+                await bulkSaveFields(newForm.id, fields);
+                setSelectedForm(newForm);
+                setIsCreatingForm(false);
+            }
+        } catch (error) {
+            console.error('Error saving form:', error);
+            throw error;
+        }
+    };
+
+    const handleBackFromForm = () => {
+        setSelectedForm(null);
+        setIsCreatingForm(false);
+    };
+
+    const isDocsEditorOpen = !!(selectedDoc || isCreatingNew);
+    const isFormsEditorOpen = !!(selectedForm || isCreatingForm);
 
     return (
-        <div className="h-full flex relative">
-            {/* Mobile Menu Button */}
-            {isEditorOpen && (
-                <button
-                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                    className="lg:hidden fixed top-20 left-4 z-50 p-2 bg-yellow-400 border border-gray-300 rounded-md shadow-sm"
-                    aria-label="Toggle document list"
-                >
-                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
-                </button>
+        <div className="h-full flex flex-col relative">
+            {/* View Toggle - Only show when not in an editor */}
+            {!isDocsEditorOpen && !isFormsEditorOpen && (
+                <div className="flex-shrink-0 border-b-2 border-black bg-white">
+                    <div className="flex">
+                        <button
+                            onClick={() => setView('docs')}
+                            className={`flex-1 px-4 py-3 font-bold text-sm transition-colors ${
+                                view === 'docs'
+                                    ? 'bg-yellow-400 text-black border-r-2 border-black'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-r-2 border-black'
+                            }`}
+                        >
+                            📄 Documents
+                        </button>
+                        <button
+                            onClick={() => setView('forms')}
+                            className={`flex-1 px-4 py-3 font-bold text-sm transition-colors ${
+                                view === 'forms'
+                                    ? 'bg-purple-500 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                        >
+                            📝 Forms
+                        </button>
+                    </div>
+                </div>
             )}
 
-            {/* Left Sidebar: Document List */}
-            <div className={`
-                lg:w-80 w-full lg:relative absolute inset-y-0 left-0 z-40
-                border-r border-gray-200 bg-white overflow-y-auto
-                transition-transform duration-300 ease-in-out
-                ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-                ${!isEditorOpen ? 'lg:translate-x-0' : 'lg:hidden'}
-            `}>
-                <DocsList
-                    key={reloadKey}
-                    workspaceId={workspaceId}
-                    userId={userId}
-                    onDocSelect={handleDocSelect}
-                    onCreateNew={handleCreateNew}
-                    selectedDocId={selectedDoc?.id || null}
-                />
-            </div>
-
-            {/* Overlay for mobile when sidebar is open */}
-            {isSidebarOpen && (
-                <div
-                    className="lg:hidden fixed inset-0 bg-gray-200 bg-opacity-10 z-30"
-                    onClick={() => setIsSidebarOpen(false)}
-                />
-            )}
-
-            {/* Right Content: Editor or Empty State */}
-            <div className="flex-1 overflow-hidden w-full lg:w-auto">
-                {(selectedDoc || isCreatingNew) ? (
-                    <DocEditor
-                        workspaceId={workspaceId}
-                        userId={userId}
-                        docId={selectedDoc?.id}
-                        onClose={handleCloseEditor}
-                        onSave={(doc) => {
-                            // Capture created doc to prevent duplicate creates
-                            if (!selectedDoc) {
-                                setSelectedDoc(doc);
-                                setIsCreatingNew(false);
-                            }
-                            // Refresh list after save to show updated doc
-                            handleReloadDocs();
-                        }}
-                        onReloadList={handleReloadDocs}
-                        actions={actions}
-                        data={data}
-                        onUpgradeNeeded={onUpgradeNeeded}
-                    />
-                ) : (
-                    <div className="h-full flex items-center justify-center p-4 lg:p-8">
-                        <div className="text-center max-w-md">
-                            <div className="text-4xl lg:text-6xl mb-4">📋</div>
-                            <h2 className="text-xl lg:text-2xl font-bold mb-2">GTM Docs</h2>
-                            <p className="text-sm lg:text-base text-gray-600 mb-6">
-                                Create and collaborate on GTM briefs, campaign plans, battlecards, and more.
-                            </p>
+            {/* Content Area */}
+            <div className="flex-1 flex relative overflow-hidden">
+                {/* DOCS VIEW */}
+                {view === 'docs' && (
+                    <>
+                        {/* Mobile Menu Button */}
+                        {isDocsEditorOpen && (
                             <button
-                                onClick={handleCreateNew}
-                                className="px-4 lg:px-6 py-2 lg:py-3 text-sm lg:text-base bg-yellow-400 text-black font-bold border border-yellow-500 rounded-md shadow-sm hover:bg-yellow-500 transition-colors"
+                                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                                className="lg:hidden fixed top-20 left-4 z-50 p-2 bg-yellow-400 border border-gray-300 rounded-md shadow-sm"
+                                aria-label="Toggle document list"
                             >
-                                Create Your First Doc
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                                </svg>
                             </button>
+                        )}
+
+                        {/* Left Sidebar: Document List */}
+                        <div className={`
+                            lg:w-80 w-full lg:relative absolute inset-y-0 left-0 z-40
+                            border-r border-gray-200 bg-white overflow-y-auto
+                            transition-transform duration-300 ease-in-out
+                            ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+                            ${!isDocsEditorOpen ? 'lg:translate-x-0' : 'lg:hidden'}
+                        `}>
+                            <DocsList
+                                key={reloadKey}
+                                workspaceId={workspaceId}
+                                userId={userId}
+                                onDocSelect={handleDocSelect}
+                                onCreateNew={handleCreateNewDoc}
+                                selectedDocId={selectedDoc?.id || null}
+                            />
                         </div>
+
+                        {/* Overlay for mobile */}
+                        {isSidebarOpen && (
+                            <div
+                                className="lg:hidden fixed inset-0 bg-gray-200 bg-opacity-10 z-30"
+                                onClick={() => setIsSidebarOpen(false)}
+                            />
+                        )}
+
+                        {/* Right Content: Editor or Empty State */}
+                        <div className="flex-1 overflow-hidden w-full lg:w-auto">
+                            {(selectedDoc || isCreatingNew) ? (
+                                <DocEditor
+                                    workspaceId={workspaceId}
+                                    userId={userId}
+                                    docId={selectedDoc?.id}
+                                    onClose={handleCloseEditor}
+                                    onSave={(doc) => {
+                                        if (!selectedDoc) {
+                                            setSelectedDoc(doc);
+                                            setIsCreatingNew(false);
+                                        }
+                                        handleReloadDocs();
+                                    }}
+                                    onReloadList={handleReloadDocs}
+                                    actions={actions}
+                                    data={data}
+                                    onUpgradeNeeded={onUpgradeNeeded}
+                                />
+                            ) : (
+                                <div className="h-full flex items-center justify-center p-4 lg:p-8">
+                                    <div className="text-center max-w-md">
+                                        <div className="text-4xl lg:text-6xl mb-4">📋</div>
+                                        <h2 className="text-xl lg:text-2xl font-bold mb-2">GTM Docs</h2>
+                                        <p className="text-sm lg:text-base text-gray-600 mb-6">
+                                            Create and collaborate on GTM briefs, campaign plans, battlecards, and more.
+                                        </p>
+                                        <button
+                                            onClick={handleCreateNewDoc}
+                                            className="px-4 lg:px-6 py-2 lg:py-3 text-sm lg:text-base bg-yellow-400 text-black font-bold border border-yellow-500 rounded-md shadow-sm hover:bg-yellow-500 transition-colors"
+                                        >
+                                            Create Your First Doc
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </>
+                )}
+
+                {/* FORMS VIEW */}
+                {view === 'forms' && (
+                    <div className="flex-1 overflow-hidden">
+                        <Suspense fallback={
+                            <div className="h-full flex items-center justify-center">
+                                <div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full" />
+                            </div>
+                        }>
+                            {analyticsForm ? (
+                                <FormAnalytics
+                                    form={analyticsForm}
+                                    onBack={() => setAnalyticsForm(null)}
+                                />
+                            ) : isFormsEditorOpen ? (
+                                <FormBuilder
+                                    form={selectedForm || undefined}
+                                    workspaceId={workspaceId}
+                                    onSave={handleFormSave}
+                                    onBack={handleBackFromForm}
+                                />
+                            ) : (
+                                <div className="h-full overflow-auto p-6 bg-gray-50">
+                                    <FormsList
+                                        workspaceId={workspaceId}
+                                        onCreateForm={handleCreateForm}
+                                        onEditForm={handleEditForm}
+                                        onViewAnalytics={handleViewAnalytics}
+                                    />
+                                </div>
+                            )}
+                        </Suspense>
                     </div>
                 )}
             </div>

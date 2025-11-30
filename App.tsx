@@ -14,6 +14,7 @@ import { PrivacyPolicyPage } from './components/PrivacyPolicyPage'
 import { TermsOfServicePage } from './components/TermsOfServicePage'
 import { CheckoutSuccessPage } from './components/CheckoutSuccessPage'
 import { ApiDocsPage } from './pages/ApiDocsPage'
+import { PublicFormPage } from './pages/PublicFormPage'
 import DashboardApp from './DashboardApp'
 import { initializeSentry, ErrorBoundary, ErrorFallback } from './lib/sentry.tsx'
 import { analytics } from './lib/services/analytics'
@@ -65,6 +66,9 @@ const App: React.FC = () => {
           {/* API Documentation (public) */}
           <Route path="/docs" element={<ApiDocsPage />} />
           <Route path="/api-docs" element={<ApiDocsPage />} />
+          
+          {/* Public Forms (no auth required) */}
+          <Route path="/forms/:slug" element={<PublicFormPage />} />
           
           {/* Stripe checkout success */}
           <Route path="/success" element={<CheckoutSuccessPage />} />
