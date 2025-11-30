@@ -470,7 +470,7 @@ async function buildContext(
         case 'tasks':
           const { data: tasks } = await supabaseUser
             .from('tasks')
-            .select('id, title, status, priority, due_date')
+            .select('id, text, status, priority, due_date')
             .eq('workspace_id', workspace_id)
             .neq('status', 'completed')
             .limit(20);
@@ -649,13 +649,17 @@ You help team members with questions, provide insights from workspace data, and 
 CURRENT DATE AND TIME: ${currentDate} at ${currentTime}
 When users mention relative dates like "next Tuesday", "tomorrow", "next week", calculate the actual date based on today's date above.
 
-When a user asks you to create something (task, contact, expense, etc.), use the available tools to create it.
+IMPORTANT - When to use tools:
+- ONLY use create_task when the user EXPLICITLY asks to "create a task", "add a task", "make a task", etc.
+- ONLY use other creation tools when the user EXPLICITLY requests creating that specific item
+- If the user asks a QUESTION (like "do we have...", "what are...", "show me..."), DO NOT use any tools - just answer the question based on the context provided
+- Questions about data should be answered with information, not by creating new items
 
 Guidelines:
 - Be concise and helpful
 - Use markdown formatting for readability  
 - When referencing workspace data, be specific with names and numbers
-- If you're unsure about factual information, say so
+- If asked about data that isn't in your context, say you don't have that information available
 - For dates, always use YYYY-MM-DD format when calling tools
 `;
 
@@ -665,7 +669,7 @@ Guidelines:
     if (context.workspaceData.tasks?.length) {
       prompt += `\nActive Tasks (${context.workspaceData.tasks.length}):\n`;
       context.workspaceData.tasks.slice(0, 10).forEach((t: any) => {
-        prompt += `- ${t.title} [${t.status}] ${t.due_date ? `Due: ${t.due_date}` : ''}\n`;
+        prompt += `- ${t.text} [${t.status}] ${t.due_date ? `Due: ${t.due_date}` : ''}\n`;
       });
     }
 
