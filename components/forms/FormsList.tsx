@@ -4,6 +4,7 @@ import { Input } from '../ui/Input';
 import { Badge } from '../ui/Badge';
 import { Card, CardContent } from '../ui/Card';
 import { Select } from '../ui/Select';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { Form, FormStatus } from '../../types/forms';
 import { getWorkspaceForms, deleteForm, duplicateForm, archiveForm, publishForm, unpublishForm, generateEmbedCode, generateShareLinks } from '../../services/formService';
 import { formatDistanceToNow } from 'date-fns';
@@ -58,6 +59,8 @@ export const FormsList: React.FC<FormsListProps> = ({
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [shareModalForm, setShareModalForm] = useState<ExtendedForm | null>(null);
   const [copiedText, setCopiedText] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; formId: string | null; formName: string }>({ isOpen: false, formId: null, formName: '' });
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     console.log('[FormsList] workspaceId:', workspaceId);
@@ -85,12 +88,17 @@ export const FormsList: React.FC<FormsListProps> = ({
   };
 
   const handleDelete = async (formId: string) => {
-    if (!confirm('Are you sure you want to delete this form? This cannot be undone.')) return;
-    
+    setIsDeleting(true);
     const { error } = await deleteForm(formId);
     if (!error) {
       setForms(prev => prev.filter(f => f.id !== formId));
     }
+    setIsDeleting(false);
+    setDeleteConfirm({ isOpen: false, formId: null, formName: '' });
+  };
+
+  const openDeleteConfirm = (form: ExtendedForm) => {
+    setDeleteConfirm({ isOpen: true, formId: form.id, formName: form.name });
     setOpenMenuId(null);
   };
 
@@ -305,7 +313,8 @@ export const FormsList: React.FC<FormsListProps> = ({
                         e.stopPropagation();
                         setOpenMenuId(openMenuId === form.id ? null : form.id);
                       }}
-                      className="p-1 hover:bg-gray-100 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="p-2 hover:bg-gray-100 rounded text-black font-bold text-lg"
+                      title="Options"
                     >
                       ⋮
                     </button>
@@ -404,7 +413,7 @@ export const FormsList: React.FC<FormsListProps> = ({
                           )}
                           <hr className="border-gray-200" />
                           <button
-                            onClick={(e) => { e.stopPropagation(); handleDelete(form.id); }}
+                            onClick={(e) => { e.stopPropagation(); openDeleteConfirm(form); }}
                             className="w-full px-4 py-2 text-left text-sm hover:bg-red-100 text-red-600 flex items-center gap-2"
                           >
                             🗑️ Delete
@@ -636,6 +645,19 @@ export const FormsList: React.FC<FormsListProps> = ({
           ✓ Copied to clipboard!
         </div>
       )}
+
+      {/* Delete confirmation dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, formId: null, formName: '' })}
+        onConfirm={() => deleteConfirm.formId && handleDelete(deleteConfirm.formId)}
+        title="Delete Form"
+        message={`Are you sure you want to delete "${deleteConfirm.formName}"? This will permanently remove the form and all its submissions. This action cannot be undone.`}
+        confirmLabel="Delete Form"
+        cancelLabel="Cancel"
+        variant="danger"
+        isLoading={isDeleting}
+      />
     </div>
   );
 };
