@@ -694,26 +694,27 @@ export const HuddleTab: React.FC = () => {
                 ))
               )}
               <div ref={threadEndRef} />
+              </div>
+            </div>
+            <div className="border-t">
+              <MessageComposer
+                onSend={(content, attachments, linkedEntities) => {
+                  // Re-enable auto-scroll when user sends a message
+                  shouldAutoScrollThread.current = true;
+                  userScrolledUpThread.current = false;
+                  handleSendThreadMessage(content, attachments, linkedEntities);
+                }}
+                onAIInvoke={() => {
+                  setAiThreadRootId(threadMessage.id);
+                  setShowAISheet(true);
+                }}
+                onTyping={() => setTyping(true)}
+                placeholder={`Reply to thread in ${activeRoom?.name || ''}`}
+                aiEnabled={activeRoom?.settings?.ai_allowed !== false}
+              />
             </div>
           </div>
-          <div className="border-t">
-            <MessageComposer
-              onSend={(content, attachments, linkedEntities) => {
-                // Re-enable auto-scroll when user sends a message
-                shouldAutoScrollThread.current = true;
-                userScrolledUpThread.current = false;
-                handleSendThreadMessage(content, attachments, linkedEntities);
-              }}
-              onAIInvoke={() => {
-                setAiThreadRootId(threadMessage.id);
-                setShowAISheet(true);
-              }}
-              onTyping={() => setTyping(true)}
-              placeholder={`Reply to thread in ${activeRoom?.name || ''}`}
-              aiEnabled={activeRoom?.settings?.ai_allowed !== false}
-            />
-          </div>
-        </div>
+        </>
       )}
 
       {/* AI Invoke Sheet */}

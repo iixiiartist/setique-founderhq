@@ -67,12 +67,12 @@ export function TaskDetailPanel({
         <>
         <div className="h-full flex flex-col">
             {/* Header */}
-            <div className="bg-white border-b-2 border-black p-4">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-mono font-bold text-lg">Task Details</h3>
+            <div className="bg-white border-b-2 border-black p-3 sm:p-4">
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <h3 className="font-mono font-bold text-base sm:text-lg">Task Details</h3>
                     <button
                         onClick={onClose}
-                        className="text-2xl font-bold hover:text-red-500 transition-colors"
+                        className="text-2xl font-bold hover:text-red-500 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                     >
                         ×
                     </button>
@@ -83,13 +83,13 @@ export function TaskDetailPanel({
                         <textarea
                             value={editText}
                             onChange={(e) => setEditText(e.target.value)}
-                            className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2.5 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px]"
                             rows={3}
                         />
                         <select
                             value={editPriority}
                             onChange={(e) => setEditPriority(e.target.value as any)}
-                            className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2.5 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
                         >
                             <option value="High">High Priority</option>
                             <option value="Medium">Medium Priority</option>
@@ -98,20 +98,20 @@ export function TaskDetailPanel({
                         <select
                             value={editStatus}
                             onChange={(e) => setEditStatus(e.target.value as any)}
-                            className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2.5 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
                         >
                             <option value="Todo">To Do</option>
                             <option value="InProgress">In Progress</option>
                             <option value="Done">Done</option>
                         </select>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <div>
                                 <label className="block text-xs font-mono font-bold mb-1">Due Date</label>
                                 <input
                                     type="date"
                                     value={editDueDate}
                                     onChange={(e) => setEditDueDate(e.target.value)}
-                                    className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2.5 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
                                 />
                             </div>
                             <div>
@@ -120,14 +120,14 @@ export function TaskDetailPanel({
                                     type="time"
                                     value={editDueTime}
                                     onChange={(e) => setEditDueTime(e.target.value)}
-                                    className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2.5 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
                                 />
                             </div>
                         </div>
                         <select
                             value={editAssignedTo}
                             onChange={(e) => setEditAssignedTo(e.target.value)}
-                            className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2.5 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[44px]"
                         >
                             <option value="">Unassigned</option>
                             {workspaceMembers.map(member => (
@@ -139,13 +139,13 @@ export function TaskDetailPanel({
                         <div className="flex gap-2">
                             <button
                                 onClick={handleSave}
-                                className="flex-1 px-3 py-2 bg-black text-white border-2 border-black rounded-none font-mono text-sm font-semibold"
+                                className="flex-1 px-3 py-2.5 bg-black text-white border-2 border-black rounded-none font-mono text-sm font-semibold min-h-[44px]"
                             >
                                 Save
                             </button>
                             <button
                                 onClick={() => setIsEditing(false)}
-                                className="flex-1 px-3 py-2 bg-white text-black border-2 border-black rounded-none font-mono text-sm font-semibold"
+                                className="flex-1 px-3 py-2.5 bg-white text-black border-2 border-black rounded-none font-mono text-sm font-semibold min-h-[44px]"
                             >
                                 Cancel
                             </button>
@@ -153,10 +153,10 @@ export function TaskDetailPanel({
                     </div>
                 ) : (
                     <div>
-                        <p className="font-mono text-black mb-3">{task.text}</p>
+                        <p className="font-mono text-black mb-3 text-sm sm:text-base">{task.text}</p>
                         <button
                             onClick={() => setIsEditing(true)}
-                            className="px-3 py-1 bg-white text-black border-2 border-black rounded-none font-mono text-sm font-semibold shadow-neo-btn hover:bg-gray-100"
+                            className="px-3 py-2 bg-white text-black border-2 border-black rounded-none font-mono text-sm font-semibold shadow-neo-btn hover:bg-gray-100 min-h-[44px]"
                         >
                             Edit Task
                         </button>
@@ -165,7 +165,7 @@ export function TaskDetailPanel({
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4">
                 {/* Linked entity */}
                 {linkedEntityName && task.crmItemId && (
                     <div className="bg-teal-50 border-2 border-teal-300 p-3">

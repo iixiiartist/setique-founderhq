@@ -30,6 +30,7 @@ import {
     useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Filter, X } from 'lucide-react';
 import { Tab, type TabType } from '../constants';
 import { Task, AppActions, TaskCollectionName, Priority, TaskStatus, AnyCrmItem, WorkspaceMember, CrmType } from '../types';
 import { logger } from '../lib/logger';
@@ -160,6 +161,7 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
     const [bulkSelectMode, setBulkSelectMode] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+    const [showMobileFilters, setShowMobileFilters] = useState(false);
     
     // Derive activeTask from allTasks to ensure it stays in sync with updates
     const activeTask = useMemo(() => {
@@ -376,9 +378,145 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
     // 7. RENDER
     return (
         <>
-        <div className="flex h-full bg-white">
-            {/* SIDEBAR */}
-            <aside className="w-64 border-r border-gray-200 p-4 flex flex-col gap-6 overflow-y-auto bg-gray-50/50">
+        <div className="flex h-full bg-white relative">
+            {/* Mobile Filter Toggle Button */}
+            <button
+                onClick={() => setShowMobileFilters(true)}
+                className="md:hidden fixed bottom-4 right-4 z-30 p-3 bg-black text-white rounded-full shadow-lg min-h-[48px] min-w-[48px] flex items-center justify-center"
+                aria-label="Open filters"
+            >
+                <Filter size={20} />
+            </button>
+
+            {/* Mobile Filter Overlay */}
+            {showMobileFilters && (
+                <div className="fixed inset-0 z-50 md:hidden">
+                    <div className="absolute inset-0 bg-black/40" onClick={() => setShowMobileFilters(false)} />
+                    <aside className="absolute left-0 top-0 h-full w-[280px] max-w-[85vw] bg-white shadow-xl flex flex-col animate-slideInLeft overflow-hidden">
+                        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                            <h2 className="font-semibold text-gray-900">Filters</h2>
+                            <button
+                                onClick={() => setShowMobileFilters(false)}
+                                className="p-2 hover:bg-gray-100 rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                            {/* Filter content - same as desktop sidebar */}
+                            <div className="space-y-2">
+                                <h3 className="text-xs font-medium text-gray-500 uppercase border-b border-gray-200 pb-1">Module</h3>
+                                <div className="space-y-1">
+                                    {[
+                                        { id: 'productsServicesTasks', label: 'Products & Services' },
+                                        { id: 'investorTasks', label: 'Investors' },
+                                        { id: 'customerTasks', label: 'Customers' },
+                                        { id: 'partnerTasks', label: 'Partners' },
+                                        { id: 'marketingTasks', label: 'Marketing' },
+                                        { id: 'financialTasks', label: 'Financials' }
+                                    ].map(category => (
+                                        <label key={category.id} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-100 p-2 rounded-md transition-colors min-h-[44px]">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedCategories.includes(category.id as TaskCategory)}
+                                                onChange={() => toggleCategory(category.id as TaskCategory)}
+                                                className="w-5 h-5 rounded border-gray-300 text-black focus:ring-black"
+                                            />
+                                            {category.label}
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <h3 className="text-xs font-medium text-gray-500 uppercase border-b border-gray-200 pb-1">Status</h3>
+                                <div className="space-y-1">
+                                    {[
+                                        { id: 'Todo', label: 'To Do' },
+                                        { id: 'InProgress', label: 'In Progress' },
+                                        { id: 'Done', label: 'Done' }
+                                    ].map(status => (
+                                        <label key={status.id} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-100 p-2 rounded-md transition-colors min-h-[44px]">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedStatuses.includes(status.id as TaskStatus)}
+                                                onChange={() => toggleStatus(status.id as TaskStatus)}
+                                                className="w-5 h-5 rounded border-gray-300 text-black focus:ring-black"
+                                            />
+                                            {status.label}
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <h3 className="text-xs font-medium text-gray-500 uppercase border-b border-gray-200 pb-1">Priority</h3>
+                                <div className="space-y-1">
+                                    {[
+                                        { id: 'High', label: 'High' },
+                                        { id: 'Medium', label: 'Medium' },
+                                        { id: 'Low', label: 'Low' }
+                                    ].map(priority => (
+                                        <label key={priority.id} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-100 p-2 rounded-md transition-colors min-h-[44px]">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedPriorities.includes(priority.id as Priority)}
+                                                onChange={() => togglePriority(priority.id as Priority)}
+                                                className="w-5 h-5 rounded border-gray-300 text-black focus:ring-black"
+                                            />
+                                            {priority.label}
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="space-y-2 pt-2 border-t border-gray-200">
+                                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-100 p-2 rounded-md transition-colors min-h-[44px]">
+                                    <input
+                                        type="checkbox"
+                                        checked={onlyMyTasks}
+                                        onChange={(e) => setOnlyMyTasks(e.target.checked)}
+                                        className="w-5 h-5 rounded border-gray-300 text-black focus:ring-black"
+                                    />
+                                    Assigned to me
+                                </label>
+                                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-100 p-2 rounded-md transition-colors min-h-[44px]">
+                                    <input
+                                        type="checkbox"
+                                        checked={highPriorityOnly}
+                                        onChange={(e) => setHighPriorityOnly(e.target.checked)}
+                                        className="w-5 h-5 rounded border-gray-300 text-black focus:ring-black"
+                                    />
+                                    High priority only
+                                </label>
+                            </div>
+                            <div className="pt-2">
+                                <input 
+                                    type="text"
+                                    placeholder="Search tasks..."
+                                    className="w-full text-sm border border-gray-300 rounded-md px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent bg-white"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        <div className="p-4 border-t border-gray-200 space-y-2">
+                            <button 
+                                onClick={() => { clearAllFilters(); setShowMobileFilters(false); }}
+                                className="w-full py-2.5 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 min-h-[44px]"
+                            >
+                                Clear all filters
+                            </button>
+                            <button 
+                                onClick={() => setShowMobileFilters(false)}
+                                className="w-full py-2.5 text-sm bg-black text-white rounded-md hover:bg-gray-800 min-h-[44px]"
+                            >
+                                Apply filters
+                            </button>
+                        </div>
+                    </aside>
+                </div>
+            )}
+
+            {/* SIDEBAR - Desktop only */}
+            <aside className="hidden md:flex w-64 border-r border-gray-200 p-4 flex-col gap-6 overflow-y-auto bg-gray-50/50">
                 <div className="flex justify-between items-center">
                     <h2 className="font-semibold text-gray-900">Filters</h2>
                     <button 
@@ -495,36 +633,36 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
             {/* MAIN CONTENT */}
             <div className="flex-1 flex flex-col min-w-0 bg-white">
                 {/* Stats Bar */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 border-b border-gray-200 bg-white">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 p-3 sm:p-4 border-b border-gray-200 bg-white">
                     <StatCard label="Total Tasks" value={totalCount} />
                     <StatCard label="Showing" value={filteredTasks.length} />
                     <StatCard label="To Do" value={todoCount} />
                     <StatCard label="Done" value={doneCount} />
                 </div>
 
-                <div className="border-b border-gray-200 bg-white px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-                    <div>
+                <div className="border-b border-gray-200 bg-white px-3 sm:px-4 py-2 sm:py-3 flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+                    <div className="hidden sm:block">
                         <p className="text-sm font-semibold text-gray-900">Working set</p>
                         <p className="text-xs text-gray-500">Filtered view out of {totalCount} total workspace tasks</p>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2 w-full sm:w-auto">
                         <button
                             onClick={() => setIsCreateModalOpen(true)}
                             data-testid="open-task-modal-button"
-                            className="text-sm font-medium px-4 py-2 bg-black text-white rounded-md shadow-sm hover:bg-gray-800 transition-colors"
+                            className="flex-1 sm:flex-none text-sm font-medium px-3 sm:px-4 py-2 bg-black text-white rounded-md shadow-sm hover:bg-gray-800 transition-colors min-h-[44px]"
                         >
                             + New task
                         </button>
                         <button
                             onClick={toggleBulkSelect}
-                            className={`text-sm font-medium px-4 py-2 rounded-md border shadow-sm transition-colors ${bulkSelectMode ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+                            className={`hidden sm:block text-sm font-medium px-4 py-2 rounded-md border shadow-sm transition-colors min-h-[44px] ${bulkSelectMode ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
                         >
                             {bulkSelectMode ? 'Bulk select enabled' : 'Enable bulk select'}
                         </button>
                         <button
                             onClick={clearSelection}
                             disabled={selectionCount === 0}
-                            className={`text-sm font-medium px-4 py-2 rounded-md border shadow-sm transition-colors ${selectionCount === 0 ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+                            className={`hidden sm:block text-sm font-medium px-4 py-2 rounded-md border shadow-sm transition-colors min-h-[44px] ${selectionCount === 0 ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
                         >
                             Clear selection ({selectionCount})
                         </button>
@@ -539,8 +677,8 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
                             onDragStart={handleDragStart} 
                             onDragEnd={handleDragEnd}
                         >
-                            <div className="h-full overflow-y-auto bg-gray-50">
-                                <div className="grid gap-4 p-4 lg:grid-cols-2 xl:grid-cols-3 auto-rows-min" style={{ gridAutoRows: 'minmax(0, 1fr)' }}>
+                            <div className="h-full overflow-y-auto bg-gray-50 pb-20 md:pb-4">
+                                <div className="grid gap-3 sm:gap-4 p-3 sm:p-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 auto-rows-min" style={{ gridAutoRows: 'minmax(0, 1fr)' }}>
                                     {STATUS_COLUMNS.map(column => (
                                         <TaskColumn
                                             key={column.id}
@@ -584,7 +722,7 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
 
         {activeTask && (
             <div className="fixed inset-0 z-40 flex justify-end bg-black/40">
-                <div className="h-full w-full max-w-2xl bg-white shadow-2xl">
+                <div className="h-full w-full md:max-w-2xl bg-white shadow-xl md:shadow-2xl">
                     <TaskDetailPanel
                         task={activeTask}
                         actions={actions}
