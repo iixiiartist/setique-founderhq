@@ -122,7 +122,7 @@ serve(async (req) => {
     // Build tools based on options
     // Default to allowing write operations unless explicitly disabled in room settings
     const aiCanWrite = room.settings?.ai_can_write !== false;
-    const tools = buildTools(tool_options, aiCanWrite);
+    const tools = buildTools(tool_options, aiCanWrite, youComApiKey);
     console.log('AI Run - Room:', room.name, 'AI can write:', aiCanWrite, 'Tools available:', tools.map((t: any) => t.function?.name));
 
     // First, post the user's prompt as a message
@@ -510,8 +510,89 @@ async function buildContext(
           }, {});
           context.workspaceData.pipeline = pipelineSummary;
           break;
+
+        case 'forms':
+          // Get recent forms with submission counts
+          const { data: forms } = await supabaseUser
+            .from('forms')
+            .select('id, title, type, status, created_at, submissions_count')
+            .eq('workspace_id', workspace_id)
+            .order('created_at', { ascending: false })
+            .limit(10);
+          
+          // Get recent form submissions with form title
+          const { data: formSubmissions } = await supabaseUser
+            .from('form_submissions')
+            .select(`
+              id, data, email, status, created_at, completed_at,
+              form:forms!inner(id, title, type)
+            `)
+            .eq('workspace_id', workspace_id)
+            .eq('status', 'completed')
+            .order('created_at', { ascending: false })
+            .limit(20);
+          
+          context.workspaceData.forms = forms;
+          context.workspaceData.formSubmissions = formSubmissions;
+          break;
+
+        case 'documents':
+          // Get recent GTM documents
+          const { data: documents } = await supabaseUser
+            .from('gtm_documents')
+            .select('id, title, doc_type, created_at, updated_at')
+            .eq('workspace_id', workspace_id)
+            .order('updated_at', { ascending: false })
+            .limit(15);
+          
+          context.workspaceData.documents = documents;
+          break;
       }
     }
+  }
+
+  // Handle specific selected items if provided
+  if (options.selected_forms?.length) {
+    const { data: selectedForms } = await supabaseUser
+      .from('forms')
+      .select('id, title, type, status')
+      .eq('workspace_id', workspace_id)
+      .in('id', options.selected_forms);
+    
+    // Get submissions for selected forms
+    const { data: selectedSubmissions } = await supabaseUser
+      .from('form_submissions')
+      .select('id, form_id, data, email, status, created_at')
+      .eq('workspace_id', workspace_id)
+      .in('form_id', options.selected_forms)
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false })
+      .limit(50);
+    
+    context.selectedForms = selectedForms;
+    context.selectedFormSubmissions = selectedSubmissions;
+  }
+
+  if (options.selected_documents?.length) {
+    // Get full document content for selected documents
+    const { data: selectedDocs } = await supabaseUser
+      .from('gtm_documents')
+      .select('id, title, doc_type, content, created_at, updated_at')
+      .eq('workspace_id', workspace_id)
+      .in('id', options.selected_documents);
+    
+    context.selectedDocuments = selectedDocs;
+  }
+
+  if (options.selected_files?.length) {
+    // Get file metadata from documents_metadata table
+    const { data: selectedFiles } = await supabaseUser
+      .from('documents_metadata')
+      .select('id, name, file_type, file_size, description, created_at')
+      .eq('workspace_id', workspace_id)
+      .in('id', options.selected_files);
+    
+    context.selectedFiles = selectedFiles;
   }
 
   // Web research via You.com
@@ -608,6 +689,76 @@ Guidelines:
         prompt += `- ${c.name}${c.title ? ` (${c.title})` : ''}${c.company ? ` at ${c.company}` : ''}\n`;
       });
     }
+
+    if (context.workspaceData.forms?.length) {
+      prompt += `\nForms (${context.workspaceData.forms.length}):\n`;
+      context.workspaceData.forms.slice(0, 5).forEach((f: any) => {
+        prompt += `- ${f.title} [${f.type}/${f.status}] - ${f.submissions_count || 0} submissions\n`;
+      });
+    }
+
+    if (context.workspaceData.formSubmissions?.length) {
+      prompt += `\nRecent Form Submissions (${context.workspaceData.formSubmissions.length}):\n`;
+      context.workspaceData.formSubmissions.slice(0, 10).forEach((s: any) => {
+        const formTitle = s.form?.title || 'Unknown Form';
+        const submittedAt = s.completed_at ? new Date(s.completed_at).toLocaleDateString() : 'N/A';
+        const email = s.email || 'Anonymous';
+        // Summarize key data fields
+        const dataKeys = Object.keys(s.data || {}).slice(0, 3);
+        const dataSummary = dataKeys.length > 0 ? ` (${dataKeys.join(', ')})` : '';
+        prompt += `- ${formTitle}: ${email} on ${submittedAt}${dataSummary}\n`;
+      });
+    }
+
+    if (context.workspaceData.documents?.length) {
+      prompt += `\nGTM Documents (${context.workspaceData.documents.length}):\n`;
+      context.workspaceData.documents.slice(0, 8).forEach((d: any) => {
+        const updatedAt = d.updated_at ? new Date(d.updated_at).toLocaleDateString() : '';
+        prompt += `- ${d.title} [${d.doc_type}]${updatedAt ? ` - Updated: ${updatedAt}` : ''}\n`;
+      });
+    }
+  }
+
+  // Add selected items context (more detailed since user specifically chose them)
+  if (context.selectedForms?.length || context.selectedFormSubmissions?.length) {
+    prompt += `\n\nSelected Forms Context:\n`;
+    
+    if (context.selectedForms?.length) {
+      prompt += `Forms:\n`;
+      context.selectedForms.forEach((f: any) => {
+        prompt += `- ${f.title} (${f.type}, ${f.status})\n`;
+      });
+    }
+    
+    if (context.selectedFormSubmissions?.length) {
+      prompt += `\nSubmissions Data:\n`;
+      context.selectedFormSubmissions.forEach((s: any) => {
+        prompt += `\nSubmission from ${s.email || 'Anonymous'} (${new Date(s.created_at).toLocaleDateString()}):\n`;
+        // Include all submission data since user specifically selected this
+        for (const [key, value] of Object.entries(s.data || {})) {
+          prompt += `  - ${key}: ${JSON.stringify(value)}\n`;
+        }
+      });
+    }
+  }
+
+  if (context.selectedDocuments?.length) {
+    prompt += `\n\nSelected Documents:\n`;
+    context.selectedDocuments.forEach((d: any) => {
+      prompt += `\n--- ${d.title} (${d.doc_type}) ---\n`;
+      // Include document content (truncated if too long)
+      const content = d.content?.substring(0, 3000) || '';
+      prompt += `${content}${d.content?.length > 3000 ? '\n[Content truncated...]' : ''}\n`;
+    });
+  }
+
+  if (context.selectedFiles?.length) {
+    prompt += `\n\nSelected Files:\n`;
+    context.selectedFiles.forEach((f: any) => {
+      prompt += `- ${f.name} (${f.file_type}, ${f.file_size ? Math.round(f.file_size / 1024) + 'KB' : 'unknown size'})`;
+      if (f.description) prompt += ` - ${f.description}`;
+      prompt += `\n`;
+    });
   }
 
   if (context.webSources?.length > 0) {
@@ -622,7 +773,7 @@ Guidelines:
 }
 
 // Build available tools
-function buildTools(options: AIRunRequest['tool_options'], aiCanWrite: boolean): any[] {
+function buildTools(options: AIRunRequest['tool_options'], aiCanWrite: boolean, youComApiKey?: string): any[] {
   const tools: any[] = [];
 
   // Only add write tools if room allows and user requested
@@ -830,7 +981,8 @@ function buildTools(options: AIRunRequest['tool_options'], aiCanWrite: boolean):
     }
   }
 
-  if (options.allow_web_search) {
+  // Only add web_search tool if the API key is configured
+  if (options.allow_web_search && youComApiKey) {
     tools.push({
       type: 'function',
       function: {
