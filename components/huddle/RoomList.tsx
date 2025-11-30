@@ -56,7 +56,7 @@ export const RoomList: React.FC<RoomListProps> = ({
         >
           <span className="flex items-center gap-1">
             <span className={`transform transition-transform ${expandedSections.channels ? 'rotate-90' : ''}`}>
-              ▶
+              ?
             </span>
             Channels
           </span>
@@ -90,7 +90,7 @@ export const RoomList: React.FC<RoomListProps> = ({
         >
           <span className="flex items-center gap-1">
             <span className={`transform transition-transform ${expandedSections.dms ? 'rotate-90' : ''}`}>
-              ▶
+              ?
             </span>
             Direct Messages
           </span>
@@ -103,7 +103,7 @@ export const RoomList: React.FC<RoomListProps> = ({
               onClick={onNewDM}
               className="w-full px-4 py-2 text-left text-sm text-purple-600 hover:bg-purple-50 flex items-center gap-2"
             >
-              <span>➕</span>
+              <span>??</span>
               New Message
             </button>
             {dms.map(room => (
@@ -156,7 +156,7 @@ const RoomItem: React.FC<RoomItemProps> = ({ room, isActive, unreadCount, onClic
     if (isChannel) return null;
     
     const members = room.members || [];
-    const firstMember = members[0];
+    const firstMember = members.find(m => m.user_id !== undefined);
     if (firstMember?.user?.avatar_url) {
       return (
         <img
@@ -168,7 +168,7 @@ const RoomItem: React.FC<RoomItemProps> = ({ room, isActive, unreadCount, onClic
     }
     return (
       <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center text-xs font-bold">
-        {(firstMember?.user?.name || '?')[0].toUpperCase()}
+        {(firstMember?.user?.name || room.name || '?')[0].toUpperCase()}
       </div>
     );
   };
@@ -185,7 +185,7 @@ const RoomItem: React.FC<RoomItemProps> = ({ room, isActive, unreadCount, onClic
       {/* Icon/Avatar */}
       {isChannel ? (
         <span className="text-gray-500">
-          {room.is_private ? '🔒' : '#'}
+          {room.is_private ? '??' : '#'}
         </span>
       ) : (
         getAvatar()
@@ -205,7 +205,7 @@ const RoomItem: React.FC<RoomItemProps> = ({ room, isActive, unreadCount, onClic
       
       {/* AI enabled indicator */}
       {room.settings?.ai_allowed && (
-        <span className="text-xs opacity-50" title="AI enabled">🤖</span>
+        <span className="text-xs opacity-50" title="AI enabled">?</span>
       )}
     </button>
   );

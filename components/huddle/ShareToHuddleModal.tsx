@@ -55,7 +55,7 @@ export const ShareToHuddleModal: React.FC<ShareToHuddleModalProps> = ({
     
     // Add type-specific details
     if (p.type === 'calendar_event' && p.preview?.snippet) {
-      msg += `\n\n📅 ${p.preview.snippet}`;
+      msg += `\n\n?? ${p.preview.snippet}`;
     }
     
     return msg;
@@ -64,14 +64,14 @@ export const ShareToHuddleModal: React.FC<ShareToHuddleModalProps> = ({
   // Get emoji for type
   const getTypeEmoji = (type: string): string => {
     switch (type) {
-      case 'task': return '✅';
-      case 'contact': return '👤';
-      case 'deal': return '💰';
-      case 'document': return '📄';
-      case 'form': return '📋';
-      case 'file': return '📎';
-      case 'calendar_event': return '📅';
-      default: return '📌';
+      case 'task': return '??';
+      case 'contact': return '??';
+      case 'deal': return '??';
+      case 'document': return '??';
+      case 'form': return '??';
+      case 'file': return '??';
+      case 'calendar_event': return '??';
+      default: return '??';
     }
   };
 
@@ -100,11 +100,7 @@ export const ShareToHuddleModal: React.FC<ShareToHuddleModalProps> = ({
       const linked_entities: HuddleLinkedEntities = {};
       const key = payload.type === 'calendar_event' ? 'tasks' : `${payload.type}s` as keyof HuddleLinkedEntities;
       
-      // Handle different types - calendar_event maps to tasks or a special field
-      if (payload.type === 'calendar_event') {
-        // Store calendar events in metadata via mentions or a custom field
-        // For now, we'll include in the message text
-      } else {
+      if (payload.type !== 'calendar_event') {
         linked_entities[key] = [payload.id];
       }
       
@@ -115,9 +111,6 @@ export const ShareToHuddleModal: React.FC<ShareToHuddleModalProps> = ({
         body_format: 'markdown',
         linked_entities: Object.keys(linked_entities).length > 0 ? linked_entities : undefined,
       });
-      
-      // If ask AI is enabled, we could trigger an AI run
-      // For now, just close the modal - AI can be invoked from the chat
       
       onSuccess?.();
       onClose();
@@ -147,7 +140,7 @@ export const ShareToHuddleModal: React.FC<ShareToHuddleModalProps> = ({
           {/* Header */}
           <div className="px-6 py-4 border-b-2 border-black bg-gradient-to-r from-purple-500 to-indigo-600">
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <span>💬</span>
+              <span>Share</span>
               Share to Huddle
             </h2>
             <p className="text-purple-100 text-sm mt-1">
@@ -198,11 +191,11 @@ export const ShareToHuddleModal: React.FC<ShareToHuddleModalProps> = ({
                       }`}
                     >
                       <span className="text-gray-500">
-                        {room.is_private ? '🔒' : '#'}
+                        {room.is_private ? '??' : '#'}
                       </span>
                       <span className="font-medium text-gray-900">{room.name}</span>
                       {selectedRoomId === room.id && (
-                        <span className="ml-auto text-purple-600">✓</span>
+                        <span className="ml-auto text-purple-600">?</span>
                       )}
                     </button>
                   ))}
@@ -227,7 +220,7 @@ export const ShareToHuddleModal: React.FC<ShareToHuddleModalProps> = ({
             {/* Ask AI toggle */}
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
               <div className="flex items-center gap-3">
-                <span className="text-lg">🤖</span>
+                <span className="text-lg">AI</span>
                 <div>
                   <div className="text-sm font-medium text-gray-900">
                     Ask AI about this
@@ -287,7 +280,7 @@ export const ShareToHuddleModal: React.FC<ShareToHuddleModalProps> = ({
                 </>
               ) : (
                 <>
-                  <span>💬</span>
+                  <span>Share</span>
                   Share to Huddle
                 </>
               )}

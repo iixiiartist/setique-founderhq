@@ -42,7 +42,7 @@ export function useShareToHuddle(): UseShareToHuddleReturn {
       title: task.text, // Task uses 'text' not 'title'
       description: undefined,
       preview: {
-        snippet: task.status ? `Status: ${task.status} • Priority: ${task.priority}` : undefined,
+        snippet: task.status ? `Status: ${task.status} | Priority: ${task.priority}` : undefined,
       },
     });
   }, [openShareModal]);
@@ -69,7 +69,7 @@ export function useShareToHuddle(): UseShareToHuddleReturn {
       title: deal.title || deal.name || 'Deal',
       description: deal.description || undefined,
       preview: {
-        snippet: [deal.stage, valueStr].filter(Boolean).join(' • ') || undefined,
+        snippet: [deal.stage, valueStr].filter(Boolean).join(' | ') || undefined,
       },
     });
   }, [openShareModal]);
@@ -118,30 +118,20 @@ export function useShareToHuddle(): UseShareToHuddleReturn {
     }) : '';
 
     // Get title - different properties depending on event type
-    let title = '';
-    let description: string | undefined;
-    
-    if (event.type === 'task') {
-      title = event.title || event.text || 'Task';
-    } else if (event.type === 'meeting') {
-      title = event.title || 'Meeting';
-      description = event.companyName ? `with ${event.companyName}` : undefined;
-    } else if (event.type === 'marketing') {
-      title = event.title || 'Marketing Event';
-    } else if (event.type === 'crm-action') {
-      title = event.title || event.nextAction || 'CRM Action';
-      description = event.companyName || undefined;
-    }
+    const title = (event as any).title || (event as any).name || 'Calendar Event';
 
     openShareModal({
       type: 'calendar_event',
       id: event.id,
       title,
-      description,
-      startTime: event.dueDate,
+      description: event.description || undefined,
       preview: {
-        snippet: dateStr || undefined,
+        snippet: [dateStr, event.location].filter(Boolean).join(' | '),
       },
+      startTime: (event as any).start || undefined,
+      endTime: (event as any).end || undefined,
+      location: event.location || undefined,
+      attendees: (event as any).attendees || undefined,
     });
   }, [openShareModal]);
 

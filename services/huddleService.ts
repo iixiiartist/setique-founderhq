@@ -128,10 +128,20 @@ export async function getOrCreateDMRoom(workspaceId: string, userIds: string[]):
 }
 
 export async function updateRoomSettings(roomId: string, settings: Partial<HuddleRoomSettings>): Promise<{ error: any }> {
+  const { data: room, error: loadError } = await supabase
+    .from('huddle_rooms')
+    .select('settings')
+    .eq('id', roomId)
+    .single();
+
+  if (loadError) return { error: loadError };
+
+  const mergedSettings = { ...(room?.settings || {}), ...settings };
+
   const { error } = await supabase
     .from('huddle_rooms')
     .update({
-      settings: supabase.rpc('jsonb_merge', { target: 'settings', patch: settings }),
+      settings: mergedSettings,
       updated_at: new Date().toISOString(),
     })
     .eq('id', roomId);
@@ -251,45 +261,32 @@ export async function getRoomMessages(
 }
 
 export async function sendMessage(request: SendMessageRequest): Promise<{ data: HuddleMessage | null; error: any }> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { data: null, error: { message: 'Not authenticated' } };
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return { data: null, error: { message: 'Not authenticated' } };
 
-  // Get workspace_id from room
-  const { data: room } = await supabase
-    .from('huddle_rooms')
-    .select('workspace_id')
-    .eq('id', request.room_id)
-    .single();
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/huddle-send`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      }
+    );
 
-  if (!room) return { data: null, error: { message: 'Room not found' } };
+    if (!response.ok) {
+      const errorText = await response.text();
+      return { data: null, error: { message: errorText || 'Failed to send message' } };
+    }
 
-  const metadata: Record<string, any> = {};
-  if (request.linked_entities && Object.keys(request.linked_entities).length > 0) {
-    metadata.linked_entities = request.linked_entities;
+    const payload = await response.json();
+    return { data: payload.message || null, error: null };
+  } catch (error: any) {
+    return { data: null, error: { message: error.message } };
   }
-  if (request.mentions && request.mentions.length > 0) {
-    metadata.mentions = request.mentions;
-  }
-
-  const { data, error } = await supabase
-    .from('huddle_messages')
-    .insert({
-      room_id: request.room_id,
-      workspace_id: room.workspace_id,
-      user_id: user.id,
-      body: request.body.trim(),
-      body_format: request.body_format || 'markdown',
-      thread_root_id: request.thread_root_id || null,
-      attachments: request.attachments || [],
-      metadata: Object.keys(metadata).length > 0 ? metadata : null,
-    })
-    .select(`
-      *,
-      user:profiles!huddle_messages_user_id_fkey(id, name, avatar_url)
-    `)
-    .single();
-
-  return { data, error };
 }
 
 export async function editMessage(messageId: string, newBody: string): Promise<{ error: any }> {

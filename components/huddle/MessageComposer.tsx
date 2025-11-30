@@ -141,12 +141,12 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
 
   const getEntityIcon = (type: string) => {
     switch (type) {
-      case 'task': return '✅';
-      case 'contact': return '👤';
-      case 'deal': return '💰';
-      case 'document': return '📄';
-      case 'form': return '📋';
-      default: return '📎';
+      case 'task': return 'task';
+      case 'contact': return 'contact';
+      case 'deal': return 'deal';
+      case 'document': return 'doc';
+      case 'form': return 'form';
+      default: return 'file';
     }
   };
 
@@ -156,14 +156,14 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
       {replyingTo && (
         <div className="px-4 py-2 bg-purple-50 border-b border-purple-100 flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-purple-600">↩️ Replying to:</span>
+            <span className="text-purple-600">Replying to:</span>
             <span className="text-gray-600 truncate max-w-[300px]">{replyingTo.preview}</span>
           </div>
           <button
             onClick={onCancelReply}
             className="text-gray-400 hover:text-gray-600 p-1"
           >
-            ✕
+            X
           </button>
         </div>
       )}
@@ -183,7 +183,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
                   />
                 ) : (
                   <div className="w-16 h-16 bg-gray-100 rounded-lg border border-gray-200 flex flex-col items-center justify-center p-1">
-                    <span className="text-lg">📎</span>
+                    <span className="text-lg">clip</span>
                     <span className="text-xs text-gray-500 truncate w-full text-center">
                       {file.name.split('.').pop()}
                     </span>
@@ -193,7 +193,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
                   onClick={() => removeAttachment(index)}
                   className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity"
                 >
-                  ✕
+                  ?
                 </button>
               </div>
             );
@@ -215,7 +215,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
                 onClick={() => removeLinkedEntity(index)}
                 className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
               >
-                ✕
+                ?
               </button>
             </div>
           ))}
@@ -241,7 +241,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
               title="Attach file"
               disabled={disabled || isUploading}
             >
-              📎
+              clip
             </button>
           </div>
 
@@ -285,7 +285,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
                 className="p-2 text-purple-500 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors"
                 title="Ask AI"
               >
-                🤖
+                AI
               </button>
             )}
 
@@ -296,7 +296,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
               className="p-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
               title="Send (Enter)"
             >
-              ➤
+              Send
             </button>
           </div>
         </div>

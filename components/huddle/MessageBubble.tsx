@@ -1,7 +1,7 @@
 // components/huddle/MessageBubble.tsx
 // Individual message display with reactions, thread replies, and actions
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { HuddleMessage } from '../../types/huddle';
 
 interface MessageBubbleProps {
@@ -14,7 +14,7 @@ interface MessageBubbleProps {
   isThreadView?: boolean;
 }
 
-const QUICK_REACTIONS = ['👍', '❤️', '😄', '🎉', '🤔', '👀'];
+const QUICK_REACTIONS = ['??', '??', '??', '??', '??', '??'];
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
@@ -28,7 +28,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   const [showActions, setShowActions] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   
-  // Use correct property names from HuddleMessage type
   const isOwnMessage = message.user_id === currentUserId;
   const isAIMessage = message.is_ai;
   const hasAttachments = message.attachments && message.attachments.length > 0;
@@ -37,14 +36,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   const hasThreadReplies = message.reply_count > 0;
   const isEdited = !!message.edited_at;
 
-  // Format timestamp
   const formatTime = (date: string) => {
     const d = new Date(date);
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Group reactions by emoji
-  const groupedReactions = React.useMemo(() => {
+  const groupedReactions = useMemo(() => {
     if (!message.reactions) return [];
     
     const groups: Record<string, { emoji: string; count: number; userIds: string[]; hasOwn: boolean }> = {};
@@ -63,33 +60,45 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     return Object.values(groups);
   }, [message.reactions, currentUserId]);
 
-  // Render message content with markdown-like formatting
+  // Escape HTML to prevent XSS before applying lightweight markdown
+  const escapeHtml = (value: string) =>
+    value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+
+  // Render message content with simple markdown, keeping HTML escaped
   const renderContent = (content: string) => {
-    // Simple markdown: **bold**, *italic*, `code`, ```codeblock```
-    let formatted = content
+    const escaped = escapeHtml(content);
+
+    // Handle code blocks first to avoid interfering with inline formatting
+    const codeBlockPattern = /```(\w+)?\n?([\s\S]*?)```/g;
+    const withBlocks = escaped.replace(
+      codeBlockPattern,
+      (_match, _lang, code) =>
+        `<pre class="bg-gray-900 text-gray-100 p-3 rounded-lg mt-2 overflow-x-auto text-sm"><code>${code}</code></pre>`
+    );
+
+    // Apply inline markdown
+    const withInline = withBlocks
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
       .replace(/`(.+?)`/g, '<code class="bg-gray-100 px-1 rounded text-sm">$1</code>')
       .replace(/\n/g, '<br/>');
-    
-    // Handle code blocks
-    formatted = formatted.replace(
-      /```(\w+)?\n?([\s\S]*?)```/g,
-      '<pre class="bg-gray-900 text-gray-100 p-3 rounded-lg mt-2 overflow-x-auto text-sm"><code>$2</code></pre>'
-    );
-    
-    return <div dangerouslySetInnerHTML={{ __html: formatted }} />;
+
+    return <div dangerouslySetInnerHTML={{ __html: withInline }} />;
   };
 
-  // Get linked entity display
   const getEntityIcon = (type: string) => {
     switch (type) {
-      case 'task': return '✅';
-      case 'contact': return '👤';
-      case 'deal': return '💰';
-      case 'document': return '📄';
-      case 'form': return '📋';
-      default: return '📎';
+      case 'task': return '??';
+      case 'contact': return '??';
+      case 'deal': return '??';
+      case 'document': return '??';
+      case 'form': return '??';
+      default: return '??';
     }
   };
 
@@ -148,7 +157,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           {hasLinkedEntities && message.metadata?.linked_entities && (
             <div className="mt-2 flex flex-wrap gap-2">
               {Object.entries(message.metadata.linked_entities).map(([type, ids]) => 
-                ids?.map((id, i) => (
+                ids?.map((id) => (
                   <a
                     key={`${type}-${id}`}
                     href="#"
@@ -181,7 +190,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                     />
                   ) : (
                     <>
-                      <span>📎</span>
+                      <span>??</span>
                       <span className="text-gray-700">{file.name}</span>
                       {file.size && (
                         <span className="text-gray-400 text-xs">
@@ -221,7 +230,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               onClick={onReply}
               className="mt-2 text-sm text-purple-600 hover:text-purple-700 hover:underline flex items-center gap-1"
             >
-              <span>💬</span>
+              <span>??</span>
               <span>{message.reply_count} {message.reply_count === 1 ? 'reply' : 'replies'}</span>
             </button>
           )}
@@ -238,7 +247,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               className="p-1.5 hover:bg-gray-100 rounded transition-colors"
               title="Add reaction"
             >
-              😀
+              ??
             </button>
             
             {/* Quick reaction picker */}
@@ -267,7 +276,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               className="p-1.5 hover:bg-gray-100 rounded transition-colors"
               title="Reply in thread"
             >
-              💬
+              ??
             </button>
           )}
           
@@ -278,7 +287,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               className="p-1.5 hover:bg-gray-100 rounded transition-colors"
               title="Edit"
             >
-              ✏️
+              ??
             </button>
           )}
           
@@ -289,7 +298,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               className="p-1.5 hover:bg-red-100 rounded transition-colors text-red-500"
               title="Delete"
             >
-              🗑️
+              ???
             </button>
           )}
         </div>

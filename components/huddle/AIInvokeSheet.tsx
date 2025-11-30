@@ -20,12 +20,12 @@ interface AIInvokeSheetProps {
 
 // Available context sources
 const CONTEXT_SOURCES = [
-  { id: 'tasks', label: 'Tasks', icon: '✅', description: 'Include recent tasks' },
-  { id: 'contacts', label: 'Contacts', icon: '👤', description: 'Include CRM contacts' },
-  { id: 'deals', label: 'Deals', icon: '💰', description: 'Include deal pipeline' },
-  { id: 'documents', label: 'Documents', icon: '📄', description: 'Include GTM docs' },
-  { id: 'forms', label: 'Forms', icon: '📋', description: 'Include form responses' },
-  { id: 'messages', label: 'Recent Messages', icon: '💬', description: 'Include chat history' },
+  { id: 'tasks', label: 'Tasks', icon: 'task', description: 'Include recent tasks' },
+  { id: 'contacts', label: 'Contacts', icon: 'contact', description: 'Include CRM contacts' },
+  { id: 'deals', label: 'Deals', icon: 'deal', description: 'Include deal pipeline' },
+  { id: 'documents', label: 'Documents', icon: 'doc', description: 'Include GTM docs' },
+  { id: 'forms', label: 'Forms', icon: 'form', description: 'Include form responses' },
+  { id: 'messages', label: 'Recent Messages', icon: 'chat', description: 'Include chat history' },
 ];
 
 export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
@@ -113,7 +113,7 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
-            ✕
+            X
           </button>
         </div>
 
@@ -156,7 +156,7 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
                       : 'border-gray-200 hover:border-gray-300 bg-white'
                   } disabled:opacity-50`}
                 >
-                  <span className="text-lg">{source.icon}</span>
+                  <span className="text-xs uppercase text-gray-500">{source.icon}</span>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-gray-900">
                       {source.label}
@@ -166,7 +166,7 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
                     </div>
                   </div>
                   {isContextSelected(source.id) && (
-                    <span className="text-purple-600">✓</span>
+                    <span className="text-purple-600">?</span>
                   )}
                 </button>
               ))}
@@ -176,7 +176,7 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
           {/* Web search toggle */}
           <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
             <div className="flex items-center gap-3">
-              <span className="text-xl">🌐</span>
+              <span className="text-xl">WWW</span>
               <div>
                 <div className="text-sm font-medium text-gray-900">
                   Web Search
@@ -269,7 +269,7 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
                 </>
               ) : (
                 <>
-                  <span>🤖</span>
+                  <span>AI</span>
                   Ask AI
                 </>
               )}
