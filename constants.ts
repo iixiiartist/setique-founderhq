@@ -4,6 +4,7 @@ export const Tab = {
     Dashboard: 'dashboard',
     Calendar: 'calendar',
     Tasks: 'tasks', // NEW: Unified task management
+    Huddle: 'huddle', // Team chat with AI integration
     ProductsServices: 'products-services',
     Accounts: 'accounts', // Unified CRM view
     Investors: 'investor-crm',
@@ -15,6 +16,7 @@ export const Tab = {
     Documents: 'documents',
     Email: 'email',
     Agents: 'agents', // AI Agents tab
+    Forms: 'forms', // Forms engine
     Settings: 'settings',
     Admin: 'admin',
 } as const;
@@ -29,6 +31,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
     { id: Tab.Dashboard, label: 'Dashboard' },
     { id: Tab.Calendar, label: 'Calendar' },
+    { id: Tab.Huddle, label: 'Huddle' },
     { id: Tab.Email, label: 'Email' },
     { id: Tab.Tasks, label: 'Tasks' }, // NEW: Unified task management
     { id: Tab.ProductsServices, label: 'Products & Services' },
@@ -40,6 +43,7 @@ export const NAV_ITEMS: NavItem[] = [
     { id: Tab.Financials, label: 'Financials' },
     { id: Tab.Workspace, label: 'GTM Docs' },
     { id: Tab.Documents, label: 'File Library' },
+    { id: Tab.Forms, label: 'Forms' },
     { id: Tab.Agents, label: 'AI Agents' },
     { id: Tab.Settings, label: 'Settings' },
     { id: Tab.Admin, label: '🔐 Admin' },

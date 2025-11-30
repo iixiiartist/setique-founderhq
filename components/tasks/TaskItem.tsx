@@ -6,7 +6,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Task, AppActions, TaskCollectionName, TaskStatus, Priority } from '../../types';
 import { TASK_TAG_BG_COLORS } from '../../constants';
-import { Trash2 } from 'lucide-react';
+import { Trash2, MessageSquare, Share2 } from 'lucide-react';
 
 interface TaskItemProps {
     task: Task;
@@ -18,6 +18,7 @@ interface TaskItemProps {
     linkedEntityName: string | null;
     onLinkedEntityNavigate?: (task: Task) => void;
     onCategoryNavigate?: (task: Task) => void;
+    onShareToHuddle?: (task: Task) => void;
 }
 
 const MODULE_LABELS: Record<TaskCollectionName, string> = {
@@ -53,7 +54,8 @@ export function TaskItem({
     actions,
     linkedEntityName,
     onLinkedEntityNavigate,
-    onCategoryNavigate
+    onCategoryNavigate,
+    onShareToHuddle
 }: TaskItemProps) {
     const moduleLabel = MODULE_LABELS[task.category as TaskCollectionName] || 'Task';
     const tagColorClass = TASK_TAG_BG_COLORS[moduleLabel] || 'bg-gray-300';
@@ -322,6 +324,20 @@ export function TaskItem({
                             >
                                 View details
                             </button>
+                            {onShareToHuddle && (
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onShareToHuddle(task);
+                                    }}
+                                    data-testid="task-share-huddle-button"
+                                    className="px-2 py-1 border border-purple-200 text-purple-600 hover:bg-purple-50 hover:border-purple-400"
+                                    title="Share to Huddle"
+                                >
+                                    <Share2 size={14} />
+                                </button>
+                            )}
                             <button
                                 type="button"
                                 onClick={async (e) => {

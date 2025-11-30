@@ -29,6 +29,7 @@ const EmailTab = lazy(() => import('./components/EmailTab'));
 const TasksTab = lazy(() => import('./components/TasksTab'));
 const WorkspaceTab = lazy(() => import('./components/workspace/WorkspaceTab'));
 const AgentsTab = lazy(() => import('./components/agents/AgentsTab')); // AI Agents
+const HuddleTab = lazy(() => import('./components/huddle/HuddleTab')); // Team chat with AI
 import { BusinessProfileSetup } from './components/BusinessProfileSetup';
 import { AcceptInviteNotification } from './components/shared/AcceptInviteNotification';
 import { NotificationBell } from './components/shared/NotificationBell';
@@ -2689,6 +2690,14 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                     <Suspense fallback={<TabLoadingFallback />}>
                         <AgentsTab actions={actions} />
                     </Suspense>
+                );
+            case Tab.Huddle:
+                return (
+                    <SectionBoundary sectionName="Huddle">
+                        <Suspense fallback={<TabLoadingFallback />}>
+                            <HuddleTab />
+                        </Suspense>
+                    </SectionBoundary>
                 );
             case Tab.Settings:
                 return (

@@ -36,6 +36,8 @@ import { logger } from '../lib/logger';
 import { TaskItem } from './tasks/TaskItem';
 import { TaskCreationModal } from './tasks/TaskCreationModal';
 import { TaskDetailPanel } from './tasks/TaskDetailPanel';
+import { useShareToHuddle } from '../hooks/useShareToHuddle';
+import { ShareToHuddleModal } from './huddle/ShareToHuddleModal';
 
 // Ensure these match your DB values exactly
 type TaskCategory = TaskCollectionName;
@@ -116,6 +118,9 @@ interface TasksTabProps {
 }
 
 export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateToTab }: TasksTabProps) {
+    // Share to Huddle hook
+    const { isOpen: isShareHuddleOpen, payload: shareHuddlePayload, shareTask, closeShareModal: closeShareHuddle } = useShareToHuddle();
+
     // 1. FLATTEN DATA IMMEDIATELY - Single source of truth
     const allTasks: Task[] = useMemo(() => {
         const tasks = [
@@ -549,6 +554,7 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
                                             getLinkedEntityName={getLinkedEntityName}
                                             onLinkedEntityNavigate={handleLinkedEntityNavigate}
                                             onCategoryNavigate={handleOpenTaskModule}
+                                            onShareToHuddle={shareTask}
                                         />
                                     ))}
                                 </div>
@@ -599,6 +605,13 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
                 crmItems={data.crmItems || []}
             />
         )}
+
+        {/* Share to Huddle Modal */}
+        <ShareToHuddleModal
+            isOpen={isShareHuddleOpen}
+            onClose={closeShareHuddle}
+            payload={shareHuddlePayload}
+        />
         </>
     );
 }
@@ -625,6 +638,7 @@ interface TaskColumnProps {
     getLinkedEntityName: (task: Task) => string | null;
     onLinkedEntityNavigate: (task: Task) => void;
     onCategoryNavigate: (task: Task) => void;
+    onShareToHuddle: (task: Task) => void;
 }
 
 function TaskColumn({
@@ -637,7 +651,8 @@ function TaskColumn({
     actions,
     getLinkedEntityName,
     onLinkedEntityNavigate,
-    onCategoryNavigate
+    onCategoryNavigate,
+    onShareToHuddle
 }: TaskColumnProps) {
     const { setNodeRef } = useDroppable({
         id: column.id,
@@ -669,6 +684,7 @@ function TaskColumn({
                             getLinkedEntityName={getLinkedEntityName}
                             onLinkedEntityNavigate={onLinkedEntityNavigate}
                             onCategoryNavigate={onCategoryNavigate}
+                            onShareToHuddle={onShareToHuddle}
                         />
                     ) : (
                         <p className="text-xs text-gray-400 italic p-4">{column.emptyMessage}</p>
@@ -689,6 +705,7 @@ interface TaskColumnListProps {
     getLinkedEntityName: (task: Task) => string | null;
     onLinkedEntityNavigate: (task: Task) => void;
     onCategoryNavigate: (task: Task) => void;
+    onShareToHuddle: (task: Task) => void;
 }
 
 function TaskColumnList(props: TaskColumnListProps) {
@@ -707,7 +724,8 @@ const StaticTaskList = ({
     actions,
     getLinkedEntityName,
     onLinkedEntityNavigate,
-    onCategoryNavigate
+    onCategoryNavigate,
+    onShareToHuddle
 }: TaskColumnListProps) => {
     return (
         <div className="flex flex-col gap-3 p-3">
@@ -723,6 +741,7 @@ const StaticTaskList = ({
                     getLinkedEntityName={getLinkedEntityName}
                     onLinkedEntityNavigate={onLinkedEntityNavigate}
                     onCategoryNavigate={onCategoryNavigate}
+                    onShareToHuddle={onShareToHuddle}
                 />
             ))}
         </div>
@@ -739,6 +758,7 @@ function SortableTaskItem(props: {
     getLinkedEntityName: (task: Task) => string | null;
     onLinkedEntityNavigate: (task: Task) => void;
     onCategoryNavigate: (task: Task) => void;
+    onShareToHuddle: (task: Task) => void;
 }) {
     const {
         attributes,
@@ -767,6 +787,7 @@ function SortableTaskItem(props: {
                 linkedEntityName={props.getLinkedEntityName(props.task)}
                 onLinkedEntityNavigate={props.onLinkedEntityNavigate}
                 onCategoryNavigate={props.onCategoryNavigate}
+                onShareToHuddle={props.onShareToHuddle}
             />
         </div>
     );
@@ -788,7 +809,8 @@ function TaskColumnVirtualizedList(props: TaskColumnListProps) {
         actions: props.actions,
         getLinkedEntityName: props.getLinkedEntityName,
         onLinkedEntityNavigate: props.onLinkedEntityNavigate,
-        onCategoryNavigate: props.onCategoryNavigate
+        onCategoryNavigate: props.onCategoryNavigate,
+        onShareToHuddle: props.onShareToHuddle
     }), [
         props.tasks,
         props.selectedTaskIds,
@@ -798,7 +820,8 @@ function TaskColumnVirtualizedList(props: TaskColumnListProps) {
         props.actions,
         props.getLinkedEntityName,
         props.onLinkedEntityNavigate,
-        props.onCategoryNavigate
+        props.onCategoryNavigate,
+        props.onShareToHuddle
     ]);
 
     if (!isClient) {
@@ -861,6 +884,7 @@ interface VirtualizedRowData {
     getLinkedEntityName: (task: Task) => string | null;
     onLinkedEntityNavigate: (task: Task) => void;
     onCategoryNavigate: (task: Task) => void;
+    onShareToHuddle: (task: Task) => void;
 }
 
 const VirtualizedTaskRow = ({ index, style, ...data }: RowComponentProps<VirtualizedRowData>) => {
@@ -879,6 +903,7 @@ const VirtualizedTaskRow = ({ index, style, ...data }: RowComponentProps<Virtual
                 linkedEntityName={data.getLinkedEntityName(task)}
                 onLinkedEntityNavigate={data.onLinkedEntityNavigate}
                 onCategoryNavigate={data.onCategoryNavigate}
+                onShareToHuddle={data.onShareToHuddle}
             />
         </div>
     );
