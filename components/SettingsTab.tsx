@@ -475,9 +475,9 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
             <div className="lg:hidden">
                 <button
                     onClick={() => setIsMobileNavOpen(!isMobileNavOpen)}
-                    className="w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg shadow-sm font-mono"
+                    className="w-full flex items-center justify-between min-h-[52px] p-3 sm:p-4 bg-white border border-gray-200 rounded-lg shadow-sm font-mono"
                 >
-                    <span className="font-semibold text-black">
+                    <span className="font-semibold text-black text-sm sm:text-base">
                         {filteredNavItems.find(i => i.id === activeSection)?.icon}{' '}
                         {filteredNavItems.find(i => i.id === activeSection)?.label}
                     </span>
@@ -506,16 +506,16 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                                     <button
                                         key={item.id}
                                         onClick={() => handleNavClick(item.id)}
-                                        className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors font-mono ${
+                                        className={`w-full flex items-center gap-3 px-4 py-3 min-h-[52px] text-left transition-colors font-mono ${
                                             activeSection === item.id
                                                 ? 'bg-black text-white'
                                                 : 'bg-white text-black hover:bg-gray-50'
                                         } ${item.id === 'danger' && activeSection !== item.id ? 'text-red-700 hover:bg-red-50' : ''}`}
                                     >
                                         <span className="text-lg">{item.icon}</span>
-                                        <div>
+                                        <div className="min-w-0">
                                             <div className="font-semibold text-sm">{item.label}</div>
-                                            <div className={`text-xs ${activeSection === item.id ? 'text-gray-300' : 'text-gray-500'}`}>{item.description}</div>
+                                            <div className={`text-xs truncate ${activeSection === item.id ? 'text-gray-300' : 'text-gray-500'}`}>{item.description}</div>
                                         </div>
                                     </button>
                                 ))}

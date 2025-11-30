@@ -53,27 +53,28 @@ export const AgentCard: React.FC<AgentCardProps> = ({
 
   return (
     <div className={`
-      border rounded-xl p-5 flex flex-col justify-between bg-white shadow-sm
+      border rounded-xl p-4 sm:p-5 flex flex-col justify-between bg-white shadow-sm
       transition-all duration-200
-      ${canOpen ? 'hover:shadow-md hover:border-yellow-300' : 'opacity-75'}
+      ${canOpen ? 'hover:shadow-md hover:border-yellow-300 active:scale-[0.99]' : 'opacity-75'}
     `}>
-      <div className="space-y-3">
+      <div className="space-y-2 sm:space-y-3">
         {/* Header */}
-        <div className="flex items-start justify-between">
-          <div className={`w-12 h-12 bg-gradient-to-br ${getGradient()} rounded-xl flex items-center justify-center text-2xl shadow-inner`}>
+        <div className="flex items-start justify-between gap-2">
+          <div className={`w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br ${getGradient()} rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-inner flex-shrink-0`}>
             {config.icon}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
             {isPro && (
-              <span className="text-xs bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2 py-1 rounded-full flex items-center gap-1 font-medium shadow-sm">
+              <span className="text-[10px] sm:text-xs bg-gradient-to-r from-amber-500 to-orange-500 text-white px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full flex items-center gap-0.5 sm:gap-1 font-medium shadow-sm">
                 <Crown size={10} />
                 Pro
               </span>
             )}
             {!isConfigured && (
-              <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full flex items-center gap-1">
+              <span className="text-[10px] sm:text-xs bg-gray-100 text-gray-500 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full flex items-center gap-0.5 sm:gap-1">
                 <Settings size={10} />
-                Setup Required
+                <span className="hidden sm:inline">Setup Required</span>
+                <span className="sm:hidden">Setup</span>
               </span>
             )}
           </div>
@@ -81,37 +82,37 @@ export const AgentCard: React.FC<AgentCardProps> = ({
 
         {/* Title & Description */}
         <div>
-          <h3 className="font-semibold text-gray-900">{config.label}</h3>
-          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+          <h3 className="font-semibold text-gray-900 text-sm sm:text-base">{config.label}</h3>
+          <p className="text-xs sm:text-sm text-gray-500 mt-1 line-clamp-2">
             {config.description}
           </p>
         </div>
 
         {/* Goals Preview */}
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1 sm:gap-1.5">
           {config.goals.slice(0, 3).map((goal) => (
             <span
               key={goal.value}
-              className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded"
+              className="text-[10px] sm:text-xs bg-gray-100 text-gray-600 px-1.5 sm:px-2 py-0.5 rounded"
             >
               {goal.label}
             </span>
           ))}
           {config.goals.length > 3 && (
-            <span className="text-xs text-gray-400">
-              +{config.goals.length - 3} more
+            <span className="text-[10px] sm:text-xs text-gray-400">
+              +{config.goals.length - 3}
             </span>
           )}
         </div>
       </div>
 
       {/* Actions */}
-      <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between">
+      <div className="mt-4 sm:mt-5 pt-3 sm:pt-4 border-t border-gray-100 flex items-center justify-between gap-2">
         {onToggle && isConfigured && (
           <button
             onClick={onToggle}
             className={`
-              flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-colors
+              flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs px-2 sm:px-3 py-1.5 min-h-[36px] sm:min-h-0 rounded-full border transition-colors
               ${config.enabled 
                 ? 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100' 
                 : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'
@@ -124,7 +125,7 @@ export const AgentCard: React.FC<AgentCardProps> = ({
         )}
 
         {!isConfigured && (
-          <span className="text-xs text-gray-400">
+          <span className="text-[10px] sm:text-xs text-gray-400">
             Configure in You.com
           </span>
         )}
@@ -133,7 +134,7 @@ export const AgentCard: React.FC<AgentCardProps> = ({
           onClick={onOpen}
           disabled={!canOpen}
           className={`
-            flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg font-medium transition-colors
+            flex items-center justify-center gap-1.5 text-xs sm:text-sm px-3 sm:px-4 py-2 min-h-[44px] sm:min-h-0 rounded-lg font-medium transition-colors
             ${getButtonColor()}
           `}
         >

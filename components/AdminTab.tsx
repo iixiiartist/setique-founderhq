@@ -272,20 +272,20 @@ function AdminTab() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="bg-black p-6 border-2 border-black">
-                <h1 className="text-2xl font-bold text-yellow-400 font-mono">
+            <div className="bg-black p-4 sm:p-6 border-2 border-black">
+                <h1 className="text-xl sm:text-2xl font-bold text-yellow-400 font-mono">
                     🔐 ADMIN DASHBOARD
                 </h1>
-                <p className="text-white font-mono text-sm mt-1">
+                <p className="text-white font-mono text-xs sm:text-sm mt-1">
                     User Signups, Analytics & Automation Monitoring
                 </p>
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex gap-2 border-b border-gray-200">
+            <div className="flex gap-1 sm:gap-2 border-b border-gray-200 overflow-x-auto">
                 <button
                     onClick={() => setActiveTab('users')}
-                    className={`font-mono px-4 py-2 border border-gray-200 rounded-t-md font-semibold ${
+                    className={`font-mono px-3 sm:px-4 py-2 min-h-[44px] border border-gray-200 rounded-t-md font-semibold text-sm sm:text-base whitespace-nowrap ${
                         activeTab === 'users' ? 'bg-black text-white' : 'bg-white text-black hover:bg-gray-50'
                     }`}
                 >
@@ -293,7 +293,7 @@ function AdminTab() {
                 </button>
                 <button
                     onClick={() => setActiveTab('automations')}
-                    className={`font-mono px-4 py-2 border border-gray-200 rounded-t-md font-semibold ${
+                    className={`font-mono px-3 sm:px-4 py-2 min-h-[44px] border border-gray-200 rounded-t-md font-semibold text-sm sm:text-base whitespace-nowrap ${
                         activeTab === 'automations' ? 'bg-black text-white' : 'bg-white text-black hover:bg-gray-50'
                     }`}
                 >
@@ -310,47 +310,47 @@ function AdminTab() {
             {/* Stats Grid */}
                         {/* Stats Grid */}
             {stats && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-sm">
-                        <div className="text-3xl font-bold text-black font-mono">{stats.total}</div>
-                        <div className="text-sm text-gray-600 font-mono">Total Users</div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
+                    <div className="bg-white p-3 sm:p-4 border border-gray-200 rounded-lg shadow-sm">
+                        <div className="text-2xl sm:text-3xl font-bold text-black font-mono">{stats.total}</div>
+                        <div className="text-xs sm:text-sm text-gray-600 font-mono">Total Users</div>
                     </div>
-                    <div className="bg-green-50 p-4 border border-gray-200 rounded-lg shadow-sm">
-                        <div className="text-3xl font-bold text-green-700 font-mono">{stats.today}</div>
-                        <div className="text-sm text-gray-600 font-mono">Today</div>
+                    <div className="bg-green-50 p-3 sm:p-4 border border-gray-200 rounded-lg shadow-sm">
+                        <div className="text-2xl sm:text-3xl font-bold text-green-700 font-mono">{stats.today}</div>
+                        <div className="text-xs sm:text-sm text-gray-600 font-mono">Today</div>
                     </div>
-                    <div className="bg-blue-50 p-4 border border-gray-200 rounded-lg shadow-sm">
-                        <div className="text-3xl font-bold text-blue-700 font-mono">{stats.thisWeek}</div>
-                        <div className="text-sm text-gray-600 font-mono">This Week</div>
+                    <div className="bg-blue-50 p-3 sm:p-4 border border-gray-200 rounded-lg shadow-sm">
+                        <div className="text-2xl sm:text-3xl font-bold text-blue-700 font-mono">{stats.thisWeek}</div>
+                        <div className="text-xs sm:text-sm text-gray-600 font-mono">This Week</div>
                     </div>
-                    <div className="bg-purple-50 p-4 border border-gray-200 rounded-lg shadow-sm">
-                        <div className="text-3xl font-bold text-purple-700 font-mono">{stats.thisMonth}</div>
-                        <div className="text-sm text-gray-600 font-mono">This Month</div>
+                    <div className="bg-purple-50 p-3 sm:p-4 border border-gray-200 rounded-lg shadow-sm">
+                        <div className="text-2xl sm:text-3xl font-bold text-purple-700 font-mono">{stats.thisMonth}</div>
+                        <div className="text-xs sm:text-sm text-gray-600 font-mono">This Month</div>
                     </div>
-                    <div className="bg-emerald-50 p-4 border border-gray-200 rounded-lg shadow-sm">
-                        <div className="text-3xl font-bold text-emerald-700 font-mono">{stats.confirmed}</div>
-                        <div className="text-sm text-gray-600 font-mono">✓ Confirmed</div>
+                    <div className="bg-emerald-50 p-3 sm:p-4 border border-gray-200 rounded-lg shadow-sm">
+                        <div className="text-2xl sm:text-3xl font-bold text-emerald-700 font-mono">{stats.confirmed}</div>
+                        <div className="text-xs sm:text-sm text-gray-600 font-mono">✓ Confirmed</div>
                     </div>
-                    <div className="bg-red-50 p-4 border border-gray-200 rounded-lg shadow-sm">
-                        <div className="text-3xl font-bold text-red-700 font-mono">{stats.unconfirmed}</div>
-                        <div className="text-sm text-gray-600 font-mono">⚠ Unconfirmed</div>
+                    <div className="bg-red-50 p-3 sm:p-4 border border-gray-200 rounded-lg shadow-sm">
+                        <div className="text-2xl sm:text-3xl font-bold text-red-700 font-mono">{stats.unconfirmed}</div>
+                        <div className="text-xs sm:text-sm text-gray-600 font-mono">⚠ Unconfirmed</div>
                     </div>
-                    <div className="bg-gray-50 p-4 border border-gray-200 rounded-lg shadow-sm">
-                        <div className="text-3xl font-bold text-gray-700 font-mono">{stats.freePlan}</div>
-                        <div className="text-sm text-gray-600 font-mono">Free Plan</div>
+                    <div className="bg-gray-50 p-3 sm:p-4 border border-gray-200 rounded-lg shadow-sm">
+                        <div className="text-2xl sm:text-3xl font-bold text-gray-700 font-mono">{stats.freePlan}</div>
+                        <div className="text-xs sm:text-sm text-gray-600 font-mono">Free Plan</div>
                     </div>
-                    <div className="bg-yellow-50 p-4 border border-gray-200 rounded-lg shadow-sm">
-                        <div className="text-3xl font-bold text-yellow-700 font-mono">{stats.paidPlan}</div>
-                        <div className="text-sm text-gray-600 font-mono">Paid Plans</div>
+                    <div className="bg-yellow-50 p-3 sm:p-4 border border-gray-200 rounded-lg shadow-sm">
+                        <div className="text-2xl sm:text-3xl font-bold text-yellow-700 font-mono">{stats.paidPlan}</div>
+                        <div className="text-xs sm:text-sm text-gray-600 font-mono">Paid Plans</div>
                     </div>
                 </div>
             )}
 
             {/* Filters */}
-            <div className="bg-white p-6 border border-gray-200 rounded-lg shadow-sm">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label className="block text-sm font-bold font-mono text-black mb-2">
+            <div className="bg-white p-4 sm:p-6 border border-gray-200 rounded-lg shadow-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+                    <div className="sm:col-span-2 md:col-span-1">
+                        <label className="block text-xs sm:text-sm font-bold font-mono text-black mb-1 sm:mb-2">
                             Search Users
                         </label>
                         <input
@@ -358,17 +358,17 @@ function AdminTab() {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Email or name..."
-                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black font-mono text-sm"
+                            className="w-full px-3 sm:px-4 py-2 min-h-[44px] border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black font-mono text-sm"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-bold font-mono text-black mb-2">
+                        <label className="block text-xs sm:text-sm font-bold font-mono text-black mb-1 sm:mb-2">
                             Plan Type
                         </label>
                         <select
                             value={filterPlan}
                             onChange={(e) => setFilterPlan(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black font-mono text-sm"
+                            className="w-full px-3 sm:px-4 py-2 min-h-[44px] border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black font-mono text-sm"
                         >
                             <option value="all">All Plans</option>
                             <option value="free">Free</option>
@@ -376,13 +376,13 @@ function AdminTab() {
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-bold font-mono text-black mb-2">
+                        <label className="block text-xs sm:text-sm font-bold font-mono text-black mb-1 sm:mb-2">
                             Email Status
                         </label>
                         <select
                             value={filterConfirmed}
                             onChange={(e) => setFilterConfirmed(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black font-mono text-sm"
+                            className="w-full px-3 sm:px-4 py-2 min-h-[44px] border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black font-mono text-sm"
                         >
                             <option value="all">All</option>
                             <option value="confirmed">Confirmed</option>

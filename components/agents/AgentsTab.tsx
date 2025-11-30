@@ -58,35 +58,33 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({ actions, onInsertToDoc }) 
 
   return (
     <div className="h-full overflow-auto bg-gray-50">
-      <div className="max-w-6xl mx-auto p-6 space-y-8">
+      <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6 sm:space-y-8">
         {/* Header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-xl flex items-center justify-center shadow-lg">
-                <Bot size={24} className="text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">AI Agents</h1>
-                <p className="text-gray-500">
-                  Specialized AI assistants
-                </p>
-              </div>
+        <div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+              <Bot size={20} className="sm:w-6 sm:h-6 text-white" />
             </div>
-            <p className="mt-4 text-gray-600 max-w-2xl">
-              Use AI agents to accelerate research, GTM planning, and execution. 
-              Each agent is specialized for specific tasks to help you move faster.
-            </p>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">AI Agents</h1>
+              <p className="text-sm text-gray-500">
+                Specialized AI assistants
+              </p>
+            </div>
           </div>
+          <p className="mt-3 sm:mt-4 text-sm sm:text-base text-gray-600">
+            Use AI agents to accelerate research, GTM planning, and execution. 
+            Each agent is specialized for specific tasks to help you move faster.
+          </p>
         </div>
 
         {/* Feature Highlight */}
-        <div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl p-4 border border-yellow-200 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-yellow-400 rounded-lg flex items-center justify-center">
-              <Sparkles size={20} className="text-yellow-900" />
+        <div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl p-3 sm:p-4 border border-yellow-200 shadow-sm">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-yellow-400 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Sparkles size={18} className="sm:w-5 sm:h-5 text-yellow-900" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-semibold text-yellow-900">AI-Powered Research</p>
               <p className="text-xs text-yellow-700">Get comprehensive briefs with real-time web research</p>
             </div>
@@ -95,8 +93,8 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({ actions, onInsertToDoc }) 
 
         {/* Agents Grid */}
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Available Agents</h2>
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Available Agents</h2>
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
             {agentEntries.map(([slug, config]) => (
               <AgentCard
                 key={slug}
@@ -110,10 +108,10 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({ actions, onInsertToDoc }) 
 
         {/* Saved Reports Section */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <FileText size={18} className="text-gray-500" />
-              <h2 className="text-lg font-semibold text-gray-900">Saved Reports</h2>
+              <FileText size={16} className="sm:w-[18px] sm:h-[18px] text-gray-500" />
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900">Saved Reports</h2>
               {reports.length > 0 && (
                 <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
                   {reports.length}
@@ -121,7 +119,7 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({ actions, onInsertToDoc }) 
               )}
             </div>
           </div>
-          <div className="p-4">
+          <div className="p-3 sm:p-4">
             <SavedReportsList
               reports={reports}
               isLoading={reportsLoading}
@@ -132,9 +130,9 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({ actions, onInsertToDoc }) 
         </div>
 
         {/* Coming Soon Section */}
-        <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200">
+        <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 sm:p-6 border border-gray-200">
           <h3 className="font-semibold text-gray-900 mb-2">🚀 More Agents Coming Soon</h3>
-          <p className="text-sm text-gray-600">
+          <p className="text-xs sm:text-sm text-gray-600">
             We're building specialized agents for competitive intelligence, outreach optimization, 
             and more. Stay tuned!
           </p>

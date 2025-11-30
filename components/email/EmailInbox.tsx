@@ -317,24 +317,24 @@ export const EmailInbox: React.FC = () => {
       {/* List Panel */}
       <div className={`flex flex-col border-r border-gray-200 bg-white h-full ${selectedMessageId ? 'w-full md:w-96 hidden md:flex' : 'flex-1 lg:w-96 lg:flex-none'}`}>
         {/* Toolbar */}
-        <div className="p-4 border-b border-gray-200 flex flex-col gap-3 bg-white flex-shrink-0">
+        <div className="p-3 sm:p-4 border-b border-gray-200 flex flex-col gap-2 sm:gap-3 bg-white flex-shrink-0">
           <div className="flex justify-between items-center">
             <h2 className="text-lg font-semibold text-gray-900 capitalize">{activeFolder}</h2>
             <div className="flex items-center gap-2">
               {/* Compose Button - Mobile/Tablet */}
               <button
                 onClick={handleComposeClick}
-                className="lg:hidden flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                className="lg:hidden flex items-center justify-center gap-2 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
                 title="Compose new email"
               >
-                <PenSquare size={16} />
+                <PenSquare size={18} className="sm:w-4 sm:h-4" />
                 <span className="hidden sm:inline">Compose</span>
               </button>
               {/* Refresh Button */}
               <button 
                 onClick={handleRefresh}
                 disabled={syncing}
-                className={`p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors ${syncing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center justify-center ${syncing ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="Sync emails"
               >
                 <RefreshCw className={`w-5 h-5 ${syncing ? 'animate-spin' : ''}`} />
@@ -352,29 +352,29 @@ export const EmailInbox: React.FC = () => {
             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
           </div>
           {/* Mobile Folder Tabs */}
-          <div className="flex lg:hidden border-t border-gray-100 pt-3 -mx-4 px-4">
+          <div className="flex lg:hidden border-t border-gray-100 pt-2 sm:pt-3 -mx-3 sm:-mx-4 px-1 sm:px-4 gap-1">
             <button
               onClick={() => { setActiveFolder('inbox'); setSelectedMessageId(null); }}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg transition-colors
+              className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] sm:min-h-0 py-2 text-xs font-medium rounded-lg transition-colors
                 ${activeFolder === 'inbox' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
             >
-              <Inbox size={14} />
+              <Inbox size={16} className="sm:w-3.5 sm:h-3.5" />
               <span>Inbox</span>
             </button>
             <button
               onClick={() => { setActiveFolder('sent'); setSelectedMessageId(null); }}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg transition-colors
+              className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] sm:min-h-0 py-2 text-xs font-medium rounded-lg transition-colors
                 ${activeFolder === 'sent' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
             >
-              <Send size={14} />
+              <Send size={16} className="sm:w-3.5 sm:h-3.5" />
               <span>Sent</span>
             </button>
             <button
               onClick={() => { setActiveFolder('drafts'); setSelectedMessageId(null); }}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium rounded-lg transition-colors
+              className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] sm:min-h-0 py-2 text-xs font-medium rounded-lg transition-colors
                 ${activeFolder === 'drafts' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
             >
-              <FileEdit size={14} />
+              <FileEdit size={16} className="sm:w-3.5 sm:h-3.5" />
               <span>Drafts</span>
             </button>
           </div>
@@ -412,8 +412,8 @@ export const EmailInbox: React.FC = () => {
                   <div 
                     key={msg.id} 
                     onClick={() => handleMessageClick(msg)}
-                    className={`p-4 cursor-pointer transition-all hover:bg-gray-50 group
-                      ${selectedMessageId === msg.id ? 'bg-blue-50/50 border-l-4 border-blue-500 pl-[12px]' : 'border-l-4 border-transparent pl-[12px]'}
+                    className={`p-3 sm:p-4 min-h-[72px] cursor-pointer transition-all hover:bg-gray-50 group
+                      ${selectedMessageId === msg.id ? 'bg-blue-50/50 border-l-4 border-blue-500 pl-[8px] sm:pl-[12px]' : 'border-l-4 border-transparent pl-[8px] sm:pl-[12px]'}
                       ${!msg.is_read ? 'bg-white' : 'bg-white/50'}`}
                   >
                     <div className="flex justify-between items-start mb-1">
