@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Settings, MessageSquare, User, Lock, Hash, Sparkles, X, HandMetal } from 'lucide-react';
+import { Settings, MessageSquare, User, Lock, Hash, Sparkles, X, HandMetal, Menu, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { 
@@ -53,6 +53,9 @@ export const HuddleTab: React.FC = () => {
   const [showCreateDM, setShowCreateDM] = useState(false);
   const [showRoomSettings, setShowRoomSettings] = useState(false);
   const [threadMessage, setThreadMessage] = useState<HuddleMessage | null>(null);
+  
+  // Mobile state
+  const [showMobileRoomList, setShowMobileRoomList] = useState(false);
   
   // Linked entity modal state
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -137,6 +140,7 @@ export const HuddleTab: React.FC = () => {
   const handleSelectRoom = (room: HuddleRoom) => {
     setActiveRoomId(room.id);
     setThreadMessage(null);
+    setShowMobileRoomList(false); // Close mobile room list on selection
     // Reset scroll tracking for new room
     userScrolledUp.current = false;
     prevMessageCount.current = 0;
@@ -445,24 +449,46 @@ export const HuddleTab: React.FC = () => {
   }
 
   return (
-    <div className="flex h-full bg-white">
-      {/* Left sidebar - Room list */}
-      <div className="w-64 border-r-2 border-black flex flex-col bg-gray-50">
-        <div className="p-4 border-b-2 border-black bg-white">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              <MessageSquare size={20} className="text-purple-600" />
+    <div className="flex h-full bg-white relative">
+      {/* Mobile backdrop for room list */}
+      {showMobileRoomList && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 sm:hidden"
+          onClick={() => setShowMobileRoomList(false)}
+        />
+      )}
+
+      {/* Left sidebar - Room list (desktop: fixed sidebar, mobile: slide-in overlay) */}
+      <div className={`
+        w-64 border-r-2 border-black flex flex-col bg-gray-50
+        fixed sm:relative inset-y-0 left-0 z-50
+        transform transition-transform duration-300 ease-out
+        ${showMobileRoomList ? 'translate-x-0' : '-translate-x-full sm:translate-x-0'}
+      `}>
+        <div className="p-3 sm:p-4 border-b-2 border-black bg-white">
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
+            <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">
+              <MessageSquare size={18} className="text-purple-600 sm:w-5 sm:h-5" />
               Huddle
             </h2>
-            {totalUnread > 0 && (
-              <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                {totalUnread}
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {totalUnread > 0 && (
+                <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                  {totalUnread}
+                </span>
+              )}
+              {/* Mobile close button */}
+              <button
+                onClick={() => setShowMobileRoomList(false)}
+                className="p-1.5 hover:bg-gray-100 rounded sm:hidden"
+              >
+                <X size={18} />
+              </button>
+            </div>
           </div>
           <button
             onClick={() => setShowCreateChannel(true)}
-            className="w-full px-3 py-2 bg-purple-600 text-white font-semibold border-2 border-black shadow-[4px_4px_0_0_black] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0_0_black] transition-all text-sm"
+            className="w-full px-3 py-2 bg-purple-600 text-white font-semibold border-2 border-black shadow-[2px_2px_0_0_black] sm:shadow-[4px_4px_0_0_black] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[1px_1px_0_0_black] sm:hover:shadow-[2px_2px_0_0_black] transition-all text-sm"
           >
             + New Channel
           </button>
@@ -483,12 +509,19 @@ export const HuddleTab: React.FC = () => {
         {activeRoom ? (
           <>
             {/* Room header */}
-            <div className="h-14 px-4 border-b-2 border-black flex items-center justify-between shrink-0 bg-white">
+            <div className="h-12 sm:h-14 px-2 sm:px-4 border-b-2 border-black flex items-center justify-between shrink-0 bg-white">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="text-gray-500">
+                {/* Mobile menu button */}
+                <button
+                  onClick={() => setShowMobileRoomList(true)}
+                  className="p-1.5 hover:bg-gray-100 rounded sm:hidden flex-shrink-0"
+                >
+                  <Menu size={20} className="text-gray-600" />
+                </button>
+                <span className="text-gray-500 hidden sm:block">
                   {activeRoom.type === 'dm' ? <User size={20} /> : activeRoom.is_private ? <Lock size={20} /> : <Hash size={20} />}
                 </span>
-                <h3 className="font-bold truncate">
+                <h3 className="font-bold truncate text-sm sm:text-base">
                   {activeRoom.type === 'dm' ? getDMName(activeRoom) : activeRoom.name}
                 </h3>
                 {activeRoom.description && (
@@ -497,22 +530,23 @@ export const HuddleTab: React.FC = () => {
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 sm:gap-2">
                 {activeRoom.settings?.ai_allowed !== false && (
                   <button
                     onClick={() => setShowAISheet(true)}
-                    className="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-semibold text-sm border-2 border-black shadow-[4px_4px_0_0_black] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0_0_black] transition-all flex items-center gap-1"
+                    className="p-1.5 sm:px-3 sm:py-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-semibold text-sm border-2 border-black shadow-[2px_2px_0_0_black] sm:shadow-[4px_4px_0_0_black] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[1px_1px_0_0_black] sm:hover:shadow-[2px_2px_0_0_black] transition-all flex items-center gap-1"
                     title="Ask AI"
                   >
-                    <Sparkles size={16} /> Ask AI
+                    <Sparkles size={16} />
+                    <span className="hidden sm:inline">Ask AI</span>
                   </button>
                 )}
                 <button
                   onClick={() => setShowRoomSettings(true)}
-                  className="p-2 hover:bg-gray-100 rounded transition-colors"
+                  className="p-1.5 sm:p-2 hover:bg-gray-100 rounded transition-colors"
                   title="Room settings"
                 >
-                  <Settings size={20} className="text-gray-600" />
+                  <Settings size={18} className="text-gray-600 sm:w-5 sm:h-5" />
                 </button>
               </div>
             </div>
@@ -528,13 +562,13 @@ export const HuddleTab: React.FC = () => {
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex items-center justify-center h-full text-gray-400">
-                  <div className="text-center">
-                    <MessageSquare size={48} className="mx-auto mb-2 text-gray-300" />
-                    <p>No messages yet. Start the conversation!</p>
+                  <div className="text-center px-4">
+                    <MessageSquare size={40} className="mx-auto mb-2 text-gray-300 sm:w-12 sm:h-12" />
+                    <p className="text-sm sm:text-base">No messages yet. Start the conversation!</p>
                   </div>
                 </div>
               ) : (
-                <div className="py-4">
+                <div className="py-2 sm:py-4">
                   {messages.map((message) => (
                     <MessageBubble
                       key={message.id}
@@ -568,14 +602,21 @@ export const HuddleTab: React.FC = () => {
             />
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-500">
+          <div className="flex-1 flex items-center justify-center text-gray-500 px-4">
             <div className="text-center">
-              <HandMetal size={64} className="mx-auto mb-4 text-gray-300" />
-              <p className="font-medium text-xl mb-2">Welcome to Huddle</p>
-              <p className="text-gray-400 mb-4">Select a channel or start a conversation</p>
+              {/* Mobile menu button in empty state */}
+              <button
+                onClick={() => setShowMobileRoomList(true)}
+                className="mb-4 p-2 bg-gray-100 rounded-lg sm:hidden"
+              >
+                <Menu size={24} className="text-gray-600" />
+              </button>
+              <HandMetal size={48} className="mx-auto mb-3 text-gray-300 sm:w-16 sm:h-16" />
+              <p className="font-medium text-lg sm:text-xl mb-2">Welcome to Huddle</p>
+              <p className="text-gray-400 mb-4 text-sm sm:text-base">Select a channel or start a conversation</p>
               <button
                 onClick={() => setShowCreateChannel(true)}
-                className="px-4 py-2 bg-purple-600 text-white font-semibold border-2 border-black shadow-[4px_4px_0_0_black] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0_0_black] transition-all"
+                className="px-4 py-2 bg-purple-600 text-white font-semibold border-2 border-black shadow-[2px_2px_0_0_black] sm:shadow-[4px_4px_0_0_black] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[1px_1px_0_0_black] sm:hover:shadow-[2px_2px_0_0_black] transition-all text-sm sm:text-base"
               >
                 Create Channel
               </button>
@@ -584,41 +625,61 @@ export const HuddleTab: React.FC = () => {
         )}
       </div>
 
-      {/* Thread drawer */}
+      {/* Thread drawer - Desktop: fixed sidebar, Mobile: bottom sheet */}
       {threadMessage && (
-        <div className="w-96 border-l-2 border-black flex flex-col bg-white">
-          <div className="h-14 px-4 border-b-2 border-black flex items-center justify-between">
-            <h3 className="font-bold">Thread</h3>
-            <button
-              onClick={() => setThreadMessage(null)}
-              className="p-1 hover:bg-gray-100 rounded"
-            >
-              <X size={18} />
-            </button>
-          </div>
+        <>
+          {/* Mobile backdrop for thread */}
           <div 
-            ref={threadContainerRef}
-            className="flex-1 overflow-y-auto p-4 space-y-3"
-            onScroll={(e) => {
-              const el = e.currentTarget;
-              const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50;
-              shouldAutoScrollThread.current = atBottom;
-              userScrolledUpThread.current = !atBottom;
-            }}
-          >
-            <MessageBubble
-              message={threadMessage}
-              currentUserId={user?.id || ''}
-              onReact={(emoji) => handleReaction(threadMessage.id, emoji)}
-              onReply={() => {}}
-              isThreadView
-              onLinkedEntityClick={handleLinkedEntityClick}
-            />
-            <div className="border-t pt-3">
-              {threadMessagesLoading ? (
-                <div className="text-center text-gray-400">Loading replies...</div>
-              ) : threadReplies.length === 0 ? (
-                <div className="text-center text-gray-400 text-sm">No replies yet.</div>
+            className="fixed inset-0 bg-black/50 z-40 sm:hidden"
+            onClick={() => setThreadMessage(null)}
+          />
+          <div className={`
+            flex flex-col bg-white
+            fixed sm:relative z-50
+            inset-x-0 bottom-0 sm:inset-auto
+            max-h-[80vh] sm:max-h-none sm:h-auto
+            w-full sm:w-96
+            rounded-t-2xl sm:rounded-none
+            border-t-2 sm:border-t-0 sm:border-l-2 border-black
+            shadow-[0_-4px_20px_rgba(0,0,0,0.15)] sm:shadow-none
+          `}>
+            {/* Drag handle for mobile */}
+            <div className="flex justify-center pt-2 sm:hidden">
+              <div className="w-10 h-1 bg-gray-300 rounded-full" />
+            </div>
+            <div className="h-12 sm:h-14 px-3 sm:px-4 border-b-2 border-black flex items-center justify-between">
+              <h3 className="font-bold text-sm sm:text-base">Thread</h3>
+              <button
+                onClick={() => setThreadMessage(null)}
+                className="p-1.5 hover:bg-gray-100 rounded"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div 
+              ref={threadContainerRef}
+              className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 min-h-0"
+              style={{ maxHeight: 'calc(80vh - 140px)' }}
+              onScroll={(e) => {
+                const el = e.currentTarget;
+                const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50;
+                shouldAutoScrollThread.current = atBottom;
+                userScrolledUpThread.current = !atBottom;
+              }}
+            >
+              <MessageBubble
+                message={threadMessage}
+                currentUserId={user?.id || ''}
+                onReact={(emoji) => handleReaction(threadMessage.id, emoji)}
+                onReply={() => {}}
+                isThreadView
+                onLinkedEntityClick={handleLinkedEntityClick}
+              />
+              <div className="border-t pt-3">
+                {threadMessagesLoading ? (
+                  <div className="text-center text-gray-400">Loading replies...</div>
+                ) : threadReplies.length === 0 ? (
+                  <div className="text-center text-gray-400 text-sm">No replies yet.</div>
               ) : (
                 threadReplies.map(msg => (
                   <MessageBubble

@@ -853,3 +853,240 @@
     0% { background-position: 200% 0; }
     100% { background-position: -200% 0; }
 }
+
+/* ============================================
+   MOBILE RESPONSIVE FOUNDATION
+   Premium mobile experience - desktop intact
+   ============================================ */
+
+/* Mobile-first responsive tokens */
+@media (max-width: 640px) {
+    /* Root spacing & density adjustments */
+    :root {
+        --mobile-spacing-base: 0.75rem;
+        --mobile-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+        --mobile-shadow-md: 0 2px 4px rgba(0, 0, 0, 0.08);
+        --mobile-radius: 0.5rem;
+    }
+
+    /* Base typography adjustments */
+    body {
+        font-size: 15px;
+        line-height: 1.5;
+        -webkit-text-size-adjust: 100%;
+    }
+
+    h1 { font-size: 1.5rem !important; }
+    h2 { font-size: 1.25rem !important; }
+    h3 { font-size: 1.125rem !important; }
+    h4, h5, h6 { font-size: 1rem !important; }
+
+    /* Reduce heavy shadows on mobile for performance */
+    .shadow-neo,
+    [class*="shadow-[4px_4px"],
+    [class*="shadow-[6px_6px"] {
+        box-shadow: 2px 2px 0 #000 !important;
+    }
+
+    .shadow-neo-lg,
+    [class*="shadow-[8px_8px"] {
+        box-shadow: 3px 3px 0 #000 !important;
+    }
+
+    /* Ensure minimum touch targets (44px) */
+    button,
+    a,
+    [role="button"],
+    input[type="button"],
+    input[type="submit"],
+    select {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    /* Exception for inline/icon buttons */
+    button.inline-btn,
+    .icon-btn,
+    button[class*="p-1"],
+    button[class*="p-0.5"] {
+        min-height: 36px;
+        min-width: 36px;
+    }
+
+    /* Container padding normalization */
+    .container,
+    .max-w-7xl,
+    .max-w-6xl,
+    .max-w-5xl {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+
+    /* Modal responsiveness */
+    .modal-modern,
+    [class*="max-w-lg"],
+    [class*="max-w-xl"],
+    [class*="max-w-2xl"] {
+        max-width: calc(100vw - 1rem) !important;
+        margin: 0.5rem !important;
+    }
+
+    /* Drawer/sidebar on mobile become full-width overlays */
+    .mobile-drawer {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        z-index: 50 !important;
+    }
+
+    /* Bottom sheet pattern for mobile */
+    .mobile-bottom-sheet {
+        position: fixed !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        max-height: 85vh !important;
+        border-radius: 1rem 1rem 0 0 !important;
+        z-index: 50 !important;
+    }
+
+    /* Slide-in panel from left */
+    .mobile-slide-left {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        bottom: 0 !important;
+        width: 85% !important;
+        max-width: 320px !important;
+        z-index: 50 !important;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease-out;
+    }
+
+    .mobile-slide-left.open {
+        transform: translateX(0);
+    }
+
+    /* Overlay backdrop */
+    .mobile-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 40;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease-out;
+    }
+
+    .mobile-backdrop.open {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    /* Tables: horizontal scroll on mobile */
+    table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Cards: reduce padding */
+    .card-modern {
+        padding: 0.75rem !important;
+    }
+
+    /* Form inputs: stack vertically */
+    .form-row,
+    .input-row {
+        flex-direction: column !important;
+        gap: 0.75rem !important;
+    }
+
+    /* Hide elements marked as desktop-only */
+    .desktop-only {
+        display: none !important;
+    }
+
+    /* Show elements marked as mobile-only */
+    .mobile-only {
+        display: block !important;
+    }
+}
+
+/* Default: hide mobile-only elements on larger screens */
+@media (min-width: 641px) {
+    .mobile-only {
+        display: none !important;
+    }
+}
+
+/* Huddle-specific mobile utilities */
+@media (max-width: 640px) {
+    /* Compact message bubbles */
+    .huddle-message {
+        padding: 0.5rem 0.75rem !important;
+    }
+
+    .huddle-message .avatar {
+        width: 32px !important;
+        height: 32px !important;
+    }
+
+    .huddle-message .content {
+        font-size: 0.9375rem !important;
+    }
+
+    /* Tighter composer */
+    .huddle-composer {
+        padding: 0.5rem !important;
+    }
+
+    .huddle-composer textarea {
+        padding: 0.5rem 0.75rem !important;
+        font-size: 1rem !important;
+    }
+
+    /* Room list compact mode */
+    .huddle-room-item {
+        padding: 0.5rem 0.75rem !important;
+    }
+
+    /* Thread as bottom sheet */
+    .huddle-thread {
+        position: fixed !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        top: auto !important;
+        max-height: 80vh !important;
+        border-radius: 1rem 1rem 0 0 !important;
+        border: none !important;
+        border-top: 2px solid #000 !important;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15) !important;
+        z-index: 50 !important;
+    }
+}
+
+/* Smooth transitions for mobile interactions */
+@media (max-width: 640px) {
+    .transition-mobile {
+        transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+    }
+}
+
+/* Safe area insets for notched devices */
+@supports (padding: max(0px)) {
+    @media (max-width: 640px) {
+        .safe-area-bottom {
+            padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+        }
+
+        .safe-area-top {
+            padding-top: max(0.5rem, env(safe-area-inset-top));
+        }
+    }
+}

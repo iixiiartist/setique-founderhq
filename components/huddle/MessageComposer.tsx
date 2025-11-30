@@ -152,17 +152,17 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
   };
 
   return (
-    <div className="border-t-2 border-gray-200 bg-white">
+    <div className="border-t-2 border-gray-200 bg-white safe-area-bottom">
       {/* Reply indicator */}
       {replyingTo && (
-        <div className="px-4 py-2 bg-purple-50 border-b border-purple-100 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-purple-600">Replying to:</span>
-            <span className="text-gray-600 truncate max-w-[300px]">{replyingTo.preview}</span>
+        <div className="px-3 sm:px-4 py-1.5 sm:py-2 bg-purple-50 border-b border-purple-100 flex items-center justify-between">
+          <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm min-w-0">
+            <span className="text-purple-600 flex-shrink-0">Replying to:</span>
+            <span className="text-gray-600 truncate">{replyingTo.preview}</span>
           </div>
           <button
             onClick={onCancelReply}
-            className="text-gray-400 hover:text-gray-600 p-1"
+            className="text-gray-400 hover:text-gray-600 p-1 flex-shrink-0"
           >
             <X size={16} />
           </button>
@@ -171,7 +171,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
 
       {/* Attachments preview */}
       {attachments.length > 0 && (
-        <div className="px-4 py-2 border-b border-gray-100 flex flex-wrap gap-2">
+        <div className="px-3 sm:px-4 py-1.5 sm:py-2 border-b border-gray-100 flex flex-wrap gap-1.5 sm:gap-2">
           {attachments.map((file, index) => {
             const preview = getFilePreview(file);
             return (
@@ -180,19 +180,19 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
                   <img
                     src={preview}
                     alt={file.name}
-                    className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                    className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-lg border border-gray-200"
                   />
                 ) : (
-                  <div className="w-16 h-16 bg-gray-100 rounded-lg border border-gray-200 flex flex-col items-center justify-center p-1">
-                    <FileText size={20} className="text-gray-400" />
-                    <span className="text-xs text-gray-500 truncate w-full text-center">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-lg border border-gray-200 flex flex-col items-center justify-center p-1">
+                    <FileText size={16} className="text-gray-400 sm:w-5 sm:h-5" />
+                    <span className="text-[10px] sm:text-xs text-gray-500 truncate w-full text-center">
                       {file.name.split('.').pop()}
                     </span>
                   </div>
                 )}
                 <button
                   onClick={() => removeAttachment(index)}
-                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-red-500 text-white rounded-full text-[10px] sm:text-xs flex items-center justify-center"
                 >
                   ✕
                 </button>
@@ -204,17 +204,17 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
 
       {/* Linked entities preview */}
       {linkedEntities.length > 0 && (
-        <div className="px-4 py-2 border-b border-gray-100 flex flex-wrap gap-2">
+        <div className="px-3 sm:px-4 py-1.5 sm:py-2 border-b border-gray-100 flex flex-wrap gap-1.5 sm:gap-2">
           {linkedEntities.map((entity, index) => (
             <div
               key={index}
-              className="inline-flex items-center gap-1.5 px-2 py-1 bg-gray-100 rounded text-sm group"
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-gray-100 rounded text-xs sm:text-sm group"
             >
               <span>{getEntityIcon(entity.entity_type)}</span>
-              <span className="text-gray-700">{entity.entity_title || entity.entity_type}</span>
+              <span className="text-gray-700 truncate max-w-[100px] sm:max-w-none">{entity.entity_title || entity.entity_type}</span>
               <button
                 onClick={() => removeLinkedEntity(index)}
-                className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="text-gray-400 hover:text-red-500 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
               >
                 ✕
               </button>
@@ -224,8 +224,8 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
       )}
 
       {/* Main composer */}
-      <div className="p-3">
-        <div className="flex items-end gap-2">
+      <div className="p-2 sm:p-3">
+        <div className="flex items-end gap-1 sm:gap-2">
           {/* Attachment button */}
           <div className="flex-shrink-0">
             <input
@@ -238,11 +238,11 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
             />
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-1.5 sm:p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
               title="Attach file"
               disabled={disabled || isUploading}
             >
-              <Paperclip size={20} />
+              <Paperclip size={18} className="sm:w-5 sm:h-5" />
             </button>
           </div>
 
@@ -259,17 +259,17 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
               placeholder={placeholder}
               disabled={disabled}
               rows={1}
-              className="w-full resize-none border-2 border-gray-200 rounded-xl px-4 py-2 pr-10 focus:border-purple-400 focus:outline-none disabled:bg-gray-50 disabled:text-gray-400"
-              style={{ maxHeight: '200px' }}
+              className="w-full resize-none border-2 border-gray-200 rounded-xl px-3 py-1.5 sm:px-4 sm:py-2 pr-8 sm:pr-10 text-sm sm:text-base focus:border-purple-400 focus:outline-none disabled:bg-gray-50 disabled:text-gray-400"
+              style={{ maxHeight: '150px' }}
             />
           </div>
 
           {/* Action buttons */}
-          <div className="flex-shrink-0 flex items-center gap-1">
-            {/* Formatting toggle */}
+          <div className="flex-shrink-0 flex items-center gap-0.5 sm:gap-1">
+            {/* Formatting toggle - hidden on small mobile */}
             <button
               onClick={() => setShowFormatting(!showFormatting)}
-              className={`p-2 rounded-lg transition-colors ${
+              className={`hidden sm:flex p-2 rounded-lg transition-colors ${
                 showFormatting 
                   ? 'bg-purple-100 text-purple-600' 
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
@@ -283,10 +283,10 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
             {aiEnabled && onAIInvoke && (
               <button
                 onClick={onAIInvoke}
-                className="p-2 text-purple-500 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors"
+                className="p-1.5 sm:p-2 text-purple-500 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                 title="Ask AI"
               >
-                <Sparkles size={20} />
+                <Sparkles size={18} className="sm:w-5 sm:h-5" />
               </button>
             )}
 
@@ -294,10 +294,10 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
             <button
               onClick={handleSend}
               disabled={disabled || (!content.trim() && attachments.length === 0)}
-              className="p-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              className="p-1.5 sm:p-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
               title="Send (Enter)"
             >
-              <Send size={20} />
+              <Send size={18} className="sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
