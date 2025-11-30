@@ -264,15 +264,60 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
               </label>
               <div
                 ref={responseRef}
-                className="p-3 sm:p-4 bg-purple-50 rounded-xl border-2 border-purple-100 max-h-[200px] sm:max-h-[300px] overflow-y-auto"
+                className="p-3 sm:p-4 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border border-purple-200 max-h-[200px] sm:max-h-[300px] overflow-y-auto"
               >
-                <div className="prose prose-sm max-w-none">
-                  <pre className="whitespace-pre-wrap text-xs sm:text-sm text-gray-800 font-sans">
-                    {streamingResponse}
-                    {isLoading && (
-                      <span className="inline-block w-2 h-4 bg-purple-500 animate-pulse ml-0.5" />
-                    )}
-                  </pre>
+                <div className="prose prose-sm max-w-none text-gray-800 text-sm leading-relaxed">
+                  {streamingResponse.split('\n').map((line, i) => {
+                    // Handle numbered list items
+                    const numberedMatch = line.match(/^(\d+)\.\s+(.+)$/);
+                    if (numberedMatch) {
+                      return (
+                        <div key={i} className="flex gap-2 mb-2">
+                          <span className="flex-shrink-0 w-5 h-5 bg-purple-200 text-purple-700 rounded text-xs font-bold flex items-center justify-center">
+                            {numberedMatch[1]}
+                          </span>
+                          <span className="flex-1">{numberedMatch[2]}</span>
+                        </div>
+                      );
+                    }
+                    // Handle headers
+                    if (line.startsWith('## ')) {
+                      return <h3 key={i} className="font-bold text-gray-900 mt-3 mb-1">{line.slice(3)}</h3>;
+                    }
+                    if (line.startsWith('# ')) {
+                      return <h2 key={i} className="font-bold text-gray-900 mt-3 mb-1 text-base">{line.slice(2)}</h2>;
+                    }
+                    // Handle URLs
+                    if (line.includes('http')) {
+                      const urlMatch = line.match(/(https?:\/\/[^\s]+)/);
+                      if (urlMatch) {
+                        const parts = line.split(urlMatch[0]);
+                        return (
+                          <p key={i} className="mb-1">
+                            {parts[0]}
+                            <a href={urlMatch[0]} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:text-purple-800 underline break-all">
+                              {urlMatch[0]}
+                            </a>
+                            {parts[1]}
+                          </p>
+                        );
+                      }
+                    }
+                    // Handle Source: lines
+                    if (line.trim().startsWith('Source:')) {
+                      return (
+                        <p key={i} className="text-xs text-purple-600 mb-2">{line}</p>
+                      );
+                    }
+                    // Regular lines
+                    if (line.trim()) {
+                      return <p key={i} className="mb-1">{line}</p>;
+                    }
+                    return <br key={i} />;
+                  })}
+                  {isLoading && (
+                    <span className="inline-block w-2 h-4 bg-purple-500 animate-pulse ml-0.5" />
+                  )}
                 </div>
               </div>
             </div>
