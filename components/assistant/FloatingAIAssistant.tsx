@@ -75,7 +75,7 @@ export const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({
   data,
   planType,
   onToggleRef,
-  autoOpenOnMobile = true, // Default to true for mobile-first experience
+  autoOpenOnMobile = false, // Disabled - was causing glitchy behavior on mobile
   onDataLoadNeeded,
 }) => {
   const normalizedPlanType = planType || 'free';
