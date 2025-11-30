@@ -295,6 +295,45 @@ export function useInvokeAI() {
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
+  // Invalidate caches based on what tool was used
+  const invalidateToolCaches = useCallback((toolName: string) => {
+    switch (toolName) {
+      case 'create_task':
+        queryClient.invalidateQueries({ queryKey: ['tasks'] });
+        break;
+      case 'create_contact':
+        queryClient.invalidateQueries({ queryKey: ['contacts'] });
+        break;
+      case 'create_account':
+        queryClient.invalidateQueries({ queryKey: ['crm'] });
+        queryClient.invalidateQueries({ queryKey: ['accounts'] });
+        break;
+      case 'create_deal':
+        queryClient.invalidateQueries({ queryKey: ['deals'] });
+        break;
+      case 'create_expense':
+        queryClient.invalidateQueries({ queryKey: ['expenses'] });
+        queryClient.invalidateQueries({ queryKey: ['financials'] });
+        break;
+      case 'create_revenue':
+        queryClient.invalidateQueries({ queryKey: ['revenue'] });
+        queryClient.invalidateQueries({ queryKey: ['financials'] });
+        break;
+      case 'create_note':
+        queryClient.invalidateQueries({ queryKey: ['documents'] });
+        queryClient.invalidateQueries({ queryKey: ['notes'] });
+        break;
+      case 'create_calendar_event':
+        queryClient.invalidateQueries({ queryKey: ['calendar'] });
+        queryClient.invalidateQueries({ queryKey: ['events'] });
+        break;
+      case 'create_marketing_campaign':
+        queryClient.invalidateQueries({ queryKey: ['marketing'] });
+        queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+        break;
+    }
+  }, [queryClient]);
+
   const invoke = useCallback(async (request: AIRunRequest) => {
     setIsStreaming(true);
     setStreamContent('');
@@ -309,10 +348,22 @@ export function useInvokeAI() {
           break;
         case 'tool_result':
           setToolCalls(prev => [...prev, { name: event.tool, result: event.result }]);
+          // Invalidate relevant caches when tool completes successfully
+          if (event.result?.success && event.tool) {
+            invalidateToolCaches(event.tool);
+          }
           break;
         case 'complete':
           setIsStreaming(false);
-          if (event.tool_calls) setToolCalls(event.tool_calls);
+          if (event.tool_calls) {
+            setToolCalls(event.tool_calls);
+            // Invalidate caches for all completed tools
+            event.tool_calls.forEach((tc: any) => {
+              if (tc.result?.success) {
+                invalidateToolCaches(tc.name);
+              }
+            });
+          }
           if (event.web_sources) setWebSources(event.web_sources);
           // Refresh messages - invalidate both main timeline and thread (if applicable)
           queryClient.invalidateQueries({ queryKey: ['huddle', 'messages', request.room_id, 'main'] });
@@ -331,7 +382,7 @@ export function useInvokeAI() {
       setError(error.message);
       setIsStreaming(false);
     }
-  }, [queryClient]);
+  }, [queryClient, invalidateToolCaches]);
 
   const reset = useCallback(() => {
     setIsStreaming(false);

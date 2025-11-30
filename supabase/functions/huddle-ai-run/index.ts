@@ -9,6 +9,40 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Rate limits per plan (requests per hour)
+const PLAN_RATE_LIMITS: Record<string, number> = {
+  free: 20,
+  starter: 100,
+  professional: 500,
+  enterprise: 2000,
+};
+
+// Content moderation settings
+const MAX_PROMPT_LENGTH = 10000; // Characters
+const BLOCKED_PATTERNS = [
+  /\b(password|secret|api[_-]?key|token)\s*[:=]/i,
+  /\b(ssn|social\s+security)\b/i,
+  /\b(credit\s+card|card\s+number)\b/i,
+];
+
+// Structured logging helper
+function log(level: 'info' | 'warn' | 'error', requestId: string, message: string, data?: Record<string, any>) {
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    level,
+    requestId,
+    message,
+    ...data,
+  };
+  if (level === 'error') {
+    console.error(JSON.stringify(logEntry));
+  } else if (level === 'warn') {
+    console.warn(JSON.stringify(logEntry));
+  } else {
+    console.log(JSON.stringify(logEntry));
+  }
+}
+
 interface AIRunRequest {
   room_id: string;
   thread_root_id?: string;
@@ -78,6 +112,30 @@ serve(async (req) => {
     const body: AIRunRequest = await req.json();
     const { room_id, thread_root_id, prompt, context_options, tool_options, user_timezone } = body;
 
+    // Generate request ID for logging
+    const requestId = crypto.randomUUID();
+    const startTime = Date.now();
+
+    // Content moderation: Check prompt length
+    if (prompt.length > MAX_PROMPT_LENGTH) {
+      log('warn', requestId, 'Prompt too long', { promptLength: prompt.length, maxLength: MAX_PROMPT_LENGTH });
+      return new Response(
+        JSON.stringify({ error: 'Prompt too long. Please keep your message under 10,000 characters.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Content moderation: Check for sensitive patterns
+    for (const pattern of BLOCKED_PATTERNS) {
+      if (pattern.test(prompt)) {
+        log('warn', requestId, 'Blocked pattern detected in prompt', { pattern: pattern.toString() });
+        return new Response(
+          JSON.stringify({ error: 'Your message appears to contain sensitive information. Please remove any passwords, API keys, or personal identifiers.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     // Validate room access and get settings
     const { data: room, error: roomError } = await supabaseUser
       .from('huddle_rooms')
@@ -86,6 +144,7 @@ serve(async (req) => {
       .single();
 
     if (roomError || !room) {
+      log('warn', requestId, 'Room not found', { roomId: room_id, error: roomError?.message });
       return new Response(
         JSON.stringify({ error: 'Room not found or access denied' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -94,6 +153,7 @@ serve(async (req) => {
 
     // Check if AI is allowed in this room
     if (!room.settings?.ai_allowed) {
+      log('info', requestId, 'AI not allowed in room', { roomId: room_id, roomName: room.name });
       return new Response(
         JSON.stringify({ error: 'AI is not enabled in this room' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -107,8 +167,42 @@ serve(async (req) => {
       .eq('id', room.workspace_id)
       .single();
 
-    // TODO: Implement proper rate limiting based on plan
-    // For now, allow all requests
+    // Rate limiting based on plan
+    const planType = workspace?.plan_type || 'free';
+    const rateLimit = PLAN_RATE_LIMITS[planType] || PLAN_RATE_LIMITS.free;
+    
+    // Check recent AI requests in the last hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count: recentRequests } = await supabaseAdmin
+      .from('huddle_messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('workspace_id', room.workspace_id)
+      .eq('is_ai', true)
+      .gte('created_at', oneHourAgo);
+    
+    if ((recentRequests || 0) >= rateLimit) {
+      log('warn', requestId, 'Rate limit exceeded', { 
+        workspaceId: room.workspace_id, 
+        planType, 
+        rateLimit, 
+        recentRequests 
+      });
+      return new Response(
+        JSON.stringify({ 
+          error: `AI rate limit exceeded. Your ${planType} plan allows ${rateLimit} AI requests per hour. Please try again later or upgrade your plan.` 
+        }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    log('info', requestId, 'AI request started', {
+      workspaceId: room.workspace_id,
+      roomId: room_id,
+      roomName: room.name,
+      userId: user.id,
+      planType,
+      promptLength: prompt.length,
+    });
 
     // Build context
     const context = await buildContext(supabaseUser, supabaseAdmin, {
@@ -124,7 +218,12 @@ serve(async (req) => {
     // Default to allowing write operations unless explicitly disabled in room settings
     const aiCanWrite = room.settings?.ai_can_write !== false;
     const tools = buildTools(tool_options, aiCanWrite, youComApiKey);
-    console.log('AI Run - Room:', room.name, 'AI can write:', aiCanWrite, 'Tools available:', tools.map((t: any) => t.function?.name));
+    log('info', requestId, 'Context and tools built', {
+      aiCanWrite,
+      toolCount: tools.length,
+      tools: tools.map((t: any) => t.function?.name),
+      contextTypes: context_options.workspace_data_types,
+    });
 
     // First, post the user's prompt as a message
     const { data: userMessage } = await supabaseUser

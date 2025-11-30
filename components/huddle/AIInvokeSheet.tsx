@@ -383,6 +383,30 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
           <p className="mt-2 sm:mt-3 text-xs text-center text-gray-400">
             AI responses will be posted to the channel
           </p>
+          
+          {/* Active context indicator */}
+          {(selectedContext.filter(c => c.enabled).length > 0 || useWebSearch) && (
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5">
+              <span className="text-xs text-gray-400">Using:</span>
+              {selectedContext.filter(c => c.enabled).map(ctx => {
+                const source = CONTEXT_SOURCES.find(s => s.id === ctx.type);
+                if (!source) return null;
+                const IconComponent = source.icon;
+                return (
+                  <span key={ctx.type} className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs">
+                    <IconComponent size={10} />
+                    {source.label}
+                  </span>
+                );
+              })}
+              {useWebSearch && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs">
+                  <Globe size={10} />
+                  Web
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
