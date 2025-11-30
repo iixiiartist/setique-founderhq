@@ -24,7 +24,8 @@ export interface CreateRoomData {
 interface WorkspaceMember {
   id: string;
   user_id: string;
-  users: {
+  profile: {
+    id: string;
     name: string | null;
     email: string;
     avatar_url: string | null;
@@ -60,7 +61,8 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
           .select(`
             id,
             user_id,
-            users:user_id (
+            profile:profiles!workspace_members_user_id_fkey (
+              id,
               name,
               email,
               avatar_url
@@ -95,10 +97,11 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
   // Filter members by search
   const filteredMembers = members.filter(m => {
     if (!searchQuery) return true;
+    if (!m.profile) return false;
     const query = searchQuery.toLowerCase();
     return (
-      m.users.name?.toLowerCase().includes(query) ||
-      m.users.email.toLowerCase().includes(query)
+      m.profile.name?.toLowerCase().includes(query) ||
+      m.profile.email?.toLowerCase().includes(query)
     );
   });
 
@@ -252,7 +255,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
                             key={userId}
                             className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-sm"
                           >
-                            {member.users.name || member.users.email}
+                            {member.profile?.name || member.profile?.email || 'Unknown'}
                             <button
                               type="button"
                               onClick={() => toggleMember(userId)}
@@ -286,23 +289,23 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
                             selectedMembers.includes(member.user_id) ? 'bg-purple-50' : ''
                           }`}
                         >
-                          {member.users.avatar_url ? (
+                          {member.profile?.avatar_url ? (
                             <img
-                              src={member.users.avatar_url}
+                              src={member.profile.avatar_url}
                               alt=""
                               className="w-8 h-8 rounded-full"
                             />
                           ) : (
                             <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-sm font-bold">
-                              {(member.users.name || member.users.email)[0].toUpperCase()}
+                              {(member.profile?.name || member.profile?.email || '?')[0].toUpperCase()}
                             </div>
                           )}
                           <div className="flex-1 text-left">
                             <div className="text-sm font-medium text-gray-900">
-                              {member.users.name || 'Unnamed'}
+                              {member.profile?.name || 'Unnamed'}
                             </div>
                             <div className="text-xs text-gray-500">
-                              {member.users.email}
+                              {member.profile?.email || ''}
                             </div>
                           </div>
                           {selectedMembers.includes(member.user_id) && (

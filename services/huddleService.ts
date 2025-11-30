@@ -61,10 +61,12 @@ export async function createRoom(request: CreateRoomRequest): Promise<{ data: Hu
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { data: null, error: { message: 'Not authenticated' } };
 
-  // Generate slug from name for channels
-  const slug = request.name 
+  // Generate unique slug from name for channels (add short random suffix to prevent conflicts)
+  const baseSlug = request.name 
     ? request.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
     : null;
+  const uniqueSuffix = Math.random().toString(36).substring(2, 6);
+  const slug = baseSlug ? `${baseSlug}-${uniqueSuffix}` : null;
 
   const { data: room, error: roomError } = await supabase
     .from('huddle_rooms')
