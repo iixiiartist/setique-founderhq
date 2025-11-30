@@ -503,12 +503,12 @@ const FinancialsTab: React.FC<{
     return (
         <div className="space-y-6">
             {/* View Selector */}
-            <div className="bg-white p-4 border-2 border-black shadow-neo">
-                <div className="flex flex-wrap gap-2">
+            <div className="bg-white p-3 sm:p-4 border-2 border-black shadow-neo">
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1">
                     <button
                         type="button"
                         onClick={() => setCurrentView('overview')}
-                        className={`px-4 py-2 border-2 border-black font-mono font-semibold transition-all ${
+                        className={`min-h-[44px] sm:min-h-0 px-3 sm:px-4 py-2 border-2 border-black font-mono font-semibold text-xs sm:text-sm whitespace-nowrap transition-all flex-shrink-0 ${
                             currentView === 'overview'
                                 ? 'bg-black text-white shadow-neo-btn'
                                 : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
@@ -520,7 +520,7 @@ const FinancialsTab: React.FC<{
                     <button
                         type="button"
                         onClick={() => setCurrentView('revenue')}
-                        className={`px-4 py-2 border-2 border-black font-mono font-semibold transition-all ${
+                        className={`min-h-[44px] sm:min-h-0 px-3 sm:px-4 py-2 border-2 border-black font-mono font-semibold text-xs sm:text-sm whitespace-nowrap transition-all flex-shrink-0 ${
                             currentView === 'revenue'
                                 ? 'bg-black text-white shadow-neo-btn'
                                 : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
@@ -532,7 +532,7 @@ const FinancialsTab: React.FC<{
                     <button
                         type="button"
                         onClick={() => setCurrentView('cashflow')}
-                        className={`px-4 py-2 border-2 border-black font-mono font-semibold transition-all ${
+                        className={`min-h-[44px] sm:min-h-0 px-3 sm:px-4 py-2 border-2 border-black font-mono font-semibold text-xs sm:text-sm whitespace-nowrap transition-all flex-shrink-0 ${
                             currentView === 'cashflow'
                                 ? 'bg-black text-white shadow-neo-btn'
                                 : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
@@ -544,7 +544,7 @@ const FinancialsTab: React.FC<{
                     <button
                         type="button"
                         onClick={() => setCurrentView('metrics')}
-                        className={`px-4 py-2 border-2 border-black font-mono font-semibold transition-all ${
+                        className={`min-h-[44px] sm:min-h-0 px-3 sm:px-4 py-2 border-2 border-black font-mono font-semibold text-xs sm:text-sm whitespace-nowrap transition-all flex-shrink-0 ${
                             currentView === 'metrics'
                                 ? 'bg-black text-white shadow-neo-btn'
                                 : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
@@ -556,7 +556,7 @@ const FinancialsTab: React.FC<{
                     <button
                         type="button"
                         onClick={() => setCurrentView('forecasting')}
-                        className={`px-4 py-2 border-2 border-black font-mono font-semibold transition-all ${
+                        className={`min-h-[44px] sm:min-h-0 px-3 sm:px-4 py-2 border-2 border-black font-mono font-semibold text-xs sm:text-sm whitespace-nowrap transition-all flex-shrink-0 ${
                             currentView === 'forecasting'
                                 ? 'bg-black text-white shadow-neo-btn'
                                 : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
@@ -568,7 +568,7 @@ const FinancialsTab: React.FC<{
                     <button
                         type="button"
                         onClick={() => setCurrentView('analytics')}
-                        className={`px-4 py-2 border-2 border-black font-mono font-semibold transition-all ${
+                        className={`min-h-[44px] sm:min-h-0 px-3 sm:px-4 py-2 border-2 border-black font-mono font-semibold text-xs sm:text-sm whitespace-nowrap transition-all flex-shrink-0 ${
                             currentView === 'analytics'
                                 ? 'bg-black text-white shadow-neo-btn'
                                 : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
@@ -580,7 +580,7 @@ const FinancialsTab: React.FC<{
                     <button
                         type="button"
                         onClick={() => setCurrentView('marketing')}
-                        className={`px-4 py-2 border-2 border-black font-mono font-semibold transition-all ${
+                        className={`min-h-[44px] sm:min-h-0 px-3 sm:px-4 py-2 border-2 border-black font-mono font-semibold text-xs sm:text-sm whitespace-nowrap transition-all flex-shrink-0 ${
                             currentView === 'marketing'
                                 ? 'bg-black text-white shadow-neo-btn'
                                 : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
@@ -630,7 +630,7 @@ const FinancialsTab: React.FC<{
             {currentView === 'overview' && (
             <div className="space-y-4">
                 {/* Top Section: KPIs in a single row */}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
                     <KpiCard
                         title="MRR"
                         value={formatCurrency(latestMrr)}

@@ -296,11 +296,11 @@ const MarketingTab: React.FC<{
     return (
         <div className="space-y-6">
             {/* View Selector */}
-            <div className="bg-white p-4 border-2 border-black shadow-neo">
-                <div className="flex flex-wrap gap-2">
+            <div className="bg-white p-3 sm:p-4 border-2 border-black shadow-neo">
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1">
                     <button
                         onClick={() => setCurrentView('calendar')}
-                        className={`px-4 py-2 border-2 border-black font-mono font-semibold transition-all ${
+                        className={`min-h-[44px] sm:min-h-0 px-3 sm:px-4 py-2 border-2 border-black font-mono font-semibold text-xs sm:text-sm whitespace-nowrap transition-all flex-shrink-0 ${
                             currentView === 'calendar'
                                 ? 'bg-black text-white shadow-neo-btn'
                                 : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
@@ -310,7 +310,7 @@ const MarketingTab: React.FC<{
                     </button>
                     <button
                         onClick={() => setCurrentView('analytics')}
-                        className={`px-4 py-2 border-2 border-black font-mono font-semibold transition-all ${
+                        className={`min-h-[44px] sm:min-h-0 px-3 sm:px-4 py-2 border-2 border-black font-mono font-semibold text-xs sm:text-sm whitespace-nowrap transition-all flex-shrink-0 ${
                             currentView === 'analytics'
                                 ? 'bg-black text-white shadow-neo-btn'
                                 : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
@@ -320,7 +320,7 @@ const MarketingTab: React.FC<{
                     </button>
                     <button
                         onClick={() => setCurrentView('attribution')}
-                        className={`px-4 py-2 border-2 border-black font-mono font-semibold transition-all ${
+                        className={`min-h-[44px] sm:min-h-0 px-3 sm:px-4 py-2 border-2 border-black font-mono font-semibold text-xs sm:text-sm whitespace-nowrap transition-all flex-shrink-0 ${
                             currentView === 'attribution'
                                 ? 'bg-black text-white shadow-neo-btn'
                                 : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
@@ -349,15 +349,15 @@ const MarketingTab: React.FC<{
             )}
 
             {currentView === 'calendar' && (
-        <div className="space-y-8">
+        <div className="space-y-6 sm:space-y-8">
             {/* Campaign List with Create Button */}
-            <div className="bg-white p-6 border-2 border-black shadow-neo">
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-black">Marketing Campaigns</h2>
+            <div className="bg-white p-4 sm:p-6 border-2 border-black shadow-neo">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-6">
+                    <h2 className="text-xl sm:text-2xl font-bold text-black">Marketing Campaigns</h2>
                     <button
                         ref={newCampaignButtonRef}
                         onClick={handleNewCampaign}
-                        className="font-mono font-semibold bg-black text-white py-3 px-6 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+                        className="font-mono font-semibold bg-black text-white min-h-[44px] sm:min-h-0 py-2 sm:py-3 px-4 sm:px-6 text-sm sm:text-base rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
                     >
                         + New Campaign
                     </button>

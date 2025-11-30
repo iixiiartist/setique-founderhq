@@ -53,42 +53,47 @@ const CalendarHeader: React.FC<{
     };
 
     return (
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
-            <div className="flex items-center gap-4">
-                <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                    <button onClick={onPrev} className="p-2.5 hover:bg-gray-100 border-r border-gray-200 transition-colors" aria-label="Previous period">&larr;</button>
-                    <button onClick={onToday} className="px-3 py-2 font-medium text-sm hover:bg-gray-100 border-r border-gray-200 transition-colors">Today</button>
-                    <button onClick={onNext} className="p-2.5 hover:bg-gray-100 transition-colors" aria-label="Next period">&rarr;</button>
+        <div className="flex flex-col gap-3 sm:gap-4 mb-4">
+            {/* Top row: Navigation and date */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-4">
+                    <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                        <button onClick={onPrev} className="min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 p-2 sm:p-2.5 hover:bg-gray-100 border-r border-gray-200 transition-colors flex items-center justify-center" aria-label="Previous period">&larr;</button>
+                        <button onClick={onToday} className="min-h-[44px] sm:min-h-0 px-3 py-2 font-medium text-sm hover:bg-gray-100 border-r border-gray-200 transition-colors">Today</button>
+                        <button onClick={onNext} className="min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 p-2 sm:p-2.5 hover:bg-gray-100 transition-colors flex items-center justify-center" aria-label="Next period">&rarr;</button>
+                    </div>
+                    <h2 className="text-base sm:text-xl font-semibold text-gray-900 truncate">{formatHeaderDate()}</h2>
                 </div>
-                <h2 className="text-xl font-semibold text-gray-900">{formatHeaderDate()}</h2>
+            </div>
+            
+            {/* Bottom row: Mode toggle, New Event, View selector */}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                 <div className="flex border border-gray-200 rounded-lg overflow-hidden shadow-sm">
                     <button
                         onClick={() => onCalendarModeChange('personal')}
-                        className={`py-1.5 px-3 text-sm font-medium transition-colors ${calendarMode === 'personal' ? 'bg-black text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                        className={`min-h-[44px] sm:min-h-0 py-1.5 px-2 sm:px-3 text-xs sm:text-sm font-medium transition-colors ${calendarMode === 'personal' ? 'bg-black text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
                     >
                         Personal
                     </button>
                     <button
                         onClick={() => onCalendarModeChange('team')}
-                        className={`py-1.5 px-3 text-sm font-medium border-l border-gray-200 transition-colors ${calendarMode === 'team' ? 'bg-black text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+                        className={`min-h-[44px] sm:min-h-0 py-1.5 px-2 sm:px-3 text-xs sm:text-sm font-medium border-l border-gray-200 transition-colors ${calendarMode === 'team' ? 'bg-black text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
                     >
                         Team
                     </button>
                 </div>
-            </div>
-            <div className="flex items-center gap-4">
                 <button
                     onClick={onNewEvent}
-                    className="py-2 px-4 font-medium text-sm bg-black text-white rounded-lg shadow-sm hover:bg-gray-800 transition-colors"
+                    className="min-h-[44px] sm:min-h-0 py-2 px-3 sm:px-4 font-medium text-xs sm:text-sm bg-black text-white rounded-lg shadow-sm hover:bg-gray-800 transition-colors"
                 >
                     + New Event
                 </button>
-                <div className="flex border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                <div className="flex border border-gray-200 rounded-lg overflow-hidden shadow-sm ml-auto">
                     {(['month', 'week', 'day'] as ViewMode[]).map(view => (
                         <button
                             key={view}
                             onClick={() => onViewChange(view)}
-                            className={`py-2 px-4 text-sm font-medium capitalize transition-colors ${viewMode === view ? 'bg-black text-white' : 'bg-white text-gray-700 hover:bg-gray-50'} ${view !== 'month' ? 'border-l border-gray-200' : ''}`}
+                            className={`min-h-[44px] sm:min-h-0 py-2 px-2 sm:px-4 text-xs sm:text-sm font-medium capitalize transition-colors ${viewMode === view ? 'bg-black text-white' : 'bg-white text-gray-700 hover:bg-gray-50'} ${view !== 'month' ? 'border-l border-gray-200' : ''}`}
                         >
                             {view}
                         </button>
@@ -915,7 +920,7 @@ function CalendarTab({
     }
 
     return (
-        <div className="bg-white p-6 border-2 border-black shadow-neo">
+        <div className="bg-white p-3 sm:p-6 border-2 border-black shadow-neo">
             <CalendarHeader 
                 currentDate={currentDate}
                 viewMode={viewMode}

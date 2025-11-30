@@ -897,8 +897,16 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
         return contacts.filter(contact => contact.crmItemId === selectedDoc.companyId);
     }, [contacts, selectedDoc?.companyId]);
 
+    const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+
     return (
         <div className="flex h-full bg-[#FDF9F2] text-black font-mono overflow-hidden border-t border-gray-200" onDrop={handleDrop} onDragOver={handleDragOver}>
+            {/* Mobile sidebar overlay */}
+            {showMobileSidebar && (
+                <div className="fixed inset-0 z-40 lg:hidden" onClick={() => setShowMobileSidebar(false)}>
+                    <div className="absolute inset-0 bg-black/50" />
+                </div>
+            )}
             <DocumentUploadModal
                 isOpen={!!fileToUpload}
                 onClose={() => setFileToUpload(null)}
@@ -927,28 +935,35 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                 )}
             </Modal>
 
-            <aside className="w-80 bg-white border-r border-gray-200 flex flex-col overflow-hidden">
-                <div className="p-6 border-b border-gray-200">
+            <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-[85vw] sm:w-80 bg-white border-r border-gray-200 flex flex-col overflow-hidden transition-transform duration-300 lg:translate-x-0 ${showMobileSidebar ? 'translate-x-0' : '-translate-x-full'}`}>
+                {/* Mobile close button */}
+                <button
+                    onClick={() => setShowMobileSidebar(false)}
+                    className="lg:hidden absolute top-4 right-4 w-10 h-10 flex items-center justify-center text-gray-500 hover:text-gray-700 z-10"
+                >
+                    ×
+                </button>
+                <div className="p-4 sm:p-6 border-b border-gray-200">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-yellow-300 border border-gray-300 rounded-lg flex items-center justify-center">
-                            <HardDrive className="w-5 h-5" />
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 bg-yellow-300 border border-gray-300 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <HardDrive className="w-4 h-4 sm:w-5 sm:h-5" />
                         </div>
-                        <div>
-                            <p className="text-xs tracking-[0.3em] font-black">Workspace</p>
-                            <h2 className="text-2xl font-black leading-none">File Library</h2>
+                        <div className="min-w-0">
+                            <p className="text-[10px] sm:text-xs tracking-[0.3em] font-black">Workspace</p>
+                            <h2 className="text-xl sm:text-2xl font-black leading-none">File Library</h2>
                         </div>
                     </div>
-                    <div className="mt-6 grid grid-cols-2 gap-3">
+                    <div className="mt-4 sm:mt-6 grid grid-cols-2 gap-2 sm:gap-3">
                         <StatCard label="Files" value={libraryDocs.length} helper={`${recentCount} added this week`} />
                         <StatCard label="Storage" value={formatSize(totalSize)} helper="Base64 storage" />
                         <StatCard label="Starred" value={starredCount} helper="Pinned favourites" />
                         <StatCard label="Linked" value={linkedCount} helper="Connected records" />
                     </div>
-                    <div className="mt-5 flex gap-3">
-                        <Button fullWidth className="justify-center gap-2" onClick={() => fileInputRef.current?.click()}>
+                    <div className="mt-4 sm:mt-5 flex gap-2 sm:gap-3">
+                        <Button fullWidth className="justify-center gap-2 min-h-[44px] sm:min-h-0 text-sm" onClick={() => fileInputRef.current?.click()}>
                             <Upload size={16} /> Upload
                         </Button>
-                        <Button fullWidth variant="secondary" className="justify-center gap-2" onClick={() => setSelectedModule(null)}>
+                        <Button fullWidth variant="secondary" className="justify-center gap-2 min-h-[44px] sm:min-h-0 text-sm" onClick={() => setSelectedModule(null)}>
                             <RefreshCw size={16} /> Reset
                         </Button>
                         <input ref={fileInputRef} type="file" className="hidden" onChange={e => handleFileSelect(e.target.files?.[0] || null)} />
@@ -1018,27 +1033,34 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
             </aside>
 
             <section className="flex-1 flex flex-col min-w-0">
-                <header className="h-20 bg-white border-b border-gray-200 flex items-center gap-6 px-8">
-                    <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-tight">
+                <header className="min-h-[64px] sm:h-20 bg-white border-b border-gray-200 flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-6 px-3 sm:px-8 py-2 sm:py-0">
+                    {/* Mobile menu button */}
+                    <button
+                        onClick={() => setShowMobileSidebar(true)}
+                        className="lg:hidden min-w-[44px] min-h-[44px] flex items-center justify-center border border-gray-200 rounded-lg"
+                    >
+                        <HardDrive size={20} />
+                    </button>
+                    <div className="hidden sm:flex items-center gap-2 text-sm font-semibold uppercase tracking-tight">
                         <span className="cursor-pointer" onClick={() => { setSelectedModule(null); setQuickFilter('all'); }}>Drive</span>
                         {selectedModule && (
                             <>
                                 <ChevronRight size={16} />
-                                <span>{NAV_ITEMS.find(item => item.id === selectedModule)?.label}</span>
+                                <span className="truncate max-w-[100px]">{NAV_ITEMS.find(item => item.id === selectedModule)?.label}</span>
                             </>
                         )}
                     </div>
-                    <div className="flex-1 relative max-w-xl">
+                    <div className="flex-1 relative max-w-xl min-w-0">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" />
                         <input
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
-                            placeholder="Search name, tags, owner..."
-                            className="w-full pl-11 pr-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-black text-sm"
+                            placeholder="Search..."
+                            className="w-full pl-9 sm:pl-11 pr-3 sm:pr-4 py-2 min-h-[44px] sm:min-h-0 border rounded focus:outline-none focus:ring-2 focus:ring-black text-sm"
                         />
                     </div>
-                    <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="hidden sm:flex items-center gap-2">
                             <Filter size={16} />
                             <select
                                 value={sortOption}
@@ -1052,13 +1074,13 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                         </div>
                         <div className="flex border rounded overflow-hidden">
                             <button
-                                className={`px-3 py-2 border-r ${viewMode === 'list' ? 'bg-black text-white' : 'bg-white'}`}
+                                className={`min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 px-3 py-2 border-r flex items-center justify-center ${viewMode === 'list' ? 'bg-black text-white' : 'bg-white'}`}
                                 onClick={() => setViewMode('list')}
                             >
                                 <List size={16} />
                             </button>
                             <button
-                                className={`px-3 py-2 ${viewMode === 'grid' ? 'bg-black text-white' : 'bg-white'}`}
+                                className={`min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 px-3 py-2 flex items-center justify-center ${viewMode === 'grid' ? 'bg-black text-white' : 'bg-white'}`}
                                 onClick={() => setViewMode('grid')}
                             >
                                 <Grid size={16} />
@@ -1087,7 +1109,7 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                     </div>
                 )}
 
-                <main className="flex-1 overflow-auto p-8" onClick={() => setSelectedDocId(null)}>
+                <main className="flex-1 overflow-auto p-3 sm:p-8" onClick={() => setSelectedDocId(null)}>
                     {filteredDocs.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center gap-3 text-center" onClick={e => e.stopPropagation()}>
                             <div className="w-40 h-40 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center bg-white">
@@ -1220,25 +1242,31 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
             </section>
 
             {selectedDoc && (
-                <aside className="w-[380px] bg-white border-l border-gray-200 flex flex-col">
-                    <div className="p-5 border-b flex items-center justify-between">
-                        <div>
+                <>
+                    {/* Mobile overlay backdrop */}
+                    <div 
+                        className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+                        onClick={() => setSelectedDocId(null)}
+                    />
+                    <aside className="fixed inset-y-0 right-0 w-[90vw] sm:w-[380px] lg:static lg:w-[380px] bg-white border-l border-gray-200 flex flex-col z-50">
+                    <div className="p-4 sm:p-5 border-b flex items-center justify-between">
+                        <div className="min-w-0 flex-1 pr-3">
                             <p className="text-xs uppercase tracking-[0.3em] text-gray-500">Details</p>
-                            <h3 className="text-lg font-black break-words">{selectedDoc.name}</h3>
+                            <h3 className="text-base sm:text-lg font-black break-words truncate">{selectedDoc.name}</h3>
                         </div>
-                        <button onClick={() => setSelectedDocId(null)} className="w-8 h-8 border rounded">×</button>
+                        <button onClick={() => setSelectedDocId(null)} className="min-w-[44px] min-h-[44px] sm:w-8 sm:h-8 sm:min-w-0 sm:min-h-0 border rounded flex items-center justify-center text-lg">×</button>
                     </div>
 
-                    <div className="p-5 space-y-5 overflow-auto">
-                        <div className="flex items-center justify-between">
-                            <div className="w-16 h-16 border rounded flex items-center justify-center bg-white">
+                    <div className="p-4 sm:p-5 space-y-4 sm:space-y-5 overflow-auto flex-1">
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="w-12 h-12 sm:w-16 sm:h-16 border rounded flex items-center justify-center bg-white shrink-0">
                                 {getFileIcon(selectedDoc.mimeType)}
                             </div>
-                            <div className="text-xs text-right">
-                                <p>{formatSize(selectedDoc.fileSize || calculateDocSize(selectedDoc))}</p>
-                                <p>{selectedDoc.mimeType || 'unknown'}</p>
+                            <div className="text-xs text-right flex-1 min-w-0">
+                                <p className="truncate">{formatSize(selectedDoc.fileSize || calculateDocSize(selectedDoc))}</p>
+                                <p className="truncate">{selectedDoc.mimeType || 'unknown'}</p>
                             </div>
-                            <button onClick={() => handleToggleStar(selectedDoc, !selectedDoc.isStarred)}>
+                            <button onClick={() => handleToggleStar(selectedDoc, !selectedDoc.isStarred)} className="min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center">
                                 {selectedDoc.isStarred ? <Star size={18} className="text-yellow-500" /> : <StarOff size={18} />}
                             </button>
                         </div>
@@ -1360,7 +1388,7 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                             {isEditableDocument(selectedDoc.mimeType, selectedDoc.name) && onOpenInEditor && (
                                 <Button 
                                     onClick={() => handleEditInEditor(selectedDoc)} 
-                                    className="justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
+                                    className="justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 min-h-[44px] sm:min-h-0"
                                     disabled={isConverting}
                                 >
                                     {isConverting ? (
@@ -1370,24 +1398,25 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                                     )}
                                 </Button>
                             )}
-                            <Button onClick={() => handleDownload(selectedDoc)} className="justify-center gap-2">
+                            <Button onClick={() => handleDownload(selectedDoc)} className="justify-center gap-2 min-h-[44px] sm:min-h-0">
                                 <Download size={16} /> Download
                             </Button>
-                            <Button onClick={() => handleShare(selectedDoc)} variant="secondary" className="justify-center gap-2">
+                            <Button onClick={() => handleShare(selectedDoc)} variant="secondary" className="justify-center gap-2 min-h-[44px] sm:min-h-0">
                                 <Send size={16} /> Share via Email
                             </Button>
                             <Button onClick={() => {
                                 setNotesModalDoc(selectedDoc);
                                 notesModalTriggerRef.current?.click();
-                            }} variant="secondary" className="justify-center gap-2">
+                            }} variant="secondary" className="justify-center gap-2 min-h-[44px] sm:min-h-0">
                                 <FileText size={16} /> Notes
                             </Button>
-                            <Button onClick={() => handleDelete(selectedDoc)} variant="danger" className="justify-center gap-2">
+                            <Button onClick={() => handleDelete(selectedDoc)} variant="danger" className="justify-center gap-2 min-h-[44px] sm:min-h-0">
                                 <Trash2 size={16} /> Delete
                             </Button>
                         </div>
                     </div>
-                </aside>
+                    </aside>
+                </>
             )}
 
             <EmailComposer
