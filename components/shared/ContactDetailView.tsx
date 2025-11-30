@@ -181,55 +181,61 @@ function ContactDetailView({ contact, parentItem, tasks, actions, onBack, crmCol
     
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
             {/* Header Section */}
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-                <div className="p-5">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="flex items-center gap-4">
+                <div className="p-3 sm:p-5">
+                    <div className="flex flex-col gap-3">
+                        {/* Top row: back button */}
+                        <div className="flex items-center gap-2 sm:gap-4">
                             <button 
                                 onClick={onBack} 
-                                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors"
+                                className="flex items-center gap-1.5 sm:gap-2 text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors min-h-[44px] px-2 -ml-2"
                             >
-                                <ArrowLeft className="w-4 h-4" />
-                                {parentItem.company}
+                                <ArrowLeft className="w-5 h-5 sm:w-4 sm:h-4" />
+                                <span className="truncate max-w-[150px] sm:max-w-none">{parentItem.company}</span>
                             </button>
-                            <div className="h-6 w-px bg-gray-200"></div>
+                        </div>
+                        
+                        {/* Contact name and info */}
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                             <div>
-                                <h1 className="text-xl font-semibold text-gray-900">{contact.name}</h1>
-                                <p className="text-sm text-gray-500 flex items-center gap-1">
+                                <h1 className="text-lg sm:text-xl font-semibold text-gray-900">{contact.name}</h1>
+                                <p className="text-xs sm:text-sm text-gray-500 flex items-center gap-1">
                                     <Building className="w-3.5 h-3.5" />
                                     Contact at {parentItem.company}
                                 </p>
                             </div>
-                            {workspaceMembers.length > 0 && onAssignContact && (
-                                <div className="ml-4">
+                            
+                            {/* Actions row */}
+                            <div className="flex items-center gap-2 flex-wrap">
+                                {workspaceMembers.length > 0 && onAssignContact && (
                                     <AssignmentDropdown
                                         workspaceMembers={workspaceMembers.map(m => ({ id: m.userId, name: m.fullName || 'Unknown', email: m.email || '', role: m.role }))}
                                         currentAssignee={contact.assignedTo || undefined}
                                         onAssign={(userId, userName) => onAssignContact(userId, userName, contact.id)}
-                                        placeholder="Assign contact..."
+                                        placeholder="Assign..."
                                     />
-                                </div>
-                            )}
+                                )}
+                                <button 
+                                    onClick={() => {
+                                        if (window.confirm(`Delete ${contact.name}? This will also delete all associated tasks and meetings.`)) {
+                                            actions.deleteContact(crmCollection, contact.crmItemId, contact.id);
+                                            onBack();
+                                        }
+                                    }} 
+                                    className="flex items-center gap-1.5 text-gray-400 hover:text-red-600 text-sm font-medium transition-colors min-h-[44px] px-2"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                    <span className="hidden sm:inline">Delete</span>
+                                </button>
+                            </div>
                         </div>
-                        <button 
-                            onClick={() => {
-                                if (window.confirm(`Delete ${contact.name}? This will also delete all associated tasks and meetings.`)) {
-                                    actions.deleteContact(crmCollection, contact.crmItemId, contact.id);
-                                    onBack();
-                                }
-                            }} 
-                            className="flex items-center gap-1.5 text-gray-400 hover:text-red-600 text-sm font-medium transition-colors"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                            Delete
-                        </button>
                     </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                 {/* Left Column - Contact Info & Meetings */}
                 <div className="lg:col-span-1 space-y-6">
                     <div className="bg-white rounded-lg border border-gray-200 shadow-sm">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { AnyCrmItem, Task, AppActions, CrmCollectionName, TaskCollectionName, Contact, Document, BusinessProfile, WorkspaceMember, Deal, ProductService, Meeting } from '../types';
 import AccountDetailView from './shared/AccountDetailView';
 import ContactDetailView from './shared/ContactDetailView';
@@ -41,6 +42,7 @@ function CrmTabComponent({
     const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
     const [activeView, setActiveView] = useState<'accounts' | 'contacts' | 'followups' | 'deals'>('accounts');
     const [showDeletedToast, setShowDeletedToast] = useState(false);
+    const [showQuickAccess, setShowQuickAccess] = useState(false);
     const isUpdatingRef = useRef(false);
 
     interface ContactWithParent {
@@ -328,65 +330,65 @@ function CrmTabComponent({
                 <div className="lg:col-span-2 space-y-6">
                 {/* View Navigation Tabs */}
                 <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-                    <div className="flex border-b border-gray-200">
+                    <div className="flex border-b border-gray-200 overflow-x-auto scrollbar-hide">
                         <button
                             onClick={() => setActiveView('accounts')}
-                            className={`flex-1 flex items-center justify-center gap-2 py-3.5 px-4 text-sm font-semibold transition-all relative ${
+                            className={`flex-1 min-w-[80px] flex items-center justify-center gap-1.5 sm:gap-2 py-3 sm:py-3.5 px-2 sm:px-4 text-xs sm:text-sm font-semibold transition-all relative whitespace-nowrap ${
                                 activeView === 'accounts'
                                     ? 'text-black'
                                     : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                             }`}
                         >
                             <span>📊</span>
-                            <span>Accounts</span>
+                            <span className="hidden xs:inline sm:inline">Accounts</span>
                             {activeView === 'accounts' && (
                                 <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-black" />
                             )}
                         </button>
                         <button
                             onClick={() => setActiveView('contacts')}
-                            className={`flex-1 flex items-center justify-center gap-2 py-3.5 px-4 text-sm font-semibold transition-all relative ${
+                            className={`flex-1 min-w-[80px] flex items-center justify-center gap-1.5 sm:gap-2 py-3 sm:py-3.5 px-2 sm:px-4 text-xs sm:text-sm font-semibold transition-all relative whitespace-nowrap ${
                                 activeView === 'contacts'
                                     ? 'text-black'
                                     : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                             }`}
                         >
                             <span>👥</span>
-                            <span>Contacts</span>
+                            <span className="hidden xs:inline sm:inline">Contacts</span>
                             {activeView === 'contacts' && (
                                 <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-black" />
                             )}
                         </button>
                         <button
                             onClick={() => setActiveView('followups')}
-                            className={`flex-1 flex items-center justify-center gap-2 py-3.5 px-4 text-sm font-semibold transition-all relative ${
+                            className={`flex-1 min-w-[80px] flex items-center justify-center gap-1.5 sm:gap-2 py-3 sm:py-3.5 px-2 sm:px-4 text-xs sm:text-sm font-semibold transition-all relative whitespace-nowrap ${
                                 activeView === 'followups'
                                     ? 'text-black'
                                     : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                             }`}
                         >
                             <span>📋</span>
-                            <span>Follow Ups</span>
+                            <span className="hidden xs:inline sm:inline">Follow Ups</span>
                             {activeView === 'followups' && (
                                 <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-black" />
                             )}
                         </button>
                         <button
                             onClick={() => setActiveView('deals')}
-                            className={`flex-1 flex items-center justify-center gap-2 py-3.5 px-4 text-sm font-semibold transition-all relative ${
+                            className={`flex-1 min-w-[80px] flex items-center justify-center gap-1.5 sm:gap-2 py-3 sm:py-3.5 px-2 sm:px-4 text-xs sm:text-sm font-semibold transition-all relative whitespace-nowrap ${
                                 activeView === 'deals'
                                     ? 'text-black'
                                     : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                             }`}
                         >
                             <span>💼</span>
-                            <span>Deals</span>
+                            <span className="hidden xs:inline sm:inline">Deals</span>
                             {activeView === 'deals' && (
                                 <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-black" />
                             )}
                         </button>
                     </div>
-                    <div className="p-5">
+                    <div className="p-3 sm:p-5">
                         {activeView === 'accounts' && (
                             <AccountManager
                                 crmItems={crmItems}
@@ -432,132 +434,150 @@ function CrmTabComponent({
 
                 </div>
 
-                {/* Quick Access Sidebar */}
+                {/* Quick Access Sidebar - Collapsible on mobile */}
                 {userId && (
                     <div className="space-y-4">
-                        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-2">
+                        {/* Mobile toggle header */}
+                        <button 
+                            onClick={() => setShowQuickAccess(!showQuickAccess)}
+                            className="w-full lg:hidden flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg shadow-sm"
+                        >
+                            <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                <span>⚡</span> Quick Access
+                            </h2>
+                            <ChevronDown 
+                                size={18} 
+                                className={`text-gray-500 transition-transform ${showQuickAccess ? 'rotate-180' : ''}`} 
+                            />
+                        </button>
+                        
+                        {/* Desktop always visible header */}
+                        <h2 className="hidden lg:flex text-sm font-semibold text-gray-500 uppercase tracking-wide items-center gap-2">
                             <span>⚡</span> Quick Access
                         </h2>
                         
-                        {/* My Accounts */}
-                        <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-                            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                                <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                                    <span>📋</span> My Accounts
-                                    {assignedAccounts.length > 0 && (
-                                        <span className="ml-auto text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
-                                            {assignedAccounts.length}
-                                        </span>
+                        {/* Content - always visible on desktop, toggled on mobile */}
+                        <div className={`space-y-4 ${showQuickAccess ? 'block' : 'hidden lg:block'}`}>
+                            {/* My Accounts */}
+                            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                                    <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                                        <span>📋</span> My Accounts
+                                        {assignedAccounts.length > 0 && (
+                                            <span className="ml-auto text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
+                                                {assignedAccounts.length}
+                                            </span>
+                                        )}
+                                    </h3>
+                                </div>
+                                <div className="divide-y divide-gray-100 max-h-52 overflow-y-auto">
+                                    {assignedAccounts.length > 0 ? (
+                                        assignedAccounts.slice(0, 5).map(item => (
+                                            <button
+                                                key={item.id}
+                                                onClick={() => setSelectedItem(item)}
+                                                className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors group min-h-[52px]"
+                                            >
+                                                <div className="font-medium text-sm text-gray-900 truncate group-hover:text-black">
+                                                    {item.company}
+                                                </div>
+                                                <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-2">
+                                                    <span className={`inline-block w-2 h-2 rounded-full ${
+                                                        item.status === 'Active' ? 'bg-green-500' :
+                                                        item.status === 'Hot' ? 'bg-red-500' :
+                                                        item.status === 'Warm' ? 'bg-orange-500' :
+                                                        'bg-gray-400'
+                                                    }`} />
+                                                    {item.status}
+                                                </div>
+                                            </button>
+                                        ))
+                                    ) : (
+                                        <div className="px-4 py-6 text-center">
+                                            <p className="text-sm text-gray-400">No accounts assigned</p>
+                                        </div>
                                     )}
-                                </h3>
+                                </div>
                             </div>
-                            <div className="divide-y divide-gray-100 max-h-52 overflow-y-auto">
-                                {assignedAccounts.length > 0 ? (
-                                    assignedAccounts.slice(0, 5).map(item => (
-                                        <button
-                                            key={item.id}
-                                            onClick={() => setSelectedItem(item)}
-                                            className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors group"
-                                        >
-                                            <div className="font-medium text-sm text-gray-900 truncate group-hover:text-black">
-                                                {item.company}
-                                            </div>
-                                            <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-2">
-                                                <span className={`inline-block w-2 h-2 rounded-full ${
-                                                    item.status === 'Active' ? 'bg-green-500' :
-                                                    item.status === 'Hot' ? 'bg-red-500' :
-                                                    item.status === 'Warm' ? 'bg-orange-500' :
-                                                    'bg-gray-400'
-                                                }`} />
-                                                {item.status}
-                                            </div>
-                                        </button>
-                                    ))
-                                ) : (
-                                    <div className="px-4 py-6 text-center">
-                                        <p className="text-sm text-gray-400">No accounts assigned</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
 
-                        {/* My Contacts */}
-                        <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-                            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                                <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                                    <span>👤</span> My Contacts
-                                    {assignedContacts.length > 0 && (
-                                        <span className="ml-auto text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
-                                            {assignedContacts.length}
-                                        </span>
+                            {/* My Contacts */}
+                            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                                    <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                                        <span>👤</span> My Contacts
+                                        {assignedContacts.length > 0 && (
+                                            <span className="ml-auto text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
+                                                {assignedContacts.length}
+                                            </span>
+                                        )}
+                                    </h3>
+                                </div>
+                                <div className="divide-y divide-gray-100 max-h-52 overflow-y-auto">
+                                    {assignedContacts.length > 0 ? (
+                                        assignedContacts.slice(0, 5).map(({ contact, parentItem }) => (
+                                            <button
+                                                key={contact.id}
+                                                onClick={() => {
+                                                    setSelectedItem(parentItem);
+                                                    setSelectedContact(contact);
+                                                }}
+                                                className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors group min-h-[52px]"
+                                            >
+                                                <div className="font-medium text-sm text-gray-900 truncate group-hover:text-black">
+                                                    {contact.name}
+                                                </div>
+                                                <div className="text-xs text-gray-500 mt-0.5 truncate">
+                                                    {parentItem.company}
+                                                </div>
+                                            </button>
+                                        ))
+                                    ) : (
+                                        <div className="px-4 py-6 text-center">
+                                            <p className="text-sm text-gray-400">No contacts assigned</p>
+                                        </div>
                                     )}
-                                </h3>
+                                </div>
                             </div>
-                            <div className="divide-y divide-gray-100 max-h-52 overflow-y-auto">
-                                {assignedContacts.length > 0 ? (
-                                    assignedContacts.slice(0, 5).map(({ contact, parentItem }) => (
-                                        <button
-                                            key={contact.id}
-                                            onClick={() => {
-                                                setSelectedItem(parentItem);
-                                                setSelectedContact(contact);
-                                            }}
-                                            className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors group"
-                                        >
-                                            <div className="font-medium text-sm text-gray-900 truncate group-hover:text-black">
-                                                {contact.name}
-                                            </div>
-                                            <div className="text-xs text-gray-500 mt-0.5 truncate">
-                                                {parentItem.company}
-                                            </div>
-                                        </button>
-                                    ))
-                                ) : (
-                                    <div className="px-4 py-6 text-center">
-                                        <p className="text-sm text-gray-400">No contacts assigned</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
 
-                        {/* Recent Meetings */}
-                        <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-                            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                                <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                                    <span>📅</span> Recent Meetings
-                                    {recentMeetings.length > 0 && (
-                                        <span className="ml-auto text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
-                                            {recentMeetings.length}
-                                        </span>
+                            {/* Recent Meetings */}
+                            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                                    <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                                        <span>📅</span> Recent Meetings
+                                        {recentMeetings.length > 0 && (
+                                            <span className="ml-auto text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
+                                                {recentMeetings.length}
+                                            </span>
+                                        )}
+                                    </h3>
+                                </div>
+                                <div className="divide-y divide-gray-100 max-h-52 overflow-y-auto">
+                                    {recentMeetings.length > 0 ? (
+                                        recentMeetings.map(meeting => (
+                                            <button
+                                                key={meeting.id}
+                                                onClick={() => {
+                                                    setSelectedItem(meeting.parentItem);
+                                                    setSelectedContact(meeting.parentContact);
+                                                }}
+                                                className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors group min-h-[52px]"
+                                            >
+                                                <div className="font-medium text-sm text-gray-900 truncate group-hover:text-black">
+                                                    {meeting.title}
+                                                </div>
+                                                <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                                                    <span className="truncate">{meeting.contactName}</span>
+                                                    <span>•</span>
+                                                    <span>{new Date(meeting.timestamp).toLocaleDateString()}</span>
+                                                </div>
+                                            </button>
+                                        ))
+                                    ) : (
+                                        <div className="px-4 py-6 text-center">
+                                            <p className="text-sm text-gray-400">No meetings logged</p>
+                                        </div>
                                     )}
-                                </h3>
-                            </div>
-                            <div className="divide-y divide-gray-100 max-h-52 overflow-y-auto">
-                                {recentMeetings.length > 0 ? (
-                                    recentMeetings.map(meeting => (
-                                        <button
-                                            key={meeting.id}
-                                            onClick={() => {
-                                                setSelectedItem(meeting.parentItem);
-                                                setSelectedContact(meeting.parentContact);
-                                            }}
-                                            className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors group"
-                                        >
-                                            <div className="font-medium text-sm text-gray-900 truncate group-hover:text-black">
-                                                {meeting.title}
-                                            </div>
-                                            <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
-                                                <span className="truncate">{meeting.contactName}</span>
-                                                <span>•</span>
-                                                <span>{new Date(meeting.timestamp).toLocaleDateString()}</span>
-                                            </div>
-                                        </button>
-                                    ))
-                                ) : (
-                                    <div className="px-4 py-6 text-center">
-                                        <p className="text-sm text-gray-400">No meetings logged</p>
-                                    </div>
-                                )}
+                                </div>
                             </div>
                         </div>
                     </div>

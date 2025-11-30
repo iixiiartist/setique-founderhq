@@ -279,26 +279,29 @@ function AccountDetailView({
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
             {/* Header Section */}
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-                <div className="p-5">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="flex items-center gap-4">
+                <div className="p-3 sm:p-5">
+                    <div className="flex flex-col gap-3 sm:gap-4">
+                        {/* Top row: back button and title */}
+                        <div className="flex items-center gap-2 sm:gap-4">
                             <button 
                                 onClick={onBack} 
-                                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors"
+                                className="flex items-center gap-1.5 sm:gap-2 text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors min-h-[44px] px-2 -ml-2"
                             >
-                                <ArrowLeft className="w-4 h-4" />
-                                Back
+                                <ArrowLeft className="w-5 h-5 sm:w-4 sm:h-4" />
+                                <span className="hidden sm:inline">Back</span>
                             </button>
-                            <div className="h-6 w-px bg-gray-200"></div>
-                            <h1 className="text-2xl font-semibold text-gray-900">{item.company}</h1>
+                            <div className="h-6 w-px bg-gray-200 hidden sm:block"></div>
+                            <h1 className="text-lg sm:text-2xl font-semibold text-gray-900 truncate">{item.company}</h1>
                         </div>
-                        <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                        
+                        {/* Bottom row: actions */}
+                        <div className="flex items-center gap-2 sm:gap-3 flex-wrap" onClick={(e) => e.stopPropagation()}>
                             {workspaceMembers.length > 0 && onAssignCompany && (
                                 <div className="flex items-center gap-2">
-                                    <span className="text-xs text-gray-500 uppercase tracking-wide">Assign:</span>
+                                    <span className="text-xs text-gray-500 uppercase tracking-wide hidden sm:inline">Assign:</span>
                                     <AssignmentDropdown
                                         workspaceMembers={transformedMembers}
                                         currentAssignee={item.assignedTo || undefined}
@@ -318,17 +321,17 @@ function AccountDetailView({
                                         onBack();
                                     }
                                 }} 
-                                className="flex items-center gap-1.5 text-gray-400 hover:text-red-600 text-sm font-medium transition-colors"
+                                className="flex items-center gap-1.5 text-gray-400 hover:text-red-600 text-sm font-medium transition-colors min-h-[44px] px-2"
                             >
                                 <Trash2 className="w-4 h-4" />
-                                Delete
+                                <span className="hidden sm:inline">Delete</span>
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                 {/* Left Column - Account Info */}
                 <div className="lg:col-span-1 space-y-6">
                     <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
