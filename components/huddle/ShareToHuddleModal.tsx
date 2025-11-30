@@ -27,8 +27,10 @@ export const ShareToHuddleModal: React.FC<ShareToHuddleModalProps> = ({
   const [askAI, setAskAI] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   
-  const { data: rooms = [], isLoading: roomsLoading } = useHuddleRooms(workspaceId);
+  const { data: rooms = [], isLoading: roomsLoading, error: roomsError } = useHuddleRooms(workspaceId);
   const sendMessage = useSendMessage();
 
   // Filter to only channels (not DMs) for sharing
@@ -41,8 +43,17 @@ export const ShareToHuddleModal: React.FC<ShareToHuddleModalProps> = ({
       setAskAI(payload.askAi || false);
       setAiPrompt(payload.aiPrompt || '');
       setSelectedRoomId(null);
+      setError(null);
+      setSuccess(false);
     }
   }, [isOpen, payload]);
+
+  // Auto-select first channel if only one available
+  useEffect(() => {
+    if (isOpen && channels.length === 1 && !selectedRoomId) {
+      setSelectedRoomId(channels[0].id);
+    }
+  }, [isOpen, channels, selectedRoomId]);
 
   // Generate default message based on payload type
   const getDefaultMessage = (p: ShareToHuddlePayload): string => {
@@ -55,7 +66,7 @@ export const ShareToHuddleModal: React.FC<ShareToHuddleModalProps> = ({
     
     // Add type-specific details
     if (p.type === 'calendar_event' && p.preview?.snippet) {
-      msg += `\n\n?? ${p.preview.snippet}`;
+      msg += `\n\n📅 ${p.preview.snippet}`;
     }
     
     return msg;
@@ -64,14 +75,18 @@ export const ShareToHuddleModal: React.FC<ShareToHuddleModalProps> = ({
   // Get emoji for type
   const getTypeEmoji = (type: string): string => {
     switch (type) {
-      case 'task': return '??';
-      case 'contact': return '??';
-      case 'deal': return '??';
-      case 'document': return '??';
-      case 'form': return '??';
-      case 'file': return '??';
-      case 'calendar_event': return '??';
-      default: return '??';
+      case 'task': return '✅';
+      case 'contact': return '👤';
+      case 'deal': return '💰';
+      case 'document': return '📄';
+      case 'form': return '📝';
+      case 'file': return '📁';
+      case 'calendar_event': return '📅';
+      case 'account': return '🏢';
+      case 'expense': return '💸';
+      case 'revenue': return '💵';
+      case 'marketing_campaign': return '📢';
+      default: return '📌';
     }
   };
 
@@ -85,37 +100,75 @@ export const ShareToHuddleModal: React.FC<ShareToHuddleModalProps> = ({
       case 'form': return 'Form';
       case 'file': return 'File';
       case 'calendar_event': return 'Calendar Event';
+      case 'account': return 'Account';
+      case 'expense': return 'Expense';
+      case 'revenue': return 'Revenue';
+      case 'marketing_campaign': return 'Campaign';
       default: return 'Item';
     }
   };
 
   // Handle send
   const handleSend = async () => {
-    if (!selectedRoomId || !payload) return;
+    // Validation
+    if (!selectedRoomId) {
+      setError('Please select a channel');
+      return;
+    }
+    if (!payload) {
+      setError('No item to share');
+      return;
+    }
+    if (!message.trim()) {
+      setError('Please enter a message');
+      return;
+    }
     
+    setError(null);
     setSending(true);
     
     try {
-      // Build linked entities
+      // Build linked entities based on the payload type
       const linked_entities: HuddleLinkedEntities = {};
-      const key = payload.type === 'calendar_event' ? 'tasks' : `${payload.type}s` as keyof HuddleLinkedEntities;
       
-      if (payload.type !== 'calendar_event') {
+      // Map payload type to the correct linked entity key
+      const typeToKeyMap: Record<string, keyof HuddleLinkedEntities> = {
+        'task': 'tasks',
+        'contact': 'contacts',
+        'deal': 'deals',
+        'document': 'documents',
+        'form': 'forms',
+        'file': 'files',
+        'account': 'accounts',
+        'expense': 'expenses',
+        'revenue': 'revenue',
+        'calendar_event': 'calendar_events',
+        'marketing_campaign': 'marketing_campaigns',
+      };
+      
+      const key = typeToKeyMap[payload.type];
+      if (key) {
         linked_entities[key] = [payload.id];
       }
       
       // Send the message
       await sendMessage.mutateAsync({
         room_id: selectedRoomId,
-        body: message,
+        body: message.trim(),
         body_format: 'markdown',
         linked_entities: Object.keys(linked_entities).length > 0 ? linked_entities : undefined,
       });
       
+      setSuccess(true);
       onSuccess?.();
-      onClose();
-    } catch (error) {
-      console.error('Failed to share to Huddle:', error);
+      
+      // Close modal after brief success feedback
+      setTimeout(() => {
+        onClose();
+      }, 500);
+    } catch (err: any) {
+      console.error('Failed to share to Huddle:', err);
+      setError(err?.message || 'Failed to share. Please try again.');
     } finally {
       setSending(false);
     }
@@ -140,7 +193,6 @@ export const ShareToHuddleModal: React.FC<ShareToHuddleModalProps> = ({
           {/* Header */}
           <div className="px-6 py-4 border-b-2 border-black bg-gradient-to-r from-purple-500 to-indigo-600">
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <span>Share</span>
               Share to Huddle
             </h2>
             <p className="text-purple-100 text-sm mt-1">
@@ -166,16 +218,37 @@ export const ShareToHuddleModal: React.FC<ShareToHuddleModalProps> = ({
 
           {/* Content */}
           <div className="px-6 py-4 space-y-4 max-h-[50vh] overflow-y-auto">
+            {/* Error message */}
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+                {error}
+              </div>
+            )}
+
+            {/* Success message */}
+            {success && (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm flex items-center gap-2">
+                <span>✓</span> Shared successfully!
+              </div>
+            )}
+
             {/* Channel selector */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Select channel *
               </label>
               {roomsLoading ? (
-                <div className="text-center py-4 text-gray-400">Loading channels...</div>
+                <div className="text-center py-4 text-gray-400 flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 border-2 border-gray-300 border-t-purple-500 rounded-full animate-spin" />
+                  Loading channels...
+                </div>
+              ) : roomsError ? (
+                <div className="text-center py-4 text-red-500">
+                  Failed to load channels. Please try again.
+                </div>
               ) : channels.length === 0 ? (
                 <div className="text-center py-4 text-gray-400">
-                  No channels available. Create a channel first.
+                  No channels available. Create a channel in Huddle first.
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-2 max-h-[150px] overflow-y-auto">
@@ -183,19 +256,24 @@ export const ShareToHuddleModal: React.FC<ShareToHuddleModalProps> = ({
                     <button
                       key={room.id}
                       type="button"
-                      onClick={() => setSelectedRoomId(room.id)}
+                      onClick={() => {
+                        setSelectedRoomId(room.id);
+                        setError(null);
+                      }}
                       className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-left transition-all ${
                         selectedRoomId === room.id
-                          ? 'border-purple-500 bg-purple-50'
-                          : 'border-gray-200 hover:border-gray-300 bg-white'
+                          ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200'
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 bg-white'
                       }`}
                     >
-                      <span className="text-gray-500">
-                        {room.is_private ? '??' : '#'}
+                      <span className={selectedRoomId === room.id ? 'text-purple-600' : 'text-gray-500'}>
+                        {room.is_private ? '🔒' : '#'}
                       </span>
-                      <span className="font-medium text-gray-900">{room.name}</span>
+                      <span className={`font-medium ${selectedRoomId === room.id ? 'text-purple-900' : 'text-gray-900'}`}>
+                        {room.name}
+                      </span>
                       {selectedRoomId === room.id && (
-                        <span className="ml-auto text-purple-600">?</span>
+                        <span className="ml-auto text-purple-600 font-bold">✓</span>
                       )}
                     </button>
                   ))}
@@ -263,26 +341,33 @@ export const ShareToHuddleModal: React.FC<ShareToHuddleModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors font-semibold"
+              disabled={sending}
+              className="flex-1 px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors font-semibold disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={handleSend}
-              disabled={!selectedRoomId || sending || channels.length === 0}
-              className="flex-1 px-4 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-semibold flex items-center justify-center gap-2"
+              disabled={sending || success || channels.length === 0 || roomsLoading}
+              className={`flex-1 px-4 py-2.5 rounded-xl transition-colors font-semibold flex items-center justify-center gap-2 ${
+                success
+                  ? 'bg-green-600 text-white'
+                  : 'bg-purple-600 text-white hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed'
+              }`}
             >
               {sending ? (
                 <>
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Sharing...
                 </>
-              ) : (
+              ) : success ? (
                 <>
-                  <span>Share</span>
-                  Share to Huddle
+                  <span>✓</span>
+                  Shared!
                 </>
+              ) : (
+                'Share to Huddle'
               )}
             </button>
           </div>

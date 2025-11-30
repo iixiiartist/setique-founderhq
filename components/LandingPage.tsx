@@ -1,770 +1,700 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Zap, 
-  Users, 
-  Brain, 
-  BarChart3, 
-  FileText, 
-  Calendar,
-  Shield,
-  Clock,
-  Target,
-  ChevronRight,
-  Check,
+import {
   ArrowRight,
-  Megaphone,
-  Rocket,
-  Briefcase,
-  TrendingUp,
-  Store,
-  Code,
+  ChevronDown,
+  MessageSquare,
+  Users,
+  Calendar,
   DollarSign,
-  Handshake,
-  Sparkles,
-  PlayCircle,
+  BarChart3,
+  Zap,
+  Menu,
+  X,
+  Bot,
+  FileText,
+  Building2,
+  UserPlus,
+  Receipt,
+  TrendingUp,
+  Globe,
+  CheckCircle2,
+  Command,
   Mail,
-  PieChart,
-  Layers,
-  Webhook,
-  Terminal,
-  Key,
-  Plug
+  Megaphone,
+  Sparkles
 } from 'lucide-react';
 
-type FeatureCluster = {
-  id: string;
-  badge: string;
-  title: string;
-  description: string;
-  accent: string;
-  tagline: string;
-  metric: string;
-  features: Array<{
-    title: string;
-    description: string;
-    icon: React.ReactNode;
-  }>;
+// Animation hook for scroll-triggered animations
+const useIntersectionObserver = (options = {}) => {
+  const [isIntersecting, setIsIntersecting] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setIsIntersecting(true);
+      }
+    }, { threshold: 0.1, ...options });
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => {
+      if (ref.current) {
+        observer.unobserve(ref.current);
+      }
+    };
+  }, []);
+
+  return [ref, isIntersecting] as const;
 };
 
-const FEATURE_CLUSTERS: FeatureCluster[] = [
-  {
-    id: 'developer',
-    badge: '⚡',
-    title: 'Developer API: Build & Integrate',
-    description: 'Premium REST API with full CRUD operations, real-time webhooks, and AI agent access. Build custom integrations or automate your GTM workflows programmatically.',
-    accent: 'from-orange-100/70 via-white to-amber-50/60',
-    tagline: 'Full REST API',
-    metric: '$0.001/call',
-    features: [
-      {
-        title: '6 RESTful Endpoints',
-        description: 'Contacts, Tasks, Deals, Documents, CRM, and AI Agents—all accessible via simple HTTP calls with JSON responses.',
-        icon: <Terminal className="w-8 h-8" />,
-      },
-      {
-        title: '22 Webhook Events',
-        description: 'Real-time notifications for creates, updates, deletes, stage changes, and AI completions. Never poll for changes again.',
-        icon: <Webhook className="w-8 h-8" />,
-      },
-      {
-        title: 'Secure API Keys',
-        description: 'Granular scopes, rate limiting, and usage tracking. Create multiple keys for different integrations with full audit logs.',
-        icon: <Key className="w-8 h-8" />,
-      },
-      {
-        title: 'AI Agents via API',
-        description: 'Run AI research queries programmatically. Get structured responses with sources—perfect for automated workflows.',
-        icon: <Brain className="w-8 h-8" />,
-      },
-    ],
-  },
-  {
-    id: 'pipeline',
-    badge: '1',
-    title: 'Pipeline: Track Every Deal',
-    description: 'Unified CRM for fundraising, sales, and partnerships with email integration so every convo, doc, and metric lives in one view.',
-    accent: 'from-blue-100/70 via-white to-blue-50/60',
-    tagline: 'Live pipeline sync',
-    metric: '82% fewer manual updates',
-    features: [
-      {
-        title: '3-in-1 Smart CRM',
-        description: 'Investor, customer, and partner boards stay perfectly in sync with shared notes, tags, and automations.',
-        icon: <Users className="w-8 h-8" />,
-      },
-      {
-        title: 'Gmail Integration',
-        description: 'Connect your Gmail inbox and sync conversations directly to CRM accounts. Never lose track of deal communications again.',
-        icon: <Mail className="w-8 h-8" />,
-      },
-      {
-        title: 'Deal Flow Analytics',
-        description: 'Velocity, conversion, and forecast dashboards refresh in real time so updates never require spreadsheet wrangling.',
-        icon: <BarChart3 className="w-8 h-8" />,
-      },
-      {
-        title: 'Financial Tracking',
-        description: 'Log revenue, burn, and runway alongside every account, ready for board packets or investor notes with a click.',
-        icon: <TrendingUp className="w-8 h-8" />,
-      },
-    ],
-  },
-  {
-    id: 'execution',
-    badge: '2',
-    title: 'Execution: Ship Revenue Work Fast',
-    description: 'Docs, tasks, products, and meetings aligned to the same source of truth keep every GTM lane moving in sync.',
-    accent: 'from-green-100/70 via-white to-teal-50/60',
-    tagline: 'Workflow clarity',
-    metric: '12 hrs saved weekly',
-    features: [
-      {
-        title: 'Products & Services Hub',
-        description: 'Manage your complete product catalog with pricing, descriptions, and categories. Link offerings directly to deals and proposals.',
-        icon: <Store className="w-8 h-8" />,
-      },
-      {
-        title: 'GTM Task Graph',
-        description: 'Assign owners, priorities, and XP rewards so teams know what is urgent without pinging ops leads.',
-        icon: <Target className="w-8 h-8" />,
-      },
-      {
-        title: 'Unified Calendar',
-        description: 'Investor standups, customer calls, and campaign launches stack in one color-coded, filterable view.',
-        icon: <Calendar className="w-8 h-8" />,
-      },
-      {
-        title: 'Professional Document Canvas',
-        description: 'Create stunning proposals with shapes, text boxes, signatures, charts, and frames. Export to PDF with one click.',
-        icon: <Layers className="w-8 h-8" />,
-      },
-    ],
-  },
-  {
-    id: 'intelligence',
-    badge: '3',
-    title: 'Intelligence: Scale With AI Agents',
-    description: 'Autonomous AI Agents research competitors, analyze markets, and execute multi-step GTM tasks. Context-aware copilots summarize pipelines, prep meetings, and suggest next plays.',
-    accent: 'from-purple-100/70 via-white to-fuchsia-50/60',
-    tagline: 'Autonomous AI agents',
-    metric: '25 copilots/day free',
-    features: [
-      {
-        title: 'AI Research Agent',
-        description: 'Autonomous agent researches competitors, analyzes markets, and generates comprehensive reports with charts—all while you focus on closing deals.',
-        icon: <Brain className="w-8 h-8" />,
-      },
-      {
-        title: 'AI Market Intelligence',
-        description: 'Get real-time competitive intel, industry trends, and prospect insights with AI-powered web search built right in.',
-        icon: <PieChart className="w-8 h-8" />,
-      },
-      {
-        title: 'AI Chart Generation',
-        description: 'Ask for visualizations in plain English and get real bar, line, pie, or area charts inserted directly into documents.',
-        icon: <BarChart3 className="w-8 h-8" />,
-      },
-      {
-        title: 'Deal Coaching & Strategy',
-        description: 'Module-specific AI recommends next steps, objections to prep for, and talking points pulled from past wins.',
-        icon: <Shield className="w-8 h-8" />,
-      },
-    ],
-  },
-];
-
-export function LandingPage() {
+// Neo-brutalist feature card
+const FeatureCard = ({ 
+  icon: Icon, 
+  title, 
+  description, 
+  bgColor,
+  delay = 0 
+}: { 
+  icon: React.ElementType; 
+  title: string; 
+  description: string; 
+  bgColor: string;
+  delay?: number;
+}) => {
+  const [ref, isVisible] = useIntersectionObserver();
+  
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
-      {/* Header */}
-      <header className="border-b border-black bg-white shadow-neo">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-black text-white flex items-center justify-center font-mono font-bold text-xl border-2 border-black shadow-neo-sm">
-              FHQ
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold font-mono">FounderHQ</h1>
-                <span className="px-2 py-0.5 bg-green-400 border border-black text-xs font-bold uppercase">Live Beta</span>
-              </div>
-              <p className="text-xs text-gray-600">A Setique Tool</p>
-            </div>
-          </div>
-          <div className="flex gap-4">
-            <Link
-              to="/app"
-              className="px-4 py-2 border-2 border-black hover:bg-gray-100 font-medium transition-all"
-            >
-              Sign In
-            </Link>
-            <Link
-              to="/app"
-              className="px-4 py-2 bg-black text-white border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all font-medium"
-            >
-              Get Started
-            </Link>
-          </div>
-        </div>
-      </header>
+    <div 
+      ref={ref}
+      className={`${bgColor} border-2 border-black shadow-neo p-6 transition-all duration-500 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      <div className="w-12 h-12 bg-black flex items-center justify-center mb-4">
+        <Icon className="w-6 h-6 text-white" />
+      </div>
+      <h3 className="text-lg font-bold font-mono text-black mb-2">{title}</h3>
+      <p className="text-gray-700 text-sm leading-relaxed">{description}</p>
+    </div>
+  );
+};
 
-      {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <div>
-            <div className="flex flex-wrap items-center gap-3 text-xs uppercase font-mono text-gray-700 mb-6">
-              <span className="px-3 py-1 bg-yellow-300 border-2 border-black shadow-neo">Seed & Series A founders</span>
-              <span className="px-3 py-1 bg-white border-2 border-black shadow-neo-sm">RevOps & Sales leads</span>
-              <span className="px-3 py-1 bg-blue-100 border-2 border-black shadow-neo-sm">Boutique GTM agencies</span>
+// Neo-brutalist pricing card
+const PricingCard = ({ 
+  name, 
+  price, 
+  period, 
+  description, 
+  features, 
+  cta, 
+  popular = false,
+  bgColor = 'bg-white'
+}: { 
+  name: string; 
+  price: string; 
+  period: string; 
+  description: string; 
+  features: string[]; 
+  cta: string; 
+  popular?: boolean;
+  bgColor?: string;
+}) => (
+  <div className={`relative ${bgColor} border-2 border-black shadow-neo p-6 ${popular ? 'ring-4 ring-blue-500' : ''}`}>
+    {popular && (
+      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+        <span className="bg-blue-500 border-2 border-black text-white text-xs font-bold font-mono px-3 py-1">
+          BEST VALUE
+        </span>
+      </div>
+    )}
+    <h3 className="text-2xl font-bold font-mono text-black mb-1">{name}</h3>
+    <p className="text-sm text-gray-600 font-mono mb-4">{description}</p>
+    <div className="mb-6">
+      <span className="text-4xl font-bold font-mono text-black">{price}</span>
+      <span className="text-black font-mono">{period}</span>
+    </div>
+    <ul className="space-y-3 mb-8">
+      {features.map((feature, i) => (
+        <li key={i} className="flex items-start gap-2 text-sm text-black">
+          <span className="text-green-600 font-bold flex-shrink-0 mt-0.5">✓</span>
+          <span className="font-mono">{feature}</span>
+        </li>
+      ))}
+    </ul>
+    <Link
+      to="/app"
+      className={`block w-full py-3 font-mono font-bold border-2 border-black text-center transition-all ${popular ? 'bg-blue-500 text-white shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none' : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'}`}
+    >
+      {cta}
+    </Link>
+  </div>
+);
+
+// FAQ Item
+const FAQItem = ({ question, answer }: { question: string; answer: string }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  return (
+    <div className="border-b-2 border-black last:border-b-0">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full py-4 flex items-center justify-between text-left group"
+      >
+        <span className="font-bold font-mono text-black group-hover:text-blue-600 transition-colors">{question}</span>
+        <ChevronDown className={`w-5 h-5 text-black transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+      <div className={`overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-96 pb-4' : 'max-h-0'}`}>
+        <p className="text-gray-700 leading-relaxed">{answer}</p>
+      </div>
+    </div>
+  );
+};
+
+const LandingPage = () => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const features = [
+    {
+      icon: MessageSquare,
+      title: 'Huddle Team Chat',
+      description: 'Real-time messaging with threaded conversations, file sharing, and AI-powered responses.',
+      bgColor: 'bg-yellow-100'
+    },
+    {
+      icon: Bot,
+      title: 'AI Assistant',
+      description: 'Create contacts, log expenses, track revenue, and manage tasks through natural conversation.',
+      bgColor: 'bg-purple-100'
+    },
+    {
+      icon: Users,
+      title: 'CRM & Contacts',
+      description: 'Manage leads, contacts, and accounts with a unified view. Track every interaction.',
+      bgColor: 'bg-blue-100'
+    },
+    {
+      icon: DollarSign,
+      title: 'Financial Tracking',
+      description: 'Log expenses, track revenue, and monitor cash flow with AI-assisted data entry.',
+      bgColor: 'bg-green-100'
+    },
+    {
+      icon: Calendar,
+      title: 'Calendar & Events',
+      description: 'Built-in calendar to track events, deadlines, and team schedules in one view.',
+      bgColor: 'bg-orange-100'
+    },
+    {
+      icon: BarChart3,
+      title: 'Analytics & Reports',
+      description: 'Customizable dashboards, sales forecasts, and performance metrics.',
+      bgColor: 'bg-pink-100'
+    },
+    {
+      icon: FileText,
+      title: 'Document Library',
+      description: 'Store, organize, and share files securely with smart filtering.',
+      bgColor: 'bg-cyan-100'
+    },
+    {
+      icon: Mail,
+      title: 'Email Integration',
+      description: 'Connect Gmail, send and receive emails, and manage communications in one place.',
+      bgColor: 'bg-indigo-100'
+    },
+    {
+      icon: Megaphone,
+      title: 'Marketing & Campaigns',
+      description: 'Plan and track marketing campaigns, content calendars, and outreach initiatives.',
+      bgColor: 'bg-rose-100'
+    },
+    {
+      icon: Sparkles,
+      title: 'AI Research Agents',
+      description: 'Specialized agents for market research, deal strategy, and competitive analysis.',
+      bgColor: 'bg-violet-100'
+    }
+  ];
+
+  const aiCapabilities = [
+    { icon: UserPlus, label: 'Create Contacts', description: 'Add contacts through conversation' },
+    { icon: Building2, label: 'Manage Accounts', description: 'Create and update company records' },
+    { icon: CheckCircle2, label: 'Track Tasks', description: 'Create tasks and set reminders' },
+    { icon: Receipt, label: 'Log Expenses', description: 'Record expenses with categorization' },
+    { icon: TrendingUp, label: 'Record Revenue', description: 'Track income and deals closed' },
+    { icon: Globe, label: 'Web Search', description: 'Research companies and contacts' },
+  ];
+
+  const faqs = [
+    {
+      question: "What is FounderHQ and who is it for?",
+      answer: "FounderHQ is an all-in-one GTM hub for founders, sales teams, and GTM consultants. It combines CRM, team chat, financial tracking, and AI assistance into a single platform."
+    },
+    {
+      question: "How does the AI assistant work?",
+      answer: "Our AI assistant in Huddle chat understands natural language. Just type what you need—create tasks, log expenses, record revenue, add contacts—and it handles the rest."
+    },
+    {
+      question: "Can I import my existing data?",
+      answer: "Yes! FounderHQ supports importing contacts, accounts, and historical data from popular CRMs and spreadsheets."
+    },
+    {
+      question: "Is my data secure?",
+      answer: "Absolutely. We use enterprise-grade security with encryption and row-level security policies. Your data is stored in isolated environments."
+    },
+    {
+      question: "What integrations are available?",
+      answer: "FounderHQ currently integrates with Gmail for email sync. More integrations are on our roadmap based on user feedback."
+    },
+    {
+      question: "Can I try FounderHQ for free?",
+      answer: "Yes! Our Free tier includes full access to core features. Upgrade anytime to unlock team collaboration and AI features."
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-white">
+      {/* Navigation */}
+      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white border-b-2 border-black' : 'bg-transparent'}`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <Link to="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-black flex items-center justify-center">
+                <Command className="w-5 h-5 text-white" />
+              </div>
+              <span className="font-bold text-xl font-mono text-black">FOUNDERHQ</span>
+            </Link>
+            
+            {/* Desktop nav */}
+            <div className="hidden md:flex items-center gap-8">
+              <a href="#features" className="text-black hover:text-blue-600 transition-colors text-sm font-mono font-bold">FEATURES</a>
+              <a href="#ai" className="text-black hover:text-blue-600 transition-colors text-sm font-mono font-bold">AI</a>
+              <a href="#pricing" className="text-black hover:text-blue-600 transition-colors text-sm font-mono font-bold">PRICING</a>
+              <a href="#faq" className="text-black hover:text-blue-600 transition-colors text-sm font-mono font-bold">FAQ</a>
             </div>
-            <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
-              One GTM Command Center for Sellers, Founders, and Consultants
-            </h1>
-            <p className="text-lg md:text-xl text-gray-700 mb-6 leading-relaxed">
-              FounderHQ replaces the spreadsheet circus with a single workspace where sales leaders forecast, founders share investor updates, and agencies orchestrate client plays. Keep every pipeline conversation, campaign brief, and follow-up tied to the same source of truth.
-            </p>
-            <ul className="space-y-3 text-gray-900 mb-8">
-              <li className="flex items-start gap-3">
-                <Target className="w-5 h-5 mt-0.5" />
-                <span>Deal rooms, notes, and tasks stitched together so every account team knows exactly what’s closing this week and what needs attention.</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <Handshake className="w-5 h-5 mt-0.5" />
-                <span>Investor, customer, and partner pipelines in one board—no more toggling between five CRMs or forwarding screenshots before a call.</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <Sparkles className="w-5 h-5 mt-0.5" />
-                <span>Autonomous AI Agents research competitors, analyze markets, generate reports with charts, and execute multi-step GTM tasks—while you focus on closing.</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <Mail className="w-5 h-5 mt-0.5" />
-                <span>Gmail integration syncs email conversations directly to your CRM accounts, plus a full product catalog to link to deals.</span>
-              </li>
-            </ul>
-            <div className="flex flex-wrap gap-4">
-              <Link
-                to="/app"
-                className="px-8 py-4 bg-black text-white border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all font-medium text-lg flex items-center gap-2"
+
+            <div className="hidden md:flex items-center gap-4">
+              <Link to="/app" className="text-black hover:text-blue-600 transition-colors text-sm font-mono font-bold">
+                LOG IN
+              </Link>
+              <Link 
+                to="/app" 
+                className="px-4 py-2 bg-black border-2 border-black text-white font-mono font-bold text-sm shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
               >
-                Launch FounderHQ <ArrowRight size={20} />
+                GET STARTED FREE
               </Link>
             </div>
-            <div className="mt-10 grid grid-cols-4 gap-2 sm:gap-3 text-left">
-              <div className="p-3 sm:p-4 border-2 border-black bg-white shadow-neo-sm">
-                <p className="text-xl sm:text-2xl font-bold">82h</p>
-                <p className="text-[10px] sm:text-xs font-mono uppercase text-gray-500 leading-tight">Hours saved / mo</p>
-              </div>
-              <div className="p-3 sm:p-4 border-2 border-black bg-white shadow-neo-sm">
-                <p className="text-xl sm:text-2xl font-bold">3-in-1</p>
-                <p className="text-[10px] sm:text-xs font-mono uppercase text-gray-500 leading-tight">CRM pipelines</p>
-              </div>
-              <div className="p-3 sm:p-4 border-2 border-black bg-white shadow-neo-sm">
-                <p className="text-xl sm:text-2xl font-bold">10</p>
-                <p className="text-[10px] sm:text-xs font-mono uppercase text-gray-500 leading-tight">API endpoints</p>
-              </div>
-              <div className="p-3 sm:p-4 border-2 border-black bg-white shadow-neo-sm">
-                <p className="text-xl sm:text-2xl font-bold">34</p>
-                <p className="text-[10px] sm:text-xs font-mono uppercase text-gray-500 leading-tight">Webhook events</p>
-              </div>
-            </div>
-            <p className="mt-4 text-sm text-gray-600">
-              Start free with core GTM tools + 25 Copilot requests • Unlimited storage included • No credit card required
-            </p>
-          </div>
-          <div className="relative">
-            <div className="absolute inset-0 blur-3xl bg-gradient-to-br from-blue-200/60 via-purple-200/40 to-pink-100/60 -z-10 rounded-full"></div>
-            <div className="space-y-6">
-              <div className="floating-card p-5 border-2 border-black bg-white shadow-neo">
-                <p className="text-xs font-mono text-gray-500 mb-2">AI DAILY INTELLIGENCE</p>
-                <h3 className="text-lg font-bold mb-2">Investor + Revenue Briefing</h3>
-                <p className="text-sm text-gray-700 mb-3 leading-relaxed">"Apollo Ventures just led a $25M SaaS round. Queue outreach with updated pitch deck + attach traction dashboard."</p>
-                <div className="flex items-center justify-between text-xs font-mono text-gray-400 border-t border-gray-200 pt-2">
-                  <span>Powered by live data + web search</span>
-                  <span>Updated 6:05 AM</span>
-                </div>
-              </div>
-              <div className="floating-card delay-1 p-5 border-2 border-black bg-white shadow-neo">
-                <p className="text-xs font-mono text-gray-500 mb-3">GTM TASK GRAPH</p>
-                <div className="space-y-2">
-                  {['Prep Seed Update', 'Revive Acme Deal', 'Spin up co-marketing draft'].map((task, idx) => (
-                    <div key={task} className="flex items-center justify-between border border-black px-3 py-2 bg-gray-50">
-                      <span className="text-sm font-medium">{task}</span>
-                      <span className="text-xs font-mono text-gray-500 px-2 py-0.5 bg-white border border-gray-300">{idx === 0 ? 'Investor' : idx === 1 ? 'Sales' : 'Partner'}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="floating-card delay-2 p-5 border-2 border-black bg-white shadow-neo">
-                <p className="text-xs font-mono text-gray-500 mb-3">LIVE DASHBOARD</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="border border-black bg-gray-50 p-3">
-                    <p className="text-xs text-gray-500 mb-1">Pipeline Momentum</p>
-                    <p className="text-2xl font-bold text-green-600">+38%</p>
-                  </div>
-                  <div className="border border-black bg-gray-50 p-3">
-                    <p className="text-xs text-gray-500 mb-1">Runway</p>
-                    <p className="text-2xl font-bold">17 mo</p>
-                  </div>
-                  <div className="col-span-2 border-2 border-black bg-black text-white p-4">
-                    <p className="text-xs uppercase font-mono text-gray-400 mb-1">Next best action</p>
-                    <p className="text-base font-semibold leading-snug">Send 3-slide update to Tier 1 investors before Friday standup.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Who It's For Section */}
-      <section className="bg-gray-50 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Built for the Three GTM Heroes Keeping the Lights On</h2>
-            <p className="text-lg text-gray-600">FounderHQ speaks the language of fundraising founders, revenue operators, and boutique agencies that moonlight as fractional CROs.</p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <UseCase
-              title="Founders & CROs"
-              description="Share a single dashboard for investor updates, pipeline commits, and partner experiments. Replace late-night deck edits with live metrics everyone trusts."
-              icon={<Rocket className="w-8 h-8" />}
-            />
-            <UseCase
-              title="Sales & RevOps Leaders"
-              description="Coach reps with actual context, not screenshots. Forecast, inspect deal hygiene, and trigger structured follow-ups across territories from one workspace."
-              icon={<TrendingUp className="w-8 h-8" />}
-            />
-            <UseCase
-              title="Consultants & GTM Agencies"
-              description="Spin up client workspaces in minutes, templatize deliverables, and give stakeholders a branded portal for status, docs, and next actions."
-              icon={<Briefcase className="w-8 h-8" />}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* AI Features Highlight */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-black shadow-neo-lg p-8 md:p-12">
-          <div className="max-w-3xl mx-auto text-center">
-            <div className="inline-block mb-4 px-4 py-2 bg-purple-300 border-2 border-black shadow-neo font-mono text-sm font-bold flex items-center gap-2">
-              <Sparkles className="w-4 h-4" />
-              CONTEXT-AWARE AI
-            </div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">AI That Knows Your Pipeline</h2>
-            <p className="text-lg text-gray-700 mb-6 leading-relaxed">
-              Unlike generic ChatGPT, our AI has full context on your investor conversations, customer deals, and partnership discussions. Get actionable coaching on your actual GTM motion—not generic startup advice.
-            </p>
-            <div className="grid md:grid-cols-3 gap-6 text-left">
-              <div className="h-full flex flex-col bg-white p-6 border-2 border-black shadow-neo">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-blue-100 border-2 border-black flex items-center justify-center flex-shrink-0">
-                    <BarChart3 className="w-5 h-5" />
-                  </div>
-                  <h3 className="font-bold text-lg">Fundraising AI</h3>
-                </div>
-                <p className="text-gray-700 mb-4 flex-grow leading-relaxed">Research investors matching your profile. Draft personalized outreach emails. Get coaching on pitch strategy and objection handling.</p>
-                <div className="text-sm text-gray-500 italic border-t border-gray-200 pt-3">"Which Series A investors have backed similar SaaS companies?"</div>
-              </div>
-              <div className="h-full flex flex-col bg-white p-6 border-2 border-black shadow-neo">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-green-100 border-2 border-black flex items-center justify-center flex-shrink-0">
-                    <Briefcase className="w-5 h-5" />
-                  </div>
-                  <h3 className="font-bold text-lg">Sales AI</h3>
-                </div>
-                <p className="text-gray-700 mb-4 flex-grow leading-relaxed">Generate deal-specific proposals. Get coaching on deal progression. AI suggests next steps based on your CRM history and win patterns.</p>
-                <div className="text-sm text-gray-500 italic border-t border-gray-200 pt-3">"Draft a follow-up for Acme Corp based on our last meeting."</div>
-              </div>
-              <div className="h-full flex flex-col bg-white p-6 border-2 border-black shadow-neo">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-purple-100 border-2 border-black flex items-center justify-center flex-shrink-0">
-                    <Handshake className="w-5 h-5" />
-                  </div>
-                  <h3 className="font-bold text-lg">Partnership AI</h3>
-                </div>
-                <p className="text-gray-700 mb-4 flex-grow leading-relaxed">Identify strategic partnership opportunities. Structure co-marketing campaigns. Generate partnership proposals and track relationship health.</p>
-                <div className="text-sm text-gray-500 italic border-t border-gray-200 pt-3">"What partners serve similar customers we could co-sell with?"</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Developer API Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-black shadow-neo-lg p-8 md:p-12">
-          <div className="max-w-3xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 bg-orange-300 border-2 border-black shadow-neo font-mono text-sm font-bold">
-              <Code className="w-4 h-4" />
-              DEVELOPER API
-            </div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">Build Custom Integrations</h2>
-            <p className="text-lg text-gray-700 mb-6 leading-relaxed">
-              Full REST API access to your GTM data. Sync contacts with your marketing tools, automate deal updates from your product, 
-              or build custom dashboards—all with simple HTTP calls.
-            </p>
-            <div className="grid md:grid-cols-3 gap-6 text-left">
-              <div className="h-full flex flex-col bg-white p-6 border-2 border-black shadow-neo">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-orange-100 border-2 border-black flex items-center justify-center flex-shrink-0">
-                    <Terminal className="w-5 h-5" />
-                  </div>
-                  <h3 className="font-bold text-lg">6 Endpoints</h3>
-                </div>
-                <p className="text-gray-700 mb-4 flex-grow leading-relaxed">Contacts, Tasks, Deals, Documents, CRM Items, and AI Agents—all via simple REST calls.</p>
-                <div className="text-sm text-gray-500 italic border-t border-gray-200 pt-3">GET, POST, PATCH, DELETE</div>
-              </div>
-              <div className="h-full flex flex-col bg-white p-6 border-2 border-black shadow-neo">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-orange-100 border-2 border-black flex items-center justify-center flex-shrink-0">
-                    <Webhook className="w-5 h-5" />
-                  </div>
-                  <h3 className="font-bold text-lg">22 Webhooks</h3>
-                </div>
-                <p className="text-gray-700 mb-4 flex-grow leading-relaxed">Real-time notifications for creates, updates, deletes, and stage changes. Never poll again.</p>
-                <div className="text-sm text-gray-500 italic border-t border-gray-200 pt-3">Instant event delivery</div>
-              </div>
-              <div className="h-full flex flex-col bg-white p-6 border-2 border-black shadow-neo">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-orange-100 border-2 border-black flex items-center justify-center flex-shrink-0">
-                    <DollarSign className="w-5 h-5" />
-                  </div>
-                  <h3 className="font-bold text-lg">Pay-Per-Call</h3>
-                </div>
-                <p className="text-gray-700 mb-4 flex-grow leading-relaxed">$0.001 per API call. 1,000 calls for just $1. No monthly minimums or commitments.</p>
-                <div className="text-sm text-gray-500 italic border-t border-gray-200 pt-3">Scale as you grow</div>
-              </div>
-            </div>
-            <Link
-              to="/docs"
-              className="inline-flex items-center gap-2 mt-8 px-6 py-3 bg-black text-white border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all font-bold"
+            {/* Mobile menu button */}
+            <button 
+              className="md:hidden p-2 border-2 border-black"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
-              View API Documentation <ArrowRight className="w-4 h-4" />
-            </Link>
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-white border-t-2 border-black py-4">
+            <div className="flex flex-col gap-4 px-4">
+              <a href="#features" className="text-black font-mono font-bold py-2">FEATURES</a>
+              <a href="#ai" className="text-black font-mono font-bold py-2">AI</a>
+              <a href="#pricing" className="text-black font-mono font-bold py-2">PRICING</a>
+              <a href="#faq" className="text-black font-mono font-bold py-2">FAQ</a>
+              <hr className="border-black" />
+              <Link to="/app" className="text-black font-mono font-bold py-2">LOG IN</Link>
+              <Link to="/app" className="px-4 py-3 bg-black border-2 border-black text-white font-mono font-bold text-center">
+                GET STARTED FREE
+              </Link>
+            </div>
+          </div>
+        )}
+      </nav>
+
+      {/* Hero Section */}
+      <section className="relative pt-32 pb-20 bg-yellow-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-4xl mx-auto">
+            {/* Badge */}
+            <div className="mb-8 flex justify-center">
+              <span className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-black shadow-neo font-mono font-bold text-sm">
+                <Zap className="w-4 h-4" />
+                NOW WITH AI-POWERED DATA ENTRY
+              </span>
+            </div>
+
+            {/* Headline */}
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold font-mono text-black leading-tight mb-6">
+              THE ALL-IN-ONE HUB FOR{' '}
+              <span className="bg-black text-yellow-100 px-4">
+                GTM
+              </span>
+            </h1>
+
+            {/* Subheadline */}
+            <p className="text-xl text-black mb-8 max-w-2xl mx-auto leading-relaxed">
+              Stop juggling 10 tools. CRM, team chat, financials, and AI—unified in one workspace. 
+              Ship faster. Close more. Scale without the chaos.
+            </p>
+
+            {/* CTAs */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+              <Link
+                to="/app"
+                className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-black border-2 border-black text-white font-mono font-bold text-lg shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+              >
+                START FREE TODAY
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Link>
+              <a
+                href="#features"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white border-2 border-black text-black font-mono font-bold text-lg shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+              >
+                SEE FEATURES
+              </a>
+            </div>
+          </div>
+
+          {/* Hero Image / App Preview */}
+          <div className="mt-16 relative">
+            <div className="relative mx-auto max-w-5xl bg-white border-2 border-black shadow-neo-lg overflow-hidden">
+              <div className="aspect-[16/10] bg-gray-900 p-4 sm:p-8">
+                {/* Mock dashboard UI */}
+                <div className="h-full bg-gray-800 border-2 border-gray-600 overflow-hidden">
+                  <div className="flex h-full">
+                    {/* Sidebar */}
+                    <div className="w-32 sm:w-48 bg-gray-900 border-r-2 border-gray-600 p-2 sm:p-4 hidden sm:block">
+                      <div className="flex items-center gap-2 mb-6">
+                        <div className="w-6 h-6 bg-yellow-400" />
+                        <span className="text-white font-mono font-bold text-sm">FOUNDERHQ</span>
+                      </div>
+                      {['Dashboard', 'Pipeline', 'Contacts', 'Huddle', 'Calendar'].map((item, i) => (
+                        <div key={i} className={`flex items-center gap-2 px-2 py-2 mb-1 ${i === 3 ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>
+                          <div className="w-3 h-3 bg-current opacity-50" />
+                          <span className="text-xs font-mono">{item}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Main content */}
+                    <div className="flex-1 p-2 sm:p-4">
+                      <div className="flex flex-col sm:flex-row gap-4 h-full">
+                        {/* Chat area */}
+                        <div className="flex-1 bg-gray-700 p-2 sm:p-4">
+                          <div className="space-y-3">
+                            <div className="flex items-start gap-2">
+                              <div className="w-6 h-6 sm:w-8 sm:h-8 bg-purple-500 flex-shrink-0" />
+                              <div className="bg-gray-600 px-3 py-2 text-xs sm:text-sm text-gray-200 font-mono">Just closed the Acme deal! 🎉</div>
+                            </div>
+                            <div className="flex items-start gap-2">
+                              <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-500 flex-shrink-0 flex items-center justify-center">
+                                <Bot className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                              </div>
+                              <div className="bg-blue-600 px-3 py-2 text-xs sm:text-sm text-white font-mono">
+                                ✓ Logged as revenue. CRM updated.
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        {/* Stats */}
+                        <div className="w-full sm:w-48 flex flex-row sm:flex-col gap-2 sm:gap-3">
+                          {[
+                            { label: 'Revenue', value: '$124,500', bg: 'bg-green-500' },
+                            { label: 'Pipeline', value: '$890,000', bg: 'bg-blue-500' },
+                            { label: 'Closed', value: '23 deals', bg: 'bg-purple-500' }
+                          ].map((stat, i) => (
+                            <div key={i} className={`${stat.bg} p-2 sm:p-3 flex-1 sm:flex-none`}>
+                              <div className="text-white/70 text-xs font-mono">{stat.label}</div>
+                              <div className="font-bold text-white font-mono text-sm sm:text-base">{stat.value}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Features Grid */}
-      <section id="features" className="relative py-20 overflow-hidden bg-gradient-to-b from-white via-indigo-50 to-white">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -top-16 -right-8 w-56 h-56 bg-purple-200/50 blur-3xl animate-pulse" />
-          <div className="absolute -bottom-12 -left-12 w-72 h-72 bg-blue-200/40 blur-3xl animate-pulse [animation-delay:2s]" />
-        </div>
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <p className="inline-flex items-center gap-2 px-4 py-2 border-2 border-black bg-white shadow-neo-sm text-xs font-mono uppercase tracking-[0.2em]">
-              <Clock className="w-4 h-4" /> Live GTM system preview
+      <section id="features" className="py-24 bg-white border-t-2 border-black">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <span className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 border-2 border-black shadow-neo font-mono font-bold text-sm mb-6">
+              ALL-IN-ONE PLATFORM
+            </span>
+            <h2 className="text-4xl font-bold font-mono text-black mb-4">
+              EVERYTHING YOU NEED TO SCALE
+            </h2>
+            <p className="text-xl text-gray-700">
+              Stop juggling multiple tools. FounderHQ brings your CRM, communications, finances, and workflows into one platform.
             </p>
-            <h2 className="mt-4 text-4xl font-bold mb-4">Three Layers of GTM Excellence</h2>
-            <p className="text-xl text-gray-600">Pipeline to manage deals. Execution to get work done. Intelligence to scale smarter.</p>
           </div>
 
-          <div className="space-y-10">
-            {FEATURE_CLUSTERS.map((cluster, clusterIdx) => (
-              <div
-                key={cluster.id}
-                className="group relative border-2 border-black rounded-3xl shadow-neo bg-white/90 backdrop-blur overflow-hidden px-6 py-8 sm:px-10"
-              >
-                <div
-                  className={`absolute inset-0 bg-gradient-to-r ${cluster.accent} opacity-40 blur-3xl animate-pulse`}
-                  style={{ animationDuration: `${6 + clusterIdx}s` }}
-                />
-                <div className="absolute -right-12 -top-12 w-32 h-32 border-2 border-dashed border-black/20 rounded-full animate-[spin_18s_linear_infinite]" />
-                <div className="absolute -left-10 bottom-6 w-24 h-24 border border-black/20 rounded-full animate-[spin_26s_linear_infinite]" />
-
-                <div className="relative z-10 flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
-                  <div className="flex items-center gap-4">
-                    <span className="w-10 h-10 flex items-center justify-center border-2 border-black bg-black text-white font-mono text-sm">
-                      {cluster.badge}
-                    </span>
-                    <div>
-                      <h3 className="text-2xl font-bold">{cluster.title}</h3>
-                      <p className="text-sm text-gray-600 max-w-xl">{cluster.description}</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-3 text-xs font-mono uppercase tracking-[0.2em] text-gray-600">
-                    <span className="px-3 py-1 border-2 border-black bg-white shadow-neo-sm">{cluster.tagline}</span>
-                    <span className="px-3 py-1 border border-dashed border-black">{cluster.metric}</span>
-                  </div>
-                </div>
-
-                <div className="relative z-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {cluster.features.map((feature, featureIdx) => (
-                    <FeatureCard
-                      key={feature.title}
-                      icon={feature.icon}
-                      title={feature.title}
-                      description={feature.description}
-                      delayMs={featureIdx * 120}
-                    />
-                  ))}
-                </div>
-              </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {features.map((feature, i) => (
+              <FeatureCard key={i} {...feature} delay={i * 100} />
             ))}
           </div>
         </div>
       </section>
 
-      <section id="pricing" className="bg-gray-50 py-20">
+      {/* AI Section */}
+      <section id="ai" className="py-24 bg-black text-white border-t-2 border-black">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Simple, Transparent Pricing</h2>
-            <p className="text-xl text-gray-600">Start free, upgrade when you're ready—no enterprise sales BS</p>
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            {/* Content */}
+            <div>
+              <span className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500 border-2 border-white font-mono font-bold text-sm mb-6">
+                <Bot className="w-4 h-4" />
+                AI-POWERED
+              </span>
+              <h2 className="text-4xl font-bold font-mono mb-4">
+                YOUR AI ASSISTANT THAT ACTUALLY GETS WORK DONE
+              </h2>
+              <p className="text-xl text-gray-300 mb-8 leading-relaxed">
+                Skip the busywork. Our AI assistant in Huddle chat understands natural language and can create contacts, log expenses, track revenue, and manage tasks—just by asking.
+              </p>
+              
+              <div className="grid sm:grid-cols-2 gap-4">
+                {aiCapabilities.map((cap, i) => (
+                  <div key={i} className="flex items-start gap-3 p-4 bg-gray-900 border-2 border-gray-700 hover:border-white transition-colors">
+                    <div className="w-10 h-10 bg-purple-500 flex items-center justify-center flex-shrink-0">
+                      <cap.icon className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-bold font-mono text-white text-sm">{cap.label}</p>
+                      <p className="text-gray-400 text-xs">{cap.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Chat mockup */}
+            <div className="relative">
+              <div className="bg-gray-900 border-2 border-gray-700 p-6">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b-2 border-gray-700">
+                  <div className="w-10 h-10 bg-purple-500 flex items-center justify-center">
+                    <Bot className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-bold font-mono text-white">AI Assistant</p>
+                    <p className="text-green-400 text-xs font-mono flex items-center gap-1">
+                      <span className="w-2 h-2 bg-green-400" />
+                      Online in #general
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  {/* User message */}
+                  <div className="flex justify-end">
+                    <div className="bg-blue-600 px-4 py-2 max-w-xs">
+                      <p className="text-white text-sm font-mono">@AI log expense $250 for client dinner with Acme Corp</p>
+                    </div>
+                  </div>
+                  
+                  {/* AI response */}
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-purple-500 flex items-center justify-center flex-shrink-0">
+                      <Bot className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="bg-gray-800 border-2 border-gray-700 px-4 py-3 max-w-xs">
+                      <p className="text-white text-sm font-mono mb-2">✓ Done! Expense logged:</p>
+                      <div className="bg-gray-900 p-3 text-xs font-mono">
+                        <p className="text-gray-300"><span className="text-gray-500">Amount:</span> $250.00</p>
+                        <p className="text-gray-300"><span className="text-gray-500">Category:</span> Client Entertainment</p>
+                        <p className="text-gray-300"><span className="text-gray-500">Account:</span> Acme Corp</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" className="py-24 bg-green-100 border-t-2 border-black">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <span className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-black shadow-neo font-mono font-bold text-sm mb-6">
+              <Zap className="w-4 h-4" />
+              SIMPLE PRICING
+            </span>
+            <h2 className="text-4xl font-bold font-mono text-black mb-4">
+              START FREE, SCALE WHEN READY
+            </h2>
+            <p className="text-xl text-gray-700">
+              No credit card required. Upgrade when you need more power.
+            </p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             <PricingCard
-              name="Free"
+              name="FREE"
               price="$0"
               period="/month"
-              description="Start with core GTM tools plus 25 Copilot requests every month."
+              description="Perfect for solo founders getting started"
               features={[
-                "25 Copilot requests per month (resets monthly)",
-                "Unlimited documents & storage",
-                "Unified task management",
-                "3-in-1 CRM",
-                "Calendar & deal tracking",
-                "Pipeline analytics",
-                "Read-only API access"
+                '25 AI requests per month',
+                'Unlimited contacts & accounts',
+                'Basic CRM features',
+                'Huddle team chat',
+                'Document storage (1GB)',
+                'Built-in calendar',
+                'Email support'
               ]}
-              cta="Get Started"
-              highlighted={false}
+              cta="START FREE"
+              bgColor="bg-white"
             />
             <PricingCard
-              name="Team Pro"
+              name="TEAM PRO"
               price="$49"
-              period="/month"
-              description="For founders and teams scaling their GTM motion"
-              additionalPricing="+ $25/extra user/month"
+              period="/month base"
+              description="+ $25/month per additional user"
               features={[
-                "Unlimited Copilot requests & automations",
-                "AI account briefs & deal coaching",
-                "Full Developer API access (pay-per-call)",
-                "22 real-time webhook events",
-                "AI Agents via API",
-                "Unlimited CRM contacts & deals",
-                "Collaborative deal rooms",
-                "All GTM document templates",
-                "Advanced pipeline analytics",
-                "Financial tracking & runway",
-                "Shared team workspaces",
-                "Priority support"
+                'Everything in Free, plus:',
+                'Unlimited AI requests',
+                'AI Assistant in Huddle',
+                'Advanced analytics & reports',
+                'Financial tracking (expenses & revenue)',
+                'Custom fields & workflows',
+                'API access',
+                'Priority support'
               ]}
-              cta="Get Started"
-              highlighted={true}
+              cta="START 14-DAY TRIAL"
+              popular
+              bgColor="bg-blue-100"
             />
           </div>
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <h2 className="text-4xl font-bold mb-12 text-center">Frequently Asked Questions</h2>
-        <div className="space-y-6">
-          <FAQItem
-            question="Can I change plans later?"
-            answer="Yes! You can upgrade or downgrade anytime from your settings."
-          />
-          <FAQItem
-            question="What payment methods do you accept?"
-            answer="We accept all major credit cards through Stripe."
-          />
-          <FAQItem
-            question="Is there a free trial?"
-            answer="The Free plan is available forever! Upgrade when you're ready."
-          />
-          <FAQItem
-            question="How does team billing work?"
-            answer="Team Pro is $49/month base (includes you as owner), plus $25/month for each additional team member. Add or remove seats anytime."
-          />
-          <FAQItem
-            question="What happens to my data?"
-            answer="Your data is stored securely using industry-standard encryption. You own your data and can export it anytime. If you delete your account, we permanently remove your data within 30 days."
-          />
-          <FAQItem
-            question="Is my data secure?"
-            answer="Absolutely. We use SSL/TLS encryption for all data transmission, row-level security in our database, and regular security audits. Your data is hosted on secure cloud infrastructure."
-          />
+      {/* FAQ */}
+      <section id="faq" className="py-24 bg-white border-t-2 border-black">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <span className="inline-flex items-center gap-2 px-4 py-2 bg-pink-100 border-2 border-black shadow-neo font-mono font-bold text-sm mb-6">
+              <MessageSquare className="w-4 h-4" />
+              FAQ
+            </span>
+            <h2 className="text-4xl font-bold font-mono text-black">
+              FREQUENTLY ASKED QUESTIONS
+            </h2>
+          </div>
+
+          <div className="bg-white border-2 border-black shadow-neo">
+            {faqs.map((faq, i) => (
+              <FAQItem key={i} {...faq} />
+            ))}
+          </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="bg-black text-white py-20">
+      <section className="py-24 bg-blue-500 border-t-2 border-black">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl font-bold mb-6">Ready to Build Smarter?</h2>
-          <p className="text-xl mb-8 text-gray-300">
-            Start free and upgrade when you're ready to scale.
+          <h2 className="text-4xl md:text-5xl font-bold font-mono text-white mb-6">
+            READY TO TRANSFORM YOUR GTM?
+          </h2>
+          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+            Start free today—no credit card required.
           </p>
-          <Link
-            to="/app"
-            className="inline-block px-8 py-4 bg-white text-black border-2 border-white shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all font-medium text-lg"
-          >
-            Get Started Free
-          </Link>
-          <p className="mt-4 text-sm text-gray-400">
-            No credit card required • Upgrade anytime
-          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              to="/app"
+              className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-white border-2 border-black text-black font-mono font-bold text-lg shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+            >
+              GET STARTED FREE
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-white border-t-2 border-black py-12">
+      <footer className="bg-black text-white py-16 border-t-2 border-black">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-black text-white flex items-center justify-center font-mono font-bold border-2 border-black">
-                  FHQ
+          <div className="grid md:grid-cols-4 gap-8 mb-12">
+            {/* Brand */}
+            <div className="md:col-span-2">
+              <Link to="/" className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 bg-yellow-400 flex items-center justify-center">
+                  <Command className="w-5 h-5 text-black" />
                 </div>
-                <span className="font-bold font-mono">FounderHQ</span>
-              </div>
-              <p className="text-sm text-gray-600">
-                Your lightweight, AI-powered hub for GTM
+                <span className="font-bold text-xl font-mono">FOUNDERHQ</span>
+              </Link>
+              <p className="text-gray-400 mb-4 max-w-xs">
+                The all-in-one GTM hub for founders, consultants, and small businesses.
               </p>
             </div>
+
+            {/* Links */}
             <div>
-              <h3 className="font-bold mb-4">Product</h3>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li><a href="#features" className="hover:text-black">Features</a></li>
-                <li><a href="#pricing" className="hover:text-black">Pricing</a></li>
-                <li><Link to="/docs" className="hover:text-black">API Docs</Link></li>
-                <li><Link to="/app" className="hover:text-black">Sign In</Link></li>
+              <h4 className="font-bold font-mono mb-4">PRODUCT</h4>
+              <ul className="space-y-2">
+                <li>
+                  <a href="#features" className="text-gray-400 hover:text-white transition-colors text-sm font-mono">
+                    Features
+                  </a>
+                </li>
+                <li>
+                  <a href="#pricing" className="text-gray-400 hover:text-white transition-colors text-sm font-mono">
+                    Pricing
+                  </a>
+                </li>
+                <li>
+                  <Link to="/api-docs" className="text-gray-400 hover:text-white transition-colors text-sm font-mono">
+                    API Docs
+                  </Link>
+                </li>
               </ul>
             </div>
             <div>
-              <h3 className="font-bold mb-4">Legal</h3>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li><a href="/privacy" className="hover:text-black">Privacy Policy</a></li>
-                <li><a href="/terms" className="hover:text-black">Terms of Service</a></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-bold mb-4">Contact</h3>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li>joe@setique.com</li>
-                <li>setique.com</li>
+              <h4 className="font-bold font-mono mb-4">LEGAL</h4>
+              <ul className="space-y-2">
+                <li>
+                  <Link to="/privacy" className="text-gray-400 hover:text-white transition-colors text-sm font-mono">
+                    Privacy
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/terms" className="text-gray-400 hover:text-white transition-colors text-sm font-mono">
+                    Terms
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>
-          <div className="mt-12 pt-8 border-t border-gray-200 text-center text-sm text-gray-600">
-            <p>&copy; 2025 Setique. All rights reserved.</p>
+
+          <div className="border-t-2 border-gray-800 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-gray-400 text-sm font-mono">
+              © {new Date().getFullYear()} FOUNDERHQ. ALL RIGHTS RESERVED.
+            </p>
           </div>
         </div>
       </footer>
     </div>
   );
-}
+};
 
-function UseCase({ title, description, icon }: { title: string; description: string; icon: React.ReactNode }) {
-  return (
-    <div className="h-full flex flex-col p-6 border-2 border-black shadow-neo bg-white text-center transition-transform duration-300 hover:-translate-y-1">
-      <div className="flex justify-center mb-4">
-        <div className="w-14 h-14 bg-blue-100 border-2 border-black flex items-center justify-center flex-shrink-0">
-          {icon}
-        </div>
-      </div>
-      <h3 className="text-lg font-bold mb-3">{title}</h3>
-      <p className="text-sm text-gray-600 leading-relaxed flex-grow">{description}</p>
-    </div>
-  );
-}
-
-function FeatureCard({ icon, title, description, delayMs = 0 }: { icon: React.ReactNode; title: string; description: string; delayMs?: number }) {
-  return (
-    <div
-      className="h-full flex flex-col p-5 border-2 border-black shadow-neo hover:-translate-y-1 hover:shadow-none transition-transform duration-500 bg-white"
-      style={{ transitionDelay: `${delayMs}ms` }}
-    >
-      <div className="w-11 h-11 bg-blue-100 border-2 border-black flex items-center justify-center mb-3 flex-shrink-0">
-        {icon}
-      </div>
-      <h3 className="text-lg font-bold mb-2 leading-tight">{title}</h3>
-      <p className="text-sm text-gray-600 leading-relaxed flex-grow">{description}</p>
-    </div>
-  );
-}
-
-function PricingCard({ 
-  name, 
-  price, 
-  period, 
-  description,
-  additionalPricing,
-  features, 
-  cta, 
-  highlighted
-}: { 
-  name: string; 
-  price: string; 
-  period: string; 
-  description: string;
-  additionalPricing?: string;
-  features: string[]; 
-  cta: string; 
-  highlighted: boolean;
-}) {
-  return (
-    <div className={`p-8 border-2 border-black ${highlighted ? 'bg-yellow-50 shadow-neo-lg' : 'bg-white shadow-neo'} relative`}>
-      {highlighted && (
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-yellow-300 border-2 border-black font-bold text-sm">
-          MOST POPULAR
-        </div>
-      )}
-      <div className="text-center mb-6">
-        <h3 className="text-2xl font-bold mb-2">{name}</h3>
-        <div className="mb-2">
-          <span className="text-4xl font-bold">{price}</span>
-          <span className="text-gray-600">{period}</span>
-        </div>
-        {additionalPricing && (
-          <div className="text-sm text-gray-600 font-medium mb-2">
-            {additionalPricing}
-          </div>
-        )}
-        <p className="text-sm text-gray-600">{description}</p>
-      </div>
-      <ul className="space-y-3 mb-8">
-        {features.map((feature, idx) => (
-          <li key={idx} className="flex items-start gap-2">
-            <Check className="w-5 h-5 mt-0.5 flex-shrink-0" />
-            <span className="text-sm">{feature}</span>
-          </li>
-        ))}
-      </ul>
-      <Link
-        to="/app"
-        className={`block w-full py-3 text-center border-2 border-black font-medium transition-all ${
-          highlighted 
-            ? 'bg-black text-white shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none' 
-            : 'bg-white hover:bg-gray-100'
-        }`}
-      >
-        {cta}
-      </Link>
-    </div>
-  );
-}
-
-function FAQItem({ question, answer }: { question: string; answer: string }) {
-  const [isOpen, setIsOpen] = React.useState(false);
-
-  return (
-    <div className="border-2 border-black shadow-neo bg-white">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full p-6 text-left flex justify-between items-center hover:bg-gray-50 transition-colors"
-      >
-        <span className="font-bold text-lg pr-4">{question}</span>
-        <ChevronRight className={`w-6 h-6 transition-transform flex-shrink-0 ${isOpen ? 'rotate-90' : ''}`} />
-      </button>
-      {isOpen && (
-        <div className="px-6 pb-6 text-gray-700 leading-relaxed border-t-2 border-black pt-4">
-          {answer}
-        </div>
-      )}
-    </div>
-  );
-}
+export { LandingPage };

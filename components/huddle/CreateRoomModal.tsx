@@ -26,7 +26,7 @@ interface WorkspaceMember {
   user_id: string;
   profile: {
     id: string;
-    name: string | null;
+    full_name: string | null;
     email: string;
     avatar_url: string | null;
   };
@@ -63,7 +63,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
             user_id,
             profile:profiles!workspace_members_user_id_fkey (
               id,
-              name,
+              full_name,
               email,
               avatar_url
             )
@@ -100,7 +100,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
     if (!m.profile) return false;
     const query = searchQuery.toLowerCase();
     return (
-      m.profile.name?.toLowerCase().includes(query) ||
+      m.profile.full_name?.toLowerCase().includes(query) ||
       m.profile.email?.toLowerCase().includes(query)
     );
   });
@@ -255,7 +255,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
                             key={userId}
                             className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-sm"
                           >
-                            {member.profile?.name || member.profile?.email || 'Unknown'}
+                            {member.profile?.full_name || member.profile?.email || 'Unknown'}
                             <button
                               type="button"
                               onClick={() => toggleMember(userId)}
@@ -297,12 +297,12 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
                             />
                           ) : (
                             <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-sm font-bold">
-                              {(member.profile?.name || member.profile?.email || '?')[0].toUpperCase()}
+                              {(member.profile?.full_name || member.profile?.email || '?')[0].toUpperCase()}
                             </div>
                           )}
                           <div className="flex-1 text-left">
                             <div className="text-sm font-medium text-gray-900">
-                              {member.profile?.name || 'Unnamed'}
+                              {member.profile?.full_name || 'Unnamed'}
                             </div>
                             <div className="text-xs text-gray-500">
                               {member.profile?.email || ''}

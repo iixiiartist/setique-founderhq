@@ -13,6 +13,7 @@ interface AIRunRequest {
   room_id: string;
   thread_root_id?: string;
   prompt: string;
+  user_timezone?: string;
   context_options: {
     include_recent_messages?: boolean;
     message_count?: number;
@@ -28,7 +29,13 @@ interface AIRunRequest {
   tool_options: {
     allow_task_creation?: boolean;
     allow_contact_creation?: boolean;
+    allow_account_creation?: boolean;
+    allow_deal_creation?: boolean;
+    allow_expense_creation?: boolean;
+    allow_revenue_creation?: boolean;
     allow_note_creation?: boolean;
+    allow_calendar_event_creation?: boolean;
+    allow_marketing_campaign_creation?: boolean;
     allow_web_search?: boolean;
   };
 }
@@ -68,7 +75,7 @@ serve(async (req) => {
     }
 
     const body: AIRunRequest = await req.json();
-    const { room_id, thread_root_id, prompt, context_options, tool_options } = body;
+    const { room_id, thread_root_id, prompt, context_options, tool_options, user_timezone } = body;
 
     // Validate room access and get settings
     const { data: room, error: roomError } = await supabaseUser
@@ -113,7 +120,10 @@ serve(async (req) => {
     });
 
     // Build tools based on options
-    const tools = buildTools(tool_options, room.settings?.ai_can_write);
+    // Default to allowing write operations unless explicitly disabled in room settings
+    const aiCanWrite = room.settings?.ai_can_write !== false;
+    const tools = buildTools(tool_options, aiCanWrite);
+    console.log('AI Run - Room:', room.name, 'AI can write:', aiCanWrite, 'Tools available:', tools.map((t: any) => t.function?.name));
 
     // First, post the user's prompt as a message
     const { data: userMessage } = await supabaseUser
@@ -145,7 +155,7 @@ serve(async (req) => {
               messages: [
                 {
                   role: 'system',
-                  content: buildSystemPrompt(room.name, context),
+                  content: buildSystemPrompt(room.name, context, user_timezone),
                 },
                 ...context.recentMessages.map((m: any) => ({
                   role: m.is_ai ? 'assistant' : 'user',
@@ -157,6 +167,7 @@ serve(async (req) => {
                 },
               ],
               tools: tools.length > 0 ? tools : undefined,
+              tool_choice: tools.length > 0 ? 'auto' : undefined,
               stream: true,
               max_tokens: 2048,
               temperature: 0.7,
@@ -178,7 +189,8 @@ serve(async (req) => {
           }
 
           let fullContent = '';
-          let toolCalls: any[] = [];
+          // Use a Map to reassemble streamed tool calls by index
+          const toolCallsMap = new Map<number, { id: string; name: string; arguments: string }>();
 
           while (true) {
             const { done, value } = await reader.read();
@@ -201,14 +213,22 @@ serve(async (req) => {
                 }
 
                 if (delta?.tool_calls) {
-                  // Handle tool calls
+                  // Reassemble tool calls by index - Groq streams fragments
                   for (const tc of delta.tool_calls) {
-                    if (tc.function) {
-                      toolCalls.push({
-                        name: tc.function.name,
-                        arguments: tc.function.arguments,
-                      });
+                    const idx = tc.index ?? 0;
+                    const existing = toolCallsMap.get(idx) || { id: '', name: '', arguments: '' };
+                    
+                    if (tc.id) {
+                      existing.id = tc.id;
                     }
+                    if (tc.function?.name) {
+                      existing.name = tc.function.name;
+                    }
+                    if (tc.function?.arguments) {
+                      existing.arguments += tc.function.arguments;
+                    }
+                    
+                    toolCallsMap.set(idx, existing);
                   }
                 }
               } catch (e) {
@@ -217,15 +237,78 @@ serve(async (req) => {
             }
           }
 
+          // Convert map to array of complete tool calls
+          let toolCalls = Array.from(toolCallsMap.values()).filter(tc => tc.name && tc.arguments);
+          
+          // Fallback: Parse text-based tool calls that Llama sometimes outputs
+          // e.g., <function:create_task({"text": "...", ...})></function>
+          if (toolCalls.length === 0 && fullContent) {
+            // Match <function:tool_name({...json...})></function>
+            const textToolMatch = fullContent.match(/<function:(\w+)\((\{[\s\S]*?\})\)><\/function>/);
+            if (textToolMatch) {
+              const [fullMatch, toolName, argsStr] = textToolMatch;
+              console.log('Found text-based tool call:', toolName, argsStr);
+              try {
+                // Parse the JSON arguments
+                const parsedArgs = JSON.parse(argsStr);
+                toolCalls = [{ id: 'fallback_call_0', name: toolName, arguments: JSON.stringify(parsedArgs) }];
+                console.log('Successfully parsed text-based tool call:', toolName, parsedArgs);
+                // Remove the function tag from content so it doesn't show in the message
+                fullContent = fullContent.replace(fullMatch, '').trim();
+              } catch (e) {
+                console.error('Failed to parse text-based tool call JSON:', e, 'Raw:', argsStr);
+              }
+            }
+          }
+          
+          console.log('Tool calls detected:', toolCalls.length, toolCalls.map(tc => tc.name));
+          console.log('Full content length:', fullContent.length);
+
           // Execute tool calls if any
           const toolResults = [];
           for (const tc of toolCalls) {
             try {
+              console.log('Executing tool:', tc.name, 'with args:', tc.arguments);
               const result = await executeToolCall(supabaseAdmin, tc, room.workspace_id, user.id);
+              console.log('Tool result:', tc.name, result);
               toolResults.push({ ...tc, result });
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'tool_result', tool: tc.name, result })}\n\n`));
             } catch (e) {
+              console.error('Tool error:', tc.name, e.message);
               toolResults.push({ ...tc, error: e.message });
+              // Send error to client so they know what went wrong
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'tool_result', tool: tc.name, error: e.message })}\n\n`));
+            }
+          }
+
+          // If tools were executed, generate a follow-up response or success message
+          let finalContent = fullContent;
+          if (toolResults.length > 0) {
+            // First, generate basic success messages as fallback
+            const successMessages = toolResults
+              .filter(tr => tr.result?.success)
+              .map(tr => {
+                if (tr.name === 'create_task') return `✅ Created task: "${tr.result.title}" in ${tr.result.category}`;
+                if (tr.name === 'create_contact') return `✅ Created contact: "${tr.result.name}"`;
+                if (tr.name === 'create_account') return `✅ Created account: "${tr.result.name}" (${tr.result.type})`;
+                if (tr.name === 'create_deal') return `✅ Created deal: "${tr.result.name}" - $${tr.result.value || 0} (${tr.result.stage})`;
+                if (tr.name === 'create_expense') return `✅ Logged expense: $${tr.result.amount} - ${tr.result.description}`;
+                if (tr.name === 'create_revenue') return `✅ Recorded revenue: $${tr.result.amount} - ${tr.result.description}`;
+                if (tr.name === 'create_note') return `✅ Created note: "${tr.result.title}"`;
+                if (tr.name === 'create_calendar_event') return `✅ Created event: "${tr.result.title}" on ${tr.result.start_time}`;
+                if (tr.name === 'create_marketing_campaign') return `✅ Created campaign: "${tr.result.name}" (${tr.result.channel})`;
+                return `✅ ${tr.name} completed`;
+              });
+            
+            const errorMessages = toolResults
+              .filter(tr => tr.error)
+              .map(tr => `❌ ${tr.name} failed: ${tr.error}`);
+            
+            // Use success/error messages as the response
+            const allMessages = [...successMessages, ...errorMessages];
+            if (allMessages.length > 0) {
+              finalContent = allMessages.join('\n');
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'content', content: '\n\n' + finalContent })}\n\n`));
             }
           }
 
@@ -246,7 +329,7 @@ serve(async (req) => {
               room_id,
               workspace_id: room.workspace_id,
               user_id: null, // AI message
-              body: fullContent || 'I apologize, but I was unable to generate a response.',
+              body: finalContent || 'I apologize, but I was unable to generate a response.',
               thread_root_id: thread_root_id || userMessage?.id, // Reply in thread
               is_ai: true,
               metadata: aiMetadata,
@@ -317,7 +400,7 @@ async function buildContext(
       .from('huddle_messages')
       .select(`
         id, body, is_ai, created_at,
-        user:profiles!huddle_messages_user_id_fkey(id, name)
+        user:profiles!huddle_messages_user_id_fkey(id, full_name)
       `)
       .eq('room_id', room_id)
       .is('deleted_at', null)
@@ -330,7 +413,7 @@ async function buildContext(
         .from('huddle_messages')
         .select(`
           id, body, is_ai, created_at,
-          user:profiles!huddle_messages_user_id_fkey(id, name)
+          user:profiles!huddle_messages_user_id_fkey(id, full_name)
         `)
         .or(`id.eq.${thread_root_id},thread_root_id.eq.${thread_root_id}`)
         .is('deleted_at', null)
@@ -417,16 +500,39 @@ async function buildContext(
 }
 
 // Build system prompt
-function buildSystemPrompt(roomName: string, context: any): string {
+function buildSystemPrompt(roomName: string, context: any, userTimezone?: string): string {
+  // Get current date/time for the AI in user's timezone
+  const now = new Date();
+  const timezone = userTimezone || 'America/New_York'; // Default to Eastern if not provided
+  
+  const currentDate = now.toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric',
+    timeZone: timezone
+  });
+  const currentTime = now.toLocaleTimeString('en-US', { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    timeZoneName: 'short',
+    timeZone: timezone
+  });
+
   let prompt = `You are an AI assistant in the Huddle chat room "${roomName || 'this room'}". 
 You help team members with questions, provide insights from workspace data, and assist with tasks.
 
+CURRENT DATE AND TIME: ${currentDate} at ${currentTime}
+When users mention relative dates like "next Tuesday", "tomorrow", "next week", calculate the actual date based on today's date above.
+
+When a user asks you to create something (task, contact, expense, etc.), use the available tools to create it.
+
 Guidelines:
 - Be concise and helpful
-- Use markdown formatting for readability
+- Use markdown formatting for readability  
 - When referencing workspace data, be specific with names and numbers
-- If you're unsure, say so rather than making things up
-- You can use tools to create tasks, notes, or search the web when appropriate
+- If you're unsure about factual information, say so
+- For dates, always use YYYY-MM-DD format when calling tools
 `;
 
   if (Object.keys(context.workspaceData).length > 0) {
@@ -483,16 +589,20 @@ function buildTools(options: AIRunRequest['tool_options'], aiCanWrite: boolean):
         type: 'function',
         function: {
           name: 'create_task',
-          description: 'Create a new task in the workspace',
+          description: 'Create a new task in the workspace. ALWAYS use this tool when the user asks to create, add, or make a task.',
           parameters: {
             type: 'object',
             properties: {
-              title: { type: 'string', description: 'Task title' },
-              description: { type: 'string', description: 'Task description' },
-              priority: { type: 'string', enum: ['low', 'medium', 'high'], description: 'Task priority' },
+              text: { type: 'string', description: 'Task description/title - what needs to be done' },
+              category: { 
+                type: 'string', 
+                enum: ['productsServicesTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketingTasks', 'financialTasks'],
+                description: 'Task category/module: productsServicesTasks (general/default), investorTasks (investor-related), customerTasks (customer-related), partnerTasks (partner-related), marketingTasks (marketing), financialTasks (financial). Default to productsServicesTasks if unclear.'
+              },
+              priority: { type: 'string', enum: ['Low', 'Medium', 'High'], description: 'Task priority (capitalized). Default to Medium if not specified.' },
               due_date: { type: 'string', description: 'Due date in YYYY-MM-DD format' },
             },
-            required: ['title'],
+            required: ['text'],
           },
         },
       });
@@ -511,6 +621,166 @@ function buildTools(options: AIRunRequest['tool_options'], aiCanWrite: boolean):
               content: { type: 'string', description: 'Note content in markdown' },
             },
             required: ['title', 'content'],
+          },
+        },
+      });
+    }
+
+    if (options.allow_contact_creation) {
+      tools.push({
+        type: 'function',
+        function: {
+          name: 'create_contact',
+          description: 'Create a new contact in the CRM. Use this when the user wants to add a person or company to their contacts.',
+          parameters: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: 'Full name of the contact' },
+              email: { type: 'string', description: 'Email address' },
+              phone: { type: 'string', description: 'Phone number' },
+              company: { type: 'string', description: 'Company or organization name' },
+              title: { type: 'string', description: 'Job title or role' },
+              notes: { type: 'string', description: 'Additional notes about the contact' },
+            },
+            required: ['name'],
+          },
+        },
+      });
+    }
+
+    if (options.allow_account_creation) {
+      tools.push({
+        type: 'function',
+        function: {
+          name: 'create_account',
+          description: 'Create a new CRM account (investor, customer, partner, or lead). Use this when the user wants to add a company or organization to track in the CRM.',
+          parameters: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: 'Company or account name' },
+              type: { type: 'string', enum: ['investor', 'customer', 'partner', 'lead'], description: 'Type of account' },
+              industry: { type: 'string', description: 'Industry or sector' },
+              website: { type: 'string', description: 'Company website URL' },
+              description: { type: 'string', description: 'Description or notes about the account' },
+              stage: { type: 'string', description: 'Current stage (e.g., new, qualified, proposal, negotiation)' },
+              value: { type: 'number', description: 'Deal value or investment amount' },
+            },
+            required: ['name'],
+          },
+        },
+      });
+    }
+
+    if (options.allow_expense_creation) {
+      tools.push({
+        type: 'function',
+        function: {
+          name: 'create_expense',
+          description: 'Record a business expense. Use this when the user wants to log spending, costs, or purchases.',
+          parameters: {
+            type: 'object',
+            properties: {
+              amount: { type: 'number', description: 'Expense amount in dollars' },
+              description: { type: 'string', description: 'Description of the expense' },
+              category: { type: 'string', enum: ['Payroll', 'Marketing', 'Software', 'Office', 'Travel', 'Legal', 'Professional Services', 'Equipment', 'Utilities', 'Insurance', 'Taxes', 'Other'], description: 'Expense category' },
+              date: { type: 'string', description: 'Expense date in YYYY-MM-DD format (defaults to today)' },
+              vendor: { type: 'string', description: 'Vendor or supplier name' },
+              expense_type: { type: 'string', enum: ['operating', 'marketing', 'sales', 'rd'], description: 'Type of expense for reporting' },
+            },
+            required: ['amount', 'description'],
+          },
+        },
+      });
+    }
+
+    if (options.allow_revenue_creation) {
+      tools.push({
+        type: 'function',
+        function: {
+          name: 'create_revenue',
+          description: 'Record a revenue transaction (invoice, payment, etc). Use this when the user wants to log income or sales.',
+          parameters: {
+            type: 'object',
+            properties: {
+              amount: { type: 'number', description: 'Revenue amount in dollars' },
+              description: { type: 'string', description: 'Description of the revenue' },
+              transaction_type: { type: 'string', enum: ['invoice', 'payment', 'recurring', 'refund'], description: 'Type of transaction' },
+              status: { type: 'string', enum: ['pending', 'paid', 'overdue', 'cancelled'], description: 'Transaction status' },
+              date: { type: 'string', description: 'Transaction date in YYYY-MM-DD format (defaults to today)' },
+              customer_name: { type: 'string', description: 'Customer or client name' },
+            },
+            required: ['amount', 'description'],
+          },
+        },
+      });
+    }
+
+    if (options.allow_deal_creation) {
+      tools.push({
+        type: 'function',
+        function: {
+          name: 'create_deal',
+          description: 'Create a new deal in the sales pipeline. Use this when the user wants to track a potential sale or opportunity.',
+          parameters: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: 'Deal name or title' },
+              value: { type: 'number', description: 'Deal value in dollars' },
+              stage: { type: 'string', enum: ['lead', 'qualified', 'proposal', 'negotiation', 'closed_won', 'closed_lost'], description: 'Deal pipeline stage' },
+              probability: { type: 'number', description: 'Win probability percentage (0-100)' },
+              expected_close_date: { type: 'string', description: 'Expected close date in YYYY-MM-DD format' },
+              contact_name: { type: 'string', description: 'Primary contact name for this deal' },
+              company_name: { type: 'string', description: 'Company or account name' },
+              notes: { type: 'string', description: 'Additional notes about the deal' },
+            },
+            required: ['name'],
+          },
+        },
+      });
+    }
+
+    if (options.allow_calendar_event_creation) {
+      tools.push({
+        type: 'function',
+        function: {
+          name: 'create_calendar_event',
+          description: 'Create a calendar event or meeting. Use this when the user wants to schedule something or add an event to the calendar.',
+          parameters: {
+            type: 'object',
+            properties: {
+              title: { type: 'string', description: 'Event title' },
+              description: { type: 'string', description: 'Event description' },
+              start_date: { type: 'string', description: 'Start date and time in ISO format (YYYY-MM-DDTHH:mm:ss)' },
+              end_date: { type: 'string', description: 'End date and time in ISO format (YYYY-MM-DDTHH:mm:ss)' },
+              location: { type: 'string', description: 'Event location or meeting link' },
+              event_type: { type: 'string', enum: ['meeting', 'call', 'task', 'reminder', 'other'], description: 'Type of event' },
+              all_day: { type: 'boolean', description: 'Whether this is an all-day event' },
+            },
+            required: ['title', 'start_date'],
+          },
+        },
+      });
+    }
+
+    if (options.allow_marketing_campaign_creation) {
+      tools.push({
+        type: 'function',
+        function: {
+          name: 'create_marketing_campaign',
+          description: 'Create a marketing campaign. Use this when the user wants to plan or track a marketing initiative.',
+          parameters: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: 'Campaign name' },
+              description: { type: 'string', description: 'Campaign description and goals' },
+              channel: { type: 'string', enum: ['email', 'social', 'content', 'paid_ads', 'seo', 'events', 'other'], description: 'Marketing channel' },
+              status: { type: 'string', enum: ['draft', 'planned', 'active', 'paused', 'completed'], description: 'Campaign status' },
+              start_date: { type: 'string', description: 'Campaign start date in YYYY-MM-DD format' },
+              end_date: { type: 'string', description: 'Campaign end date in YYYY-MM-DD format' },
+              budget: { type: 'number', description: 'Campaign budget in dollars' },
+              target_audience: { type: 'string', description: 'Target audience description' },
+            },
+            required: ['name'],
           },
         },
       });
@@ -552,18 +822,18 @@ async function executeToolCall(
         .from('tasks')
         .insert({
           workspace_id,
-          created_by: user_id,
-          title: args.title,
-          description: args.description,
-          priority: args.priority || 'medium',
-          due_date: args.due_date,
-          status: 'todo',
+          user_id: user_id,
+          text: args.text,
+          category: args.category || 'productsServicesTasks',
+          priority: args.priority || 'Medium',
+          due_date: args.due_date || null,
+          status: 'Todo',
         })
         .select()
         .single();
       
       if (taskError) throw new Error(taskError.message);
-      return { success: true, task_id: task.id, title: task.title };
+      return { success: true, task_id: task.id, title: args.text, category: task.category };
 
     case 'create_note':
       const { data: note, error: noteError } = await supabase
@@ -580,6 +850,150 @@ async function executeToolCall(
       
       if (noteError) throw new Error(noteError.message);
       return { success: true, note_id: note.id, title: note.title };
+
+    case 'create_contact':
+      const { data: contact, error: contactError } = await supabase
+        .from('contacts')
+        .insert({
+          workspace_id,
+          created_by: user_id,
+          name: args.name,
+          email: args.email || null,
+          phone: args.phone || null,
+          company: args.company || null,
+          title: args.title || null,
+          notes: args.notes || null,
+        })
+        .select()
+        .single();
+      
+      if (contactError) throw new Error(contactError.message);
+      return { success: true, contact_id: contact.id, name: contact.name };
+
+    case 'create_account':
+      const { data: account, error: accountError } = await supabase
+        .from('crm_items')
+        .insert({
+          workspace_id,
+          user_id: user_id,
+          name: args.name,
+          type: args.type || 'lead',
+          industry: args.industry || null,
+          website: args.website || null,
+          description: args.description || null,
+          stage: args.stage || 'new',
+          value: args.value || null,
+          currency: 'USD',
+        })
+        .select()
+        .single();
+      
+      if (accountError) throw new Error(accountError.message);
+      return { success: true, account_id: account.id, name: account.name, type: account.type };
+
+    case 'create_expense':
+      const today = new Date().toISOString().split('T')[0];
+      const { data: expense, error: expenseError } = await supabase
+        .from('expenses')
+        .insert({
+          workspace_id,
+          user_id: user_id,
+          amount: args.amount,
+          description: args.description,
+          category: args.category || 'Other',
+          date: args.date || today,
+          vendor: args.vendor || null,
+          expense_type: args.expense_type || 'operating',
+        })
+        .select()
+        .single();
+      
+      if (expenseError) throw new Error(expenseError.message);
+      return { success: true, expense_id: expense.id, amount: expense.amount, description: expense.description };
+
+    case 'create_revenue':
+      const todayDate = new Date().toISOString().split('T')[0];
+      const { data: revenue, error: revenueError } = await supabase
+        .from('revenue_transactions')
+        .insert({
+          workspace_id,
+          user_id: user_id,
+          amount: args.amount,
+          description: args.description,
+          transaction_type: args.transaction_type || 'payment',
+          status: args.status || 'paid',
+          transaction_date: args.date || todayDate,
+          customer_name: args.customer_name || null,
+          currency: 'USD',
+        })
+        .select()
+        .single();
+      
+      if (revenueError) throw new Error(revenueError.message);
+      return { success: true, revenue_id: revenue.id, amount: revenue.amount, description: revenue.description };
+
+    case 'create_deal':
+      const { data: deal, error: dealError } = await supabase
+        .from('deals')
+        .insert({
+          workspace_id,
+          user_id: user_id,
+          name: args.name,
+          value: args.value || 0,
+          stage: args.stage || 'lead',
+          probability: args.probability || null,
+          expected_close_date: args.expected_close_date || null,
+          contact_name: args.contact_name || null,
+          company_name: args.company_name || null,
+          notes: args.notes || null,
+          currency: 'USD',
+        })
+        .select()
+        .single();
+      
+      if (dealError) throw new Error(dealError.message);
+      return { success: true, deal_id: deal.id, name: deal.name, value: deal.value, stage: deal.stage };
+
+    case 'create_calendar_event':
+      const { data: calEvent, error: calEventError } = await supabase
+        .from('calendar_events')
+        .insert({
+          workspace_id,
+          user_id: user_id,
+          title: args.title,
+          description: args.description || null,
+          start_time: args.start_date,
+          end_time: args.end_date || args.start_date,
+          location: args.location || null,
+          event_type: args.event_type || 'other',
+          all_day: args.all_day || false,
+        })
+        .select()
+        .single();
+      
+      if (calEventError) throw new Error(calEventError.message);
+      return { success: true, event_id: calEvent.id, title: calEvent.title, start_time: calEvent.start_time };
+
+    case 'create_marketing_campaign':
+      const { data: campaign, error: campaignError } = await supabase
+        .from('marketing_campaigns')
+        .insert({
+          workspace_id,
+          created_by: user_id,
+          name: args.name,
+          description: args.description || null,
+          channel: args.channel || 'other',
+          status: args.status || 'draft',
+          start_date: args.start_date || null,
+          end_date: args.end_date || null,
+          budget: args.budget || null,
+          target_audience: args.target_audience || null,
+        })
+        .select()
+        .single();
+      
+      if (campaignError) throw new Error(campaignError.message);
+      return { success: true, campaign_id: campaign.id, name: campaign.name, channel: campaign.channel };
 
     case 'web_search':
       // This would be handled in the context building phase

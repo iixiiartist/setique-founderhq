@@ -18,6 +18,10 @@ export interface UseShareToHuddleReturn {
   shareForm: (form: { id: string; title: string; description?: string }) => void;
   shareFile: (file: { id: string; name: string; url?: string; type?: string }) => void;
   shareCalendarEvent: (event: CalendarEvent) => void;
+  shareAccount: (account: any) => void;
+  shareExpense: (expense: any) => void;
+  shareRevenue: (revenue: any) => void;
+  shareMarketingCampaign: (campaign: any) => void;
 }
 
 export function useShareToHuddle(): UseShareToHuddleReturn {
@@ -135,6 +139,64 @@ export function useShareToHuddle(): UseShareToHuddleReturn {
     });
   }, [openShareModal]);
 
+  // Share a CRM account
+  const shareAccount = useCallback((account: any) => {
+    const valueStr = account.value ? `$${account.value.toLocaleString()}` : '';
+    openShareModal({
+      type: 'account',
+      id: account.id,
+      title: account.name || 'Account',
+      description: account.description || undefined,
+      preview: {
+        snippet: [account.type, account.stage, valueStr].filter(Boolean).join(' | ') || undefined,
+      },
+    });
+  }, [openShareModal]);
+
+  // Share an expense
+  const shareExpense = useCallback((expense: any) => {
+    const amountStr = expense.amount ? `$${expense.amount.toLocaleString()}` : '';
+    const dateStr = expense.date ? new Date(expense.date).toLocaleDateString() : '';
+    openShareModal({
+      type: 'expense',
+      id: expense.id,
+      title: expense.description || 'Expense',
+      description: expense.vendor || undefined,
+      preview: {
+        snippet: [amountStr, expense.category, dateStr].filter(Boolean).join(' | ') || undefined,
+      },
+    });
+  }, [openShareModal]);
+
+  // Share a revenue transaction
+  const shareRevenue = useCallback((revenue: any) => {
+    const amountStr = revenue.amount ? `$${revenue.amount.toLocaleString()}` : '';
+    const dateStr = revenue.transaction_date ? new Date(revenue.transaction_date).toLocaleDateString() : '';
+    openShareModal({
+      type: 'revenue',
+      id: revenue.id,
+      title: revenue.description || 'Revenue',
+      description: revenue.customer_name || undefined,
+      preview: {
+        snippet: [amountStr, revenue.status, dateStr].filter(Boolean).join(' | ') || undefined,
+      },
+    });
+  }, [openShareModal]);
+
+  // Share a marketing campaign
+  const shareMarketingCampaign = useCallback((campaign: any) => {
+    const budgetStr = campaign.budget ? `Budget: $${campaign.budget.toLocaleString()}` : '';
+    openShareModal({
+      type: 'marketing_campaign',
+      id: campaign.id,
+      title: campaign.name || 'Campaign',
+      description: campaign.description || undefined,
+      preview: {
+        snippet: [campaign.channel, campaign.status, budgetStr].filter(Boolean).join(' | ') || undefined,
+      },
+    });
+  }, [openShareModal]);
+
   return {
     isOpen,
     payload,
@@ -147,6 +209,10 @@ export function useShareToHuddle(): UseShareToHuddleReturn {
     shareForm,
     shareFile,
     shareCalendarEvent,
+    shareAccount,
+    shareExpense,
+    shareRevenue,
+    shareMarketingCampaign,
   };
 }
 

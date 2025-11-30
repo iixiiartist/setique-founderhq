@@ -2,6 +2,7 @@
 // Left sidebar room list with channels and DMs
 
 import React, { useState } from 'react';
+import { ChevronRight, Lock, Hash, Sparkles, Plus, MessageSquare } from 'lucide-react';
 import type { HuddleRoom } from '../../types/huddle';
 
 interface RoomListProps {
@@ -55,9 +56,7 @@ export const RoomList: React.FC<RoomListProps> = ({
           className="w-full px-4 py-1 flex items-center justify-between text-sm font-semibold text-gray-600 hover:bg-gray-50"
         >
           <span className="flex items-center gap-1">
-            <span className={`transform transition-transform ${expandedSections.channels ? 'rotate-90' : ''}`}>
-              ?
-            </span>
+            <ChevronRight size={14} className={`transform transition-transform ${expandedSections.channels ? 'rotate-90' : ''}`} />
             Channels
           </span>
           <span className="text-xs text-gray-400">{channels.length}</span>
@@ -89,9 +88,7 @@ export const RoomList: React.FC<RoomListProps> = ({
           className="w-full px-4 py-1 flex items-center justify-between text-sm font-semibold text-gray-600 hover:bg-gray-50"
         >
           <span className="flex items-center gap-1">
-            <span className={`transform transition-transform ${expandedSections.dms ? 'rotate-90' : ''}`}>
-              ?
-            </span>
+            <ChevronRight size={14} className={`transform transition-transform ${expandedSections.dms ? 'rotate-90' : ''}`} />
             Direct Messages
           </span>
           <span className="text-xs text-gray-400">{dms.length}</span>
@@ -103,7 +100,7 @@ export const RoomList: React.FC<RoomListProps> = ({
               onClick={onNewDM}
               className="w-full px-4 py-2 text-left text-sm text-purple-600 hover:bg-purple-50 flex items-center gap-2"
             >
-              <span>??</span>
+              <Plus size={14} />
               New Message
             </button>
             {dms.map(room => (
@@ -143,7 +140,7 @@ const RoomItem: React.FC<RoomItemProps> = ({ room, isActive, unreadCount, onClic
     
     // Get first other member's name
     const displayMembers = members.slice(0, 2);
-    const names = displayMembers.map(m => m.user?.name || 'Unknown');
+    const names = displayMembers.map(m => m.user?.full_name || 'Unknown');
     
     if (members.length > 2) {
       return `${names.join(', ')} +${members.length - 2}`;
@@ -168,7 +165,7 @@ const RoomItem: React.FC<RoomItemProps> = ({ room, isActive, unreadCount, onClic
     }
     return (
       <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center text-xs font-bold">
-        {(firstMember?.user?.name || room.name || '?')[0].toUpperCase()}
+        {(firstMember?.user?.full_name || room.name || '?')[0].toUpperCase()}
       </div>
     );
   };
@@ -185,7 +182,7 @@ const RoomItem: React.FC<RoomItemProps> = ({ room, isActive, unreadCount, onClic
       {/* Icon/Avatar */}
       {isChannel ? (
         <span className="text-gray-500">
-          {room.is_private ? '??' : '#'}
+          {room.is_private ? <Lock size={14} /> : <Hash size={14} />}
         </span>
       ) : (
         getAvatar()
@@ -205,7 +202,7 @@ const RoomItem: React.FC<RoomItemProps> = ({ room, isActive, unreadCount, onClic
       
       {/* AI enabled indicator */}
       {room.settings?.ai_allowed && (
-        <span className="text-xs opacity-50" title="AI enabled">?</span>
+        <Sparkles size={12} className="text-purple-400 opacity-60" title="AI enabled" />
       )}
     </button>
   );

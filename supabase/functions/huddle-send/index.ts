@@ -131,7 +131,7 @@ serve(async (req) => {
       })
       .select(`
         *,
-        user:profiles!huddle_messages_user_id_fkey(id, name, avatar_url)
+        user:profiles!huddle_messages_user_id_fkey(id, full_name, avatar_url)
       `)
       .single();
 

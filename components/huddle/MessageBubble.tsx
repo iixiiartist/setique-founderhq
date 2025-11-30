@@ -12,9 +12,10 @@ interface MessageBubbleProps {
   onEdit?: () => void;
   onDelete?: () => void;
   isThreadView?: boolean;
+  onLinkedEntityClick?: (entityType: string, entityId: string) => void;
 }
 
-const QUICK_REACTIONS = ['??', '??', '??', '??', '??', '??'];
+const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🎉'];
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
@@ -24,6 +25,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   onEdit,
   onDelete,
   isThreadView = false,
+  onLinkedEntityClick,
 }) => {
   const [showActions, setShowActions] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
@@ -93,12 +95,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   const getEntityIcon = (type: string) => {
     switch (type) {
-      case 'task': return '??';
-      case 'contact': return '??';
-      case 'deal': return '??';
-      case 'document': return '??';
-      case 'form': return '??';
-      default: return '??';
+      case 'task': return '✅';
+      case 'contact': return '👤';
+      case 'deal': return '💰';
+      case 'document': return '📄';
+      case 'form': return '📝';
+      default: return '📁';
     }
   };
 
@@ -123,12 +125,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           ) : message.user?.avatar_url ? (
             <img
               src={message.user.avatar_url}
-              alt={message.user.name || ''}
+              alt={message.user.full_name || ''}
               className="w-9 h-9 rounded-lg object-cover"
             />
           ) : (
             <div className="w-9 h-9 rounded-lg bg-gray-300 flex items-center justify-center text-sm font-bold text-gray-600">
-              {(message.user?.name || '?')[0].toUpperCase()}
+              {(message.user?.full_name || '?')[0].toUpperCase()}
             </div>
           )}
         </div>
@@ -138,7 +140,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           {/* Header */}
           <div className="flex items-baseline gap-2 mb-1">
             <span className={`font-semibold text-sm ${isAIMessage ? 'text-purple-700' : 'text-gray-900'}`}>
-              {isAIMessage ? 'AI Assistant' : message.user?.name || 'Unknown'}
+              {isAIMessage ? 'AI Assistant' : message.user?.full_name || 'Unknown'}
             </span>
             <span className="text-xs text-gray-400">
               {formatTime(message.created_at)}
@@ -158,14 +160,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             <div className="mt-2 flex flex-wrap gap-2">
               {Object.entries(message.metadata.linked_entities).map(([type, ids]) => 
                 ids?.map((id) => (
-                  <a
+                  <button
                     key={`${type}-${id}`}
-                    href="#"
-                    className="inline-flex items-center gap-1.5 px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm transition-colors"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onLinkedEntityClick?.(type, id);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm transition-colors cursor-pointer border-0"
                   >
                     <span>{getEntityIcon(type)}</span>
-                    <span className="text-gray-700">{type}</span>
-                  </a>
+                    <span className="text-gray-700 capitalize">{type}</span>
+                  </button>
                 ))
               )}
             </div>
@@ -190,7 +196,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                     />
                   ) : (
                     <>
-                      <span>??</span>
+                      <span>📎</span>
                       <span className="text-gray-700">{file.name}</span>
                       {file.size && (
                         <span className="text-gray-400 text-xs">
@@ -230,7 +236,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               onClick={onReply}
               className="mt-2 text-sm text-purple-600 hover:text-purple-700 hover:underline flex items-center gap-1"
             >
-              <span>??</span>
+              <span>💬</span>
               <span>{message.reply_count} {message.reply_count === 1 ? 'reply' : 'replies'}</span>
             </button>
           )}
@@ -247,7 +253,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               className="p-1.5 hover:bg-gray-100 rounded transition-colors"
               title="Add reaction"
             >
-              ??
+              😊
             </button>
             
             {/* Quick reaction picker */}
@@ -276,7 +282,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               className="p-1.5 hover:bg-gray-100 rounded transition-colors"
               title="Reply in thread"
             >
-              ??
+              💬
             </button>
           )}
           
@@ -287,7 +293,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               className="p-1.5 hover:bg-gray-100 rounded transition-colors"
               title="Edit"
             >
-              ??
+              ✏️
             </button>
           )}
           
@@ -298,7 +304,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               className="p-1.5 hover:bg-red-100 rounded transition-colors text-red-500"
               title="Delete"
             >
-              ???
+              🗑️
             </button>
           )}
         </div>

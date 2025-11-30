@@ -314,8 +314,11 @@ export function useInvokeAI() {
           setIsStreaming(false);
           if (event.tool_calls) setToolCalls(event.tool_calls);
           if (event.web_sources) setWebSources(event.web_sources);
-          // Refresh messages
-          queryClient.invalidateQueries({ queryKey: ['huddle', 'messages', request.room_id] });
+          // Refresh messages - invalidate both main timeline and thread (if applicable)
+          queryClient.invalidateQueries({ queryKey: ['huddle', 'messages', request.room_id, 'main'] });
+          if (request.thread_root_id) {
+            queryClient.invalidateQueries({ queryKey: ['huddle', 'messages', request.room_id, request.thread_root_id] });
+          }
           break;
         case 'error':
           setError(event.error || 'Unknown error');

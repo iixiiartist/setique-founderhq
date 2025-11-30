@@ -1,7 +1,9 @@
 // components/huddle/AIInvokeSheet.tsx
 // Side sheet for invoking AI with context picker and streaming response
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { X, Check, Globe, Sparkles, CheckSquare, Users, DollarSign, FileText, ClipboardList, MessageSquare } from 'lucide-react';
 
 // Context item for AI
 interface AIContextItem {
@@ -12,20 +14,21 @@ interface AIContextItem {
 interface AIInvokeSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  onInvoke: (prompt: string, context: AIContextItem[], useWebSearch: boolean) => void;
+  onInvoke: (prompt: string, context: AIContextItem[], useWebSearch: boolean, threadRootId?: string) => void;
   isLoading: boolean;
   streamingResponse?: string;
   roomName?: string;
+  threadRootId?: string | null;
 }
 
 // Available context sources
 const CONTEXT_SOURCES = [
-  { id: 'tasks', label: 'Tasks', icon: 'task', description: 'Include recent tasks' },
-  { id: 'contacts', label: 'Contacts', icon: 'contact', description: 'Include CRM contacts' },
-  { id: 'deals', label: 'Deals', icon: 'deal', description: 'Include deal pipeline' },
-  { id: 'documents', label: 'Documents', icon: 'doc', description: 'Include GTM docs' },
-  { id: 'forms', label: 'Forms', icon: 'form', description: 'Include form responses' },
-  { id: 'messages', label: 'Recent Messages', icon: 'chat', description: 'Include chat history' },
+  { id: 'tasks', label: 'Tasks', icon: CheckSquare, description: 'Include recent tasks' },
+  { id: 'contacts', label: 'Contacts', icon: Users, description: 'Include CRM contacts' },
+  { id: 'deals', label: 'Deals', icon: DollarSign, description: 'Include deal pipeline' },
+  { id: 'documents', label: 'Documents', icon: FileText, description: 'Include GTM docs' },
+  { id: 'forms', label: 'Forms', icon: ClipboardList, description: 'Include form responses' },
+  { id: 'messages', label: 'Recent Messages', icon: MessageSquare, description: 'Include chat history' },
 ];
 
 export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
@@ -35,6 +38,7 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
   isLoading,
   streamingResponse,
   roomName,
+  threadRootId,
 }) => {
   const [prompt, setPrompt] = useState('');
   const [selectedContext, setSelectedContext] = useState<AIContextItem[]>([
@@ -44,6 +48,8 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
   
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const responseRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const scrollPositionRef = useRef<number>(0);
 
   // Auto-scroll response
   useEffect(() => {
@@ -58,6 +64,46 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
       setTimeout(() => textareaRef.current?.focus(), 100);
     }
   }, [isOpen]);
+
+  // Handle close with cleanup
+  const handleClose = useCallback(() => {
+    onClose();
+  }, [onClose]);
+
+  // Manage body scroll when modal opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      // Save current scroll position to ref (persists across renders)
+      scrollPositionRef.current = window.scrollY;
+      // Prevent body scroll
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollPositionRef.current}px`;
+      document.body.style.width = '100%';
+      
+      return () => {
+        // Restore body scroll
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        // Restore scroll position from ref
+        window.scrollTo(0, scrollPositionRef.current);
+      };
+    }
+  }, [isOpen]);
+
+  // Handle escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        handleClose();
+      }
+    };
+    
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, handleClose]);
 
   // Toggle context source
   const toggleContext = (sourceId: string) => {
@@ -78,7 +124,7 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
   // Handle invoke
   const handleInvoke = () => {
     if (!prompt.trim() || isLoading) return;
-    onInvoke(prompt, selectedContext, useWebSearch);
+    onInvoke(prompt, selectedContext, useWebSearch, threadRootId || undefined);
   };
 
   // Handle key press
@@ -91,29 +137,39 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
 
   if (!isOpen) return null;
 
-  return (
+  const sheetContent = (
     <>
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/20 z-40"
-        onClick={onClose}
+        onClick={handleClose}
+        aria-hidden="true"
       />
       
       {/* Sheet */}
-      <div className="fixed right-0 top-0 h-full w-[480px] max-w-full bg-white shadow-2xl z-50 flex flex-col animate-slide-in-right">
+      <div 
+        ref={sheetRef}
+        className="fixed right-0 top-0 h-full w-[480px] max-w-full bg-white shadow-2xl z-50 flex flex-col animate-slide-in-right"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ai-invoke-title"
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b-2 border-gray-200">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Ask AI</h2>
-            {roomName && (
+            <h2 id="ai-invoke-title" className="text-lg font-bold text-gray-900">Ask AI</h2>
+            {threadRootId ? (
+              <p className="text-sm text-purple-600">Replying in thread</p>
+            ) : roomName && (
               <p className="text-sm text-gray-500">in #{roomName}</p>
             )}
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="Close"
           >
-            X
+            <X size={20} />
           </button>
         </div>
 
@@ -145,7 +201,9 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
               Include context from:
             </label>
             <div className="grid grid-cols-2 gap-2">
-              {CONTEXT_SOURCES.map(source => (
+              {CONTEXT_SOURCES.map(source => {
+                const IconComponent = source.icon;
+                return (
                 <button
                   key={source.id}
                   onClick={() => toggleContext(source.id)}
@@ -156,7 +214,7 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
                       : 'border-gray-200 hover:border-gray-300 bg-white'
                   } disabled:opacity-50`}
                 >
-                  <span className="text-xs uppercase text-gray-500">{source.icon}</span>
+                  <IconComponent size={16} className="text-gray-500" />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-gray-900">
                       {source.label}
@@ -166,17 +224,17 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
                     </div>
                   </div>
                   {isContextSelected(source.id) && (
-                    <span className="text-purple-600">?</span>
+                    <Check size={16} className="text-purple-600" />
                   )}
                 </button>
-              ))}
+              )})}
             </div>
           </div>
 
           {/* Web search toggle */}
           <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
             <div className="flex items-center gap-3">
-              <span className="text-xl">WWW</span>
+              <Globe size={24} className="text-gray-500" />
               <div>
                 <div className="text-sm font-medium text-gray-900">
                   Web Search
@@ -252,7 +310,7 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
         <div className="px-6 py-4 border-t-2 border-gray-200 bg-gray-50">
           <div className="flex items-center gap-3">
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="flex-1 px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors"
             >
               Cancel
@@ -269,7 +327,7 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
                 </>
               ) : (
                 <>
-                  <span>AI</span>
+                  <Sparkles size={18} />
                   Ask AI
                 </>
               )}
@@ -298,6 +356,9 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
       `}</style>
     </>
   );
+
+  // Use portal to render at document root level
+  return createPortal(sheetContent, document.body);
 };
 
 export default AIInvokeSheet;

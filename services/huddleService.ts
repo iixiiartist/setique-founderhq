@@ -29,7 +29,7 @@ export async function getWorkspaceRooms(workspaceId: string): Promise<{ data: Hu
       members:huddle_members(
         user_id,
         role,
-        user:profiles(id, name, avatar_url)
+        user:profiles(id, full_name, avatar_url)
       )
     `)
     .eq('workspace_id', workspaceId)
@@ -48,7 +48,7 @@ export async function getRoom(roomId: string): Promise<{ data: HuddleRoom | null
         user_id,
         role,
         notifications,
-        user:profiles(id, name, avatar_url, email)
+        user:profiles(id, full_name, avatar_url, email)
       )
     `)
     .eq('id', roomId)
@@ -226,8 +226,8 @@ export async function getRoomMessages(
     .from('huddle_messages')
     .select(`
       *,
-      user:profiles!huddle_messages_user_id_fkey(id, name, avatar_url),
-      reactions:huddle_message_reactions(emoji, user_id, user:profiles(id, name))
+      user:profiles!huddle_messages_user_id_fkey(id, full_name, avatar_url),
+      reactions:huddle_message_reactions(emoji, user_id, user:profiles(id, full_name))
     `)
     .eq('room_id', roomId)
     .is('deleted_at', null);
@@ -479,7 +479,7 @@ export async function searchMessages(
     .from('huddle_messages')
     .select(`
       *,
-      user:profiles!huddle_messages_user_id_fkey(id, name, avatar_url),
+      user:profiles!huddle_messages_user_id_fkey(id, full_name, avatar_url),
       room:huddle_rooms(id, name, slug, type)
     `)
     .eq('workspace_id', workspaceId)
@@ -523,7 +523,7 @@ export function subscribeToRoomMessages(
           .from('huddle_messages')
           .select(`
             *,
-            user:profiles!huddle_messages_user_id_fkey(id, name, avatar_url)
+            user:profiles!huddle_messages_user_id_fkey(id, full_name, avatar_url)
           `)
           .eq('id', payload.new.id)
           .single();
@@ -595,7 +595,7 @@ export async function getWorkspaceMembers(workspaceId: string): Promise<{ data: 
     .select(`
       user_id,
       role,
-      user:profiles(id, name, avatar_url, email)
+      user:profiles(id, full_name, avatar_url, email)
     `)
     .eq('workspace_id', workspaceId);
 

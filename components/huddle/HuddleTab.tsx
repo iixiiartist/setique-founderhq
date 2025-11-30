@@ -2,6 +2,8 @@
 // Main Huddle tab component - Slack-style team chat with AI integration
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Settings, MessageSquare, User, Lock, Hash, Sparkles, X, HandMetal } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { 
@@ -16,9 +18,16 @@ import {
   useInvokeAI,
   useRealtimeMessages,
   useTypingIndicators,
+  useUpdateRoomSettings,
+  useArchiveRoom,
 } from '../../hooks/useHuddle';
-import type { HuddleRoom, HuddleMessage, HuddleLinkedEntities, LinkedEntity, HuddleAttachment } from '../../types/huddle';
+import { taskKeys } from '../../hooks/useTaskQueries';
+import type { HuddleRoom, HuddleMessage, HuddleLinkedEntities, LinkedEntity, HuddleAttachment, HuddleRoomSettings } from '../../types/huddle';
+import type { Task, AppActions, NoteableCollectionName } from '../../types';
 import { supabase } from '../../lib/supabase';
+import { DatabaseService } from '../../lib/services/database';
+import { TaskDetailPanel } from '../tasks/TaskDetailPanel';
+import { showSuccess, showError } from '../../lib/utils/toast';
 
 const HUDDLE_UPLOAD_BUCKET = 'huddle-uploads';
 
@@ -28,21 +37,38 @@ import MessageBubble from './MessageBubble';
 import MessageComposer from './MessageComposer';
 import AIInvokeSheet from './AIInvokeSheet';
 import CreateRoomModal, { CreateRoomData } from './CreateRoomModal';
+import RoomSettingsModal from './RoomSettingsModal';
 
 export const HuddleTab: React.FC = () => {
   const { user } = useAuth();
-  const { workspace } = useWorkspace();
+  const { workspace, workspaceMembers } = useWorkspace();
   const workspaceId = workspace?.id;
+  const queryClient = useQueryClient();
   
   // State
   const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
   const [showAISheet, setShowAISheet] = useState(false);
+  const [aiThreadRootId, setAiThreadRootId] = useState<string | null>(null);
   const [showCreateChannel, setShowCreateChannel] = useState(false);
   const [showCreateDM, setShowCreateDM] = useState(false);
+  const [showRoomSettings, setShowRoomSettings] = useState(false);
   const [threadMessage, setThreadMessage] = useState<HuddleMessage | null>(null);
   
+  // Linked entity modal state
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [loadingEntity, setLoadingEntity] = useState(false);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const threadEndRef = useRef<HTMLDivElement>(null);
+  const threadContainerRef = useRef<HTMLDivElement>(null);
+  const prevThreadMessageId = useRef<string | null>(null);
+  const shouldAutoScrollThread = useRef(true);
+  const shouldAutoScrollMain = useRef(true);
+  const prevMessageCount = useRef(0);
+  const isScrollingProgrammatically = useRef(false);
+  const userScrolledUp = useRef(false);
+  const userScrolledUpThread = useRef(false);
 
   // Queries
   const { data: rooms = [], isLoading: roomsLoading } = useHuddleRooms(workspaceId);
@@ -67,7 +93,9 @@ export const HuddleTab: React.FC = () => {
   const addReactionMutation = useAddReaction();
   const createRoom = useCreateRoom();
   const getOrCreateDM = useGetOrCreateDM();
-  const { invoke: invokeAI, isStreaming: isAILoading, streamContent: aiResponse, reset: resetAI } = useInvokeAI();
+  const updateRoomSettings = useUpdateRoomSettings();
+  const archiveRoom = useArchiveRoom();
+  const { invoke: invokeAI, isStreaming: isAILoading, streamContent: aiResponse, reset: resetAI, toolCalls: aiToolCalls, error: aiError } = useInvokeAI();
 
   // Derived
   const typedUnreadCounts = unreadCounts as Record<string, number>;
@@ -90,20 +118,28 @@ export const HuddleTab: React.FC = () => {
     }
   }, [activeRoomId, typedUnreadCounts, markRead, messages.length]);
 
-  // Scroll to bottom on new messages
+  // Scroll thread replies - only on initial open or when user is at bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  // Scroll thread replies
-  useEffect(() => {
-    threadEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [threadReplies]);
+    // If thread just opened (different thread message), reset scroll state and scroll to bottom
+    if (threadMessage?.id !== prevThreadMessageId.current) {
+      prevThreadMessageId.current = threadMessage?.id || null;
+      userScrolledUpThread.current = false; // Reset scroll state for new thread
+      shouldAutoScrollThread.current = true;
+    }
+    
+    // Only auto-scroll if user hasn't scrolled up
+    if (shouldAutoScrollThread.current && !userScrolledUpThread.current && threadEndRef.current) {
+      threadEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [threadReplies.length, threadMessage?.id]); // Use .length to avoid new array reference issues
 
   // Handle room selection
   const handleSelectRoom = (room: HuddleRoom) => {
     setActiveRoomId(room.id);
     setThreadMessage(null);
+    // Reset scroll tracking for new room
+    userScrolledUp.current = false;
+    prevMessageCount.current = 0;
   };
 
   const uploadAttachments = useCallback(async (files: File[]): Promise<HuddleAttachment[]> => {
@@ -173,6 +209,9 @@ export const HuddleTab: React.FC = () => {
 
       const body = content.trim() || 'Shared attachments';
 
+      // Re-enable auto-scroll when user sends a message (they want to see their message)
+      userScrolledUp.current = false;
+
       await sendMessageMutation.mutateAsync({
         room_id: activeRoomId,
         body,
@@ -190,7 +229,8 @@ export const HuddleTab: React.FC = () => {
   const handleAIInvoke = useCallback(async (
     prompt: string, 
     context: { type: string; enabled: boolean }[], 
-    useWebSearch: boolean
+    useWebSearch: boolean,
+    threadRootId?: string
   ) => {
     if (!activeRoomId) return;
     
@@ -202,14 +242,26 @@ export const HuddleTab: React.FC = () => {
     // Call AI invoke through the hook
     await invokeAI({
       room_id: activeRoomId,
+      thread_root_id: threadRootId,
       prompt,
+      user_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       context_options: {
         include_recent_messages: true,
+        include_thread: !!threadRootId,
         include_workspace_data: contextTypes.length > 0,
         workspace_data_types: contextTypes,
         include_web_research: useWebSearch,
       },
       tool_options: {
+        allow_task_creation: true,
+        allow_contact_creation: true,
+        allow_account_creation: true,
+        allow_deal_creation: true,
+        allow_expense_creation: true,
+        allow_revenue_creation: true,
+        allow_note_creation: true,
+        allow_calendar_event_creation: true,
+        allow_marketing_campaign_creation: true,
         allow_web_search: useWebSearch,
       },
     });
@@ -227,7 +279,7 @@ export const HuddleTab: React.FC = () => {
         description: data.description,
         is_private: data.isPrivate || false,
         member_ids: data.memberIds,
-        settings: { ai_allowed: data.aiAllowed ?? true, auto_summarize: false, ai_can_write: false, retention_days: null },
+        settings: { ai_allowed: data.aiAllowed ?? true, auto_summarize: false, ai_can_write: true, retention_days: null },
       });
       
       if (result) {
@@ -266,6 +318,48 @@ export const HuddleTab: React.FC = () => {
       console.error('Failed to add reaction:', error);
     }
   }, [addReactionMutation]);
+
+  // Handle linked entity click (e.g., shared task)
+  const handleLinkedEntityClick = useCallback(async (entityType: string, entityId: string) => {
+    // Handle both singular and plural entity type names (e.g., 'task' or 'tasks')
+    const normalizedType = entityType.endsWith('s') ? entityType.slice(0, -1) : entityType;
+    
+    if (normalizedType === 'task') {
+      setLoadingEntity(true);
+      try {
+        const { data, error } = await DatabaseService.getTaskById(entityId);
+        if (error || !data) {
+          console.error('Failed to load task:', error);
+          // Could add a toast notification here
+          return;
+        }
+        // Transform database task to app Task format
+        const task: Task = {
+          id: data.id,
+          text: data.text,
+          status: data.status,
+          priority: data.priority,
+          category: data.category,
+          createdAt: new Date(data.created_at).getTime(),
+          completedAt: data.completed_at ? new Date(data.completed_at).getTime() : undefined,
+          dueDate: data.due_date || undefined,
+          dueTime: data.due_time || undefined,
+          notes: data.notes || [],
+          subtasks: data.subtasks || [],
+          crmItemId: data.crm_item_id || undefined,
+          contactId: data.contact_id || undefined,
+          userId: data.user_id,
+          assignedTo: data.assigned_to || undefined,
+        };
+        setSelectedTask(task);
+      } catch (error) {
+        console.error('Error loading linked task:', error);
+      } finally {
+        setLoadingEntity(false);
+      }
+    }
+    // Could add handlers for other entity types (contact, deal, etc.)
+  }, []);
 
   const handleSendThreadMessage = useCallback(async (
     content: string,
@@ -309,6 +403,20 @@ export const HuddleTab: React.FC = () => {
     }
   }, [activeRoomId, threadMessage, uploadAttachments, sendMessageMutation, markRead]);
 
+  // Handle update room settings
+  const handleUpdateSettings = useCallback(async (settings: Partial<HuddleRoomSettings>) => {
+    if (!activeRoomId) return;
+    await updateRoomSettings.mutateAsync({ roomId: activeRoomId, settings });
+  }, [activeRoomId, updateRoomSettings]);
+
+  // Handle archive room
+  const handleArchiveRoom = useCallback(async () => {
+    if (!activeRoomId) return;
+    await archiveRoom.mutateAsync(activeRoomId);
+    setActiveRoomId(null);
+    setShowRoomSettings(false);
+  }, [activeRoomId, archiveRoom]);
+
   // Calculate total unread
   const totalUnread = Object.values(typedUnreadCounts).reduce((sum, count) => sum + count, 0);
 
@@ -321,10 +429,10 @@ export const HuddleTab: React.FC = () => {
     
     if (otherMembers.length === 0) return 'Direct Message';
     if (otherMembers.length === 1) {
-      return otherMembers[0].user?.name || 'Unknown';
+      return otherMembers[0].user?.full_name || 'Unknown';
     }
     
-    return otherMembers.slice(0, 2).map(m => m.user?.name || 'Unknown').join(', ') +
+    return otherMembers.slice(0, 2).map(m => m.user?.full_name || 'Unknown').join(', ') +
       (otherMembers.length > 2 ? ` +${otherMembers.length - 2}` : '');
   };
 
@@ -342,7 +450,10 @@ export const HuddleTab: React.FC = () => {
       <div className="w-64 border-r-2 border-black flex flex-col bg-gray-50">
         <div className="p-4 border-b-2 border-black bg-white">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold">?? Huddle</h2>
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <MessageSquare size={20} className="text-purple-600" />
+              Huddle
+            </h2>
             {totalUnread > 0 && (
               <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
                 {totalUnread}
@@ -374,15 +485,15 @@ export const HuddleTab: React.FC = () => {
             {/* Room header */}
             <div className="h-14 px-4 border-b-2 border-black flex items-center justify-between shrink-0 bg-white">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="text-xl">
-                  {activeRoom.type === 'dm' ? '??' : activeRoom.is_private ? '??' : '#'}
+                <span className="text-gray-500">
+                  {activeRoom.type === 'dm' ? <User size={20} /> : activeRoom.is_private ? <Lock size={20} /> : <Hash size={20} />}
                 </span>
                 <h3 className="font-bold truncate">
                   {activeRoom.type === 'dm' ? getDMName(activeRoom) : activeRoom.name}
                 </h3>
                 {activeRoom.description && (
                   <span className="text-gray-500 text-sm truncate hidden md:block">
-                    • {activeRoom.description}
+                    â€” {activeRoom.description}
                   </span>
                 )}
               </div>
@@ -393,20 +504,24 @@ export const HuddleTab: React.FC = () => {
                     className="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-semibold text-sm border-2 border-black shadow-[4px_4px_0_0_black] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0_0_black] transition-all flex items-center gap-1"
                     title="Ask AI"
                   >
-                    ? Ask AI
+                    <Sparkles size={16} /> Ask AI
                   </button>
                 )}
                 <button
+                  onClick={() => setShowRoomSettings(true)}
                   className="p-2 hover:bg-gray-100 rounded transition-colors"
                   title="Room settings"
                 >
-                  ??
+                  <Settings size={20} className="text-gray-600" />
                 </button>
               </div>
             </div>
 
             {/* Messages timeline */}
-            <div className="flex-1 overflow-y-auto">
+            <div 
+              ref={messagesContainerRef}
+              className="flex-1 overflow-y-auto"
+            >
               {messagesLoading ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full" />
@@ -414,7 +529,7 @@ export const HuddleTab: React.FC = () => {
               ) : messages.length === 0 ? (
                 <div className="flex items-center justify-center h-full text-gray-400">
                   <div className="text-center">
-                    <span className="text-4xl mb-2 block">??</span>
+                    <MessageSquare size={48} className="mx-auto mb-2 text-gray-300" />
                     <p>No messages yet. Start the conversation!</p>
                   </div>
                 </div>
@@ -427,6 +542,7 @@ export const HuddleTab: React.FC = () => {
                       currentUserId={user?.id || ''}
                       onReact={(emoji) => handleReaction(message.id, emoji)}
                       onReply={() => setThreadMessage(message)}
+                      onLinkedEntityClick={handleLinkedEntityClick}
                     />
                   ))}
                   {typingUsers.length > 0 && (
@@ -442,7 +558,10 @@ export const HuddleTab: React.FC = () => {
             {/* Message composer */}
             <MessageComposer
               onSend={handleSendMessage}
-              onAIInvoke={() => setShowAISheet(true)}
+              onAIInvoke={() => {
+                setAiThreadRootId(null);
+                setShowAISheet(true);
+              }}
               onTyping={() => setTyping(true)}
               placeholder={`Message ${activeRoom.type === 'dm' ? getDMName(activeRoom) : '#' + activeRoom.name}...`}
               aiEnabled={activeRoom.settings?.ai_allowed !== false}
@@ -451,7 +570,7 @@ export const HuddleTab: React.FC = () => {
         ) : (
           <div className="flex-1 flex items-center justify-center text-gray-500">
             <div className="text-center">
-              <span className="text-6xl mb-4 block">??</span>
+              <HandMetal size={64} className="mx-auto mb-4 text-gray-300" />
               <p className="font-medium text-xl mb-2">Welcome to Huddle</p>
               <p className="text-gray-400 mb-4">Select a channel or start a conversation</p>
               <button
@@ -474,16 +593,26 @@ export const HuddleTab: React.FC = () => {
               onClick={() => setThreadMessage(null)}
               className="p-1 hover:bg-gray-100 rounded"
             >
-              ?
+              <X size={18} />
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          <div 
+            ref={threadContainerRef}
+            className="flex-1 overflow-y-auto p-4 space-y-3"
+            onScroll={(e) => {
+              const el = e.currentTarget;
+              const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50;
+              shouldAutoScrollThread.current = atBottom;
+              userScrolledUpThread.current = !atBottom;
+            }}
+          >
             <MessageBubble
               message={threadMessage}
               currentUserId={user?.id || ''}
               onReact={(emoji) => handleReaction(threadMessage.id, emoji)}
               onReply={() => {}}
               isThreadView
+              onLinkedEntityClick={handleLinkedEntityClick}
             />
             <div className="border-t pt-3">
               {threadMessagesLoading ? (
@@ -499,6 +628,7 @@ export const HuddleTab: React.FC = () => {
                     onReact={(emoji) => handleReaction(msg.id, emoji)}
                     onReply={() => {}}
                     isThreadView
+                    onLinkedEntityClick={handleLinkedEntityClick}
                   />
                 ))
               )}
@@ -507,7 +637,16 @@ export const HuddleTab: React.FC = () => {
           </div>
           <div className="border-t">
             <MessageComposer
-              onSend={handleSendThreadMessage}
+              onSend={(content, attachments, linkedEntities) => {
+                // Re-enable auto-scroll when user sends a message
+                shouldAutoScrollThread.current = true;
+                userScrolledUpThread.current = false;
+                handleSendThreadMessage(content, attachments, linkedEntities);
+              }}
+              onAIInvoke={() => {
+                setAiThreadRootId(threadMessage.id);
+                setShowAISheet(true);
+              }}
               onTyping={() => setTyping(true)}
               placeholder={`Reply to thread in ${activeRoom?.name || ''}`}
               aiEnabled={activeRoom?.settings?.ai_allowed !== false}
@@ -521,12 +660,14 @@ export const HuddleTab: React.FC = () => {
         isOpen={showAISheet}
         onClose={() => {
           setShowAISheet(false);
+          setAiThreadRootId(null);
           resetAI();
         }}
         onInvoke={handleAIInvoke}
         isLoading={isAILoading}
         streamingResponse={aiResponse}
         roomName={activeRoom?.name}
+        threadRootId={aiThreadRootId}
       />
 
       {/* Create Channel Modal */}
@@ -546,6 +687,130 @@ export const HuddleTab: React.FC = () => {
         mode="dm"
         workspaceId={workspaceId}
       />
+
+      {/* Room Settings Modal */}
+      {activeRoom && (
+        <RoomSettingsModal
+          isOpen={showRoomSettings}
+          onClose={() => setShowRoomSettings(false)}
+          room={activeRoom}
+          onUpdateSettings={handleUpdateSettings}
+          onArchive={handleArchiveRoom}
+          currentUserId={user?.id}
+        />
+      )}
+
+      {/* Loading overlay for linked entities */}
+      {loadingEntity && (
+        <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-xl p-6 flex items-center gap-3">
+            <div className="animate-spin rounded-full h-5 w-5 border-2 border-indigo-600 border-t-transparent" />
+            <span className="text-gray-700">Loading...</span>
+          </div>
+        </div>
+      )}
+
+      {/* Task Detail Modal */}
+      {selectedTask && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedTask(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setSelectedTask(null);
+          }}
+        >
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-auto">
+            <TaskDetailPanel
+              task={selectedTask}
+              actions={{
+                // Task actions that persist to database and sync with Tasks tab
+                updateTask: async (taskId, updates) => {
+                  console.log('[HuddleTab] updateTask called:', { taskId, updates });
+                  try {
+                    const dbUpdates = {
+                      text: updates.text,
+                      status: updates.status,
+                      priority: updates.priority,
+                      due_date: updates.dueDate,
+                      due_time: updates.dueTime,
+                      assigned_to: updates.assignedTo,
+                      category: updates.category,
+                      subtasks: updates.subtasks,
+                    };
+                    console.log('[HuddleTab] Sending to DatabaseService:', dbUpdates);
+                    const { data, error } = await DatabaseService.updateTask(taskId, dbUpdates);
+                    console.log('[HuddleTab] DatabaseService response:', { data, error });
+                    if (error) throw error;
+                    // Invalidate task queries so Tasks tab gets updated
+                    queryClient.invalidateQueries({ queryKey: taskKeys.all });
+                    // Show success notification and close modal
+                    showSuccess('Task updated successfully');
+                    setSelectedTask(null);
+                    return { success: true, message: 'Task updated' };
+                  } catch (error) {
+                    console.error('[HuddleTab] Error updating task:', error);
+                    showError('Failed to update task');
+                    return { success: false, message: 'Failed to update task' };
+                  }
+                },
+                addNote: async (collection, itemId, noteText) => {
+                  try {
+                    const newNote = { text: noteText, timestamp: Date.now() };
+                    const currentNotes = selectedTask?.notes || [];
+                    await DatabaseService.updateTask(itemId, { notes: [...currentNotes, newNote] });
+                    setSelectedTask(prev => prev ? { ...prev, notes: [...(prev.notes || []), newNote] } : null);
+                    queryClient.invalidateQueries({ queryKey: taskKeys.all });
+                    showSuccess('Note added');
+                    return { success: true, message: 'Note added' };
+                  } catch (error) {
+                    showError('Failed to add note');
+                    return { success: false, message: 'Failed to add note' };
+                  }
+                },
+                updateNote: async (collection, itemId, noteTimestamp, newText) => {
+                  try {
+                    const currentNotes = selectedTask?.notes || [];
+                    const updatedNotes = currentNotes.map(n => 
+                      n.timestamp === noteTimestamp ? { ...n, text: newText } : n
+                    );
+                    await DatabaseService.updateTask(itemId, { notes: updatedNotes });
+                    setSelectedTask(prev => prev ? { ...prev, notes: updatedNotes } : null);
+                    queryClient.invalidateQueries({ queryKey: taskKeys.all });
+                    showSuccess('Note updated');
+                    return { success: true, message: 'Note updated' };
+                  } catch (error) {
+                    showError('Failed to update note');
+                    return { success: false, message: 'Failed to update note' };
+                  }
+                },
+                deleteNote: async (collection, itemId, noteTimestamp) => {
+                  try {
+                    const currentNotes = selectedTask?.notes || [];
+                    const filteredNotes = currentNotes.filter(n => n.timestamp !== noteTimestamp);
+                    await DatabaseService.updateTask(itemId, { notes: filteredNotes });
+                    setSelectedTask(prev => prev ? { ...prev, notes: filteredNotes } : null);
+                    queryClient.invalidateQueries({ queryKey: taskKeys.all });
+                    showSuccess('Note deleted');
+                    return { success: true, message: 'Note deleted' };
+                  } catch (error) {
+                    showError('Failed to delete note');
+                    return { success: false, message: 'Failed to delete note' };
+                  }
+                },
+              } as AppActions}
+              onClose={() => setSelectedTask(null)}
+              onNavigateToEntity={(entityType, entityId) => {
+                // Close and potentially navigate to the entity in its dedicated tab
+                setSelectedTask(null);
+              }}
+              workspaceMembers={workspaceMembers}
+              linkedEntityName={null}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

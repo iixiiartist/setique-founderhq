@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS huddle_rooms (
   settings JSONB NOT NULL DEFAULT jsonb_build_object(
     'ai_allowed', true,
     'auto_summarize', false,
-    'ai_can_write', false,  -- Can AI create tasks/notes, or read-only?
+    'ai_can_write', true,   -- Can AI create tasks/notes - enabled by default
     'retention_days', null   -- null = forever
   ),
   last_message_at TIMESTAMPTZ,

@@ -2,6 +2,7 @@
 // Rich message composer with attachments, formatting, and AI invoke
 
 import React, { useState, useRef, useCallback, KeyboardEvent } from 'react';
+import { Paperclip, Send, Sparkles, Type, X, FileText } from 'lucide-react';
 import type { LinkedEntity } from '../../types/huddle';
 
 interface MessageComposerProps {
@@ -163,7 +164,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
             onClick={onCancelReply}
             className="text-gray-400 hover:text-gray-600 p-1"
           >
-            X
+            <X size={16} />
           </button>
         </div>
       )}
@@ -183,7 +184,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
                   />
                 ) : (
                   <div className="w-16 h-16 bg-gray-100 rounded-lg border border-gray-200 flex flex-col items-center justify-center p-1">
-                    <span className="text-lg">clip</span>
+                    <FileText size={20} className="text-gray-400" />
                     <span className="text-xs text-gray-500 truncate w-full text-center">
                       {file.name.split('.').pop()}
                     </span>
@@ -193,7 +194,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
                   onClick={() => removeAttachment(index)}
                   className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity"
                 >
-                  ?
+                  ✕
                 </button>
               </div>
             );
@@ -215,7 +216,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
                 onClick={() => removeLinkedEntity(index)}
                 className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
               >
-                ?
+                ✕
               </button>
             </div>
           ))}
@@ -241,7 +242,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
               title="Attach file"
               disabled={disabled || isUploading}
             >
-              clip
+              <Paperclip size={20} />
             </button>
           </div>
 
@@ -275,7 +276,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
               }`}
               title="Formatting"
             >
-              Aa
+              <Type size={20} />
             </button>
 
             {/* AI invoke button */}
@@ -285,7 +286,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
                 className="p-2 text-purple-500 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors"
                 title="Ask AI"
               >
-                AI
+                <Sparkles size={20} />
               </button>
             )}
 
@@ -296,7 +297,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
               className="p-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
               title="Send (Enter)"
             >
-              Send
+              <Send size={20} />
             </button>
           </div>
         </div>

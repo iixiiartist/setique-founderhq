@@ -44,7 +44,7 @@ export interface HuddleMember {
   // Joined fields
   user?: {
     id: string;
-    name: string;
+    full_name: string;
     avatar_url: string | null;
     email?: string;
   };
@@ -67,11 +67,16 @@ export interface HuddleLinkedEntities {
   documents?: string[];
   forms?: string[];
   files?: string[];
+  accounts?: string[];
+  expenses?: string[];
+  revenue?: string[];
+  calendar_events?: string[];
+  marketing_campaigns?: string[];
 }
 
 // Individual linked entity for UI
 export interface LinkedEntity {
-  entity_type: 'task' | 'contact' | 'deal' | 'document' | 'form' | 'file';
+  entity_type: 'task' | 'contact' | 'deal' | 'document' | 'form' | 'file' | 'account' | 'expense' | 'revenue' | 'calendar_event' | 'marketing_campaign';
   entity_id: string;
   entity_title?: string;
 }
@@ -121,7 +126,7 @@ export interface HuddleMessage {
   // Joined fields
   user?: {
     id: string;
-    name: string;
+    full_name: string;
     avatar_url: string | null;
   };
   reactions?: HuddleReaction[];
@@ -136,7 +141,7 @@ export interface HuddleReaction {
   // Joined fields
   user?: {
     id: string;
-    name: string;
+    full_name: string;
   };
 }
 
@@ -191,6 +196,7 @@ export interface AIRunRequest {
   room_id: string;
   thread_root_id?: string;
   prompt: string;
+  user_timezone?: string; // User's timezone (e.g., 'America/New_York')
   context_options: {
     include_recent_messages?: boolean;
     message_count?: number;
@@ -206,7 +212,13 @@ export interface AIRunRequest {
   tool_options: {
     allow_task_creation?: boolean;
     allow_contact_creation?: boolean;
+    allow_account_creation?: boolean;
+    allow_deal_creation?: boolean;
+    allow_expense_creation?: boolean;
+    allow_revenue_creation?: boolean;
     allow_note_creation?: boolean;
+    allow_calendar_event_creation?: boolean;
+    allow_marketing_campaign_creation?: boolean;
     allow_web_search?: boolean;
   };
 }
@@ -248,7 +260,7 @@ export interface HuddleComposerState {
 
 // Share to Huddle types (for integration from other tabs)
 export interface ShareToHuddlePayload {
-  type: 'task' | 'contact' | 'deal' | 'document' | 'form' | 'file' | 'calendar_event';
+  type: 'task' | 'contact' | 'deal' | 'document' | 'form' | 'file' | 'calendar_event' | 'account' | 'expense' | 'revenue' | 'marketing_campaign';
   id: string;
   title: string;
   description?: string;
