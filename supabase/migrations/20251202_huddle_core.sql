@@ -410,6 +410,12 @@ CREATE POLICY huddle_reads_update ON huddle_reads
 -- PART 4: TRIGGERS
 -- ============================================================================
 
+-- Drop existing triggers for idempotency
+DROP TRIGGER IF EXISTS trigger_huddle_message_update_room ON huddle_messages;
+DROP TRIGGER IF EXISTS trigger_huddle_message_reply_count ON huddle_messages;
+DROP TRIGGER IF EXISTS trigger_huddle_member_workspace ON huddle_members;
+DROP TRIGGER IF EXISTS trigger_huddle_message_workspace ON huddle_messages;
+
 -- Update room's last_message_at when new message is posted
 CREATE OR REPLACE FUNCTION update_room_last_message()
 RETURNS TRIGGER
@@ -610,9 +616,20 @@ GRANT EXECUTE ON FUNCTION mark_huddle_room_read TO authenticated;
 -- PART 6: REALTIME SUBSCRIPTIONS
 -- ============================================================================
 
--- Enable realtime for messages and reads
-ALTER PUBLICATION supabase_realtime ADD TABLE huddle_messages;
-ALTER PUBLICATION supabase_realtime ADD TABLE huddle_reads;
+-- Enable realtime for messages and reads (ignore if already added)
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE huddle_messages;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE huddle_reads;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Note: Typing indicators use Supabase Realtime Presence (ephemeral, not stored)
 -- Client-side: supabase.channel('huddle:room_id').track({typing: true, user_id})
