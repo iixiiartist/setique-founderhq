@@ -51,7 +51,8 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const groqApiKey = Deno.env.get('GROQ_API_KEY')!;
-    const youComApiKey = Deno.env.get('YOUCOM_API_KEY');
+    // Support both new and legacy env var names for You.com API key
+    const youComApiKey = Deno.env.get('YOUCOM_API_KEY') || Deno.env.get('YOU_COM_API_KEY');
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -1014,10 +1015,42 @@ async function executeToolCall(
   user_id: string,
   youComApiKey?: string
 ): Promise<any> {
-  const args = JSON.parse(toolCall.arguments);
+  let args: any;
+  try {
+    args = JSON.parse(toolCall.arguments);
+  } catch (e) {
+    return { success: false, error: 'Invalid tool arguments: failed to parse JSON' };
+  }
+
+  // Basic validation for required fields based on tool
+  const validateRequired = (fields: string[], toolName: string) => {
+    const missing = fields.filter(f => !args[f] || (typeof args[f] === 'string' && !args[f].trim()));
+    if (missing.length > 0) {
+      throw new Error(`Missing required field(s) for ${toolName}: ${missing.join(', ')}`);
+    }
+  };
+
+  // Validate numeric fields are actually numbers
+  const validateNumber = (field: string, min?: number, max?: number) => {
+    if (args[field] !== undefined) {
+      const num = Number(args[field]);
+      if (isNaN(num)) throw new Error(`${field} must be a number`);
+      if (min !== undefined && num < min) throw new Error(`${field} must be at least ${min}`);
+      if (max !== undefined && num > max) throw new Error(`${field} must be at most ${max}`);
+      args[field] = num; // Ensure it's stored as number
+    }
+  };
+
+  // Validate date format (YYYY-MM-DD)
+  const validateDate = (field: string) => {
+    if (args[field] && !/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?)?$/.test(args[field])) {
+      throw new Error(`${field} must be in YYYY-MM-DD or ISO format`);
+    }
+  };
 
   switch (toolCall.name) {
     case 'create_task':
+      validateRequired(['text'], 'create_task');
       const { data: task, error: taskError } = await supabase
         .from('tasks')
         .insert({
@@ -1036,6 +1069,7 @@ async function executeToolCall(
       return { success: true, task_id: task.id, title: args.text, category: task.category };
 
     case 'create_note':
+      validateRequired(['title', 'content'], 'create_note');
       const { data: note, error: noteError } = await supabase
         .from('documents')
         .insert({
@@ -1052,6 +1086,7 @@ async function executeToolCall(
       return { success: true, note_id: note.id, title: note.title };
 
     case 'create_contact':
+      validateRequired(['name'], 'create_contact');
       const { data: contact, error: contactError } = await supabase
         .from('contacts')
         .insert({
@@ -1071,6 +1106,8 @@ async function executeToolCall(
       return { success: true, contact_id: contact.id, name: contact.name };
 
     case 'create_account':
+      validateRequired(['name'], 'create_account');
+      validateNumber('value', 0);
       const { data: account, error: accountError } = await supabase
         .from('crm_items')
         .insert({
@@ -1092,6 +1129,9 @@ async function executeToolCall(
       return { success: true, account_id: account.id, name: account.name, type: account.type };
 
     case 'create_expense':
+      validateRequired(['amount', 'description'], 'create_expense');
+      validateNumber('amount', 0);
+      validateDate('date');
       const today = new Date().toISOString().split('T')[0];
       const { data: expense, error: expenseError } = await supabase
         .from('expenses')
@@ -1112,6 +1152,9 @@ async function executeToolCall(
       return { success: true, expense_id: expense.id, amount: expense.amount, description: expense.description };
 
     case 'create_revenue':
+      validateRequired(['amount', 'description'], 'create_revenue');
+      validateNumber('amount', 0);
+      validateDate('date');
       const todayDate = new Date().toISOString().split('T')[0];
       const { data: revenue, error: revenueError } = await supabase
         .from('revenue_transactions')
@@ -1133,6 +1176,10 @@ async function executeToolCall(
       return { success: true, revenue_id: revenue.id, amount: revenue.amount, description: revenue.description };
 
     case 'create_deal':
+      validateRequired(['name'], 'create_deal');
+      validateNumber('value', 0);
+      validateNumber('probability', 0, 100);
+      validateDate('expected_close_date');
       const { data: deal, error: dealError } = await supabase
         .from('deals')
         .insert({
@@ -1155,6 +1202,9 @@ async function executeToolCall(
       return { success: true, deal_id: deal.id, name: deal.name, value: deal.value, stage: deal.stage };
 
     case 'create_calendar_event':
+      validateRequired(['title', 'start_date'], 'create_calendar_event');
+      validateDate('start_date');
+      validateDate('end_date');
       const { data: calEvent, error: calEventError } = await supabase
         .from('calendar_events')
         .insert({
@@ -1175,6 +1225,10 @@ async function executeToolCall(
       return { success: true, event_id: calEvent.id, title: calEvent.title, start_time: calEvent.start_time };
 
     case 'create_marketing_campaign':
+      validateRequired(['name'], 'create_marketing_campaign');
+      validateNumber('budget', 0);
+      validateDate('start_date');
+      validateDate('end_date');
       const { data: campaign, error: campaignError } = await supabase
         .from('marketing_campaigns')
         .insert({

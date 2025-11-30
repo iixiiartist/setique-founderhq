@@ -31,6 +31,24 @@ import { showSuccess, showError } from '../../lib/utils/toast';
 
 const HUDDLE_UPLOAD_BUCKET = 'huddle-uploads';
 
+// File upload constraints
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_MIME_TYPES = [
+  // Images
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+  // Documents
+  'application/pdf', 'application/msword', 
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  // Text
+  'text/plain', 'text/csv', 'text/markdown',
+  // Archives
+  'application/zip', 'application/x-zip-compressed',
+];
+
 // Sub-components
 import RoomList from './RoomList';
 import MessageBubble from './MessageBubble';
@@ -160,7 +178,29 @@ export const HuddleTab: React.FC<HuddleTabProps> = ({ isMainMenuOpen = false }) 
   const uploadAttachments = useCallback(async (files: File[]): Promise<HuddleAttachment[]> => {
     if (!workspaceId || files.length === 0) return [];
 
-    const uploads = await Promise.all(files.map(async (file) => {
+    // Validate files before upload
+    const validFiles: File[] = [];
+    const errors: string[] = [];
+    
+    for (const file of files) {
+      if (file.size > MAX_FILE_SIZE) {
+        errors.push(`${file.name}: File too large (max 10MB)`);
+        continue;
+      }
+      if (file.type && !ALLOWED_MIME_TYPES.includes(file.type)) {
+        errors.push(`${file.name}: File type not allowed`);
+        continue;
+      }
+      validFiles.push(file);
+    }
+    
+    if (errors.length > 0) {
+      showError(errors.join('\n'));
+    }
+    
+    if (validFiles.length === 0) return [];
+
+    const uploads = await Promise.all(validFiles.map(async (file) => {
       const id = typeof crypto !== 'undefined' && crypto.randomUUID
         ? crypto.randomUUID()
         : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
