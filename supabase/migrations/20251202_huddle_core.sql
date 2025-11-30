@@ -219,6 +219,29 @@ ALTER TABLE huddle_message_files ENABLE ROW LEVEL SECURITY;
 ALTER TABLE huddle_message_reactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE huddle_reads ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies for idempotency
+DROP POLICY IF EXISTS huddle_rooms_select ON huddle_rooms;
+DROP POLICY IF EXISTS huddle_rooms_insert ON huddle_rooms;
+DROP POLICY IF EXISTS huddle_rooms_update ON huddle_rooms;
+DROP POLICY IF EXISTS huddle_members_select ON huddle_members;
+DROP POLICY IF EXISTS huddle_members_insert ON huddle_members;
+DROP POLICY IF EXISTS huddle_members_delete ON huddle_members;
+DROP POLICY IF EXISTS huddle_messages_select ON huddle_messages;
+DROP POLICY IF EXISTS huddle_messages_insert ON huddle_messages;
+DROP POLICY IF EXISTS huddle_messages_update ON huddle_messages;
+DROP POLICY IF EXISTS huddle_messages_service_insert ON huddle_messages;
+DROP POLICY IF EXISTS huddle_summaries_select ON huddle_summaries;
+DROP POLICY IF EXISTS huddle_summaries_insert ON huddle_summaries;
+DROP POLICY IF EXISTS huddle_summaries_service ON huddle_summaries;
+DROP POLICY IF EXISTS huddle_files_select ON huddle_message_files;
+DROP POLICY IF EXISTS huddle_files_insert ON huddle_message_files;
+DROP POLICY IF EXISTS huddle_reactions_select ON huddle_message_reactions;
+DROP POLICY IF EXISTS huddle_reactions_insert ON huddle_message_reactions;
+DROP POLICY IF EXISTS huddle_reactions_delete ON huddle_message_reactions;
+DROP POLICY IF EXISTS huddle_reads_select ON huddle_reads;
+DROP POLICY IF EXISTS huddle_reads_upsert ON huddle_reads;
+DROP POLICY IF EXISTS huddle_reads_update ON huddle_reads;
+
 -- Helper function: check if user can access a room
 CREATE OR REPLACE FUNCTION can_access_huddle_room(p_room_id UUID, p_user_id UUID DEFAULT auth.uid())
 RETURNS BOOLEAN
