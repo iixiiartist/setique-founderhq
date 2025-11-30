@@ -1,6 +1,11 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
 // Import the task reminder functions
 // Note: In production, you'd need to adjust these imports to work with Deno
 // For now, this shows the structure - you may need to copy the functions here
@@ -18,6 +23,11 @@ interface ReminderStats {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
+  }
+
   try {
     // Create Supabase client with service role key for admin access
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
@@ -41,7 +51,7 @@ serve(async (req) => {
       console.log('No workspaces found')
       return new Response(
         JSON.stringify({ message: 'No workspaces found', stats: [] }),
-        { headers: { 'Content-Type': 'application/json' }, status: 200 }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
     }
 
@@ -164,13 +174,13 @@ serve(async (req) => {
         overdue: totalOverdue,
         stats,
       }),
-      { headers: { 'Content-Type': 'application/json' }, status: 200 }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )
   } catch (error) {
     console.error('❌ Error in check-task-reminders function:', error)
     return new Response(
       JSON.stringify({ error: error.message || 'Internal server error' }),
-      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }
 })

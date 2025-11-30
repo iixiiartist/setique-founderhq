@@ -1,0 +1,3 @@
+# Disable JWT verification for cron job invocations
+# This function is called by pg_net from a database cron job
+verify_jwt = false
