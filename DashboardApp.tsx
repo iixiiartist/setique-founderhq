@@ -2841,15 +2841,15 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             onClick={() => setIsMenuOpen(true)}
                             aria-label="Open navigation menu"
                             aria-expanded={isMenuOpen}
-                            className="shrink-0"
+                            className="shrink-0 p-2 -ml-2 hover:bg-gray-100 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                             data-testid="open-side-menu-button"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor" className="w-6 h-6" aria-hidden="true">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                             </svg>
                         </button>
-                        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-black">
-                            FounderHQ <span className="text-gray-600 hidden sm:inline" style={{ fontWeight: 400, fontFamily: "'Inter', sans-serif" }}>A Setique Tool</span>
+                        <h1 className="text-lg sm:text-2xl md:text-3xl font-bold text-black truncate">
+                            FounderHQ <span className="text-gray-600 hidden md:inline" style={{ fontWeight: 400, fontFamily: "'Inter', sans-serif" }}>A Setique Tool</span>
                         </h1>
                         
                         {/* Workspace name display (no switching in single-workspace model) */}
@@ -2896,7 +2896,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             <span className="text-xs sm:text-sm text-gray-600 hidden md:inline truncate max-w-[150px]">{user?.email}</span>
                             <button
                                 onClick={() => signOut()}
-                                className="px-2 sm:px-3 py-1 text-xs sm:text-sm border-2 border-black bg-white hover:bg-gray-100 transition-colors whitespace-nowrap"
+                                className="px-3 py-2 text-xs sm:text-sm border-2 border-black bg-white hover:bg-gray-100 transition-colors whitespace-nowrap min-h-[44px]"
                                 aria-label="Sign out of your account"
                             >
                                 Sign Out

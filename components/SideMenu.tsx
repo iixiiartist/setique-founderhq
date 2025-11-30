@@ -104,7 +104,7 @@ const SideMenu: React.FC<SideMenuProps> = ({
         <>
             {/* Backdrop overlay - only shows when menu is open */}
             <div 
-                className={`fixed inset-0 bg-gray-200 z-40 transition-opacity ${isOpen ? 'opacity-10 visible' : 'opacity-0 invisible pointer-events-none'}`}
+                className={`fixed inset-0 bg-black/40 z-40 transition-opacity ${isOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}
                 onClick={onClose}
                 aria-hidden="true"
             />
@@ -113,53 +113,65 @@ const SideMenu: React.FC<SideMenuProps> = ({
             <div 
                 ref={menuRef}
                 id="menu-content" 
-                className={`fixed top-0 left-0 w-4/5 max-w-sm sm:max-w-md lg:max-w-lg h-full bg-white border-r-2 border-black shadow-neo-lg z-50 transition-transform duration-300 ease-in-out p-4 sm:p-6 flex flex-col overflow-y-auto custom-scrollbar ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+                className={`fixed top-0 left-0 w-[85vw] max-w-[320px] sm:max-w-sm h-full bg-white border-r-2 border-black shadow-xl z-50 transition-transform duration-300 ease-in-out flex flex-col overflow-hidden ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
                 onClick={(e) => e.stopPropagation()}
                 role="dialog"
                 aria-modal="true"
                 aria-label="Navigation menu"
             >
-                <div className="flex justify-between items-center mb-6 sm:mb-8">
+                {/* Header */}
+                <div className="flex justify-between items-center p-4 sm:p-6 border-b border-gray-200 shrink-0">
                     <h2 className="text-xl sm:text-2xl font-bold">Menu</h2>
-                    <button onClick={onClose} className="text-3xl hover:text-gray-600 transition-colors" aria-label="Close menu">&times;</button>
+                    <button 
+                        onClick={onClose} 
+                        className="text-2xl sm:text-3xl hover:text-gray-600 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center -mr-2" 
+                        aria-label="Close menu"
+                    >
+                        &times;
+                    </button>
                 </div>
                 
-                <nav className="flex-grow overflow-y-auto custom-scrollbar pr-2 -mr-2" role="navigation" aria-label="Main navigation">
-                    {filteredNavItems.map(item => (
-                        <a 
-                            key={item.id} 
-                            href="#" 
-                            className={`block p-3 text-lg font-mono font-semibold rounded-none border-2 transition-all my-2 ${activeTab === item.id ? activeClass : inactiveClass} hover:bg-gray-100 hover:text-black`}
-                            data-testid={`nav-link-${item.id}`}
-                            onClick={(e) => {
-                                e.preventDefault();
-                                onSwitchTab(item.id);
-                            }}
-                            onMouseEnter={() => {
-                                // Cleanup any existing timeout
-                                if (hoverTimeoutRef.current) {
-                                    hoverTimeoutRef.current();
-                                }
-                                // Start prefetching with 200ms delay
-                                hoverTimeoutRef.current = prefetchTabWithDelay(item.id);
-                            }}
-                            onMouseLeave={() => {
-                                // Cleanup timeout if user moves away before 200ms
-                                if (hoverTimeoutRef.current) {
-                                    hoverTimeoutRef.current();
-                                    hoverTimeoutRef.current = null;
-                                }
-                            }}
-                            aria-label={`Navigate to ${item.label}`}
-                            aria-current={activeTab === item.id ? 'page' : undefined}
-                        >
-                            {item.label}
-                        </a>
-                    ))}
+                {/* Navigation */}
+                <nav className="flex-1 overflow-y-auto p-3 sm:p-4" role="navigation" aria-label="Main navigation">
+                    <div className="space-y-1">
+                        {filteredNavItems.map(item => (
+                            <a 
+                                key={item.id} 
+                                href="#" 
+                                className={`flex items-center p-3 sm:p-3.5 text-base sm:text-lg font-mono font-semibold rounded-lg border-2 transition-all min-h-[48px] ${activeTab === item.id ? activeClass : inactiveClass} hover:bg-gray-100 hover:text-black active:bg-gray-200`}
+                                data-testid={`nav-link-${item.id}`}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    onSwitchTab(item.id);
+                                }}
+                                onMouseEnter={() => {
+                                    // Cleanup any existing timeout
+                                    if (hoverTimeoutRef.current) {
+                                        hoverTimeoutRef.current();
+                                    }
+                                    // Start prefetching with 200ms delay
+                                    hoverTimeoutRef.current = prefetchTabWithDelay(item.id);
+                                }}
+                                onMouseLeave={() => {
+                                    // Cleanup timeout if user moves away before 200ms
+                                    if (hoverTimeoutRef.current) {
+                                        hoverTimeoutRef.current();
+                                        hoverTimeoutRef.current = null;
+                                    }
+                                }}
+                                aria-label={`Navigate to ${item.label}`}
+                                aria-current={activeTab === item.id ? 'page' : undefined}
+                            >
+                                {item.label}
+                            </a>
+                        ))}
+                    </div>
                 </nav>
-                <div className="mt-auto pt-4 border-t-2 border-dashed border-black">
+                
+                {/* Footer */}
+                <div className="p-4 border-t-2 border-dashed border-black shrink-0">
                     {userId && (
-                        <div className="text-sm text-gray-500 font-mono truncate" title={userId}>
+                        <div className="text-xs sm:text-sm text-gray-500 font-mono truncate" title={userId}>
                             User ID: {userId.substring(0, 8)}...
                         </div>
                     )}
