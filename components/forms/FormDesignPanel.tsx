@@ -337,7 +337,7 @@ export const FormDesignPanel: React.FC<FormDesignPanelProps> = ({
           </p>
           <div 
             className="h-8 border mb-2"
-            style={{{ 
+            style={{ 
               borderColor: form.theme?.primaryColor || '#8B5CF6',
               backgroundColor: form.theme?.inputBackground || '#F9FAFB',
               borderRadius: form.theme?.borderRadius || '8px',
