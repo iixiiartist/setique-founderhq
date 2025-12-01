@@ -79,7 +79,7 @@ export function VirtualizedAccountList({
             {({ height = 0, width = 0 }) => (
                 <List
                     className="rounded-xl border border-gray-200"
-                    style={{{
+                    style={{
                         height: Math.max(height, ITEM_HEIGHT),
                         width: width || '100%'
                     }}
