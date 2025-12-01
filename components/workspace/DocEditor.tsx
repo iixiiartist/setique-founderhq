@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useEditor, EditorContent, type Editor } from '@tiptap/react';
-import { BubbleMenu } from '@tiptap/react/menus';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import TextAlign from '@tiptap/extension-text-align';
@@ -33,6 +32,9 @@ import ShapeNode, { ShapeType } from '../../lib/tiptap/ShapeNode';
 import FrameNode from '../../lib/tiptap/FrameNode';
 import { HexColorPicker } from 'react-colorful';
 import EmojiPicker from 'emoji-picker-react';
+import DOMPurify from 'dompurify';
+import { showSuccess, showError } from '../../lib/utils/toast';
+import { withRetry } from '../../lib/utils/retry';
 import { GTMDoc, DocType, DocVisibility, AppActions, DashboardData, StructuredBlock, StructuredBlockMap, PlanType, WorkspaceRole } from '../../types';
 import { DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '../../constants';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
@@ -45,6 +47,9 @@ import { uploadToSupabase, validateImageFile } from '../../lib/services/imageUpl
 import { exportToMarkdown, exportToPDF, exportToHTML, exportToText, generateFilename } from '../../lib/services/documentExport';
 import { GTM_TEMPLATES, type DocumentTemplate } from '../../lib/templates/gtmTemplates';
 import { DocShareModal } from './DocShareModal';
+import { DocEditorExportModal } from './DocEditorExportModal';
+import { DocEditorBubbleMenu } from './DocEditorBubbleMenu';
+import { DocEditorToolbar } from './DocEditorToolbar';
 import {
     ExportSettings,
     ExportPreset,
@@ -55,9 +60,6 @@ import {
 } from '../../lib/services/documentExportPreferences';
 import Collaboration from '@tiptap/extension-collaboration';
 import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
-import * as Y from 'yjs';
-import SupabaseProvider from 'y-supabase';
-import { supabase } from '../../lib/supabase';
 import BubbleMenuExtension from '@tiptap/extension-bubble-menu';
 import { useFeatureFlags } from '../../contexts/FeatureFlagContext';
 import { GridOverlay } from '../docs/canvas/GridOverlay';
@@ -66,8 +68,27 @@ import { ProCanvasToolbar, CanvasTool as ProCanvasTool } from '../docs/canvas/Pr
 import { ZoomControls, Minimap } from '../docs/canvas/ZoomControls';
 import { SnapLinesOverlay } from '../../lib/docs/snapUtils';
 import { telemetry } from '../../lib/services/telemetry';
-import { startHeartbeatMonitor, COLLAB_RESYNC_INTERVAL_MS, CollabBackoffController } from '../../lib/collab/supabaseProviderConfig';
+import { useDocCollab } from '../../hooks/useDocCollab';
 import { v4 as uuidv4 } from 'uuid';
+
+// Configure DOMPurify for safe HTML storage
+const SANITIZE_CONFIG: DOMPurify.Config = {
+    ALLOWED_TAGS: [
+        'p', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+        'ul', 'ol', 'li', 'a', 'strong', 'em', 'b', 'i', 'u', 's',
+        'blockquote', 'pre', 'code', 'span', 'div',
+        'table', 'thead', 'tbody', 'tr', 'th', 'td',
+        'img', 'figure', 'figcaption', 'hr',
+        'sub', 'sup', 'mark',
+    ],
+    ALLOWED_ATTR: [
+        'href', 'src', 'alt', 'title', 'class', 'id', 'target', 'rel',
+        'style', 'width', 'height', 'data-*', 'colspan', 'rowspan',
+    ],
+    ALLOW_DATA_ATTR: true,
+    FORBID_TAGS: ['script', 'style', 'iframe', 'form', 'input', 'button', 'textarea', 'select'],
+    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur'],
+};
 
 type CanvasTool = 'select' | 'text' | 'signature' | 'shape' | 'frame' | 'inspect';
 
@@ -128,14 +149,26 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     const [templateSearch, setTemplateSearch] = useState('');
     const [, setPagePreviews] = useState<string[]>([]);
     const [showDocSettings, setShowDocSettings] = useState(false);
-    
-    // Collaboration state
-    const [provider, setProvider] = useState<SupabaseProvider | null>(null);
-    const [ydoc, setYdoc] = useState<Y.Doc | null>(null);
-    const [collabStatus, setCollabStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
-    const [activeUsers, setActiveUsers] = useState<any[]>([]);
+    const [docOwnerId, setDocOwnerId] = useState<string | null>(null); // Track document owner for permission checks
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
-    const [collabWarning, setCollabWarning] = useState<string | null>(null);
+    
+    // Collaboration state via hook
+    const {
+        ydoc,
+        provider,
+        collabStatus,
+        activeUsers,
+        collabWarning,
+        clearCollabWarning,
+        yjsInitialSyncComplete,
+        yjsHasContent,
+    } = useDocCollab({
+        docId,
+        workspaceId,
+        userId,
+        tableName: 'gtm_docs',
+        columnName: 'content',
+    });
 
     // AI Command Palette state
     const [showAICommandPalette, setShowAICommandPalette] = useState(false);
@@ -183,27 +216,16 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     const blockMetadataSubscribers = useRef<Map<string, Set<(metadata?: StructuredBlock) => void>>>(new Map());
     const editorRef = useRef<Editor | null>(null);
     const canvasScrollRef = useRef<HTMLDivElement | null>(null);
-    const heartbeatCleanupRef = useRef<(() => void) | null>(null);
-    const offlineSinceRef = useRef<number | null>(null);
-    const lastHeartbeatOnlineRef = useRef<boolean | null>(null);
-    const offlineWarningTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const offlineWarningBackoffRef = useRef(new CollabBackoffController([8000, 20000, 45000]));
-    const lastStatusTelemetryRef = useRef<string | null>(null);
-    const collabWarningLatchedRef = useRef(false);
     const bootStartRef = useRef<number>(Date.now());
     const bootTrackedRef = useRef(false);
-    const handshakeStartRef = useRef<number | null>(null);
-    const handshakeTrackedRef = useRef(false);
-
-    const setLatchedCollabWarning = useCallback((message: string) => {
-        collabWarningLatchedRef.current = true;
-        setCollabWarning(message);
-    }, []);
-
-    const clearCollabWarning = useCallback(() => {
-        collabWarningLatchedRef.current = false;
-        setCollabWarning(null);
-    }, []);
+    
+    // Autosave and dirty state tracking
+    const isDirtyRef = useRef(false);
+    const autosaveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const autosaveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const lastSavedContentHashRef = useRef<string | null>(null);
+    const AUTOSAVE_INTERVAL_MS = 30_000; // 30 seconds
+    const AUTOSAVE_DEBOUNCE_MS = 2_000; // 2 seconds after last edit
 
     const exportPageSizeOptions: { value: ExportSettings['pageSize']; label: string }[] = [
         { value: 'a4', label: 'A4 • 210 × 297 mm' },
@@ -655,165 +677,8 @@ export const DocEditor: React.FC<DocEditorProps> = ({
         });
     }, [emitCanvasTelemetry]);
 
-    useEffect(() => {
-        if (docId) {
-            const doc = new Y.Doc();
-            const providerInstance = new SupabaseProvider(doc, supabase, {
-                channel: `doc-collab-${docId}`,
-                id: docId,
-                tableName: 'gtm_docs',
-                columnName: 'content',
-                resyncInterval: COLLAB_RESYNC_INTERVAL_MS,
-            });
+    // Collaboration is now handled by useDocCollab hook
 
-            const connectionStartedAt = typeof performance !== 'undefined' ? performance.now() : Date.now();
-            let handshakeLogged = false;
-            handshakeStartRef.current = Date.now();
-            handshakeTrackedRef.current = false;
-            const statusListener = (event: any) => {
-                setCollabStatus(event.status);
-
-                if (lastStatusTelemetryRef.current !== event.status) {
-                    lastStatusTelemetryRef.current = event.status;
-                    telemetry.track('collab_channel_health', {
-                        workspaceId,
-                        userId,
-                        docId,
-                        metadata: {
-                            event: 'status',
-                            status: event.status,
-                        },
-                    });
-                }
-
-                if (!handshakeLogged && event.status === 'connected') {
-                    handshakeLogged = true;
-                    const latencySource = typeof performance !== 'undefined' ? performance.now() : Date.now();
-                    telemetry.track('collab_channel_health', {
-                        workspaceId,
-                        userId,
-                        docId,
-                        metadata: {
-                            event: 'handshake',
-                            latencyMs: Math.round(latencySource - connectionStartedAt),
-                        },
-                    });
-                }
-
-                if (event.status === 'connected' && !handshakeTrackedRef.current) {
-                    const durationMs = Math.max(0, Date.now() - (handshakeStartRef.current ?? Date.now()));
-                    telemetry.track('yjs_handshake_latency', {
-                        workspaceId,
-                        userId,
-                        docId,
-                        metadata: {
-                            durationMs,
-                        },
-                    });
-                    handshakeTrackedRef.current = true;
-                }
-            };
-
-            providerInstance.on('status', statusListener);
-
-            const heartbeatCleanup = startHeartbeatMonitor({
-                provider: providerInstance,
-                onBeat: ({ online, timestamp }) => {
-                    if (lastHeartbeatOnlineRef.current !== online) {
-                        telemetry.track('collab_channel_health', {
-                            workspaceId,
-                            userId,
-                            docId,
-                            metadata: {
-                                event: 'heartbeat',
-                                online,
-                                offlineDurationMs:
-                                    !online && offlineSinceRef.current
-                                        ? timestamp - offlineSinceRef.current
-                                        : 0,
-                            },
-                        });
-                        lastHeartbeatOnlineRef.current = online;
-                    }
-
-                    if (online) {
-                        offlineSinceRef.current = null;
-                        if (offlineWarningTimeoutRef.current) {
-                            clearTimeout(offlineWarningTimeoutRef.current);
-                            offlineWarningTimeoutRef.current = null;
-                        }
-                        offlineWarningBackoffRef.current.reset();
-                        clearCollabWarning();
-                    } else if (offlineSinceRef.current === null) {
-                        offlineSinceRef.current = timestamp;
-                        const delay = offlineWarningBackoffRef.current.nextDelay();
-                        if (offlineWarningTimeoutRef.current) {
-                            clearTimeout(offlineWarningTimeoutRef.current);
-                        }
-                        offlineWarningTimeoutRef.current = setTimeout(() => {
-                            setLatchedCollabWarning('Realtime sync is offline. Edits remain local until we reconnect.');
-                        }, delay);
-                    } else if (offlineSinceRef.current) {
-                        const offlineDuration = timestamp - offlineSinceRef.current;
-                        if (offlineDuration > 60_000) {
-                            setLatchedCollabWarning('Realtime sync lost for over a minute. Consider refreshing to reconnect.');
-                        }
-                    }
-                },
-            });
-
-            heartbeatCleanupRef.current?.();
-            heartbeatCleanupRef.current = heartbeatCleanup;
-
-            const awarenessListener = () => {
-                const states = Array.from(providerInstance.awareness.getStates().values());
-                setActiveUsers(states);
-            };
-            providerInstance.awareness.on('change', awarenessListener);
-
-            setYdoc(doc);
-            setProvider(providerInstance);
-
-            return () => {
-                heartbeatCleanupRef.current?.();
-                heartbeatCleanupRef.current = null;
-                if (offlineWarningTimeoutRef.current) {
-                    clearTimeout(offlineWarningTimeoutRef.current);
-                    offlineWarningTimeoutRef.current = null;
-                }
-                offlineSinceRef.current = null;
-                lastHeartbeatOnlineRef.current = null;
-                clearCollabWarning();
-
-                if (typeof providerInstance.awareness?.off === 'function') {
-                    providerInstance.awareness.off('change', awarenessListener);
-                }
-
-                if (typeof providerInstance.off === 'function') {
-                    providerInstance.off('status', statusListener);
-                } else {
-                    providerInstance.removeListener('status', statusListener);
-                }
-
-                providerInstance.destroy();
-                doc.destroy();
-            };
-        }
-
-        setYdoc(null);
-        setProvider(null);
-        setCollabStatus('disconnected');
-        setActiveUsers([]);
-        heartbeatCleanupRef.current?.();
-        heartbeatCleanupRef.current = null;
-        if (offlineWarningTimeoutRef.current) {
-            clearTimeout(offlineWarningTimeoutRef.current);
-            offlineWarningTimeoutRef.current = null;
-        }
-        offlineSinceRef.current = null;
-        lastHeartbeatOnlineRef.current = null;
-        clearCollabWarning();
-    }, [docId, userId, workspaceId, clearCollabWarning, setLatchedCollabWarning]);
     const canvasModeEnabledRef = useRef(isCanvasModeEnabled);
     const aiPaletteEnabledRef = useRef(isAIPaletteEnabled);
 
@@ -870,43 +735,9 @@ export const DocEditor: React.FC<DocEditorProps> = ({
         userId
     );
 
-    useEffect(() => {
-        if (docId) {
-            const doc = new Y.Doc();
-            
-            // Initialize Supabase Provider for Yjs
-            // Note: This requires Realtime to be enabled on the Supabase project
-            // Constructor: (doc, supabase, config)
-            const p = new SupabaseProvider(doc, supabase, {
-                channel: `doc-collab-${docId}`,
-                id: docId,
-                tableName: 'gtm_docs',
-                columnName: 'content',
-            });
-            
-            p.on('status', (event: any) => {
-                setCollabStatus(event.status);
-            });
-
-            p.awareness.on('change', () => {
-                const states = Array.from(p.awareness.getStates().values());
-                setActiveUsers(states);
-            });
-
-            setYdoc(doc);
-            setProvider(p);
-
-            return () => {
-                p.destroy();
-                doc.destroy();
-            };
-        } else {
-            setYdoc(null);
-            setProvider(null);
-            setCollabStatus('disconnected');
-            setActiveUsers([]);
-        }
-    }, [docId]);
+    // NOTE: Collab provider is initialized in the first useEffect (lines ~658-742)
+    // which includes heartbeat monitoring, telemetry, and proper cleanup.
+    // Do NOT add a duplicate provider setup here.
 
     // Initialize Tiptap editor with premium extensions
     const editor = useEditor({
@@ -1075,12 +906,37 @@ export const DocEditor: React.FC<DocEditorProps> = ({
         editorRef.current = editor;
     }, [editor]);
 
-    // Load document content
+    // Load document content - waits briefly for Yjs sync in collab mode
+    // to determine if we should hydrate from content_json or let Yjs be authoritative
     useEffect(() => {
         if (docId && editor) {
-            loadDoc();
+            // In collab mode, give Yjs a brief window to sync before loading
+            // This prevents overwriting collaborative state with stale DB content
+            const isCollabMode = Boolean(ydoc && provider);
+            if (isCollabMode && !yjsInitialSyncComplete) {
+                // Wait for sync or timeout after 2 seconds
+                const timeout = setTimeout(() => {
+                    loadDoc();
+                }, 2000);
+                
+                // If sync completes before timeout, load immediately
+                const checkSync = setInterval(() => {
+                    if (yjsInitialSyncComplete) {
+                        clearTimeout(timeout);
+                        clearInterval(checkSync);
+                        loadDoc();
+                    }
+                }, 100);
+                
+                return () => {
+                    clearTimeout(timeout);
+                    clearInterval(checkSync);
+                };
+            } else {
+                loadDoc();
+            }
         }
-    }, [docId, editor]); // Re-run when editor is ready
+    }, [docId, editor, ydoc, provider, yjsInitialSyncComplete]); // Re-run when editor is ready or sync status changes
 
     useEffect(() => {
         if (!docId && editor && !bootTrackedRef.current) {
@@ -1089,14 +945,9 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     }, [docId, docType, editor, emitBootTelemetry]);
 
     const loadDoc = async () => {
-        // If we already have content (from Yjs), don't overwrite it with DB content
-        // unless the Yjs doc is empty (first load)
+        // Load document content from database and hydrate editor
+        // This should be called once when opening a document
         if (!editor) return;
-        
-        // Check if Yjs has content. 
-        // Note: editor.isEmpty is true for empty paragraph, but we want to know if Yjs has *any* updates.
-        // If we are connected and Yjs has content, we trust Yjs.
-        // But initially Yjs is empty until it syncs.
         
         setIsLoading(true);
         try {
@@ -1105,16 +956,23 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             if (error) {
                 console.error('Error loading doc:', error);
                 trackStorageFailure('load', error, { operation: 'loadGTMDocById' });
-                alert('Failed to load document. It may have been deleted or you may not have access.\n\nError: ' + (error as Error).message);
+                showError('Failed to load document. It may have been deleted or you may not have access.');
                 return;
             } else if (data) {
+                // Set document metadata (always load regardless of content source)
                 setTitle(data.title);
                 setDocType(data.docType as DocType);
                 setVisibility(data.visibility as DocVisibility);
                 setTags(data.tags);
+                // Track document owner for permission checks
+                setDocOwnerId((data as GTMDoc).ownerId || null);
                 const updatedAtValue = (data as GTMDoc).updatedAt || (data as any).updated_at;
                 if (updatedAtValue) {
                     setLastSavedAt(new Date(updatedAtValue));
+                    // Initialize content hash for autosave comparison
+                    if (data.contentJson) {
+                        lastSavedContentHashRef.current = JSON.stringify(data.contentJson);
+                    }
                 }
 
                 const metadata = (data as GTMDoc).blocksMetadata || {};
@@ -1126,34 +984,45 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                     }
                 });
                 
-                // Only set content if the editor is empty to avoid overwriting collaborative changes
-                // or if we are sure we want to load from DB (e.g. initial load)
-                const editorWasEmpty = editor.isEmpty;
-                if (editorWasEmpty) {
-                    if (data.contentJson) {
+                // Hydrate editor with database content ONLY if:
+                // 1. Yjs has synced and is empty (no collaborative content to preserve), OR
+                // 2. Yjs hasn't synced yet and we're not in collab mode (new doc or non-collab scenario)
+                // 
+                // If Yjs has synced and HAS content, the Yjs state is authoritative
+                // and we should NOT override it with potentially stale content_json
+                const isCollabMode = Boolean(docId && ydoc && provider);
+                const shouldHydrateFromDb = !isCollabMode || 
+                    (yjsInitialSyncComplete && !yjsHasContent);
+                
+                let contentSource = 'skipped_yjs_authoritative';
+                
+                if (shouldHydrateFromDb) {
+                    contentSource = 'database_empty';
+                    if (data.contentJson && Object.keys(data.contentJson).length > 0) {
                         editor.commands.setContent(data.contentJson);
-                    } else if (data.contentPlain) {
+                        contentSource = 'database_json';
+                    } else if (data.contentPlain && data.contentPlain.trim()) {
                         editor.commands.setContent(data.contentPlain);
+                        contentSource = 'database_plain';
                     }
                 }
 
                 emitBootTelemetry({
                     source: 'existing_doc',
                     docType: data.docType,
-                    contentSource: editorWasEmpty
-                        ? data.contentJson
-                            ? 'database_json'
-                            : data.contentPlain
-                                ? 'database_plain'
-                                : 'database_empty'
-                        : 'yjs',
+                    contentSource,
+                    yjsSynced: yjsInitialSyncComplete,
+                    yjsHasContent: yjsHasContent,
                 });
+                
+                // Mark as clean after initial load
+                isDirtyRef.current = false;
             }
             setIsLoading(false);
         } catch (error) {
             console.error('Error loading doc:', error);
             trackStorageFailure('load', error, { operation: 'loadGTMDocById', phase: 'exception' });
-            alert('Unexpected error loading document. Please try again.');
+            showError('Unexpected error loading document. Please try again.');
             setIsLoading(false);
         }
     };
@@ -1165,7 +1034,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             // Validate the file
             const validation = validateImageFile(file);
             if (validation !== true) {
-                alert(validation.error);
+                showError(validation.error);
                 return;
             }
 
@@ -1180,7 +1049,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
 
         } catch (error: any) {
             console.error('Paste image error:', error);
-            alert(`Failed to upload pasted image: ${error.message || 'Unknown error'}`);
+            showError(`Failed to upload pasted image: ${error.message || 'Unknown error'}`);
         }
     };
 
@@ -1323,7 +1192,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             }
         } catch (error: any) {
             console.error('Export error:', error);
-            alert(`Failed to export document: ${error.message || 'Unknown error'}`);
+            showError(`Failed to export document: ${error.message || 'Unknown error'}`);
         }
     };
 
@@ -1390,13 +1259,13 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                 if (error) {
                     console.error('Error updating doc:', error);
                     trackStorageFailure('save', error, { operation: 'updateGTMDoc' });
-                    alert('Failed to save document. Please try again.');
+                    showError('Failed to save document. Please try again.');
                     return;
                 } else if (data) {
                     onSave(data as GTMDoc);
                     setLastSavedAt(new Date());
-                    // Show success feedback (could be a toast, but for now alert or just console)
-                    // We'll rely on the "Saved to cloud" text in the header updating
+                    isDirtyRef.current = false;
+                    lastSavedContentHashRef.current = JSON.stringify(contentJson);
                 }
             } else {
                 // Create new doc
@@ -1415,25 +1284,143 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                 if (error) {
                     console.error('Error creating doc:', error);
                     trackStorageFailure('save', error, { operation: 'createGTMDoc' });
-                    alert('Failed to create document. Please try again.');
+                    showError('Failed to create document. Please try again.');
                     return;
                 } else if (data) {
                     onSave(data as GTMDoc);
                     setLastSavedAt(new Date());
+                    // Set the current user as doc owner for the newly created doc
+                    setDocOwnerId(userId);
+                    isDirtyRef.current = false;
+                    lastSavedContentHashRef.current = JSON.stringify(contentJson);
                 }
             }
         } catch (error) {
             console.error('Error saving doc:', error);
             trackStorageFailure('save', error, { operation: docId ? 'updateGTMDoc' : 'createGTMDoc', phase: 'exception' });
-            alert('An error occurred while saving.');
+            showError('An error occurred while saving.');
         } finally {
             setIsSaving(false);
         }
     };
 
+    // Autosave function - silent save without UI blocking
+    const performAutosave = useCallback(async () => {
+        if (!editor || !docId || isSaving) return;
+        
+        const contentJson = editor.getJSON();
+        const contentPlain = editor.getText();
+        const currentHash = JSON.stringify(contentJson);
+        
+        // Skip if content hasn't changed since last save
+        if (currentHash === lastSavedContentHashRef.current) {
+            isDirtyRef.current = false;
+            return;
+        }
+        
+        try {
+            // Use retry wrapper for autosave - 2 attempts with short delays
+            const { error } = await withRetry(
+                () => DatabaseService.updateGTMDoc(docId, workspaceId, {
+                    contentJson,
+                    contentPlain,
+                }),
+                {
+                    maxAttempts: 2,
+                    initialDelayMs: 500,
+                    maxDelayMs: 2000,
+                    onRetry: (attempt, err) => {
+                        console.log(`[autosave] Retry attempt ${attempt}`, err);
+                    },
+                }
+            );
+            
+            if (!error) {
+                setLastSavedAt(new Date());
+                isDirtyRef.current = false;
+                lastSavedContentHashRef.current = currentHash;
+                telemetry.track('doc_autosave', {
+                    workspaceId,
+                    userId,
+                    docId,
+                    metadata: { success: true },
+                });
+            } else {
+                console.warn('Autosave failed:', error);
+                telemetry.track('doc_autosave', {
+                    workspaceId,
+                    userId,
+                    docId,
+                    metadata: { success: false, error: error.message || 'Unknown error' },
+                });
+            }
+        } catch (error) {
+            console.warn('Autosave error (after retries):', error);
+        }
+    }, [editor, docId, workspaceId, userId, isSaving]);
+
+    // Autosave effect - periodic save and beforeunload guard
+    useEffect(() => {
+        if (!editor || !docId) return;
+
+        // Track content changes to mark dirty state
+        const handleUpdate = () => {
+            isDirtyRef.current = true;
+            
+            // Debounced autosave after edits stop
+            if (autosaveDebounceRef.current) {
+                clearTimeout(autosaveDebounceRef.current);
+            }
+            autosaveDebounceRef.current = setTimeout(() => {
+                performAutosave();
+            }, AUTOSAVE_DEBOUNCE_MS);
+        };
+
+        editor.on('update', handleUpdate);
+
+        // Periodic autosave interval
+        autosaveIntervalRef.current = setInterval(() => {
+            if (isDirtyRef.current) {
+                performAutosave();
+            }
+        }, AUTOSAVE_INTERVAL_MS);
+
+        // Beforeunload guard for unsaved changes
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (isDirtyRef.current) {
+                e.preventDefault();
+                e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+                return e.returnValue;
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        return () => {
+            editor.off('update', handleUpdate);
+            
+            if (autosaveIntervalRef.current) {
+                clearInterval(autosaveIntervalRef.current);
+                autosaveIntervalRef.current = null;
+            }
+            
+            if (autosaveDebounceRef.current) {
+                clearTimeout(autosaveDebounceRef.current);
+                autosaveDebounceRef.current = null;
+            }
+            
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            
+            // Final save attempt on cleanup if dirty
+            if (isDirtyRef.current && docId) {
+                performAutosave();
+            }
+        };
+    }, [editor, docId, performAutosave]);
+
     const handleSaveToFileLibrary = async () => {
         if (!editor) {
-            alert('Editor not ready');
+            showError('Editor not ready');
             return;
         }
 
@@ -1444,15 +1431,16 @@ export const DocEditor: React.FC<DocEditorProps> = ({
         if (!confirmed) return;
 
         try {
-            // Get the HTML content
-            const htmlContent = editor.getHTML();
+            // Get the HTML content and sanitize it to prevent XSS
+            const rawHtml = editor.getHTML();
+            const sanitizedHtml = DOMPurify.sanitize(rawHtml, SANITIZE_CONFIG);
             
             // Create a document entry in the file library
             const { data, error } = await DatabaseService.createDocument(userId, workspaceId, {
                 name: `${title}.html`,
                 module: 'workspace', // GTM Docs workspace
                 mime_type: 'text/html',
-                content: htmlContent,
+                content: sanitizedHtml,
                 notes: {
                     gtmDocId: docId || null,
                     docType: docType,
@@ -1463,15 +1451,15 @@ export const DocEditor: React.FC<DocEditorProps> = ({
 
             if (error) {
                 console.error('Error saving to file library:', error);
-                alert('Failed to save to file library: ' + error.message);
+                showError('Failed to save to file library: ' + error.message);
             } else {
-                alert('✅ Document saved to File Library!');
+                showSuccess('Document saved to File Library!');
                 // Reload the docs list to show the new file
                 onReloadList?.();
             }
         } catch (error) {
             console.error('Error saving to file library:', error);
-            alert('Failed to save to file library');
+            showError('Failed to save to file library');
         }
     };
 
@@ -1885,186 +1873,32 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             )}
             {/* Toolbar */}
             {editor && !isFocusMode && (
-                <div className="sticky top-4 z-20 mx-4 mt-4 bg-white/90 backdrop-blur border-2 border-black px-4 py-2 flex items-center gap-1 flex-wrap shadow-neo-sm rounded-none">
-                    {/* Undo/Redo */}
-                    <div className="flex items-center gap-0.5 border-r border-gray-300 pr-2 mr-1">
-                        <button onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} className="p-1.5 rounded hover:bg-gray-200 disabled:opacity-30 text-gray-700"><Undo size={16} /></button>
-                        <button onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} className="p-1.5 rounded hover:bg-gray-200 disabled:opacity-30 text-gray-700"><Redo size={16} /></button>
-                        <button onClick={() => window.print()} className="p-1.5 rounded hover:bg-gray-200 text-gray-700"><Printer size={16} /></button>
-                    </div>
-                    
-                    {/* Text Style */}
-                    <div className="flex items-center gap-1 border-r border-gray-300 pr-2 mr-1">
-                        <select 
-                            className="h-7 px-2 text-sm bg-transparent hover:bg-gray-200 rounded border-none focus:ring-0 cursor-pointer text-gray-700 font-medium"
-                            onChange={(e) => {
-                                if (e.target.value.startsWith('h')) {
-                                    editor.chain().focus().toggleHeading({ level: parseInt(e.target.value.substring(1)) as any }).run();
-                                } else {
-                                    editor.chain().focus().setParagraph().run();
-                                }
-                            }}
-                            value={editor.isActive('heading', { level: 1 }) ? 'h1' : editor.isActive('heading', { level: 2 }) ? 'h2' : editor.isActive('heading', { level: 3 }) ? 'h3' : 'p'}
-                        >
-                            <option value="p">Normal text</option>
-                            <option value="h1">Heading 1</option>
-                            <option value="h2">Heading 2</option>
-                            <option value="h3">Heading 3</option>
-                        </select>
-                        
-                        <select 
-                            className="h-7 px-2 text-sm bg-transparent hover:bg-gray-200 rounded border-none focus:ring-0 cursor-pointer w-28 text-gray-700"
-                            onChange={(e) => {
-                                const value = e.target.value;
-                                if (value === 'system') {
-                                    editor.chain().focus().unsetFontFamily().run();
-                                } else {
-                                    const stack = getFontStackById(value);
-                                    if (stack) {
-                                        editor.chain().focus().setFontFamily(stack).run();
-                                    }
-                                }
-                            }}
-                            value={currentFontFamilyId}
-                        >
-                            {fontFamilyOptions.map((option) => (
-                                <option key={option.id} value={option.id}>{option.label}</option>
-                            ))}
-                        </select>
-
-                        <select
-                            className="h-7 px-2 text-sm bg-transparent hover:bg-gray-200 rounded border-none focus:ring-0 cursor-pointer w-24 text-gray-700"
-                            value={currentFontSizeValue}
-                            onChange={(e) => {
-                                const value = e.target.value;
-                                if (value === 'default') {
-                                    editor.chain().focus().unsetFontSize().run();
-                                } else {
-                                    editor.chain().focus().setFontSize(value).run();
-                                }
-                            }}
-                        >
-                            <option value="default">Font size</option>
-                            {fontSizeOptions.map((size) => (
-                                <option key={size} value={size}>{size}</option>
-                            ))}
-                        </select>
-
-                        <select
-                            className="h-7 px-2 text-sm bg-transparent hover:bg-gray-200 rounded border-none focus:ring-0 cursor-pointer w-28 text-gray-700"
-                            value={lineSpacing.toFixed(2)}
-                            onChange={(e) => setLineSpacing(parseFloat(e.target.value))}
-                        >
-                            {lineSpacingOptions.map((option) => (
-                                <option key={option.value} value={option.value.toString()}>{option.label} ({option.value.toFixed(2)})</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Formatting */}
-                    <div className="flex items-center gap-0.5 border-r border-gray-300 pr-2 mr-1">
-                        <button onClick={() => editor.chain().focus().toggleBold().run()} className={`p-1.5 rounded hover:bg-gray-200 ${editor.isActive('bold') ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}`}><Bold size={16} /></button>
-                        <button onClick={() => editor.chain().focus().toggleItalic().run()} className={`p-1.5 rounded hover:bg-gray-200 ${editor.isActive('italic') ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}`}><Italic size={16} /></button>
-                        <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={`p-1.5 rounded hover:bg-gray-200 ${editor.isActive('underline') ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}`}><UnderlineIcon size={16} /></button>
-                        <button onClick={() => editor.chain().focus().toggleStrike().run()} className={`p-1.5 rounded hover:bg-gray-200 ${editor.isActive('strike') ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}`}><Strikethrough size={16} /></button>
-                        <button onClick={() => editor.chain().focus().toggleSubscript().run()} className={`p-1.5 rounded hover:bg-gray-200 ${editor.isActive('subscript') ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}`}><SubscriptIcon size={16} /></button>
-                        <button onClick={() => editor.chain().focus().toggleSuperscript().run()} className={`p-1.5 rounded hover:bg-gray-200 ${editor.isActive('superscript') ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}`}><SuperscriptIcon size={16} /></button>
-                        
-                        <div className="relative">
-                            <button onClick={() => setShowAdvancedColorPicker(!showAdvancedColorPicker)} className="p-1.5 rounded hover:bg-gray-200 flex items-center gap-1 text-gray-700">
-                                <Palette size={16} />
-                                <div className="w-3 h-3 border border-gray-300 rounded-sm" style={{ backgroundColor: selectedColor }}></div>
-                            </button>
-                            {showAdvancedColorPicker && (
-                                <div className="absolute top-full left-0 mt-1 z-50 bg-white p-2 shadow-xl border border-gray-200 rounded-lg w-48">
-                                    <HexColorPicker color={selectedColor} onChange={(color) => { setSelectedColor(color); editor.chain().focus().setColor(color).run(); }} />
-                                    <button onClick={() => setShowAdvancedColorPicker(false)} className="w-full mt-2 text-xs bg-gray-100 hover:bg-gray-200 py-1 rounded">Close</button>
-                                </div>
-                            )}
-                        </div>
-                        
-                        <div className="relative">
-                            <button onClick={() => setShowAdvancedHighlightPicker(!showAdvancedHighlightPicker)} className="p-1.5 rounded hover:bg-gray-200 flex items-center gap-1 text-gray-700">
-                                <Highlighter size={16} className={editor.isActive('highlight') ? 'text-yellow-500' : ''} />
-                            </button>
-                            {showAdvancedHighlightPicker && (
-                                <div className="absolute top-full left-0 mt-1 z-50 bg-white p-2 shadow-xl border border-gray-200 rounded-lg w-48">
-                                    <HexColorPicker color={selectedHighlight} onChange={(color) => { setSelectedHighlight(color); editor.chain().focus().toggleHighlight({ color }).run(); }} />
-                                    <button onClick={() => setShowAdvancedHighlightPicker(false)} className="w-full mt-2 text-xs bg-gray-100 hover:bg-gray-200 py-1 rounded">Close</button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Alignment & Lists */}
-                    <div className="flex items-center gap-0.5 border-r border-gray-300 pr-2 mr-1">
-                        <button onClick={() => setShowLinkInput(!showLinkInput)} className={`p-1.5 rounded hover:bg-gray-200 ${editor.isActive('link') ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}`}><LinkIcon size={16} /></button>
-                        {showLinkInput && (
-                            <div className="absolute top-full mt-1 bg-white p-2 shadow-lg border border-gray-200 rounded z-50 flex gap-1">
-                                <input type="text" value={linkUrl} onChange={e => setLinkUrl(e.target.value)} className="border rounded px-2 py-1 text-sm" placeholder="https://..." />
-                                <button onClick={() => { if(linkUrl) editor.chain().focus().setLink({ href: linkUrl }).run(); setShowLinkInput(false); }} className="bg-blue-500 text-white px-2 py-1 rounded text-xs">Add</button>
-                            </div>
-                        )}
-                        <button onClick={() => setShowImageUploadModal(true)} className="p-1.5 rounded hover:bg-gray-200 text-gray-700"><ImageIcon size={16} /></button>
-                        
-                        <div className="w-px h-4 bg-gray-300 mx-1"></div>
-                        
-                        <button 
-                            onClick={() => {
-                                if (editor.isActive('resizableImage')) {
-                                    editor.chain().focus().updateAttributes('resizableImage', { alignment: 'left' }).run();
-                                } else {
-                                    editor.chain().focus().setTextAlign('left').run();
-                                }
-                            }} 
-                            className={`p-1.5 rounded hover:bg-gray-200 ${editor.isActive({ textAlign: 'left' }) || editor.isActive('resizableImage', { alignment: 'left' }) ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}`}
-                        >
-                            <AlignLeft size={16} />
-                        </button>
-                        <button 
-                            onClick={() => {
-                                if (editor.isActive('resizableImage')) {
-                                    editor.chain().focus().updateAttributes('resizableImage', { alignment: 'center' }).run();
-                                } else {
-                                    editor.chain().focus().setTextAlign('center').run();
-                                }
-                            }} 
-                            className={`p-1.5 rounded hover:bg-gray-200 ${editor.isActive({ textAlign: 'center' }) || editor.isActive('resizableImage', { alignment: 'center' }) ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}`}
-                        >
-                            <AlignCenter size={16} />
-                        </button>
-                        <button 
-                            onClick={() => {
-                                if (editor.isActive('resizableImage')) {
-                                    editor.chain().focus().updateAttributes('resizableImage', { alignment: 'right' }).run();
-                                } else {
-                                    editor.chain().focus().setTextAlign('right').run();
-                                }
-                            }} 
-                            className={`p-1.5 rounded hover:bg-gray-200 ${editor.isActive({ textAlign: 'right' }) || editor.isActive('resizableImage', { alignment: 'right' }) ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}`}
-                        >
-                            <AlignRight size={16} />
-                        </button>
-                        
-                        <div className="w-px h-4 bg-gray-300 mx-1"></div>
-                        
-                        <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={`p-1.5 rounded hover:bg-gray-200 ${editor.isActive('bulletList') ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}`}><List size={16} /></button>
-                        <button onClick={() => editor.chain().focus().toggleOrderedList().run()} className={`p-1.5 rounded hover:bg-gray-200 ${editor.isActive('orderedList') ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}`}><ListOrdered size={16} /></button>
-                        <button onClick={() => editor.chain().focus().toggleTaskList().run()} className={`p-1.5 rounded hover:bg-gray-200 ${editor.isActive('taskList') ? 'bg-blue-100 text-blue-700' : 'text-gray-700'}`}><CheckSquare size={16} /></button>
-                    </div>
-                    
-                    {/* Insert */}
-                    <div className="flex items-center gap-0.5">
-                        <button onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} className="p-1.5 rounded hover:bg-gray-200 text-gray-700"><TableIcon size={16} /></button>
-                        <button onClick={() => editor.chain().focus().setPageBreak().run()} className="p-1.5 rounded hover:bg-gray-200 text-gray-700" title="Page Break"><FilePlus size={16} /></button>
-                        <button onClick={() => {
-                            const url = prompt('Enter YouTube URL');
-                            if (url) editor.chain().focus().setYoutubeVideo({ src: url }).run();
-                        }} className="p-1.5 rounded hover:bg-gray-200 text-gray-700" title="Insert YouTube"><YoutubeIcon size={16} /></button>
-                        <button onClick={() => setShowChartQuickInsert(true)} className="p-1.5 rounded hover:bg-gray-200 text-gray-700" title="Insert Chart"><span className="text-sm">📊</span></button>
-                        <button onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()} className="p-1.5 rounded hover:bg-gray-200 text-gray-700" title="Clear Formatting"><span className="text-xs font-bold">Tx</span></button>
-                    </div>
-                </div>
+                <DocEditorToolbar
+                    editor={editor}
+                    fontFamilyOptions={fontFamilyOptions}
+                    fontSizeOptions={fontSizeOptions}
+                    lineSpacingOptions={lineSpacingOptions}
+                    currentFontFamilyId={currentFontFamilyId}
+                    currentFontSizeValue={currentFontSizeValue}
+                    lineSpacing={lineSpacing}
+                    getFontStackById={getFontStackById}
+                    onLineSpacingChange={setLineSpacing}
+                    selectedColor={selectedColor}
+                    selectedHighlight={selectedHighlight}
+                    showAdvancedColorPicker={showAdvancedColorPicker}
+                    showAdvancedHighlightPicker={showAdvancedHighlightPicker}
+                    onColorChange={setSelectedColor}
+                    onHighlightChange={setSelectedHighlight}
+                    onToggleColorPicker={() => setShowAdvancedColorPicker(!showAdvancedColorPicker)}
+                    onToggleHighlightPicker={() => setShowAdvancedHighlightPicker(!showAdvancedHighlightPicker)}
+                    showLinkInput={showLinkInput}
+                    linkUrl={linkUrl}
+                    onLinkUrlChange={setLinkUrl}
+                    onToggleLinkInput={() => setShowLinkInput(!showLinkInput)}
+                    onAddLink={() => { if(linkUrl) editor.chain().focus().setLink({ href: linkUrl }).run(); setShowLinkInput(false); }}
+                    onOpenImageUpload={() => setShowImageUploadModal(true)}
+                    onOpenChartInsert={() => setShowChartQuickInsert(true)}
+                />
             )}
 
             {/* Focus Mode Exit Button */}
@@ -2681,6 +2515,9 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                     data={data}
                     onVisibilityChange={(next) => setVisibility(next)}
                     onLinksUpdated={onReloadList}
+                    isDocOwner={!docOwnerId || docOwnerId === userId}
+                    workspaceRole={workspaceRole}
+                    planType={planType}
                 />
             )}
 
@@ -2724,267 +2561,28 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             )}
 
             {/* Export Settings Modal */}
-            {showExportSettingsModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4 py-6">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl p-6 md:p-8 space-y-6">
-                        <div className="flex items-start justify-between gap-6">
-                            <div>
-                                <p className="text-[11px] uppercase tracking-[0.35em] text-gray-400 font-semibold">Export</p>
-                                <h3 className="text-2xl font-bold mt-2">Professional PDF settings</h3>
-                                <p className="text-sm text-gray-600 mt-1">Pick the layout, cover, and branding that matches your investor updates and board-ready docs.</p>
-                            </div>
-                            <button
-                                onClick={() => setShowExportSettingsModal(false)}
-                                className="p-2 rounded-full border border-gray-200 hover:bg-gray-50 text-gray-500"
-                                aria-label="Close export settings"
-                            >
-                                <X size={18} />
-                            </button>
-                        </div>
-
-                        <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 space-y-3">
-                            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                                <div>
-                                    <p className="text-[11px] uppercase tracking-[0.35em] text-gray-400 font-semibold">Workspace presets</p>
-                                    <p className="text-sm text-gray-600">Save investor-ready layouts and reuse them across docs.</p>
-                                </div>
-                                {workspaceDefaultPreset && (
-                                    <span className="text-xs font-semibold text-gray-600">Default: {workspaceDefaultPreset.name}</span>
-                                )}
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                                {exportPresets.length === 0 ? (
-                                    <span className="text-xs text-gray-500">No presets yet—dial in your layout then save it below.</span>
-                                ) : (
-                                    exportPresets.map((preset) => (
-                                        <button
-                                            key={preset.id}
-                                            type="button"
-                                            onClick={() => handleApplyPreset(preset.id)}
-                                            className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                                                selectedPresetId === preset.id
-                                                    ? 'border-black bg-black text-white shadow-neo-btn'
-                                                    : 'border-gray-300 text-gray-700 hover:border-gray-400'
-                                            }`}
-                                        >
-                                            {preset.name}
-                                            {preset.id === defaultPresetId && <span className="text-amber-400">★</span>}
-                                        </button>
-                                    ))
-                                )}
-                            </div>
-                            <form onSubmit={handleCreatePreset} className="flex flex-col gap-2 sm:flex-row">
-                                <input
-                                    type="text"
-                                    value={newPresetName}
-                                    onChange={(event) => setNewPresetName(event.target.value)}
-                                    className="flex-1 rounded-xl border border-dashed border-gray-300 bg-white px-3 py-2 text-sm focus:border-black focus:outline-none"
-                                    placeholder="Preset name (e.g. Board Update)"
-                                />
-                                <button
-                                    type="submit"
-                                    className="rounded-none bg-black px-4 py-2 text-sm font-semibold text-white shadow-neo disabled:cursor-not-allowed disabled:opacity-50"
-                                    disabled={!newPresetName.trim()}
-                                >
-                                    Save preset
-                                </button>
-                            </form>
-                            {presetFormError && <p className="text-xs text-red-500">{presetFormError}</p>}
-                            {selectedPresetId && exportPresets.some((preset) => preset.id === selectedPresetId) && (
-                                <div className="flex flex-wrap gap-2 text-xs">
-                                    <button
-                                        type="button"
-                                        onClick={handleUpdateSelectedPreset}
-                                        className="rounded-full border border-gray-300 px-3 py-1.5 font-semibold text-gray-700 hover:border-gray-500"
-                                    >
-                                        Update selected preset
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleSetDefaultPreset(selectedPresetId)}
-                                        disabled={selectedPresetId === defaultPresetId}
-                                        className="rounded-full border border-gray-300 px-3 py-1.5 font-semibold text-gray-700 hover:border-gray-500 disabled:cursor-not-allowed disabled:opacity-50"
-                                    >
-                                        Mark as workspace default
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleDeleteSelectedPreset}
-                                        className="rounded-full border border-red-200 px-3 py-1.5 font-semibold text-red-600 hover:bg-red-50"
-                                    >
-                                        Delete preset
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="grid md:grid-cols-[1.2fr_0.8fr] gap-6">
-                            <div className="space-y-4">
-                                <div className="grid sm:grid-cols-2 gap-4">
-                                    <label className="text-sm font-semibold text-gray-700 flex flex-col gap-1">
-                                        Page size
-                                        <select
-                                            className="mt-1 rounded-xl border-gray-200 shadow-sm focus:border-black focus:ring-black px-3 py-2 text-sm"
-                                            value={exportSettings.pageSize}
-                                            onChange={(e) => handleExportSettingChange('pageSize', e.target.value as ExportSettings['pageSize'])}
-                                        >
-                                            {exportPageSizeOptions.map((option) => (
-                                                <option key={option.value} value={option.value}>{option.label}</option>
-                                            ))}
-                                        </select>
-                                    </label>
-                                    <label className="text-sm font-semibold text-gray-700 flex flex-col gap-1">
-                                        Orientation
-                                        <select
-                                            className="mt-1 rounded-xl border-gray-200 shadow-sm focus:border-black focus:ring-black px-3 py-2 text-sm"
-                                            value={exportSettings.orientation}
-                                            onChange={(e) => handleExportSettingChange('orientation', e.target.value as ExportSettings['orientation'])}
-                                        >
-                                            {exportOrientationOptions.map((option) => (
-                                                <option key={option.value} value={option.value}>{option.label}</option>
-                                            ))}
-                                        </select>
-                                    </label>
-                                </div>
-
-                                <div className="grid sm:grid-cols-2 gap-4">
-                                    <label className="text-sm font-semibold text-gray-700 flex flex-col gap-1">
-                                        Margins (pts)
-                                        <input
-                                            type="number"
-                                            min={36}
-                                            max={96}
-                                            step={2}
-                                            value={exportSettings.margin}
-                                            onChange={(e) => handleExportSettingChange('margin', Math.min(120, Math.max(24, Number(e.target.value) || 0)))}
-                                            className="mt-1 rounded-xl border-gray-200 shadow-sm focus:border-black focus:ring-black px-3 py-2 text-sm"
-                                        />
-                                        <span className="text-xs text-gray-500">Higher values leave more white space for headers/footers.</span>
-                                    </label>
-                                    <div className="text-sm font-semibold text-gray-700 flex flex-col gap-2">
-                                        Options
-                                        <label className="inline-flex items-center gap-2 text-sm font-normal text-gray-700">
-                                            <input
-                                                type="checkbox"
-                                                className="rounded border-gray-300 text-black focus:ring-black"
-                                                checked={exportSettings.includeCoverPage}
-                                                onChange={(e) => handleExportSettingChange('includeCoverPage', e.target.checked)}
-                                            />
-                                            Include cover page
-                                        </label>
-                                        <label className="inline-flex items-center gap-2 text-sm font-normal text-gray-700">
-                                            <input
-                                                type="checkbox"
-                                                className="rounded border-gray-300 text-black focus:ring-black"
-                                                checked={exportSettings.includePageNumbers}
-                                                onChange={(e) => handleExportSettingChange('includePageNumbers', e.target.checked)}
-                                            />
-                                            Include page numbers
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <div className="grid sm:grid-cols-2 gap-4">
-                                    <label className="text-sm font-semibold text-gray-700 flex flex-col gap-1">
-                                        Cover subtitle
-                                        <input
-                                            type="text"
-                                            value={exportSettings.coverSubtitle}
-                                            onChange={(e) => handleExportSettingChange('coverSubtitle', e.target.value)}
-                                            className="mt-1 rounded-xl border-gray-200 shadow-sm focus:border-black focus:ring-black px-3 py-2 text-sm"
-                                            placeholder="Investor update • Q4"
-                                        />
-                                    </label>
-                                    <label className="text-sm font-semibold text-gray-700 flex flex-col gap-1">
-                                        Cover meta
-                                        <input
-                                            type="text"
-                                            value={exportSettings.coverMeta}
-                                            onChange={(e) => handleExportSettingChange('coverMeta', e.target.value)}
-                                            className="mt-1 rounded-xl border-gray-200 shadow-sm focus:border-black focus:ring-black px-3 py-2 text-sm"
-                                            placeholder="Prepared for Board & Strategic Advisors"
-                                        />
-                                    </label>
-                                </div>
-
-                                <div className="grid sm:grid-cols-[auto_1fr] gap-4 items-center">
-                                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-3">
-                                        Brand color
-                                        <input
-                                            type="color"
-                                            value={exportSettings.brandColor}
-                                            onChange={(e) => handleExportSettingChange('brandColor', e.target.value)}
-                                            className="h-10 w-16 rounded-xl border border-gray-200 cursor-pointer"
-                                        />
-                                    </label>
-                                    <label className="text-sm font-semibold text-gray-700 flex flex-col gap-1">
-                                        Footer note
-                                        <input
-                                            type="text"
-                                            value={exportSettings.footerNote}
-                                            onChange={(e) => handleExportSettingChange('footerNote', e.target.value)}
-                                            className="mt-1 rounded-xl border-gray-200 shadow-sm focus:border-black focus:ring-black px-3 py-2 text-sm"
-                                            placeholder="FounderHQ • setique.com"
-                                        />
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div className="bg-gray-50 border border-dashed border-gray-200 rounded-3xl p-4 flex flex-col gap-4">
-                                <div className="text-xs font-semibold uppercase tracking-[0.35em] text-gray-400">Preview</div>
-                                <div className="bg-white rounded-2xl border border-gray-200 shadow-inner p-5 space-y-3">
-                                    <div
-                                        className="h-2 w-16 rounded-full"
-                                        style={{ backgroundColor: exportSettings.brandColor }}
-                                    ></div>
-                                    <h4 className="text-lg font-semibold text-gray-900">{title || 'Untitled document'}</h4>
-                                    <p className="text-sm text-gray-600">{exportSettings.coverSubtitle}</p>
-                                    <p className="text-xs text-gray-500">{exportSettings.coverMeta}</p>
-                                    <div className="flex flex-wrap gap-2 text-[11px] uppercase tracking-wide text-gray-500">
-                                        <span className="px-2 py-0.5 border border-gray-200 rounded-full">{exportSettings.pageSize.toUpperCase()}</span>
-                                        <span className="px-2 py-0.5 border border-gray-200 rounded-full">{exportSettings.orientation}</span>
-                                        {exportSettings.includeCoverPage && (
-                                            <span className="px-2 py-0.5 border border-gray-200 rounded-full">Cover</span>
-                                        )}
-                                        {exportSettings.includePageNumbers && (
-                                            <span className="px-2 py-0.5 border border-gray-200 rounded-full">Page #</span>
-                                        )}
-                                    </div>
-                                    <div className="text-xs text-gray-400 border-t border-dashed border-gray-200 pt-3">
-                                        {exportSettings.footerNote}
-                                    </div>
-                                </div>
-                                <p className="text-xs text-gray-500">
-                                    Settings apply to PDF exports. Markdown/HTML/Text use their own balanced formatting.
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-gray-100">
-                            <button
-                                onClick={handleResetExportSettings}
-                                className="text-sm font-semibold text-gray-600 hover:text-black"
-                            >
-                                Reset to defaults
-                            </button>
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={() => setShowExportSettingsModal(false)}
-                                    className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleSaveExportPreferences}
-                                    className="px-5 py-2 rounded-none bg-black text-white text-sm font-semibold shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-neo-sm transition-all"
-                                >
-                                    Save settings
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <DocEditorExportModal
+                isOpen={showExportSettingsModal}
+                onClose={() => setShowExportSettingsModal(false)}
+                title={title}
+                exportSettings={exportSettings}
+                exportPresets={exportPresets}
+                selectedPresetId={selectedPresetId}
+                defaultPresetId={defaultPresetId}
+                workspaceDefaultPreset={workspaceDefaultPreset}
+                newPresetName={newPresetName}
+                presetFormError={presetFormError}
+                onExportSettingChange={handleExportSettingChange}
+                onApplyPreset={handleApplyPreset}
+                onCreatePreset={handleCreatePreset}
+                onUpdateSelectedPreset={handleUpdateSelectedPreset}
+                onDeleteSelectedPreset={handleDeleteSelectedPreset}
+                onSetDefaultPreset={handleSetDefaultPreset}
+                onResetSettings={handleResetExportSettings}
+                onSavePreferences={handleSaveExportPreferences}
+                onNewPresetNameChange={setNewPresetName}
+                onExport={handleExport}
+            />
 
             {/* Research Copilot */}
             <ResearchCopilot
@@ -3017,113 +2615,16 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             )}
 
             {/* Bubble Menu - Full Toolbar */}
-            {editor && (
-                <BubbleMenu editor={editor}>
-                    <div className="bg-white shadow-xl border border-gray-200 rounded-lg p-1.5 flex flex-wrap items-center gap-1 max-w-[600px]">
-                        {/* Font Family & Size */}
-                        <select
-                            className="h-6 px-1 text-xs bg-transparent hover:bg-gray-100 rounded border border-gray-200 focus:ring-0 cursor-pointer text-gray-700 max-w-[90px]"
-                            onChange={(e) => {
-                                const value = e.target.value;
-                                if (value === 'system') {
-                                    editor.chain().focus().unsetFontFamily().run();
-                                } else {
-                                    const stack = getFontStackById(value);
-                                    if (stack) {
-                                        editor.chain().focus().setFontFamily(stack).run();
-                                    }
-                                }
-                            }}
-                            value={currentFontFamilyId}
-                            title="Font Family"
-                        >
-                            {fontFamilyOptions.map((option) => (
-                                <option key={option.id} value={option.id}>{option.label}</option>
-                            ))}
-                        </select>
-                        <select
-                            className="h-6 px-1 text-xs bg-transparent hover:bg-gray-100 rounded border border-gray-200 focus:ring-0 cursor-pointer text-gray-700 w-[52px]"
-                            value={currentFontSizeValue}
-                            onChange={(e) => {
-                                const value = e.target.value;
-                                if (value === 'default') {
-                                    editor.chain().focus().unsetFontSize().run();
-                                } else {
-                                    editor.chain().focus().setFontSize(value).run();
-                                }
-                            }}
-                            title="Font Size"
-                        >
-                            <option value="default">Size</option>
-                            {fontSizeOptions.map((size) => (
-                                <option key={size} value={size}>{size}</option>
-                            ))}
-                        </select>
-                        
-                        <div className="w-px h-4 bg-gray-200 mx-0.5"></div>
-                        
-                        {/* Text Formatting */}
-                        <button onClick={() => editor.chain().focus().toggleBold().run()} className={`p-1.5 rounded hover:bg-gray-100 ${editor.isActive('bold') ? 'text-blue-600 bg-blue-50' : 'text-gray-600'}`} title="Bold"><Bold size={14} /></button>
-                        <button onClick={() => editor.chain().focus().toggleItalic().run()} className={`p-1.5 rounded hover:bg-gray-100 ${editor.isActive('italic') ? 'text-blue-600 bg-blue-50' : 'text-gray-600'}`} title="Italic"><Italic size={14} /></button>
-                        <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={`p-1.5 rounded hover:bg-gray-100 ${editor.isActive('underline') ? 'text-blue-600 bg-blue-50' : 'text-gray-600'}`} title="Underline"><UnderlineIcon size={14} /></button>
-                        <button onClick={() => editor.chain().focus().toggleStrike().run()} className={`p-1.5 rounded hover:bg-gray-100 ${editor.isActive('strike') ? 'text-blue-600 bg-blue-50' : 'text-gray-600'}`} title="Strikethrough"><Strikethrough size={14} /></button>
-                        
-                        <div className="w-px h-4 bg-gray-200 mx-0.5"></div>
-                        
-                        {/* Headings */}
-                        <button onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={`p-1.5 rounded hover:bg-gray-100 text-xs font-bold ${editor.isActive('heading', { level: 1 }) ? 'text-blue-600 bg-blue-50' : 'text-gray-600'}`} title="Heading 1">H1</button>
-                        <button onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={`p-1.5 rounded hover:bg-gray-100 text-xs font-bold ${editor.isActive('heading', { level: 2 }) ? 'text-blue-600 bg-blue-50' : 'text-gray-600'}`} title="Heading 2">H2</button>
-                        <button onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} className={`p-1.5 rounded hover:bg-gray-100 text-xs font-bold ${editor.isActive('heading', { level: 3 }) ? 'text-blue-600 bg-blue-50' : 'text-gray-600'}`} title="Heading 3">H3</button>
-                        
-                        <div className="w-px h-4 bg-gray-200 mx-0.5"></div>
-                        
-                        {/* Lists */}
-                        <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={`p-1.5 rounded hover:bg-gray-100 ${editor.isActive('bulletList') ? 'text-blue-600 bg-blue-50' : 'text-gray-600'}`} title="Bullet List"><List size={14} /></button>
-                        <button onClick={() => editor.chain().focus().toggleOrderedList().run()} className={`p-1.5 rounded hover:bg-gray-100 ${editor.isActive('orderedList') ? 'text-blue-600 bg-blue-50' : 'text-gray-600'}`} title="Numbered List"><ListOrdered size={14} /></button>
-                        <button onClick={() => editor.chain().focus().toggleTaskList().run()} className={`p-1.5 rounded hover:bg-gray-100 ${editor.isActive('taskList') ? 'text-blue-600 bg-blue-50' : 'text-gray-600'}`} title="Task List"><CheckSquare size={14} /></button>
-                        
-                        <div className="w-px h-4 bg-gray-200 mx-0.5"></div>
-                        
-                        {/* Alignment */}
-                        <button onClick={() => editor.chain().focus().setTextAlign('left').run()} className={`p-1.5 rounded hover:bg-gray-100 ${editor.isActive({ textAlign: 'left' }) ? 'text-blue-600 bg-blue-50' : 'text-gray-600'}`} title="Align Left"><AlignLeft size={14} /></button>
-                        <button onClick={() => editor.chain().focus().setTextAlign('center').run()} className={`p-1.5 rounded hover:bg-gray-100 ${editor.isActive({ textAlign: 'center' }) ? 'text-blue-600 bg-blue-50' : 'text-gray-600'}`} title="Align Center"><AlignCenter size={14} /></button>
-                        <button onClick={() => editor.chain().focus().setTextAlign('right').run()} className={`p-1.5 rounded hover:bg-gray-100 ${editor.isActive({ textAlign: 'right' }) ? 'text-blue-600 bg-blue-50' : 'text-gray-600'}`} title="Align Right"><AlignRight size={14} /></button>
-                        
-                        <div className="w-px h-4 bg-gray-200 mx-0.5"></div>
-                        
-                        {/* Link */}
-                        <button 
-                            onClick={() => {
-                                const url = prompt('Enter URL:', editor.getAttributes('link').href || 'https://');
-                                if (url === null) return;
-                                if (url === '') {
-                                    editor.chain().focus().unsetLink().run();
-                                } else {
-                                    editor.chain().focus().setLink({ href: url }).run();
-                                }
-                            }} 
-                            className={`p-1.5 rounded hover:bg-gray-100 ${editor.isActive('link') ? 'text-blue-600 bg-blue-50' : 'text-gray-600'}`} 
-                            title="Insert Link"
-                        >
-                            <LinkIcon size={14} />
-                        </button>
-                        
-                        {/* Quick Colors */}
-                        <button onClick={() => editor.chain().focus().toggleHighlight({ color: '#fef08a' }).run()} className={`p-1.5 rounded hover:bg-gray-100 ${editor.isActive('highlight') ? 'text-yellow-600 bg-yellow-50' : 'text-gray-600'}`} title="Highlight"><Highlighter size={14} /></button>
-                        
-                        {/* Clear Formatting */}
-                        <button onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()} className="p-1.5 rounded hover:bg-gray-100 text-gray-600" title="Clear Formatting"><span className="text-xs font-bold">Tx</span></button>
-                        
-                        {/* AI */}
-                        {isAIPaletteEnabled && (
-                            <>
-                                <div className="w-px h-4 bg-gray-200 mx-0.5"></div>
-                                <button onClick={handleOpenAIPalette} className="p-1.5 rounded hover:bg-purple-50 text-purple-600 font-medium text-xs flex items-center gap-1" title="AI Assistant">✨ AI</button>
-                            </>
-                        )}
-                    </div>
-                </BubbleMenu>
-            )}
+            <DocEditorBubbleMenu
+                editor={editor}
+                fontFamilyOptions={fontFamilyOptions}
+                fontSizeOptions={fontSizeOptions}
+                currentFontFamilyId={currentFontFamilyId}
+                currentFontSizeValue={currentFontSizeValue}
+                isAIPaletteEnabled={isAIPaletteEnabled}
+                onOpenAIPalette={handleOpenAIPalette}
+                getFontStackById={getFontStackById}
+            />
 
             {isCanvasModeEnabled && (
                 <div aria-live="polite" className="sr-only">

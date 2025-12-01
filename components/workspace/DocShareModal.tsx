@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { DashboardData, DocVisibility, GTMDocLink, LinkedEntityType, Task, AnyCrmItem, Contact } from '../../types';
+import { DashboardData, DocVisibility, GTMDocLink, LinkedEntityType, Task, AnyCrmItem, Contact, PlanType, WorkspaceRole } from '../../types';
 import Modal from '../shared/Modal';
 import { DatabaseService } from '../../lib/services/database';
-import { Link2, Loader2, ShieldCheck, Users } from 'lucide-react';
+import { Link2, Loader2, ShieldCheck, Users, AlertTriangle, Crown } from 'lucide-react';
 
 interface DocShareModalProps {
     isOpen: boolean;
@@ -14,6 +14,11 @@ interface DocShareModalProps {
     data: DashboardData;
     onVisibilityChange?: (nextVisibility: DocVisibility) => void;
     onLinksUpdated?: () => void;
+    // Permission-related props
+    isDocOwner?: boolean;
+    workspaceRole?: WorkspaceRole;
+    planType?: PlanType;
+    onUpgradeNeeded?: () => void;
 }
 
 type ShareTarget = {
@@ -38,8 +43,8 @@ const formatDueDate = (date?: string) => {
     if (!date) return null;
     try {
         return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(date));
-    } catch (error) {
-        console.warn('Unable to format due date', error);
+    } catch (err) {
+        console.warn('Unable to format due date', err);
         return date;
     }
 };
@@ -54,6 +59,10 @@ export const DocShareModal: React.FC<DocShareModalProps> = ({
     data,
     onVisibilityChange,
     onLinksUpdated,
+    isDocOwner = true,
+    workspaceRole = 'member',
+    planType = 'free',
+    onUpgradeNeeded,
 }) => {
     const [linkedEntities, setLinkedEntities] = useState<GTMDocLink[]>([]);
     const [loadingLinks, setLoadingLinks] = useState(false);
@@ -62,6 +71,13 @@ export const DocShareModal: React.FC<DocShareModalProps> = ({
     const [searchQuery, setSearchQuery] = useState('');
     const [filter, setFilter] = useState<ShareFilter>('all');
     const [localVisibility, setLocalVisibility] = useState<DocVisibility>(visibility);
+    const [error, setError] = useState<string | null>(null);
+
+    // Permission checks
+    const canChangeVisibility = isDocOwner || workspaceRole === 'owner' || workspaceRole === 'admin';
+    const canLinkEntities = planType !== 'free' || linkedEntities.length < 3; // Free tier: max 3 links
+    const isFreeTier = planType === 'free';
+    const maxLinksReached = isFreeTier && linkedEntities.length >= 3;
 
     const allTasks: Task[] = useMemo(() => [
         ...(data.productsServicesTasks || []),
@@ -201,12 +217,25 @@ export const DocShareModal: React.FC<DocShareModalProps> = ({
 
     const handleVisibilityUpdate = async (nextVisibility: DocVisibility) => {
         if (nextVisibility === localVisibility) return;
+        
+        // Permission check
+        if (!canChangeVisibility) {
+            setError('You do not have permission to change this document\'s visibility.');
+            return;
+        }
+        
+        setError(null);
         try {
             setUpdatingVisibility(true);
-            const { error } = await DatabaseService.updateGTMDoc(docId, workspaceId, { visibility: nextVisibility });
-            if (error) {
-                console.error('Failed to update visibility', error);
-                alert('Failed to update visibility.');
+            const { error: updateError } = await DatabaseService.updateGTMDoc(docId, workspaceId, { visibility: nextVisibility });
+            if (updateError) {
+                console.error('Failed to update visibility', updateError);
+                // Check for RLS permission error
+                if (updateError.message?.includes('permission') || updateError.code === '42501') {
+                    setError('Permission denied: You cannot change this document\'s visibility.');
+                } else {
+                    setError('Failed to update visibility. Please try again.');
+                }
                 return;
             }
             setLocalVisibility(nextVisibility);
@@ -217,13 +246,28 @@ export const DocShareModal: React.FC<DocShareModalProps> = ({
     };
 
     const handleAttachTarget = async (target: ShareTarget) => {
+        // Check if user can link entities (free tier limit)
+        if (!canLinkEntities) {
+            if (onUpgradeNeeded) {
+                onUpgradeNeeded();
+            } else {
+                setError('Free plan is limited to 3 entity links. Upgrade to link more.');
+            }
+            return;
+        }
+        
+        setError(null);
         try {
             const key = `${target.type}:${target.id}`;
             setLinkingKey(key);
-            const { error } = await DatabaseService.linkDocToEntity(docId, workspaceId, target.type, target.id);
-            if (error) {
-                console.error('Failed to link doc', error);
-                alert('Failed to attach document to target.');
+            const { error: linkError } = await DatabaseService.linkDocToEntity(docId, workspaceId, target.type, target.id);
+            if (linkError) {
+                console.error('Failed to link doc', linkError);
+                if (linkError.message?.includes('permission') || linkError.code === '42501') {
+                    setError('Permission denied: Cannot link to this entity.');
+                } else {
+                    setError('Failed to attach document to target.');
+                }
                 return;
             }
             await loadLinkedEntities();
@@ -236,10 +280,15 @@ export const DocShareModal: React.FC<DocShareModalProps> = ({
 
     const handleRemoveLink = async (linkId: string) => {
         if (!window.confirm('Remove this share link?')) return;
-        const { error } = await DatabaseService.unlinkDocFromEntity(linkId);
-        if (error) {
-            console.error('Failed to remove link', error);
-            alert('Failed to remove link.');
+        setError(null);
+        const { error: unlinkError } = await DatabaseService.unlinkDocFromEntity(linkId);
+        if (unlinkError) {
+            console.error('Failed to remove link', unlinkError);
+            if (unlinkError.message?.includes('permission') || unlinkError.code === '42501') {
+                setError('Permission denied: Cannot remove this link.');
+            } else {
+                setError('Failed to remove link.');
+            }
             return;
         }
         await loadLinkedEntities();
@@ -274,19 +323,39 @@ export const DocShareModal: React.FC<DocShareModalProps> = ({
             size="lg"
         >
             <div className="space-y-6">
+                {/* Error display */}
+                {error && (
+                    <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                        <AlertTriangle size={16} />
+                        <span>{error}</span>
+                        <button 
+                            onClick={() => setError(null)} 
+                            className="ml-auto text-red-500 hover:text-red-700"
+                        >
+                            ×
+                        </button>
+                    </div>
+                )}
+
                 <section>
-                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Visibility</h4>
+                    <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-semibold text-gray-700">Visibility</h4>
+                        {!canChangeVisibility && (
+                            <span className="text-xs text-gray-500 italic">Only owners and admins can change visibility</span>
+                        )}
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {visibilityOptions.map((option) => {
                             const isActive = option.value === localVisibility;
+                            const isDisabled = updatingVisibility || !canChangeVisibility;
                             return (
                                 <button
                                     key={option.value}
                                     onClick={() => handleVisibilityUpdate(option.value)}
-                                    disabled={updatingVisibility}
+                                    disabled={isDisabled}
                                     className={`flex items-start gap-3 border rounded-xl px-3 py-3 text-left transition ${
                                         isActive ? 'border-black bg-yellow-100' : 'border-gray-200 hover:border-gray-400'
-                                    } ${updatingVisibility ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                    } ${isDisabled ? 'opacity-60 cursor-not-allowed' : ''}`}
                                 >
                                     <div className={`mt-1 ${isActive ? 'text-black' : 'text-gray-500'}`}>{option.icon}</div>
                                     <div>
@@ -339,19 +408,45 @@ export const DocShareModal: React.FC<DocShareModalProps> = ({
                 </section>
 
                 <section>
-                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Attach to workspace item</h4>
+                    <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-semibold text-gray-700">Attach to workspace item</h4>
+                        {isFreeTier && (
+                            <span className="text-xs text-gray-500">
+                                {linkedEntities.length}/3 links used
+                            </span>
+                        )}
+                    </div>
+                    
+                    {/* Free tier limit warning */}
+                    {maxLinksReached && (
+                        <div className="flex items-center gap-2 p-3 mb-3 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-sm">
+                            <Crown size={16} />
+                            <span>Free plan limit reached. Upgrade to link more items.</span>
+                            {onUpgradeNeeded && (
+                                <button 
+                                    onClick={onUpgradeNeeded}
+                                    className="ml-auto text-yellow-700 hover:text-yellow-900 font-semibold"
+                                >
+                                    Upgrade
+                                </button>
+                            )}
+                        </div>
+                    )}
+                    
                     <div className="flex flex-col md:flex-row gap-2 mb-3">
                         <input
                             type="text"
                             placeholder="Search tasks or accounts..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm"
+                            disabled={maxLinksReached}
+                            className={`flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm ${maxLinksReached ? 'opacity-50 cursor-not-allowed' : ''}`}
                         />
                         <select
                             value={filter}
                             onChange={(e) => setFilter(e.target.value as ShareFilter)}
-                            className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full md:w-44"
+                            disabled={maxLinksReached}
+                            className={`border border-gray-300 rounded-md px-3 py-2 text-sm w-full md:w-44 ${maxLinksReached ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             <option value="all">All types</option>
                             <option value="task">Tasks</option>
@@ -361,7 +456,9 @@ export const DocShareModal: React.FC<DocShareModalProps> = ({
                         </select>
                     </div>
 
-                    {filteredTargets.length === 0 ? (
+                    {maxLinksReached ? (
+                        <p className="text-xs text-gray-500">Upgrade to add more entity links.</p>
+                    ) : filteredTargets.length === 0 ? (
                         <p className="text-xs text-gray-500">No workspace items match that search.</p>
                     ) : (
                         <div className="space-y-2 max-h-64 overflow-y-auto pr-1">

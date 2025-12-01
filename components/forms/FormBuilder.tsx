@@ -23,8 +23,13 @@ import { Input } from '../ui/Input';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Select } from '../ui/Select';
-import { Checkbox } from '../ui/Checkbox';
-import { Upload } from 'lucide-react';
+import { withRetry } from '../../lib/utils/retry';
+import { FormFieldToolbox } from './FormFieldToolbox';
+import { FormPreview } from './FormPreview';
+import { FormFieldEditor } from './FormFieldEditor';
+import { FormSettingsPanel } from './FormSettingsPanel';
+import { FormDesignPanel } from './FormDesignPanel';
+import { FormIntegrationsPanel } from './FormIntegrationsPanel';
 import {
   Form,
   FormField,
@@ -63,18 +68,6 @@ interface FormBuilderProps {
 
 // Form type for internal use (supports form, survey, poll)
 type FormType = 'form' | 'survey' | 'poll' | 'quiz' | 'feedback';
-
-// CRM field mapping options
-const CRM_FIELD_MAPPINGS = [
-  { value: '', label: 'No mapping' },
-  { value: 'name', label: 'Contact Name' },
-  { value: 'email', label: 'Email Address' },
-  { value: 'phone', label: 'Phone Number' },
-  { value: 'company', label: 'Company Name' },
-  { value: 'title', label: 'Job Title' },
-  { value: 'website', label: 'Website' },
-  { value: 'notes', label: 'Notes' },
-];
 
 // Sortable Field Component
 const SortableField: React.FC<{
@@ -316,6 +309,111 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({
   const [defaultCrmType, setDefaultCrmType] = useState<string>((form as any)?.default_crm_type || 'customer');
   const [loadingIntegrations, setLoadingIntegrations] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [lastAutoSaved, setLastAutoSaved] = useState<Date | null>(null);
+  
+  // Autosave refs
+  const autosaveDebounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autosaveIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  const isAutoSavingRef = React.useRef(false);
+  const AUTOSAVE_DEBOUNCE_MS = 3000; // 3 seconds after last change
+  const AUTOSAVE_INTERVAL_MS = 60000; // 60 second backup interval
+  
+  // Beforeunload guard for unsaved changes - prevents accidental data loss
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (state.isDirty) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes to this form. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [state.isDirty]);
+  
+  // Autosave function - silent save without UI blocking
+  const performAutosave = useCallback(async () => {
+    if (isAutoSavingRef.current || !state.isDirty || !form?.id) return;
+    
+    isAutoSavingRef.current = true;
+    try {
+      const formWithIntegrations = {
+        ...state.form,
+        type: formType,
+        default_campaign_id: selectedCampaignId || null,
+        auto_create_contact: autoCreateContact,
+        default_crm_type: defaultCrmType,
+      };
+      
+      // Use retry wrapper for autosave - 2 attempts with short delays
+      await withRetry(
+        () => onSave(formWithIntegrations, state.fields),
+        {
+          maxAttempts: 2,
+          initialDelayMs: 500,
+          maxDelayMs: 2000,
+          onRetry: (attempt, err) => {
+            console.log('[FormBuilder] Autosave retry attempt', attempt, err);
+          },
+        }
+      );
+      
+      setState(prev => ({ ...prev, isDirty: false }));
+      setLastAutoSaved(new Date());
+      console.log('[FormBuilder] Autosave completed');
+    } catch (error) {
+      console.warn('[FormBuilder] Autosave failed (after retries):', error);
+    } finally {
+      isAutoSavingRef.current = false;
+    }
+  }, [state.isDirty, state.form, state.fields, form?.id, formType, selectedCampaignId, autoCreateContact, defaultCrmType, onSave]);
+  
+  // Autosave effect - debounced save on changes + periodic backup
+  useEffect(() => {
+    // Only autosave existing forms (not new unsaved forms)
+    if (!form?.id) return;
+    
+    // Debounced autosave after changes
+    if (state.isDirty) {
+      if (autosaveDebounceRef.current) {
+        clearTimeout(autosaveDebounceRef.current);
+      }
+      autosaveDebounceRef.current = setTimeout(() => {
+        performAutosave();
+      }, AUTOSAVE_DEBOUNCE_MS);
+    }
+    
+    // Periodic backup interval
+    if (!autosaveIntervalRef.current) {
+      autosaveIntervalRef.current = setInterval(() => {
+        if (state.isDirty) {
+          performAutosave();
+        }
+      }, AUTOSAVE_INTERVAL_MS);
+    }
+    
+    return () => {
+      if (autosaveDebounceRef.current) {
+        clearTimeout(autosaveDebounceRef.current);
+        autosaveDebounceRef.current = null;
+      }
+    };
+  }, [state.isDirty, form?.id, performAutosave]);
+  
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (autosaveIntervalRef.current) {
+        clearInterval(autosaveIntervalRef.current);
+        autosaveIntervalRef.current = null;
+      }
+      // Final save attempt on unmount if dirty
+      if (state.isDirty && form?.id) {
+        performAutosave();
+      }
+    };
+  }, []);
   
   // Load contacts and campaigns for integrations
   useEffect(() => {
@@ -551,8 +649,63 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({
     }
   };
 
-  // Publish form
+  // Validation state for publish errors
+  const [publishErrors, setPublishErrors] = React.useState<string[]>([]);
+
+  // Validate form before publishing
+  const validateForPublish = (): string[] => {
+    const errors: string[] = [];
+    
+    // Check form has a name
+    if (!state.form.name || state.form.name.trim() === '' || state.form.name === 'Untitled Form') {
+      errors.push('Form must have a name before publishing.');
+    }
+    
+    // Check form has at least one field
+    if (state.fields.length === 0) {
+      errors.push('Form must have at least one field.');
+    }
+    
+    // Check that required fields have labels
+    const fieldsWithoutLabels = state.fields.filter(f => !f.label || f.label.trim() === '');
+    if (fieldsWithoutLabels.length > 0) {
+      errors.push(`${fieldsWithoutLabels.length} field(s) are missing labels.`);
+    }
+    
+    // Check slug is set (if form has an ID/has been saved)
+    if (form?.id && (!state.form.slug || state.form.slug.trim() === '')) {
+      errors.push('Form needs a URL slug. Save the form first to generate one.');
+    }
+    
+    // Validate captcha settings if enabled
+    if (state.form.settings?.captchaEnabled) {
+      const captchaType = state.form.settings.captchaType;
+      if (!captchaType || captchaType === 'none') {
+        errors.push('Captcha is enabled but no captcha provider is selected.');
+      }
+    }
+    
+    // Check that email fields have valid patterns (if any)
+    const emailFields = state.fields.filter(f => f.type === 'email');
+    // Email validation is handled by browser, so just ensure they exist if marked required
+    
+    // Note: File upload validation is handled server-side via the form settings
+    // Client-side mime validation is in formService.ts
+    
+    return errors;
+  };
+
+  // Publish form with validation
   const handlePublish = async () => {
+    // Run validation first
+    const errors = validateForPublish();
+    setPublishErrors(errors);
+    
+    if (errors.length > 0) {
+      // Show errors to user - don't proceed with publish
+      return;
+    }
+    
     setIsSaving(true);
     try {
       const formWithIntegrations = {
@@ -570,8 +723,10 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({
         form: { ...prev.form, status: 'published', visibility: 'public' },
         isDirty: false 
       }));
+      setPublishErrors([]); // Clear errors on success
     } catch (error) {
       console.error('Error publishing form:', error);
+      setPublishErrors(['Failed to publish form. Please try again.']);
     } finally {
       setIsSaving(false);
     }
@@ -647,9 +802,15 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({
               <Badge variant={state.form.status === 'published' ? 'success' : 'warning'} size="sm">
                 {state.form.status || 'draft'}
               </Badge>
-              {state.isDirty && (
-                <Badge variant="info" size="sm">Unsaved</Badge>
-              )}
+              {state.isDirty ? (
+                <span title="Changes will be auto-saved">
+                  <Badge variant="info" size="sm">Unsaved</Badge>
+                </span>
+              ) : lastAutoSaved ? (
+                <span className="text-xs text-gray-500" title={`Last saved: ${lastAutoSaved.toLocaleTimeString()}`}>
+                  ✓ Saved
+                </span>
+              ) : null}
               {/* Share link for published forms */}
               {state.form.status === 'published' && state.form.slug && (
                 <div className="flex items-center gap-1 ml-2 px-2 py-1 bg-green-50 border border-green-200 rounded text-xs">
@@ -727,507 +888,45 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({
             </Button>
           </div>
         </div>
+        
+        {/* Publish Validation Errors */}
+        {publishErrors.length > 0 && (
+          <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-start gap-2">
+              <span className="text-red-500 text-lg">⚠️</span>
+              <div>
+                <p className="text-sm font-semibold text-red-800 mb-1">Cannot publish form:</p>
+                <ul className="text-sm text-red-700 list-disc list-inside space-y-1">
+                  {publishErrors.map((error, idx) => (
+                    <li key={idx}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+              <button 
+                onClick={() => setPublishErrors([])}
+                className="ml-auto text-red-500 hover:text-red-700"
+                title="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main Content */}
       <div className="flex-1 flex min-h-0 overflow-hidden">
         {/* Left Panel - Field Types */}
-        <div className="w-64 flex-shrink-0 border-r-2 border-black bg-white overflow-y-auto">
-          <div className="p-4">
-            <h3 className="text-sm font-mono font-bold text-black mb-3 uppercase tracking-wider">Add Fields</h3>
-            
-            {(['input', 'choice', 'advanced', 'layout'] as const).map(category => (
-              <div key={category} className="mb-4">
-                <p className="text-xs font-mono text-gray-500 uppercase mb-2">
-                  {category === 'input' ? 'Input Fields' :
-                   category === 'choice' ? 'Choice Fields' :
-                   category === 'advanced' ? 'Advanced' : 'Layout'}
-                </p>
-                <div className="space-y-1">
-                  {FORM_FIELD_TYPES.filter(f => f.category === category).map(fieldType => (
-                    <button
-                      key={fieldType.type}
-                      onClick={() => addField(fieldType.type)}
-                      className="w-full flex items-center gap-2 p-2 text-sm text-gray-700 hover:bg-yellow-100 hover:text-black transition-colors text-left border border-transparent hover:border-black"
-                      title={fieldType.description}
-                    >
-                      <span className="text-base">{
-                        fieldType.icon === 'Type' ? '✏️' :
-                        fieldType.icon === 'Mail' ? '📧' :
-                        fieldType.icon === 'Phone' ? '📱' :
-                        fieldType.icon === 'Hash' ? '#️⃣' :
-                        fieldType.icon === 'AlignLeft' ? '📝' :
-                        fieldType.icon === 'ChevronDown' ? '⬇️' :
-                        fieldType.icon === 'ListChecks' ? '☑️' :
-                        fieldType.icon === 'Circle' ? '🔘' :
-                        fieldType.icon === 'CheckSquare' ? '✅' :
-                        fieldType.icon === 'Calendar' ? '📅' :
-                        fieldType.icon === 'Clock' ? '🕐' :
-                        fieldType.icon === 'Upload' ? '📤' :
-                        fieldType.icon === 'Star' ? '⭐' :
-                        fieldType.icon === 'BarChart2' ? '📊' :
-                        fieldType.icon === 'Heading' ? '🔠' :
-                        fieldType.icon === 'FileText' ? '📄' :
-                        fieldType.icon === 'Minus' ? '➖' :
-                        fieldType.icon === 'Image' ? '🖼️' :
-                        '📋'
-                      }</span>
-                      <span className="truncate">{fieldType.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <FormFieldToolbox onAddField={addField} />
 
         {/* Center - Form Canvas */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {state.isPreviewMode ? (
-            <div className="flex-1 overflow-y-auto p-8" style={{ backgroundColor: state.form.theme?.backgroundColor || '#F3F4F6' }}>
-              <div 
-                className="max-w-2xl mx-auto bg-white border-2 border-black shadow-neo p-8"
-                style={{ 
-                  fontFamily: state.form.theme?.fontFamily || 'Inter, system-ui, sans-serif',
-                  borderRadius: state.form.theme?.borderRadius || '8px',
-                }}
-              >
-                {/* Logo */}
-                {state.form.branding?.logoUrl && state.form.branding?.logoPosition !== 'hidden' && (
-                  <div className={`mb-6 ${
-                    state.form.branding.logoPosition === 'center' ? 'text-center' : 
-                    state.form.branding.logoPosition === 'right' ? 'text-right' : 'text-left'
-                  }`}>
-                    <img
-                      src={state.form.branding.logoUrl}
-                      alt="Logo"
-                      className={`inline-block ${
-                        state.form.branding.logoSize === 'small' ? 'h-8' : 
-                        state.form.branding.logoSize === 'large' ? 'h-16' : 'h-12'
-                      }`}
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                    />
-                  </div>
-                )}
-                
-                {/* Progress Bar */}
-                {state.form.settings?.showProgressBar && (
-                  <div className="mb-6">
-                    <div className="h-2 bg-gray-200 border border-gray-300" style={{ borderRadius: state.form.theme?.borderRadius || '8px' }}>
-                      <div
-                        className="h-full transition-all duration-300"
-                        style={{ 
-                          width: '33%', 
-                          backgroundColor: state.form.theme?.primaryColor || '#8B5CF6',
-                          borderRadius: state.form.theme?.borderRadius || '8px',
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-                
-                <h1 
-                  className="text-3xl font-bold mb-2"
-                  style={{ color: state.form.theme?.textColor || '#1F2937' }}
-                >
-                  {state.form.name}
-                </h1>
-                {state.form.description && (
-                  <p 
-                    className="mb-6"
-                    style={{ color: state.form.theme?.textColor || '#6B7280', opacity: 0.7 }}
-                  >
-                    {state.form.description}
-                  </p>
-                )}
-                <div className={`space-y-${state.form.theme?.spacing === 'compact' ? '4' : state.form.theme?.spacing === 'relaxed' ? '8' : '6'}`}>
-                  {state.fields.map((field, index) => (
-                    <div key={field.id} className="space-y-2">
-                      {field.type === 'heading' ? (
-                        <h2 
-                          className="text-xl font-bold mt-4"
-                          style={{ color: state.form.theme?.textColor || '#1F2937' }}
-                        >
-                          {field.label}
-                        </h2>
-                      ) : field.type === 'paragraph' ? (
-                        <p style={{ color: state.form.theme?.textColor || '#6B7280' }}>
-                          {field.description || field.label}
-                        </p>
-                      ) : field.type === 'divider' ? (
-                        <hr className="border-2 border-gray-200 my-4" />
-                      ) : (
-                        <>
-                          <label 
-                            className="block font-mono text-sm font-semibold"
-                            style={{ color: state.form.theme?.textColor || '#1F2937' }}
-                          >
-                            {state.form.settings?.showQuestionNumbers && `${index + 1}. `}
-                            {field.label}
-                            {field.required && <span style={{ color: state.form.theme?.errorColor || '#EF4444' }} className="ml-1">*</span>}
-                          </label>
-                          
-                          {/* Text inputs */}
-                          {(field.type === 'text' || field.type === 'email' || field.type === 'phone' || field.type === 'number') && (
-                            <input
-                              type={field.type === 'email' ? 'email' : field.type === 'phone' ? 'tel' : field.type === 'number' ? 'number' : 'text'}
-                              placeholder={field.placeholder || ''}
-                              className="w-full p-3 border-2"
-                              style={{ 
-                                borderColor: state.form.theme?.borderColor || '#E5E7EB',
-                                borderRadius: state.form.theme?.borderRadius || '8px',
-                                backgroundColor: state.form.theme?.inputBackground || '#F9FAFB',
-                              }}
-                            />
-                          )}
-                          
-                          {/* Textarea */}
-                          {field.type === 'textarea' && (
-                            <textarea
-                              placeholder={field.placeholder || ''}
-                              className="w-full p-3 border-2"
-                              rows={4}
-                              style={{ 
-                                borderColor: state.form.theme?.borderColor || '#E5E7EB',
-                                borderRadius: state.form.theme?.borderRadius || '8px',
-                                backgroundColor: state.form.theme?.inputBackground || '#F9FAFB',
-                              }}
-                            />
-                          )}
-                          
-                          {/* Select dropdown */}
-                          {field.type === 'select' && (
-                            <select
-                              className="w-full p-3 border-2"
-                              style={{ 
-                                borderColor: state.form.theme?.borderColor || '#E5E7EB',
-                                borderRadius: state.form.theme?.borderRadius || '8px',
-                                backgroundColor: state.form.theme?.inputBackground || '#F9FAFB',
-                              }}
-                            >
-                              <option value="">{field.placeholder || 'Select...'}</option>
-                              {field.options?.map(opt => (
-                                <option key={opt.id} value={opt.value}>{opt.label}</option>
-                              ))}
-                            </select>
-                          )}
-                          
-                          {/* Radio buttons */}
-                          {field.type === 'radio' && (
-                            <div className="space-y-2">
-                              {field.options?.map(opt => (
-                                <label
-                                  key={opt.id}
-                                  className="flex items-center gap-3 p-3 border-2 cursor-pointer transition-colors hover:border-gray-400"
-                                  style={{ 
-                                    borderColor: state.form.theme?.borderColor || '#E5E7EB',
-                                    borderRadius: state.form.theme?.borderRadius || '8px',
-                                  }}
-                                >
-                                  <input type="radio" name={field.id} value={opt.value} className="w-4 h-4" />
-                                  <span style={{ color: state.form.theme?.textColor || '#1F2937' }}>{opt.label}</span>
-                                </label>
-                              ))}
-                            </div>
-                          )}
-                          
-                          {/* Checkboxes */}
-                          {field.type === 'checkbox' && (
-                            <div className="space-y-2">
-                              {field.options?.map(opt => (
-                                <label
-                                  key={opt.id}
-                                  className="flex items-center gap-3 p-3 border-2 cursor-pointer transition-colors hover:border-gray-400"
-                                  style={{ 
-                                    borderColor: state.form.theme?.borderColor || '#E5E7EB',
-                                    borderRadius: state.form.theme?.borderRadius || '8px',
-                                  }}
-                                >
-                                  <input type="checkbox" value={opt.value} className="w-4 h-4" />
-                                  <span style={{ color: state.form.theme?.textColor || '#1F2937' }}>{opt.label}</span>
-                                </label>
-                              ))}
-                            </div>
-                          )}
-                          
-                          {/* Date */}
-                          {field.type === 'date' && (
-                            <input
-                              type="date"
-                              className="w-full p-3 border-2"
-                              style={{ 
-                                borderColor: state.form.theme?.borderColor || '#E5E7EB',
-                                borderRadius: state.form.theme?.borderRadius || '8px',
-                                backgroundColor: state.form.theme?.inputBackground || '#F9FAFB',
-                              }}
-                            />
-                          )}
-                          
-                          {/* Time */}
-                          {field.type === 'time' && (
-                            <input
-                              type="time"
-                              className="w-full p-3 border-2"
-                              style={{ 
-                                borderColor: state.form.theme?.borderColor || '#E5E7EB',
-                                borderRadius: state.form.theme?.borderRadius || '8px',
-                                backgroundColor: state.form.theme?.inputBackground || '#F9FAFB',
-                              }}
-                            />
-                          )}
-                          
-                          {/* DateTime */}
-                          {field.type === 'datetime' && (
-                            <input
-                              type="datetime-local"
-                              className="w-full p-3 border-2"
-                              style={{ 
-                                borderColor: state.form.theme?.borderColor || '#E5E7EB',
-                                borderRadius: state.form.theme?.borderRadius || '8px',
-                                backgroundColor: state.form.theme?.inputBackground || '#F9FAFB',
-                              }}
-                            />
-                          )}
-                          
-                          {/* Rating (Stars) */}
-                          {field.type === 'rating' && (
-                            <div className="flex gap-2">
-                              {[1, 2, 3, 4, 5].map(n => (
-                                <button
-                                  key={n}
-                                  type="button"
-                                  className="text-3xl hover:scale-110 transition-transform"
-                                  style={{ color: state.form.theme?.primaryColor || '#8B5CF6' }}
-                                >
-                                  ☆
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                          
-                          {/* NPS */}
-                          {field.type === 'nps' && (
-                            <div>
-                              <div className="flex gap-1 flex-wrap">
-                                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
-                                  <button
-                                    key={n}
-                                    type="button"
-                                    className="w-10 h-10 border-2 flex items-center justify-center text-sm transition-all hover:border-gray-400"
-                                    style={{ 
-                                      borderColor: state.form.theme?.borderColor || '#E5E7EB',
-                                      borderRadius: state.form.theme?.borderRadius || '8px',
-                                      backgroundColor: n <= 6 ? '#FEF2F2' : n <= 8 ? '#FEF9C3' : '#DCFCE7',
-                                    }}
-                                  >
-                                    {n}
-                                  </button>
-                                ))}
-                              </div>
-                              <div className="flex justify-between mt-2 text-xs" style={{ color: state.form.theme?.textColor || '#6B7280', opacity: 0.6 }}>
-                                <span>Not likely at all</span>
-                                <span>Extremely likely</span>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Scale (e.g., 1-7) */}
-                          {field.type === 'scale' && (
-                            <div>
-                              <div className="flex gap-2 items-center justify-between">
-                                <span className="text-sm" style={{ color: state.form.theme?.textColor || '#6B7280' }}>
-                                  {(field as any).scale_min_label || 'Strongly Disagree'}
-                                </span>
-                                <div className="flex gap-1">
-                                  {Array.from({ length: (field as any).scale_max || 7 }, (_, i) => i + 1).map(n => (
-                                    <button
-                                      key={n}
-                                      type="button"
-                                      className="w-10 h-10 border-2 flex items-center justify-center text-sm transition-all hover:border-gray-400"
-                                      style={{ 
-                                        borderColor: state.form.theme?.borderColor || '#E5E7EB',
-                                        borderRadius: state.form.theme?.borderRadius || '8px',
-                                      }}
-                                    >
-                                      {n}
-                                    </button>
-                                  ))}
-                                </div>
-                                <span className="text-sm" style={{ color: state.form.theme?.textColor || '#6B7280' }}>
-                                  {(field as any).scale_max_label || 'Strongly Agree'}
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* File Upload */}
-                          {field.type === 'file' && (
-                            <div 
-                              className="border-2 border-dashed p-8 text-center"
-                              style={{ 
-                                borderColor: state.form.theme?.borderColor || '#E5E7EB',
-                                borderRadius: state.form.theme?.borderRadius || '8px',
-                              }}
-                            >
-                              <span className="text-4xl block mb-2">📤</span>
-                              <p style={{ color: state.form.theme?.textColor || '#6B7280' }}>
-                                Drag & drop or click to upload
-                              </p>
-                            </div>
-                          )}
-                          
-                          {/* Signature */}
-                          {field.type === 'signature' && (
-                            <div 
-                              className="border-2 p-4 text-center h-32 flex items-center justify-center"
-                              style={{ 
-                                borderColor: state.form.theme?.borderColor || '#E5E7EB',
-                                borderRadius: state.form.theme?.borderRadius || '8px',
-                                backgroundColor: state.form.theme?.inputBackground || '#F9FAFB',
-                              }}
-                            >
-                              <div>
-                                <span className="text-3xl block mb-2">✍️</span>
-                                <p className="text-sm" style={{ color: state.form.theme?.textColor || '#6B7280' }}>
-                                  Click or tap to sign
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Address */}
-                          {field.type === 'address' && (
-                            <div className="space-y-3">
-                              <input
-                                type="text"
-                                placeholder="Street Address"
-                                className="w-full p-3 border-2"
-                                style={{ 
-                                  borderColor: state.form.theme?.borderColor || '#E5E7EB',
-                                  borderRadius: state.form.theme?.borderRadius || '8px',
-                                  backgroundColor: state.form.theme?.inputBackground || '#F9FAFB',
-                                }}
-                              />
-                              <input
-                                type="text"
-                                placeholder="Address Line 2"
-                                className="w-full p-3 border-2"
-                                style={{ 
-                                  borderColor: state.form.theme?.borderColor || '#E5E7EB',
-                                  borderRadius: state.form.theme?.borderRadius || '8px',
-                                  backgroundColor: state.form.theme?.inputBackground || '#F9FAFB',
-                                }}
-                              />
-                              <div className="grid grid-cols-3 gap-3">
-                                <input
-                                  type="text"
-                                  placeholder="City"
-                                  className="p-3 border-2"
-                                  style={{ 
-                                    borderColor: state.form.theme?.borderColor || '#E5E7EB',
-                                    borderRadius: state.form.theme?.borderRadius || '8px',
-                                    backgroundColor: state.form.theme?.inputBackground || '#F9FAFB',
-                                  }}
-                                />
-                                <input
-                                  type="text"
-                                  placeholder="State"
-                                  className="p-3 border-2"
-                                  style={{ 
-                                    borderColor: state.form.theme?.borderColor || '#E5E7EB',
-                                    borderRadius: state.form.theme?.borderRadius || '8px',
-                                    backgroundColor: state.form.theme?.inputBackground || '#F9FAFB',
-                                  }}
-                                />
-                                <input
-                                  type="text"
-                                  placeholder="ZIP"
-                                  className="p-3 border-2"
-                                  style={{ 
-                                    borderColor: state.form.theme?.borderColor || '#E5E7EB',
-                                    borderRadius: state.form.theme?.borderRadius || '8px',
-                                    backgroundColor: state.form.theme?.inputBackground || '#F9FAFB',
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Multi-Select */}
-                          {field.type === 'multi_select' && (
-                            <div className="space-y-2">
-                              {field.options?.map(opt => (
-                                <label
-                                  key={opt.id}
-                                  className="flex items-center gap-3 p-3 border-2 cursor-pointer transition-colors hover:border-gray-400"
-                                  style={{ 
-                                    borderColor: state.form.theme?.borderColor || '#E5E7EB',
-                                    borderRadius: state.form.theme?.borderRadius || '8px',
-                                  }}
-                                >
-                                  <input type="checkbox" value={opt.value} className="w-4 h-4" />
-                                  <span style={{ color: state.form.theme?.textColor || '#1F2937' }}>{opt.label}</span>
-                                </label>
-                              ))}
-                            </div>
-                          )}
-                          
-                          {/* Image Block */}
-                          {field.type === 'image' && (
-                            <div 
-                              className="border-2 border-dashed p-8 text-center"
-                              style={{ 
-                                borderColor: state.form.theme?.borderColor || '#E5E7EB',
-                                borderRadius: state.form.theme?.borderRadius || '8px',
-                              }}
-                            >
-                              <span className="text-4xl block mb-2">🖼️</span>
-                              <p style={{ color: state.form.theme?.textColor || '#6B7280' }}>
-                                Drag & drop or click to upload image
-                              </p>
-                            </div>
-                          )}
-                          
-                          {/* Help text */}
-                          {field.help_text && (
-                            <p 
-                              className="text-xs"
-                              style={{ color: state.form.theme?.textColor || '#6B7280', opacity: 0.6 }}
-                            >
-                              {field.help_text}
-                            </p>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-8">
-                  <button
-                    className={`w-full py-3 font-semibold transition-colors ${
-                      state.form.theme?.buttonStyle === 'outlined' 
-                        ? 'bg-transparent border-2' 
-                        : state.form.theme?.buttonStyle === 'ghost'
-                        ? 'bg-transparent'
-                        : 'text-white'
-                    }`}
-                    style={{ 
-                      backgroundColor: state.form.theme?.buttonStyle === 'filled' ? (state.form.theme?.primaryColor || '#8B5CF6') : 'transparent',
-                      color: state.form.theme?.buttonStyle === 'filled' ? '#FFFFFF' : (state.form.theme?.primaryColor || '#8B5CF6'),
-                      borderColor: state.form.theme?.primaryColor || '#8B5CF6',
-                      borderRadius: state.form.theme?.borderRadius || '8px',
-                    }}
-                  >
-                    Submit
-                  </button>
-                </div>
-              </div>
-              <div className="text-center mt-4">
-                <Button variant="ghost" onClick={() => setState(prev => ({ ...prev, isPreviewMode: false }))}>
-                  ✕ Close Preview
-                </Button>
-              </div>
-            </div>
+            <FormPreview
+              form={state.form}
+              fields={state.fields}
+              onClosePreview={() => setState(prev => ({ ...prev, isPreviewMode: false }))}
+            />
           ) : (
             <div className="flex-1 overflow-y-auto p-8">
               <div className="max-w-2xl mx-auto">
@@ -1338,722 +1037,44 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({
 
           <div className="p-4">
             {activePanel === 'fields' && (
-              selectedField ? (
-                <div className="space-y-4">
-                  <h3 className="font-mono font-bold text-sm uppercase">Field Settings</h3>
-                  
-                  <Input
-                    id="field-label"
-                    label="Label"
-                    value={selectedField.label}
-                    onChange={(e) => updateField(selectedField.id, { label: e.target.value })}
-                  />
-                  
-                  {/* Description for paragraph/heading */}
-                  {(selectedField.type === 'paragraph' || selectedField.type === 'heading') && (
-                    <div className="space-y-1">
-                      <label htmlFor="field-description" className="block font-mono text-sm font-semibold">Content</label>
-                      <textarea
-                        id="field-description"
-                        value={selectedField.description || ''}
-                        onChange={(e) => updateField(selectedField.id, { description: e.target.value })}
-                        className="w-full p-2 border-2 border-black text-sm resize-none"
-                        rows={4}
-                        placeholder={selectedField.type === 'heading' ? 'Heading text...' : 'Paragraph text...'}
-                      />
-                    </div>
-                  )}
-                  
-                  {/* Placeholder for input fields */}
-                  {!['heading', 'paragraph', 'divider', 'image'].includes(selectedField.type) && (
-                    <Input
-                      id="field-placeholder"
-                      label="Placeholder"
-                      value={selectedField.placeholder || ''}
-                      onChange={(e) => updateField(selectedField.id, { placeholder: e.target.value })}
-                    />
-                  )}
-                  
-                  {/* Help text for interactive fields */}
-                  {!['heading', 'paragraph', 'divider', 'image'].includes(selectedField.type) && (
-                    <Input
-                      id="field-help-text"
-                      label="Help Text"
-                      value={selectedField.help_text || ''}
-                      onChange={(e) => updateField(selectedField.id, { help_text: e.target.value })}
-                    />
-                  )}
-
-                  {/* Required toggle - only for interactive fields */}
-                  {!['heading', 'paragraph', 'divider', 'image'].includes(selectedField.type) && (
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="field-required"
-                        checked={selectedField.required}
-                        onChange={(e) => updateField(selectedField.id, { required: e.target.checked })}
-                      />
-                      <label htmlFor="field-required" className="text-sm font-mono font-semibold">Required field</label>
-                    </div>
-                  )}
-
-                  {/* Options for select/radio/checkbox/multi_select */}
-                  {(selectedField.type === 'select' || selectedField.type === 'radio' || selectedField.type === 'checkbox' || selectedField.type === 'multi_select') && (
-                    <div className="space-y-2">
-                      <label className="block font-mono text-sm font-semibold">Options</label>
-                      {selectedField.options?.map((opt, idx) => (
-                        <div key={opt.id} className="flex gap-2">
-                          <input
-                            id={`option-${opt.id}`}
-                            value={opt.label}
-                            onChange={(e) => {
-                              const newOptions = [...(selectedField.options || [])];
-                              newOptions[idx] = { ...opt, label: e.target.value, value: e.target.value.toLowerCase().replace(/\s+/g, '_') };
-                              updateField(selectedField.id, { options: newOptions });
-                            }}
-                            className="flex-1 p-2 border-2 border-black text-sm"
-                            placeholder={`Option ${idx + 1}`}
-                          />
-                          <button
-                            onClick={() => {
-                              const newOptions = selectedField.options?.filter((_, i) => i !== idx);
-                              updateField(selectedField.id, { options: newOptions });
-                            }}
-                            className="px-2 text-red-600 hover:bg-red-50"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          const newOptions = [
-                            ...(selectedField.options || []),
-                            { id: uuidv4(), label: `Option ${(selectedField.options?.length || 0) + 1}`, value: `option_${(selectedField.options?.length || 0) + 1}` }
-                          ];
-                          updateField(selectedField.id, { options: newOptions });
-                        }}
-                      >
-                        + Add Option
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* CRM Field Mapping */}
-                  {(selectedField.type === 'text' || selectedField.type === 'email' || selectedField.type === 'phone' || selectedField.type === 'textarea') && (
-                    <div className="space-y-2 pt-4 border-t border-gray-200">
-                      <label className="block font-mono text-sm font-semibold">🔗 CRM Field Mapping</label>
-                      <Select
-                        id="field-crm-mapping"
-                        options={CRM_FIELD_MAPPINGS}
-                        value={(selectedField as any).crm_field_mapping || ''}
-                        onChange={(e) => updateField(selectedField.id, { crm_field_mapping: e.target.value } as any)}
-                      />
-                      <p className="text-xs text-gray-500">
-                        Map this field to a CRM contact property
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="pt-4 border-t border-gray-200">
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      onClick={() => deleteField(selectedField.id)}
-                    >
-                      🗑️ Delete Field
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center text-gray-500 py-8">
-                  <span className="text-4xl mb-4 block">⚙️</span>
-                  <p>Select a field to edit its properties</p>
-                </div>
-              )
+              <FormFieldEditor
+                selectedField={selectedField}
+                onUpdateField={updateField}
+                onDeleteField={deleteField}
+              />
             )}
 
             {activePanel === 'design' && (
-              <div className="space-y-4">
-                <h3 className="font-mono font-bold text-sm uppercase">Form Design</h3>
-                
-                <div>
-                  <label className="block font-mono text-sm font-semibold mb-2">Primary Color</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="color"
-                      value={state.form.theme?.primaryColor || '#8B5CF6'}
-                      onChange={(e) => updateForm({ 
-                        theme: { 
-                          ...DEFAULT_FORM_THEME,
-                          ...state.form.theme, 
-                          primaryColor: e.target.value 
-                        } 
-                      })}
-                      className="w-12 h-10 border-2 border-black cursor-pointer p-0"
-                    />
-                    <Input
-                      value={state.form.theme?.primaryColor || '#8B5CF6'}
-                      onChange={(e) => updateForm({ 
-                        theme: { 
-                          ...DEFAULT_FORM_THEME,
-                          ...state.form.theme, 
-                          primaryColor: e.target.value 
-                        } 
-                      })}
-                      placeholder="#8B5CF6"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-mono text-sm font-semibold mb-2">Background Color</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="color"
-                      value={state.form.theme?.backgroundColor || '#FFFFFF'}
-                      onChange={(e) => updateForm({ 
-                        theme: { 
-                          ...DEFAULT_FORM_THEME,
-                          ...state.form.theme, 
-                          backgroundColor: e.target.value 
-                        } 
-                      })}
-                      className="w-12 h-10 border-2 border-black cursor-pointer p-0"
-                    />
-                    <Input
-                      value={state.form.theme?.backgroundColor || '#FFFFFF'}
-                      onChange={(e) => updateForm({ 
-                        theme: { 
-                          ...DEFAULT_FORM_THEME,
-                          ...state.form.theme, 
-                          backgroundColor: e.target.value 
-                        } 
-                      })}
-                      placeholder="#FFFFFF"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-mono text-sm font-semibold mb-2">Text Color</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="color"
-                      value={state.form.theme?.textColor || '#1F2937'}
-                      onChange={(e) => updateForm({ 
-                        theme: { 
-                          ...DEFAULT_FORM_THEME,
-                          ...state.form.theme, 
-                          textColor: e.target.value 
-                        } 
-                      })}
-                      className="w-12 h-10 border-2 border-black cursor-pointer p-0"
-                    />
-                    <Input
-                      value={state.form.theme?.textColor || '#1F2937'}
-                      onChange={(e) => updateForm({ 
-                        theme: { 
-                          ...DEFAULT_FORM_THEME,
-                          ...state.form.theme, 
-                          textColor: e.target.value 
-                        } 
-                      })}
-                      placeholder="#1F2937"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-mono text-sm font-semibold mb-2">Accent Color</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="color"
-                      value={state.form.theme?.accentColor || '#8B5CF6'}
-                      onChange={(e) => updateForm({ 
-                        theme: { 
-                          ...DEFAULT_FORM_THEME,
-                          ...state.form.theme, 
-                          accentColor: e.target.value 
-                        } 
-                      })}
-                      className="w-12 h-10 border-2 border-black cursor-pointer p-0"
-                    />
-                    <Input
-                      value={state.form.theme?.accentColor || '#8B5CF6'}
-                      onChange={(e) => updateForm({ 
-                        theme: { 
-                          ...DEFAULT_FORM_THEME,
-                          ...state.form.theme, 
-                          accentColor: e.target.value 
-                        } 
-                      })}
-                      placeholder="#8B5CF6"
-                    />
-                  </div>
-                </div>
-
-                <Select
-                  label="Button Style"
-                  id="design-button-style"
-                  options={[
-                    { value: 'filled', label: 'Filled' },
-                    { value: 'outlined', label: 'Outlined' },
-                    { value: 'ghost', label: 'Ghost' },
-                  ]}
-                  value={state.form.theme?.buttonStyle || 'filled'}
-                  onChange={(e) => updateForm({ 
-                    theme: { 
-                      ...DEFAULT_FORM_THEME,
-                      ...state.form.theme, 
-                      buttonStyle: e.target.value as any 
-                    } 
-                  })}
-                />
-
-                <Select
-                  label="Font Family"
-                  id="design-font-family"
-                  options={[
-                    { value: 'Inter, system-ui, sans-serif', label: 'Inter (Modern)' },
-                    { value: 'Georgia, serif', label: 'Georgia (Classic)' },
-                    { value: 'monospace', label: 'Monospace (Technical)' },
-                    { value: 'Arial, sans-serif', label: 'Arial (Clean)' },
-                  ]}
-                  value={state.form.theme?.fontFamily || 'Inter, system-ui, sans-serif'}
-                  onChange={(e) => updateForm({ 
-                    theme: { 
-                      ...DEFAULT_FORM_THEME,
-                      ...state.form.theme, 
-                      fontFamily: e.target.value 
-                    } 
-                  })}
-                />
-
-                <Select
-                  label="Spacing"
-                  id="design-spacing"
-                  options={[
-                    { value: 'compact', label: 'Compact' },
-                    { value: 'normal', label: 'Normal' },
-                    { value: 'relaxed', label: 'Relaxed' },
-                  ]}
-                  value={state.form.theme?.spacing || 'normal'}
-                  onChange={(e) => updateForm({ 
-                    theme: { 
-                      ...DEFAULT_FORM_THEME,
-                      ...state.form.theme, 
-                      spacing: e.target.value as any 
-                    } 
-                  })}
-                />
-
-                <Select
-                  label="Border Radius"
-                  id="design-border-radius"
-                  options={[
-                    { value: '0px', label: 'None (Square)' },
-                    { value: '4px', label: 'Small' },
-                    { value: '8px', label: 'Medium' },
-                    { value: '12px', label: 'Large' },
-                    { value: '9999px', label: 'Pill' },
-                  ]}
-                  value={state.form.theme?.borderRadius || '8px'}
-                  onChange={(e) => updateForm({ 
-                    theme: { 
-                      ...DEFAULT_FORM_THEME,
-                      ...state.form.theme, 
-                      borderRadius: e.target.value 
-                    } 
-                  })}
-                />
-
-                <hr className="border-gray-200 my-4" />
-
-                <h4 className="font-mono font-bold text-sm uppercase">Branding</h4>
-
-                <div>
-                  <label className="block font-mono text-sm font-semibold mb-2">Logo</label>
-                  {state.form.branding?.logoUrl && (
-                    <div className="mb-2 p-2 bg-gray-50 border-2 border-gray-200 rounded flex items-center gap-2">
-                      <img 
-                        src={state.form.branding.logoUrl} 
-                        alt="Logo preview" 
-                        className="max-h-16 max-w-full object-contain"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => updateForm({ 
-                          branding: { 
-                            ...DEFAULT_FORM_BRANDING,
-                            ...state.form.branding, 
-                            logoUrl: '' 
-                          } 
-                        })}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  )}
-                  
-                  {/* File Upload Option */}
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <label 
-                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300 rounded cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-colors ${uploadingLogo ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      >
-                        <Upload className="w-4 h-4" />
-                        <span className="text-sm">{uploadingLogo ? 'Uploading...' : 'Upload Image'}</span>
-                        <input
-                          type="file"
-                          accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
-                          onChange={handleLogoUpload}
-                          disabled={uploadingLogo}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-400">or</span>
-                    </div>
-                    
-                    <Input
-                      id="design-logo-url"
-                      value={state.form.branding?.logoUrl || ''}
-                      onChange={(e) => updateForm({ 
-                        branding: { 
-                          ...DEFAULT_FORM_BRANDING,
-                          ...state.form.branding, 
-                          logoUrl: e.target.value 
-                        } 
-                      })}
-                      placeholder="https://your-logo-url.com/logo.png"
-                    />
-                    <p className="text-xs text-gray-500">
-                      Upload an image or enter a URL (PNG, JPG, SVG, WebP • Max 2MB)
-                    </p>
-                  </div>
-                </div>
-
-                <Select
-                  label="Logo Position"
-                  id="design-logo-position"
-                  options={[
-                    { value: 'left', label: 'Left' },
-                    { value: 'center', label: 'Center' },
-                    { value: 'right', label: 'Right' },
-                    { value: 'hidden', label: 'Hidden' },
-                  ]}
-                  value={state.form.branding?.logoPosition || 'left'}
-                  onChange={(e) => updateForm({ 
-                    branding: { 
-                      ...DEFAULT_FORM_BRANDING,
-                      ...state.form.branding, 
-                      logoPosition: e.target.value as any 
-                    } 
-                  })}
-                />
-
-                <Select
-                  label="Logo Size"
-                  id="design-logo-size"
-                  options={[
-                    { value: 'small', label: 'Small' },
-                    { value: 'medium', label: 'Medium' },
-                    { value: 'large', label: 'Large' },
-                  ]}
-                  value={state.form.branding?.logoSize || 'medium'}
-                  onChange={(e) => updateForm({ 
-                    branding: { 
-                      ...DEFAULT_FORM_BRANDING,
-                      ...state.form.branding, 
-                      logoSize: e.target.value as any 
-                    } 
-                  })}
-                />
-
-                {/* Theme Preview */}
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <label className="block font-mono text-sm font-semibold mb-2">Preview</label>
-                  <div 
-                    className="p-4 border-2 border-black"
-                    style={{ 
-                      backgroundColor: state.form.theme?.backgroundColor || '#FFFFFF',
-                      fontFamily: state.form.theme?.fontFamily || 'Inter, system-ui, sans-serif',
-                      borderRadius: state.form.theme?.borderRadius || '8px',
-                    }}
-                  >
-                    <p 
-                      className="text-sm font-semibold mb-2"
-                      style={{ color: state.form.theme?.textColor || '#1F2937' }}
-                    >
-                      Sample Question
-                    </p>
-                    <div 
-                      className="h-8 border-2 mb-2"
-                      style={{ 
-                        borderColor: state.form.theme?.primaryColor || '#8B5CF6',
-                        backgroundColor: state.form.theme?.inputBackground || '#F9FAFB',
-                        borderRadius: state.form.theme?.borderRadius || '8px',
-                      }}
-                    />
-                    <button
-                      className="px-4 py-2 text-sm font-semibold text-white"
-                      style={{ 
-                        backgroundColor: state.form.theme?.primaryColor || '#8B5CF6',
-                        borderRadius: state.form.theme?.borderRadius || '8px',
-                      }}
-                    >
-                      Submit
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <FormDesignPanel
+                form={state.form}
+                onUpdateForm={updateForm}
+                onLogoUpload={handleLogoUpload}
+                uploadingLogo={uploadingLogo}
+              />
             )}
 
             {activePanel === 'settings' && (
-              <div className="space-y-4">
-                <h3 className="font-mono font-bold text-sm uppercase">Form Settings</h3>
-                
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="settings-progress"
-                    checked={state.form.settings?.showProgressBar ?? true}
-                    onChange={(e) => updateForm({ settings: { ...DEFAULT_FORM_SETTINGS, ...state.form.settings, showProgressBar: e.target.checked } })}
-                  />
-                  <label htmlFor="settings-progress" className="text-sm">Show progress bar</label>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="settings-numbers"
-                    checked={state.form.settings?.showQuestionNumbers ?? false}
-                    onChange={(e) => updateForm({ settings: { ...DEFAULT_FORM_SETTINGS, ...state.form.settings, showQuestionNumbers: e.target.checked } })}
-                  />
-                  <label htmlFor="settings-numbers" className="text-sm">Show question numbers</label>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="settings-multiple"
-                    checked={state.form.settings?.allowMultipleSubmissions ?? true}
-                    onChange={(e) => updateForm({ settings: { ...DEFAULT_FORM_SETTINGS, ...state.form.settings, allowMultipleSubmissions: e.target.checked } })}
-                  />
-                  <label htmlFor="settings-multiple" className="text-sm">Allow multiple submissions</label>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="settings-shuffle"
-                    checked={state.form.settings?.shuffleQuestions ?? false}
-                    onChange={(e) => updateForm({ settings: { ...DEFAULT_FORM_SETTINGS, ...state.form.settings, shuffleQuestions: e.target.checked } })}
-                  />
-                  <label htmlFor="settings-shuffle" className="text-sm">Shuffle questions</label>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="settings-captcha"
-                    checked={state.form.settings?.captchaEnabled ?? false}
-                    onChange={(e) => updateForm({ settings: { ...DEFAULT_FORM_SETTINGS, ...state.form.settings, captchaEnabled: e.target.checked } })}
-                  />
-                  <label htmlFor="settings-captcha" className="text-sm">Enable CAPTCHA</label>
-                </div>
-
-                <Input
-                  id="settings-confirmation"
-                  label="Confirmation Message"
-                  value={state.form.settings?.confirmationMessage || ''}
-                  onChange={(e) => updateForm({ settings: { ...DEFAULT_FORM_SETTINGS, ...state.form.settings, confirmationMessage: e.target.value } })}
-                />
-
-                <Input
-                  id="settings-redirect"
-                  label="Redirect URL (optional)"
-                  value={state.form.settings?.redirectUrl || ''}
-                  onChange={(e) => updateForm({ settings: { ...DEFAULT_FORM_SETTINGS, ...state.form.settings, redirectUrl: e.target.value } })}
-                  placeholder="https://..."
-                />
-
-                <Select
-                  id="settings-visibility"
-                  label="Visibility"
-                  options={[
-                    { value: 'public', label: 'Public' },
-                    { value: 'private', label: 'Private (link only)' },
-                    { value: 'password_protected', label: 'Password Protected' },
-                  ]}
-                  value={state.form.visibility || 'public'}
-                  onChange={(e) => updateForm({ visibility: e.target.value as any })}
-                />
-
-                {state.form.visibility === 'password_protected' && (
-                  <Input
-                    id="settings-password"
-                    label="Access Password"
-                    type="password"
-                    value={state.form.access_password || ''}
-                    onChange={(e) => updateForm({ access_password: e.target.value })}
-                    placeholder="Enter password"
-                  />
-                )}
-
-                <hr className="border-gray-200 my-4" />
-
-                <h4 className="font-mono font-bold text-sm uppercase">Limits</h4>
-
-                <Input
-                  id="settings-response-limit"
-                  label="Response Limit (optional)"
-                  type="number"
-                  value={state.form.response_limit?.toString() || ''}
-                  onChange={(e) => updateForm({ response_limit: e.target.value ? parseInt(e.target.value) : undefined })}
-                  placeholder="Unlimited"
-                />
-
-                <Input
-                  id="settings-expires"
-                  label="Expires At (optional)"
-                  type="datetime-local"
-                  value={state.form.expires_at ? state.form.expires_at.substring(0, 16) : ''}
-                  onChange={(e) => updateForm({ expires_at: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
-                />
-              </div>
+              <FormSettingsPanel
+                form={state.form}
+                onUpdateForm={updateForm}
+              />
             )}
 
             {/* Integrations Panel - CRM & Campaign Linking */}
             {activePanel === 'integrations' && (
-              <div className="space-y-4">
-                <h3 className="font-mono font-bold text-sm uppercase">CRM & Campaigns</h3>
-                
-                {loadingIntegrations ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <span className="animate-pulse">Loading...</span>
-                  </div>
-                ) : (
-                  <>
-                    {/* Link to Campaign */}
-                    <div className="space-y-2">
-                      <label className="block font-mono text-sm font-semibold">📣 Link to Campaign</label>
-                      <p className="text-xs text-gray-500 mb-2">
-                        Submissions will be tracked under this campaign
-                      </p>
-                      <Select
-                        id="integrations-campaign"
-                        options={[
-                          { value: '', label: 'No campaign' },
-                          ...campaigns.map(c => ({
-                            value: c.id,
-                            label: `${c.name} ${c.status === 'active' ? '🟢' : c.status === 'completed' ? '✅' : '⏸️'}`,
-                          })),
-                        ]}
-                        value={selectedCampaignId}
-                        onChange={(e) => {
-                          setSelectedCampaignId(e.target.value);
-                          setState(prev => ({ ...prev, isDirty: true }));
-                        }}
-                      />
-                      {campaigns.length === 0 && (
-                        <p className="text-xs text-gray-400 italic">No campaigns found. Create one in Marketing tab.</p>
-                      )}
-                    </div>
-
-                    <hr className="border-gray-200" />
-
-                    {/* Auto-create Contact */}
-                    <div className="space-y-3">
-                      <label className="block font-mono text-sm font-semibold">👤 Contact Settings</label>
-                      
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          id="integrations-auto-create"
-                          checked={autoCreateContact}
-                          onChange={(e) => {
-                            setAutoCreateContact(e.target.checked);
-                            setState(prev => ({ ...prev, isDirty: true }));
-                          }}
-                        />
-                        <label htmlFor="integrations-auto-create" className="text-sm">
-                          Auto-create contact on submission
-                        </label>
-                      </div>
-
-                      {autoCreateContact && (
-                        <Select
-                          id="integrations-contact-type"
-                          label="Default Contact Type"
-                          options={[
-                            { value: 'customer', label: '🛒 Customer' },
-                            { value: 'investor', label: '💰 Investor' },
-                            { value: 'partner', label: '🤝 Partner' },
-                          ]}
-                          value={defaultCrmType}
-                          onChange={(e) => {
-                            setDefaultCrmType(e.target.value);
-                            setState(prev => ({ ...prev, isDirty: true }));
-                          }}
-                        />
-                      )}
-                    </div>
-
-                    <hr className="border-gray-200" />
-
-                    {/* Field-to-CRM Mapping Info */}
-                    <div className="space-y-2">
-                      <label className="block font-mono text-sm font-semibold">🔗 Field Mapping</label>
-                      <p className="text-xs text-gray-500">
-                        Map form fields to CRM contact fields by selecting a field and setting its CRM mapping in the Field panel.
-                      </p>
-                      <div className="bg-gray-50 border border-gray-200 rounded p-3 text-xs space-y-1">
-                        <p className="font-semibold text-gray-700">Available mappings:</p>
-                        <ul className="text-gray-600 space-y-0.5">
-                          <li>• <code className="bg-gray-200 px-1 rounded">name</code> → Contact name</li>
-                          <li>• <code className="bg-gray-200 px-1 rounded">email</code> → Email address</li>
-                          <li>• <code className="bg-gray-200 px-1 rounded">phone</code> → Phone number</li>
-                          <li>• <code className="bg-gray-200 px-1 rounded">company</code> → Company name</li>
-                        </ul>
-                      </div>
-                    </div>
-
-                    <hr className="border-gray-200" />
-
-                    {/* Webhook */}
-                    <div className="space-y-2">
-                      <label className="block font-mono text-sm font-semibold">🔌 Webhook</label>
-                      <Input
-                        value={state.form.settings?.webhookUrl || ''}
-                        onChange={(e) => updateForm({ settings: { ...state.form.settings!, webhookUrl: e.target.value } })}
-                        placeholder="https://your-webhook-url.com"
-                      />
-                      <p className="text-xs text-gray-500">
-                        Receive submission data via POST request
-                      </p>
-                    </div>
-
-                    {/* Notification Emails */}
-                    <div className="space-y-2">
-                      <label className="block font-mono text-sm font-semibold">📧 Notification Emails</label>
-                      <Input
-                        value={(state.form.settings?.notificationEmails || []).join(', ')}
-                        onChange={(e) => {
-                          const emails = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
-                          updateForm({ settings: { ...state.form.settings!, notificationEmails: emails } });
-                        }}
-                        placeholder="email1@example.com, email2@example.com"
-                      />
-                      <p className="text-xs text-gray-500">
-                        Comma-separated list of emails to notify on submission
-                      </p>
-                    </div>
-                  </>
-                )}
-              </div>
+              <FormIntegrationsPanel
+                form={state.form}
+                onUpdateForm={updateForm}
+                campaigns={campaigns}
+                selectedCampaignId={selectedCampaignId}
+                onCampaignChange={setSelectedCampaignId}
+                autoCreateContact={autoCreateContact}
+                onAutoCreateContactChange={setAutoCreateContact}
+                defaultCrmType={defaultCrmType}
+                onDefaultCrmTypeChange={setDefaultCrmType}
+                loadingIntegrations={loadingIntegrations}
+                onMarkDirty={() => setState(prev => ({ ...prev, isDirty: true }))}
+              />
             )}
           </div>
         </div>

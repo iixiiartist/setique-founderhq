@@ -268,23 +268,55 @@ export async function getFormBySlug(
   }
 }
 
-export async function getWorkspaceForms(workspaceId: string): Promise<{ data: Form[]; error: string | null }> {
+export async function getWorkspaceForms(
+  workspaceId: string, 
+  options?: {
+    limit?: number;
+    offset?: number;
+    status?: string;
+    type?: string;
+    search?: string;
+  }
+): Promise<{ data: Form[]; error: string | null; totalCount?: number }> {
   try {
-    console.log('[FormService] Fetching forms for workspace:', workspaceId);
+    console.log('[FormService] Fetching forms for workspace:', workspaceId, options);
     
-    const { data: forms, error } = await supabase
+    let query = supabase
       .from('forms')
-      .select('*')
-      .eq('workspace_id', workspaceId)
-      .order('updated_at', { ascending: false });
+      .select('*', { count: 'exact' })
+      .eq('workspace_id', workspaceId);
+    
+    // Apply filters
+    if (options?.status && options.status !== 'all') {
+      query = query.eq('status', options.status);
+    }
+    
+    if (options?.type && options.type !== 'all') {
+      query = query.eq('type', options.type);
+    }
+    
+    // Search filter (title or description)
+    if (options?.search && options.search.trim()) {
+      query = query.or(`title.ilike.%${options.search}%,description.ilike.%${options.search}%`);
+    }
+    
+    // Apply pagination
+    const limit = options?.limit || 50;
+    const offset = options?.offset || 0;
+    query = query.range(offset, offset + limit - 1);
+    
+    // Order by updated_at
+    query = query.order('updated_at', { ascending: false });
+
+    const { data: forms, error, count } = await query;
 
     if (error) {
       console.error('[FormService] Fetch forms error:', error);
       throw error;
     }
     
-    console.log('[FormService] Forms fetched:', forms?.length || 0);
-    return { data: (forms || []).map(mapDbToForm), error: null };
+    console.log('[FormService] Forms fetched:', forms?.length || 0, 'of', count);
+    return { data: (forms || []).map(mapDbToForm), error: null, totalCount: count || 0 };
   } catch (error: any) {
     console.error('[FormService] Error fetching workspace forms:', error);
     return { data: [], error: error.message };
@@ -1057,6 +1089,86 @@ export interface FormFileUploadResult {
   error?: string;
 }
 
+// Allowed MIME types for form file uploads - server should enforce these as well
+const ALLOWED_MIME_TYPES: Record<string, string[]> = {
+  // Documents
+  'application/pdf': ['.pdf'],
+  'application/msword': ['.doc'],
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+  'application/vnd.ms-excel': ['.xls'],
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+  'text/plain': ['.txt'],
+  'text/csv': ['.csv'],
+  // Images
+  'image/jpeg': ['.jpg', '.jpeg'],
+  'image/png': ['.png'],
+  'image/gif': ['.gif'],
+  'image/webp': ['.webp'],
+  'image/svg+xml': ['.svg'],
+  // Audio/Video (limited)
+  'audio/mpeg': ['.mp3'],
+  'audio/wav': ['.wav'],
+  'video/mp4': ['.mp4'],
+  'video/webm': ['.webm'],
+};
+
+// Maximum file sizes by type (in bytes)
+const MAX_FILE_SIZES: Record<string, number> = {
+  'image/': 10 * 1024 * 1024, // 10MB for images
+  'video/': 100 * 1024 * 1024, // 100MB for video
+  'audio/': 25 * 1024 * 1024, // 25MB for audio
+  'default': 20 * 1024 * 1024, // 20MB default
+};
+
+/**
+ * Validate file type and size on the client before upload
+ * Note: Server MUST also validate as client checks can be bypassed
+ */
+function validateFileForUpload(file: File): { valid: boolean; error?: string } {
+  // Check if file type is allowed
+  const mimeType = file.type.toLowerCase();
+  const extension = '.' + (file.name.split('.').pop()?.toLowerCase() || '');
+  
+  // Validate MIME type is in allowlist
+  if (!ALLOWED_MIME_TYPES[mimeType]) {
+    return { 
+      valid: false, 
+      error: `File type "${mimeType || 'unknown'}" is not allowed. Please upload documents, images, or common media files.` 
+    };
+  }
+  
+  // Validate extension matches MIME type (prevent extension spoofing)
+  const allowedExtensions = ALLOWED_MIME_TYPES[mimeType];
+  if (!allowedExtensions.includes(extension)) {
+    return { 
+      valid: false, 
+      error: `File extension "${extension}" doesn't match the file type. Please ensure the file is valid.` 
+    };
+  }
+  
+  // Check file size based on type
+  let maxSize = MAX_FILE_SIZES['default'];
+  for (const [typePrefix, size] of Object.entries(MAX_FILE_SIZES)) {
+    if (mimeType.startsWith(typePrefix)) {
+      maxSize = size;
+      break;
+    }
+  }
+  
+  if (file.size > maxSize) {
+    const maxSizeMB = Math.round(maxSize / (1024 * 1024));
+    return { 
+      valid: false, 
+      error: `File size (${Math.round(file.size / (1024 * 1024))}MB) exceeds the maximum allowed size of ${maxSizeMB}MB.` 
+    };
+  }
+  
+  // Check for suspicious file content (basic header check for common types)
+  // This is a basic client-side check - server must do proper validation
+  
+  return { valid: true };
+}
+
 /**
  * Upload a file for a form submission to Supabase storage.
  * This uses server-side validation via the generate_form_upload_url RPC.
@@ -1072,6 +1184,12 @@ export async function uploadFormFile(
   file: File
 ): Promise<FormFileUploadResult> {
   try {
+    // Client-side validation first
+    const validation = validateFileForUpload(file);
+    if (!validation.valid) {
+      return { success: false, error: validation.error };
+    }
+    
     // Step 1: Get validated upload path from RPC
     const { data: pathData, error: pathError } = await supabase.rpc(
       'generate_form_upload_url',

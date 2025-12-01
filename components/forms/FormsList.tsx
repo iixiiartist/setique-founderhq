@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Badge } from '../ui/Badge';
@@ -8,6 +8,7 @@ import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { Form, FormStatus } from '../../types/forms';
 import { getWorkspaceForms, deleteForm, duplicateForm, archiveForm, publishForm, unpublishForm, generateEmbedCode, generateShareLinks } from '../../services/formService';
 import { formatDistanceToNow } from 'date-fns';
+import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 
 // Form type from database
 type FormType = 'form' | 'survey' | 'poll' | 'quiz' | 'feedback';
@@ -44,6 +45,9 @@ const FORM_TYPE_LABELS: Record<FormType, string> = {
   feedback: 'Feedback',
 };
 
+const PAGE_SIZE = 20;
+const SEARCH_DEBOUNCE_MS = 300;
+
 export const FormsList: React.FC<FormsListProps> = ({
   workspaceId,
   onCreateForm,
@@ -53,6 +57,7 @@ export const FormsList: React.FC<FormsListProps> = ({
   const [forms, setForms] = useState<ExtendedForm[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'updated' | 'created' | 'name' | 'submissions'>('updated');
@@ -61,6 +66,70 @@ export const FormsList: React.FC<FormsListProps> = ({
   const [copiedText, setCopiedText] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; formId: string | null; formName: string }>({ isOpen: false, formId: null, formName: '' });
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isSearching, setIsSearching] = useState(false);
+  
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  // Debounce search query
+  useEffect(() => {
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+    
+    if (searchQuery.trim()) {
+      setIsSearching(true);
+      searchDebounceRef.current = setTimeout(() => {
+        setDebouncedSearch(searchQuery.trim());
+        setCurrentPage(1); // Reset to first page on new search
+      }, SEARCH_DEBOUNCE_MS);
+    } else {
+      setDebouncedSearch('');
+      setIsSearching(false);
+    }
+    
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+    };
+  }, [searchQuery]);
+  
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, typeFilter]);
+
+  // Load forms with pagination
+  const loadForms = useCallback(async () => {
+    if (!workspaceId) {
+      setLoading(false);
+      return;
+    }
+    
+    setLoading(true);
+    console.log('[FormsList] Loading forms for workspace:', workspaceId);
+    
+    const { data, error, totalCount: count } = await getWorkspaceForms(workspaceId, {
+      limit: PAGE_SIZE,
+      offset: (currentPage - 1) * PAGE_SIZE,
+      status: statusFilter,
+      type: typeFilter,
+      search: debouncedSearch,
+    });
+    
+    console.log('[FormsList] Forms loaded:', { count: data?.length, totalCount: count, error });
+    
+    if (!error) {
+      setForms(data as ExtendedForm[]);
+      setTotalCount(count || data.length);
+    }
+    setLoading(false);
+    setIsSearching(false);
+  }, [workspaceId, currentPage, statusFilter, typeFilter, debouncedSearch]);
 
   useEffect(() => {
     console.log('[FormsList] workspaceId:', workspaceId);
@@ -69,23 +138,9 @@ export const FormsList: React.FC<FormsListProps> = ({
     } else {
       setLoading(false);
     }
-  }, [workspaceId]);
+  }, [workspaceId, loadForms]);
 
-  const loadForms = async () => {
-    if (!workspaceId) {
-      setLoading(false);
-      return;
-    }
-    
-    setLoading(true);
-    console.log('[FormsList] Loading forms for workspace:', workspaceId);
-    const { data, error } = await getWorkspaceForms(workspaceId);
-    console.log('[FormsList] Forms loaded:', { count: data?.length, error });
-    if (!error) {
-      setForms(data as ExtendedForm[]);
-    }
-    setLoading(false);
-  };
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const handleDelete = async (formId: string) => {
     setIsDeleting(true);
@@ -152,27 +207,19 @@ export const FormsList: React.FC<FormsListProps> = ({
     return `${baseUrl}/forms/${slug}`;
   };
 
-  // Filter and sort forms
-  const filteredForms = forms
-    .filter(form => {
-      const matchesSearch = form.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        form.description?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || form.status === statusFilter;
-      const matchesType = typeFilter === 'all' || (form.type || 'form') === typeFilter;
-      return matchesSearch && matchesStatus && matchesType;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'name':
-          return a.name.localeCompare(b.name);
-        case 'created':
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        case 'submissions':
-          return (b.total_submissions || 0) - (a.total_submissions || 0);
-        default:
-          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
-      }
-    });
+  // Client-side sort (server handles filter/search, we sort locally for flexibility)
+  const sortedForms = [...forms].sort((a, b) => {
+    switch (sortBy) {
+      case 'name':
+        return a.name.localeCompare(b.name);
+      case 'created':
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      case 'submissions':
+        return (b.total_submissions || 0) - (a.total_submissions || 0);
+      default:
+        return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    }
+  });
 
   const getStatusVariant = (status: FormStatus): 'success' | 'warning' | 'default' => {
     switch (status) {
@@ -258,7 +305,7 @@ export const FormsList: React.FC<FormsListProps> = ({
             </Card>
           ))}
         </div>
-      ) : filteredForms.length === 0 ? (
+      ) : sortedForms.length === 0 ? (
         <Card>
           <div className="p-12 text-center">
             <span className="text-6xl mb-4 block">📋</span>
@@ -279,7 +326,7 @@ export const FormsList: React.FC<FormsListProps> = ({
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredForms.map(form => {
+          {sortedForms.map(form => {
             const formType = (form.type || 'form') as FormType;
             return (
             <Card
@@ -459,13 +506,70 @@ export const FormsList: React.FC<FormsListProps> = ({
           })}
         </div>
       )}
+      
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4 px-2">
+          <div className="text-sm text-gray-600">
+            Showing {((currentPage - 1) * PAGE_SIZE) + 1} - {Math.min(currentPage * PAGE_SIZE, totalCount)} of {totalCount} forms
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1 || loading}
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Previous
+            </Button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum: number;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    disabled={loading}
+                    className={`w-8 h-8 text-sm font-semibold border-2 ${
+                      currentPage === pageNum
+                        ? 'bg-yellow-400 border-black'
+                        : 'border-gray-300 hover:border-black hover:bg-gray-50'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages || loading}
+            >
+              Next
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       {forms.length > 0 && (
         <div className="grid grid-cols-4 gap-4">
           <Card className="text-center">
             <CardContent>
-              <p className="text-2xl font-bold text-black">{forms.length}</p>
+              <p className="text-2xl font-bold text-black">{totalCount}</p>
               <p className="text-xs text-gray-600">Total Forms</p>
             </CardContent>
           </Card>

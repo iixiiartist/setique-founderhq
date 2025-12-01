@@ -2280,7 +2280,9 @@ export class DatabaseService {
   static async loadGTMDocs(workspaceId: string, options?: {
     filter?: 'all' | 'mine' | 'team' | 'templates',
     docType?: string,
-    userId?: string
+    userId?: string,
+    limit?: number,
+    offset?: number
   }) {
     try {
       let query = supabase
@@ -2297,6 +2299,14 @@ export class DatabaseService {
 
       if (options?.docType && options.docType !== 'all') {
         query = query.eq('doc_type', options.docType)
+      }
+
+      // Apply pagination
+      if (options?.limit) {
+        query = query.limit(options.limit)
+      }
+      if (options?.offset) {
+        query = query.range(options.offset, options.offset + (options.limit || 20) - 1)
       }
 
       const { data, error } = await query.order('updated_at', { ascending: false })
@@ -2507,13 +2517,15 @@ export class DatabaseService {
     }
   }
 
-  static async searchGTMDocs(workspaceId: string, searchQuery: string) {
+  static async searchGTMDocs(workspaceId: string, searchQuery: string, options?: { limit?: number; offset?: number }) {
     try {
       // Use full-text search with ts_rank for relevance
       const { data, error } = await supabase
         .rpc('search_gtm_docs', {
           workspace_id_param: workspaceId,
-          search_query: searchQuery
+          search_query: searchQuery,
+          result_limit: options?.limit || 50,
+          result_offset: options?.offset || 0
         })
 
       if (error) throw error
@@ -2537,12 +2549,16 @@ export class DatabaseService {
       // Fallback to basic ILIKE search if RPC function doesn't exist yet
       logger.warn('Full-text search not available, falling back to ILIKE:', error)
       
+      const limit = options?.limit || 50
+      const offset = options?.offset || 0
+      
       const { data, error: fallbackError } = await supabase
         .from('gtm_docs')
         .select('id, workspace_id, owner_id, created_at, updated_at, title, doc_type, visibility, is_template, tags')
         .eq('workspace_id', workspaceId)
         .or(`title.ilike.%${searchQuery}%,content_plain.ilike.%${searchQuery}%`)
         .order('updated_at', { ascending: false })
+        .range(offset, offset + limit - 1)
 
       if (fallbackError) throw fallbackError
 
