@@ -35,18 +35,18 @@ export function TagModal({
             <div className="space-y-4">
                 {/* Current Tags */}
                 <div>
-                    <h4 className="font-mono font-semibold text-black mb-2">Current Tags:</h4>
+                    <h4 className="font-semibold text-slate-900 mb-2">Current Tags:</h4>
                     {contact.tags && contact.tags.length > 0 ? (
                         <div className="flex flex-wrap gap-2">
                             {contact.tags.map(tag => (
                                 <span
                                     key={tag}
-                                    className="inline-flex items-center gap-2 px-3 py-2 bg-purple-50 border-2 border-purple-300 text-sm font-mono text-purple-700 font-semibold"
+                                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-100 border border-slate-200 text-sm text-slate-700 font-medium rounded-full"
                                 >
                                     🏷️ {tag}
                                     <button
                                         onClick={() => onRemoveTag(tag)}
-                                        className="text-purple-900 hover:text-red-600 font-bold"
+                                        className="text-slate-500 hover:text-red-500 font-bold transition-colors"
                                         title="Remove tag"
                                     >
                                         ×
@@ -61,7 +61,7 @@ export function TagModal({
 
                 {/* Add New Tag */}
                 <div>
-                    <h4 className="font-mono font-semibold text-black mb-2">Add New Tag:</h4>
+                    <h4 className="font-semibold text-slate-900 mb-2">Add New Tag:</h4>
                     <div className="flex gap-2">
                         <input
                             type="text"
@@ -74,12 +74,12 @@ export function TagModal({
                                 }
                             }}
                             placeholder="e.g., decision-maker, champion"
-                            className="flex-1 bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-purple-500"
+                            className="flex-1 bg-white border border-gray-200 text-slate-900 px-4 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                         />
                         <button
                             onClick={onAddTag}
                             disabled={!newTag.trim()}
-                            className="font-mono bg-purple-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-purple-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="bg-slate-900 text-white px-4 py-2 rounded-xl font-semibold shadow-sm hover:shadow-md hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             + Add
                         </button>
@@ -92,7 +92,7 @@ export function TagModal({
                 {/* Suggested Tags */}
                 {allTags.length > 0 && (
                     <div>
-                        <h4 className="font-mono font-semibold text-black mb-2">Existing Tags in System:</h4>
+                        <h4 className="font-semibold text-slate-900 mb-2">Existing Tags in System:</h4>
                         <div className="flex flex-wrap gap-2">
                             {allTags
                                 .filter(tag => !contact.tags?.includes(tag))
@@ -100,7 +100,7 @@ export function TagModal({
                                     <button
                                         key={tag}
                                         onClick={() => onNewTagChange(tag)}
-                                        className="px-2 py-1 bg-gray-100 border border-gray-300 text-xs font-mono text-gray-700 hover:bg-purple-100 hover:border-purple-300 transition-all"
+                                        className="px-3 py-1.5 bg-gray-50 border border-gray-200 text-sm text-slate-600 rounded-full hover:bg-slate-100 hover:border-slate-300 transition-all"
                                     >
                                         {tag}
                                     </button>
@@ -111,7 +111,7 @@ export function TagModal({
 
                 <button
                     onClick={onClose}
-                    className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800"
+                    className="w-full font-semibold bg-slate-900 text-white py-2.5 px-4 rounded-xl shadow-sm hover:shadow-md hover:bg-slate-800 transition-all"
                 >
                     Done
                 </button>
@@ -157,7 +157,7 @@ export function NotesModal({
             title={`Notes - ${contact.name}`}
         >
             <div className="space-y-4">
-                <div className="max-h-64 overflow-y-auto bg-white border-2 border-gray-200 p-3">
+                <div className="max-h-64 overflow-y-auto bg-white border border-gray-200 rounded-xl p-3">
                     {(contact.notes || []).length === 0 ? (
                         <p className="text-sm text-gray-500">No notes yet</p>
                     ) : (
@@ -173,13 +173,13 @@ export function NotesModal({
                                     <div className="flex flex-col gap-1 ml-3">
                                         <button
                                             onClick={() => onStartEditNote(note.timestamp, note.text)}
-                                            className="text-xs bg-blue-500 text-white px-2 py-1 border-2 border-black rounded-none"
+                                            className="text-xs bg-slate-900 text-white px-2 py-1 rounded-lg hover:bg-slate-800 transition-colors"
                                         >
                                             Edit
                                         </button>
                                         <button
                                             onClick={() => onDeleteNote(note.timestamp)}
-                                            className="text-xs bg-red-500 text-white px-2 py-1 border-2 border-black rounded-none"
+                                            className="text-xs bg-red-500 text-white px-2 py-1 rounded-lg hover:bg-red-600 transition-colors"
                                         >
                                             Delete
                                         </button>
@@ -191,12 +191,12 @@ export function NotesModal({
                 </div>
 
                 <div>
-                    <label className="block font-mono text-sm font-semibold text-black mb-1">Add / Edit Note</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Add / Edit Note</label>
                     <textarea
                         value={noteDraft}
                         onChange={(e) => onNoteDraftChange(e.target.value)}
                         rows={4}
-                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                        className="w-full bg-white border border-gray-200 text-slate-900 px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                         placeholder="Write a note. Use Markdown or plain text."
                     />
                     <div className="flex gap-2 mt-2">
@@ -204,13 +204,13 @@ export function NotesModal({
                             <>
                                 <button
                                     onClick={onUpdateNote}
-                                    className="font-mono bg-blue-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-blue-600 transition-all"
+                                    className="bg-slate-900 text-white px-4 py-2 rounded-xl font-semibold shadow-sm hover:shadow-md hover:bg-slate-800 transition-all"
                                 >
                                     Save
                                 </button>
                                 <button
                                     onClick={onCancelEdit}
-                                    className="font-mono bg-gray-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-gray-600 transition-all"
+                                    className="bg-white text-slate-700 border border-gray-200 px-4 py-2 rounded-xl font-semibold hover:bg-gray-50 transition-all"
                                 >
                                     Cancel
                                 </button>
@@ -219,13 +219,13 @@ export function NotesModal({
                             <>
                                 <button
                                     onClick={onAddNote}
-                                    className="font-mono bg-green-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-green-600 transition-all"
+                                    className="bg-slate-900 text-white px-4 py-2 rounded-xl font-semibold shadow-sm hover:shadow-md hover:bg-slate-800 transition-all"
                                 >
                                     + Add Note
                                 </button>
                                 <button
                                     onClick={() => onNoteDraftChange('')}
-                                    className="font-mono bg-gray-200 text-black border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-gray-300 transition-all"
+                                    className="bg-white text-slate-700 border border-gray-200 px-4 py-2 rounded-xl font-semibold hover:bg-gray-50 transition-all"
                                 >
                                     Clear
                                 </button>
@@ -236,7 +236,7 @@ export function NotesModal({
 
                 <button
                     onClick={onClose}
-                    className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800"
+                    className="w-full font-semibold bg-slate-900 text-white py-2.5 px-4 rounded-xl shadow-sm hover:shadow-md hover:bg-slate-800 transition-all"
                 >
                     Done
                 </button>
@@ -290,17 +290,17 @@ export function TimelineModal({
                             <p className="text-sm mt-2">Notes and meetings will appear here</p>
                         </div>
                     ) : (
-                        <div className="relative border-l-4 border-blue-300 pl-6 space-y-4">
+                        <div className="relative border-l-2 border-slate-300 pl-6 space-y-4">
                             {activities.map((activity, idx) => {
                                 const date = new Date(activity.timestamp);
                                 return (
                                     <div key={`${activity.type}-${activity.timestamp}-${idx}`} className="relative">
-                                        <div className="absolute -left-8 w-4 h-4 rounded-full bg-blue-500 border-2 border-white"></div>
+                                        <div className="absolute -left-[1.625rem] w-3 h-3 rounded-full bg-slate-400 border-2 border-white"></div>
                                         
-                                        <div className={`p-3 border-2 ${
+                                        <div className={`p-4 border rounded-xl ${
                                             activity.type === 'note' 
-                                                ? 'bg-green-50 border-green-300' 
-                                                : 'bg-purple-50 border-purple-300'
+                                                ? 'bg-emerald-50 border-emerald-200' 
+                                                : 'bg-slate-50 border-slate-200'
                                         }`}>
                                             <div className="flex items-start justify-between">
                                                 <div className="flex items-center gap-2">
@@ -308,7 +308,7 @@ export function TimelineModal({
                                                         {activity.type === 'note' ? '📝' : '📅'}
                                                     </span>
                                                     <div>
-                                                        <p className="font-mono font-semibold text-sm">
+                                                        <p className="font-semibold text-sm text-slate-900">
                                                             {activity.type === 'note' ? 'Note Added' : 'Meeting'}
                                                         </p>
                                                         <p className="text-xs text-gray-600">
@@ -349,7 +349,7 @@ export function TimelineModal({
 
                 <button
                     onClick={onClose}
-                    className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800"
+                    className="w-full font-semibold bg-slate-900 text-white py-2.5 px-4 rounded-xl shadow-sm hover:shadow-md hover:bg-slate-800 transition-all"
                 >
                     Close
                 </button>
@@ -391,7 +391,7 @@ export function RelationshipModal({
                     </div>
                     <button
                         onClick={onClose}
-                        className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800"
+                        className="w-full font-semibold bg-slate-900 text-white py-2.5 px-4 rounded-xl shadow-sm hover:shadow-md hover:bg-slate-800 transition-all"
                     >
                         Close
                     </button>
@@ -426,8 +426,8 @@ export function RelationshipModal({
             <div className="space-y-4">
                 <div className="space-y-3">
                     {/* Same Account Section */}
-                    <div className="bg-blue-50 border-2 border-blue-300 p-4">
-                        <h4 className="font-mono font-bold text-black mb-2 flex items-center gap-2">
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                        <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
                             🏢 Same Account: {linkedAccount.company}
                         </h4>
                         {sameAccountContacts.length === 0 ? (
@@ -435,16 +435,16 @@ export function RelationshipModal({
                         ) : (
                             <div className="space-y-2">
                                 {sameAccountContacts.map(c => (
-                                    <div key={c.id} className="bg-white border border-blue-200 p-2">
-                                        <p className="font-semibold text-sm">{c.name}</p>
+                                    <div key={c.id} className="bg-white border border-slate-200 rounded-lg p-3">
+                                        <p className="font-semibold text-sm text-slate-900">{c.name}</p>
                                         <p className="text-xs text-gray-600">{c.email}</p>
                                         {c.title && (
                                             <p className="text-xs text-gray-500">💼 {c.title}</p>
                                         )}
                                         {c.tags && c.tags.length > 0 && (
-                                            <div className="mt-1 flex gap-1 flex-wrap">
+                                            <div className="mt-1.5 flex gap-1 flex-wrap">
                                                 {c.tags.map(tag => (
-                                                    <span key={tag} className="text-xs px-1 py-0.5 bg-purple-100 text-purple-700">
+                                                    <span key={tag} className="text-xs px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full">
                                                         🏷️ {tag}
                                                     </span>
                                                 ))}
@@ -458,8 +458,8 @@ export function RelationshipModal({
 
                     {/* Related Contacts (Shared Tags) Section */}
                     {relatedContactsFromOtherAccounts.length > 0 && (
-                        <div className="bg-purple-50 border-2 border-purple-300 p-4">
-                            <h4 className="font-mono font-bold text-black mb-2 flex items-center gap-2">
+                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                            <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
                                 🔗 Related Contacts (Shared Tags)
                             </h4>
                             <div className="space-y-2">
@@ -467,8 +467,8 @@ export function RelationshipModal({
                                     const contactAccount = getLinkedAccount(c);
                                     const commonTags = (c.tags || []).filter(tag => sharedTags.includes(tag));
                                     return (
-                                        <div key={c.id} className="bg-white border border-purple-200 p-2">
-                                            <p className="font-semibold text-sm">{c.name}</p>
+                                        <div key={c.id} className="bg-white border border-slate-200 rounded-lg p-3">
+                                            <p className="font-semibold text-sm text-slate-900">{c.name}</p>
                                             <p className="text-xs text-gray-600">{c.email}</p>
                                             {contactAccount && (
                                                 <p className="text-xs text-gray-500">🏢 {contactAccount.company}</p>
@@ -476,9 +476,9 @@ export function RelationshipModal({
                                             {c.title && (
                                                 <p className="text-xs text-gray-500">💼 {c.title}</p>
                                             )}
-                                            <div className="mt-1 flex gap-1 flex-wrap">
+                                            <div className="mt-1.5 flex gap-1 flex-wrap">
                                                 {commonTags.map(tag => (
-                                                    <span key={tag} className="text-xs px-1 py-0.5 bg-purple-200 text-purple-800 font-semibold">
+                                                    <span key={tag} className="text-xs px-2 py-0.5 bg-slate-200 text-slate-700 rounded-full font-medium">
                                                         🏷️ {tag}
                                                     </span>
                                                 ))}
@@ -491,9 +491,9 @@ export function RelationshipModal({
                     )}
 
                     {/* Summary */}
-                    <div className="bg-gray-50 border-2 border-gray-300 p-3">
-                        <p className="text-sm font-mono">
-                            <strong>Network Summary:</strong>
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                        <p className="text-sm font-semibold text-slate-900">
+                            Network Summary:
                         </p>
                         <ul className="text-sm text-gray-700 mt-1 space-y-1">
                             <li>• {sameAccountContacts.length} colleague(s) in same account</li>
@@ -505,7 +505,7 @@ export function RelationshipModal({
 
                 <button
                     onClick={onClose}
-                    className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800"
+                    className="w-full font-semibold bg-slate-900 text-white py-2.5 px-4 rounded-xl shadow-sm hover:shadow-md hover:bg-slate-800 transition-all"
                 >
                     Close
                 </button>

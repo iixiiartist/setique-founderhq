@@ -17,9 +17,9 @@ export const LoadingSpinner: React.FC<Props> = ({
 
   return (
     <div className="flex flex-col items-center justify-center p-8">
-      <div className={`animate-spin rounded-full border-2 border-gray-300 border-t-blue-600 ${sizeClasses[size]}`}></div>
+      <div className={`animate-spin border-2 border-gray-300 border-t-black ${sizeClasses[size]}`}></div>
       {message && (
-        <p className="mt-4 text-gray-600 text-sm">{message}</p>
+        <p className="mt-4 text-black font-mono text-sm">{message}</p>
       )}
     </div>
   )
@@ -27,10 +27,10 @@ export const LoadingSpinner: React.FC<Props> = ({
 
 export const FullPageLoading: React.FC<Props> = ({ message = 'Loading your dashboard...' }) => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-white">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-300 border-t-blue-600 mx-auto"></div>
-        <p className="mt-4 text-gray-600">{message}</p>
+        <div className="animate-spin h-16 w-16 border-4 border-gray-300 border-t-black mx-auto"></div>
+        <p className="mt-4 text-black font-mono">{message}</p>
       </div>
     </div>
   )
@@ -56,18 +56,18 @@ export const OperationOverlay: React.FC<OperationOverlayProps> = ({
 
   if (inline) {
     return (
-      <div className="inline-flex items-center gap-2 text-sm text-gray-500">
-        <div className="w-4 h-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
+      <div className="inline-flex items-center gap-2 text-sm text-black font-mono">
+        <div className="w-4 h-4 animate-spin border-2 border-gray-300 border-t-black" />
         <span>{message}</span>
       </div>
     );
   }
 
   return (
-    <div className="absolute inset-0 z-40 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-lg">
+    <div className="absolute inset-0 z-40 flex items-center justify-center bg-white/80 backdrop-blur-sm">
       <div className="flex flex-col items-center gap-3 p-4">
-        <div className="w-8 h-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
-        <p className="text-sm text-gray-600 font-medium">{message}</p>
+        <div className="w-8 h-8 animate-spin border-2 border-gray-300 border-t-black" />
+        <p className="text-sm text-black font-mono font-medium">{message}</p>
       </div>
     </div>
   );

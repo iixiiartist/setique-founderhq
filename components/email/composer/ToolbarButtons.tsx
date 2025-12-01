@@ -27,7 +27,7 @@ export function ToolbarButton({
             className={`
                 p-1.5 rounded-md transition-all duration-150
                 ${isActive
-                    ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
+                    ? 'bg-gray-200 text-gray-900 ring-1 ring-gray-400'
                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 }
                 ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
@@ -63,7 +63,7 @@ export function DropdownButton({
             className={`
                 flex items-center gap-0.5 p-1.5 rounded-md transition-all duration-150
                 ${isOpen
-                    ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
+                    ? 'bg-gray-200 text-gray-900 ring-1 ring-gray-400'
                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 }
             `}

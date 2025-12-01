@@ -103,7 +103,7 @@ export const DocEditorToolbar: React.FC<DocEditorToolbarProps> = ({
     onOpenChartInsert,
 }) => {
     return (
-        <div className="sticky top-4 z-20 mx-4 mt-4 bg-white/90 backdrop-blur border-2 border-black px-4 py-2 flex items-center gap-1 flex-wrap shadow-neo-sm rounded-none">
+        <div className="sticky top-4 z-20 mx-4 mt-4 bg-white/95 backdrop-blur rounded-xl border border-gray-200 px-4 py-2 flex items-center gap-1 flex-wrap shadow-sm">
             {/* Undo/Redo */}
             <div className="flex items-center gap-0.5 border-r border-gray-300 pr-2 mr-1">
                 <button onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} className="p-1.5 rounded hover:bg-gray-200 disabled:opacity-30 text-gray-700"><Undo size={16} /></button>

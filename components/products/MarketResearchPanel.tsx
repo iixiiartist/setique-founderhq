@@ -177,7 +177,7 @@ export const MarketResearchPanel: React.FC<MarketResearchPanelProps> = ({
   };
 
   return (
-    <div className="relative rounded-3xl border-2 border-black shadow-neo bg-white overflow-hidden animate-fadeIn">
+    <div className="relative rounded-2xl border border-gray-200 shadow-lg bg-white overflow-hidden animate-fadeIn">
       <div className="bg-gradient-to-r from-slate-900 via-indigo-800 to-blue-600 text-white px-6 py-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-white/70">Market Research Brief</p>

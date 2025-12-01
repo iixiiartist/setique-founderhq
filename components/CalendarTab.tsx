@@ -169,7 +169,7 @@ function CalendarTab({
     };
 
     return (
-        <div className="bg-white p-3 sm:p-6 border-2 border-black shadow-neo">
+        <div className="bg-white p-3 sm:p-6 border border-gray-200 rounded-2xl shadow-lg">
             <CalendarHeader 
                 currentDate={currentDate}
                 viewMode={viewMode}

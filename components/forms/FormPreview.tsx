@@ -51,7 +51,7 @@ export const FormPreview: React.FC<FormPreviewProps> = ({
   return (
     <div className="flex-1 overflow-y-auto p-8" style={{ backgroundColor: theme?.backgroundColor || '#F3F4F6' }}>
       <div 
-        className="max-w-2xl mx-auto bg-white border-2 border-black shadow-neo p-8"
+        className="max-w-2xl mx-auto bg-white rounded-2xl border border-gray-200 shadow-lg p-8"
         style={{ 
           fontFamily: theme?.fontFamily || 'Inter, system-ui, sans-serif',
           borderRadius: theme?.borderRadius || '8px',

@@ -207,7 +207,7 @@ export function AutomationMonitor({ workspaceId }: AutomationMonitorProps) {
         <div className="space-y-6">
             {/* Header with Kill Switch */}
             <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold font-mono">Automation Monitor</h2>
+                <h2 className="text-2xl font-bold text-slate-900">Automation Monitor</h2>
                 <div className="flex items-center gap-4">
                     <button
                         onClick={() => {
@@ -217,17 +217,17 @@ export function AutomationMonitor({ workspaceId }: AutomationMonitorProps) {
                                 window.location.reload();
                             }
                         }}
-                        className={`font-mono px-4 py-2 border-2 border-black font-semibold ${
+                        className={`px-4 py-2 rounded-xl font-semibold transition-all shadow-sm hover:shadow-md ${
                             featureFlags.isEnabled('automation.global-kill-switch')
-                                ? 'bg-red-500 text-white'
-                                : 'bg-white text-black'
+                                ? 'bg-red-500 text-white border border-red-500'
+                                : 'bg-white text-slate-700 border border-gray-200'
                         }`}
                     >
                         {featureFlags.isEnabled('automation.global-kill-switch') ? '🚨 Kill Switch: ON' : 'Kill Switch: OFF'}
                     </button>
                     <button
                         onClick={loadData}
-                        className="font-mono px-4 py-2 bg-black text-white border-2 border-black font-semibold hover:bg-gray-800"
+                        className="px-4 py-2 bg-slate-900 text-white rounded-xl font-semibold shadow-sm hover:shadow-md hover:bg-slate-800 transition-all"
                     >
                         Refresh
                     </button>
@@ -237,37 +237,37 @@ export function AutomationMonitor({ workspaceId }: AutomationMonitorProps) {
             {/* Stats Cards */}
             {stats && (
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                    <div className="bg-white border-2 border-black p-4">
-                        <div className="text-sm font-mono text-gray-600">Total Executions</div>
-                        <div className="text-3xl font-bold font-mono">{stats.totalExecutions}</div>
+                    <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                        <div className="text-sm text-slate-600">Total Executions</div>
+                        <div className="text-3xl font-bold text-slate-900">{stats.totalExecutions}</div>
                     </div>
-                    <div className="bg-white border-2 border-black p-4">
-                        <div className="text-sm font-mono text-gray-600">Success Rate</div>
-                        <div className="text-3xl font-bold font-mono">{stats.successRate.toFixed(1)}%</div>
+                    <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                        <div className="text-sm text-slate-600">Success Rate</div>
+                        <div className="text-3xl font-bold text-slate-900">{stats.successRate.toFixed(1)}%</div>
                     </div>
-                    <div className="bg-white border-2 border-black p-4">
-                        <div className="text-sm font-mono text-gray-600">Avg Time</div>
-                        <div className="text-3xl font-bold font-mono">{stats.avgExecutionTime.toFixed(0)}ms</div>
+                    <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                        <div className="text-sm text-slate-600">Avg Time</div>
+                        <div className="text-3xl font-bold text-slate-900">{stats.avgExecutionTime.toFixed(0)}ms</div>
                     </div>
-                    <div className="bg-white border-2 border-black p-4">
-                        <div className="text-sm font-mono text-gray-600">Failed (24h)</div>
-                        <div className="text-3xl font-bold font-mono text-red-600">{stats.failedLast24h}</div>
+                    <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                        <div className="text-sm text-slate-600">Failed (24h)</div>
+                        <div className="text-3xl font-bold text-red-600">{stats.failedLast24h}</div>
                     </div>
-                    <div className="bg-white border-2 border-black p-4">
-                        <div className="text-sm font-mono text-gray-600">Active Rules</div>
-                        <div className="text-3xl font-bold font-mono">{stats.activeRules}</div>
+                    <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                        <div className="text-sm text-slate-600">Active Rules</div>
+                        <div className="text-3xl font-bold text-slate-900">{stats.activeRules}</div>
                     </div>
                 </div>
             )}
 
             {/* Filters */}
             <div className="flex gap-4 items-center">
-                <div className="flex gap-2">
-                    <label className="font-mono text-sm font-semibold">Filter:</label>
+                <div className="flex gap-2 items-center">
+                    <label className="text-sm font-medium text-slate-700">Filter:</label>
                     <select
                         value={filter}
                         onChange={(e) => setFilter(e.target.value as any)}
-                        className="font-mono border-2 border-black px-2 py-1"
+                        className="rounded-xl border border-gray-200 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400"
                     >
                         <option value="all">All</option>
                         <option value="success">Success</option>
@@ -275,12 +275,12 @@ export function AutomationMonitor({ workspaceId }: AutomationMonitorProps) {
                         <option value="partial">Partial</option>
                     </select>
                 </div>
-                <div className="flex gap-2">
-                    <label className="font-mono text-sm font-semibold">Time:</label>
+                <div className="flex gap-2 items-center">
+                    <label className="text-sm font-medium text-slate-700">Time:</label>
                     <select
                         value={timeRange}
                         onChange={(e) => setTimeRange(e.target.value as any)}
-                        className="font-mono border-2 border-black px-2 py-1"
+                        className="rounded-xl border border-gray-200 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400"
                     >
                         <option value="1h">Last Hour</option>
                         <option value="24h">Last 24 Hours</option>
@@ -291,25 +291,25 @@ export function AutomationMonitor({ workspaceId }: AutomationMonitorProps) {
             </div>
 
             {/* Active Rules */}
-            <div className="bg-white border-2 border-black p-4">
-                <h3 className="text-lg font-bold font-mono mb-4">Active Automation Rules</h3>
+            <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
+                <h3 className="text-lg font-semibold text-slate-900 mb-4">Active Automation Rules</h3>
                 <div className="space-y-2">
                     {rules.map(rule => (
-                        <div key={rule.id} className="flex items-center justify-between border-2 border-gray-300 p-3">
+                        <div key={rule.id} className="flex items-center justify-between rounded-xl border border-gray-200 p-3">
                             <div className="flex-grow">
-                                <div className="font-mono font-semibold">{rule.name}</div>
-                                <div className="text-sm text-gray-600">{rule.description}</div>
-                                <div className="text-xs text-gray-500 mt-1">
+                                <div className="font-semibold text-slate-900">{rule.name}</div>
+                                <div className="text-sm text-slate-600">{rule.description}</div>
+                                <div className="text-xs text-slate-500 mt-1">
                                     Trigger: {rule.trigger_type} | Priority: {rule.priority} | 
                                     Executions: {rule.execution_count}
                                 </div>
                             </div>
                             <button
                                 onClick={() => toggleRule(rule.id, rule.is_active)}
-                                className={`font-mono px-3 py-1 border-2 border-black font-semibold ${
+                                className={`px-3 py-1 rounded-lg font-medium transition-colors ${
                                     rule.is_active
                                         ? 'bg-green-500 text-white'
-                                        : 'bg-gray-300 text-gray-700'
+                                        : 'bg-gray-200 text-slate-700'
                                 }`}
                             >
                                 {rule.is_active ? 'Active' : 'Inactive'}
@@ -320,8 +320,8 @@ export function AutomationMonitor({ workspaceId }: AutomationMonitorProps) {
             </div>
 
             {/* Execution Logs */}
-            <div className="bg-white border-2 border-black p-4">
-                <h3 className="text-lg font-bold font-mono mb-4">Execution Logs ({logs.length})</h3>
+            <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
+                <h3 className="text-lg font-semibold text-slate-900 mb-4">Execution Logs ({logs.length})</h3>
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                     {logs.map(log => (
                         <div
@@ -351,7 +351,7 @@ export function AutomationMonitor({ workspaceId }: AutomationMonitorProps) {
                                                 e.stopPropagation();
                                                 retryFailed(log);
                                             }}
-                                            className="font-mono px-2 py-1 bg-blue-500 text-white border-2 border-black text-sm"
+                                            className="px-2 py-1 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors"
                                         >
                                             Retry
                                         </button>
@@ -365,13 +365,13 @@ export function AutomationMonitor({ workspaceId }: AutomationMonitorProps) {
                                     <div className="space-y-2 text-sm">
                                         <div>
                                             <strong>Trigger Data:</strong>
-                                            <pre className="mt-1 p-2 bg-white border-2 border-black overflow-x-auto">
+                                            <pre className="mt-1 p-2 bg-gray-50 rounded-lg overflow-x-auto text-sm">
                                                 {JSON.stringify(log.trigger_data, null, 2)}
                                             </pre>
                                         </div>
                                         <div>
                                             <strong>Actions Executed:</strong>
-                                            <pre className="mt-1 p-2 bg-white border-2 border-black overflow-x-auto">
+                                            <pre className="mt-1 p-2 bg-gray-50 rounded-lg overflow-x-auto text-sm">
                                                 {JSON.stringify(log.actions_executed, null, 2)}
                                             </pre>
                                         </div>

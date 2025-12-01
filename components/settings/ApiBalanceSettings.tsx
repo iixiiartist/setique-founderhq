@@ -372,11 +372,11 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
   return (
     <div className="space-y-6">
       {/* Balance Card */}
-      <div className="p-6 border-2 border-black bg-gradient-to-br from-green-50 to-emerald-50">
+      <div className="p-6 rounded-2xl border border-gray-200 bg-gradient-to-br from-green-50 to-emerald-50 shadow-sm">
         <div className="flex items-start justify-between">
           <div>
-            <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wide">Current Balance</h3>
-            <div className="text-4xl font-bold font-mono mt-1">
+            <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Current Balance</h3>
+            <div className="text-4xl font-bold mt-1 text-slate-900">
               ${summary?.balance_dollars?.toFixed(2) || '0.00'}
             </div>
             <div className="text-sm text-gray-600 mt-1">
@@ -384,7 +384,7 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
             </div>
           </div>
           <div className="text-right text-sm text-gray-500">
-            <div>Rate: <span className="font-mono font-bold">$0.001/call</span></div>
+            <div>Rate: <span className="font-semibold">$0.001/call</span></div>
             <div className="text-xs mt-1">1,000 calls = $1</div>
           </div>
         </div>
@@ -393,22 +393,22 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
         <div className="grid grid-cols-3 gap-4 mt-6 pt-4 border-t border-gray-200">
           <div>
             <div className="text-xs text-gray-500">This Month</div>
-            <div className="font-bold font-mono">{summary?.calls_this_month?.toLocaleString() || 0} calls</div>
+            <div className="font-semibold text-slate-900">{summary?.calls_this_month?.toLocaleString() || 0} calls</div>
           </div>
           <div>
             <div className="text-xs text-gray-500">Total Added</div>
-            <div className="font-bold font-mono">${((summary?.total_topped_up_cents || 0) / 100).toFixed(2)}</div>
+            <div className="font-semibold text-slate-900">${((summary?.total_topped_up_cents || 0) / 100).toFixed(2)}</div>
           </div>
           <div>
             <div className="text-xs text-gray-500">Total Used</div>
-            <div className="font-bold font-mono">${((summary?.total_used_cents || 0) / 100).toFixed(2)}</div>
+            <div className="font-semibold text-slate-900">${((summary?.total_used_cents || 0) / 100).toFixed(2)}</div>
           </div>
         </div>
       </div>
 
       {/* Error */}
       {error && (
-        <div className="p-3 bg-red-50 border-2 border-red-300 text-red-800 text-sm">
+        <div className="p-3 bg-red-50 rounded-xl border border-red-200 text-red-800 text-sm">
           {error}
           <button 
             onClick={() => setError(null)} 
@@ -420,8 +420,8 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
       )}
 
       {/* Add Balance Section */}
-      <div className="p-4 border-2 border-black">
-        <h4 className="font-bold mb-4">💰 Add Balance</h4>
+      <div className="p-4 rounded-2xl border border-gray-200 shadow-sm">
+        <h4 className="font-semibold text-slate-900 mb-4">💰 Add Balance</h4>
         
         {/* Preset Amounts */}
         <div className="grid grid-cols-3 md:grid-cols-5 gap-3 mb-4">
@@ -430,9 +430,9 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
               key={amount.cents}
               onClick={() => handleTopup(amount.cents)}
               disabled={loadingTopup}
-              className="p-3 border-2 border-black hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="p-3 rounded-xl border border-gray-200 hover:bg-gray-50 hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
-              <div className="font-bold text-lg">{amount.label}</div>
+              <div className="font-semibold text-lg text-slate-900">{amount.label}</div>
               <div className="text-xs text-gray-500">{amount.calls}</div>
             </button>
           ))}
@@ -441,7 +441,7 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
         {/* Custom Amount */}
         {showCustomAmount ? (
           <div className="flex gap-2 items-center">
-            <span className="font-bold">$</span>
+            <span className="font-semibold text-slate-900">$</span>
             <input
               type="number"
               value={customAmountDollars}
@@ -450,18 +450,18 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
               min="5"
               max="1000"
               step="1"
-              className="flex-1 border-2 border-black px-3 py-2 font-mono"
+              className="flex-1 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
             />
             <button
               onClick={handleCustomTopup}
               disabled={loadingTopup}
-              className="bg-black text-white px-4 py-2 font-bold hover:bg-gray-800 disabled:opacity-50"
+              className="bg-slate-900 text-white px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 disabled:opacity-50 transition-colors"
             >
               {loadingTopup ? 'Processing...' : 'Add Funds'}
             </button>
             <button
               onClick={() => setShowCustomAmount(false)}
-              className="px-3 py-2 border-2 border-black hover:bg-gray-100"
+              className="px-3 py-2 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
             >
               Cancel
             </button>
@@ -482,11 +482,11 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
 
       {/* Low Balance Warning */}
       {summary && summary.balance_cents < 500 && !autoReload?.is_enabled && (
-        <div className="p-4 bg-yellow-50 border-2 border-yellow-400">
+        <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-200">
           <div className="flex items-center gap-2">
             <span className="text-xl">⚠️</span>
             <div>
-              <div className="font-bold text-yellow-800">Low Balance Warning</div>
+              <div className="font-semibold text-yellow-800">Low Balance Warning</div>
               <div className="text-sm text-yellow-700">
                 Your balance is running low. API calls will fail with a 402 error when balance reaches $0.
                 <button 
@@ -502,9 +502,9 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
       )}
 
       {/* Auto-Reload Section */}
-      <div className="p-4 border-2 border-black">
+      <div className="p-4 rounded-2xl border border-gray-200 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h4 className="font-bold">🔄 Auto-Reload</h4>
+          <h4 className="font-semibold text-slate-900">🔄 Auto-Reload</h4>
           {autoReload?.stripe_payment_method_id && (
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -523,13 +523,13 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
 
         {/* No payment method saved yet */}
         {!autoReload?.stripe_payment_method_id && !showAutoReloadSetup && (
-          <div className="text-center py-6 border-2 border-dashed border-gray-300 bg-gray-50">
+          <div className="text-center py-6 rounded-xl border border-dashed border-gray-300 bg-gray-50">
             <p className="text-gray-600 mb-3">
               Never run out of API balance! Set up automatic reloading.
             </p>
             <button
               onClick={() => setShowAutoReloadSetup(true)}
-              className="bg-black text-white px-4 py-2 font-bold hover:bg-gray-800"
+              className="bg-slate-900 text-white px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 transition-colors"
             >
               Set Up Auto-Reload
             </button>
@@ -538,9 +538,9 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
 
         {/* Auto-reload setup form */}
         {showAutoReloadSetup && (
-          <div className="space-y-4 p-4 bg-gray-50 border border-gray-200">
+          <div className="space-y-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
             <div>
-              <label className="block text-sm font-bold mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Reload when balance drops below:
               </label>
               <div className="flex gap-2 flex-wrap">
@@ -548,10 +548,10 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
                   <button
                     key={opt.cents}
                     onClick={() => setAutoReloadThreshold(opt.cents)}
-                    className={`px-4 py-2 border-2 font-mono transition-colors ${
+                    className={`px-4 py-2 rounded-xl font-medium transition-all ${
                       autoReloadThreshold === opt.cents
-                        ? 'border-black bg-black text-white'
-                        : 'border-gray-300 hover:border-black'
+                        ? 'bg-slate-900 text-white shadow-sm'
+                        : 'border border-gray-200 hover:bg-gray-100'
                     }`}
                   >
                     {opt.label}
@@ -561,7 +561,7 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
             </div>
 
             <div>
-              <label className="block text-sm font-bold mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Reload amount:
               </label>
               <div className="flex gap-2 flex-wrap">
@@ -569,10 +569,10 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
                   <button
                     key={opt.cents}
                     onClick={() => setAutoReloadAmount(opt.cents)}
-                    className={`px-4 py-2 border-2 font-mono transition-colors ${
+                    className={`px-4 py-2 rounded-xl font-medium transition-all ${
                       autoReloadAmount === opt.cents
-                        ? 'border-black bg-black text-white'
-                        : 'border-gray-300 hover:border-black'
+                        ? 'bg-slate-900 text-white shadow-sm'
+                        : 'border border-gray-200 hover:bg-gray-100'
                     }`}
                   >
                     {opt.label}
@@ -587,7 +587,7 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
                 <button
                   onClick={handleUpdateAutoReloadSettings}
                   disabled={loadingAutoReload}
-                  className="bg-black text-white px-4 py-2 font-bold hover:bg-gray-800 disabled:opacity-50"
+                  className="bg-slate-900 text-white px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 disabled:opacity-50 transition-colors"
                 >
                   {loadingAutoReload ? 'Saving...' : 'Save Settings'}
                 </button>
@@ -596,14 +596,14 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
                 <button
                   onClick={handleSetupAutoReload}
                   disabled={loadingAutoReload}
-                  className="bg-black text-white px-4 py-2 font-bold hover:bg-gray-800 disabled:opacity-50"
+                  className="bg-slate-900 text-white px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 disabled:opacity-50 transition-colors"
                 >
                   {loadingAutoReload ? 'Processing...' : 'Add Payment Method'}
                 </button>
               )}
               <button
                 onClick={() => setShowAutoReloadSetup(false)}
-                className="px-4 py-2 border-2 border-black hover:bg-gray-100"
+                className="px-4 py-2 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
               >
                 Cancel
               </button>
@@ -614,26 +614,26 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
         {/* Active auto-reload display */}
         {autoReload?.stripe_payment_method_id && !showAutoReloadSetup && (
           <div className="space-y-3">
-            <div className="flex items-center justify-between py-2 px-3 bg-gray-50 border border-gray-200">
+            <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-xl border border-gray-200">
               <span className="text-sm text-gray-600">Payment Method</span>
-              <span className="font-mono text-sm">•••• Card on file</span>
+              <span className="text-sm font-medium text-slate-900">•••• Card on file</span>
             </div>
-            <div className="flex items-center justify-between py-2 px-3 bg-gray-50 border border-gray-200">
+            <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-xl border border-gray-200">
               <span className="text-sm text-gray-600">Reload when below</span>
-              <span className="font-mono font-bold">${(autoReload.threshold_cents / 100).toFixed(0)}</span>
+              <span className="font-semibold text-slate-900">${(autoReload.threshold_cents / 100).toFixed(0)}</span>
             </div>
-            <div className="flex items-center justify-between py-2 px-3 bg-gray-50 border border-gray-200">
+            <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-xl border border-gray-200">
               <span className="text-sm text-gray-600">Reload amount</span>
-              <span className="font-mono font-bold">${(autoReload.reload_amount_cents / 100).toFixed(0)}</span>
+              <span className="font-semibold text-slate-900">${(autoReload.reload_amount_cents / 100).toFixed(0)}</span>
             </div>
             {autoReload.last_reload_at && (
-              <div className="flex items-center justify-between py-2 px-3 bg-gray-50 border border-gray-200">
+              <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-xl border border-gray-200">
                 <span className="text-sm text-gray-600">Last reload</span>
                 <span className="text-sm">{formatDate(autoReload.last_reload_at)}</span>
               </div>
             )}
             {autoReload.last_reload_error && (
-              <div className="p-3 bg-red-50 border border-red-300 text-sm text-red-700">
+              <div className="p-3 bg-red-50 rounded-xl border border-red-200 text-sm text-red-700">
                 <strong>Last error:</strong> {autoReload.last_reload_error}
                 {autoReload.consecutive_failures > 0 && (
                   <span className="ml-2">({autoReload.consecutive_failures} failures)</span>
@@ -668,8 +668,8 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
       </div>
 
       {/* Recent Transactions */}
-      <div className="p-4 border-2 border-black">
-        <h4 className="font-bold mb-4">📜 Recent Transactions</h4>
+      <div className="p-4 rounded-2xl border border-gray-200 shadow-sm">
+        <h4 className="font-semibold text-slate-900 mb-4">📜 Recent Transactions</h4>
         
         {transactions.length === 0 ? (
           <div className="text-center py-6 text-gray-500">
@@ -680,7 +680,7 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
             {transactions.map(txn => (
               <div
                 key={txn.id}
-                className="flex items-center justify-between py-2 px-3 bg-gray-50 border border-gray-200 text-sm"
+                className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-xl border border-gray-200 text-sm"
               >
                 <div className="flex items-center gap-3">
                   <span className="text-xs">{formatType(txn.type)}</span>
@@ -689,7 +689,7 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
                   </span>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className={`font-mono font-bold ${txn.amount_cents >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <span className={`font-semibold ${txn.amount_cents >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {txn.amount_cents >= 0 ? '+' : ''}${(txn.amount_cents / 100).toFixed(3)}
                   </span>
                   <span className="text-xs text-gray-400 w-28 text-right">
@@ -703,8 +703,8 @@ export const ApiBalanceSettings: React.FC<ApiBalanceSettingsProps> = ({ workspac
       </div>
 
       {/* Pricing Info */}
-      <div className="p-4 bg-blue-50 border-2 border-blue-300">
-        <h4 className="font-bold text-blue-800 mb-2">ℹ️ How Billing Works</h4>
+      <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
+        <h4 className="font-semibold text-blue-800 mb-2">ℹ️ How Billing Works</h4>
         <ul className="text-sm text-blue-700 space-y-1">
           <li>• Each API call costs <strong>$0.001</strong> (one tenth of a cent)</li>
           <li>• Balance is deducted only for <strong>successful</strong> requests (2xx responses)</li>

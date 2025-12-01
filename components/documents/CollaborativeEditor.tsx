@@ -202,10 +202,10 @@ const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
     return (
         <div className="relative">
             {/* Collaboration header */}
-            <div className="flex items-center justify-between mb-2 p-2 bg-gray-50 border-2 border-black">
+            <div className="flex items-center justify-between mb-2 p-2 bg-gray-50 rounded-xl border border-gray-200">
                 <div className="flex items-center gap-2">
                     <Users size={16} className="text-gray-700" />
-                    <span className="font-mono text-sm font-semibold text-gray-700">
+                    <span className="text-sm font-medium text-gray-700">
                         {activeUserCount} {activeUserCount === 1 ? 'user' : 'users'} viewing
                     </span>
                 </div>
@@ -215,7 +215,7 @@ const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
                     <div className="flex -space-x-2">
                         {/* Current user */}
                         <div
-                            className="w-8 h-8 rounded-full border-2 border-black flex items-center justify-center text-white text-xs font-bold"
+                            className="w-8 h-8 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-white text-xs font-semibold"
                             style={{ backgroundColor: userColorRef.current }}
                             title="You"
                         >
@@ -226,7 +226,7 @@ const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
                         {Array.from(presences.values()).map((presence) => (
                             <div
                                 key={presence.userId}
-                                className="w-8 h-8 rounded-full border-2 border-black flex items-center justify-center text-white text-xs font-bold"
+                                className="w-8 h-8 rounded-full border-2 border-white shadow-sm flex items-center justify-center text-white text-xs font-semibold"
                                 style={{ backgroundColor: presence.color }}
                                 title={presence.userName}
                             >
@@ -262,7 +262,7 @@ const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
                     onSelect={handleSelectionChange}
                     onBlur={handleSelectionChange}
                     readOnly={readOnly}
-                    className="w-full h-[500px] p-4 font-mono text-sm border-2 border-black focus:outline-none focus:ring-2 focus:ring-black resize-none"
+                    className="w-full h-[500px] p-4 font-mono text-sm rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                     style={{ lineHeight: '1.5' }}
                     placeholder="Start typing... Other users will see your changes in real-time."
                 />
@@ -294,15 +294,15 @@ const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
 
             {/* User presence legend */}
             {presences.size > 0 && (
-                <div className="mt-2 p-2 bg-gray-50 border-2 border-black">
+                <div className="mt-2 p-2 bg-gray-50 rounded-xl border border-gray-200">
                     <div className="flex flex-wrap gap-2">
                         {Array.from(presences.values()).map((presence) => (
                             <div key={presence.userId} className="flex items-center gap-1">
                                 <div
-                                    className="w-3 h-3 rounded-full border border-black"
+                                    className="w-3 h-3 rounded-full"
                                     style={{ backgroundColor: presence.color }}
                                 />
-                                <span className="font-mono text-xs text-gray-700">
+                                <span className="text-xs text-gray-700">
                                     {presence.userName}
                                 </span>
                             </div>

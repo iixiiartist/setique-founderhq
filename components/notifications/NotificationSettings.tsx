@@ -175,7 +175,7 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
       />
 
       {/* Modal */}
-      <div className="fixed inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-[600px] sm:max-h-[85vh] bg-white border-4 border-black shadow-2xl z-50 flex flex-col">
+      <div className="fixed inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-[600px] sm:max-h-[85vh] bg-white rounded-2xl border border-gray-200 shadow-2xl z-50 flex flex-col overflow-hidden">
         {/* Header */}
         <div className="bg-black text-white p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -205,7 +205,7 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
                   <Bell className="w-5 h-5" />
                   Notification Channels
                 </h3>
-                <div className="border-2 border-black p-4 space-y-1">
+                <div className="rounded-xl border border-gray-200 p-4 space-y-1">
                   <SettingToggle
                     label="In-App Notifications"
                     description="Show notifications within the app"
@@ -225,7 +225,7 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
                       <select
                         value={preferences.emailFrequency}
                         onChange={(e) => updatePreference('emailFrequency', e.target.value as NotificationPreferences['emailFrequency'])}
-                        className="w-full p-2 border-2 border-black text-sm"
+                        className="w-full p-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
                         <option value="instant">Instant (as they happen)</option>
                         <option value="daily">Daily digest</option>
@@ -241,7 +241,7 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
                               type="time"
                               value={preferences.emailDigestTime}
                               onChange={(e) => updatePreference('emailDigestTime', e.target.value)}
-                              className="p-2 border-2 border-black text-sm"
+                              className="p-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
                           </div>
                           {preferences.emailFrequency === 'weekly' && (
@@ -250,7 +250,7 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
                               <select
                                 value={preferences.emailDigestDay}
                                 onChange={(e) => updatePreference('emailDigestDay', parseInt(e.target.value))}
-                                className="p-2 border-2 border-black text-sm"
+                                className="p-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               >
                                 <option value="1">Monday</option>
                                 <option value="2">Tuesday</option>
@@ -275,7 +275,7 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
                   <Moon className="w-5 h-5" />
                   Quiet Hours
                 </h3>
-                <div className="border-2 border-black p-4">
+                <div className="rounded-xl border border-gray-200 p-4">
                   <SettingToggle
                     label="Enable Quiet Hours"
                     description="Pause in-app notifications during specific times"
@@ -291,7 +291,7 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
                           type="time"
                           value={preferences.quietHoursStart}
                           onChange={(e) => updatePreference('quietHoursStart', e.target.value)}
-                          className="p-2 border-2 border-black text-sm"
+                          className="p-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                       </div>
                       <div>
@@ -300,7 +300,7 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
                           type="time"
                           value={preferences.quietHoursEnd}
                           onChange={(e) => updatePreference('quietHoursEnd', e.target.value)}
-                          className="p-2 border-2 border-black text-sm"
+                          className="p-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                         />
                       </div>
                     </div>
@@ -313,7 +313,7 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
                 <h3 className="text-lg font-bold mb-3">Notification Types</h3>
                 
                 {/* Mentions & Comments */}
-                <div className="border-2 border-black p-4 mb-3">
+                <div className="rounded-xl border border-gray-200 p-4 mb-3">
                   <h4 className="font-semibold text-sm flex items-center gap-2 mb-2 text-blue-600">
                     <MessageSquare className="w-4 h-4" />
                     Mentions & Comments
@@ -335,7 +335,7 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
                 </div>
 
                 {/* Tasks */}
-                <div className="border-2 border-black p-4 mb-3">
+                <div className="rounded-xl border border-gray-200 p-4 mb-3">
                   <h4 className="font-semibold text-sm flex items-center gap-2 mb-2 text-purple-600">
                     <ListTodo className="w-4 h-4" />
                     Tasks
@@ -369,7 +369,7 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
                 </div>
 
                 {/* Deals */}
-                <div className="border-2 border-black p-4 mb-3">
+                <div className="rounded-xl border border-gray-200 p-4 mb-3">
                   <h4 className="font-semibold text-sm flex items-center gap-2 mb-2 text-green-600">
                     <Briefcase className="w-4 h-4" />
                     Deals & CRM
@@ -397,7 +397,7 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
                 </div>
 
                 {/* Documents */}
-                <div className="border-2 border-black p-4 mb-3">
+                <div className="rounded-xl border border-gray-200 p-4 mb-3">
                   <h4 className="font-semibold text-sm flex items-center gap-2 mb-2 text-indigo-600">
                     <FileText className="w-4 h-4" />
                     Documents
@@ -413,7 +413,7 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
                 </div>
 
                 {/* Team */}
-                <div className="border-2 border-black p-4 mb-3">
+                <div className="rounded-xl border border-gray-200 p-4 mb-3">
                   <h4 className="font-semibold text-sm flex items-center gap-2 mb-2 text-teal-600">
                     <Users className="w-4 h-4" />
                     Team
@@ -429,7 +429,7 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
                 </div>
 
                 {/* Achievements */}
-                <div className="border-2 border-black p-4">
+                <div className="rounded-xl border border-gray-200 p-4">
                   <h4 className="font-semibold text-sm flex items-center gap-2 mb-2 text-amber-600">
                     <Trophy className="w-4 h-4" />
                     Achievements
@@ -453,17 +453,17 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="border-t-2 border-black p-4 flex justify-end gap-3">
+        <div className="border-t border-gray-200 p-4 flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-semibold border-2 border-black hover:bg-gray-100 transition-colors"
+            className="px-4 py-2 text-sm font-semibold border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={saving || loading || !preferences}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-black text-white border-2 border-black hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-slate-900 text-white rounded-xl hover:bg-slate-800 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? (
               <Loader2 className="w-4 h-4 animate-spin" />

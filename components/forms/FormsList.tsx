@@ -316,7 +316,7 @@ export const FormsList: React.FC<FormsListProps> = ({
             return (
             <Card
               key={form.id}
-              className="relative group cursor-pointer hover:shadow-neo-lg transition-shadow"
+              className="relative group cursor-pointer hover:shadow-lg transition-shadow"
               onClick={() => onEditForm(form)}
             >
               <CardContent>
@@ -359,7 +359,7 @@ export const FormsList: React.FC<FormsListProps> = ({
                             setOpenMenuId(null);
                           }}
                         />
-                        <div className="absolute right-0 top-full mt-1 bg-white border-2 border-black shadow-neo z-20 min-w-[180px]">
+                        <div className="absolute right-0 top-full mt-1 bg-white rounded-xl border border-gray-200 shadow-xl z-20 min-w-[180px] overflow-hidden">
                           <button
                             onClick={(e) => { e.stopPropagation(); onEditForm(form); setOpenMenuId(null); }}
                             className="w-full px-4 py-2 text-left text-sm hover:bg-yellow-100 flex items-center gap-2"
@@ -589,7 +589,7 @@ export const FormsList: React.FC<FormsListProps> = ({
       {shareModalForm && shareModalForm.slug && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShareModalForm(null)}>
           <div 
-            className="bg-white border-2 border-black shadow-neo p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-2xl border border-gray-200 shadow-2xl p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -671,7 +671,7 @@ export const FormsList: React.FC<FormsListProps> = ({
                           href={links.twitter}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-4 py-2 border-2 border-black hover:bg-blue-100 text-sm font-semibold"
+                          className="px-4 py-2 rounded-xl border border-gray-200 hover:bg-blue-50 text-sm font-medium transition-colors"
                         >
                           🐦 Twitter
                         </a>
@@ -679,7 +679,7 @@ export const FormsList: React.FC<FormsListProps> = ({
                           href={links.linkedin}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-4 py-2 border-2 border-black hover:bg-blue-100 text-sm font-semibold"
+                          className="px-4 py-2 rounded-xl border border-gray-200 hover:bg-blue-50 text-sm font-medium transition-colors"
                         >
                           💼 LinkedIn
                         </a>
@@ -687,13 +687,13 @@ export const FormsList: React.FC<FormsListProps> = ({
                           href={links.facebook}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-4 py-2 border-2 border-black hover:bg-blue-100 text-sm font-semibold"
+                          className="px-4 py-2 rounded-xl border border-gray-200 hover:bg-blue-50 text-sm font-medium transition-colors"
                         >
                           📘 Facebook
                         </a>
                         <a
                           href={links.email}
-                          className="px-4 py-2 border-2 border-black hover:bg-yellow-100 text-sm font-semibold"
+                          className="px-4 py-2 rounded-xl border border-gray-200 hover:bg-yellow-50 text-sm font-medium transition-colors"
                         >
                           ✉️ Email
                         </a>
@@ -715,7 +715,7 @@ export const FormsList: React.FC<FormsListProps> = ({
                   href={getFormUrl(shareModalForm.slug)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-4 py-2 bg-purple-600 text-white font-semibold border-2 border-black shadow-neo hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all"
+                  className="px-4 py-2 bg-purple-600 text-white font-medium rounded-xl hover:bg-purple-700 hover:shadow-md transition-all"
                 >
                   👁️ Preview Form
                 </a>

@@ -248,9 +248,9 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-yellow-50 to-amber-50">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-yellow-400 rounded-lg flex items-center justify-center text-xl">
+            <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center text-xl">
               {agentConfig.icon}
             </div>
             <div>
@@ -284,7 +284,7 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
                   <Globe size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type="text"
-                    className={`w-full pl-10 pr-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition-colors ${
+                    className={`w-full pl-10 pr-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-gray-400 focus:border-gray-400 transition-colors ${
                       !targetValidation.isValid && target.length > 0 ? 'border-red-300' : 'border-gray-300'
                     }`}
                     value={target}
@@ -309,7 +309,7 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
                   </label>
                   <input
                     type="text"
-                    className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition-colors ${
+                    className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-gray-400 focus:border-gray-400 transition-colors ${
                       urlsValidation.error || urlsValidation.invalidCount > 0 ? 'border-orange-300' : 'border-gray-300'
                     }`}
                     value={urls}
@@ -337,7 +337,7 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
                     Research Goal
                   </label>
                   <select
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition-colors bg-white"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 focus:border-gray-400 transition-colors bg-white"
                     value={goal}
                     onChange={(e) => setGoal(e.target.value as GoalType)}
                   >
@@ -361,7 +361,7 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
                   </span>
                 </div>
                 <textarea
-                  className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 transition-colors resize-none ${
+                  className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-gray-400 focus:border-gray-400 transition-colors resize-none ${
                     !notesValidation.isValid ? 'border-red-300' : 'border-gray-300'
                   }`}
                   rows={3}
@@ -409,7 +409,7 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
                 <button
                   type="submit"
                   disabled={loading || !targetValidation.isValid || !notesValidation.isValid || !!urlsValidation.error}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-yellow-400 hover:bg-yellow-500 disabled:bg-gray-300 disabled:cursor-not-allowed text-black font-semibold rounded-lg transition-colors"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 hover:bg-black disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
                 >
                   {loading ? (
                     <>
@@ -430,9 +430,9 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
                 <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="flex gap-1">
-                      <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></span>
-                      <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse delay-75"></span>
-                      <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse delay-150"></span>
+                      <span className="w-2 h-2 bg-gray-500 rounded-full animate-pulse"></span>
+                      <span className="w-2 h-2 bg-gray-500 rounded-full animate-pulse delay-75"></span>
+                      <span className="w-2 h-2 bg-gray-500 rounded-full animate-pulse delay-150"></span>
                     </div>
                     <span className="text-xs font-medium text-gray-600">Receiving research...</span>
                   </div>
@@ -552,7 +552,7 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
                       setCurrentReportId(null);
                       setSavedToLibrary(false);
                     }}
-                    className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                    className="text-sm text-gray-600 hover:text-gray-900 hover:underline"
                   >
                     ← New Research
                   </button>

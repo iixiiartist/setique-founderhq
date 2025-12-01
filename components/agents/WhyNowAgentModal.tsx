@@ -249,9 +249,9 @@ export const WhyNowAgentModal: React.FC<WhyNowAgentModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-amber-50 to-orange-50">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center text-xl">
+            <div className="w-10 h-10 bg-gradient-to-br from-gray-700 to-gray-900 rounded-lg flex items-center justify-center text-xl">
               {agentConfig.icon}
             </div>
             <div>
@@ -280,7 +280,7 @@ export const WhyNowAgentModal: React.FC<WhyNowAgentModalProps> = ({
                   <Globe size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type="text"
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors"
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 focus:border-gray-400 transition-colors"
                     value={target}
                     onChange={(e) => setTarget(e.target.value)}
                     placeholder={agentConfig.placeholder}
@@ -300,7 +300,7 @@ export const WhyNowAgentModal: React.FC<WhyNowAgentModalProps> = ({
                   </label>
                   <input
                     type="text"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 focus:border-gray-400 transition-colors"
                     value={urls}
                     onChange={(e) => setUrls(e.target.value)}
                     placeholder="https://company.com, https://news.example.com"
@@ -314,7 +314,7 @@ export const WhyNowAgentModal: React.FC<WhyNowAgentModalProps> = ({
                     Analysis Focus
                   </label>
                   <select
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors bg-white"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 focus:border-gray-400 transition-colors bg-white"
                     value={goal}
                     onChange={(e) => setGoal(e.target.value as GoalType)}
                   >
@@ -333,7 +333,7 @@ export const WhyNowAgentModal: React.FC<WhyNowAgentModalProps> = ({
                   Your ICP / Product Context (optional)
                 </label>
                 <textarea
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition-colors resize-none"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-400 focus:border-gray-400 transition-colors resize-none"
                   rows={3}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -342,14 +342,14 @@ export const WhyNowAgentModal: React.FC<WhyNowAgentModalProps> = ({
               </div>
 
               {/* Signal Categories Info */}
-              <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                 <div className="flex items-center gap-2 mb-2">
-                  <Zap size={16} className="text-amber-600" />
-                  <span className="text-sm font-medium text-amber-900">Signals We Detect</span>
+                  <Zap size={16} className="text-gray-600" />
+                  <span className="text-sm font-medium text-gray-900">Signals We Detect</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {['Funding', 'Hiring', 'Product shifts', 'Leadership changes', 'Tech stack', 'GTM motions', 'Layoffs', 'Expansion'].map((signal) => (
-                    <span key={signal} className="text-xs bg-white text-amber-700 px-2 py-1 rounded-full border border-amber-200">
+                    <span key={signal} className="text-xs bg-white text-gray-700 px-2 py-1 rounded-full border border-gray-200">
                       {signal}
                     </span>
                   ))}
@@ -390,7 +390,7 @@ export const WhyNowAgentModal: React.FC<WhyNowAgentModalProps> = ({
                 <button
                   type="submit"
                   disabled={loading || !targetValidation.isValid || !notesValidation.isValid || !!urlsValidation.error}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all shadow-sm"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all shadow-sm"
                 >
                   {loading ? (
                     <>
@@ -411,9 +411,9 @@ export const WhyNowAgentModal: React.FC<WhyNowAgentModalProps> = ({
                 <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="flex gap-1">
-                      <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
-                      <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse delay-75"></span>
-                      <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse delay-150"></span>
+                      <span className="w-2 h-2 bg-gray-500 rounded-full animate-pulse"></span>
+                      <span className="w-2 h-2 bg-gray-500 rounded-full animate-pulse delay-75"></span>
+                      <span className="w-2 h-2 bg-gray-500 rounded-full animate-pulse delay-150"></span>
                     </div>
                     <span className="text-xs font-medium text-gray-600">Receiving analysis...</span>
                   </div>
@@ -533,7 +533,7 @@ export const WhyNowAgentModal: React.FC<WhyNowAgentModalProps> = ({
                       setCurrentReportId(null);
                       setSavedToLibrary(false);
                     }}
-                    className="text-sm text-amber-600 hover:text-amber-700 hover:underline"
+                    className="text-sm text-gray-600 hover:text-gray-900 hover:underline"
                   >
                     ← New Analysis
                   </button>

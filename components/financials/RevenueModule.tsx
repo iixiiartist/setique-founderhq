@@ -232,7 +232,7 @@ function RevenueModule({
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 border-2 border-black shadow-neo-btn hover:bg-green-700 transition-colors font-semibold"
+          className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-xl hover:bg-green-700 hover:shadow-md transition-all font-medium"
         >
           <Plus className="w-4 h-4" />
           Add Transaction
@@ -241,23 +241,23 @@ function RevenueModule({
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white p-4 border-2 border-black shadow-neo">
+        <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
           <div className="text-sm text-gray-600 mb-1">Total Revenue</div>
           <div className="text-2xl font-bold">{formatCurrency(metrics.total)}</div>
         </div>
-        <div className="bg-green-50 p-4 border-2 border-green-600 shadow-neo">
+        <div className="bg-green-50 p-4 rounded-2xl border border-green-200 shadow-sm">
           <div className="text-sm text-gray-600 mb-1">Paid</div>
           <div className="text-2xl font-bold text-green-700">{formatCurrency(metrics.paid)}</div>
         </div>
-        <div className="bg-yellow-50 p-4 border-2 border-yellow-600 shadow-neo">
+        <div className="bg-yellow-50 p-4 rounded-2xl border border-yellow-200 shadow-sm">
           <div className="text-sm text-gray-600 mb-1">Pending</div>
           <div className="text-2xl font-bold text-yellow-700">{formatCurrency(metrics.pending)}</div>
         </div>
-        <div className="bg-red-50 p-4 border-2 border-red-600 shadow-neo">
+        <div className="bg-red-50 p-4 rounded-2xl border border-red-200 shadow-sm">
           <div className="text-sm text-gray-600 mb-1">Overdue</div>
           <div className="text-2xl font-bold text-red-700">{formatCurrency(metrics.overdue)}</div>
         </div>
-        <div className="bg-blue-50 p-4 border-2 border-blue-600 shadow-neo">
+        <div className="bg-blue-50 p-4 rounded-2xl border border-blue-200 shadow-sm">
           <div className="text-sm text-gray-600 mb-1 flex items-center gap-1">
             <TrendingUp className="w-3 h-3" />
             MRR
@@ -268,24 +268,24 @@ function RevenueModule({
 
       {/* Add Transaction Form */}
       {showForm && (
-        <div className="bg-white p-6 border-2 border-black shadow-neo">
+        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-lg">
           <h3 className="text-xl font-semibold mb-4">New Revenue Transaction</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label htmlFor="transaction-date" className="block text-sm font-semibold mb-1">Transaction Date *</label>
+                <label htmlFor="transaction-date" className="block text-sm font-medium text-slate-700 mb-1">Transaction Date *</label>
                 <input
                   id="transaction-date"
                   name="transaction-date"
                   type="date"
                   value={formData.transactionDate}
                   onChange={(e) => setFormData({ ...formData, transactionDate: e.target.value })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full p-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
               </div>
               <div>
-                <label htmlFor="transaction-amount" className="block text-sm font-semibold mb-1">Amount *</label>
+                <label htmlFor="transaction-amount" className="block text-sm font-medium text-slate-700 mb-1">Amount *</label>
                 <input
                   id="transaction-amount"
                   name="transaction-amount"
@@ -293,17 +293,17 @@ function RevenueModule({
                   step="0.01"
                   value={formData.amount}
                   onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full p-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="1000.00"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold mb-1">Type *</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Type *</label>
                 <select
                   value={formData.transactionType}
                   onChange={(e) => setFormData({ ...formData, transactionType: e.target.value as any })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full p-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   {TRANSACTION_TYPES.map(type => (
                     <option key={type} value={type}>
@@ -316,11 +316,11 @@ function RevenueModule({
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-semibold mb-1">Status</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full p-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   {TRANSACTION_STATUSES.map(status => (
                     <option key={status} value={status}>
@@ -330,11 +330,11 @@ function RevenueModule({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-semibold mb-1">Category</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
                 <select
                   value={formData.revenueCategory}
                   onChange={(e) => setFormData({ ...formData, revenueCategory: e.target.value as any })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full p-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   {REVENUE_CATEGORIES.map(cat => (
                     <option key={cat} value={cat}>
@@ -344,12 +344,12 @@ function RevenueModule({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-semibold mb-1">Invoice #</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Invoice #</label>
                 <input
                   type="text"
                   value={formData.invoiceNumber}
                   onChange={(e) => setFormData({ ...formData, invoiceNumber: e.target.value })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full p-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="INV-001"
                 />
               </div>
@@ -357,11 +357,11 @@ function RevenueModule({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold mb-1">Link to CRM Deal</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Link to CRM Deal</label>
                 <select
                   value={formData.crmItemId}
                   onChange={(e) => setFormData({ ...formData, crmItemId: e.target.value })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full p-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Select a deal...</option>
                   {crmItems.map(item => (
@@ -372,11 +372,11 @@ function RevenueModule({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-semibold mb-1">Link to Contact</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Link to Contact</label>
                 <select
                   value={formData.contactId}
                   onChange={(e) => setFormData({ ...formData, contactId: e.target.value })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full p-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Select a contact...</option>
                   {contacts.map(contact => (
@@ -475,11 +475,11 @@ function RevenueModule({
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-1">Description</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                className="w-full p-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 rows={2}
                 placeholder="Payment for Q4 services..."
               />
@@ -489,13 +489,13 @@ function RevenueModule({
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="px-4 py-2 border-2 border-black bg-white hover:bg-gray-100 font-semibold"
+                className="px-4 py-2 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 font-medium transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 border-2 border-black bg-green-600 text-white hover:bg-green-700 font-semibold shadow-neo-btn"
+                className="px-4 py-2 rounded-xl bg-green-600 text-white hover:bg-green-700 hover:shadow-md font-medium transition-all"
               >
                 Create Transaction
               </button>
@@ -505,14 +505,14 @@ function RevenueModule({
       )}
 
       {/* Filters and Transactions List */}
-      <div className="bg-white p-6 border-2 border-black shadow-neo">
+      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-lg">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-semibold">Transactions</h3>
           <div className="flex gap-3">
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-3 py-1 border-2 border-black text-sm font-mono focus:outline-none focus:border-blue-500"
+              className="px-3 py-1 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All Statuses</option>
               {TRANSACTION_STATUSES.map(status => (
@@ -524,7 +524,7 @@ function RevenueModule({
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as 'date' | 'amount')}
-              className="px-3 py-1 border-2 border-black text-sm font-mono focus:outline-none focus:border-blue-500"
+              className="px-3 py-1 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="date">Sort by Date</option>
               <option value="amount">Sort by Amount</option>
@@ -545,7 +545,7 @@ function RevenueModule({
               return (
                 <div
                   key={transaction.id}
-                  className="p-4 border-2 border-black shadow-neo hover:shadow-neo-lg transition-shadow"
+                  className="p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-grow">
@@ -602,7 +602,7 @@ function RevenueModule({
                         <>
                           <button
                             onClick={() => handleStatusUpdate(transaction.id, 'paid')}
-                            className="px-3 py-1 bg-green-600 text-white text-xs font-semibold border border-black hover:bg-green-700"
+                            className="px-3 py-1 bg-green-600 text-white text-xs font-semibold rounded-lg border border-green-700 hover:bg-green-700 hover:shadow-sm transition-all"
                             title="Mark as Paid"
                           >
                             Mark Paid
@@ -610,7 +610,7 @@ function RevenueModule({
                           {transaction.status === 'pending' && (
                             <button
                               onClick={() => handleStatusUpdate(transaction.id, 'overdue')}
-                              className="px-3 py-1 bg-red-600 text-white text-xs font-semibold border border-black hover:bg-red-700"
+                              className="px-3 py-1 bg-red-600 text-white text-xs font-semibold rounded-lg border border-red-700 hover:bg-red-700 hover:shadow-sm transition-all"
                               title="Mark as Overdue"
                             >
                               Overdue
@@ -620,7 +620,7 @@ function RevenueModule({
                       )}
                       <button
                         onClick={() => actions.deleteRevenueTransaction(transaction.id)}
-                        className="px-3 py-1 bg-white text-red-600 text-xs font-semibold border border-black hover:bg-red-50"
+                        className="px-3 py-1 bg-white text-red-600 text-xs font-semibold rounded-lg border border-red-200 hover:bg-red-50 hover:shadow-sm transition-all"
                         title="Delete"
                       >
                         Delete

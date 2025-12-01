@@ -346,16 +346,16 @@ function SettingsTab({ settings, onUpdateSettings, actions, workspaceId }: Setti
                 )}
 
                 {/* Section Content */}
-                <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
                     {/* Section Header */}
-                    <div className="p-4 bg-black rounded-t-lg">
+                    <div className="p-5 bg-slate-900 rounded-t-2xl">
                         <div className="flex items-center gap-3">
                             <span className="text-2xl">{currentNavItem?.icon}</span>
                             <div>
-                                <h1 className="text-xl font-bold text-yellow-400 font-mono">
+                                <h1 className="text-xl font-semibold text-white">
                                     {currentNavItem?.label}
                                 </h1>
-                                <p className="text-sm text-gray-300 font-mono">
+                                <p className="text-sm text-slate-300">
                                     {currentNavItem?.description}
                                 </p>
                             </div>

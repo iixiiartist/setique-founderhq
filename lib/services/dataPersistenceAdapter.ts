@@ -1246,39 +1246,72 @@ export class DataPersistenceAdapter {
     workspaceId: string,
     product: Omit<ProductService, 'id' | 'createdAt' | 'updatedAt'>
   ) {
-    const productData = {
-      workspace_id: workspaceId,
+    // Ensure empty strings are converted to null for SKU (unique constraint)
+    const sku = product.sku?.trim() || null;
+    
+    console.log('[DataPersistenceAdapter] createProductService - Input product:', {
       name: product.name,
-      description: product.description ?? null,
-      sku: product.sku ?? null,
+      basePrice: product.basePrice,
+      billingPeriod: product.billingPeriod,
+      inventoryTracked: product.inventoryTracked,
+      quantityOnHand: product.quantityOnHand,
+      pricingModel: product.pricingModel,
+    });
+    
+    const productData: Record<string, any> = {
+      workspace_id: workspaceId,
+      created_by: userId,
+      name: product.name,
+      description: product.description || null,
+      sku: sku,
       category: product.category,
       type: product.type,
       status: product.status,
       pricing_model: product.pricingModel,
       base_price: product.basePrice ?? null,
       currency: product.currency,
-      billing_period: product.billingPeriod ?? null,
+      billing_period: product.billingPeriod || null,
       cost_of_goods: product.costOfGoods ?? null,
       cost_of_service: product.costOfService ?? null,
       is_taxable: product.isTaxable,
-      tax_code: product.taxCode ?? null,
+      tax_code: product.taxCode || null,
       tax_rate: product.taxRate ?? null,
       tags: product.tags ?? [],
-      image_url: product.imageUrl ?? null,
+      image_url: product.imageUrl || null,
       tiered_pricing: product.tieredPricing ?? null,
       usage_pricing: product.usagePricing ?? null,
       subscription_plans: product.subscriptionPlans ?? null,
       inventory_tracked: product.inventoryTracked,
-      quantity_on_hand: product.inventoryTracked ? product.quantityOnHand ?? 0 : null,
-      reorder_point: product.inventoryTracked ? product.reorderPoint ?? null : null,
-      reorder_quantity: product.inventoryTracked ? product.reorderQuantity ?? null : null,
+      quantity_on_hand: product.inventoryTracked ? (product.quantityOnHand ?? 0) : null,
+      reorder_point: product.inventoryTracked ? (product.reorderPoint ?? null) : null,
+      reorder_quantity: product.inventoryTracked ? (product.reorderQuantity ?? null) : null,
       capacity_tracked: product.capacityTracked,
-      capacity_unit: product.capacityTracked ? product.capacityUnit ?? null : null,
-      capacity_total: product.capacityTracked ? product.capacityTotal ?? null : null,
-      capacity_period: product.capacityTracked ? product.capacityPeriod ?? null : null
+      capacity_unit: product.capacityTracked ? (product.capacityUnit || null) : null,
+      capacity_total: product.capacityTracked ? (product.capacityTotal ?? null) : null,
+      capacity_period: product.capacityTracked ? (product.capacityPeriod || null) : null
     }
 
+    console.log('[DataPersistenceAdapter] createProductService - DB payload:', {
+      base_price: productData.base_price,
+      billing_period: productData.billing_period,
+      inventory_tracked: productData.inventory_tracked,
+      quantity_on_hand: productData.quantity_on_hand,
+      pricing_model: productData.pricing_model,
+    });
+
     const { data, error } = await DatabaseService.createProductService(productData)
+    
+    console.log('[DataPersistenceAdapter] createProductService - Response:', {
+      success: !error,
+      errorMessage: error?.message,
+      data: data ? {
+        id: data.id,
+        base_price: data.base_price,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+      } : null
+    });
+    
     return { data, error }
   }
 
@@ -1294,6 +1327,111 @@ export class DataPersistenceAdapter {
 
   static async deleteProductService(id: string) {
     const { data, error } = await DatabaseService.deleteProductService(id)
+    return { data, error }
+  }
+
+  /**
+   * Reserve inventory for an order (increases quantity_reserved)
+   */
+  static async reserveProductInventory(id: string, quantity: number) {
+    // First get the current product to check available inventory
+    const { data: product, error: fetchError } = await DatabaseService.getProductService(id)
+    if (fetchError || !product) {
+      return { data: null, error: fetchError || new Error('Product not found') }
+    }
+    
+    const currentReserved = product.quantity_reserved || 0
+    const currentOnHand = product.quantity_on_hand || 0
+    const available = currentOnHand - currentReserved
+    
+    if (quantity > available) {
+      return { data: null, error: new Error(`Insufficient inventory. Only ${available} units available.`) }
+    }
+    
+    const newReserved = currentReserved + quantity
+    const { data, error } = await DatabaseService.updateProductService(id, {
+      quantity_reserved: newReserved
+    })
+    
+    return { data, error }
+  }
+
+  /**
+   * Release reserved inventory (decreases quantity_reserved)
+   */
+  static async releaseProductInventory(id: string, quantity: number) {
+    const { data: product, error: fetchError } = await DatabaseService.getProductService(id)
+    if (fetchError || !product) {
+      return { data: null, error: fetchError || new Error('Product not found') }
+    }
+    
+    const currentReserved = product.quantity_reserved || 0
+    
+    if (quantity > currentReserved) {
+      return { data: null, error: new Error(`Cannot release more than reserved. Only ${currentReserved} units reserved.`) }
+    }
+    
+    const newReserved = currentReserved - quantity
+    const { data, error } = await DatabaseService.updateProductService(id, {
+      quantity_reserved: newReserved
+    })
+    
+    return { data, error }
+  }
+
+  /**
+   * Adjust on-hand inventory (add or remove stock)
+   */
+  static async adjustProductInventory(id: string, quantityChange: number, reason?: string) {
+    const { data: product, error: fetchError } = await DatabaseService.getProductService(id)
+    if (fetchError || !product) {
+      return { data: null, error: fetchError || new Error('Product not found') }
+    }
+    
+    const currentOnHand = product.quantity_on_hand || 0
+    const newOnHand = currentOnHand + quantityChange
+    
+    if (newOnHand < 0) {
+      return { data: null, error: new Error(`Cannot reduce below 0. Current on-hand: ${currentOnHand}`) }
+    }
+    
+    // Ensure reserved doesn't exceed new on-hand
+    const currentReserved = product.quantity_reserved || 0
+    if (currentReserved > newOnHand) {
+      return { data: null, error: new Error(`Cannot reduce below reserved quantity (${currentReserved})`) }
+    }
+    
+    const { data, error } = await DatabaseService.updateProductService(id, {
+      quantity_on_hand: newOnHand
+    })
+    
+    // TODO: Could log the adjustment with reason to an inventory_logs table
+    console.log(`[Inventory] Adjusted ${id}: ${currentOnHand} → ${newOnHand} (${quantityChange > 0 ? '+' : ''}${quantityChange}). Reason: ${reason || 'Not specified'}`)
+    
+    return { data, error }
+  }
+
+  /**
+   * Fulfill order - reduces both reserved and on-hand
+   */
+  static async fulfillProductInventory(id: string, quantity: number) {
+    const { data: product, error: fetchError } = await DatabaseService.getProductService(id)
+    if (fetchError || !product) {
+      return { data: null, error: fetchError || new Error('Product not found') }
+    }
+    
+    const currentReserved = product.quantity_reserved || 0
+    const currentOnHand = product.quantity_on_hand || 0
+    
+    if (quantity > currentReserved) {
+      return { data: null, error: new Error(`Cannot fulfill more than reserved (${currentReserved})`) }
+    }
+    
+    const { data, error } = await DatabaseService.updateProductService(id, {
+      quantity_on_hand: currentOnHand - quantity,
+      quantity_reserved: currentReserved - quantity
+    })
+    
     return { data, error }
   }
 

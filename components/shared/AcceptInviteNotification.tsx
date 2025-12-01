@@ -138,18 +138,18 @@ export const AcceptInviteNotification: React.FC<AcceptInviteNotificationProps> =
 
     return (
         <div className="fixed top-4 right-4 z-50 max-w-md">
-            <div className="bg-blue-500 border-4 border-black shadow-neo-lg">
-                <div className="bg-white border-b-4 border-black p-4">
-                    <h3 className="font-bold text-lg">📨 Workspace Invitations</h3>
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
+                <div className="bg-slate-900 p-4">
+                    <h3 className="font-semibold text-lg text-white">📨 Workspace Invitations</h3>
                 </div>
                 <div className="p-4 space-y-3">
                     {pendingInvites.map((invite) => (
-                        <div key={invite.id} className="bg-white border-2 border-black p-3">
-                            <p className="font-mono text-sm font-bold mb-1">
+                        <div key={invite.id} className="bg-gray-50 rounded-xl border border-gray-200 p-3">
+                            <p className="text-sm font-semibold text-slate-900 mb-1">
                                 Workspace Invitation
                             </p>
                             <p className="text-xs text-gray-600 mb-2">
-                                Role: <span className="font-bold">{invite.role.toUpperCase()}</span>
+                                Role: <span className="font-semibold text-slate-700">{invite.role.toUpperCase()}</span>
                             </p>
                             <p className="text-xs text-gray-500 mb-3">
                                 To: {invite.email}
@@ -157,7 +157,7 @@ export const AcceptInviteNotification: React.FC<AcceptInviteNotificationProps> =
                             <button
                                 onClick={() => handleAcceptInvite(invite)}
                                 disabled={acceptingInviteId === invite.id}
-                                className="w-full font-mono bg-green-600 border-2 border-black text-white py-2 px-4 font-semibold shadow-neo-btn transition-all hover:bg-green-700 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-full bg-green-600 text-white py-2.5 px-4 rounded-xl font-semibold shadow-sm hover:shadow-md hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {acceptingInviteId === invite.id ? 'Accepting...' : 'Accept Invitation'}
                             </button>

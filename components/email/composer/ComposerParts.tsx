@@ -70,7 +70,7 @@ export function ComposerFields({
             <div className="flex items-center gap-2">
                 <label className="text-sm font-medium text-gray-500 w-16">To</label>
                 <input
-                    className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400/20 focus:border-gray-400 transition-all"
                     value={to}
                     onChange={e => setTo(e.target.value)}
                     placeholder="recipient@example.com"
@@ -79,7 +79,7 @@ export function ComposerFields({
                     <button
                         type="button"
                         onClick={() => setShowCc(true)}
-                        className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                        className="text-xs text-gray-600 hover:text-gray-900 font-medium"
                     >
                         +Cc
                     </button>
@@ -90,7 +90,7 @@ export function ComposerFields({
                 <div className="flex items-center gap-2">
                     <label className="text-sm font-medium text-gray-500 w-16">Cc</label>
                     <input
-                        className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                        className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400/20 focus:border-gray-400 transition-all"
                         value={cc}
                         onChange={e => setCc(e.target.value)}
                         placeholder="cc@example.com"
@@ -101,7 +101,7 @@ export function ComposerFields({
             <div className="flex items-center gap-2">
                 <label className="text-sm font-medium text-gray-500 w-16">Subject</label>
                 <input
-                    className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                    className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400/20 focus:border-gray-400 transition-all font-medium"
                     value={subject}
                     onChange={e => setSubject(e.target.value)}
                     placeholder="Subject line"
@@ -185,7 +185,7 @@ export function GTMTemplateModal({ isOpen, onClose, templates, onApplyTemplate }
                             <button
                                 key={template.id}
                                 onClick={() => onApplyTemplate(template)}
-                                className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50/50 text-left transition-colors"
+                                className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:border-gray-400 hover:bg-gray-50 text-left transition-colors"
                             >
                                 <span className="text-2xl">{template.icon}</span>
                                 <div>
@@ -211,15 +211,15 @@ export function ResearchResultsPanel({ results, onInsert, onDismiss }: ResearchR
     if (!results) return null;
     
     return (
-        <div className="border-t border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 max-h-48 overflow-y-auto">
+        <div className="border-t border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 p-4 max-h-48 overflow-y-auto">
             <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-blue-800 flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-800 flex items-center gap-2">
                     🌐 Research & Suggestions
                 </span>
                 <div className="flex gap-2">
                     <button
                         onClick={onInsert}
-                        className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm"
+                        className="text-xs px-3 py-1.5 bg-gray-900 text-white rounded-lg hover:bg-black font-medium shadow-sm"
                     >
                         Insert into Email
                     </button>
@@ -323,7 +323,7 @@ export function ComposerFooter({
                 <button
                     onClick={onSend}
                     disabled={sending || savingDraft || toEmpty || !accountReady}
-                    className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2 shadow-sm hover:shadow transition-all"
+                    className="px-5 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-black disabled:opacity-50 flex items-center gap-2 shadow-sm hover:shadow transition-all"
                 >
                     ✉️
                     {sending ? 'Sending...' : 'Send'}

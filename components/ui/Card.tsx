@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type CardVariant = 'default' | 'metric' | 'section';
+export type CardVariant = 'default' | 'elevated' | 'flat';
 
 export interface CardProps {
   variant?: CardVariant;
@@ -10,16 +10,17 @@ export interface CardProps {
   onClick?: () => void;
 }
 
+// Modern design: Rounded corners, soft shadows, light borders
 const variantStyles: Record<CardVariant, string> = {
-  default: 'bg-white border-2 border-black shadow-neo',
-  metric: 'bg-white border-2 border-black shadow-neo hover:shadow-neo-lg transition-shadow',
-  section: 'bg-gray-50 border-2 border-gray-300 shadow-sm',
+  default: 'bg-white border border-gray-200 shadow-sm rounded-2xl',
+  elevated: 'bg-white border border-gray-100 shadow-lg rounded-2xl',
+  flat: 'bg-gray-50 border border-gray-100 rounded-2xl',
 };
 
 const paddingStyles: Record<string, string> = {
   none: '',
-  sm: 'p-3',
-  md: 'p-4',
+  sm: 'p-4',
+  md: 'p-5',
   lg: 'p-6',
 };
 
@@ -38,7 +39,7 @@ export function Card({
       className={`
         ${variantStyles[variant]}
         ${paddingStyles[padding]}
-        ${isClickable ? 'cursor-pointer hover:translate-x-[2px] hover:translate-y-[2px] transition-transform' : ''}
+        ${isClickable ? 'cursor-pointer hover:shadow-md hover:border-gray-300 transition-all duration-200' : ''}
         ${className}
       `}
       role={isClickable ? 'button' : undefined}
@@ -61,11 +62,11 @@ export function Card({
 
 // Subcomponents for better composition
 export function CardHeader({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <div className={`border-b-2 border-gray-200 pb-3 mb-3 ${className}`}>{children}</div>;
+  return <div className={`border-b border-gray-100 pb-4 mb-4 ${className}`}>{children}</div>;
 }
 
 export function CardTitle({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <h3 className={`text-xl font-bold text-black ${className}`}>{children}</h3>;
+  return <h3 className={`text-lg font-semibold text-slate-900 ${className}`}>{children}</h3>;
 }
 
 export function CardContent({ children, className = '' }: { children: React.ReactNode; className?: string }) {
@@ -73,5 +74,5 @@ export function CardContent({ children, className = '' }: { children: React.Reac
 }
 
 export function CardFooter({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <div className={`border-t-2 border-gray-200 pt-3 mt-3 ${className}`}>{children}</div>;
+  return <div className={`border-t border-gray-100 pt-4 mt-4 ${className}`}>{children}</div>;
 }

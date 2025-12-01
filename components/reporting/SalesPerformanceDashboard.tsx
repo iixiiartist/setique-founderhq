@@ -147,7 +147,7 @@ const SalesPerformanceDashboard: React.FC = () => {
     if (loading) {
         return (
             <div className="flex items-center justify-center p-12">
-                <div className="font-mono text-sm text-gray-500">Loading sales performance...</div>
+                <div className="text-sm text-gray-500">Loading sales performance...</div>
             </div>
         );
     }
@@ -155,7 +155,7 @@ const SalesPerformanceDashboard: React.FC = () => {
     if (!metrics) {
         return (
             <div className="flex items-center justify-center p-12">
-                <div className="font-mono text-sm text-gray-500">No sales data available</div>
+                <div className="text-sm text-gray-500">No sales data available</div>
             </div>
         );
     }
@@ -164,66 +164,66 @@ const SalesPerformanceDashboard: React.FC = () => {
         <div className="space-y-6">
             {/* Header */}
             <div>
-                <h2 className="font-mono font-bold text-2xl text-black">Sales Performance</h2>
-                <p className="font-mono text-sm text-gray-600 mt-1">Track deals, win rates, and team performance</p>
+                <h2 className="font-semibold text-2xl text-slate-900">Sales Performance</h2>
+                <p className="text-sm text-gray-600 mt-1">Track deals, win rates, and team performance</p>
             </div>
 
             {/* Key metrics */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 bg-green-100 border-2 border-black rounded flex items-center justify-center">
+                        <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
                             <Trophy size={20} className="text-green-600" />
                         </div>
                         <div>
-                            <div className="font-mono text-2xl font-bold text-black">{metrics.winRate.toFixed(1)}%</div>
-                            <div className="font-mono text-xs text-gray-600">Win Rate</div>
+                            <div className="text-2xl font-bold text-slate-900">{metrics.winRate.toFixed(1)}%</div>
+                            <div className="text-xs text-gray-600">Win Rate</div>
                         </div>
                     </div>
-                    <div className="font-mono text-xs text-gray-500">
+                    <div className="text-xs text-gray-500">
                         {metrics.wonDeals} won / {metrics.wonDeals + metrics.lostDeals} closed
                     </div>
                 </div>
 
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 bg-blue-100 border-2 border-black rounded flex items-center justify-center">
+                        <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
                             <DollarSign size={20} className="text-blue-600" />
                         </div>
                         <div>
-                            <div className="font-mono text-2xl font-bold text-black">{formatCurrency(metrics.avgDealSize)}</div>
-                            <div className="font-mono text-xs text-gray-600">Avg Deal Size</div>
+                            <div className="text-2xl font-bold text-slate-900">{formatCurrency(metrics.avgDealSize)}</div>
+                            <div className="text-xs text-gray-600">Avg Deal Size</div>
                         </div>
                     </div>
-                    <div className="font-mono text-xs text-gray-500">
+                    <div className="text-xs text-gray-500">
                         {metrics.wonDeals} deals closed
                     </div>
                 </div>
 
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 bg-purple-100 border-2 border-black rounded flex items-center justify-center">
+                        <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
                             <Clock size={20} className="text-purple-600" />
                         </div>
                         <div>
-                            <div className="font-mono text-2xl font-bold text-black">{Math.round(metrics.avgSalesCycle)}</div>
-                            <div className="font-mono text-xs text-gray-600">Avg Sales Cycle</div>
+                            <div className="text-2xl font-bold text-slate-900">{Math.round(metrics.avgSalesCycle)}</div>
+                            <div className="text-xs text-gray-600">Avg Sales Cycle</div>
                         </div>
                     </div>
-                    <div className="font-mono text-xs text-gray-500">days to close</div>
+                    <div className="text-xs text-gray-500">days to close</div>
                 </div>
 
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 bg-amber-100 border-2 border-black rounded flex items-center justify-center">
+                        <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
                             <Target size={20} className="text-amber-600" />
                         </div>
                         <div>
-                            <div className="font-mono text-2xl font-bold text-black">{formatCurrency(metrics.pipelineValue)}</div>
-                            <div className="font-mono text-xs text-gray-600">Pipeline Value</div>
+                            <div className="text-2xl font-bold text-slate-900">{formatCurrency(metrics.pipelineValue)}</div>
+                            <div className="text-xs text-gray-600">Pipeline Value</div>
                         </div>
                     </div>
-                    <div className="font-mono text-xs text-gray-500">
+                    <div className="text-xs text-gray-500">
                         {metrics.totalDeals - metrics.wonDeals - metrics.lostDeals} active deals
                     </div>
                 </div>
@@ -231,16 +231,16 @@ const SalesPerformanceDashboard: React.FC = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Leaderboard */}
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-2 mb-4">
                         <Award size={24} className="text-amber-600" />
-                        <h3 className="font-mono font-bold text-xl">Sales Leaderboard</h3>
+                        <h3 className="font-semibold text-xl text-slate-900">Sales Leaderboard</h3>
                     </div>
                     {metrics.leaderboard.length > 0 ? (
                         <div className="space-y-3">
                             {metrics.leaderboard.map((member, index) => (
-                                <div key={member.userId} className="flex items-center gap-4 p-3 bg-gray-50 border-2 border-gray-300 rounded">
-                                    <div className={`w-8 h-8 flex items-center justify-center font-mono font-bold text-sm rounded ${
+                                <div key={member.userId} className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                                    <div className={`w-8 h-8 flex items-center justify-center font-semibold text-sm rounded-lg ${
                                         index === 0 ? 'bg-yellow-400 text-yellow-900' :
                                         index === 1 ? 'bg-gray-300 text-gray-900' :
                                         index === 2 ? 'bg-amber-600 text-white' :
@@ -249,11 +249,11 @@ const SalesPerformanceDashboard: React.FC = () => {
                                         {index + 1}
                                     </div>
                                     <div className="flex-1">
-                                        <div className="font-mono font-semibold text-black">{member.userName}</div>
-                                        <div className="font-mono text-xs text-gray-600">{member.dealsWon} deals won</div>
+                                        <div className="font-semibold text-slate-900">{member.userName}</div>
+                                        <div className="text-xs text-gray-600">{member.dealsWon} deals won</div>
                                     </div>
                                     <div className="text-right">
-                                        <div className="font-mono font-bold text-lg text-green-600">
+                                        <div className="font-bold text-lg text-green-600">
                                             {formatCurrency(member.totalValue)}
                                         </div>
                                     </div>
@@ -261,17 +261,17 @@ const SalesPerformanceDashboard: React.FC = () => {
                             ))}
                         </div>
                     ) : (
-                        <div className="text-center py-8 text-gray-500 font-mono text-sm">
+                        <div className="text-center py-8 text-gray-500 text-sm">
                             No deals closed yet
                         </div>
                     )}
                 </div>
 
                 {/* Pipeline funnel */}
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-2 mb-4">
                         <TrendingUp size={24} className="text-blue-600" />
-                        <h3 className="font-mono font-bold text-xl">Deal Pipeline</h3>
+                        <h3 className="font-semibold text-xl text-slate-900">Deal Pipeline</h3>
                     </div>
                     <div className="space-y-4">
                         {metrics.pipeline.map((stage, index) => {
@@ -281,22 +281,22 @@ const SalesPerformanceDashboard: React.FC = () => {
                             return (
                                 <div key={stage.stage}>
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className="font-mono font-semibold text-sm">{stage.stage}</span>
-                                        <span className="font-mono text-xs text-gray-600">
+                                        <span className="font-semibold text-sm text-slate-700">{stage.stage}</span>
+                                        <span className="text-xs text-gray-600">
                                             {stage.count} deals • {formatCurrency(stage.value)}
                                         </span>
                                     </div>
                                     <div className="relative">
-                                        <div className="w-full bg-gray-200 h-8 border-2 border-black">
+                                        <div className="w-full bg-gray-200 h-8 rounded-full overflow-hidden">
                                             <div
-                                                className={`h-full flex items-center justify-end pr-2 ${
+                                                className={`h-full rounded-full flex items-center justify-end pr-2 ${
                                                     stage.stage === 'Closed Won' ? 'bg-green-500' :
                                                     stage.stage === 'Closed Lost' ? 'bg-red-500' :
                                                     'bg-blue-500'
                                                 }`}
                                                 style={{ width: `${percentage}%` }}
                                             >
-                                                <span className="font-mono text-xs font-bold text-white">
+                                                <span className="text-xs font-bold text-white">
                                                     {percentage > 10 ? `${percentage.toFixed(0)}%` : ''}
                                                 </span>
                                             </div>

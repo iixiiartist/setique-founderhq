@@ -17,16 +17,16 @@ export const FinancialsKPISection: React.FC<FinancialsKPISectionProps> = ({ kpiC
             {kpiCards.map((kpi, i) => (
                 <div
                     key={i}
-                    className="bg-white p-3 sm:p-4 border-2 border-black shadow-neo text-center"
+                    className="bg-white p-3 sm:p-4 rounded-2xl border border-gray-200 shadow-sm text-center"
                 >
-                    <div className="text-xs font-mono text-gray-500 mb-1 truncate">
+                    <div className="text-xs text-gray-500 mb-1 truncate">
                         {kpi.title}
                     </div>
-                    <div className="text-xl sm:text-2xl font-black font-mono truncate">
+                    <div className="text-xl sm:text-2xl font-bold text-slate-900 truncate">
                         {kpi.value}
                     </div>
                     <div
-                        className={`text-xs font-mono ${
+                        className={`text-xs font-medium ${
                             kpi.positive ? 'text-green-600' : 'text-red-600'
                         }`}
                     >

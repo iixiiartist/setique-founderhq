@@ -187,15 +187,15 @@ export const ShareToHuddleModal: React.FC<ShareToHuddleModalProps> = ({
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
-          className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden border-2 border-black"
+          className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="px-6 py-4 border-b-2 border-black bg-gradient-to-r from-purple-500 to-indigo-600">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-slate-900 to-slate-800">
+            <h2 className="text-xl font-semibold text-white flex items-center gap-2">
               Share to Huddle
             </h2>
-            <p className="text-purple-100 text-sm mt-1">
+            <p className="text-slate-300 text-sm mt-1">
               Share this {getTypeLabel(payload.type).toLowerCase()} with your team
             </p>
           </div>
@@ -239,7 +239,7 @@ export const ShareToHuddleModal: React.FC<ShareToHuddleModalProps> = ({
               </label>
               {roomsLoading ? (
                 <div className="text-center py-4 text-gray-400 flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-gray-300 border-t-purple-500 rounded-full animate-spin" />
+                  <span className="w-4 h-4 border-2 border-gray-300 border-t-slate-500 rounded-full animate-spin" />
                   Loading channels...
                 </div>
               ) : roomsError ? (
@@ -260,20 +260,20 @@ export const ShareToHuddleModal: React.FC<ShareToHuddleModalProps> = ({
                         setSelectedRoomId(room.id);
                         setError(null);
                       }}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-left transition-all ${
+                      className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-left transition-all ${
                         selectedRoomId === room.id
-                          ? 'border-purple-500 bg-purple-50 ring-2 ring-purple-200'
+                          ? 'border-slate-400 bg-slate-50 ring-2 ring-slate-200'
                           : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 bg-white'
                       }`}
                     >
-                      <span className={selectedRoomId === room.id ? 'text-purple-600' : 'text-gray-500'}>
+                      <span className={selectedRoomId === room.id ? 'text-slate-700' : 'text-gray-500'}>
                         {room.is_private ? '🔒' : '#'}
                       </span>
-                      <span className={`font-medium ${selectedRoomId === room.id ? 'text-purple-900' : 'text-gray-900'}`}>
+                      <span className={`font-medium ${selectedRoomId === room.id ? 'text-slate-900' : 'text-gray-900'}`}>
                         {room.name}
                       </span>
                       {selectedRoomId === room.id && (
-                        <span className="ml-auto text-purple-600 font-bold">✓</span>
+                        <span className="ml-auto text-slate-700 font-bold">✓</span>
                       )}
                     </button>
                   ))}
@@ -291,7 +291,7 @@ export const ShareToHuddleModal: React.FC<ShareToHuddleModalProps> = ({
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Add a message to share with this item..."
                 rows={4}
-                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-purple-400 focus:outline-none resize-none"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-slate-400 focus:ring-2 focus:ring-slate-300 focus:outline-none resize-none transition-all"
               />
             </div>
 
@@ -315,7 +315,7 @@ export const ShareToHuddleModal: React.FC<ShareToHuddleModalProps> = ({
                   onChange={(e) => setAskAI(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900"></div>
               </label>
             </div>
 
@@ -330,19 +330,19 @@ export const ShareToHuddleModal: React.FC<ShareToHuddleModalProps> = ({
                   onChange={(e) => setAiPrompt(e.target.value)}
                   placeholder="e.g., Summarize this task and suggest next steps..."
                   rows={2}
-                  className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-purple-400 focus:outline-none resize-none"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-slate-400 focus:ring-2 focus:ring-slate-300 focus:outline-none resize-none transition-all"
                 />
               </div>
             )}
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t-2 border-gray-200 bg-gray-50 flex gap-3">
+          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex gap-3">
             <button
               type="button"
               onClick={onClose}
               disabled={sending}
-              className="flex-1 px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors font-semibold disabled:opacity-50"
+              className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-100 transition-all shadow-sm hover:shadow-md font-medium disabled:opacity-50"
             >
               Cancel
             </button>
@@ -350,10 +350,10 @@ export const ShareToHuddleModal: React.FC<ShareToHuddleModalProps> = ({
               type="button"
               onClick={handleSend}
               disabled={sending || success || channels.length === 0 || roomsLoading}
-              className={`flex-1 px-4 py-2.5 rounded-xl transition-colors font-semibold flex items-center justify-center gap-2 ${
+              className={`flex-1 px-4 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md font-medium flex items-center justify-center gap-2 ${
                 success
                   ? 'bg-green-600 text-white'
-                  : 'bg-purple-600 text-white hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed'
+                  : 'bg-slate-900 text-white hover:bg-slate-800 disabled:bg-gray-300 disabled:cursor-not-allowed'
               }`}
             >
               {sending ? (

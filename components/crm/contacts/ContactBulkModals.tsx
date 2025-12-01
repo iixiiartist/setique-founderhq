@@ -38,8 +38,8 @@ export function CSVImportModal({
         >
             <div className="space-y-4">
                 {/* Instructions */}
-                <div className="bg-blue-50 border-2 border-blue-500 p-4 rounded-none">
-                    <h4 className="font-mono font-semibold text-black mb-2">📋 Instructions:</h4>
+                <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl">
+                    <h4 className="font-semibold text-slate-900 mb-2">📋 Instructions:</h4>
                     <ul className="text-sm space-y-1 list-disc list-inside text-gray-700">
                         <li>CSV must include headers: name, email, phone, title, company</li>
                         <li>Name and email are required for each contact</li>
@@ -51,7 +51,7 @@ export function CSVImportModal({
                 {/* Download Template */}
                 <button
                     onClick={onDownloadTemplate}
-                    className="w-full font-mono bg-gray-200 text-black border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-gray-300 transition-all"
+                    className="w-full bg-white text-slate-700 border border-gray-200 px-4 py-2.5 rounded-xl font-semibold hover:bg-gray-50 transition-all"
                 >
                     📥 Download CSV Template
                 </button>
@@ -59,7 +59,7 @@ export function CSVImportModal({
                 {/* File Upload */}
                 {!isImporting && !importResult && (
                     <div>
-                        <label htmlFor="csv-upload-file" className="block font-mono text-sm font-semibold text-black mb-2">
+                        <label htmlFor="csv-upload-file" className="block text-sm font-medium text-slate-700 mb-2">
                             Select CSV File
                         </label>
                         <input
@@ -73,7 +73,7 @@ export function CSVImportModal({
                                     onFileSelect(file);
                                 }
                             }}
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400"
                         />
                     </div>
                 )}
@@ -82,12 +82,12 @@ export function CSVImportModal({
                 {isImporting && (
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                            <span className="font-mono text-sm font-semibold">Importing contacts...</span>
-                            <span className="font-mono text-sm font-semibold">{importProgress}%</span>
+                            <span className="text-sm font-medium text-slate-700">Importing contacts...</span>
+                            <span className="text-sm font-semibold text-slate-900">{importProgress}%</span>
                         </div>
-                        <div className="w-full bg-gray-200 border-2 border-black h-8">
+                        <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                             <div
-                                className="bg-blue-500 h-full transition-all duration-300"
+                                className="bg-slate-900 h-full rounded-full transition-all duration-300"
                                 style={{ width: `${importProgress}%` }}
                             />
                         </div>
@@ -97,8 +97,8 @@ export function CSVImportModal({
                 {/* Import Results */}
                 {importResult && !isImporting && (
                     <div className="space-y-3">
-                        <div className="bg-green-50 border-2 border-green-500 p-4 rounded-none">
-                            <h4 className="font-mono font-semibold text-green-800 mb-2">✅ Import Complete</h4>
+                        <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl">
+                            <h4 className="font-semibold text-emerald-800 mb-2">✅ Import Complete</h4>
                             <div className="text-sm space-y-1">
                                 <p className="text-green-700">
                                     <span className="font-semibold">Success:</span> {importResult.success} contacts imported
@@ -111,8 +111,8 @@ export function CSVImportModal({
 
                         {/* Error Details */}
                         {importResult.errors.length > 0 && (
-                            <div className="bg-red-50 border-2 border-red-500 p-4 rounded-none max-h-60 overflow-y-auto">
-                                <h4 className="font-mono font-semibold text-red-800 mb-2">❌ Errors:</h4>
+                            <div className="bg-red-50 border border-red-200 p-4 rounded-xl max-h-60 overflow-y-auto">
+                                <h4 className="font-semibold text-red-800 mb-2">❌ Errors:</h4>
                                 <div className="space-y-2 text-sm">
                                     {importResult.errors.map((error, idx) => (
                                         <div key={idx} className="border-b border-red-200 pb-2 last:border-0">
@@ -131,7 +131,7 @@ export function CSVImportModal({
                         {/* Close Button */}
                         <button
                             onClick={onClose}
-                            className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800"
+                            className="w-full font-semibold bg-slate-900 text-white py-2.5 px-4 rounded-xl shadow-sm hover:shadow-md hover:bg-slate-800 transition-all"
                         >
                             Close
                         </button>
@@ -192,11 +192,11 @@ export function BulkActionsModal({
                                     }
                                 }}
                                 placeholder="Enter tag name..."
-                                className="flex-1 bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-purple-500"
+                                className="flex-1 bg-white border border-gray-200 text-slate-900 px-4 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                             />
                             <button
                                 onClick={onExecuteBulkTag}
-                                className="font-mono bg-purple-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-purple-600 transition-all"
+                                className="bg-slate-900 text-white px-4 py-2 rounded-xl font-semibold shadow-sm hover:shadow-md hover:bg-slate-800 transition-all"
                             >
                                 Add Tag
                             </button>
@@ -209,7 +209,7 @@ export function BulkActionsModal({
                                         <button
                                             key={tag}
                                             onClick={() => onBulkTagChange(tag)}
-                                            className="px-2 py-1 bg-purple-50 border border-purple-300 text-xs font-mono text-purple-700 hover:bg-purple-100 transition-all"
+                                            className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-sm text-slate-700 rounded-full hover:bg-slate-100 hover:border-slate-300 transition-all"
                                         >
                                             {tag}
                                         </button>
@@ -222,22 +222,22 @@ export function BulkActionsModal({
 
                 {action === 'delete' && (
                     <div className="space-y-3">
-                        <div className="bg-red-50 border-2 border-red-300 p-3">
-                            <p className="text-sm font-mono text-red-800">
+                        <div className="bg-red-50 border border-red-200 p-4 rounded-xl">
+                            <p className="text-sm text-red-800">
                                 <strong>⚠️ Warning:</strong> You are about to delete {selectedCount} contact(s). 
                                 This action cannot be undone.
                             </p>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-3">
                             <button
                                 onClick={onExecuteBulkDelete}
-                                className="flex-1 font-mono bg-red-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-red-600 transition-all"
+                                className="flex-1 bg-red-500 text-white px-4 py-2.5 rounded-xl font-semibold shadow-sm hover:shadow-md hover:bg-red-600 transition-all"
                             >
                                 Delete {selectedCount} Contact(s)
                             </button>
                             <button
                                 onClick={onClose}
-                                className="font-mono bg-gray-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-gray-600 transition-all"
+                                className="bg-white text-slate-700 border border-gray-200 px-4 py-2.5 rounded-xl font-semibold hover:bg-gray-50 transition-all"
                             >
                                 Cancel
                             </button>
@@ -252,7 +252,7 @@ export function BulkActionsModal({
                         </p>
                         <button
                             onClick={onExecuteBulkExport}
-                            className="w-full font-mono bg-blue-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-blue-600 transition-all"
+                            className="w-full bg-slate-900 text-white px-4 py-2.5 rounded-xl font-semibold shadow-sm hover:shadow-md hover:bg-slate-800 transition-all"
                         >
                             📥 Download CSV
                         </button>
@@ -261,7 +261,7 @@ export function BulkActionsModal({
 
                 <button
                     onClick={onClose}
-                    className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800"
+                    className="w-full font-semibold bg-slate-900 text-white py-2.5 px-4 rounded-xl shadow-sm hover:shadow-md hover:bg-slate-800 transition-all"
                 >
                     Close
                 </button>
@@ -304,8 +304,8 @@ export function DuplicateModal({
                 {selectedDuplicateGroup ? (
                     /* Merge Workflow */
                     <div className="space-y-4">
-                        <div className="bg-yellow-50 border-2 border-yellow-300 p-3">
-                            <p className="text-sm font-mono">
+                        <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl">
+                            <p className="text-sm text-amber-800">
                                 <strong>⚠️ Merge Warning:</strong> Select the primary contact to keep. 
                                 Other contacts will be deleted, but their data (tags, notes) will be merged into the primary.
                             </p>
@@ -315,10 +315,10 @@ export function DuplicateModal({
                             {selectedDuplicateGroup.map((contact) => (
                                 <div
                                     key={contact.id}
-                                    className={`p-4 border-2 cursor-pointer transition-all ${
+                                    className={`p-4 border rounded-xl cursor-pointer transition-all ${
                                         primaryContact?.id === contact.id
-                                            ? 'border-green-500 bg-green-50'
-                                            : 'border-gray-300 bg-white hover:border-blue-400'
+                                            ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-200'
+                                            : 'border-gray-200 bg-white hover:border-slate-300 hover:bg-gray-50'
                                     }`}
                                     onClick={() => onSelectPrimary(contact)}
                                 >
@@ -326,9 +326,9 @@ export function DuplicateModal({
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2">
                                                 {primaryContact?.id === contact.id && (
-                                                    <span className="text-green-600 font-bold">✓ PRIMARY</span>
+                                                    <span className="text-emerald-600 font-bold text-sm">✓ PRIMARY</span>
                                                 )}
-                                                <h4 className="font-mono font-bold text-black">{contact.name}</h4>
+                                                <h4 className="font-semibold text-slate-900">{contact.name}</h4>
                                             </div>
                                             <p className="text-sm text-gray-600">📧 {contact.email}</p>
                                             {contact.phone && (
@@ -338,9 +338,9 @@ export function DuplicateModal({
                                                 <p className="text-sm text-gray-600">💼 {contact.title}</p>
                                             )}
                                             {contact.tags && contact.tags.length > 0 && (
-                                                <div className="mt-1 flex gap-1 flex-wrap">
+                                                <div className="mt-2 flex gap-1 flex-wrap">
                                                     {contact.tags.map(tag => (
-                                                        <span key={tag} className="text-xs px-2 py-1 bg-purple-100 text-purple-700">
+                                                        <span key={tag} className="text-xs px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full">
                                                             🏷️ {tag}
                                                         </span>
                                                     ))}
@@ -357,17 +357,17 @@ export function DuplicateModal({
                             ))}
                         </div>
 
-                        <div className="flex gap-2">
+                        <div className="flex gap-3">
                             <button
                                 onClick={onMergeContacts}
                                 disabled={!primaryContact}
-                                className="flex-1 font-mono bg-green-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-green-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex-1 bg-emerald-500 text-white px-4 py-2.5 rounded-xl font-semibold shadow-sm hover:shadow-md hover:bg-emerald-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 ✓ Merge Contacts
                             </button>
                             <button
                                 onClick={onCancelMerge}
-                                className="font-mono bg-gray-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-gray-600 transition-all"
+                                className="bg-white text-slate-700 border border-gray-200 px-4 py-2.5 rounded-xl font-semibold hover:bg-gray-50 transition-all"
                             >
                                 Cancel
                             </button>
@@ -378,7 +378,7 @@ export function DuplicateModal({
                     <div className="space-y-4">
                         {duplicateGroups.length === 0 ? (
                             <div className="text-center py-8">
-                                <p className="text-green-600 font-mono font-semibold">
+                                <p className="text-emerald-600 font-semibold">
                                     ✓ No duplicate contacts found!
                                 </p>
                                 <p className="text-sm text-gray-500 mt-2">
@@ -387,9 +387,9 @@ export function DuplicateModal({
                             </div>
                         ) : (
                             <div className="space-y-3">
-                                <div className="bg-yellow-50 border-2 border-yellow-300 p-3">
-                                    <p className="text-sm font-mono">
-                                        <strong>Found {duplicateGroups.length} potential duplicate group(s)</strong>
+                                <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl">
+                                    <p className="text-sm font-semibold text-amber-800">
+                                        Found {duplicateGroups.length} potential duplicate group(s)
                                     </p>
                                     <p className="text-xs text-gray-600 mt-1">
                                         Click "Review & Merge" to combine duplicate contacts
@@ -397,14 +397,14 @@ export function DuplicateModal({
                                 </div>
 
                                 {duplicateGroups.map((group, idx) => (
-                                    <div key={idx} className="border-2 border-gray-300 p-3 bg-white">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <h4 className="font-mono font-semibold text-black">
+                                    <div key={idx} className="border border-gray-200 rounded-xl p-4 bg-white">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h4 className="font-semibold text-slate-900">
                                                 Duplicate Group {idx + 1} ({group.length} contacts)
                                             </h4>
                                             <button
                                                 onClick={() => onStartMergeWorkflow(group)}
-                                                className="font-mono bg-blue-500 text-white border-2 border-black px-3 py-1 text-xs rounded-none font-semibold shadow-neo-btn hover:bg-blue-600 transition-all"
+                                                className="bg-slate-900 text-white px-3 py-1.5 text-xs rounded-lg font-semibold shadow-sm hover:shadow-md hover:bg-slate-800 transition-all"
                                             >
                                                 Review & Merge
                                             </button>
@@ -424,7 +424,7 @@ export function DuplicateModal({
 
                         <button
                             onClick={onClose}
-                            className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800"
+                            className="w-full font-semibold bg-slate-900 text-white py-2.5 px-4 rounded-xl shadow-sm hover:shadow-md hover:bg-slate-800 transition-all"
                         >
                             Close
                         </button>

@@ -189,8 +189,8 @@ export function ProductServicePicker({
 
       {/* Selection Summary */}
       {selectedIds.length > 0 && (
-        <div className="mt-2 p-2 bg-gray-100 border-2 border-black">
-          <p className="text-sm font-semibold">
+        <div className="mt-2 p-2 bg-gray-50 rounded-xl border border-gray-200">
+          <p className="text-sm font-medium">
             ✓ {selectedIds.length} item{selectedIds.length !== 1 ? 's' : ''} selected
           </p>
           {selectedItems.length > 0 && (
@@ -234,7 +234,7 @@ export function ProductServicePicker({
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               placeholder="Search by name, description, or category..."
-              className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+              className="w-full bg-white rounded-xl border border-gray-200 text-black p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               autoFocus
             />
             

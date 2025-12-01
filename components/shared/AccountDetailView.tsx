@@ -627,73 +627,73 @@ function AccountDetailView({
              <Modal isOpen={isEditing} onClose={closeEditModal} title={`Edit ${title}`} triggerRef={editCrmModalTriggerRef}>
                  <div className="space-y-4">
                     <div>
-                        <label htmlFor="edit-company" className="block font-mono text-sm font-semibold text-black mb-1">Company Name *</label>
+                        <label htmlFor="edit-company" className="block text-sm font-medium text-slate-700 mb-1">Company Name *</label>
                         <input 
                             id="edit-company" 
                             value={editForm.company || ''} 
                             onChange={(e) => handleFormChange('company', e.target.value)} 
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-2.5 rounded-xl focus:outline-none focus:border-gray-400 focus:ring-1 focus:ring-gray-200" 
                             required
                         />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor="edit-priority" className="block font-mono text-sm font-semibold text-black mb-1">Priority</label>
+                            <label htmlFor="edit-priority" className="block text-sm font-medium text-slate-700 mb-1">Priority</label>
                             <select 
                                 id="edit-priority" 
                                 value={editForm.priority || 'Medium'} 
                                 onChange={(e) => handleFormChange('priority', e.target.value as Priority)} 
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-2.5 rounded-xl focus:outline-none focus:border-gray-400"
                             >
                                 <option>Low</option><option>Medium</option><option>High</option>
                             </select>
                         </div>
                         <div>
-                            <label htmlFor="edit-status" className="block font-mono text-sm font-semibold text-black mb-1">Status</label>
+                            <label htmlFor="edit-status" className="block text-sm font-medium text-slate-700 mb-1">Status</label>
                             <input 
                                 id="edit-status" 
                                 value={editForm.status || ''} 
                                 onChange={(e) => handleFormChange('status', e.target.value)} 
                                 placeholder="e.g., Active, Prospect"
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-2.5 rounded-xl focus:outline-none focus:border-gray-400" 
                             />
                         </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor="edit-website" className="block font-mono text-sm font-semibold text-black mb-1">Website</label>
+                            <label htmlFor="edit-website" className="block text-sm font-medium text-slate-700 mb-1">Website</label>
                             <input 
                                 id="edit-website" 
                                 type="url"
                                 value={(editForm as any).website || ''} 
                                 onChange={(e) => handleFormChange('website', e.target.value)} 
                                 placeholder="https://example.com"
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-2.5 rounded-xl focus:outline-none focus:border-gray-400" 
                             />
                         </div>
                         <div>
-                            <label htmlFor="edit-industry" className="block font-mono text-sm font-semibold text-black mb-1">Industry</label>
+                            <label htmlFor="edit-industry" className="block text-sm font-medium text-slate-700 mb-1">Industry</label>
                             <input 
                                 id="edit-industry" 
                                 value={(editForm as any).industry || ''} 
                                 onChange={(e) => handleFormChange('industry', e.target.value)} 
                                 placeholder="e.g., SaaS, Fintech"
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-2.5 rounded-xl focus:outline-none focus:border-gray-400" 
                             />
                         </div>
                     </div>
 
                     <div>
-                        <label htmlFor="edit-description" className="block font-mono text-sm font-semibold text-black mb-1">Description</label>
+                        <label htmlFor="edit-description" className="block text-sm font-medium text-slate-700 mb-1">Description</label>
                         <textarea 
                             id="edit-description" 
                             value={(editForm as any).description || ''} 
                             onChange={(e) => handleFormChange('description', e.target.value)} 
                             placeholder="Brief description of the company..."
                             rows={3}
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 resize-none" 
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-2.5 rounded-xl focus:outline-none focus:border-gray-400 resize-none" 
                         />
                     </div>
 
@@ -701,23 +701,23 @@ function AccountDetailView({
                     {crmCollection === 'investors' && (
                         <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-200">
                             <div>
-                                <label htmlFor="edit-check-size" className="block font-mono text-sm font-semibold text-black mb-1">Check Size ($)</label>
+                                <label htmlFor="edit-check-size" className="block text-sm font-medium text-slate-700 mb-1">Check Size ($)</label>
                                 <input 
                                     id="edit-check-size" 
                                     type="number"
                                     value={(editForm as any).checkSize || ''} 
                                     onChange={(e) => handleFormChange('checkSize', e.target.value ? Number(e.target.value) : undefined)} 
                                     placeholder="e.g., 100000"
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
+                                    className="w-full bg-white border border-gray-200 text-slate-900 p-2.5 rounded-xl focus:outline-none focus:border-gray-400" 
                                 />
                             </div>
                             <div>
-                                <label htmlFor="edit-stage" className="block font-mono text-sm font-semibold text-black mb-1">Investment Stage</label>
+                                <label htmlFor="edit-stage" className="block text-sm font-medium text-slate-700 mb-1">Investment Stage</label>
                                 <select 
                                     id="edit-stage" 
                                     value={(editForm as any).stage || ''} 
                                     onChange={(e) => handleFormChange('stage', e.target.value)} 
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                    className="w-full bg-white border border-gray-200 text-slate-900 p-2.5 rounded-xl focus:outline-none focus:border-gray-400"
                                 >
                                     <option value="">Select stage...</option>
                                     <option value="Pre-Seed">Pre-Seed</option>
@@ -734,23 +734,23 @@ function AccountDetailView({
                     {crmCollection === 'customers' && (
                         <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-200">
                             <div>
-                                <label htmlFor="edit-deal-value" className="block font-mono text-sm font-semibold text-black mb-1">Deal Value ($)</label>
+                                <label htmlFor="edit-deal-value" className="block text-sm font-medium text-slate-700 mb-1">Deal Value ($)</label>
                                 <input 
                                     id="edit-deal-value" 
                                     type="number"
                                     value={(editForm as any).dealValue || ''} 
                                     onChange={(e) => handleFormChange('dealValue', e.target.value ? Number(e.target.value) : undefined)} 
                                     placeholder="e.g., 50000"
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
+                                    className="w-full bg-white border border-gray-200 text-slate-900 p-2.5 rounded-xl focus:outline-none focus:border-gray-400" 
                                 />
                             </div>
                             <div>
-                                <label htmlFor="edit-deal-stage" className="block font-mono text-sm font-semibold text-black mb-1">Deal Stage</label>
+                                <label htmlFor="edit-deal-stage" className="block text-sm font-medium text-slate-700 mb-1">Deal Stage</label>
                                 <select 
                                     id="edit-deal-stage" 
                                     value={(editForm as any).dealStage || ''} 
                                     onChange={(e) => handleFormChange('dealStage', e.target.value)} 
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                    className="w-full bg-white border border-gray-200 text-slate-900 p-2.5 rounded-xl focus:outline-none focus:border-gray-400"
                                 >
                                     <option value="">Select stage...</option>
                                     <option value="Lead">Lead</option>
@@ -767,22 +767,22 @@ function AccountDetailView({
                     {crmCollection === 'partners' && (
                         <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-200">
                             <div>
-                                <label htmlFor="edit-opportunity" className="block font-mono text-sm font-semibold text-black mb-1">Opportunity</label>
+                                <label htmlFor="edit-opportunity" className="block text-sm font-medium text-slate-700 mb-1">Opportunity</label>
                                 <input 
                                     id="edit-opportunity" 
                                     value={(editForm as any).opportunity || ''} 
                                     onChange={(e) => handleFormChange('opportunity', e.target.value)} 
                                     placeholder="e.g., Co-marketing campaign"
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
+                                    className="w-full bg-white border border-gray-200 text-slate-900 p-2.5 rounded-xl focus:outline-none focus:border-gray-400" 
                                 />
                             </div>
                             <div>
-                                <label htmlFor="edit-partner-type" className="block font-mono text-sm font-semibold text-black mb-1">Partner Type</label>
+                                <label htmlFor="edit-partner-type" className="block text-sm font-medium text-slate-700 mb-1">Partner Type</label>
                                 <select 
                                     id="edit-partner-type" 
                                     value={(editForm as any).partnerType || ''} 
                                     onChange={(e) => handleFormChange('partnerType', e.target.value)} 
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                    className="w-full bg-white border border-gray-200 text-slate-900 p-2.5 rounded-xl focus:outline-none focus:border-gray-400"
                                 >
                                     <option value="">Select type...</option>
                                     <option value="Technology">Technology</option>
@@ -797,35 +797,35 @@ function AccountDetailView({
                     )}
 
                     <div className="pt-2 border-t border-gray-200">
-                        <label htmlFor="edit-next-action" className="block font-mono text-sm font-semibold text-black mb-1">Next Action</label>
+                        <label htmlFor="edit-next-action" className="block text-sm font-medium text-slate-700 mb-1">Next Action</label>
                         <input 
                             id="edit-next-action" 
                             value={editForm.nextAction || ''} 
                             onChange={(e) => handleFormChange('nextAction', e.target.value)} 
                             placeholder="e.g., Send intro email"
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-2.5 rounded-xl focus:outline-none focus:border-gray-400" 
                         />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor="edit-next-action-date" className="block font-mono text-sm font-semibold text-black mb-1">Next Action Date</label>
+                            <label htmlFor="edit-next-action-date" className="block text-sm font-medium text-slate-700 mb-1">Next Action Date</label>
                             <input 
                                 id="edit-next-action-date" 
                                 type="date" 
                                 value={editForm.nextActionDate || ''} 
                                 onChange={(e) => handleFormChange('nextActionDate', e.target.value)} 
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-2.5 rounded-xl focus:outline-none focus:border-gray-400" 
                             />
                         </div>
                         <div>
-                            <label htmlFor="edit-next-action-time" className="block font-mono text-sm font-semibold text-black mb-1">Next Action Time</label>
+                            <label htmlFor="edit-next-action-time" className="block text-sm font-medium text-slate-700 mb-1">Next Action Time</label>
                             <input 
                                 id="edit-next-action-time" 
                                 type="time" 
                                 value={editForm.nextActionTime || ''} 
                                 onChange={(e) => handleFormChange('nextActionTime', e.target.value)} 
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500" 
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-2.5 rounded-xl focus:outline-none focus:border-gray-400" 
                             />
                         </div>
                     </div>
@@ -842,8 +842,8 @@ function AccountDetailView({
                     </div>
 
                     <div className="flex gap-4 pt-4">
-                        <button onClick={handleUpdate} className="font-mono w-full bg-black border-2 border-black text-white cursor-pointer text-sm py-3 px-4 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-gray-800">Save Changes</button>
-                        <button onClick={() => setIsEditing(false)} className="font-mono w-full bg-white border-2 border-black text-black cursor-pointer text-sm py-3 px-4 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-gray-100">Cancel</button>
+                        <button onClick={handleUpdate} className="w-full bg-slate-900 text-white cursor-pointer text-sm py-3 px-4 rounded-xl font-medium shadow-sm hover:shadow-md transition-all">Save Changes</button>
+                        <button onClick={() => setIsEditing(false)} className="w-full bg-white border border-gray-200 text-slate-900 cursor-pointer text-sm py-3 px-4 rounded-xl font-medium hover:bg-gray-50 transition-all">Cancel</button>
                     </div>
                 </div>
             </Modal>
@@ -851,24 +851,24 @@ function AccountDetailView({
                 {editingTask && (
                     <div className="space-y-4">
                          <div>
-                            <label htmlFor={`edit-acc-task-${editingTask.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Task Description</label>
+                            <label htmlFor={`edit-acc-task-${editingTask.id}`} className="block text-sm font-medium text-slate-700 mb-1">Task Description</label>
                             <textarea 
                                 id={`edit-acc-task-${editingTask.id}`}
                                 name={`edit-acc-task-${editingTask.id}`}
                                 value={editText || ''}
                                 onChange={(e) => setEditText(e.target.value)}
-                                className="w-full bg-white border-2 border-black text-black rounded-none focus:outline-none p-2 min-h-[80px]"
+                                className="w-full bg-white border border-gray-200 text-slate-900 rounded-xl focus:outline-none focus:border-gray-400 p-2.5 min-h-[80px]"
                             />
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor={`edit-priority-${editingTask.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Priority</label>
+                                <label htmlFor={`edit-priority-${editingTask.id}`} className="block text-sm font-medium text-slate-700 mb-1">Priority</label>
                                 <select
                                     id={`edit-priority-${editingTask.id}`}
                                     name={`edit-priority-${editingTask.id}`}
                                     value={editPriority || 'Medium'}
                                     onChange={(e) => setEditPriority(e.target.value as Priority)}
-                                    className="w-full bg-white border-2 border-black text-black rounded-none focus:outline-none p-2 h-full"
+                                    className="w-full bg-white border border-gray-200 text-slate-900 rounded-xl focus:outline-none focus:border-gray-400 p-2.5 h-full"
                                 >
                                     <option value="Medium">Medium</option>
                                     <option value="Low">Low</option>
@@ -876,14 +876,14 @@ function AccountDetailView({
                                 </select>
                             </div>
                             <div>
-                                <label htmlFor={`edit-duedate-${editingTask.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Due Date</label>
+                                <label htmlFor={`edit-duedate-${editingTask.id}`} className="block text-sm font-medium text-slate-700 mb-1">Due Date</label>
                                 <input
                                     id={`edit-duedate-${editingTask.id}`}
                                     name={`edit-duedate-${editingTask.id}`}
                                     type="date"
                                     value={editDueDate || ''}
                                     onChange={(e) => setEditDueDate(e.target.value)}
-                                    className="w-full bg-white border-2 border-black text-black rounded-none focus:outline-none p-2 h-full"
+                                    className="w-full bg-white border border-gray-200 text-slate-900 rounded-xl focus:outline-none focus:border-gray-400 p-2.5 h-full"
                                 />
                             </div>
                         </div>
@@ -895,7 +895,7 @@ function AccountDetailView({
                             updateNoteAction={actions.updateNote}
                             deleteNoteAction={actions.deleteNote}
                         />
-                        <button onClick={handleUpdateTask} className="mt-4 font-mono w-full bg-black border-2 border-black text-white cursor-pointer text-sm py-2 px-3 rounded-none font-semibold shadow-neo-btn transition-all">
+                        <button onClick={handleUpdateTask} className="mt-4 w-full bg-slate-900 text-white cursor-pointer text-sm py-2.5 px-4 rounded-xl font-medium shadow-sm hover:shadow-md transition-all">
                             Save Changes
                         </button>
                     </div>

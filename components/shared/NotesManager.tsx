@@ -61,14 +61,14 @@ const NotesManager: React.FC<NotesManagerProps> = ({ notes, itemId, collection, 
                     value={newNote}
                     onChange={(e) => setNewNote(e.target.value)}
                     placeholder="Add a new note..."
-                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white rounded-xl border border-gray-200 text-slate-900 p-2 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 />
-                <button type="submit" className="font-mono font-semibold bg-black text-white p-2 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn text-sm shrink-0">Add Note</button>
+                <button type="submit" className="font-semibold bg-slate-900 text-white p-2 rounded-xl cursor-pointer transition-all shadow-sm hover:shadow-md text-sm shrink-0">Add Note</button>
             </form>
             <div className="max-h-48 overflow-y-auto custom-scrollbar pr-2 space-y-2">
                 {sortedNotes.length > 0 ? (
                     sortedNotes.map((note, index) => (
-                        <div key={index} className="bg-gray-100 p-2 border-2 border-black text-sm">
+                        <div key={index} className="bg-gray-50 p-2 rounded-xl border border-gray-200 text-sm">
                             {editingNote?.timestamp === note.timestamp ? (
                                 <div className="space-y-2">
                                     <label htmlFor={`edit-note-textarea-${note.timestamp}`} className="sr-only">Edit note</label>
@@ -76,12 +76,12 @@ const NotesManager: React.FC<NotesManagerProps> = ({ notes, itemId, collection, 
                                         id={`edit-note-textarea-${note.timestamp}`}
                                         value={editText}
                                         onChange={(e) => setEditText(e.target.value)}
-                                        className="w-full bg-white border-2 border-black text-black rounded-none focus:outline-none p-2 min-h-[60px]"
+                                        className="w-full bg-white rounded-xl border border-gray-200 text-slate-900 focus:outline-none focus:border-blue-500 p-2 min-h-[60px]"
                                         autoFocus
                                     />
                                     <div className="flex justify-end gap-2">
-                                        <button onClick={handleSaveEdit} className="font-mono bg-black text-white text-xs py-1 px-2 rounded-none font-semibold shadow-neo-btn transition-all">Save</button>
-                                        <button onClick={handleCancelEdit} className="font-mono bg-gray-200 text-black text-xs py-1 px-2 rounded-none font-semibold border-2 border-black shadow-neo-btn transition-all">Cancel</button>
+                                        <button onClick={handleSaveEdit} className="bg-slate-900 text-white text-xs py-1 px-2 rounded-lg font-semibold shadow-sm hover:shadow-md transition-all">Save</button>
+                                        <button onClick={handleCancelEdit} className="bg-gray-200 text-slate-900 text-xs py-1 px-2 rounded-lg font-semibold border border-gray-300 shadow-sm hover:shadow-md transition-all">Cancel</button>
                                     </div>
                                 </div>
                             ) : (

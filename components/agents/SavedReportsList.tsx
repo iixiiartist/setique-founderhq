@@ -13,10 +13,10 @@ interface SavedReportsListProps {
 }
 
 const GOAL_LABELS: Record<string, { label: string; icon: React.ReactNode }> = {
-  icp: { label: 'ICP & Pains', icon: <Users size={14} className="text-green-500" /> },
-  competitive: { label: 'Competitive', icon: <Target size={14} className="text-red-500" /> },
-  angles: { label: 'Outreach Angles', icon: <Lightbulb size={14} className="text-yellow-500" /> },
-  market: { label: 'Market Trends', icon: <TrendingUp size={14} className="text-purple-500" /> },
+  icp: { label: 'ICP & Pains', icon: <Users size={14} className="text-gray-500" /> },
+  competitive: { label: 'Competitive', icon: <Target size={14} className="text-gray-500" /> },
+  angles: { label: 'Outreach Angles', icon: <Lightbulb size={14} className="text-gray-500" /> },
+  market: { label: 'Market Trends', icon: <TrendingUp size={14} className="text-gray-500" /> },
 };
 
 export const SavedReportsList: React.FC<SavedReportsListProps> = ({
@@ -58,8 +58,8 @@ export const SavedReportsList: React.FC<SavedReportsListProps> = ({
             className="group flex items-center gap-3 p-3 bg-white hover:bg-gray-50 rounded-lg border border-gray-200 cursor-pointer transition-colors"
             onClick={() => onViewReport(report)}
           >
-            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center flex-shrink-0">
-              <FileText size={18} className="text-yellow-600" />
+            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <FileText size={18} className="text-gray-600" />
             </div>
 
             <div className="flex-1 min-w-0">

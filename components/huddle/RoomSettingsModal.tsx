@@ -80,7 +80,7 @@ export const RoomSettingsModal: React.FC<RoomSettingsModalProps> = ({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="px-6 py-4 border-b-2 border-gray-200 flex items-center justify-between">
+          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Settings size={24} className="text-gray-600" />
               <div>
@@ -135,7 +135,7 @@ export const RoomSettingsModal: React.FC<RoomSettingsModalProps> = ({
               {/* AI Allowed Toggle */}
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                 <div className="flex items-center gap-3">
-                  <Sparkles className="w-5 h-5 text-purple-500" />
+                  <Sparkles className="w-5 h-5 text-slate-500" />
                   <div>
                     <div className="text-sm font-medium text-gray-900">
                       Enable AI Assistant
@@ -153,14 +153,14 @@ export const RoomSettingsModal: React.FC<RoomSettingsModalProps> = ({
                     disabled={!canManage}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600 peer-disabled:opacity-50"></div>
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900 peer-disabled:opacity-50"></div>
                 </label>
               </div>
 
               {/* AI Can Write Toggle */}
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                 <div className="flex items-center gap-3">
-                  <ClipboardList className="w-5 h-5 text-green-500" />
+                  <ClipboardList className="w-5 h-5 text-slate-500" />
                   <div>
                     <div className="text-sm font-medium text-gray-900">
                       AI Write Actions
@@ -178,14 +178,14 @@ export const RoomSettingsModal: React.FC<RoomSettingsModalProps> = ({
                     disabled={!canManage || !aiAllowed}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600 peer-disabled:opacity-50"></div>
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900 peer-disabled:opacity-50"></div>
                 </label>
               </div>
 
               {/* Auto Summarize Toggle */}
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                 <div className="flex items-center gap-3">
-                  <ClipboardList className="w-5 h-5 text-blue-500" />
+                  <ClipboardList className="w-5 h-5 text-slate-500" />
                   <div>
                     <div className="text-sm font-medium text-gray-900">
                       Auto-summarize
@@ -203,7 +203,7 @@ export const RoomSettingsModal: React.FC<RoomSettingsModalProps> = ({
                     disabled={!canManage || !aiAllowed}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600 peer-disabled:opacity-50"></div>
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900 peer-disabled:opacity-50"></div>
                 </label>
               </div>
             </div>
@@ -265,17 +265,17 @@ export const RoomSettingsModal: React.FC<RoomSettingsModalProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t-2 border-gray-200 bg-gray-50 flex gap-3">
+          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex gap-3">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors"
+              className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-100 transition-all shadow-sm hover:shadow-md"
             >
               Cancel
             </button>
             <button
               onClick={handleSaveSettings}
               disabled={isSaving || !canManage}
-              className="flex-1 px-4 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-semibold"
+              className="flex-1 px-4 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md font-medium"
             >
               {isSaving ? 'Saving...' : 'Save Changes'}
             </button>

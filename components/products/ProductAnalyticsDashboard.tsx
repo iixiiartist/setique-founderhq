@@ -148,23 +148,23 @@ function ProductAnalyticsDashboard({
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <BarChart3 className="w-6 h-6" />
-                    <h2 className="text-2xl font-bold">Product Analytics</h2>
+                    <h2 className="text-2xl font-semibold text-slate-900">Product Analytics</h2>
                 </div>
             </div>
             
             {/* Summary KPIs */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                <div className="bg-white p-4 border-2 border-black shadow-neo">
+                <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
                         <DollarSign className="w-4 h-4" />
                         Total Revenue
                     </div>
-                    <div className="text-2xl font-bold">
+                    <div className="text-2xl font-bold text-slate-900">
                         {formatCurrency(summary.totalRevenue)}
                     </div>
                 </div>
                 
-                <div className="bg-green-50 p-4 border-2 border-green-600 shadow-neo">
+                <div className="bg-green-50 p-4 rounded-2xl border border-green-200 shadow-sm">
                     <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
                         <TrendingUp className="w-4 h-4" />
                         Total Profit
@@ -177,7 +177,7 @@ function ProductAnalyticsDashboard({
                     </div>
                 </div>
                 
-                <div className="bg-blue-50 p-4 border-2 border-blue-600 shadow-neo">
+                <div className="bg-blue-50 p-4 rounded-2xl border border-blue-200 shadow-sm">
                     <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
                         <Package className="w-4 h-4" />
                         Units Sold
@@ -187,7 +187,7 @@ function ProductAnalyticsDashboard({
                     </div>
                 </div>
                 
-                <div className="bg-purple-50 p-4 border-2 border-purple-600 shadow-neo">
+                <div className="bg-purple-50 p-4 rounded-2xl border border-purple-200 shadow-sm">
                     <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
                         <Target className="w-4 h-4" />
                         Pipeline Value
@@ -197,7 +197,7 @@ function ProductAnalyticsDashboard({
                     </div>
                 </div>
                 
-                <div className="bg-orange-50 p-4 border-2 border-orange-600 shadow-neo">
+                <div className="bg-orange-50 p-4 rounded-2xl border border-orange-200 shadow-sm">
                     <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
                         <Package className="w-4 h-4" />
                         Inventory Value
@@ -211,19 +211,19 @@ function ProductAnalyticsDashboard({
             {/* Top Performers */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Top by Revenue */}
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
-                    <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                    <h3 className="text-xl font-semibold mb-4 flex items-center gap-2 text-slate-900">
                         <DollarSign className="w-5 h-5" />
                         Top by Revenue
                     </h3>
                     <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
                         {topByRevenue.map((item, index) => (
-                            <div key={item.product.id} className="p-3 border-2 border-black">
+                            <div key={item.product.id} className="p-3 rounded-xl border border-gray-200 hover:shadow-sm transition-shadow">
                                 <div className="flex items-start justify-between">
                                     <div className="flex-grow">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-sm font-mono font-bold">#{index + 1}</span>
-                                            <span className="font-semibold">{item.product.name}</span>
+                                            <span className="text-sm font-semibold text-slate-500">#{index + 1}</span>
+                                            <span className="font-semibold text-slate-900">{item.product.name}</span>
                                         </div>
                                         <div className="text-xs text-gray-600 mt-1">
                                             {item.totalUnits} units sold
@@ -244,19 +244,19 @@ function ProductAnalyticsDashboard({
                 </div>
                 
                 {/* Top by Margin */}
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
-                    <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                    <h3 className="text-xl font-semibold mb-4 flex items-center gap-2 text-slate-900">
                         <TrendingUp className="w-5 h-5" />
                         Top by Profit Margin
                     </h3>
                     <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
                         {topByMargin.map((item, index) => (
-                            <div key={item.product.id} className="p-3 border-2 border-black">
+                            <div key={item.product.id} className="p-3 rounded-xl border border-gray-200 hover:shadow-sm transition-shadow">
                                 <div className="flex items-start justify-between">
                                     <div className="flex-grow">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-sm font-mono font-bold">#{index + 1}</span>
-                                            <span className="font-semibold">{item.product.name}</span>
+                                            <span className="text-sm font-semibold text-slate-500">#{index + 1}</span>
+                                            <span className="font-semibold text-slate-900">{item.product.name}</span>
                                         </div>
                                         <div className="text-xs text-gray-600 mt-1">
                                             {formatCurrency(item.totalRevenue)} revenue
@@ -277,19 +277,19 @@ function ProductAnalyticsDashboard({
                 </div>
                 
                 {/* Top by Volume */}
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
-                    <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                    <h3 className="text-xl font-semibold mb-4 flex items-center gap-2 text-slate-900">
                         <Package className="w-5 h-5" />
                         Top by Volume
                     </h3>
                     <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
                         {topByUnits.map((item, index) => (
-                            <div key={item.product.id} className="p-3 border-2 border-black">
+                            <div key={item.product.id} className="p-3 rounded-xl border border-gray-200 hover:shadow-sm transition-shadow">
                                 <div className="flex items-start justify-between">
                                     <div className="flex-grow">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-sm font-mono font-bold">#{index + 1}</span>
-                                            <span className="font-semibold">{item.product.name}</span>
+                                            <span className="text-sm font-semibold text-slate-500">#{index + 1}</span>
+                                            <span className="font-semibold text-slate-900">{item.product.name}</span>
                                         </div>
                                         <div className="text-xs text-gray-600 mt-1">
                                             {formatCurrency(item.avgPrice)} avg price
@@ -311,13 +311,13 @@ function ProductAnalyticsDashboard({
             </div>
             
             {/* Detailed Table */}
-            <div className="bg-white p-6 border-2 border-black shadow-neo">
-                <h3 className="text-xl font-semibold mb-4">All Products Performance</h3>
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                <h3 className="text-xl font-semibold mb-4 text-slate-900">All Products Performance</h3>
                 <div className="overflow-x-auto">
                     <table className="w-full border-collapse">
                         <thead>
-                            <tr className="border-b-2 border-black">
-                                <th className="text-left p-2 font-semibold">Product</th>
+                            <tr className="border-b border-gray-200">
+                                <th className="text-left p-2 font-semibold text-slate-700">Product</th>
                                 <th className="text-right p-2 font-semibold">Revenue</th>
                                 <th className="text-right p-2 font-semibold">Units</th>
                                 <th className="text-right p-2 font-semibold">Profit</th>

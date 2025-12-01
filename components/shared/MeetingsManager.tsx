@@ -116,14 +116,14 @@ const MeetingsManager: React.FC<MeetingsManagerProps> = ({ meetings, contactId, 
                 <button 
                     ref={modalTriggerRef} 
                     onClick={(e) => openModalForNew({ current: e.currentTarget })} 
-                    className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-2 px-4 rounded-none font-semibold shadow-neo-btn-lg transition-all"
+                    className="bg-white rounded-xl border border-gray-200 text-slate-900 cursor-pointer text-sm py-2 px-4 font-semibold shadow-sm hover:shadow-md transition-all"
                 >
                     + Add Meeting
                 </button>
             </div>
             <ul className="max-h-60 overflow-y-auto custom-scrollbar pr-2 space-y-2">
                 {sortedMeetings.length > 0 ? sortedMeetings.map(meeting => (
-                    <li key={meeting.id} className="p-2 border border-black bg-gray-50">
+                    <li key={meeting.id} className="p-2 rounded-xl border border-gray-200 bg-gray-50">
                         <p className="font-semibold">{meeting.title}</p>
                         <p className="text-sm text-gray-600">{new Date(meeting.timestamp).toLocaleString()}</p>
                         <div className="flex justify-end gap-2 mt-1">

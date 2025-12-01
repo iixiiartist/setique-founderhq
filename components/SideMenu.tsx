@@ -34,8 +34,8 @@ const SideMenu: React.FC<SideMenuProps> = ({
     // Track hover timeouts to clean up on unmount
     const hoverTimeoutRef = useRef<(() => void) | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
-    const activeClass = "text-blue-500 border-black bg-gray-100";
-    const inactiveClass = "text-gray-600 border-transparent";
+    const activeClass = "text-slate-900 bg-gray-100 border-gray-200";
+    const inactiveClass = "text-slate-600 border-transparent hover:text-slate-900";
     
     // Filter out Documents tab for free users, Admin tab for non-admins,
     // and conditionally show/hide Accounts or legacy CRM tabs based on feature flag
@@ -104,7 +104,7 @@ const SideMenu: React.FC<SideMenuProps> = ({
         <>
             {/* Backdrop overlay - only shows when menu is open */}
             <div 
-                className={`fixed inset-0 bg-black/40 z-40 transition-opacity ${isOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}
+                className={`fixed inset-0 bg-black/30 backdrop-blur-sm z-40 transition-opacity ${isOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}
                 onClick={onClose}
                 aria-hidden="true"
             />
@@ -113,21 +113,23 @@ const SideMenu: React.FC<SideMenuProps> = ({
             <div 
                 ref={menuRef}
                 id="menu-content" 
-                className={`fixed top-0 left-0 w-[85vw] max-w-[320px] sm:max-w-sm h-full bg-white border-r-2 border-black shadow-xl z-50 transition-transform duration-300 ease-in-out flex flex-col overflow-hidden ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+                className={`fixed top-0 left-0 w-[85vw] max-w-[320px] sm:max-w-sm h-full bg-white border-r border-gray-200 shadow-2xl z-50 transition-transform duration-300 ease-in-out flex flex-col overflow-hidden ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
                 onClick={(e) => e.stopPropagation()}
                 role="dialog"
                 aria-modal="true"
                 aria-label="Navigation menu"
             >
                 {/* Header */}
-                <div className="flex justify-between items-center p-4 sm:p-6 border-b border-gray-200 shrink-0">
-                    <h2 className="text-xl sm:text-2xl font-bold">Menu</h2>
+                <div className="flex justify-between items-center p-4 sm:p-6 border-b border-gray-100 shrink-0">
+                    <h2 className="text-xl sm:text-2xl font-semibold text-slate-900">Menu</h2>
                     <button 
                         onClick={onClose} 
-                        className="text-2xl sm:text-3xl hover:text-gray-600 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center -mr-2" 
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors" 
                         aria-label="Close menu"
                     >
-                        &times;
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                     </button>
                 </div>
                 
@@ -138,7 +140,7 @@ const SideMenu: React.FC<SideMenuProps> = ({
                             <a 
                                 key={item.id} 
                                 href="#" 
-                                className={`flex items-center p-3 sm:p-3.5 text-base sm:text-lg font-mono font-semibold rounded-lg border-2 transition-all min-h-[48px] ${activeTab === item.id ? activeClass : inactiveClass} hover:bg-gray-100 hover:text-black active:bg-gray-200`}
+                                className={`flex items-center p-3 sm:p-3.5 text-sm sm:text-base font-medium rounded-xl border transition-all min-h-[48px] ${activeTab === item.id ? activeClass : inactiveClass} hover:bg-gray-50 active:bg-gray-100`}
                                 data-testid={`nav-link-${item.id}`}
                                 onClick={(e) => {
                                     e.preventDefault();
@@ -169,9 +171,9 @@ const SideMenu: React.FC<SideMenuProps> = ({
                 </nav>
                 
                 {/* Footer */}
-                <div className="p-4 border-t-2 border-dashed border-black shrink-0">
+                <div className="p-4 border-t border-gray-100 shrink-0">
                     {userId && (
-                        <div className="text-xs sm:text-sm text-gray-500 font-mono truncate" title={userId}>
+                        <div className="text-xs sm:text-sm text-gray-400 truncate" title={userId}>
                             User ID: {userId.substring(0, 8)}...
                         </div>
                     )}

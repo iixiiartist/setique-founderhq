@@ -693,6 +693,17 @@ export const useLazyDataPersistence = () => {
       // Load products/services
       const productsResult = await DatabaseService.getProductsServices(workspace.id)
       const products = productsResult.data || []
+      
+      // Debug log raw database data
+      console.log('[useLazyDataPersistence] Raw products from DB:', products.map(p => ({
+        id: p.id,
+        name: p.name,
+        base_price: p.base_price,
+        created_at: p.created_at,
+        updated_at: p.updated_at,
+        inventory_tracked: p.inventory_tracked,
+        quantity_on_hand: p.quantity_on_hand,
+      })));
 
       // Transform database format to frontend format
       const transformedProducts = products.map(p => ({
@@ -704,34 +715,38 @@ export const useLazyDataPersistence = () => {
         category: p.category,
         type: p.type,
         status: p.status,
-        basePrice: parseFloat(p.base_price.toString()),
-        currency: p.currency,
+        basePrice: p.base_price != null ? parseFloat(p.base_price.toString()) : 0,
+        currency: p.currency || 'USD',
         pricingModel: p.pricing_model,
-        costOfGoods: p.cost_of_goods ? parseFloat(p.cost_of_goods.toString()) : undefined,
-        costOfService: p.cost_of_service ? parseFloat(p.cost_of_service.toString()) : undefined,
-        isTaxable: p.is_taxable || false,
-        taxRate: p.tax_rate || undefined,
-        inventoryTracking: p.inventory_tracked || false,
-        quantityOnHand: p.quantity_on_hand || undefined,
-        quantityReserved: p.quantity_reserved || undefined,
-        quantityAvailable: p.quantity_available || undefined,
-        reorderPoint: p.reorder_point || undefined,
-        reorderQuantity: p.reorder_quantity || undefined,
-        capacityTracking: p.capacity_tracked || false,
-        capacityTotal: p.capacity_total || undefined,
-        capacityBooked: p.capacity_booked || undefined,
-        capacityAvailable: p.capacity_available || undefined,
+        billingPeriod: p.billing_period || undefined,
+        costOfGoods: p.cost_of_goods != null ? parseFloat(p.cost_of_goods.toString()) : undefined,
+        costOfService: p.cost_of_service != null ? parseFloat(p.cost_of_service.toString()) : undefined,
+        isTaxable: p.is_taxable ?? false,
+        taxCode: p.tax_code || undefined,
+        taxRate: p.tax_rate != null ? parseFloat(p.tax_rate.toString()) : undefined,
+        inventoryTracked: p.inventory_tracked ?? false,
+        quantityOnHand: p.quantity_on_hand ?? 0,
+        quantityReserved: p.quantity_reserved ?? 0,
+        quantityAvailable: p.quantity_available ?? 0,
+        reorderPoint: p.reorder_point ?? undefined,
+        reorderQuantity: p.reorder_quantity ?? undefined,
+        capacityTracked: p.capacity_tracked ?? false,
+        capacityTotal: p.capacity_total != null ? parseFloat(p.capacity_total.toString()) : undefined,
+        capacityBooked: p.capacity_booked != null ? parseFloat(p.capacity_booked.toString()) : undefined,
+        capacityAvailable: p.capacity_available != null ? parseFloat(p.capacity_available.toString()) : undefined,
         capacityUnit: p.capacity_unit || undefined,
         capacityPeriod: p.capacity_period || undefined,
         imageUrl: p.image_url || undefined,
         tags: p.tags || [],
-        tieredPricing: p.tiered_pricing || [],
-        usagePricing: p.usage_pricing || [],
-        subscriptionPlans: p.subscription_plans || [],
-        totalRevenue: p.total_revenue ? parseFloat(p.total_revenue.toString()) : 0,
-        unitsSold: p.units_sold || 0,
-        createdAt: new Date(p.created_at).getTime(),
-        updatedAt: new Date(p.updated_at).getTime(),
+        tieredPricing: p.tiered_pricing || undefined,
+        usagePricing: p.usage_pricing || undefined,
+        subscriptionPlans: p.subscription_plans || undefined,
+        totalRevenue: p.total_revenue != null ? parseFloat(p.total_revenue.toString()) : 0,
+        totalUnitsSold: p.total_units_sold ?? 0,
+        averageSaleValue: p.average_sale_value != null ? parseFloat(p.average_sale_value.toString()) : undefined,
+        lastSoldDate: p.last_sold_date || undefined,
+        createdAt: p.created_at,
+        updatedAt: p.updated_at,
       }))
 
       // Load price history
@@ -741,11 +756,13 @@ export const useLazyDataPersistence = () => {
       const transformedPriceHistory = priceHistory.map(ph => ({
         id: ph.id,
         productServiceId: ph.product_service_id,
-        oldPrice: parseFloat(ph.old_price.toString()),
-        newPrice: parseFloat(ph.new_price.toString()),
+        oldPrice: ph.old_price != null ? parseFloat(ph.old_price.toString()) : 0,
+        newPrice: ph.new_price != null ? parseFloat(ph.new_price.toString()) : 0,
         changedBy: ph.changed_by,
-        changedAt: new Date(ph.changed_at).getTime(),
+        changedAt: ph.changed_at,
         reason: ph.reason || undefined,
+        effectiveFrom: ph.effective_from || undefined,
+        effectiveTo: ph.effective_to || undefined,
       }))
 
       const dataToCache = {

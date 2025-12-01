@@ -434,12 +434,12 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
             {Array.from({ length: totalSteps }).map((_, idx) => (
                 <div
                     key={idx}
-                    className={`h-3 w-12 border-2 border-black transition-colors ${
+                    className={`h-2 w-12 rounded-full transition-colors ${
                         idx + 1 === step
                             ? 'bg-blue-600'
                             : idx + 1 < step
                             ? 'bg-green-600'
-                            : 'bg-white'
+                            : 'bg-gray-200'
                     }`}
                 />
             ))}
@@ -452,7 +452,7 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
         if (!error) return null;
         
         return (
-            <div className="mt-1 text-sm text-red-600 font-mono flex items-center gap-1">
+            <div className="mt-1 text-sm text-red-600 flex items-center gap-1">
                 <span>⚠️</span>
                 <span>{error}</span>
             </div>
@@ -462,12 +462,12 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
     const renderStep1 = () => (
         <div className="space-y-6">
             <div>
-                <h2 className="text-2xl font-bold font-mono mb-2">Welcome! Let's set up your business profile</h2>
-                <p className="text-gray-600 font-mono">This helps the AI assistant understand your business and provide better recommendations.</p>
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">Welcome! Let's set up your business profile</h2>
+                <p className="text-slate-600">This helps the AI assistant understand your business and provide better recommendations.</p>
             </div>
 
             <div>
-                <label htmlFor="company-name" className="block text-sm font-bold font-mono mb-2">
+                <label htmlFor="company-name" className="block text-sm font-medium text-slate-700 mb-2">
                     Company Name *
                 </label>
                 <input
@@ -482,8 +482,8 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
                             setValidationErrors(prev => ({ ...prev, companyName: '' }));
                         }
                     }}
-                    className={`w-full px-4 py-3 border-2 font-mono focus:outline-none focus:ring-2 focus:ring-blue-600 ${
-                        validationErrors.companyName ? 'border-red-600' : 'border-black'
+                    className={`w-full px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-colors ${
+                        validationErrors.companyName ? 'border-red-500' : 'border-gray-200'
                     }`}
                     placeholder="Acme Inc."
                     required
@@ -494,13 +494,13 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
             </div>
 
             <div>
-                <label className="block text-sm font-bold font-mono mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                     Industry
                 </label>
                 <select
                     value={formData.industry || ''}
                     onChange={(e) => updateField('industry', e.target.value || undefined)}
-                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600 bg-white"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 bg-white transition-colors"
                 >
                     <option value="">Select an industry...</option>
                     {INDUSTRIES.map(industry => (
@@ -510,7 +510,7 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
             </div>
 
             <div>
-                <label className="block text-sm font-bold font-mono mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                     Company Size
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -518,10 +518,10 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
                         <button
                             key={value}
                             onClick={() => updateField('companySize', value)}
-                            className={`px-4 py-3 border-2 border-black font-mono font-bold transition-colors ${
+                            className={`px-4 py-3 rounded-xl font-medium transition-all ${
                                 formData.companySize === value
-                                    ? 'bg-blue-600 text-white shadow-neo'
-                                    : 'bg-white hover:bg-gray-100'
+                                    ? 'bg-blue-600 text-white shadow-md'
+                                    : 'bg-white border border-gray-200 hover:bg-gray-50 text-slate-700'
                             }`}
                         >
                             {label}
@@ -535,12 +535,12 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
     const renderStep2 = () => (
         <div className="space-y-6">
             <div>
-                <h2 className="text-2xl font-bold font-mono mb-2">Business Model & Strategy</h2>
-                <p className="text-gray-600 font-mono">Tell us about your business approach.</p>
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">Business Model & Strategy</h2>
+                <p className="text-slate-600">Tell us about your business approach.</p>
             </div>
 
             <div>
-                <label className="block text-sm font-bold font-mono mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                     Business Model
                 </label>
                 <div className="space-y-2">
@@ -548,14 +548,14 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
                         <button
                             key={value}
                             onClick={() => updateField('businessModel', value)}
-                            className={`w-full text-left px-4 py-3 border-2 border-black font-mono transition-colors ${
+                            className={`w-full text-left px-4 py-3 rounded-xl transition-all ${
                                 formData.businessModel === value
-                                    ? 'bg-blue-600 text-white shadow-neo'
-                                    : 'bg-white hover:bg-gray-100'
+                                    ? 'bg-blue-600 text-white shadow-md'
+                                    : 'bg-white border border-gray-200 hover:bg-gray-50'
                             }`}
                         >
-                            <div className="font-bold">{label}</div>
-                            <div className={`text-sm ${formData.businessModel === value ? 'text-blue-100' : 'text-gray-600'}`}>
+                            <div className="font-semibold">{label}</div>
+                            <div className={`text-sm ${formData.businessModel === value ? 'text-blue-100' : 'text-slate-500'}`}>
                                 {description}
                             </div>
                         </button>
@@ -564,40 +564,40 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
             </div>
 
             <div>
-                <label className="block text-sm font-bold font-mono mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                     Business Description
                 </label>
                 <textarea
                     value={formData.description || ''}
                     onChange={(e) => updateField('description', e.target.value || undefined)}
-                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600 resize-none"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 resize-none transition-colors"
                     rows={3}
                     placeholder="What does your business do?"
                 />
             </div>
 
             <div>
-                <label className="block text-sm font-bold font-mono mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                     Target Market
                 </label>
                 <input
                     type="text"
                     value={formData.targetMarket || ''}
                     onChange={(e) => updateField('targetMarket', e.target.value || undefined)}
-                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-colors"
                     placeholder="Who are your customers?"
                 />
             </div>
 
             <div>
-                <label className="block text-sm font-bold font-mono mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                     Value Proposition
                 </label>
                 <input
                     type="text"
                     value={formData.valueProposition || ''}
                     onChange={(e) => updateField('valueProposition', e.target.value || undefined)}
-                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-colors"
                     placeholder="What makes you unique?"
                 />
             </div>
@@ -607,12 +607,12 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
     const renderStep3 = () => (
         <div className="space-y-6">
             <div>
-                <h2 className="text-2xl font-bold font-mono mb-2">Goals & Growth Stage</h2>
-                <p className="text-gray-600 font-mono">What are you working towards?</p>
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">Goals & Growth Stage</h2>
+                <p className="text-slate-600">What are you working towards?</p>
             </div>
 
             <div>
-                <label className="block text-sm font-bold font-mono mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                     Growth Stage
                 </label>
                 <div className="space-y-2">
@@ -620,14 +620,14 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
                         <button
                             key={value}
                             onClick={() => updateField('growthStage', value)}
-                            className={`w-full text-left px-4 py-3 border-2 border-black font-mono transition-colors ${
+                            className={`w-full text-left px-4 py-3 rounded-xl transition-all ${
                                 formData.growthStage === value
-                                    ? 'bg-blue-600 text-white shadow-neo'
-                                    : 'bg-white hover:bg-gray-100'
+                                    ? 'bg-blue-600 text-white shadow-md'
+                                    : 'bg-white border border-gray-200 hover:bg-gray-50'
                             }`}
                         >
-                            <div className="font-bold">{label}</div>
-                            <div className={`text-sm ${formData.growthStage === value ? 'text-blue-100' : 'text-gray-600'}`}>
+                            <div className="font-semibold">{label}</div>
+                            <div className={`text-sm ${formData.growthStage === value ? 'text-blue-100' : 'text-slate-500'}`}>
                                 {description}
                             </div>
                         </button>
@@ -636,7 +636,7 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
             </div>
 
             <div>
-                <label className="block text-sm font-bold font-mono mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                     Primary Goal
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -644,10 +644,10 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
                         <button
                             key={value}
                             onClick={() => updateField('primaryGoal', value)}
-                            className={`px-4 py-3 border-2 border-black font-mono font-bold transition-colors ${
+                            className={`px-4 py-3 rounded-xl font-medium transition-all ${
                                 formData.primaryGoal === value
-                                    ? 'bg-blue-600 text-white shadow-neo'
-                                    : 'bg-white hover:bg-gray-100'
+                                    ? 'bg-blue-600 text-white shadow-md'
+                                    : 'bg-white border border-gray-200 hover:bg-gray-50 text-slate-700'
                             }`}
                         >
                             {label}
@@ -657,13 +657,13 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
             </div>
 
             <div>
-                <label className="block text-sm font-bold font-mono mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                     Key Challenges
                 </label>
                 <textarea
                     value={formData.keyChallenges || ''}
                     onChange={(e) => updateField('keyChallenges', e.target.value || undefined)}
-                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600 resize-none"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 resize-none transition-colors"
                     rows={3}
                     placeholder="What are your biggest challenges right now?"
                 />
@@ -674,34 +674,34 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
     const renderStep4 = () => (
         <div className="space-y-6">
             <div>
-                <h2 className="text-2xl font-bold font-mono mb-2">Metrics & Performance (Optional)</h2>
-                <p className="text-gray-600 font-mono">Help us understand your business scale.</p>
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">Metrics & Performance (Optional)</h2>
+                <p className="text-slate-600">Help us understand your business scale.</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-bold font-mono mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
                         Current MRR ($)
                     </label>
                     <input
                         type="number"
                         value={formData.currentMrr || ''}
                         onChange={(e) => updateField('currentMrr', e.target.value ? Number(e.target.value) : undefined)}
-                        className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-colors"
                         placeholder="0"
                         min="0"
                     />
                 </div>
 
                 <div>
-                    <label className="block text-sm font-bold font-mono mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
                         Target MRR ($)
                     </label>
                     <input
                         type="number"
                         value={formData.targetMrr || ''}
                         onChange={(e) => updateField('targetMrr', e.target.value ? Number(e.target.value) : undefined)}
-                        className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-colors"
                         placeholder="0"
                         min="0"
                     />
@@ -710,36 +710,36 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
 
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-bold font-mono mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
                         Customer Count
                     </label>
                     <input
                         type="number"
                         value={formData.customerCount || ''}
                         onChange={(e) => updateField('customerCount', e.target.value ? Number(e.target.value) : undefined)}
-                        className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-colors"
                         placeholder="0"
                         min="0"
                     />
                 </div>
 
                 <div>
-                    <label className="block text-sm font-bold font-mono mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
                         Team Size
                     </label>
                     <input
                         type="number"
                         value={formData.teamSize || ''}
                         onChange={(e) => updateField('teamSize', e.target.value ? Number(e.target.value) : undefined)}
-                        className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="1"
                         min="1"
                     />
                 </div>
             </div>
 
-            <div className="bg-blue-100 border-2 border-black p-4">
-                <p className="text-sm font-mono">
+            <div className="bg-blue-50 rounded-xl border border-blue-200 p-4">
+                <p className="text-sm text-blue-800">
                     <span className="font-bold">💡 Pro tip:</span> This information helps the AI assistant provide better insights tailored to your business stage and goals.
                 </p>
             </div>
@@ -749,81 +749,81 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
     const renderStep5 = () => (
         <div className="space-y-6">
             <div>
-                <h2 className="text-2xl font-bold font-mono mb-2">Market Positioning (Optional)</h2>
-                <p className="text-gray-600 font-mono">Define your target market and competitive advantages.</p>
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">Market Positioning (Optional)</h2>
+                <p className="text-slate-600">Define your target market and competitive advantages.</p>
             </div>
 
             <div>
-                <label className="block text-sm font-bold font-mono mb-2">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
                     Target Customer Profile
                 </label>
                 <textarea
                     value={formData.targetCustomerProfile || ''}
                     onChange={(e) => updateField('targetCustomerProfile', e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600 h-24"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-24"
                     placeholder="Describe your ideal customer (demographics, pain points, behaviors...)"
                 />
             </div>
 
             <div>
-                <label className="block text-sm font-bold font-mono mb-2">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
                     Market Positioning
                 </label>
                 <textarea
                     value={formData.marketPositioning || ''}
                     onChange={(e) => updateField('marketPositioning', e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600 h-20"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-20"
                     placeholder="How do you position yourself in the market?"
                 />
             </div>
 
             <div>
-                <label className="block text-sm font-bold font-mono mb-2">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
                     Competitive Advantages (comma-separated)
                 </label>
                 <input
                     type="text"
                     value={formData.competitiveAdvantages?.join(', ') || ''}
                     onChange={(e) => updateField('competitiveAdvantages', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Better pricing, faster delivery, superior quality..."
                 />
             </div>
 
             <div>
-                <label className="block text-sm font-bold font-mono mb-2">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
                     Key Differentiators (comma-separated)
                 </label>
                 <input
                     type="text"
                     value={formData.keyDifferentiators?.join(', ') || ''}
                     onChange={(e) => updateField('keyDifferentiators', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Unique features, proprietary tech, exclusive partnerships..."
                 />
             </div>
 
             <div>
-                <label className="block text-sm font-bold font-mono mb-2">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
                     Competitors (comma-separated)
                 </label>
                 <input
                     type="text"
                     value={formData.competitors?.join(', ') || ''}
                     onChange={(e) => updateField('competitors', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Competitor A, Competitor B, Competitor C"
                 />
             </div>
 
             <div>
-                <label className="block text-sm font-bold font-mono mb-2">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
                     Unique Differentiators Summary
                 </label>
                 <textarea
                     value={formData.uniqueDifferentiators || ''}
                     onChange={(e) => updateField('uniqueDifferentiators', e.target.value || undefined)}
-                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600 h-24"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-24"
                     placeholder="Use narrative form to highlight why customers choose you."
                 />
             </div>
@@ -833,18 +833,18 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
     const renderStep6 = () => (
         <div className="space-y-6">
             <div>
-                <h2 className="text-2xl font-bold font-mono mb-2">Monetization & Pricing (Optional)</h2>
-                <p className="text-gray-600 font-mono">How do you make money?</p>
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">Monetization & Pricing (Optional)</h2>
+                <p className="text-slate-600">How do you make money?</p>
             </div>
 
             <div>
-                <label className="block text-sm font-bold font-mono mb-2">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
                     Monetization Model
                 </label>
                 <select
                     value={formData.monetizationModel || ''}
                     onChange={(e) => updateField('monetizationModel', e.target.value as any || undefined)}
-                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                 >
                     <option value="">Select a model...</option>
                     <option value="subscription">Subscription (Recurring)</option>
@@ -860,28 +860,28 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
 
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-bold font-mono mb-2">
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
                         Average Deal Size ($)
                     </label>
                     <input
                         type="number"
                         value={formData.averageDealSize || ''}
                         onChange={(e) => updateField('averageDealSize', e.target.value ? Number(e.target.value) : undefined)}
-                        className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="0"
                         min="0"
                     />
                 </div>
 
                 <div>
-                    <label className="block text-sm font-bold font-mono mb-2">
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
                         Sales Cycle (days)
                     </label>
                     <input
                         type="number"
                         value={formData.salesCycleDays || ''}
                         onChange={(e) => updateField('salesCycleDays', e.target.value ? Number(e.target.value) : undefined)}
-                        className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="30"
                         min="0"
                     />
@@ -889,43 +889,43 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
             </div>
 
             <div>
-                <label className="block text-sm font-bold font-mono mb-2">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
                     Deal Types (comma-separated)
                 </label>
                 <input
                     type="text"
                     value={formData.dealTypes?.join(', ') || ''}
                     onChange={(e) => updateField('dealTypes', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="new_business, expansion, renewal"
                 />
             </div>
 
             <div>
                 <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-bold font-mono">Pricing Tiers</label>
+                    <label className="text-sm font-semibold text-slate-700">Pricing Tiers</label>
                     <button
                         type="button"
                         onClick={addPricingTier}
-                        className="text-sm font-mono border-2 border-black px-3 py-1 bg-white hover:bg-gray-100"
+                        className="text-sm rounded-lg border border-gray-200 px-3 py-1 bg-white hover:bg-gray-50 transition-colors"
                     >
                         + Add Tier
                     </button>
                 </div>
                 {(!formData.pricingTiers || formData.pricingTiers.length === 0) && (
-                    <p className="text-sm text-gray-500 font-mono border-2 border-dashed border-black p-3">
+                    <p className="text-sm text-gray-500 rounded-xl border border-dashed border-gray-300 p-3">
                         Add your pricing tiers so Copilot can recommend the right plans in summaries and follow-ups.
                     </p>
                 )}
                 <div className="space-y-3">
                     {(formData.pricingTiers || []).map((tier, index) => (
-                        <div key={index} className="border-2 border-black p-3 space-y-2">
+                        <div key={index} className="rounded-xl border border-gray-200 p-3 space-y-2">
                             <div className="flex justify-between items-center">
-                                <h4 className="font-bold font-mono">Tier {index + 1}</h4>
+                                <h4 className="font-semibold text-slate-900">Tier {index + 1}</h4>
                                 <button
                                     type="button"
                                     onClick={() => removePricingTier(index)}
-                                    className="text-sm text-red-600 font-mono"
+                                    className="text-sm text-red-600 hover:text-red-700"
                                 >
                                     Remove
                                 </button>
@@ -936,7 +936,7 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
                                     value={tier.name || ''}
                                     onChange={(e) => updatePricingTier(index, 'name', e.target.value)}
                                     placeholder="Tier name (e.g., Pro, Enterprise)"
-                                    className="w-full px-3 py-2 border-2 border-black font-mono"
+                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 />
                                 <div className="flex gap-2">
                                     <input
@@ -948,13 +948,13 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
                                             updatePricingTier(index, 'price', nextValue as PricingTier['price']);
                                         }}
                                         placeholder="Price"
-                                        className="w-full px-3 py-2 border-2 border-black font-mono"
+                                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         min="0"
                                     />
                                     <select
                                         value={tier.billingCycle || DEFAULT_BILLING_CYCLE}
                                         onChange={(e) => updatePricingTier(index, 'billingCycle', e.target.value)}
-                                        className="px-3 py-2 border-2 border-black font-mono bg-white"
+                                        className="px-3 py-2 rounded-lg border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     >
                                         <option value="monthly">Monthly</option>
                                         <option value="quarterly">Quarterly</option>
@@ -969,15 +969,15 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
                                 value={tier.features?.join(', ') || ''}
                                 onChange={(e) => updatePricingTier(index, 'features', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
                                 placeholder="Key features (comma-separated)"
-                                className="w-full px-3 py-2 border-2 border-black font-mono"
+                                className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
                         </div>
                     ))}
                 </div>
             </div>
 
-            <div className="bg-yellow-50 border-2 border-black p-4">
-                <p className="text-sm font-mono">
+            <div className="bg-yellow-50 rounded-xl border border-yellow-200 p-4">
+                <p className="text-sm text-yellow-800">
                     <span className="font-bold">💰 Note:</span> Pricing tiers and deal types power AI recommendations in CRM and automation emails.
                 </p>
             </div>
@@ -987,48 +987,48 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
     const renderStep7 = () => (
         <div className="space-y-6">
             <div>
-                <h2 className="text-2xl font-bold font-mono mb-2">Products & Tech Stack (Optional)</h2>
-                <p className="text-gray-600 font-mono">What do you build with?</p>
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">Products & Tech Stack (Optional)</h2>
+                <p className="text-slate-600">What do you build with?</p>
             </div>
 
             <div>
-                <label className="block text-sm font-bold font-mono mb-2">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
                     Tech Stack (comma-separated)
                 </label>
                 <input
                     type="text"
                     value={formData.techStack?.join(', ') || ''}
                     onChange={(e) => updateField('techStack', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="React, Node.js, PostgreSQL, AWS..."
                 />
             </div>
 
             <div>
                 <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-bold font-mono">Core Products</label>
+                    <label className="text-sm font-semibold text-slate-700">Core Products</label>
                     <button
                         type="button"
                         onClick={addCoreProduct}
-                        className="text-sm font-mono border-2 border-black px-3 py-1 bg-white hover:bg-gray-100"
+                        className="text-sm rounded-lg border border-gray-200 px-3 py-1 bg-white hover:bg-gray-50 transition-colors"
                     >
                         + Add Product
                     </button>
                 </div>
                 {(!formData.coreProducts || formData.coreProducts.length === 0) && (
-                    <p className="text-sm text-gray-500 font-mono border-2 border-dashed border-black p-3">
+                    <p className="text-sm text-gray-500 rounded-xl border border-dashed border-gray-300 p-3">
                         List flagship products so Copilot can reference them in briefs and updates.
                     </p>
                 )}
                 <div className="space-y-3">
                     {(formData.coreProducts || []).map((product, index) => (
-                        <div key={index} className="border-2 border-black p-3 space-y-2">
+                        <div key={index} className="rounded-xl border border-gray-200 p-3 space-y-2">
                             <div className="flex justify-between items-center">
-                                <h4 className="font-bold font-mono">Product {index + 1}</h4>
+                                <h4 className="font-semibold text-slate-900">Product {index + 1}</h4>
                                 <button
                                     type="button"
                                     onClick={() => removeCoreProduct(index)}
-                                    className="text-sm text-red-600 font-mono"
+                                    className="text-sm text-red-600 hover:text-red-700"
                                 >
                                     Remove
                                 </button>
@@ -1038,13 +1038,13 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
                                 value={product.name || ''}
                                 onChange={(e) => updateCoreProduct(index, 'name', e.target.value)}
                                 placeholder="Product name"
-                                className="w-full px-3 py-2 border-2 border-black font-mono"
+                                className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
                             <textarea
                                 value={product.description || ''}
                                 onChange={(e) => updateCoreProduct(index, 'description', e.target.value)}
                                 placeholder="Short description"
-                                className="w-full px-3 py-2 border-2 border-black font-mono h-20"
+                                className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-20"
                             />
                             <div className="grid grid-cols-2 gap-3">
                                 <input
@@ -1052,14 +1052,14 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
                                     value={product.type || ''}
                                     onChange={(e) => updateCoreProduct(index, 'type', e.target.value)}
                                     placeholder="Type (e.g., SaaS, Mobile)"
-                                    className="w-full px-3 py-2 border-2 border-black font-mono"
+                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 />
                                 <input
                                     type="text"
                                     value={product.status || ''}
                                     onChange={(e) => updateCoreProduct(index, 'status', e.target.value)}
                                     placeholder="Status (Idea, Beta, GA...)"
-                                    className="w-full px-3 py-2 border-2 border-black font-mono"
+                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 />
                             </div>
                         </div>
@@ -1069,29 +1069,29 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
 
             <div>
                 <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-bold font-mono">Service Offerings</label>
+                    <label className="text-sm font-semibold text-slate-700">Service Offerings</label>
                     <button
                         type="button"
                         onClick={addServiceOffering}
-                        className="text-sm font-mono border-2 border-black px-3 py-1 bg-white hover:bg-gray-100"
+                        className="text-sm rounded-lg border border-gray-200 px-3 py-1 bg-white hover:bg-gray-50 transition-colors"
                     >
                         + Add Service
                     </button>
                 </div>
                 {(!formData.serviceOfferings || formData.serviceOfferings.length === 0) && (
-                    <p className="text-sm text-gray-500 font-mono border-2 border-dashed border-black p-3">
+                    <p className="text-sm text-gray-500 rounded-xl border border-dashed border-gray-300 p-3">
                         Document retainers or add-on services so Copilot knows what you can deliver.
                     </p>
                 )}
                 <div className="space-y-3">
                     {(formData.serviceOfferings || []).map((service, index) => (
-                        <div key={index} className="border-2 border-black p-3 space-y-2">
+                        <div key={index} className="rounded-xl border border-gray-200 p-3 space-y-2">
                             <div className="flex justify-between items-center">
-                                <h4 className="font-bold font-mono">Service {index + 1}</h4>
+                                <h4 className="font-semibold text-slate-900">Service {index + 1}</h4>
                                 <button
                                     type="button"
                                     onClick={() => removeServiceOffering(index)}
-                                    className="text-sm text-red-600 font-mono"
+                                    className="text-sm text-red-600 hover:text-red-700"
                                 >
                                     Remove
                                 </button>
@@ -1101,28 +1101,28 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
                                 value={service.name || ''}
                                 onChange={(e) => updateServiceOffering(index, 'name', e.target.value)}
                                 placeholder="Service name"
-                                className="w-full px-3 py-2 border-2 border-black font-mono"
+                                className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
                             <textarea
                                 value={service.description || ''}
                                 onChange={(e) => updateServiceOffering(index, 'description', e.target.value)}
                                 placeholder="What does this service include?"
-                                className="w-full px-3 py-2 border-2 border-black font-mono h-20"
+                                className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-20"
                             />
                             <input
                                 type="text"
                                 value={service.pricing || ''}
                                 onChange={(e) => updateServiceOffering(index, 'pricing', e.target.value)}
                                 placeholder="Pricing notes (hourly, retainer, per project)"
-                                className="w-full px-3 py-2 border-2 border-black font-mono"
+                                className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
                         </div>
                     ))}
                 </div>
             </div>
 
-            <div className="bg-green-50 border-2 border-black p-4">
-                <p className="text-sm font-mono">
+            <div className="bg-green-50 rounded-xl border border-green-200 p-4">
+                <p className="text-sm text-green-800">
                     <span className="font-bold">🎉 Almost done!</span> This enhanced profile will help the AI provide highly personalized insights and recommendations.
                 </p>
             </div>
@@ -1146,17 +1146,17 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
             }}
         >
             <div 
-                className="bg-white border-2 border-black shadow-neo max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
                 onClick={(e) => {
                     // Prevent click from bubbling to backdrop
                     e.stopPropagation();
                 }}
             >
                 {/* Header */}
-                <div className="border-b-2 border-black p-6 flex items-center justify-between sticky top-0 bg-white z-10">
+                <div className="border-b border-gray-200 p-6 flex items-center justify-between sticky top-0 bg-white z-10 rounded-t-2xl">
                     <div>
-                        <h1 className="text-xl font-bold font-mono">Business Profile Setup</h1>
-                        <p className="text-sm font-mono text-gray-600">
+                        <h1 className="text-xl font-bold text-slate-900">Business Profile Setup</h1>
+                        <p className="text-sm text-slate-600">
                             Step {step} of {totalSteps} • 
                             <span className="text-green-600 ml-1">✓ Draft auto-saved</span>
                         </p>
@@ -1175,12 +1175,12 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
                 {/* Content */}
                 <div className="p-6">
                     {missingFields.length > 0 && (
-                        <div className="mb-6 border-2 border-yellow-400 bg-yellow-50 p-4">
-                            <h2 className="font-mono font-semibold text-yellow-800 mb-2">Almost there ⏱️</h2>
-                            <p className="text-sm font-mono text-yellow-700">
+                        <div className="mb-6 rounded-xl border border-yellow-300 bg-yellow-50 p-4">
+                            <h2 className="font-semibold text-yellow-800 mb-2">Almost there ⏱️</h2>
+                            <p className="text-sm text-yellow-700">
                                 These fields power Copilot personalization. Please fill them in before finishing:
                             </p>
-                            <ul className="list-disc pl-5 text-sm font-mono text-yellow-900 mt-2 space-y-1">
+                            <ul className="list-disc pl-5 text-sm text-yellow-900 mt-2 space-y-1">
                                 {missingFields.map(field => (
                                     <li key={field.key}>{field.label}</li>
                                 ))}
@@ -1199,12 +1199,12 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
                 </div>
 
                 {/* Footer */}
-                <div className="border-t-2 border-black p-6 flex items-center justify-between sticky bottom-0 bg-white">
+                <div className="border-t border-gray-200 p-6 flex items-center justify-between sticky bottom-0 bg-white rounded-b-2xl">
                     <div>
                         {step > 1 && (
                             <button
                                 onClick={prevStep}
-                                className="px-6 py-3 border-2 border-black bg-white font-mono font-bold hover:bg-gray-100 transition-colors"
+                                className="px-6 py-3 rounded-xl border border-gray-200 bg-white font-semibold hover:bg-gray-50 transition-colors"
                             >
                                 ← Back
                             </button>
@@ -1214,7 +1214,7 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
                         {onSkip && step === 1 && (
                             <button
                                 onClick={onSkip}
-                                className="px-6 py-3 border-2 border-black bg-white font-mono font-bold hover:bg-gray-100 transition-colors"
+                                className="px-6 py-3 rounded-xl border border-gray-200 bg-white font-semibold hover:bg-gray-50 transition-colors"
                             >
                                 Skip for now
                             </button>
@@ -1222,10 +1222,10 @@ export const BusinessProfileSetup: React.FC<BusinessProfileSetupProps> = ({
                         <button
                             onClick={nextStep}
                             disabled={!canProceed()}
-                            className={`px-6 py-3 border-2 border-black font-mono font-bold transition-colors ${
+                            className={`px-6 py-3 rounded-xl font-semibold transition-all ${
                                 canProceed()
-                                    ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-neo'
-                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow-md'
+                                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                             }`}
                         >
                             {step === totalSteps ? 'Complete Setup →' : 'Next →'}

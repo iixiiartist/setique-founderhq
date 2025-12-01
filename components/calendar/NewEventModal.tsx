@@ -45,26 +45,26 @@ export const NewEventModal: React.FC<NewEventModalProps> = ({
             <div className="space-y-4">
                 {/* Event Type Selection */}
                 <div>
-                    <label className="block font-mono text-sm font-semibold text-black mb-2">Event Type</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Event Type</label>
                     <div className="flex gap-2">
                         <button
                             type="button"
                             onClick={() => onEventTypeChange('task')}
-                            className={`flex-1 py-2 px-4 font-mono font-semibold border-2 border-black ${eventType === 'task' ? 'bg-black text-white' : 'bg-white text-black'}`}
+                            className={`flex-1 py-2.5 px-4 font-semibold rounded-xl border transition-all ${eventType === 'task' ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-white text-slate-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}
                         >
                             Task
                         </button>
                         <button
                             type="button"
                             onClick={() => onEventTypeChange('meeting')}
-                            className={`flex-1 py-2 px-4 font-mono font-semibold border-2 border-black ${eventType === 'meeting' ? 'bg-black text-white' : 'bg-white text-black'}`}
+                            className={`flex-1 py-2.5 px-4 font-semibold rounded-xl border transition-all ${eventType === 'meeting' ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-white text-slate-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}
                         >
                             Meeting
                         </button>
                         <button
                             type="button"
                             onClick={() => onEventTypeChange('crm-action')}
-                            className={`flex-1 py-2 px-4 font-mono font-semibold border-2 border-black ${eventType === 'crm-action' ? 'bg-black text-white' : 'bg-white text-black'}`}
+                            className={`flex-1 py-2.5 px-4 font-semibold rounded-xl border transition-all ${eventType === 'crm-action' ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-white text-slate-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}
                         >
                             CRM Action
                         </button>

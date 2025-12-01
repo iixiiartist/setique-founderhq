@@ -45,7 +45,7 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
                 {aiAllowed ? (
                     <button
                         onClick={onOpenAI}
-                        className="p-1.5 sm:px-3 sm:py-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-semibold text-sm border-2 border-black shadow-[2px_2px_0_0_black] sm:shadow-[4px_4px_0_0_black] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[1px_1px_0_0_black] sm:hover:shadow-[2px_2px_0_0_black] transition-all flex items-center gap-1"
+                        className="p-1.5 sm:px-3 sm:py-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-medium text-sm rounded-xl hover:shadow-md transition-all flex items-center gap-1"
                         title="Ask AI"
                     >
                         <Sparkles size={16} />
@@ -53,7 +53,7 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
                     </button>
                 ) : (
                     <div
-                        className="p-1.5 sm:px-3 sm:py-1.5 bg-gray-100 text-gray-400 font-medium text-sm border-2 border-gray-300 flex items-center gap-1 cursor-not-allowed"
+                        className="p-1.5 sm:px-3 sm:py-1.5 bg-gray-100 text-gray-400 font-medium text-sm rounded-xl border border-gray-200 flex items-center gap-1 cursor-not-allowed"
                         title="AI is disabled in this room. Enable it in room settings."
                     >
                         <Sparkles size={16} />

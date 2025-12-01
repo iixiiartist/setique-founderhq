@@ -72,7 +72,7 @@ export function PaginationControls({
                 <button
                     onClick={() => onPageChange(page - 1)}
                     disabled={!hasPrevPage || isLoading}
-                    className="font-mono px-3 py-1.5 border-2 border-black rounded-none font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                    className="px-3 py-1.5 rounded-xl border border-gray-200 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 hover:shadow-sm"
                     title="Previous page"
                 >
                     ←
@@ -96,10 +96,10 @@ export function PaginationControls({
                                 key={pageNum}
                                 onClick={() => onPageChange(pageNum as number)}
                                 disabled={isLoading}
-                                className={`font-mono px-3 py-1.5 border-2 border-black rounded-none font-semibold transition-all ${
+                                className={`px-3 py-1.5 rounded-xl border border-gray-200 font-semibold transition-all ${
                                     isCurrentPage
-                                        ? 'bg-black text-white'
-                                        : 'bg-white text-black hover:bg-gray-100'
+                                        ? 'bg-slate-900 text-white'
+                                        : 'bg-white text-slate-900 hover:bg-gray-50 hover:shadow-sm'
                                 } disabled:opacity-50 disabled:cursor-not-allowed`}
                                 title={`Go to page ${pageNum}`}
                             >
@@ -114,7 +114,7 @@ export function PaginationControls({
                     onClick={() => onPageChange(page + 1)}
                     onMouseEnter={onPrefetchNext} // Prefetch next page on hover
                     disabled={!hasNextPage || isLoading}
-                    className="font-mono px-3 py-1.5 border-2 border-black rounded-none font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                    className="px-3 py-1.5 rounded-xl border border-gray-200 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 hover:shadow-sm"
                     title="Next page"
                 >
                     →

@@ -480,24 +480,24 @@ function ContactDetailView({ contact, parentItem, tasks, actions, onBack, crmCol
                 {editingTask && (
                     <div className="space-y-4">
                          <div>
-                            <label htmlFor={`edit-contact-task-${editingTask.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Task Description</label>
+                            <label htmlFor={`edit-contact-task-${editingTask.id}`} className="block text-sm font-medium text-slate-700 mb-1">Task Description</label>
                             <textarea 
                                 id={`edit-contact-task-${editingTask.id}`}
                                 name={`edit-contact-task-${editingTask.id}`}
                                 value={editText || ''}
                                 onChange={(e) => setEditText(e.target.value)}
-                                className="w-full bg-white border-2 border-black text-black rounded-none focus:outline-none p-2 min-h-[80px]"
+                                className="w-full bg-white border border-gray-200 text-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 p-3 min-h-[80px] transition-colors"
                             />
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor={`edit-priority-${editingTask.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Priority</label>
+                                <label htmlFor={`edit-priority-${editingTask.id}`} className="block text-sm font-medium text-slate-700 mb-1">Priority</label>
                                 <select
                                     id={`edit-priority-${editingTask.id}`}
                                     name={`edit-priority-${editingTask.id}`}
                                     value={editPriority || 'Medium'}
                                     onChange={(e) => setEditPriority(e.target.value as Priority)}
-                                    className="w-full bg-white border-2 border-black text-black rounded-none focus:outline-none p-2 h-full"
+                                    className="w-full bg-white border border-gray-200 text-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 p-3 h-full transition-colors"
                                 >
                                     <option value="Medium">Medium</option>
                                     <option value="Low">Low</option>
@@ -505,14 +505,14 @@ function ContactDetailView({ contact, parentItem, tasks, actions, onBack, crmCol
                                 </select>
                             </div>
                             <div>
-                                <label htmlFor={`edit-duedate-${editingTask.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Due Date</label>
+                                <label htmlFor={`edit-duedate-${editingTask.id}`} className="block text-sm font-medium text-slate-700 mb-1">Due Date</label>
                                 <input
                                     id={`edit-duedate-${editingTask.id}`}
                                     name={`edit-duedate-${editingTask.id}`}
                                     type="date"
                                     value={editDueDate || ''}
                                     onChange={(e) => setEditDueDate(e.target.value)}
-                                    className="w-full bg-white border-2 border-black text-black rounded-none focus:outline-none p-2 h-full"
+                                    className="w-full bg-white border border-gray-200 text-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 p-3 h-full transition-colors"
                                 />
                             </div>
                         </div>
@@ -524,7 +524,7 @@ function ContactDetailView({ contact, parentItem, tasks, actions, onBack, crmCol
                             updateNoteAction={actions.updateNote}
                             deleteNoteAction={actions.deleteNote}
                         />
-                        <button onClick={handleUpdateTask} className="mt-4 font-mono w-full bg-black border-2 border-black text-white cursor-pointer text-sm py-2 px-3 rounded-none font-semibold shadow-neo-btn transition-all">
+                        <button onClick={handleUpdateTask} className="mt-4 w-full bg-slate-900 text-white cursor-pointer text-sm py-3 px-4 rounded-xl font-semibold shadow-sm hover:shadow-md hover:bg-slate-800 transition-all">
                             Save Changes
                         </button>
                     </div>

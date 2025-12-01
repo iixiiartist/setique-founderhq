@@ -75,11 +75,11 @@ export const FormAnalytics: React.FC<FormAnalyticsProps> = ({ form, onBack }) =>
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onBack}>
       <div 
-        className="bg-white border-2 border-black shadow-neo w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col"
+        className="bg-white rounded-2xl border border-gray-200 shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="border-b-2 border-black p-4 flex items-center justify-between bg-gray-50">
+        <div className="border-b border-gray-200 p-4 flex items-center justify-between bg-gray-50 rounded-t-2xl">
           <div>
             <h2 className="text-xl font-bold">📊 Analytics: {form.name}</h2>
             <p className="text-sm text-gray-600">
@@ -91,15 +91,15 @@ export const FormAnalytics: React.FC<FormAnalyticsProps> = ({ form, onBack }) =>
         </div>
 
         {/* Tabs */}
-        <div className="border-b-2 border-black flex">
+        <div className="border-b border-gray-200 flex">
           {(['overview', 'submissions', 'sources'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-6 py-3 font-semibold capitalize ${
+              className={`px-6 py-3 font-medium capitalize transition-colors ${
                 activeTab === tab 
-                  ? 'bg-yellow-400 border-r-2 border-black' 
-                  : 'hover:bg-gray-100 border-r border-gray-200'
+                  ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' 
+                  : 'hover:bg-gray-50 text-gray-600'
               }`}
             >
               {tab === 'overview' ? '📈 Overview' : tab === 'submissions' ? '📥 Responses' : '🔗 Sources'}
@@ -202,7 +202,7 @@ export const FormAnalytics: React.FC<FormAnalyticsProps> = ({ form, onBack }) =>
                   <p className="text-sm text-gray-600">{totalSubmissions} total responses</p>
                   <div className="space-y-3">
                     {submissions.map((submission, index) => (
-                      <Card key={submission.id} className="hover:shadow-neo-sm transition-shadow">
+                      <Card key={submission.id} className="hover:shadow-md transition-shadow">
                         <CardContent className="py-3">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">

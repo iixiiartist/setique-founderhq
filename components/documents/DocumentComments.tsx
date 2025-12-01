@@ -214,9 +214,9 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
     }
 
     return (
-        <div className="bg-white border-2 border-black shadow-neo">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             {/* Header */}
-            <div className="p-4 bg-black text-white flex items-center justify-between">
+            <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <MessageSquare size={20} />
                     <h3 className="font-mono font-bold text-lg">Comments</h3>
@@ -253,7 +253,7 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
                     <button
                         onClick={addComment}
                         disabled={!newComment.trim()}
-                        className="px-4 py-2 bg-black text-white font-mono font-semibold border-2 border-black hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
+                        className="px-4 py-2 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 shadow-sm disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                         <Send size={14} />
                         Comment

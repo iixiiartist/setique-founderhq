@@ -260,24 +260,24 @@ export const InAppNotificationsPanel: React.FC<InAppNotificationsPanelProps> = (
         </div>
 
         {/* Filters & Actions */}
-        <div className="p-4 border-b-2 border-black bg-gray-50">
+        <div className="p-4 border-b border-gray-200 bg-gray-50">
           <div className="flex flex-wrap gap-2 mb-3">
             <button
               onClick={() => setFilterType('all')}
-              className={`px-3 py-1 text-sm font-semibold border-2 border-black transition-all ${
+              className={`px-3 py-1 text-sm font-semibold rounded-lg transition-all ${
                 filterType === 'all'
-                  ? 'bg-black text-white'
-                  : 'bg-white text-black hover:bg-gray-100'
+                  ? 'bg-slate-900 text-white'
+                  : 'bg-white text-slate-700 border border-gray-200 hover:bg-gray-50'
               }`}
             >
               All
             </button>
             <button
               onClick={() => setFilterType('unread')}
-              className={`px-3 py-1 text-sm font-semibold border-2 border-black transition-all ${
+              className={`px-3 py-1 text-sm font-semibold rounded-lg transition-all ${
                 filterType === 'unread'
-                  ? 'bg-black text-white'
-                  : 'bg-white text-black hover:bg-gray-100'
+                  ? 'bg-slate-900 text-white'
+                  : 'bg-white text-slate-700 border border-gray-200 hover:bg-gray-50'
               }`}
             >
               Unread ({unreadCount})
@@ -288,7 +288,7 @@ export const InAppNotificationsPanel: React.FC<InAppNotificationsPanelProps> = (
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="px-3 py-1 text-sm font-semibold border-2 border-black bg-white"
+              className="px-3 py-1 text-sm font-semibold border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Categories</option>
               <option value="tasks">Tasks</option>
@@ -304,14 +304,14 @@ export const InAppNotificationsPanel: React.FC<InAppNotificationsPanelProps> = (
             <button
               onClick={markAllAsRead}
               disabled={unreadCount === 0}
-              className="flex items-center gap-1 px-3 py-1 text-sm font-semibold bg-blue-500 text-white border-2 border-black hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-1 px-3 py-1 text-sm font-semibold bg-blue-500 text-white rounded-lg hover:bg-blue-600 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <CheckCheck className="w-4 h-4" />
               Mark All Read
             </button>
             <button
               onClick={deleteAllRead}
-              className="flex items-center gap-1 px-3 py-1 text-sm font-semibold bg-red-500 text-white border-2 border-black hover:bg-red-600 transition-colors"
+              className="flex items-center gap-1 px-3 py-1 text-sm font-semibold bg-red-500 text-white rounded-lg hover:bg-red-600 shadow-sm transition-colors"
             >
               <Trash2 className="w-4 h-4" />
               Clear Read
@@ -324,7 +324,7 @@ export const InAppNotificationsPanel: React.FC<InAppNotificationsPanelProps> = (
           {loading ? (
             <div className="p-4 space-y-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="animate-pulse border-2 border-black p-3">
+                <div key={i} className="animate-pulse rounded-xl border border-gray-200 p-3">
                   <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
                   <div className="h-3 bg-gray-200 rounded w-full"></div>
                 </div>

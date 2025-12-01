@@ -1669,7 +1669,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     if (isLoading) {
         return (
             <div className="h-full flex items-center justify-center bg-[#fffdf3]">
-                <div className="px-6 py-4 border-4 border-black rounded-none shadow-neo-sm bg-white text-gray-700 font-mono text-sm">
+                <div className="px-6 py-4 rounded-2xl border border-gray-200 shadow-sm bg-white text-gray-700 text-sm">
                     Loading your GTM doc...
                 </div>
             </div>
@@ -1923,7 +1923,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             {isFocusMode && (
                 <button
                     onClick={() => setIsFocusMode(false)}
-                    className="fixed top-4 right-4 z-50 px-4 py-2 bg-yellow-300 border-2 border-black shadow-neo-sm rounded-none font-black text-sm hover:-translate-y-0.5 transition-all"
+                    className="fixed top-4 right-4 z-50 px-4 py-2.5 bg-yellow-400 text-slate-900 rounded-xl shadow-lg font-semibold text-sm hover:bg-yellow-500 hover:shadow-xl transition-all"
                 >
                     <Minimize2 size={24} />
                 </button>

@@ -127,11 +127,11 @@ export function TaskItem({
             data-testid="task-card"
             data-task-id={task.id}
             className={`
-                flex items-stretch bg-white border-2 border-black shadow-neo cursor-pointer
-                hover:shadow-neo-lg transition-all
+                flex items-stretch bg-white rounded-xl border border-gray-200 shadow-sm cursor-pointer
+                hover:shadow-md transition-all
                 ${task.status === 'Done' ? 'opacity-60' : ''}
-                ${isSelected ? 'ring-4 ring-blue-500' : ''}
-                ${isOverdue ? 'border-red-500' : ''}
+                ${isSelected ? 'ring-2 ring-blue-500' : ''}
+                ${isOverdue ? 'border-red-300' : ''}
             `}
             onClick={(e) => {
                 if (!bulkSelectMode) {
@@ -217,7 +217,7 @@ export function TaskItem({
                         {/* Tags */}
                         <div className="flex flex-wrap gap-2 text-xs">
                             {/* Module tag */}
-                            <span className={`font-mono px-2 py-0.5 ${tagColorClass} border border-black`} data-testid="task-module-tag">
+                            <span className={`px-2 py-0.5 rounded-full ${tagColorClass} border border-gray-200`} data-testid="task-module-tag">
                                 {moduleLabel}
                             </span>
 

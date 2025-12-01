@@ -161,38 +161,38 @@ const CreateWebhookModal: React.FC<CreateWebhookModalProps> = ({ workspaceId, on
 
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white border-2 border-black p-6 max-w-lg w-full mx-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] max-h-[90vh] overflow-y-auto">
-        <h3 className="text-xl font-bold font-mono mb-4">Create Webhook</h3>
+      <div className="bg-white rounded-2xl border border-gray-200 p-6 max-w-lg w-full mx-4 shadow-xl max-h-[90vh] overflow-y-auto">
+        <h3 className="text-xl font-semibold text-slate-900 mb-4">Create Webhook</h3>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border-2 border-red-300 text-red-800 text-sm">
+          <div className="mb-4 p-3 bg-red-50 rounded-xl border border-red-200 text-red-800 text-sm">
             {error}
           </div>
         )}
 
         {/* Name */}
         <div className="mb-4">
-          <label className="block text-sm font-bold mb-1">Name</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g., Zapier Integration"
-            className="w-full border-2 border-black px-3 py-2 font-mono"
+            className="w-full border border-gray-200 px-3 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
           />
         </div>
 
         {/* URL */}
         <div className="mb-4">
-          <label className="block text-sm font-bold mb-1">Endpoint URL</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Endpoint URL</label>
           <input
             type="url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://your-endpoint.com/webhook"
-            className="w-full border-2 border-black px-3 py-2 font-mono"
+            className="w-full border border-gray-200 px-3 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
           />
-          <p className="text-xs text-gray-500 mt-1">Must use HTTPS for security</p>
+          <p className="text-xs text-slate-500 mt-1">Must use HTTPS for security</p>
         </div>
 
         {/* Events */}
@@ -243,13 +243,13 @@ const CreateWebhookModal: React.FC<CreateWebhookModalProps> = ({ workspaceId, on
           <button
             onClick={handleCreate}
             disabled={isCreating}
-            className="flex-1 bg-black text-white px-4 py-2 font-bold hover:bg-gray-800 transition-colors disabled:opacity-50"
+            className="flex-1 bg-slate-900 text-white px-4 py-2.5 font-medium rounded-xl shadow-sm hover:shadow-md hover:bg-slate-800 transition-all disabled:opacity-50"
           >
             {isCreating ? 'Creating...' : 'Create Webhook'}
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-2 border-2 border-black font-bold hover:bg-gray-100 transition-colors"
+            className="px-4 py-2.5 rounded-xl border border-gray-200 font-medium text-slate-700 hover:bg-gray-50 transition-colors"
           >
             Cancel
           </button>
@@ -382,7 +382,7 @@ const WebhookRow: React.FC<WebhookRowProps> = ({ webhook, onToggle, onDelete, on
               </button>
               <button
                 onClick={() => setShowConfirmDelete(false)}
-                className="px-2 py-1 text-xs font-bold border-2 border-black hover:bg-gray-100"
+                className="px-2 py-1 text-xs font-medium rounded-lg border border-gray-200 text-slate-700 hover:bg-gray-100 transition-colors"
               >
                 Cancel
               </button>
@@ -390,7 +390,7 @@ const WebhookRow: React.FC<WebhookRowProps> = ({ webhook, onToggle, onDelete, on
           ) : (
             <button
               onClick={() => setShowConfirmDelete(true)}
-              className="px-3 py-1 text-sm font-bold border-2 border-red-500 text-red-700 hover:bg-red-50"
+              className="px-3 py-1 text-sm font-medium rounded-lg border border-red-200 text-red-700 hover:bg-red-50 transition-colors"
             >
               Delete
             </button>

@@ -935,7 +935,7 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({
             <div className="flex-1 overflow-y-auto p-8">
               <div className="max-w-2xl mx-auto">
                 {/* Form Header */}
-                <div className="mb-8 bg-white border-2 border-black p-6 shadow-neo">
+                <div className="mb-8 bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
                   <input
                     value={state.form.name || ''}
                     onChange={(e) => updateForm({ name: e.target.value })}
@@ -994,7 +994,7 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({
 
                   <DragOverlay>
                     {activeId ? (
-                      <div className="bg-white border-2 border-black p-4 shadow-neo opacity-80">
+                      <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-lg opacity-90">
                         <div className="flex items-center gap-2">
                           <span>☰</span>
                           <span>{state.fields.find(f => f.id === activeId)?.label}</span>

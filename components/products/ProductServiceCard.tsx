@@ -36,7 +36,7 @@ export function ProductServiceCard({
     };
 
     const getPricingDisplay = () => {
-        if (!product.basePrice) return 'Price not set';
+        if (product.basePrice == null) return 'Price not set';
         
         switch (product.pricingModel) {
             case 'flat_rate':
@@ -98,14 +98,14 @@ export function ProductServiceCard({
     if (viewMode === 'list') {
         return (
             <div 
-                className="bg-white border-2 border-black shadow-neo hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all cursor-pointer"
+                className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all cursor-pointer"
                 onClick={onClick}
             >
                 <div className="p-4 flex items-center gap-4">
                     {/* Image/Icon */}
-                    <div className="w-16 h-16 border-2 border-black flex items-center justify-center bg-gray-100 shrink-0">
+                    <div className="w-16 h-16 rounded-lg border border-gray-200 flex items-center justify-center bg-gray-50 shrink-0">
                         {product.imageUrl ? (
-                            <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                            <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover rounded-lg" />
                         ) : (
                             <span className="text-3xl">{getCategoryIcon()}</span>
                         )}
@@ -116,8 +116,8 @@ export function ProductServiceCard({
                         <div className="flex items-start justify-between gap-4">
                             <div className="flex-grow min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
-                                    <h3 className="font-bold text-lg truncate">{product.name}</h3>
-                                    <span className={`px-2 py-0.5 text-xs font-bold border border-black ${getStatusColor()}`}>
+                                    <h3 className="font-semibold text-lg text-slate-900 truncate">{product.name}</h3>
+                                    <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${getStatusColor()}`}>
                                         {product.status}
                                     </span>
                                 </div>
@@ -131,7 +131,7 @@ export function ProductServiceCard({
 
                             {/* Price */}
                             <div className="text-right shrink-0">
-                                <p className="text-xl font-bold">{getPricingDisplay()}</p>
+                                <p className="text-xl font-bold text-slate-900">{getPricingDisplay()}</p>
                                 {(inventoryStatus || capacityStatus) && (
                                     <p className={`text-sm font-semibold ${inventoryStatus?.color || capacityStatus?.color}`}>
                                         {inventoryStatus?.label || capacityStatus?.label}
@@ -144,10 +144,10 @@ export function ProductServiceCard({
                         {(product.totalRevenue || product.totalUnitsSold) && (
                             <div className="flex gap-4 mt-2 text-sm text-gray-600">
                                 {product.totalRevenue > 0 && (
-                                    <span>Revenue: <strong className="text-black">${product.totalRevenue.toLocaleString()}</strong></span>
+                                    <span>Revenue: <strong className="text-slate-900">${product.totalRevenue.toLocaleString()}</strong></span>
                                 )}
                                 {product.totalUnitsSold > 0 && (
-                                    <span>Sold: <strong className="text-black">{product.totalUnitsSold}</strong></span>
+                                    <span>Sold: <strong className="text-slate-900">{product.totalUnitsSold}</strong></span>
                                 )}
                             </div>
                         )}
@@ -160,7 +160,7 @@ export function ProductServiceCard({
                                 e.stopPropagation();
                                 onEdit();
                             }}
-                            className="px-3 py-1 bg-blue-500 text-white font-bold border border-black hover:bg-blue-600 transition-colors"
+                            className="px-3 py-1.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
                         >
                             Edit
                         </button>
@@ -169,7 +169,7 @@ export function ProductServiceCard({
                                 e.stopPropagation();
                                 onDelete();
                             }}
-                            className="px-3 py-1 bg-red-500 text-white font-bold border border-black hover:bg-red-600 transition-colors"
+                            className="px-3 py-1.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors"
                         >
                             Delete
                         </button>
@@ -182,11 +182,11 @@ export function ProductServiceCard({
     // Grid view
     return (
         <div 
-            className="bg-white border-2 border-black shadow-neo hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all cursor-pointer"
+            className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all cursor-pointer"
             onClick={onClick}
         >
             {/* Image */}
-            <div className="w-full h-48 border-b-2 border-black bg-gray-100 flex items-center justify-center overflow-hidden">
+            <div className="w-full h-48 rounded-t-xl border-b border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden">
                 {product.imageUrl ? (
                     <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
                 ) : (
@@ -199,7 +199,7 @@ export function ProductServiceCard({
                 {/* Header */}
                 <div className="flex items-start justify-between mb-2">
                     <h3 className="font-bold text-lg line-clamp-2 flex-grow">{product.name}</h3>
-                    <span className={`px-2 py-0.5 text-xs font-bold border border-black ${getStatusColor()} ml-2 shrink-0`}>
+                    <span className={`px-2 py-0.5 text-xs font-bold rounded-full border ${getStatusColor()} ml-2 shrink-0`}>
                         {product.status}
                     </span>
                 </div>
@@ -253,7 +253,7 @@ export function ProductServiceCard({
                             e.stopPropagation();
                             onEdit();
                         }}
-                        className="flex-1 px-3 py-2 bg-blue-500 text-white font-bold border-2 border-black hover:bg-blue-600 transition-colors"
+                        className="flex-1 px-3 py-2 bg-blue-500 text-white font-semibold rounded-xl shadow-sm hover:shadow-md hover:bg-blue-600 transition-all"
                     >
                         Edit
                     </button>
@@ -262,7 +262,7 @@ export function ProductServiceCard({
                             e.stopPropagation();
                             onDelete();
                         }}
-                        className="px-3 py-2 bg-red-500 text-white font-bold border-2 border-black hover:bg-red-600 transition-colors"
+                        className="px-3 py-2 bg-red-500 text-white font-semibold rounded-xl shadow-sm hover:shadow-md hover:bg-red-600 transition-all"
                     >
                         🗑️
                     </button>

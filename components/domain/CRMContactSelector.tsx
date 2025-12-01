@@ -170,7 +170,7 @@ export function CRMContactSelector({
 
       {/* Selection Summary */}
       {selectedContactIds.length > 0 && (
-        <div className="mt-2 p-2 bg-gray-100 border-2 border-black">
+        <div className="mt-2 p-2 bg-gray-50 border border-gray-200 rounded-xl">
           <p className="text-sm font-semibold">
             ✓ {selectedContactIds.length} contact{selectedContactIds.length !== 1 ? 's' : ''} selected
           </p>
@@ -210,7 +210,7 @@ export function CRMContactSelector({
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               placeholder="Search by name, email, title, or phone..."
-              className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+              className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400"
               autoFocus
             />
             

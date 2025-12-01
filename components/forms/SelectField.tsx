@@ -50,12 +50,12 @@ export function SelectField({
         aria-invalid={error ? 'true' : 'false'}
         aria-describedby={describedBy}
         className={`
-          w-full bg-white border-2 text-black p-2 rounded-none
-          focus:outline-none transition-colors cursor-pointer
+          w-full bg-white border text-slate-900 p-2 rounded-xl
+          focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors cursor-pointer
           disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500
           ${error 
             ? 'border-red-500 focus:border-red-600' 
-            : 'border-black focus:border-blue-500'
+            : 'border-gray-200 focus:border-blue-500'
           }
         `}
         onChange={(event) => {

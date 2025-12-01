@@ -64,11 +64,11 @@ interface FieldTextareaProps {
 export function FieldTextarea({ label, value, onChange, placeholder, rows = 3 }: FieldTextareaProps) {
     return (
         <div>
-            <label className="block text-sm font-bold font-mono mb-2">{label}</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">{label}</label>
             <textarea
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600 resize-none"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 rows={rows}
                 placeholder={placeholder}
             />
@@ -88,20 +88,20 @@ interface OptionButtonProps<T extends string> {
 export function OptionButtons<T extends string>({ label, options, value, onChange, grid }: OptionButtonProps<T>) {
     return (
         <div>
-            <label className="block text-sm font-bold font-mono mb-2">{label}</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">{label}</label>
             <div className={grid ? 'grid grid-cols-2 gap-3' : 'space-y-2'}>
                 {options.map((opt) => (
                     <button
                         key={opt.value}
                         type="button"
                         onClick={() => onChange(opt.value)}
-                        className={`${grid ? '' : 'w-full text-left'} px-4 py-3 border-2 border-black font-mono transition-colors ${
+                        className={`${grid ? '' : 'w-full text-left'} px-4 py-3 rounded-xl border transition-colors ${
                             value === opt.value
-                                ? 'bg-blue-600 text-white shadow-neo'
-                                : 'bg-white hover:bg-gray-100'
-                        } ${grid ? 'font-bold' : ''}`}
+                                ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                                : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                        } ${grid ? 'font-medium' : ''}`}
                     >
-                        <div className="font-bold">{opt.label}</div>
+                        <div className="font-medium">{opt.label}</div>
                         {opt.description && (
                             <div className={`text-sm ${value === opt.value ? 'text-blue-100' : 'text-gray-600'}`}>
                                 {opt.description}
@@ -143,11 +143,11 @@ export function Step1CompanyBasics({ formData, updateField, validationErrors, cl
             />
 
             <div>
-                <label className="block text-sm font-bold font-mono mb-2">Industry</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Industry</label>
                 <select
                     value={formData.industry || ''}
                     onChange={(e) => updateField('industry', e.target.value || undefined)}
-                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600 bg-white"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                 >
                     <option value="">Select an industry...</option>
                     {INDUSTRIES.map(industry => (
@@ -307,9 +307,9 @@ export function Step4Metrics({ formData, updateField }: Step4Props) {
                 />
             </div>
 
-            <div className="bg-blue-100 border-2 border-black p-4">
-                <p className="text-sm font-mono">
-                    <span className="font-bold">💡 Pro tip:</span> This information helps the AI assistant provide better insights tailored to your business stage and goals.
+            <div className="bg-blue-50 rounded-xl border border-blue-200 p-4">
+                <p className="text-sm text-slate-700">
+                    <span className="font-semibold">💡 Pro tip:</span> This information helps the AI assistant provide better insights tailored to your business stage and goals.
                 </p>
             </div>
         </div>

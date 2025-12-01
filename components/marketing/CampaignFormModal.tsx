@@ -221,7 +221,7 @@ export function CampaignFormModal({
                         <div className="space-y-6">
                             {/* Global Error */}
                             {globalError && (
-                                <div className="p-3 bg-red-100 border-2 border-red-500 text-red-900 text-sm font-semibold">
+                                <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm font-medium rounded-xl">
                                     {globalError}
                                 </div>
                             )}
@@ -313,24 +313,24 @@ export function CampaignFormModal({
 
                                 {/* Marketing Channels */}
                                 <div>
-                                    <label className="block font-mono text-sm font-semibold text-black mb-2">
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">
                                         Marketing Channels
                                     </label>
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                                         {channelOptions.map(channel => (
                                             <label
                                                 key={channel.value}
-                                                className={`flex items-center gap-2 p-2 border-2 cursor-pointer transition-colors ${
+                                                className={`flex items-center gap-2 p-3 border rounded-xl cursor-pointer transition-all ${
                                                     selectedChannels.has(channel.value)
-                                                        ? 'border-blue-500 bg-blue-50'
-                                                        : 'border-gray-300 bg-white hover:border-gray-400'
+                                                        ? 'border-slate-500 bg-slate-50 ring-2 ring-slate-200'
+                                                        : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
                                                 }`}
                                             >
                                                 <input
                                                     type="checkbox"
                                                     checked={selectedChannels.has(channel.value)}
                                                     onChange={() => handleChannelToggle(channel.value)}
-                                                    className="w-4 h-4"
+                                                    className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
                                                 />
                                                 <span className="text-lg">{channel.icon}</span>
                                                 <span className="text-sm font-medium">{channel.label}</span>
@@ -370,17 +370,17 @@ export function CampaignFormModal({
                                 </div>
 
                                 {liveBudgetUtilization > 0 && (
-                                    <div className="p-3 bg-gray-100 border-2 border-black">
-                                        <div className="flex justify-between items-center mb-1">
-                                            <span className="font-mono text-sm font-semibold">Budget Utilization:</span>
-                                            <span className="font-mono font-bold">
+                                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-sm font-medium text-slate-700">Budget Utilization:</span>
+                                            <span className="text-sm font-semibold text-slate-900">
                                                 {liveBudgetUtilization.toFixed(1)}%
                                             </span>
                                         </div>
-                                        <div className="w-full bg-gray-300 h-2 border border-black">
+                                        <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
                                             <div
-                                                className={`h-full ${
-                                                    liveBudgetUtilization > 100 ? 'bg-red-600' : 'bg-green-600'
+                                                className={`h-full rounded-full transition-all ${
+                                                    liveBudgetUtilization > 100 ? 'bg-red-500' : 'bg-emerald-500'
                                                 }`}
                                                 style={{ width: `${Math.min(liveBudgetUtilization, 100)}%` }}
                                             />
@@ -395,23 +395,23 @@ export function CampaignFormModal({
                                     title="Promoted Products/Services"
                                     description="Select products or services this campaign will promote"
                                 >
-                                    <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar p-2 border-2 border-gray-300">
+                                    <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar p-3 border border-gray-200 rounded-xl bg-white">
                                         {productsServices
                                             .filter(p => p.status === 'active')
                                             .map(product => (
                                                 <label
                                                     key={product.id}
-                                                    className={`flex items-start gap-3 p-3 border-2 cursor-pointer transition-colors ${
+                                                    className={`flex items-start gap-3 p-3 border rounded-xl cursor-pointer transition-all ${
                                                         selectedProducts.has(product.id)
-                                                            ? 'border-blue-500 bg-blue-50'
-                                                            : 'border-gray-200 bg-white hover:border-gray-400'
+                                                            ? 'border-slate-500 bg-slate-50 ring-2 ring-slate-200'
+                                                            : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
                                                     }`}
                                                 >
                                                     <input
                                                         type="checkbox"
                                                         checked={selectedProducts.has(product.id)}
                                                         onChange={() => handleProductToggle(product.id)}
-                                                        className="mt-1 w-4 h-4"
+                                                        className="mt-1 w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
                                                     />
                                                     <div className="flex-grow">
                                                         <div className="font-semibold">{product.name}</div>
@@ -419,14 +419,14 @@ export function CampaignFormModal({
                                                             {product.category} • {product.type}
                                                         </div>
                                                     </div>
-                                                    <div className="font-mono font-semibold text-blue-700">
+                                                    <div className="font-semibold text-slate-700">
                                                         ${product.basePrice.toFixed(2)}
                                                     </div>
                                                 </label>
                                             ))}
                                     </div>
                                     {selectedProducts.size > 0 && (
-                                        <div className="text-sm font-semibold text-blue-900">
+                                        <div className="text-sm font-medium text-slate-700">
                                             ✓ {selectedProducts.size} product{selectedProducts.size !== 1 ? 's' : ''} selected
                                         </div>
                                     )}
@@ -438,7 +438,7 @@ export function CampaignFormModal({
                                 title="Campaign Performance Tracking"
                                 description="Update these metrics as your campaign progresses"
                             >
-                                <div className="p-3 bg-yellow-50 border-2 border-yellow-300 text-sm text-yellow-900 mb-3">
+                                <div className="p-4 bg-amber-50 border border-amber-200 text-sm text-amber-800 rounded-xl mb-3">
                                     <strong>📊 Track Campaign Progress:</strong> Update these metrics regularly to monitor performance
                                 </div>
                                 
@@ -483,7 +483,7 @@ export function CampaignFormModal({
                                 title="Linked Accounts & Deals"
                                 description="Link this campaign to specific accounts or opportunities for direct attribution"
                             >
-                                <div className="p-3 bg-blue-50 border-2 border-blue-300 text-sm text-blue-900 mb-3">
+                                <div className="p-4 bg-blue-50 border border-blue-200 text-sm text-blue-800 rounded-xl mb-3">
                                     <strong>ℹ️ Two Ways to Track Attribution:</strong>
                                     <ul className="mt-2 ml-4 space-y-1 list-disc">
                                         <li><strong>Automatic:</strong> Contacts created with "Source" field matching this campaign name</li>
@@ -494,10 +494,10 @@ export function CampaignFormModal({
                                 {crmItems.length > 0 ? (
                                     <div className="space-y-3">
                                         <div>
-                                            <label className="block font-mono text-sm font-semibold text-black mb-2">
+                                            <label className="block text-sm font-medium text-slate-700 mb-2">
                                                 Link to Accounts/Deals
                                             </label>
-                                            <div className="max-h-48 overflow-y-auto border-2 border-gray-300 bg-white p-2 space-y-1">
+                                            <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-xl bg-white p-2 space-y-1">
                                                 {crmItems.map(item => (
                                                     <label
                                                         key={item.id}
@@ -538,7 +538,7 @@ export function CampaignFormModal({
                                         onChange={e => setNewTag(e.target.value)}
                                         onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
                                         placeholder="Add tag (e.g., Q1, Social Media, Lead Gen)"
-                                        className="flex-grow bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                        className="flex-grow bg-white border border-gray-200 text-slate-900 px-4 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                                     />
                                     <Button type="button" onClick={handleAddTag}>
                                         Add
@@ -556,7 +556,7 @@ export function CampaignFormModal({
                             </FormSection>
 
                             {/* Action Buttons */}
-                            <div className="flex gap-3 pt-4 border-t-2 border-gray-300">
+                            <div className="flex gap-3 pt-4 border-t border-gray-200">
                                 <Button
                                     type="submit"
                                     variant="primary"

@@ -163,7 +163,7 @@ export const PRICING_PLANS = [
             'AI research agents',
             'API access & priority support'
         ],
-        cta: "START 14-DAY TRIAL",
+        cta: "GET STARTED",
         gradient: "from-cyan-50 to-teal-50",
         popular: true
     }

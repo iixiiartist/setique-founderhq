@@ -181,27 +181,27 @@ export const ErrorFallback = ({ error, componentStack, eventId, resetError }: {
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="bg-white border-4 border-black shadow-neo-lg p-8 max-w-lg w-full">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl p-8 max-w-lg w-full">
         <div className="text-6xl mb-4 text-center">⚠️</div>
-        <h1 className="text-3xl font-bold mb-4 text-center">Something went wrong</h1>
+        <h1 className="text-3xl font-semibold text-slate-900 mb-4 text-center">Something went wrong</h1>
         <p className="text-gray-600 mb-6 text-center">
           We've been notified of this error and will fix it as soon as possible.
         </p>
         
-        <div className="bg-gray-100 border-2 border-black p-4 mb-6 font-mono text-sm overflow-auto max-h-40">
+        <div className="bg-gray-100 rounded-xl border border-gray-200 p-4 mb-6 text-sm overflow-auto max-h-40">
           <strong>Error:</strong> {errorMessage}
         </div>
         
         <div className="flex gap-4">
           <button
             onClick={resetError}
-            className="flex-1 px-6 py-3 bg-yellow-400 text-black font-bold border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+            className="flex-1 px-6 py-3 bg-yellow-400 text-slate-900 rounded-xl font-semibold shadow-sm hover:shadow-md hover:bg-yellow-500 transition-all"
           >
             Try Again
           </button>
           <button
             onClick={() => window.location.href = '/'}
-            className="flex-1 px-6 py-3 bg-white text-black font-bold border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+            className="flex-1 px-6 py-3 bg-white text-slate-700 rounded-xl font-semibold border border-gray-200 hover:bg-gray-50 transition-all"
           >
             Go Home
           </button>

@@ -718,8 +718,8 @@ export const PublicFormPage: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="text-center">
-          <div className="animate-spin w-12 h-12 border-4 border-black border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="font-mono">Loading form...</p>
+          <div className="animate-spin w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
+          <p className="text-slate-600">Loading form...</p>
         </div>
       </div>
     );
@@ -870,7 +870,7 @@ export const PublicFormPage: React.FC = () => {
               {/* Progress bar */}
               {settings?.showProgressBar && (
                 <div className="mb-6">
-                  <div className="h-2 bg-gray-200 border border-black">
+                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                     <div
                       className="h-full transition-all duration-300"
                       style={{ 

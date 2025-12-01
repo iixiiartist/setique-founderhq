@@ -78,41 +78,41 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
   const getActivityColor = (actionType: string): string => {
     switch (actionType) {
       case 'task_created':
-        return 'text-blue-600 bg-blue-50 border-blue-200';
+        return 'text-slate-900 bg-white border border-gray-200 rounded-full';
       case 'task_completed':
-        return 'text-green-600 bg-green-50 border-green-200';
+        return 'text-white bg-green-600 rounded-full';
       case 'task_assigned':
-        return 'text-purple-600 bg-purple-50 border-purple-200';
+        return 'text-slate-900 bg-blue-50 border border-blue-200 rounded-full';
       case 'task_updated':
-        return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+        return 'text-slate-900 bg-gray-50 border border-gray-200 rounded-full';
       case 'task_deleted':
-        return 'text-red-600 bg-red-50 border-red-200';
+        return 'text-white bg-slate-700 rounded-full';
       case 'crm_contact_added':
       case 'crm_contact_updated':
-        return 'text-indigo-600 bg-indigo-50 border-indigo-200';
+        return 'text-slate-900 bg-purple-50 border border-purple-200 rounded-full';
       case 'document_uploaded':
-        return 'text-cyan-600 bg-cyan-50 border-cyan-200';
+        return 'text-slate-900 bg-white border border-gray-200 rounded-full';
       case 'meeting_scheduled':
-        return 'text-pink-600 bg-pink-50 border-pink-200';
+        return 'text-slate-900 bg-amber-50 border border-amber-200 rounded-full';
       case 'note_added':
-        return 'text-orange-600 bg-orange-50 border-orange-200';
+        return 'text-slate-900 bg-gray-100 border border-gray-200 rounded-full';
       default:
-        return 'text-gray-600 bg-gray-50 border-gray-200';
+        return 'text-slate-900 bg-gray-50 border border-gray-200 rounded-full';
     }
   };
 
   if (loading) {
     return (
       <div className="flex justify-center items-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin h-8 w-8 border-2 border-gray-300 border-t-slate-900 rounded-full"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
-        <p className="font-medium">Failed to load activity feed</p>
+      <div className="bg-red-50 rounded-xl border border-red-200 text-red-800 p-4">
+        <p className="font-semibold">Failed to load activity feed</p>
         <p className="text-sm">{error}</p>
       </div>
     );
@@ -120,9 +120,9 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
 
   if (activities.length === 0) {
     return (
-      <div className="text-center p-8 text-gray-500">
+      <div className="text-center p-8 text-gray-600">
         <p className="text-lg mb-2">📭</p>
-        <p>No recent activity</p>
+        <p className="font-semibold text-slate-900">No recent activity</p>
         <p className="text-sm mt-1">Team actions will appear here</p>
       </div>
     );
@@ -132,10 +132,10 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
     <div className="space-y-2">
       {showHeader && (
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
+          <h3 className="text-lg font-semibold text-slate-900">Recent Activity</h3>
           <button
             onClick={loadActivities}
-            className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+            className="text-sm text-slate-700 font-medium hover:text-slate-900 flex items-center gap-1 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
           >
             <span>🔄</span>
             <span>Refresh</span>
@@ -147,11 +147,11 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
         {activities.map((activity) => (
           <div
             key={activity.id}
-            className="flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-lg hover:shadow-sm transition-shadow"
+            className="flex items-start gap-3 p-3 bg-white rounded-xl border border-gray-200 hover:shadow-sm transition-all"
           >
             {/* Activity Icon */}
             <div
-              className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm ${getActivityColor(
+              className={`flex-shrink-0 w-8 h-8 flex items-center justify-center text-sm ${getActivityColor(
                 activity.actionType
               )}`}
             >

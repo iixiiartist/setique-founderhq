@@ -16,17 +16,17 @@ export interface ConfirmDialogProps {
 const variantStyles = {
   danger: {
     icon: '🗑️',
-    confirmBg: 'bg-red-500 hover:bg-red-600 text-white',
+    confirmBg: 'bg-red-600 hover:bg-red-700 text-white',
     iconBg: 'bg-red-100',
   },
   warning: {
     icon: '⚠️',
-    confirmBg: 'bg-yellow-500 hover:bg-yellow-600 text-black',
-    iconBg: 'bg-yellow-100',
+    confirmBg: 'bg-amber-600 hover:bg-amber-700 text-white',
+    iconBg: 'bg-amber-100',
   },
   info: {
     icon: 'ℹ️',
-    confirmBg: 'bg-blue-500 hover:bg-blue-600 text-white',
+    confirmBg: 'bg-slate-900 hover:bg-slate-800 text-white',
     iconBg: 'bg-blue-100',
   },
 };
@@ -73,13 +73,13 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       aria-describedby="confirm-dialog-description"
     >
       <div 
-        className="bg-white border-2 border-black shadow-neo-lg w-full max-w-md animate-in fade-in zoom-in-95 duration-200"
+        className="bg-white rounded-2xl border border-gray-200 shadow-xl w-full max-w-md animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header with icon */}
         <div className="p-6 pb-4">
           <div className="flex items-start gap-4">
-            <div className={`w-12 h-12 rounded-full ${styles.iconBg} flex items-center justify-center text-2xl flex-shrink-0`}>
+            <div className={`w-12 h-12 rounded-xl ${styles.iconBg} flex items-center justify-center text-2xl flex-shrink-0`}>
               {styles.icon}
             </div>
             <div className="flex-1 min-w-0">
@@ -111,7 +111,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           <button
             onClick={handleConfirm}
             disabled={isLoading}
-            className={`px-4 py-2 font-medium border-2 border-black shadow-neo transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none disabled:opacity-50 disabled:cursor-not-allowed ${styles.confirmBg}`}
+            className={`px-4 py-2 font-medium rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed ${styles.confirmBg}`}
           >
             {isLoading ? (
               <span className="flex items-center gap-2">

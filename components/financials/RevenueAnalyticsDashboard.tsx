@@ -274,7 +274,7 @@ export const RevenueAnalyticsDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="bg-white p-6 border-2 border-black shadow-neo animate-pulse">
+      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm animate-pulse">
         <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
         <div className="space-y-3">
           <div className="h-4 bg-gray-200 rounded w-full"></div>
@@ -288,7 +288,7 @@ export const RevenueAnalyticsDashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white p-6 border-2 border-black shadow-neo">
+      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
         <div className="flex items-center gap-3 mb-2">
           <BarChart3 className="w-6 h-6" />
           <h2 className="text-2xl font-bold">Revenue Analytics</h2>
@@ -297,33 +297,33 @@ export const RevenueAnalyticsDashboard: React.FC = () => {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex gap-2 border-b-2 border-black">
+      <div className="flex gap-2 border-b border-gray-200">
         <button
           onClick={() => setActiveTab('overview')}
-          className={`px-4 py-2 font-semibold transition-all ${
+          className={`px-4 py-2 font-semibold rounded-t-xl transition-all ${
             activeTab === 'overview'
-              ? 'bg-black text-white border-2 border-black -mb-0.5'
-              : 'bg-white text-black hover:bg-gray-100'
+              ? 'bg-slate-900 text-white -mb-px'
+              : 'bg-white text-slate-700 hover:bg-gray-50'
           }`}
         >
           Overview
         </button>
         <button
           onClick={() => setActiveTab('products')}
-          className={`px-4 py-2 font-semibold transition-all ${
+          className={`px-4 py-2 font-semibold rounded-t-xl transition-all ${
             activeTab === 'products'
-              ? 'bg-black text-white border-2 border-black -mb-0.5'
-              : 'bg-white text-black hover:bg-gray-100'
+              ? 'bg-slate-900 text-white -mb-px'
+              : 'bg-white text-slate-700 hover:bg-gray-50'
           }`}
         >
           By Product
         </button>
         <button
           onClick={() => setActiveTab('trends')}
-          className={`px-4 py-2 font-semibold transition-all ${
+          className={`px-4 py-2 font-semibold rounded-t-xl transition-all ${
             activeTab === 'trends'
-              ? 'bg-black text-white border-2 border-black -mb-0.5'
-              : 'bg-white text-black hover:bg-gray-100'
+              ? 'bg-slate-900 text-white -mb-px'
+              : 'bg-white text-slate-700 hover:bg-gray-50'
           }`}
         >
           Monthly Trends
@@ -335,7 +335,7 @@ export const RevenueAnalyticsDashboard: React.FC = () => {
         <div className="space-y-6">
           {/* Key Metrics Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white p-6 border-2 border-black shadow-neo">
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
               <div className="flex items-center gap-2 mb-2">
                 <DollarSign className="w-5 h-5 text-green-600" />
                 <h3 className="font-semibold text-gray-600">Total Revenue</h3>
@@ -345,7 +345,7 @@ export const RevenueAnalyticsDashboard: React.FC = () => {
               </p>
             </div>
 
-            <div className="bg-white p-6 border-2 border-black shadow-neo">
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
               <div className="flex items-center gap-2 mb-2">
                 <Calendar className="w-5 h-5 text-blue-600" />
                 <h3 className="font-semibold text-gray-600">MRR / ARR</h3>
@@ -356,7 +356,7 @@ export const RevenueAnalyticsDashboard: React.FC = () => {
               </p>
             </div>
 
-            <div className="bg-white p-6 border-2 border-black shadow-neo">
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
               <div className="flex items-center gap-2 mb-2">
                 <Users className="w-5 h-5 text-purple-600" />
                 <h3 className="font-semibold text-gray-600">Customers</h3>
@@ -367,7 +367,7 @@ export const RevenueAnalyticsDashboard: React.FC = () => {
               </p>
             </div>
 
-            <div className="bg-white p-6 border-2 border-black shadow-neo">
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="w-5 h-5 text-orange-600" />
                 <h3 className="font-semibold text-gray-600">Growth Rate</h3>
@@ -382,14 +382,14 @@ export const RevenueAnalyticsDashboard: React.FC = () => {
 
           {/* Additional Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-white p-6 border-2 border-black shadow-neo">
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
               <h3 className="text-lg font-semibold mb-4">Average Deal Size</h3>
               <p className="text-4xl font-bold text-blue-600">
                 {formatCurrency(metrics.averageDealSize)}
               </p>
             </div>
 
-            <div className="bg-white p-6 border-2 border-black shadow-neo">
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
               <h3 className="text-lg font-semibold mb-4">Churn Rate</h3>
               <p className={`text-4xl font-bold ${
                 metrics.churnRate < 5 ? 'text-green-600' : 'text-red-600'
@@ -406,7 +406,7 @@ export const RevenueAnalyticsDashboard: React.FC = () => {
 
       {/* Products Tab */}
       {activeTab === 'products' && (
-        <div className="bg-white p-6 border-2 border-black shadow-neo">
+        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
           <div className="flex items-center gap-2 mb-6">
             <PieChart className="w-5 h-5" />
             <h3 className="text-xl font-semibold">Revenue by Product/Service</h3>
@@ -417,7 +417,7 @@ export const RevenueAnalyticsDashboard: React.FC = () => {
           ) : (
             <div className="space-y-4">
               {revenueByProduct.map((product, index) => (
-                <div key={index} className="border-2 border-black p-4">
+                <div key={index} className="rounded-xl border border-gray-200 p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div>
                       <h4 className="font-semibold text-lg">{product.productName}</h4>
@@ -430,9 +430,9 @@ export const RevenueAnalyticsDashboard: React.FC = () => {
                       <p className="text-sm text-gray-600">{formatPercent(product.percentage)}</p>
                     </div>
                   </div>
-                  <div className="h-4 bg-gray-200 border-2 border-black">
+                  <div className="h-4 bg-gray-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-green-500 to-green-600"
+                      className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full"
                       style={{ width: `${product.percentage}%` }}
                     />
                   </div>
@@ -445,15 +445,15 @@ export const RevenueAnalyticsDashboard: React.FC = () => {
 
       {/* Trends Tab */}
       {activeTab === 'trends' && (
-        <div className="bg-white p-6 border-2 border-black shadow-neo">
+        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
           <h3 className="text-xl font-semibold mb-6">Monthly Revenue Trends (Last 12 Months)</h3>
 
           {monthlyData.length === 0 ? (
             <p className="text-gray-500 italic">No monthly data available. Add revenue transactions to see trends.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full border-2 border-black">
-                <thead className="bg-black text-white">
+              <table className="w-full rounded-xl overflow-hidden">
+                <thead className="bg-slate-900 text-white">
                   <tr>
                     <th className="p-3 text-left">Month</th>
                     <th className="p-3 text-right text-green-300">Revenue</th>
@@ -490,7 +490,7 @@ export const RevenueAnalyticsDashboard: React.FC = () => {
         <button
           onClick={loadRevenueData}
           disabled={loading}
-          className="px-6 py-3 bg-black text-white font-semibold border-2 border-black shadow-neo-btn hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-6 py-3 bg-slate-900 text-white font-semibold rounded-xl shadow-sm hover:bg-slate-800 hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Refreshing...' : 'Refresh Analytics'}
         </button>

@@ -66,7 +66,7 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({ actions, onInsertToDoc }) 
         {/* Header */}
         <div>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-gray-700 to-gray-900 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
               <Bot size={20} className="sm:w-6 sm:h-6 text-white" />
             </div>
             <div className="min-w-0">
@@ -83,14 +83,14 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({ actions, onInsertToDoc }) 
         </div>
 
         {/* Feature Highlight */}
-        <div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-xl p-3 sm:p-4 border border-yellow-200 shadow-sm">
+        <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-3 sm:p-4 border border-gray-200 shadow-sm">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-yellow-400 rounded-lg flex items-center justify-center flex-shrink-0">
-              <Sparkles size={18} className="sm:w-5 sm:h-5 text-yellow-900" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gray-800 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Sparkles size={18} className="sm:w-5 sm:h-5 text-white" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-yellow-900">AI-Powered Research</p>
-              <p className="text-xs text-yellow-700">Get comprehensive briefs with real-time web research</p>
+              <p className="text-sm font-semibold text-gray-900">AI-Powered Research</p>
+              <p className="text-xs text-gray-600">Get comprehensive briefs with real-time web research</p>
             </div>
           </div>
         </div>

@@ -75,7 +75,7 @@ export function showWithUndo(message: string, onUndo: () => void) {
             onUndo();
             toast.dismiss(t.id);
           }}
-          className="px-3 py-1 bg-black text-white border-2 border-black hover:bg-gray-800 font-bold text-sm"
+          className="px-3 py-1.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 font-medium text-sm transition-colors"
         >
           UNDO
         </button>

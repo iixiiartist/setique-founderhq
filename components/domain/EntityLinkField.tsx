@@ -202,7 +202,7 @@ export function EntityLinkField({
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             placeholder={`Search ${pluralLabel.toLowerCase()}...`}
-            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+            className="w-full bg-white rounded-xl border border-gray-200 text-black p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             autoFocus
           />
 

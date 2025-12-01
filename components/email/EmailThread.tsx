@@ -420,9 +420,9 @@ Return the JSON array of contacts found.`;
 
   // Helper to get icon for attachment type
   const getAttachmentIcon = (mimeType: string) => {
-    if (mimeType.startsWith('image/')) return <Image size={16} className="text-blue-500" />;
+    if (mimeType.startsWith('image/')) return <Image size={16} className="text-gray-500" />;
     if (mimeType.includes('pdf') || mimeType.includes('document') || mimeType.includes('word')) 
-      return <FileText size={16} className="text-red-500" />;
+      return <FileText size={16} className="text-gray-500" />;
     return <File size={16} className="text-gray-500" />;
   };
 
@@ -457,7 +457,7 @@ Return the JSON array of contacts found.`;
     return (
       <div className="h-full flex items-center justify-center bg-white">
         <div className="flex flex-col items-center gap-3">
-            <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-6 h-6 border-2 border-gray-500 border-t-transparent rounded-full animate-spin"></div>
             <div className="text-sm text-gray-500">Loading message...</div>
         </div>
       </div>
@@ -474,7 +474,7 @@ Return the JSON array of contacts found.`;
         </div>
         <div className="text-gray-900 font-medium mb-2">Error loading message</div>
         <p className="text-sm text-gray-500 mb-4">{error}</p>
-        <button onClick={onClose} className="text-blue-600 hover:text-blue-700 text-sm font-medium">Go back</button>
+        <button onClick={onClose} className="text-gray-600 hover:text-gray-900 text-sm font-medium">Go back</button>
       </div>
     );
   }
@@ -510,7 +510,7 @@ Return the JSON array of contacts found.`;
 
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm">
+            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 font-bold text-sm">
                 {data.from_address.charAt(0).toUpperCase()}
             </div>
             <div>
@@ -550,7 +550,7 @@ Return the JSON array of contacts found.`;
             <button 
                 onClick={handleScanForContacts}
                 disabled={processingAi}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 hover:text-purple-900 transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 hover:text-gray-900 transition-colors disabled:opacity-50"
                 title="Scan for contacts to add to CRM"
             >
                 <UserPlus className="w-3.5 h-3.5" />
@@ -558,7 +558,7 @@ Return the JSON array of contacts found.`;
             </button>
             <button 
                 onClick={() => setShowSaveEmailModal(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 hover:text-green-900 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 hover:text-gray-900 transition-colors"
                 title="Save email snapshot to File Library and link to Account/Contact"
             >
                 <Link2 className="w-3.5 h-3.5" />
@@ -590,16 +590,16 @@ Return the JSON array of contacts found.`;
 
       {/* AI Summary Section - Dedicated Space */}
       {(processingAi || summary) && (
-        <div className="px-6 py-4 bg-blue-50/50 border-b border-blue-100 animate-in slide-in-from-top-2">
+        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 animate-in slide-in-from-top-2">
             {processingAi ? (
-                <div className="flex items-center gap-3 text-blue-600">
+                <div className="flex items-center gap-3 text-gray-600">
                     <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                     <span className="text-sm font-medium">Processing...</span>
                 </div>
             ) : summary ? (
                 <div className="relative">
                     <div className="flex items-start justify-between gap-4 mb-2">
-                        <h3 className="text-sm font-bold text-blue-800 flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                             </svg>
@@ -607,14 +607,14 @@ Return the JSON array of contacts found.`;
                         </h3>
                         <button 
                             onClick={() => setSummary(null)}
-                            className="text-blue-400 hover:text-blue-600 p-1 hover:bg-blue-100 rounded"
+                            className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded"
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
                     </div>
-                    <div className="text-sm text-blue-900 leading-relaxed whitespace-pre-wrap">
+                    <div className="text-sm text-gray-900 leading-relaxed whitespace-pre-wrap">
                         {summary}
                     </div>
                 </div>
@@ -742,7 +742,7 @@ Return the JSON array of contacts found.`;
                   <button
                     onClick={() => handleSaveToLibrary(attachment)}
                     disabled={savingAttachment === attachment.id}
-                    className="p-2 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                    className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
                     title="Save to File Library"
                   >
                     {savingAttachment === attachment.id ? (

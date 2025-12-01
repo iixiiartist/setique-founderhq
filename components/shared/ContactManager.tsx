@@ -1334,7 +1334,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
             >
                 <form onSubmit={handleAddContact} className="space-y-4">
                     <div>
-                        <label htmlFor="add-contact-name" className="block font-mono text-sm font-semibold text-black mb-1">
+                        <label htmlFor="add-contact-name" className="block text-sm font-medium text-slate-700 mb-1">
                             Contact Name *
                         </label>
                         <input
@@ -1345,12 +1345,12 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                             onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))}
                             placeholder="e.g., John Smith"
                             required
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                         />
                     </div>
 
                     <div>
-                        <label htmlFor="add-contact-email" className="block font-mono text-sm font-semibold text-black mb-1">
+                        <label htmlFor="add-contact-email" className="block text-sm font-medium text-slate-700 mb-1">
                             Email *
                         </label>
                         <input
@@ -1361,12 +1361,12 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                             onChange={(e) => setFormData(p => ({ ...p, email: e.target.value }))}
                             placeholder="e.g., john@example.com"
                             required
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                         />
                     </div>
 
                     <div>
-                        <label htmlFor="add-contact-phone" className="block font-mono text-sm font-semibold text-black mb-1">
+                        <label htmlFor="add-contact-phone" className="block text-sm font-medium text-slate-700 mb-1">
                             Phone
                         </label>
                         <input
@@ -1376,12 +1376,12 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                             value={formData.phone}
                             onChange={(e) => setFormData(p => ({ ...p, phone: e.target.value }))}
                             placeholder="e.g., (555) 123-4567"
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                         />
                     </div>
 
                     <div>
-                        <label htmlFor="add-contact-title" className="block font-mono text-sm font-semibold text-black mb-1">
+                        <label htmlFor="add-contact-title" className="block text-sm font-medium text-slate-700 mb-1">
                             Job Title
                         </label>
                         <input
@@ -1391,12 +1391,12 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                             value={formData.title}
                             onChange={(e) => setFormData(p => ({ ...p, title: e.target.value }))}
                             placeholder="e.g., CEO, VP of Sales"
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                         />
                     </div>
 
                     <div>
-                        <label htmlFor="add-contact-linkedin" className="block font-mono text-sm font-semibold text-black mb-1">
+                        <label htmlFor="add-contact-linkedin" className="block text-sm font-medium text-slate-700 mb-1">
                             LinkedIn Profile
                         </label>
                         <input
@@ -1406,12 +1406,12 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                             value={formData.linkedin}
                             onChange={(e) => setFormData(p => ({ ...p, linkedin: e.target.value }))}
                             placeholder="https://linkedin.com/in/username"
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                         />
                     </div>
 
-                    <div className="border-t-2 border-gray-300 pt-4">
-                        <label htmlFor="add-contact-link-crm" className="block font-mono text-sm font-semibold text-black mb-2">
+                    <div className="border-t border-gray-200 pt-4">
+                        <label htmlFor="add-contact-link-crm" className="block text-sm font-medium text-slate-700 mb-2">
                             Link to {getCrmTypeLabel()} Account
                         </label>
                         <select
@@ -1419,7 +1419,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                             name="add-contact-link-crm"
                             value={formData.linkedCrmId}
                             onChange={(e) => setFormData(p => ({ ...p, linkedCrmId: e.target.value }))}
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 mb-2"
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors mb-2"
                         >
                             <option value="">-- Select existing account or create new --</option>
                             {crmItems.map(item => (
@@ -1431,7 +1431,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
 
                         {!formData.linkedCrmId && (
                             <div>
-                                <label htmlFor="add-contact-new-account" className="block font-mono text-xs text-gray-600 mb-1">
+                                <label htmlFor="add-contact-new-account" className="block text-xs text-slate-500 mb-1">
                                     Or create new {getCrmTypeLabel().toLowerCase()} account:
                                 </label>
                                 <input
@@ -1441,7 +1441,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                     value={formData.newAccountName}
                                     onChange={(e) => setFormData(p => ({ ...p, newAccountName: e.target.value }))}
                                     placeholder={`e.g., New ${getCrmTypeLabel()} Company`}
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                    className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                                 />
                             </div>
                         )}
@@ -1450,14 +1450,14 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                     <div className="flex gap-2 pt-4">
                         <button
                             type="submit"
-                            className="flex-1 font-mono font-semibold bg-green-500 text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-green-600"
+                            className="flex-1 font-medium bg-green-600 text-white py-2.5 px-4 rounded-xl cursor-pointer transition-all shadow-sm hover:shadow-md hover:bg-green-700"
                         >
                             Create Contact
                         </button>
                         <button
                             type="button"
                             onClick={closeAddModal}
-                            className="flex-1 font-mono font-semibold bg-white text-black py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-100"
+                            className="flex-1 font-medium bg-white text-slate-700 py-2.5 px-4 rounded-xl cursor-pointer transition-all border border-gray-200 hover:bg-gray-50"
                         >
                             Cancel
                         </button>
@@ -1593,7 +1593,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                 setShowRelationshipModal(false);
                                 setSelectedContact(null);
                             }}
-                            className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800"
+                            className="w-full font-semibold bg-slate-900 text-white py-2 px-4 rounded-xl cursor-pointer transition-all shadow-sm hover:bg-slate-800"
                         >
                             Close
                         </button>
@@ -1708,7 +1708,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                 setShowTimelineModal(false);
                                 setSelectedContact(null);
                             }}
-                            className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800"
+                            className="w-full font-semibold bg-slate-900 text-white py-2 px-4 rounded-xl cursor-pointer transition-all shadow-sm hover:bg-slate-800"
                         >
                             Close
                         </button>
@@ -1745,13 +1745,13 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                             <div className="flex flex-col gap-1 ml-3">
                                                 <button
                                                     onClick={() => startEditNote(note.timestamp, note.text)}
-                                                    className="text-xs bg-blue-500 text-white px-2 py-1 border-2 border-black rounded-none"
+                                                    className="text-xs bg-blue-500 text-white px-2 py-1 rounded-lg"
                                                 >
                                                     Edit
                                                 </button>
                                                 <button
                                                     onClick={() => handleDeleteNote(note.timestamp)}
-                                                    className="text-xs bg-red-500 text-white px-2 py-1 border-2 border-black rounded-none"
+                                                    className="text-xs bg-red-500 text-white px-2 py-1 rounded-lg"
                                                 >
                                                     Delete
                                                 </button>
@@ -1768,7 +1768,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                 value={noteDraft}
                                 onChange={(e) => setNoteDraft(e.target.value)}
                                 rows={4}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 placeholder="Write a note. Use Markdown or plain text."
                             />
                             <div className="flex gap-2 mt-2">
@@ -1776,7 +1776,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                     <>
                                         <button
                                             onClick={handleUpdateNote}
-                                            className="font-mono bg-blue-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-blue-600 transition-all"
+                                            className="bg-blue-500 text-white px-4 py-2 rounded-xl font-semibold shadow-sm hover:bg-blue-600 transition-all"
                                         >
                                             Save
                                         </button>
@@ -1785,7 +1785,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                                 setEditingNoteTimestamp(null);
                                                 setNoteDraft('');
                                             }}
-                                            className="font-mono bg-gray-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-gray-600 transition-all"
+                                            className="bg-gray-500 text-white px-4 py-2 rounded-xl font-semibold shadow-sm hover:bg-gray-600 transition-all"
                                         >
                                             Cancel
                                         </button>
@@ -1794,13 +1794,13 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                     <>
                                         <button
                                             onClick={handleAddNote}
-                                            className="font-mono bg-green-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-green-600 transition-all"
+                                            className="bg-green-500 text-white px-4 py-2 rounded-xl font-semibold shadow-sm hover:bg-green-600 transition-all"
                                         >
                                             + Add Note
                                         </button>
                                         <button
                                             onClick={() => { setNoteDraft(''); }}
-                                            className="font-mono bg-gray-200 text-black border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-gray-300 transition-all"
+                                            className="bg-gray-200 text-slate-700 px-4 py-2 rounded-xl font-semibold shadow-sm hover:bg-gray-300 transition-all"
                                         >
                                             Clear
                                         </button>
@@ -1816,7 +1816,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                 setNoteDraft('');
                                 setEditingNoteTimestamp(null);
                             }}
-                            className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800"
+                            className="w-full font-semibold bg-slate-900 text-white py-2 px-4 rounded-xl cursor-pointer transition-all shadow-sm hover:bg-slate-800"
                         >
                             Done
                         </button>
@@ -1842,7 +1842,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                             onChange={(e) => setFormData(p => ({ ...p, name: e.target.value }))}
                             placeholder="e.g., John Smith"
                             required
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                     </div>
 
@@ -1858,7 +1858,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                             onChange={(e) => setFormData(p => ({ ...p, email: e.target.value }))}
                             placeholder="e.g., john@example.com"
                             required
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                     </div>
 
@@ -1873,7 +1873,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                             value={formData.phone}
                             onChange={(e) => setFormData(p => ({ ...p, phone: e.target.value }))}
                             placeholder="e.g., (555) 123-4567"
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                     </div>
 
@@ -1888,7 +1888,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                             value={formData.title}
                             onChange={(e) => setFormData(p => ({ ...p, title: e.target.value }))}
                             placeholder="e.g., CEO, VP of Sales"
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                     </div>
 
@@ -1903,21 +1903,21 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                             value={formData.linkedin}
                             onChange={(e) => setFormData(p => ({ ...p, linkedin: e.target.value }))}
                             placeholder="https://linkedin.com/in/username"
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                     </div>
 
                     <div className="flex gap-2 pt-4">
                         <button
                             type="submit"
-                            className="flex-1 font-mono font-semibold bg-blue-500 text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-blue-600"
+                            className="flex-1 font-semibold bg-blue-500 text-white py-2 px-4 rounded-xl cursor-pointer transition-all shadow-sm hover:bg-blue-600"
                         >
                             Save Changes
                         </button>
                         <button
                             type="button"
                             onClick={closeEditModal}
-                            className="flex-1 font-mono font-semibold bg-white text-black py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-100"
+                            className="flex-1 font-semibold bg-white text-slate-700 py-2 px-4 rounded-xl cursor-pointer transition-all border border-gray-200 shadow-sm hover:bg-gray-50"
                         >
                             Cancel
                         </button>
@@ -1939,7 +1939,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
             >
                 <div className="space-y-4">
                     {/* Instructions */}
-                    <div className="bg-blue-50 border-2 border-blue-500 p-4 rounded-none">
+                    <div className="bg-blue-50 rounded-xl border border-blue-200 p-4">
                         <h4 className="font-mono font-semibold text-black mb-2">📋 Instructions:</h4>
                         <ul className="text-sm space-y-1 list-disc list-inside text-gray-700">
                             <li>CSV must include headers: name, email, phone, title, company</li>
@@ -1952,7 +1952,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                     {/* Download Template */}
                     <button
                         onClick={downloadCSVTemplate}
-                        className="w-full font-mono bg-gray-200 text-black border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-gray-300 transition-all"
+                        className="w-full bg-gray-200 text-slate-700 px-4 py-2 rounded-xl font-semibold shadow-sm hover:bg-gray-300 transition-all"
                     >
                         📥 Download CSV Template
                     </button>
@@ -1974,7 +1974,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                         handleCSVImport(file);
                                     }
                                 }}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
                         </div>
                     )}
@@ -1983,10 +1983,10 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                     {isImporting && (
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <span className="font-mono text-sm font-semibold">Importing contacts...</span>
-                                <span className="font-mono text-sm font-semibold">{importProgress}%</span>
+                                <span className="text-sm font-semibold">Importing contacts...</span>
+                                <span className="text-sm font-semibold">{importProgress}%</span>
                             </div>
-                            <div className="w-full bg-gray-200 border-2 border-black h-8">
+                            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                                 <div
                                     className="bg-blue-500 h-full transition-all duration-300"
                                     style={{ width: `${importProgress}%` }}
@@ -1998,7 +1998,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                     {/* Import Results */}
                     {importResult && !isImporting && (
                         <div className="space-y-3">
-                            <div className="bg-green-50 border-2 border-green-500 p-4 rounded-none">
+                            <div className="bg-green-50 rounded-xl border border-green-200 p-4">
                                 <h4 className="font-mono font-semibold text-green-800 mb-2">✅ Import Complete</h4>
                                 <div className="text-sm space-y-1">
                                     <p className="text-green-700">
@@ -2012,7 +2012,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
 
                             {/* Error Details */}
                             {importResult.errors.length > 0 && (
-                                <div className="bg-red-50 border-2 border-red-500 p-4 rounded-none max-h-60 overflow-y-auto">
+                                <div className="bg-red-50 rounded-xl border border-red-200 p-4 max-h-60 overflow-y-auto">
                                     <h4 className="font-mono font-semibold text-red-800 mb-2">❌ Errors:</h4>
                                     <div className="space-y-2 text-sm">
                                         {importResult.errors.map((error, idx) => (
@@ -2036,7 +2036,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                     setImportResult(null);
                                     setImportProgress(0);
                                 }}
-                                className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800"
+                                className="w-full font-semibold bg-slate-900 text-white py-2 px-4 rounded-xl cursor-pointer transition-all shadow-sm hover:bg-slate-800"
                             >
                                 Close
                             </button>
@@ -2101,12 +2101,12 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                         }
                                     }}
                                     placeholder="e.g., decision-maker, champion"
-                                    className="flex-1 bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-purple-500"
+                                    className="flex-1 bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                 />
                                 <button
                                     onClick={handleAddTag}
                                     disabled={!newTag.trim()}
-                                    className="font-mono bg-purple-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-purple-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="bg-purple-500 text-white px-4 py-2 rounded-xl font-semibold shadow-sm hover:bg-purple-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     + Add
                                 </button>
@@ -2145,7 +2145,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                 setSelectedContact(null);
                                 setNewTag('');
                             }}
-                            className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800"
+                            className="w-full font-semibold bg-slate-900 text-white py-2 px-4 rounded-xl cursor-pointer transition-all shadow-sm hover:bg-slate-800"
                         >
                             Done
                         </button>
@@ -2183,11 +2183,11 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                         }
                                     }}
                                     placeholder="Enter tag name..."
-                                    className="flex-1 bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-purple-500"
+                                    className="flex-1 bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                 />
                                 <button
                                     onClick={executeBulkTag}
-                                    className="font-mono bg-purple-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-purple-600 transition-all"
+                                    className="bg-purple-500 text-white px-4 py-2 rounded-xl font-semibold shadow-sm hover:bg-purple-600 transition-all"
                                 >
                                     Add Tag
                                 </button>
@@ -2222,13 +2222,13 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                             <div className="flex gap-2">
                                 <button
                                     onClick={executeBulkDelete}
-                                    className="flex-1 font-mono bg-red-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-red-600 transition-all"
+                                    className="flex-1 bg-red-500 text-white px-4 py-2 rounded-xl font-semibold shadow-sm hover:bg-red-600 transition-all"
                                 >
                                     Delete {bulkSelection.selectedCount} Contact(s)
                                 </button>
                                 <button
                                     onClick={() => bulkActionsModal.close()}
-                                    className="font-mono bg-gray-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-gray-600 transition-all"
+                                    className="bg-gray-500 text-white px-4 py-2 rounded-xl font-semibold shadow-sm hover:bg-gray-600 transition-all"
                                 >
                                     Cancel
                                 </button>
@@ -2243,7 +2243,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                             </p>
                             <button
                                 onClick={executeBulkExport}
-                                className="w-full font-mono bg-blue-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-blue-600 transition-all"
+                                className="w-full bg-blue-500 text-white px-4 py-2 rounded-xl font-semibold shadow-sm hover:bg-blue-600 transition-all"
                             >
                                 📥 Download CSV
                             </button>
@@ -2252,7 +2252,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
 
                     <button
                         onClick={() => bulkActionsModal.close()}
-                        className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800"
+                        className="w-full font-semibold bg-slate-900 text-white py-2 px-4 rounded-xl cursor-pointer transition-all shadow-sm hover:bg-slate-800"
                     >
                         Close
                     </button>
@@ -2330,7 +2330,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                 <button
                                     onClick={handleMergeContacts}
                                     disabled={!primaryContact}
-                                    className="flex-1 font-mono bg-green-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-green-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="flex-1 bg-green-500 text-white px-4 py-2 rounded-xl font-semibold shadow-sm hover:bg-green-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     ✓ Merge Contacts
                                 </button>
@@ -2339,7 +2339,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                         setSelectedDuplicateGroup(null);
                                         setPrimaryContact(null);
                                     }}
-                                    className="font-mono bg-gray-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-gray-600 transition-all"
+                                    className="bg-gray-500 text-white px-4 py-2 rounded-xl font-semibold shadow-sm hover:bg-gray-600 transition-all"
                                 >
                                     Cancel
                                 </button>
@@ -2376,7 +2376,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                                 </h4>
                                                 <button
                                                     onClick={() => startMergeWorkflow(group)}
-                                                    className="font-mono bg-blue-500 text-white border-2 border-black px-3 py-1 text-xs rounded-none font-semibold shadow-neo-btn hover:bg-blue-600 transition-all"
+                                                    className="bg-blue-500 text-white px-3 py-1 text-xs rounded-lg font-semibold shadow-sm hover:bg-blue-600 transition-all"
                                                 >
                                                     Review & Merge
                                                 </button>
@@ -2396,7 +2396,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
 
                             <button
                                 onClick={() => duplicateModal.close()}
-                                className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800"
+                                className="w-full font-semibold bg-slate-900 text-white py-2 px-4 rounded-xl cursor-pointer transition-all shadow-sm hover:bg-slate-800"
                             >
                                 Close
                             </button>

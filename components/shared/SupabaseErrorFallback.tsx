@@ -15,7 +15,7 @@ export const SupabaseErrorFallback: React.FC<SupabaseErrorFallbackProps> = ({ er
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-600 to-pink-600 p-4">
-      <div className="bg-white border-4 border-black shadow-neo-brutal p-8 max-w-2xl w-full">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl p-8 max-w-2xl w-full">
         <div className="text-center mb-6">
           <div className="text-6xl mb-4">🔧</div>
           <h1 className="text-3xl font-bold mb-2">Configuration Error</h1>
@@ -23,22 +23,22 @@ export const SupabaseErrorFallback: React.FC<SupabaseErrorFallbackProps> = ({ er
 
         {isSupabaseConfigError ? (
           <div className="space-y-4">
-            <div className="bg-red-100 border-2 border-red-600 p-4">
+            <div className="bg-red-100 rounded-xl border border-red-200 p-4">
               <p className="font-mono text-sm text-red-900 whitespace-pre-wrap">
                 {error.message}
               </p>
             </div>
 
-            <div className="bg-yellow-50 border-2 border-yellow-600 p-4">
+            <div className="bg-yellow-50 rounded-xl border border-yellow-200 p-4">
               <h3 className="font-bold mb-2">🔍 For Developers:</h3>
               <ol className="list-decimal list-inside space-y-2 text-sm">
-                <li>Copy <code className="bg-white px-2 py-1 border border-black">.env.example</code> to <code className="bg-white px-2 py-1 border border-black">.env</code></li>
+                <li>Copy <code className="bg-white px-2 py-1 rounded-md border border-gray-200">.env.example</code> to <code className="bg-white px-2 py-1 rounded-md border border-gray-200">.env</code></li>
                 <li>Add your Supabase project URL and anon key</li>
                 <li>Restart the development server</li>
               </ol>
             </div>
 
-            <div className="bg-blue-50 border-2 border-blue-600 p-4">
+            <div className="bg-blue-50 rounded-xl border border-blue-200 p-4">
               <h3 className="font-bold mb-2">📚 Need Help?</h3>
               <p className="text-sm mb-2">
                 Check the <strong>README.md</strong> for setup instructions
@@ -57,13 +57,13 @@ export const SupabaseErrorFallback: React.FC<SupabaseErrorFallbackProps> = ({ er
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="bg-red-100 border-2 border-red-600 p-4">
+            <div className="bg-red-100 rounded-xl border border-red-200 p-4">
               <p className="font-mono text-sm text-red-900">
                 {error.message || 'An unexpected error occurred'}
               </p>
             </div>
 
-            <div className="bg-yellow-50 border-2 border-yellow-600 p-4">
+            <div className="bg-yellow-50 rounded-xl border border-yellow-200 p-4">
               <h3 className="font-bold mb-2">What can I do?</h3>
               <ul className="list-disc list-inside space-y-2 text-sm">
                 <li>Refresh the page</li>
@@ -75,7 +75,7 @@ export const SupabaseErrorFallback: React.FC<SupabaseErrorFallbackProps> = ({ er
 
             <button
               onClick={() => window.location.reload()}
-              className="w-full bg-blue-600 text-white border-4 border-black p-4 font-bold text-lg shadow-neo-btn hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-none transition-all"
+              className="w-full bg-blue-600 text-white rounded-xl border border-blue-700 p-4 font-bold text-lg shadow-sm hover:shadow-md hover:bg-blue-700 transition-all"
             >
               Refresh Page
             </button>

@@ -145,7 +145,7 @@ function CashFlowModule({
           <select
             value={viewMode}
             onChange={(e) => setViewMode(e.target.value as 'monthly' | 'quarterly')}
-            className="px-3 py-1 border-2 border-black text-sm font-mono focus:outline-none focus:border-blue-500"
+            className="px-3 py-1 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="monthly">Monthly</option>
             <option value="quarterly">Quarterly</option>
@@ -153,7 +153,7 @@ function CashFlowModule({
           <select
             value={chartType}
             onChange={(e) => setChartType(e.target.value as 'line' | 'bar')}
-            className="px-3 py-1 border-2 border-black text-sm font-mono focus:outline-none focus:border-blue-500"
+            className="px-3 py-1 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="line">Line Chart</option>
             <option value="bar">Bar Chart</option>
@@ -163,7 +163,7 @@ function CashFlowModule({
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-green-50 p-4 border-2 border-green-600 shadow-neo">
+        <div className="bg-green-50 p-4 rounded-xl border border-green-200 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <div className="text-sm text-gray-600">Net Cash Flow (3mo)</div>
             {metrics.netCashFlow >= 0 ? (
@@ -177,17 +177,17 @@ function CashFlowModule({
           </div>
         </div>
 
-        <div className="bg-blue-50 p-4 border-2 border-blue-600 shadow-neo">
+        <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 shadow-sm">
           <div className="text-sm text-gray-600 mb-2">Avg Monthly Revenue</div>
           <div className="text-2xl font-bold text-blue-700">{formatCurrency(metrics.avgMonthlyRevenue)}</div>
         </div>
 
-        <div className="bg-orange-50 p-4 border-2 border-orange-600 shadow-neo">
+        <div className="bg-orange-50 p-4 rounded-xl border border-orange-200 shadow-sm">
           <div className="text-sm text-gray-600 mb-2">Burn Rate</div>
           <div className="text-2xl font-bold text-orange-700">{formatCurrency(metrics.burnRate)}/mo</div>
         </div>
 
-        <div className="bg-purple-50 p-4 border-2 border-purple-600 shadow-neo">
+        <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 shadow-sm">
           <div className="text-sm text-gray-600 mb-2 flex items-center gap-1">
             <AlertCircle className="w-3 h-3" />
             Runway
@@ -199,7 +199,7 @@ function CashFlowModule({
       </div>
 
       {/* Revenue Growth */}
-      <div className="bg-white p-4 border-2 border-black shadow-neo">
+      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="text-sm font-semibold text-gray-600">Revenue Growth (3mo)</div>
           <div className="flex items-center gap-2">
@@ -216,7 +216,7 @@ function CashFlowModule({
       </div>
 
       {/* Cash Flow Chart */}
-      <div className="bg-white p-6 border-2 border-black shadow-neo">
+      <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
         <h3 className="text-xl font-semibold mb-4">Cash Flow Trend</h3>
         {cashFlowData.length > 0 ? (
           <ResponsiveContainer width="100%" height={350}>
@@ -290,7 +290,7 @@ function CashFlowModule({
       </div>
 
       {/* Summary Table */}
-      <div className="bg-white p-6 border-2 border-black shadow-neo">
+      <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
         <h3 className="text-xl font-semibold mb-4">Period Summary (Last 3 Months)</h3>
         <div className="overflow-x-auto">
           <table className="w-full">

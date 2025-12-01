@@ -57,7 +57,7 @@ export function SubtaskManager({ subtasks = [], onSubtasksChange, disabled = fal
                     <button
                         type="button"
                         onClick={() => setIsAdding(true)}
-                        className="flex items-center gap-1 px-2 py-1 text-xs font-mono bg-white border border-black hover:bg-gray-50"
+                        className="flex items-center gap-1 px-2 py-1 text-xs bg-white rounded-lg border border-gray-200 hover:bg-gray-50 hover:shadow-sm transition-all"
                     >
                         <Plus className="w-3 h-3" />
                         Add
@@ -80,7 +80,7 @@ export function SubtaskManager({ subtasks = [], onSubtasksChange, disabled = fal
                                 checked={subtask.completed}
                                 onChange={() => handleToggleSubtask(subtask.id)}
                                 disabled={disabled}
-                                className="w-4 h-4 mt-0.5 accent-blue-500 border-2 border-black rounded-none disabled:opacity-50"
+                                className="w-4 h-4 mt-0.5 accent-blue-500 rounded disabled:opacity-50"
                             />
                             <span className={`flex-grow text-sm ${subtask.completed ? 'line-through text-gray-500' : 'text-black'}`}>
                                 {subtask.text}
@@ -102,7 +102,7 @@ export function SubtaskManager({ subtasks = [], onSubtasksChange, disabled = fal
 
             {/* Add subtask form */}
             {isAdding && (
-                <div className="flex gap-2 p-2 bg-gray-50 border-2 border-black">
+                <div className="flex gap-2 p-2 bg-gray-50 rounded-xl border border-gray-200">
                     <input
                         id="new-subtask-text"
                         name="new-subtask-text"
@@ -119,13 +119,13 @@ export function SubtaskManager({ subtasks = [], onSubtasksChange, disabled = fal
                             }
                         }}
                         placeholder="Enter subtask..."
-                        className="flex-grow px-2 py-1 text-sm bg-white border border-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="flex-grow px-2 py-1 text-sm bg-white rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                         autoFocus
                     />
                     <button
                         type="button"
                         onClick={handleAddSubtask}
-                        className="px-2 py-1 bg-green-600 text-white border border-black hover:bg-green-700"
+                        className="px-2 py-1 bg-green-600 text-white rounded-lg border border-green-700 hover:bg-green-700 hover:shadow-sm transition-all"
                         title="Add subtask"
                     >
                         <Check className="w-4 h-4" />
@@ -136,7 +136,7 @@ export function SubtaskManager({ subtasks = [], onSubtasksChange, disabled = fal
                             setIsAdding(false);
                             setNewSubtaskText('');
                         }}
-                        className="px-2 py-1 bg-white border border-black hover:bg-gray-100"
+                        className="px-2 py-1 bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:shadow-sm transition-all"
                         title="Cancel"
                     >
                         <X className="w-4 h-4" />

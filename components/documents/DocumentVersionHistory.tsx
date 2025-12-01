@@ -104,22 +104,22 @@ const DocumentVersionHistory: React.FC<DocumentVersionHistoryProps> = ({
 
     if (loading) {
         return (
-            <div className="bg-white p-6 border-2 border-black shadow-neo">
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-lg">
                 <div className="flex items-center justify-center py-8">
-                    <div className="font-mono text-sm text-gray-500">Loading version history...</div>
+                    <div className="text-sm text-gray-500">Loading version history...</div>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="bg-white border-2 border-black shadow-neo">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
             {/* Header */}
-            <div className="p-4 bg-black text-white flex items-center justify-between">
+            <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Clock size={20} />
-                    <h3 className="font-mono font-bold text-lg">Version History</h3>
-                    <span className="px-2 py-1 bg-white text-black text-xs font-mono font-bold rounded">
+                    <h3 className="font-semibold text-lg">Version History</h3>
+                    <span className="px-2 py-1 bg-white text-slate-900 text-xs font-semibold rounded-full">
                         {versions.length}
                     </span>
                 </div>
@@ -127,9 +127,9 @@ const DocumentVersionHistory: React.FC<DocumentVersionHistoryProps> = ({
 
             <div className="flex" style={{ height: '600px' }}>
                 {/* Versions list */}
-                <div className="w-1/3 border-r-2 border-black overflow-y-auto">
+                <div className="w-1/3 border-r border-gray-200 overflow-y-auto">
                     {versions.length === 0 ? (
-                        <div className="p-4 text-center text-gray-500 font-mono text-sm">
+                        <div className="p-4 text-center text-gray-500 text-sm">
                             No versions yet
                         </div>
                     ) : (
@@ -144,16 +144,16 @@ const DocumentVersionHistory: React.FC<DocumentVersionHistoryProps> = ({
                                 >
                                     <div className="flex items-start justify-between mb-2">
                                         <div className="flex items-center gap-2">
-                                            <span className="px-2 py-1 bg-black text-white text-xs font-mono font-bold rounded">
+                                            <span className="px-2 py-1 bg-slate-900 text-white text-xs font-semibold rounded-full">
                                                 v{version.version_number}
                                             </span>
                                             {version.change_summary?.includes('Auto-saved') && (
-                                                <span className="px-2 py-1 bg-gray-200 text-gray-700 text-xs font-mono rounded">
+                                                <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
                                                     Auto
                                                 </span>
                                             )}
                                             {version.change_summary?.includes('Restored') && (
-                                                <span className="px-2 py-1 bg-green-200 text-green-800 text-xs font-mono rounded">
+                                                <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
                                                     Restored
                                                 </span>
                                             )}
@@ -161,17 +161,17 @@ const DocumentVersionHistory: React.FC<DocumentVersionHistoryProps> = ({
                                         <ChevronRight size={16} className={selectedVersion?.id === version.id ? 'text-blue-600' : 'text-gray-400'} />
                                     </div>
                                     
-                                    <div className="font-mono font-semibold text-sm text-gray-900 mb-1">
+                                    <div className="font-semibold text-sm text-gray-900 mb-1">
                                         {version.title}
                                     </div>
                                     
                                     {version.change_summary && (
-                                        <div className="font-mono text-xs text-gray-600 mb-2">
+                                        <div className="text-xs text-gray-600 mb-2">
                                             {version.change_summary}
                                         </div>
                                     )}
                                     
-                                    <div className="flex items-center gap-2 text-xs text-gray-500 font-mono">
+                                    <div className="flex items-center gap-2 text-xs text-gray-500">
                                         <span>{version.created_by_name}</span>
                                         <span>•</span>
                                         <span>{getTimeAgo(version.created_at)}</span>
@@ -189,18 +189,18 @@ const DocumentVersionHistory: React.FC<DocumentVersionHistoryProps> = ({
                             <div className="flex items-center justify-between mb-6">
                                 <div>
                                     <div className="flex items-center gap-3 mb-2">
-                                        <h4 className="font-mono font-bold text-xl">
+                                        <h4 className="font-semibold text-xl">
                                             Version {selectedVersion.version_number}
                                         </h4>
                                         <button
                                             onClick={handleRestore}
-                                            className="flex items-center gap-2 px-3 py-1 bg-green-600 text-white font-mono text-sm font-semibold border-2 border-black hover:bg-green-700"
+                                            className="flex items-center gap-2 px-3 py-1 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
                                         >
                                             <RotateCcw size={14} />
                                             Restore
                                         </button>
                                     </div>
-                                    <div className="font-mono text-sm text-gray-600">
+                                    <div className="text-sm text-gray-600">
                                         {formatTimestamp(selectedVersion.created_at)} by {selectedVersion.created_by_name}
                                     </div>
                                 </div>
@@ -213,11 +213,11 @@ const DocumentVersionHistory: React.FC<DocumentVersionHistoryProps> = ({
                             </div>
 
                             {selectedVersion.change_summary && (
-                                <div className="mb-4 p-3 bg-gray-50 border-2 border-gray-300 rounded">
-                                    <div className="font-mono text-xs font-semibold text-gray-700 mb-1">
+                                <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-xl">
+                                    <div className="text-xs font-semibold text-gray-700 mb-1">
                                         Change Summary
                                     </div>
-                                    <div className="font-mono text-sm text-gray-900">
+                                    <div className="text-sm text-gray-900">
                                         {selectedVersion.change_summary}
                                     </div>
                                 </div>
@@ -226,10 +226,10 @@ const DocumentVersionHistory: React.FC<DocumentVersionHistoryProps> = ({
                             {comparisonDiff && (
                                 <div className="mb-6">
                                     <div className="flex items-center gap-4 mb-3">
-                                        <span className="font-mono text-sm font-semibold text-gray-700">
+                                        <span className="text-sm font-semibold text-gray-700">
                                             Changes vs. Current
                                         </span>
-                                        <div className="flex items-center gap-3 text-xs font-mono">
+                                        <div className="flex items-center gap-3 text-xs">
                                             <span className="text-green-600 font-semibold">
                                                 +{comparisonDiff.additions} additions
                                             </span>
@@ -240,11 +240,11 @@ const DocumentVersionHistory: React.FC<DocumentVersionHistoryProps> = ({
                                     </div>
                                     
                                     {comparisonDiff.changes.length > 0 && (
-                                        <div className="border-2 border-gray-300 rounded max-h-48 overflow-y-auto">
+                                        <div className="border border-gray-200 rounded-xl max-h-48 overflow-y-auto">
                                             {comparisonDiff.changes.slice(0, 20).map((change, index) => (
                                                 <div
                                                     key={index}
-                                                    className={`px-3 py-1 font-mono text-xs border-b border-gray-200 ${
+                                                    className={`px-3 py-1 font-mono text-xs border-b border-gray-100 ${
                                                         change.type === 'add'
                                                             ? 'bg-green-50 text-green-900'
                                                             : change.type === 'remove'
@@ -260,7 +260,7 @@ const DocumentVersionHistory: React.FC<DocumentVersionHistoryProps> = ({
                                                 </div>
                                             ))}
                                             {comparisonDiff.changes.length > 20 && (
-                                                <div className="px-3 py-2 bg-gray-100 text-center text-xs font-mono text-gray-600">
+                                                <div className="px-3 py-2 bg-gray-50 text-center text-xs text-gray-600">
                                                     +{comparisonDiff.changes.length - 20} more changes
                                                 </div>
                                             )}
@@ -273,11 +273,11 @@ const DocumentVersionHistory: React.FC<DocumentVersionHistoryProps> = ({
                             <div>
                                 <div className="flex items-center gap-2 mb-2">
                                     <Eye size={16} className="text-gray-700" />
-                                    <span className="font-mono text-sm font-semibold text-gray-700">
+                                    <span className="text-sm font-semibold text-gray-700">
                                         Version Content
                                     </span>
                                 </div>
-                                <div className="border-2 border-gray-300 rounded p-4 bg-gray-50 max-h-96 overflow-y-auto">
+                                <div className="border border-gray-200 rounded-xl p-4 bg-gray-50 max-h-96 overflow-y-auto">
                                     <pre className="font-mono text-sm text-gray-900 whitespace-pre-wrap">
                                         {selectedVersion.content}
                                     </pre>
@@ -288,7 +288,7 @@ const DocumentVersionHistory: React.FC<DocumentVersionHistoryProps> = ({
                         <div className="flex items-center justify-center h-full p-8 text-center">
                             <div>
                                 <Clock size={48} className="mx-auto mb-4 text-gray-300" />
-                                <p className="font-mono text-sm text-gray-500">
+                                <p className="text-sm text-gray-500">
                                     Select a version to view details and restore
                                 </p>
                             </div>

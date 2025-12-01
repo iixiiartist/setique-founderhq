@@ -226,12 +226,12 @@ export const DocsList: React.FC<DocsListProps> = ({
     return (
         <div className="h-full flex flex-col">
             {/* Header */}
-            <div className="p-3 lg:p-4 border-b-2 border-black bg-yellow-300">
+            <div className="p-3 lg:p-4 border-b border-gray-200 bg-slate-900">
                 <div className="flex items-center justify-between mb-2 lg:mb-3">
-                    <h2 className="text-base lg:text-lg font-black">GTM Docs</h2>
+                    <h2 className="text-base lg:text-lg font-semibold text-white">GTM Docs</h2>
                     <button
                         onClick={onCreateNew}
-                        className="px-2 lg:px-3 py-1 min-h-[44px] lg:min-h-0 text-sm lg:text-base bg-black text-white font-bold border-2 border-black shadow-neo-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all"
+                        className="px-2 lg:px-3 py-1 min-h-[44px] lg:min-h-0 text-sm lg:text-base bg-white text-slate-900 font-medium rounded-xl shadow-sm hover:shadow-md transition-all"
                         aria-label="Create new document"
                     >
                         + New
@@ -240,13 +240,13 @@ export const DocsList: React.FC<DocsListProps> = ({
 
                 {/* Search with loading indicator */}
                 <div className="relative">
-                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                     <input
                         type="text"
                         placeholder="Search docs..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-8 pr-8 py-2 border-2 border-black font-mono text-sm"
+                        className="w-full pl-9 pr-8 py-2 rounded-xl border border-gray-200 text-sm"
                         aria-label="Search documents"
                     />
                     {isSearching && (
@@ -256,16 +256,16 @@ export const DocsList: React.FC<DocsListProps> = ({
             </div>
 
             {/* Filters */}
-            <div className="p-2 lg:p-3 border-b-2 border-black bg-gray-50">
+            <div className="p-2 lg:p-3 border-b border-gray-200 bg-gray-50">
                 <div className="flex gap-1 lg:gap-2 mb-2 overflow-x-auto">
                     {(['all', 'mine', 'team', 'templates'] as FilterType[]).map((f) => (
                         <button
                             key={f}
                             onClick={() => setFilter(f)}
-                            className={`px-2 py-1 min-h-[44px] lg:min-h-0 text-xs font-bold border-2 border-black transition-all whitespace-nowrap ${
+                            className={`px-2 py-1 min-h-[44px] lg:min-h-0 text-xs font-medium rounded-xl transition-all whitespace-nowrap ${
                                 filter === f
-                                    ? 'bg-black text-white'
-                                    : 'bg-white hover:bg-gray-100'
+                                    ? 'bg-slate-900 text-white'
+                                    : 'bg-white border border-gray-200 hover:bg-gray-100'
                             }`}
                         >
                             {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -277,7 +277,7 @@ export const DocsList: React.FC<DocsListProps> = ({
                 <select
                     value={docTypeFilter}
                     onChange={(e) => setDocTypeFilter(e.target.value as DocType | 'all')}
-                    className="w-full px-2 py-2 text-xs border-2 border-black font-mono"
+                    className="w-full px-2 py-2 text-xs rounded-xl border border-gray-200"
                     aria-label="Filter by document type"
                 >
                     <option value="all">All Types</option>
@@ -291,7 +291,7 @@ export const DocsList: React.FC<DocsListProps> = ({
 
             {/* Error Banner */}
             {error && (
-                <div className="px-3 py-2 bg-red-50 border-b-2 border-red-200 text-red-700 text-sm flex items-center justify-between">
+                <div className="px-3 py-2 bg-red-50 border-b border-red-200 text-red-700 text-sm flex items-center justify-between rounded-b-lg">
                     <span>{error}</span>
                     <button 
                         onClick={() => setError(null)} 
@@ -320,7 +320,7 @@ export const DocsList: React.FC<DocsListProps> = ({
                                     <button
                                         onClick={handleSeedTemplates}
                                         disabled={isSeeding}
-                                        className="w-full mb-3 px-3 py-2 bg-purple-100 border-2 border-purple-600 text-purple-900 font-bold hover:bg-purple-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="w-full mb-3 px-3 py-2 bg-purple-100 rounded-xl border border-purple-300 text-purple-900 font-medium hover:bg-purple-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {isSeeding ? 'Creating Templates...' : '📋 Create GTM Templates'}
                                     </button>
@@ -335,12 +335,12 @@ export const DocsList: React.FC<DocsListProps> = ({
                         </button>
                     </div>
                 ) : (
-                    <div className="divide-y-2 divide-black">
+                    <div className="divide-y divide-gray-200">
                         {docs.map((doc) => (
                             <div
                                 key={doc.id}
                                 className={`w-full p-3 lg:p-3 min-h-[60px] relative group ${
-                                    selectedDocId === doc.id ? 'bg-yellow-100' : 'bg-white hover:bg-yellow-50'
+                                    selectedDocId === doc.id ? 'bg-blue-50' : 'bg-white hover:bg-gray-50'
                                 }`}
                             >
                                 <div className="flex items-start gap-2 justify-between">
@@ -357,15 +357,15 @@ export const DocsList: React.FC<DocsListProps> = ({
                                                 {DOC_TYPE_LABELS[doc.docType]}
                                             </p>
                                             <div className="flex items-center gap-1 lg:gap-2 mt-1 flex-wrap">
-                                                <span className={`text-xs px-1 border ${
+                                                <span className={`text-xs px-2 py-0.5 rounded-full ${
                                                     doc.visibility === 'private'
-                                                        ? 'border-gray-400 text-gray-600'
-                                                        : 'border-green-600 text-green-700'
+                                                        ? 'bg-gray-100 text-gray-600'
+                                                        : 'bg-green-100 text-green-700'
                                                 }`}>
                                                     {doc.visibility === 'private' ? '🔒 Private' : '👥 Team'}
                                                 </span>
                                                 {doc.isTemplate && (
-                                                    <span className="text-xs px-1 border border-purple-600 text-purple-700">
+                                                    <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
                                                         📋 Template
                                                     </span>
                                                 )}
@@ -375,14 +375,14 @@ export const DocsList: React.FC<DocsListProps> = ({
                                     <div className="flex gap-2 flex-shrink-0">
                                         <button
                                             onClick={(e) => handleCopyTemplate(doc, e)}
-                                            className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 border-2 border-blue-600 font-bold transition-colors"
+                                            className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg border border-blue-200 font-medium transition-colors"
                                             title="Copy document"
                                         >
                                             📋
                                         </button>
                                         <button
                                             onClick={(e) => handleDeleteDoc(doc.id, doc.title, e)}
-                                            className="px-3 py-1 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 border-2 border-red-600 font-bold transition-colors"
+                                            className="px-3 py-1 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg border border-red-200 font-medium transition-colors"
                                             title="Delete document"
                                         >
                                             🗑️
@@ -397,22 +397,22 @@ export const DocsList: React.FC<DocsListProps> = ({
 
             {/* Pagination */}
             {showPagination && (
-                <div className="p-2 border-t-2 border-black bg-gray-50 flex items-center justify-between">
+                <div className="p-2 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
                     <button
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
-                        className="p-2 border-2 border-black bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                        className="p-2 rounded-lg border border-gray-200 bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
                         aria-label="Previous page"
                     >
                         <ChevronLeft size={16} />
                     </button>
-                    <span className="text-xs font-mono">
+                    <span className="text-xs text-gray-600">
                         Page {currentPage} of {totalPages}
                     </span>
                     <button
                         onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                         disabled={currentPage >= totalPages}
-                        className="p-2 border-2 border-black bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                        className="p-2 rounded-lg border border-gray-200 bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
                         aria-label="Next page"
                     >
                         <ChevronRight size={16} />

@@ -56,13 +56,13 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onTemplateApplied }) 
 
     if (success) {
         return (
-            <div className="bg-white p-8 border-2 border-black shadow-neo text-center">
+            <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm text-center">
                 <CheckCircle2 size={64} className="mx-auto mb-4 text-green-600" />
-                <h2 className="font-mono font-bold text-2xl mb-2">Template Applied!</h2>
-                <p className="font-mono text-gray-600 mb-4">
+                <h2 className="font-semibold text-2xl mb-2 text-slate-900">Template Applied!</h2>
+                <p className="text-gray-600 mb-4">
                     Your workspace has been populated with sample data.
                 </p>
-                <p className="font-mono text-sm text-gray-500">
+                <p className="text-sm text-gray-500">
                     Redirecting to your workspace...
                 </p>
             </div>
@@ -70,19 +70,19 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onTemplateApplied }) 
     }
 
     return (
-        <div className="bg-white border-2 border-black shadow-neo">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             {/* Header */}
-            <div className="p-6 bg-black text-white">
-                <h2 className="font-mono font-bold text-2xl mb-2">Workspace Templates</h2>
-                <p className="font-mono text-sm text-gray-300">
+            <div className="p-6 bg-slate-900 text-white rounded-t-2xl">
+                <h2 className="font-semibold text-2xl mb-2">Workspace Templates</h2>
+                <p className="text-sm text-gray-300">
                     Jumpstart your workspace with pre-built templates for different business types
                 </p>
             </div>
 
             <div className="flex" style={{ minHeight: '600px' }}>
                 {/* Templates list */}
-                <div className="w-2/5 border-r-2 border-black overflow-y-auto">
-                    <div className="divide-y-2 divide-gray-200">
+                <div className="w-2/5 border-r border-gray-200 overflow-y-auto">
+                    <div className="divide-y divide-gray-200">
                         {WORKSPACE_TEMPLATES.map((template) => {
                             const IconComponent = TEMPLATE_ICONS[template.category];
                             const isSelected = selectedTemplate?.id === template.id;
@@ -97,25 +97,25 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onTemplateApplied }) 
                                 >
                                     <div className="flex items-start gap-4">
                                         <div className="flex-shrink-0">
-                                            <div className="w-12 h-12 bg-black text-white rounded flex items-center justify-center text-2xl">
+                                            <div className="w-12 h-12 bg-slate-900 text-white rounded-xl flex items-center justify-center text-2xl">
                                                 {template.icon}
                                             </div>
                                         </div>
                                         <div className="flex-1">
-                                            <h3 className="font-mono font-bold text-lg mb-1">
+                                            <h3 className="font-semibold text-lg mb-1 text-slate-900">
                                                 {template.name}
                                             </h3>
-                                            <p className="font-mono text-sm text-gray-600 mb-3">
+                                            <p className="text-sm text-gray-600 mb-3">
                                                 {template.description}
                                             </p>
                                             <div className="flex flex-wrap gap-2">
-                                                <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-mono rounded">
+                                                <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
                                                     {template.tasks.length} tasks
                                                 </span>
-                                                <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-mono rounded">
+                                                <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
                                                     {template.contacts.length} contacts
                                                 </span>
-                                                <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-mono rounded">
+                                                <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
                                                     {template.documents.length} docs
                                                 </span>
                                             </div>
@@ -134,14 +134,14 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onTemplateApplied }) 
                             {/* Template header */}
                             <div className="flex items-start justify-between mb-6">
                                 <div className="flex items-start gap-4">
-                                    <div className="w-16 h-16 bg-black text-white rounded flex items-center justify-center text-3xl flex-shrink-0">
+                                    <div className="w-16 h-16 bg-slate-900 text-white rounded-xl flex items-center justify-center text-3xl flex-shrink-0">
                                         {selectedTemplate.icon}
                                     </div>
                                     <div>
-                                        <h2 className="font-mono font-bold text-2xl mb-2">
+                                        <h2 className="font-semibold text-2xl mb-2 text-slate-900">
                                             {selectedTemplate.name}
                                         </h2>
-                                        <p className="font-mono text-gray-600">
+                                        <p className="text-gray-600">
                                             {selectedTemplate.description}
                                         </p>
                                     </div>
@@ -150,13 +150,13 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onTemplateApplied }) 
 
                             {/* Error message */}
                             {error && (
-                                <div className="mb-6 p-4 bg-red-50 border-2 border-red-600 rounded flex items-start gap-3">
+                                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
                                     <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
                                     <div>
-                                        <div className="font-mono font-semibold text-red-900 mb-1">
+                                        <div className="font-medium text-red-900 mb-1">
                                             Failed to Apply Template
                                         </div>
-                                        <div className="font-mono text-sm text-red-800">{error}</div>
+                                        <div className="text-sm text-red-800">{error}</div>
                                     </div>
                                 </div>
                             )}
@@ -166,11 +166,11 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onTemplateApplied }) 
                                 <button
                                     onClick={handleApplyTemplate}
                                     disabled={applying}
-                                    className="w-full py-3 bg-black text-white font-mono font-bold text-lg border-2 border-black shadow-neo-btn hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                                    className="w-full py-3 bg-slate-900 text-white font-medium text-lg rounded-xl shadow-sm hover:shadow-md hover:bg-slate-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all"
                                 >
                                     {applying ? 'Applying Template...' : `Apply ${selectedTemplate.name} Template`}
                                 </button>
-                                <p className="font-mono text-xs text-gray-500 mt-2 text-center">
+                                <p className="text-xs text-gray-500 mt-2 text-center">
                                     This will add sample data to your workspace without removing existing content
                                 </p>
                             </div>
@@ -179,19 +179,19 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onTemplateApplied }) 
                             <div className="space-y-6">
                                 {/* Tasks */}
                                 <div>
-                                    <h3 className="font-mono font-bold text-lg mb-3 flex items-center gap-2">
-                                        <div className="w-6 h-6 bg-black text-white rounded text-sm flex items-center justify-center">
+                                    <h3 className="font-semibold text-lg mb-3 flex items-center gap-2 text-slate-900">
+                                        <div className="w-6 h-6 bg-slate-900 text-white rounded text-sm flex items-center justify-center">
                                             {selectedTemplate.tasks.length}
                                         </div>
                                         Sample Tasks
                                     </h3>
                                     <div className="space-y-2">
                                         {selectedTemplate.tasks.slice(0, 5).map((task, index) => (
-                                            <div key={index} className="p-3 bg-gray-50 border border-gray-300 rounded">
+                                            <div key={index} className="p-3 bg-gray-50 border border-gray-200 rounded-xl">
                                                 <div className="flex items-start justify-between">
                                                     <div className="flex-1">
-                                                        <div className="font-mono text-sm font-semibold">{task.text}</div>
-                                                        <div className="font-mono text-xs text-gray-500 mt-1">
+                                                        <div className="text-sm font-medium">{task.text}</div>
+                                                        <div className="text-xs text-gray-500 mt-1">
                                                             {task.category} • {task.priority} Priority
                                                             {task.dueOffset && ` • Due in ${task.dueOffset} days`}
                                                         </div>
@@ -200,7 +200,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onTemplateApplied }) 
                                             </div>
                                         ))}
                                         {selectedTemplate.tasks.length > 5 && (
-                                            <div className="p-2 text-center text-xs font-mono text-gray-500">
+                                            <div className="p-2 text-center text-xs text-gray-500">
                                                 +{selectedTemplate.tasks.length - 5} more tasks
                                             </div>
                                         )}
@@ -210,23 +210,23 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onTemplateApplied }) 
                                 {/* CRM Contacts */}
                                 {selectedTemplate.contacts.length > 0 && (
                                     <div>
-                                        <h3 className="font-mono font-bold text-lg mb-3 flex items-center gap-2">
-                                            <div className="w-6 h-6 bg-black text-white rounded text-sm flex items-center justify-center">
+                                        <h3 className="font-semibold text-lg mb-3 flex items-center gap-2 text-slate-900">
+                                            <div className="w-6 h-6 bg-slate-900 text-white rounded text-sm flex items-center justify-center">
                                                 {selectedTemplate.contacts.length}
                                             </div>
                                             Sample CRM Contacts
                                         </h3>
                                         <div className="space-y-2">
                                             {selectedTemplate.contacts.map((contact, index) => (
-                                                <div key={index} className="p-3 bg-gray-50 border border-gray-300 rounded">
+                                                <div key={index} className="p-3 bg-gray-50 border border-gray-200 rounded-xl">
                                                     <div className="flex items-start justify-between">
                                                         <div>
-                                                            <div className="font-mono text-sm font-semibold">{contact.name}</div>
-                                                            <div className="font-mono text-xs text-gray-500">
+                                                            <div className="text-sm font-medium">{contact.name}</div>
+                                                            <div className="text-xs text-gray-500">
                                                                 {contact.role} at {contact.company}
                                                             </div>
                                                         </div>
-                                                        <span className="px-2 py-1 bg-black text-white text-xs font-mono rounded">
+                                                        <span className="px-2 py-1 bg-slate-900 text-white text-xs rounded-full">
                                                             {contact.collection}
                                                         </span>
                                                     </div>
@@ -239,20 +239,20 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onTemplateApplied }) 
                                 {/* Documents */}
                                 {selectedTemplate.documents.length > 0 && (
                                     <div>
-                                        <h3 className="font-mono font-bold text-lg mb-3 flex items-center gap-2">
-                                            <div className="w-6 h-6 bg-black text-white rounded text-sm flex items-center justify-center">
+                                        <h3 className="font-semibold text-lg mb-3 flex items-center gap-2 text-slate-900">
+                                            <div className="w-6 h-6 bg-slate-900 text-white rounded text-sm flex items-center justify-center">
                                                 {selectedTemplate.documents.length}
                                             </div>
                                             Sample Documents
                                         </h3>
                                         <div className="space-y-2">
                                             {selectedTemplate.documents.map((doc, index) => (
-                                                <div key={index} className="p-3 bg-gray-50 border border-gray-300 rounded">
-                                                    <div className="font-mono text-sm font-semibold mb-1">{doc.title}</div>
-                                                    <div className="font-mono text-xs text-gray-500 mb-2">
+                                                <div key={index} className="p-3 bg-gray-50 border border-gray-200 rounded-xl">
+                                                    <div className="text-sm font-medium mb-1">{doc.title}</div>
+                                                    <div className="text-xs text-gray-500 mb-2">
                                                         Type: {doc.docType}
                                                     </div>
-                                                    <div className="font-mono text-xs text-gray-700 line-clamp-2">
+                                                    <div className="text-xs text-gray-700 line-clamp-2">
                                                         {doc.content.substring(0, 100)}...
                                                     </div>
                                                 </div>
@@ -264,23 +264,23 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onTemplateApplied }) 
                                 {/* Financial Structure */}
                                 {selectedTemplate.financial_structure && (
                                     <div>
-                                        <h3 className="font-mono font-bold text-lg mb-3">Financial Structure</h3>
+                                        <h3 className="font-semibold text-lg mb-3 text-slate-900">Financial Structure</h3>
                                         <div className="grid grid-cols-2 gap-4">
-                                            <div className="p-3 bg-green-50 border border-green-300 rounded">
-                                                <div className="font-mono text-xs font-semibold text-green-900 mb-2">
+                                            <div className="p-3 bg-green-50 border border-green-200 rounded-xl">
+                                                <div className="text-xs font-medium text-green-900 mb-2">
                                                     Revenue Categories
                                                 </div>
-                                                <ul className="font-mono text-xs text-green-800 space-y-1">
+                                                <ul className="text-xs text-green-800 space-y-1">
                                                     {selectedTemplate.financial_structure.revenue_categories.map((cat, i) => (
                                                         <li key={i}>• {cat}</li>
                                                     ))}
                                                 </ul>
                                             </div>
-                                            <div className="p-3 bg-red-50 border border-red-300 rounded">
-                                                <div className="font-mono text-xs font-semibold text-red-900 mb-2">
+                                            <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
+                                                <div className="text-xs font-medium text-red-900 mb-2">
                                                     Expense Categories
                                                 </div>
-                                                <ul className="font-mono text-xs text-red-800 space-y-1">
+                                                <ul className="text-xs text-red-800 space-y-1">
                                                     {selectedTemplate.financial_structure.expense_categories.map((cat, i) => (
                                                         <li key={i}>• {cat}</li>
                                                     ))}
@@ -295,7 +295,7 @@ const TemplateLibrary: React.FC<TemplateLibraryProps> = ({ onTemplateApplied }) 
                         <div className="flex items-center justify-center h-full p-8 text-center">
                             <div>
                                 <Box size={64} className="mx-auto mb-4 text-gray-300" />
-                                <p className="font-mono text-gray-500">
+                                <p className="text-gray-500">
                                     Select a template to see details and apply it to your workspace
                                 </p>
                             </div>

@@ -104,7 +104,7 @@ function Modal({
     
     return (
         <div 
-            className="fixed inset-0 z-[100] flex justify-center items-center p-2 sm:p-4 bg-black/30"
+            className="fixed inset-0 z-[100] flex justify-center items-center p-2 sm:p-4 bg-black/40 backdrop-blur-sm"
             onClick={handleBackdropClick}
             aria-modal="true"
             role="dialog"
@@ -112,19 +112,21 @@ function Modal({
         >
             <div 
                 ref={modalRef} 
-                className={`bg-white p-4 sm:p-6 border-2 border-black shadow-neo-lg w-full max-h-[95vh] sm:max-h-[90vh] flex flex-col backdrop-blur-sm ${sizeStyles[size]}`}
+                className={`bg-white p-5 sm:p-6 rounded-2xl shadow-2xl w-full max-h-[95vh] sm:max-h-[90vh] flex flex-col border border-gray-200 ${sizeStyles[size]}`}
             >
-                <div className="flex justify-between items-center mb-3 sm:mb-4 shrink-0 gap-2">
-                    <h2 id={titleIdRef.current} className="text-xl sm:text-2xl font-bold truncate pr-2">{title}</h2>
+                <div className="flex justify-between items-center mb-4 sm:mb-5 shrink-0 gap-2">
+                    <h2 id={titleIdRef.current} className="text-xl sm:text-2xl font-semibold text-slate-900 truncate pr-2">{title}</h2>
                     <div className="flex items-center gap-2 flex-shrink-0">
                         {headerActions}
                         {!hideCloseButton && (
                             <button 
                                 onClick={onClose} 
-                                className="text-3xl font-bold hover:text-red-500 transition-colors" 
+                                className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors" 
                                 aria-label="Close modal"
                             >
-                                &times;
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
                             </button>
                         )}
                     </div>
@@ -133,7 +135,7 @@ function Modal({
                     {children}
                 </div>
                 {footer && (
-                    <div className="mt-4 pt-4 border-t-2 border-gray-200 shrink-0">
+                    <div className="mt-5 pt-5 border-t border-gray-100 shrink-0">
                         {footer}
                     </div>
                 )}

@@ -31,16 +31,16 @@ export function BulkActionsModal({
                         <p className="text-sm text-gray-600 mb-4">
                             Are you sure you want to delete {selectedCount} account(s)? This action cannot be undone and will also delete all associated contacts, tasks, and data.
                         </p>
-                        <div className="flex gap-2">
+                        <div className="flex gap-3">
                             <button
                                 onClick={onConfirmDelete}
-                                className="flex-1 font-mono bg-red-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-red-600 transition-all"
+                                className="flex-1 bg-red-500 text-white px-4 py-2.5 rounded-xl font-semibold shadow-sm hover:shadow-md hover:bg-red-600 transition-all"
                             >
                                 Confirm Delete
                             </button>
                             <button
                                 onClick={onClose}
-                                className="flex-1 font-mono bg-gray-200 text-black border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-gray-300 transition-all"
+                                className="flex-1 bg-white text-slate-700 border border-gray-200 px-4 py-2.5 rounded-xl font-semibold hover:bg-gray-50 transition-all"
                             >
                                 Cancel
                             </button>
@@ -53,16 +53,16 @@ export function BulkActionsModal({
                         <p className="text-sm text-gray-600 mb-4">
                             Export {selectedCount} selected account(s) to CSV file.
                         </p>
-                        <div className="flex gap-2">
+                        <div className="flex gap-3">
                             <button
                                 onClick={onConfirmExport}
-                                className="flex-1 font-mono bg-blue-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-blue-600 transition-all"
+                                className="flex-1 bg-slate-900 text-white px-4 py-2.5 rounded-xl font-semibold shadow-sm hover:shadow-md hover:bg-slate-800 transition-all"
                             >
                                 Export to CSV
                             </button>
                             <button
                                 onClick={onClose}
-                                className="flex-1 font-mono bg-gray-200 text-black border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-gray-300 transition-all"
+                                className="flex-1 bg-white text-slate-700 border border-gray-200 px-4 py-2.5 rounded-xl font-semibold hover:bg-gray-50 transition-all"
                             >
                                 Cancel
                             </button>
@@ -104,8 +104,8 @@ export function DuplicateModal({
                         </p>
                         <div className="max-h-96 overflow-y-auto space-y-3">
                             {duplicateGroups.map((group, index) => (
-                                <div key={index} className="bg-yellow-50 border-2 border-yellow-400 p-3">
-                                    <h4 className="font-mono font-semibold text-sm mb-2">
+                                <div key={index} className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                                    <h4 className="font-semibold text-sm text-amber-800 mb-2">
                                         Duplicate Group {index + 1} ({group.length} accounts)
                                     </h4>
                                     <ul className="space-y-1">
@@ -120,7 +120,7 @@ export function DuplicateModal({
                         </div>
                         <button
                             onClick={onClose}
-                            className="w-full mt-4 font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800"
+                            className="w-full mt-4 font-semibold bg-slate-900 text-white py-2.5 px-4 rounded-xl shadow-sm hover:shadow-md hover:bg-slate-800 transition-all"
                         >
                             Close
                         </button>

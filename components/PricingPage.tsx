@@ -67,11 +67,11 @@ export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', 
         return (
             <div 
                 key={planType}
-                className={`relative bg-white border-2 border-black shadow-neo p-6 ${isPopular ? 'ring-4 ring-blue-500' : ''}`}
+                className={`relative bg-white border border-gray-200 rounded-2xl shadow-lg p-6 ${isPopular ? 'ring-2 ring-slate-900' : ''}`}
             >
                 {isPopular && (
                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                        <span className="bg-blue-500 border-2 border-black text-white text-xs font-bold font-mono px-3 py-1">
+                        <span className="bg-slate-900 text-white text-xs font-semibold px-3 py-1 rounded-full">
                             MOST POPULAR
                         </span>
                     </div>
@@ -79,40 +79,40 @@ export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', 
                 
                 <div className="text-center mb-6">
                     <div className="flex flex-col items-center gap-2">
-                        <h3 className="text-2xl font-bold font-mono text-black">
+                        <h3 className="text-2xl font-bold text-slate-900">
                             {limits.name}
                         </h3>
                         {planBadgeText[planType] && (
-                            <span className="text-xs font-bold font-mono px-2 py-1 border-2 border-black bg-yellow-100 text-black">
+                            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-gray-100 text-slate-700">
                                 {planBadgeText[planType]}
                             </span>
                         )}
                     </div>
                     <div className="flex items-baseline justify-center gap-1">
-                        <span className="text-4xl font-bold font-mono text-black">
+                        <span className="text-4xl font-bold text-slate-900">
                             {formatPrice(basePrice)}
                         </span>
-                        <span className="text-black font-mono">/month</span>
+                        <span className="text-slate-600">/month</span>
                     </div>
                     {isTeamPlan(planType) && (
-                        <p className="text-sm text-black font-mono mt-1">
+                        <p className="text-sm text-slate-600 mt-1">
                             base (includes owner) + {formatPrice(seatPrice)}/extra user
                         </p>
                     )}
-                    <p className="text-sm text-gray-700 font-mono mt-3">
+                    <p className="text-sm text-slate-600 mt-3">
                         {planSubheading[planType]}
                     </p>
                 </div>
 
                 {isTeamPlan(planType) && (
-                    <div className="mb-6 border-2 border-dashed border-black p-4">
-                        <label className="block text-sm text-black font-mono font-bold mb-2">
+                    <div className="mb-6 border border-dashed border-gray-300 rounded-xl p-4">
+                        <label className="block text-sm text-slate-700 font-semibold mb-2">
                             Team size (including you)
                         </label>
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() => setTeamSeats(Math.max(MINIMUM_TEAM_SEATS, teamSeats - 1))}
-                                className="bg-white border-2 border-black text-black font-mono font-bold px-3 py-1 shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+                                className="bg-white border border-gray-200 text-slate-700 font-semibold px-3 py-1 rounded-xl hover:bg-gray-50 transition-colors"
                                 disabled={teamSeats <= MINIMUM_TEAM_SEATS}
                             >
                                 -
@@ -121,17 +121,17 @@ export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', 
                                 type="number"
                                 value={teamSeats}
                                 onChange={(e) => setTeamSeats(Math.max(MINIMUM_TEAM_SEATS, parseInt(e.target.value) || MINIMUM_TEAM_SEATS))}
-                                className="bg-white border-2 border-black text-black font-mono text-center px-4 py-2 w-20 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="bg-white border border-gray-200 text-slate-700 text-center px-4 py-2 w-20 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400"
                                 min={MINIMUM_TEAM_SEATS}
                             />
                             <button
                                 onClick={() => setTeamSeats(teamSeats + 1)}
-                                className="bg-white border-2 border-black text-black font-mono font-bold px-3 py-1 shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+                                className="bg-white border border-gray-200 text-slate-700 font-semibold px-3 py-1 rounded-xl hover:bg-gray-50 transition-colors"
                             >
                                 +
                             </button>
                         </div>
-                        <p className="text-sm text-black font-mono mt-2">
+                        <p className="text-sm text-slate-600 mt-2">
                             {teamSeats === 1 ? (
                                 <span>Total: <span className="font-bold">{formatPrice(totalPrice)}/month</span> (just you)</span>
                             ) : (
@@ -142,31 +142,31 @@ export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', 
                 )}
 
                 <ul className="space-y-3 mb-6">
-                    <li className="flex items-start gap-2 text-sm text-black">
+                    <li className="flex items-start gap-2 text-sm text-slate-700">
                         <span className="text-green-600 font-bold flex-shrink-0 mt-0.5">✓</span>
-                        <span className="font-mono">
+                        <span>
                             {limits.aiRequestsPerMonth === null ? 'Unlimited' : `${limits.aiRequestsPerMonth}`} AI requests/month
                             {isTeamPlan(planType) && ' per user'}
                         </span>
                     </li>
-                    <li className="flex items-start gap-2 text-sm text-black">
+                    <li className="flex items-start gap-2 text-sm text-slate-700">
                         <span className="text-green-600 font-bold flex-shrink-0 mt-0.5">✓</span>
-                        <span className="font-mono">
+                        <span>
                             {limits.fileCount === null ? 'Unlimited' : limits.fileCount.toLocaleString()} files
                             {isTeamPlan(planType) && ' per user'}
                         </span>
                     </li>
-                    <li className="flex items-start gap-2 text-sm text-black">
+                    <li className="flex items-start gap-2 text-sm text-slate-700">
                         <span className="text-green-600 font-bold flex-shrink-0 mt-0.5">✓</span>
-                        <span className="font-mono">
+                        <span>
                             {limits.storageBytes === null ? 'Unlimited storage' : `${formatBytes(limits.storageBytes)} storage`}
                             {isTeamPlan(planType) && ' shared'}
                         </span>
                     </li>
                     {limits.features.map((feature, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-sm text-black">
+                        <li key={idx} className="flex items-start gap-2 text-sm text-slate-700">
                             <span className="text-green-600 font-bold flex-shrink-0 mt-0.5">✓</span>
-                            <span className="font-mono">{feature}</span>
+                            <span>{feature}</span>
                         </li>
                     ))}
                 </ul>
@@ -174,14 +174,14 @@ export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', 
                 <button
                     onClick={() => handleSubscribe(planType)}
                     disabled={isCurrentPlan || isLoading || planType === 'free'}
-                    className={`w-full py-3 font-mono font-bold border-2 border-black transition-all ${
+                    className={`w-full py-3 font-semibold uppercase rounded-xl transition-all ${
                         isCurrentPlan
-                            ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                             : planType === 'free'
-                            ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                             : isPopular
-                            ? 'bg-blue-500 text-white shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
-                            : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'
+                            ? 'bg-slate-900 text-white shadow-sm hover:shadow-md hover:bg-slate-800'
+                            : 'bg-white text-slate-900 border border-gray-200 shadow-sm hover:shadow-md hover:bg-gray-50'
                     }`}
                 >
                     {isCurrentPlan ? 'CURRENT PLAN' : planType === 'free' ? 'FREE FOREVER' : isLoading ? 'PROCESSING...' : 'SUBSCRIBE NOW'}
@@ -194,15 +194,15 @@ export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', 
 
     return (
         <div className="fixed inset-0 flex items-center justify-center z-[100] p-4 overflow-y-auto" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}>
-            <div className="bg-white border-2 border-black shadow-neo rounded-none max-w-5xl w-full max-h-[90vh] overflow-y-auto">
-                <div className="sticky top-0 bg-white border-b-2 border-black p-6 flex justify-between items-center z-10">
+            <div className="bg-white border border-gray-200 shadow-2xl rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="sticky top-0 bg-white border-b border-gray-200 rounded-t-2xl p-6 flex justify-between items-center z-10">
                     <div>
-                        <h2 className="text-3xl font-bold text-black font-mono">Choose Your Plan</h2>
-                        <p className="text-gray-700 mt-1">Every plan includes Copilot access — start free with 25 monthly requests and unlimited storage.</p>
+                        <h2 className="text-3xl font-bold text-slate-900">Choose Your Plan</h2>
+                        <p className="text-slate-600 mt-1">Every plan includes Copilot access — start free with 25 monthly requests and unlimited storage.</p>
                     </div>
                     <button
                         onClick={onClose}
-                        className="text-black hover:bg-gray-200 text-2xl font-bold w-10 h-10 flex items-center justify-center border-2 border-black"
+                        className="text-slate-700 hover:bg-gray-100 text-2xl font-bold w-10 h-10 flex items-center justify-center rounded-xl border border-gray-200"
                     >
                         ×
                     </button>
@@ -217,24 +217,24 @@ export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', 
                     </div>
 
                     {/* FAQ/Info Section */}
-                    <div className="mt-12 pt-8 border-t-2 border-black">
-                        <h3 className="text-2xl font-bold text-black mb-6 text-center font-mono">Frequently Asked Questions</h3>
+                    <div className="mt-12 pt-8 border-t border-gray-200">
+                        <h3 className="text-2xl font-bold text-slate-900 mb-6 text-center">Frequently Asked Questions</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
-                            <div className="bg-yellow-100 border-2 border-black p-4 shadow-neo">
-                                <h4 className="font-bold text-black mb-2 font-mono">Can I change plans later?</h4>
-                                <p className="text-sm text-black">Yes! You can upgrade or downgrade anytime from your settings.</p>
+                            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                                <h4 className="font-semibold text-slate-900 mb-2">Can I change plans later?</h4>
+                                <p className="text-sm text-slate-600">Yes! You can upgrade or downgrade anytime from your settings.</p>
                             </div>
-                            <div className="bg-pink-100 border-2 border-black p-4 shadow-neo">
-                                <h4 className="font-bold text-black mb-2 font-mono">What payment methods do you accept?</h4>
-                                <p className="text-sm text-black">We accept all major credit cards through Stripe.</p>
+                            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                                <h4 className="font-semibold text-slate-900 mb-2">What payment methods do you accept?</h4>
+                                <p className="text-sm text-slate-600">We accept all major credit cards through Stripe.</p>
                             </div>
-                            <div className="bg-green-100 border-2 border-black p-4 shadow-neo">
-                                <h4 className="font-bold text-black mb-2 font-mono">Is there a free trial?</h4>
-                                <p className="text-sm text-black">The Free plan is available forever! Upgrade when you're ready.</p>
+                            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                                <h4 className="font-semibold text-slate-900 mb-2">Is there a free trial?</h4>
+                                <p className="text-sm text-slate-600">The Free plan is available forever! Upgrade when you're ready.</p>
                             </div>
-                            <div className="bg-purple-100 border-2 border-black p-4 shadow-neo">
-                                <h4 className="font-bold text-black mb-2 font-mono">How does team billing work?</h4>
-                                <p className="text-sm text-black">You pay a base price plus per-seat pricing. Add or remove seats anytime.</p>
+                            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                                <h4 className="font-semibold text-slate-900 mb-2">How does team billing work?</h4>
+                                <p className="text-sm text-slate-600">You pay a base price plus per-seat pricing. Add or remove seats anytime.</p>
                             </div>
                         </div>
                     </div>

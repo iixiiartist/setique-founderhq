@@ -235,7 +235,7 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
           whitespace-nowrap
           text-sm font-medium
         ">
-          <MessageCircle className="w-4 h-4 text-blue-400" />
+          <MessageCircle className="w-4 h-4 text-gray-400" />
           <span>{isDragging ? 'Drag to reposition' : tooltipText}</span>
           {/* Tooltip arrow */}
           <div className="absolute -bottom-1.5 right-6 w-3 h-3 bg-gray-900/95 transform rotate-45 rounded-sm" />
@@ -252,8 +252,8 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
       {/* Ripple effect ring */}
       {hasUnread && !isLoading && !isDragging && (
         <div className="absolute inset-0 w-14 h-14">
-          <span className="absolute inset-0 rounded-full bg-blue-400/60 fab-ripple" />
-          <span className="absolute inset-0 rounded-full bg-blue-400/60 fab-ripple animation-delay-300" />
+          <span className="absolute inset-0 rounded-full bg-gray-400/60 fab-ripple" />
+          <span className="absolute inset-0 rounded-full bg-gray-400/60 fab-ripple animation-delay-300" />
         </div>
       )}
 
@@ -272,10 +272,10 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
           transition-all duration-300 ease-out
           ${isFirstRender ? 'fab-spring-enter' : ''}
           ${isHovered && !isLoading && !isDragging ? 'shadow-soft-2xl scale-105 -translate-y-1' : 'shadow-soft-xl'}
-          ${isDragging ? 'scale-110 shadow-2xl ring-2 ring-blue-400/50' : ''}
+          ${isDragging ? 'scale-110 shadow-2xl ring-2 ring-gray-400/50' : ''}
           ${isLockedVariant 
             ? 'bg-gradient-to-br from-gray-400 to-gray-500 text-white' 
-            : 'bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 text-white'
+            : 'bg-gradient-to-br from-gray-800 via-gray-900 to-black text-white'
           }
           ${isLoading ? 'cursor-wait' : isDragging ? 'cursor-grabbing' : 'cursor-grab'}
           ${className}
@@ -318,7 +318,7 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
             viewBox="0 0 56 56"
           >
             <circle
-              className="text-blue-300 opacity-30"
+              className="text-gray-300 opacity-30"
               cx="28"
               cy="28"
               r="24"

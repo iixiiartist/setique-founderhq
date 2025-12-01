@@ -461,7 +461,7 @@ export const HuddleTab: React.FC<HuddleTabProps> = ({ isMainMenuOpen = false }) 
                             <button onClick={() => setShowMobileRoomList(false)} className="p-1.5 hover:bg-gray-100 rounded sm:hidden"><X size={18} /></button>
                         </div>
                     </div>
-                    <button onClick={() => setShowCreateChannel(true)} className="w-full px-3 py-2 bg-purple-600 text-white font-semibold border-2 border-black shadow-[2px_2px_0_0_black] sm:shadow-[4px_4px_0_0_black] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[1px_1px_0_0_black] sm:hover:shadow-[2px_2px_0_0_black] transition-all text-sm">
+                    <button onClick={() => setShowCreateChannel(true)} className="w-full px-3 py-2 bg-purple-600 text-white font-medium rounded-xl hover:bg-purple-700 hover:shadow-md transition-all text-sm">
                         + New Channel
                     </button>
                 </div>

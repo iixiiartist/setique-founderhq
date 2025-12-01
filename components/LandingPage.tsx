@@ -45,14 +45,14 @@ const FeatureCard = ({
   return (
     <div 
       ref={ref}
-      className={`${bgColor} border-2 border-black shadow-neo p-6 transition-all duration-500 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+      className={`${bgColor} rounded-2xl border border-gray-200 shadow-sm p-6 transition-all duration-500 hover:shadow-md ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
       style={{ transitionDelay: `${delay}ms` }}
     >
-      <div className="w-12 h-12 bg-black flex items-center justify-center mb-4">
+      <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center mb-4">
         <Icon className="w-6 h-6 text-white" />
       </div>
-      <h3 className="text-lg font-bold font-mono text-black mb-2">{title}</h3>
-      <p className="text-gray-700 text-sm leading-relaxed">{description}</p>
+      <h3 className="text-lg font-bold text-slate-900 mb-2">{title}</h3>
+      <p className="text-slate-600 text-sm leading-relaxed">{description}</p>
     </div>
   );
 };
@@ -77,31 +77,31 @@ const PricingCard = ({
   popular?: boolean;
   bgColor?: string;
 }) => (
-  <div className={`relative ${bgColor} border-2 border-black shadow-neo p-6 ${popular ? 'ring-4 ring-blue-500' : ''}`}>
+  <div className={`relative ${bgColor} rounded-2xl border border-gray-200 shadow-sm p-6 ${popular ? 'ring-2 ring-blue-500' : ''}`}>
     {popular && (
       <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-        <span className="bg-blue-500 border-2 border-black text-white text-xs font-bold font-mono px-3 py-1">
+        <span className="bg-blue-500 rounded-full text-white text-xs font-semibold px-4 py-1">
           BEST VALUE
         </span>
       </div>
     )}
-    <h3 className="text-2xl font-bold font-mono text-black mb-1">{name}</h3>
-    <p className="text-sm text-gray-600 font-mono mb-4">{description}</p>
+    <h3 className="text-2xl font-bold text-slate-900 mb-1">{name}</h3>
+    <p className="text-sm text-slate-600 mb-4">{description}</p>
     <div className="mb-6">
-      <span className="text-4xl font-bold font-mono text-black">{price}</span>
-      <span className="text-black font-mono">{period}</span>
+      <span className="text-4xl font-bold text-slate-900">{price}</span>
+      <span className="text-slate-600">{period}</span>
     </div>
     <ul className="space-y-3 mb-8">
       {features.map((feature, i) => (
-        <li key={i} className="flex items-start gap-2 text-sm text-black">
+        <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
           <span className="text-green-600 font-bold flex-shrink-0 mt-0.5">✓</span>
-          <span className="font-mono">{feature}</span>
+          <span>{feature}</span>
         </li>
       ))}
     </ul>
     <Link
       to="/app"
-      className={`block w-full py-3 font-mono font-bold border-2 border-black text-center transition-all ${popular ? 'bg-blue-500 text-white shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none' : 'bg-white text-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none'}`}
+      className={`block w-full py-3 rounded-xl font-semibold text-center transition-all ${popular ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow-md' : 'bg-white text-slate-900 border border-gray-200 hover:bg-gray-50 hover:shadow-sm'}`}
     >
       {cta}
     </Link>
@@ -113,16 +113,16 @@ const FAQItem = ({ question, answer }: { question: string; answer: string }) => 
   const [isOpen, setIsOpen] = useState(false);
   
   return (
-    <div className="border-b-2 border-black last:border-b-0">
+    <div className="border-b border-gray-200 last:border-b-0">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full py-4 flex items-center justify-between text-left group"
       >
-        <span className="font-bold font-mono text-black group-hover:text-blue-600 transition-colors">{question}</span>
-        <ChevronDown className={`w-5 h-5 text-black transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+        <span className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">{question}</span>
+        <ChevronDown className={`w-5 h-5 text-slate-600 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
       <div className={`overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-96 pb-4' : 'max-h-0'}`}>
-        <p className="text-gray-700 leading-relaxed">{answer}</p>
+        <p className="text-slate-600 leading-relaxed">{answer}</p>
       </div>
     </div>
   );
@@ -261,12 +261,12 @@ const LandingPage = () => {
             </div>
 
             <div className="hidden md:flex items-center gap-4">
-              <Link to="/app" className="text-black hover:text-blue-600 transition-colors text-sm font-mono font-bold">
+              <Link to="/app" className="text-slate-700 hover:text-blue-600 transition-colors text-sm font-medium">
                 LOG IN
               </Link>
               <Link 
                 to="/app" 
-                className="px-4 py-2 bg-black border-2 border-black text-white font-mono font-bold text-sm shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+                className="px-4 py-2 bg-slate-900 rounded-lg text-white font-semibold text-sm hover:bg-slate-800 transition-all"
               >
                 GET STARTED FREE
               </Link>
@@ -274,7 +274,7 @@ const LandingPage = () => {
 
             {/* Mobile menu button */}
             <button 
-              className="md:hidden p-2 border-2 border-black"
+              className="md:hidden p-2 rounded-lg border border-gray-200 hover:bg-gray-50"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -284,15 +284,15 @@ const LandingPage = () => {
 
         {/* Mobile menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-white border-t-2 border-black py-4">
+          <div className="md:hidden bg-white border-t border-gray-200 py-4">
             <div className="flex flex-col gap-4 px-4">
-              <a href="#features" className="text-black font-mono font-bold py-2">FEATURES</a>
-              <a href="#ai" className="text-black font-mono font-bold py-2">AI</a>
-              <a href="#pricing" className="text-black font-mono font-bold py-2">PRICING</a>
-              <a href="#faq" className="text-black font-mono font-bold py-2">FAQ</a>
-              <hr className="border-black" />
-              <Link to="/app" className="text-black font-mono font-bold py-2">LOG IN</Link>
-              <Link to="/app" className="px-4 py-3 bg-black border-2 border-black text-white font-mono font-bold text-center">
+              <a href="#features" className="text-slate-900 font-semibold py-2">FEATURES</a>
+              <a href="#ai" className="text-slate-900 font-semibold py-2">AI</a>
+              <a href="#pricing" className="text-slate-900 font-semibold py-2">PRICING</a>
+              <a href="#faq" className="text-slate-900 font-semibold py-2">FAQ</a>
+              <hr className="border-gray-200" />
+              <Link to="/app" className="text-slate-900 font-semibold py-2">LOG IN</Link>
+              <Link to="/app" className="px-4 py-3 bg-slate-900 rounded-xl text-white font-semibold text-center">
                 GET STARTED FREE
               </Link>
             </div>
@@ -306,22 +306,22 @@ const LandingPage = () => {
           <div className="text-center max-w-4xl mx-auto">
             {/* Badge */}
             <div className="mb-8 flex justify-center">
-              <span className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-black shadow-neo font-mono font-bold text-sm">
+              <span className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-200 shadow-sm font-semibold text-sm">
                 <Zap className="w-4 h-4" />
                 NOW WITH AI-POWERED DATA ENTRY
               </span>
             </div>
 
             {/* Headline */}
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold font-mono text-black leading-tight mb-6">
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-slate-900 leading-tight mb-6">
               THE ALL-IN-ONE HUB FOR{' '}
-              <span className="bg-black text-yellow-100 px-4">
+              <span className="bg-slate-900 text-yellow-100 px-4 rounded-lg">
                 GTM
               </span>
             </h1>
 
             {/* Subheadline */}
-            <p className="text-xl text-black mb-8 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-xl text-slate-700 mb-8 max-w-2xl mx-auto leading-relaxed">
               Stop juggling 10 tools. CRM, team chat, financials, and AI—unified in one workspace. 
               Ship faster. Close more. Scale without the chaos.
             </p>
@@ -330,14 +330,14 @@ const LandingPage = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
               <Link
                 to="/app"
-                className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-black border-2 border-black text-white font-mono font-bold text-lg shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+                className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-slate-900 rounded-xl text-white font-semibold text-lg hover:bg-slate-800 shadow-sm hover:shadow-md transition-all"
               >
                 START FREE TODAY
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
               <a
                 href="#features"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white border-2 border-black text-black font-mono font-bold text-lg shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white rounded-xl text-slate-900 font-semibold text-lg border border-gray-200 hover:bg-gray-50 hover:shadow-sm transition-all"
               >
                 SEE FEATURES
               </a>
@@ -346,7 +346,7 @@ const LandingPage = () => {
 
           {/* Hero Image / App Preview */}
           <div className="mt-16 relative">
-            <div className="relative mx-auto max-w-5xl bg-white border-2 border-black shadow-neo-lg overflow-hidden">
+            <div className="relative mx-auto max-w-5xl bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden">
               <div className="aspect-[16/10] bg-gray-900 p-4 sm:p-8">
                 {/* Mock dashboard UI */}
                 <div className="h-full bg-gray-800 border-2 border-gray-600 overflow-hidden">
@@ -408,16 +408,16 @@ const LandingPage = () => {
       </section>
 
       {/* Features Grid */}
-      <section id="features" className="py-24 bg-white border-t-2 border-black">
+      <section id="features" className="py-24 bg-white border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <span className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 border-2 border-black shadow-neo font-mono font-bold text-sm mb-6">
+            <span className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-full text-blue-700 font-semibold text-sm mb-6">
               ALL-IN-ONE PLATFORM
             </span>
-            <h2 className="text-4xl font-bold font-mono text-black mb-4">
+            <h2 className="text-4xl font-bold text-slate-900 mb-4">
               EVERYTHING YOU NEED TO SCALE
             </h2>
-            <p className="text-xl text-gray-700">
+            <p className="text-xl text-slate-600">
               Stop juggling multiple tools. FounderHQ brings your CRM, communications, finances, and workflows into one platform.
             </p>
           </div>
@@ -431,16 +431,16 @@ const LandingPage = () => {
       </section>
 
       {/* AI Section */}
-      <section id="ai" className="py-24 bg-black text-white border-t-2 border-black">
+      <section id="ai" className="py-24 bg-slate-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             {/* Content */}
             <div>
-              <span className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500 border-2 border-white font-mono font-bold text-sm mb-6">
+              <span className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500 rounded-full font-semibold text-sm mb-6">
                 <Bot className="w-4 h-4" />
                 AI-POWERED
               </span>
-              <h2 className="text-4xl font-bold font-mono mb-4">
+              <h2 className="text-4xl font-bold mb-4">
                 YOUR AI ASSISTANT THAT ACTUALLY GETS WORK DONE
               </h2>
               <p className="text-xl text-gray-300 mb-8 leading-relaxed">
@@ -449,12 +449,12 @@ const LandingPage = () => {
               
               <div className="grid sm:grid-cols-2 gap-4">
                 {aiCapabilities.map((cap, i) => (
-                  <div key={i} className="flex items-start gap-3 p-4 bg-gray-900 border-2 border-gray-700 hover:border-white transition-colors">
-                    <div className="w-10 h-10 bg-purple-500 flex items-center justify-center flex-shrink-0">
+                  <div key={i} className="flex items-start gap-3 p-4 bg-slate-800 rounded-xl border border-slate-700 hover:border-purple-500 transition-colors">
+                    <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center flex-shrink-0">
                       <cap.icon className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                      <p className="font-bold font-mono text-white text-sm">{cap.label}</p>
+                      <p className="font-semibold text-white text-sm">{cap.label}</p>
                       <p className="text-gray-400 text-xs">{cap.description}</p>
                     </div>
                   </div>
@@ -464,15 +464,15 @@ const LandingPage = () => {
 
             {/* Chat mockup */}
             <div className="relative">
-              <div className="bg-gray-900 border-2 border-gray-700 p-6">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b-2 border-gray-700">
-                  <div className="w-10 h-10 bg-purple-500 flex items-center justify-center">
+              <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-700">
+                  <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
                     <Bot className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="font-bold font-mono text-white">AI Assistant</p>
-                    <p className="text-green-400 text-xs font-mono flex items-center gap-1">
-                      <span className="w-2 h-2 bg-green-400" />
+                    <p className="font-semibold text-white">AI Assistant</p>
+                    <p className="text-green-400 text-xs flex items-center gap-1">
+                      <span className="w-2 h-2 bg-green-400 rounded-full" />
                       Online in #general
                     </p>
                   </div>
@@ -481,19 +481,19 @@ const LandingPage = () => {
                 <div className="space-y-4">
                   {/* User message */}
                   <div className="flex justify-end">
-                    <div className="bg-blue-600 px-4 py-2 max-w-xs">
-                      <p className="text-white text-sm font-mono">@AI log expense $250 for client dinner with Acme Corp</p>
+                    <div className="bg-blue-600 rounded-xl px-4 py-2 max-w-xs">
+                      <p className="text-white text-sm">@AI log expense $250 for client dinner with Acme Corp</p>
                     </div>
                   </div>
                   
                   {/* AI response */}
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-purple-500 flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center flex-shrink-0">
                       <Bot className="w-4 h-4 text-white" />
                     </div>
-                    <div className="bg-gray-800 border-2 border-gray-700 px-4 py-3 max-w-xs">
-                      <p className="text-white text-sm font-mono mb-2">✓ Done! Expense logged:</p>
-                      <div className="bg-gray-900 p-3 text-xs font-mono">
+                    <div className="bg-slate-700 rounded-xl border border-slate-600 px-4 py-3 max-w-xs">
+                      <p className="text-white text-sm mb-2">✓ Done! Expense logged:</p>
+                      <div className="bg-slate-800 rounded-lg p-3 text-xs">
                         <p className="text-gray-300"><span className="text-gray-500">Amount:</span> $250.00</p>
                         <p className="text-gray-300"><span className="text-gray-500">Category:</span> Client Entertainment</p>
                         <p className="text-gray-300"><span className="text-gray-500">Account:</span> Acme Corp</p>
@@ -508,17 +508,17 @@ const LandingPage = () => {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="py-24 bg-green-100 border-t-2 border-black">
+      <section id="pricing" className="py-24 bg-green-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <span className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-black shadow-neo font-mono font-bold text-sm mb-6">
+            <span className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-gray-200 shadow-sm font-semibold text-sm mb-6">
               <Zap className="w-4 h-4" />
               SIMPLE PRICING
             </span>
-            <h2 className="text-4xl font-bold font-mono text-black mb-4">
+            <h2 className="text-4xl font-bold text-slate-900 mb-4">
               START FREE, SCALE WHEN READY
             </h2>
-            <p className="text-xl text-gray-700">
+            <p className="text-xl text-slate-600">
               No credit card required. Upgrade when you need more power.
             </p>
           </div>
@@ -556,7 +556,7 @@ const LandingPage = () => {
                 'API access',
                 'Priority support'
               ]}
-              cta="START 14-DAY TRIAL"
+              cta="GET STARTED"
               popular
               bgColor="bg-blue-100"
             />
@@ -565,19 +565,19 @@ const LandingPage = () => {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="py-24 bg-white border-t-2 border-black">
+      <section id="faq" className="py-24 bg-white">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <span className="inline-flex items-center gap-2 px-4 py-2 bg-pink-100 border-2 border-black shadow-neo font-mono font-bold text-sm mb-6">
+            <span className="inline-flex items-center gap-2 px-4 py-2 bg-pink-50 rounded-full text-pink-700 font-semibold text-sm mb-6">
               <MessageSquare className="w-4 h-4" />
               FAQ
             </span>
-            <h2 className="text-4xl font-bold font-mono text-black">
+            <h2 className="text-4xl font-bold text-slate-900">
               FREQUENTLY ASKED QUESTIONS
             </h2>
           </div>
 
-          <div className="bg-white border-2 border-black shadow-neo">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
             {faqs.map((faq, i) => (
               <FAQItem key={i} {...faq} />
             ))}
@@ -586,9 +586,9 @@ const LandingPage = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-blue-500 border-t-2 border-black">
+      <section className="py-24 bg-blue-600">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold font-mono text-white mb-6">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
             READY TO TRANSFORM YOUR GTM?
           </h2>
           <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
@@ -597,7 +597,7 @@ const LandingPage = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               to="/app"
-              className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-white border-2 border-black text-black font-mono font-bold text-lg shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+              className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-white rounded-xl text-slate-900 font-semibold text-lg hover:bg-gray-50 shadow-sm hover:shadow-md transition-all"
             >
               GET STARTED FREE
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -607,16 +607,16 @@ const LandingPage = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-black text-white py-16 border-t-2 border-black">
+      <footer className="bg-slate-900 text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8 mb-12">
             {/* Brand */}
             <div className="md:col-span-2">
               <Link to="/" className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-yellow-400 flex items-center justify-center">
-                  <Command className="w-5 h-5 text-black" />
+                <div className="w-8 h-8 bg-yellow-400 rounded-lg flex items-center justify-center">
+                  <Command className="w-5 h-5 text-slate-900" />
                 </div>
-                <span className="font-bold text-xl font-mono">FOUNDERHQ</span>
+                <span className="font-bold text-xl">FOUNDERHQ</span>
               </Link>
               <p className="text-gray-400 mb-4 max-w-xs">
                 The all-in-one GTM hub for founders, consultants, and small businesses.
@@ -625,35 +625,35 @@ const LandingPage = () => {
 
             {/* Links */}
             <div>
-              <h4 className="font-bold font-mono mb-4">PRODUCT</h4>
+              <h4 className="font-semibold mb-4">PRODUCT</h4>
               <ul className="space-y-2">
                 <li>
-                  <a href="#features" className="text-gray-400 hover:text-white transition-colors text-sm font-mono">
+                  <a href="#features" className="text-gray-400 hover:text-white transition-colors text-sm">
                     Features
                   </a>
                 </li>
                 <li>
-                  <a href="#pricing" className="text-gray-400 hover:text-white transition-colors text-sm font-mono">
+                  <a href="#pricing" className="text-gray-400 hover:text-white transition-colors text-sm">
                     Pricing
                   </a>
                 </li>
                 <li>
-                  <Link to="/api-docs" className="text-gray-400 hover:text-white transition-colors text-sm font-mono">
+                  <Link to="/api-docs" className="text-gray-400 hover:text-white transition-colors text-sm">
                     API Docs
                   </Link>
                 </li>
               </ul>
             </div>
             <div>
-              <h4 className="font-bold font-mono mb-4">LEGAL</h4>
+              <h4 className="font-semibold mb-4">LEGAL</h4>
               <ul className="space-y-2">
                 <li>
-                  <Link to="/privacy" className="text-gray-400 hover:text-white transition-colors text-sm font-mono">
+                  <Link to="/privacy" className="text-gray-400 hover:text-white transition-colors text-sm">
                     Privacy
                   </Link>
                 </li>
                 <li>
-                  <Link to="/terms" className="text-gray-400 hover:text-white transition-colors text-sm font-mono">
+                  <Link to="/terms" className="text-gray-400 hover:text-white transition-colors text-sm">
                     Terms
                   </Link>
                 </li>

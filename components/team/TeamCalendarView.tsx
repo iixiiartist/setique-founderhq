@@ -209,7 +209,7 @@ export const TeamCalendarView: React.FC<TeamCalendarViewProps> = ({ onEventClick
 
   if (loading) {
     return (
-      <div className="bg-white p-6 border-2 border-black shadow-neo animate-pulse">
+      <div className="bg-white p-6 border border-gray-200 rounded-2xl shadow-lg animate-pulse">
         <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
         <div className="grid grid-cols-7 gap-2">
           {[...Array(35)].map((_, i) => (
@@ -223,7 +223,7 @@ export const TeamCalendarView: React.FC<TeamCalendarViewProps> = ({ onEventClick
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white p-6 border-2 border-black shadow-neo">
+      <div className="bg-white p-6 border border-gray-200 rounded-2xl shadow-lg">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <CalendarIcon className="w-6 h-6" />
@@ -234,30 +234,30 @@ export const TeamCalendarView: React.FC<TeamCalendarViewProps> = ({ onEventClick
           <div className="flex gap-2">
             <button
               onClick={() => setView('month')}
-              className={`px-3 py-1 text-sm font-semibold border-2 border-black transition-all ${
+              className={`px-3 py-1 text-sm font-semibold rounded-lg border transition-all ${
                 view === 'month'
-                  ? 'bg-black text-white'
-                  : 'bg-white text-black hover:bg-gray-100'
+                  ? 'bg-slate-900 text-white border-slate-900'
+                  : 'bg-white text-slate-700 border-gray-200 hover:bg-gray-50'
               }`}
             >
               Month
             </button>
             <button
               onClick={() => setView('week')}
-              className={`px-3 py-1 text-sm font-semibold border-2 border-black transition-all ${
+              className={`px-3 py-1 text-sm font-semibold rounded-lg border transition-all ${
                 view === 'week'
-                  ? 'bg-black text-white'
-                  : 'bg-white text-black hover:bg-gray-100'
+                  ? 'bg-slate-900 text-white border-slate-900'
+                  : 'bg-white text-slate-700 border-gray-200 hover:bg-gray-50'
               }`}
             >
               Week
             </button>
             <button
               onClick={() => setView('day')}
-              className={`px-3 py-1 text-sm font-semibold border-2 border-black transition-all ${
+              className={`px-3 py-1 text-sm font-semibold rounded-lg border transition-all ${
                 view === 'day'
-                  ? 'bg-black text-white'
-                  : 'bg-white text-black hover:bg-gray-100'
+                  ? 'bg-slate-900 text-white border-slate-900'
+                  : 'bg-white text-slate-700 border-gray-200 hover:bg-gray-50'
               }`}
             >
               Day
@@ -270,20 +270,20 @@ export const TeamCalendarView: React.FC<TeamCalendarViewProps> = ({ onEventClick
           <div className="flex items-center gap-2">
             <button
               onClick={() => navigate('prev')}
-              className="p-2 border-2 border-black bg-white hover:bg-gray-100 transition-colors"
+              className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
               aria-label="Previous"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
             <button
               onClick={goToToday}
-              className="px-4 py-2 border-2 border-black bg-white hover:bg-gray-100 transition-colors font-semibold"
+              className="px-4 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors font-semibold"
             >
               Today
             </button>
             <button
               onClick={() => navigate('next')}
-              className="p-2 border-2 border-black bg-white hover:bg-gray-100 transition-colors"
+              className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
               aria-label="Next"
             >
               <ChevronRight className="w-5 h-5" />
@@ -295,7 +295,7 @@ export const TeamCalendarView: React.FC<TeamCalendarViewProps> = ({ onEventClick
             <select
               value={filterUser}
               onChange={(e) => setFilterUser(e.target.value)}
-              className="px-3 py-2 text-sm border-2 border-black bg-white"
+              className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400"
             >
               <option value="all">All Team Members</option>
               {workspaceMembers.map((member) => (
@@ -308,7 +308,7 @@ export const TeamCalendarView: React.FC<TeamCalendarViewProps> = ({ onEventClick
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value)}
-              className="px-3 py-2 text-sm border-2 border-black bg-white"
+              className="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400"
             >
               <option value="all">All Types</option>
               <option value="task">Tasks</option>
@@ -322,7 +322,7 @@ export const TeamCalendarView: React.FC<TeamCalendarViewProps> = ({ onEventClick
 
       {/* Calendar Grid */}
       {view === 'month' && (
-        <div className="bg-white border-2 border-black shadow-neo overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden">
           {/* Day Headers */}
           <div className="grid grid-cols-7 border-b-2 border-black bg-gray-100">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
@@ -385,14 +385,14 @@ export const TeamCalendarView: React.FC<TeamCalendarViewProps> = ({ onEventClick
 
       {/* Week View */}
       {view === 'week' && (
-        <div className="bg-white p-6 border-2 border-black shadow-neo">
+        <div className="bg-white p-6 border border-gray-200 rounded-2xl shadow-lg">
           <p className="text-gray-600 mb-4">Week view coming soon...</p>
         </div>
       )}
 
       {/* Day View */}
       {view === 'day' && (
-        <div className="bg-white p-6 border-2 border-black shadow-neo">
+        <div className="bg-white p-6 border border-gray-200 rounded-2xl shadow-lg">
           <h3 className="text-lg font-semibold mb-4">
             {currentDate.toLocaleDateString('en-US', {
               weekday: 'long',
@@ -407,7 +407,7 @@ export const TeamCalendarView: React.FC<TeamCalendarViewProps> = ({ onEventClick
               <button
                 key={event.id}
                 onClick={() => onEventClick?.(event)}
-                className="w-full text-left p-4 border-2 border-black hover:bg-gray-50 transition-colors"
+                className="w-full text-left p-4 rounded-xl border border-gray-200 hover:bg-gray-50 hover:shadow-sm transition-all"
               >
                 <div className="flex items-start gap-3">
                   <span
@@ -445,19 +445,19 @@ export const TeamCalendarView: React.FC<TeamCalendarViewProps> = ({ onEventClick
       )}
 
       {/* Legend */}
-      <div className="bg-white p-4 border-2 border-black shadow-neo">
+      <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
         <div className="flex flex-wrap gap-4 items-center">
-          <span className="text-sm font-semibold">Legend:</span>
+          <span className="text-sm font-semibold text-slate-700">Legend:</span>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-blue-500 border-2 border-black"></div>
+            <div className="w-4 h-4 bg-blue-500 rounded"></div>
             <span className="text-sm">Tasks</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-green-500 border-2 border-black"></div>
+            <div className="w-4 h-4 bg-green-500 rounded"></div>
             <span className="text-sm">Events</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-amber-500 border-2 border-black"></div>
+            <div className="w-4 h-4 bg-amber-500 rounded"></div>
             <span className="text-sm">Deals</span>
           </div>
         </div>

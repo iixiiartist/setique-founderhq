@@ -309,8 +309,8 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
                                 </div>
                                 
                                 {/* Subtasks section */}
-                                <div className="border-t-2 border-gray-200 pt-3 mt-3">
-                                    <label className="block font-mono text-sm font-semibold text-black mb-2">
+                                <div className="border-t border-gray-200 pt-3 mt-3">
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">
                                         Subtasks (Optional)
                                     </label>
                                     <SubtaskManager 
@@ -320,7 +320,7 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
                                 </div>
 
                                 {/* Actions */}
-                                <div className="flex gap-3 mt-6 pt-4 border-t-2 border-gray-200">
+                                <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200">
                                     <Button type="submit" variant="success" className="flex-1">
                                         ✓ Create
                                     </Button>
@@ -389,7 +389,7 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
                                 </div>
 
                                 {/* Actions */}
-                                <div className="flex gap-3 mt-6 pt-4 border-t-2 border-gray-200">
+                                <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200">
                                     <Button type="submit" variant="success" className="flex-1">
                                         ✓ Create
                                     </Button>
@@ -476,8 +476,8 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
                                         placeholder="https://linkedin.com/in/username"
                                     />
 
-                                    <div className="border-t-2 border-gray-300 pt-4">
-                                        <label className="block font-mono text-sm font-semibold text-black mb-2">
+                                    <div className="border-t border-gray-200 pt-4">
+                                        <label className="block text-sm font-medium text-slate-700 mb-2">
                                             Link to Account
                                         </label>
                                         <SelectField
@@ -499,7 +499,7 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
 
                                         {!linkedCrmId && (
                                             <div className="mt-2">
-                                                <label className="block font-mono text-xs text-gray-600 mb-1">
+                                                <label className="block text-xs text-slate-500 mb-1">
                                                     Or create new account:
                                                 </label>
                                                 <FormField
@@ -513,7 +513,7 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
                                     </div>
 
                                     {/* Actions */}
-                                    <div className="flex gap-3 mt-6 pt-4 border-t-2 border-gray-200">
+                                    <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200">
                                         <Button type="submit" variant="success" className="flex-1">
                                             ✓ Create
                                         </Button>
@@ -593,7 +593,7 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
                                 />
 
                                 {/* Actions */}
-                                <div className="flex gap-3 mt-6 pt-4 border-t-2 border-gray-200">
+                                <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200">
                                     <Button type="submit" variant="success" className="flex-1">
                                         ✓ Create
                                     </Button>
@@ -661,7 +661,7 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
                                 />
 
                                 {/* Actions */}
-                                <div className="flex gap-3 mt-6 pt-4 border-t-2 border-gray-200">
+                                <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200">
                                     <Button type="submit" variant="success" className="flex-1">
                                         ✓ Create
                                     </Button>
@@ -678,25 +678,25 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
                 return (
                     <div className="space-y-4">
                         <div>
-                            <label className="block font-mono text-sm font-semibold text-black mb-1">
+                            <label className="block text-sm font-medium text-slate-700 mb-1.5">
                                 Select File *
                             </label>
                             <input
                                 type="file"
                                 onChange={(e) => setDocumentFile(e.target.files?.[0] || null)}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-400 transition-all"
                                 accept="*/*"
                             />
                             {documentFile && (
-                                <p className="mt-2 text-sm text-gray-600">
+                                <p className="mt-2 text-sm text-slate-600">
                                     Selected: {documentFile.name} ({(documentFile.size / 1024).toFixed(2)} KB)
                                 </p>
                             )}
                         </div>
 
-                        <div className="bg-blue-50 border-2 border-blue-300 p-3">
-                            <p className="text-xs text-gray-700">
-                                <strong>Note:</strong> Files will be uploaded to the {currentTab || 'current'} module.
+                        <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl">
+                            <p className="text-xs text-slate-600">
+                                <span className="font-medium">Note:</span> Files will be uploaded to the {currentTab || 'current'} module.
                                 Supported formats: PDF, Word, Excel, Images, etc.
                             </p>
                         </div>
@@ -723,7 +723,7 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
     return (
         <div 
             className="fixed inset-0 flex items-center justify-center p-4" 
-            style={{ zIndex: 100000, backgroundColor: 'rgba(0, 0, 0, 0.05)' }}
+            style={{ zIndex: 100000, backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
             onClick={(e) => {
                 if (e.target === e.currentTarget) {
                     onClose();
@@ -731,21 +731,23 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
             }}
         >
             <div 
-                className="bg-white border-4 border-black shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative"
+                className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative"
                 style={{ zIndex: 100001 }}
             >
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-4 border-b-4 border-black">
+                <div className="bg-gradient-to-r from-slate-900 to-slate-800 p-4 rounded-t-2xl">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-bold text-white font-mono">
+                        <h2 className="text-xl font-semibold text-white">
                             {getFormTitle()}
                         </h2>
                         <button
                             onClick={onClose}
-                            className="text-white hover:text-gray-200 text-2xl font-bold"
+                            className="text-white/80 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-lg"
                             disabled={isSubmitting}
                         >
-                            ×
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
                         </button>
                     </div>
                 </div>
@@ -753,8 +755,8 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
                 {/* Form */}
                 <div className="p-6">
                     {error && (
-                        <div className="mb-4 p-3 bg-red-100 border-2 border-red-500 text-red-700 text-sm">
-                            <strong>Error:</strong> {error}
+                        <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl">
+                            <span className="font-medium">Error:</span> {error}
                         </div>
                     )}
 
@@ -762,12 +764,12 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
 
                     {/* Actions for document upload (non-Form component) */}
                     {formType === 'document' && (
-                        <div className="flex gap-3 mt-6 pt-4 border-t-2 border-gray-200">
+                        <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200">
                             <button
                                 type="button"
                                 onClick={handleDocumentUpload}
                                 disabled={isSubmitting}
-                                className="flex-1 font-mono font-semibold bg-green-500 text-white py-3 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex-1 bg-slate-900 text-white py-2.5 px-4 rounded-xl font-medium shadow-sm hover:bg-slate-800 hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isSubmitting ? '⏳ Uploading...' : '✓ Upload'}
                             </button>
@@ -775,7 +777,7 @@ export const InlineFormModal: React.FC<InlineFormModalProps> = ({
                                 type="button"
                                 onClick={onClose}
                                 disabled={isSubmitting}
-                                className="flex-1 font-mono font-semibold bg-white text-black py-3 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-100 disabled:opacity-50"
+                                className="flex-1 bg-white text-slate-700 py-2.5 px-4 rounded-xl font-medium border border-gray-200 shadow-sm hover:bg-gray-50 hover:shadow-md transition-all disabled:opacity-50"
                             >
                                 Cancel
                             </button>

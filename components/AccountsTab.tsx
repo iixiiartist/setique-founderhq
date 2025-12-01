@@ -224,51 +224,51 @@ function AccountsTab({
         <div className="h-full flex flex-col">
             {/* Deleted Item Toast */}
             {showDeletedToast && (
-                <div className="fixed top-4 right-4 z-50 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg border border-red-700">
+                <div className="fixed top-4 right-4 z-50 bg-slate-900 text-white px-6 py-3 rounded-xl shadow-lg">
                     ⚠️ Item was deleted or moved
                 </div>
             )}
 
             {/* Filter Bar */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-6 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div className="flex flex-col sm:flex-row gap-4 mb-6 p-4 bg-white rounded-2xl border border-gray-200 shadow-sm">
                 {/* Type Filters */}
                 <div className="flex flex-wrap gap-2">
                     <button
                         onClick={() => setTypeFilter('all')}
-                        className={`font-mono px-4 py-2 border border-gray-300 rounded-md font-semibold transition-all ${
+                        className={`px-4 py-2 rounded-xl font-medium transition-all ${
                             typeFilter === 'all'
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-white text-black hover:bg-gray-100'
+                                ? 'bg-slate-900 text-white shadow-sm'
+                                : 'bg-gray-100 text-slate-700 hover:bg-gray-200'
                         }`}
                     >
                         All ({typeCounts.all})
                     </button>
                     <button
                         onClick={() => setTypeFilter('investor')}
-                        className={`font-mono px-4 py-2 border border-gray-300 rounded-md font-semibold transition-all ${
+                        className={`px-4 py-2 rounded-xl font-medium transition-all ${
                             typeFilter === 'investor'
-                                ? 'bg-green-500 text-white'
-                                : 'bg-white text-black hover:bg-gray-100'
+                                ? 'bg-slate-900 text-white shadow-sm'
+                                : 'bg-gray-100 text-slate-700 hover:bg-gray-200'
                         }`}
                     >
                         💰 Investors ({typeCounts.investor})
                     </button>
                     <button
                         onClick={() => setTypeFilter('customer')}
-                        className={`font-mono px-4 py-2 border border-gray-300 rounded-md font-semibold transition-all ${
+                        className={`px-4 py-2 rounded-xl font-medium transition-all ${
                             typeFilter === 'customer'
-                                ? 'bg-purple-500 text-white'
-                                : 'bg-white text-black hover:bg-gray-100'
+                                ? 'bg-slate-900 text-white shadow-sm'
+                                : 'bg-gray-100 text-slate-700 hover:bg-gray-200'
                         }`}
                     >
                         🛒 Customers ({typeCounts.customer})
                     </button>
                     <button
                         onClick={() => setTypeFilter('partner')}
-                        className={`font-mono px-4 py-2 border border-gray-300 rounded-md font-semibold transition-all ${
+                        className={`px-4 py-2 rounded-xl font-medium transition-all ${
                             typeFilter === 'partner'
-                                ? 'bg-orange-500 text-white'
-                                : 'bg-white text-black hover:bg-gray-100'
+                                ? 'bg-slate-900 text-white shadow-sm'
+                                : 'bg-gray-100 text-slate-700 hover:bg-gray-200'
                         }`}
                     >
                         🤝 Partners ({typeCounts.partner})

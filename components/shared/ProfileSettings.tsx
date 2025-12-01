@@ -226,7 +226,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
 
       {/* Success Message */}
       {saveSuccess && (
-        <div className="bg-green-50 border-2 border-green-500 text-green-800 px-4 py-3 rounded-none flex items-center justify-between">
+        <div className="bg-green-50 rounded-xl border border-green-200 text-green-800 px-4 py-3 flex items-center justify-between">
           <span className="font-semibold">✓ Profile updated successfully!</span>
           <button
             onClick={() => setSaveSuccess(false)}
@@ -237,7 +237,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
         </div>
       )}
 
-      <div className="bg-white border-2 border-black shadow-neo p-6 space-y-6">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-6">
         {/* Avatar Section */}
         <div className="flex flex-col sm:flex-row items-start gap-6">
           {/* Avatar Preview with Upload Overlay */}
@@ -246,10 +246,10 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
               <img
                 src={formData.avatarUrl}
                 alt="Profile"
-                className="w-28 h-28 rounded-full object-cover border-2 border-black"
+                className="w-28 h-28 rounded-full object-cover border-2 border-gray-200 shadow-sm"
               />
             ) : (
-              <div className="w-28 h-28 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white text-3xl font-bold border-2 border-black">
+              <div className="w-28 h-28 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white text-3xl font-bold border-2 border-gray-200 shadow-sm">
                 {getInitials()}
               </div>
             )}
@@ -295,7 +295,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
               <button
                 onClick={handleFileSelect}
                 disabled={uploading}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-none hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border-2 border-blue-700"
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
               >
                 {uploading ? (
                   <>
@@ -313,7 +313,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
               {formData.avatarUrl && !uploading && (
                 <button
                   onClick={handleRemoveAvatar}
-                  className="flex items-center gap-2 px-4 py-2 bg-white text-red-600 font-semibold rounded-none hover:bg-red-50 transition-colors border-2 border-red-300"
+                  className="flex items-center gap-2 px-4 py-2 bg-white text-red-600 font-semibold rounded-xl hover:bg-red-50 hover:shadow-sm transition-all border border-red-200"
                 >
                   <Trash2 className="w-4 h-4" />
                   Remove
@@ -339,7 +339,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
               value={formData.fullName}
               onChange={(e) => handleInputChange('fullName', e.target.value)}
               placeholder="Enter your full name"
-              className="w-full px-3 py-2 border-2 border-black rounded-none focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             />
             <p className="text-xs text-gray-500 mt-1">
               This is how your name will appear to other workspace members
@@ -356,7 +356,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
               type="email"
               value={profile.email}
               disabled
-              className="w-full px-3 py-2 border-2 border-gray-300 rounded-none bg-gray-50 text-gray-600 cursor-not-allowed"
+              className="w-full px-3 py-2 border border-gray-200 rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed"
             />
             <p className="text-xs text-gray-500 mt-1">
               Email address cannot be changed
@@ -370,7 +370,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
             <button
               onClick={handleSave}
               disabled={saving || !formData.fullName.trim()}
-              className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-none font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border-2 border-blue-700 shadow-neo-btn"
+              className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
             >
               <Save className="w-4 h-4" />
               {saving ? 'Saving...' : 'Save Changes'}
@@ -378,7 +378,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
             <button
               onClick={handleCancel}
               disabled={saving}
-              className="px-6 py-2 bg-white border-2 border-black text-black rounded-none font-semibold hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-6 py-2 bg-white rounded-xl border border-gray-200 text-slate-900 font-semibold hover:bg-gray-50 hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               Cancel
             </button>
@@ -387,7 +387,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
       </div>
 
       {/* Tips Section */}
-      <div className="bg-blue-50 border-2 border-blue-500 p-4 rounded-none">
+      <div className="bg-blue-50 rounded-xl border border-blue-200 p-4">
         <h3 className="font-semibold text-blue-900 mb-2">💡 Tips</h3>
         <ul className="text-sm text-blue-800 space-y-1">
           <li>• Use your real name so team members can easily identify you</li>

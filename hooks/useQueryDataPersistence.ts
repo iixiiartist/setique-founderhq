@@ -249,9 +249,79 @@ export const useQueryDataPersistence = () => {
         DatabaseService.getProductBundles(workspaceId)
       ]);
 
+      const products = productsResult.data || [];
+      const priceHistory = priceHistoryResult.data || [];
+      
+      // Transform database format (snake_case) to frontend format (camelCase)
+      const transformedProducts = products.map((p: any) => ({
+        id: p.id,
+        workspaceId: p.workspace_id,
+        createdBy: p.created_by,
+        name: p.name,
+        sku: p.sku,
+        description: p.description || undefined,
+        category: p.category,
+        type: p.type,
+        status: p.status,
+        basePrice: p.base_price != null ? parseFloat(p.base_price.toString()) : 0,
+        currency: p.currency || 'USD',
+        pricingModel: p.pricing_model,
+        billingPeriod: p.billing_period || undefined,
+        costOfGoods: p.cost_of_goods != null ? parseFloat(p.cost_of_goods.toString()) : undefined,
+        costOfService: p.cost_of_service != null ? parseFloat(p.cost_of_service.toString()) : undefined,
+        isTaxable: p.is_taxable ?? false,
+        taxCode: p.tax_code || undefined,
+        taxRate: p.tax_rate != null ? parseFloat(p.tax_rate.toString()) : undefined,
+        inventoryTracked: p.inventory_tracked ?? false,
+        quantityOnHand: p.quantity_on_hand ?? 0,
+        quantityReserved: p.quantity_reserved ?? 0,
+        quantityAvailable: p.quantity_available ?? 0,
+        reorderPoint: p.reorder_point ?? undefined,
+        reorderQuantity: p.reorder_quantity ?? undefined,
+        capacityTracked: p.capacity_tracked ?? false,
+        capacityTotal: p.capacity_total != null ? parseFloat(p.capacity_total.toString()) : undefined,
+        capacityBooked: p.capacity_booked != null ? parseFloat(p.capacity_booked.toString()) : undefined,
+        capacityAvailable: p.capacity_available != null ? parseFloat(p.capacity_available.toString()) : undefined,
+        capacityUnit: p.capacity_unit || undefined,
+        capacityPeriod: p.capacity_period || undefined,
+        imageUrl: p.image_url || undefined,
+        tags: p.tags || [],
+        tieredPricing: p.tiered_pricing || undefined,
+        usagePricing: p.usage_pricing || undefined,
+        subscriptionPlans: p.subscription_plans || undefined,
+        totalRevenue: p.total_revenue != null ? parseFloat(p.total_revenue.toString()) : 0,
+        totalUnitsSold: p.total_units_sold ?? 0,
+        averageSaleValue: p.average_sale_value != null ? parseFloat(p.average_sale_value.toString()) : undefined,
+        lastSoldDate: p.last_sold_date || undefined,
+        createdAt: p.created_at,
+        updatedAt: p.updated_at,
+      }));
+
+      const transformedPriceHistory = priceHistory.map((ph: any) => ({
+        id: ph.id,
+        productServiceId: ph.product_service_id,
+        oldPrice: ph.old_price != null ? parseFloat(ph.old_price.toString()) : 0,
+        newPrice: ph.new_price != null ? parseFloat(ph.new_price.toString()) : 0,
+        changedBy: ph.changed_by,
+        changedAt: ph.changed_at,
+        reason: ph.reason || undefined,
+        effectiveFrom: ph.effective_from || undefined,
+        effectiveTo: ph.effective_to || undefined,
+      }));
+
+      console.log('[useQueryDataPersistence] Loaded products:', transformedProducts.length, 'items');
+      if (transformedProducts.length > 0) {
+        console.log('[useQueryDataPersistence] First product sample:', {
+          name: transformedProducts[0].name,
+          basePrice: transformedProducts[0].basePrice,
+          createdAt: transformedProducts[0].createdAt,
+          inventoryTracked: transformedProducts[0].inventoryTracked,
+        });
+      }
+
       return {
-        productsServices: productsResult.data || [],
-        productPriceHistory: priceHistoryResult.data || [],
+        productsServices: transformedProducts,
+        productPriceHistory: transformedPriceHistory,
         productBundles: bundlesResult.data || []
       };
     } catch (err) {

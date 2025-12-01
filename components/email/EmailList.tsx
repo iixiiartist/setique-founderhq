@@ -53,7 +53,7 @@ export const EmailList: React.FC<EmailListProps> = ({
                         key={msg.id} 
                         onClick={() => onMessageClick(msg)}
                         className={`p-3 sm:p-4 min-h-[72px] cursor-pointer transition-all hover:bg-gray-50 group
-                            ${selectedMessageId === msg.id ? 'bg-blue-50/50 border-l-4 border-blue-500 pl-[8px] sm:pl-[12px]' : 'border-l-4 border-transparent pl-[8px] sm:pl-[12px]'}
+                            ${selectedMessageId === msg.id ? 'bg-gray-100 border-l-4 border-gray-900 pl-[8px] sm:pl-[12px]' : 'border-l-4 border-transparent pl-[8px] sm:pl-[12px]'}
                             ${!msg.is_read ? 'bg-white' : 'bg-white/50'}`}
                     >
                         <div className="flex justify-between items-start mb-1">

@@ -276,7 +276,7 @@ export const CanvasPalette: React.FC<CanvasPaletteProps> = ({
                     ref={paletteRef}
                     role="region"
                     aria-label="Canvas palette"
-                    className={`transform rounded-3xl border-2 border-black bg-white/95 p-4 shadow-neo-sm transition-all duration-200 ${
+                    className={`transform rounded-3xl border border-gray-200 bg-white/95 p-4 shadow-lg transition-all duration-200 ${
                         isOpen ? 'opacity-100 translate-x-0' : 'pointer-events-none opacity-0 -translate-x-2'
                     }`}
                 >

@@ -106,7 +106,7 @@ export function DocEditorExportModal({
                   onClick={() => onApplyPreset(preset.id)}
                   className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                     selectedPresetId === preset.id
-                      ? 'border-black bg-black text-white shadow-neo-btn'
+                      ? 'border-slate-900 bg-slate-900 text-white shadow-sm'
                       : 'border-gray-300 text-gray-700 hover:border-gray-400'
                   }`}
                 >
@@ -126,7 +126,7 @@ export function DocEditorExportModal({
             />
             <button
               type="submit"
-              className="rounded-none bg-black px-4 py-2 text-sm font-semibold text-white shadow-neo disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:shadow-md hover:bg-slate-800 transition-all disabled:cursor-not-allowed disabled:opacity-50"
               disabled={!newPresetName.trim()}
             >
               Save preset
@@ -323,7 +323,7 @@ export function DocEditorExportModal({
             </button>
             <button
               onClick={onSavePreferences}
-              className="px-5 py-2 rounded-none bg-black text-white text-sm font-semibold shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-neo-sm transition-all"
+              className="px-5 py-2 rounded-xl bg-slate-900 text-white text-sm font-semibold shadow-sm hover:shadow-md hover:bg-slate-800 transition-all"
             >
               Save settings
             </button>

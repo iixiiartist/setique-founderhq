@@ -162,9 +162,9 @@ function AttributionModule({
         </div>
         <button
           onClick={() => canCreateAttribution && setShowForm(!showForm)}
-          className={`flex items-center gap-2 px-4 py-2 border-2 border-black shadow-neo-btn font-semibold transition-colors ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition-all ${
             canCreateAttribution
-              ? 'bg-purple-600 text-white hover:bg-purple-700'
+              ? 'bg-slate-900 text-white shadow-sm hover:shadow-md hover:bg-slate-800'
               : 'bg-gray-200 text-gray-500 cursor-not-allowed'
           }`}
           disabled={!canCreateAttribution}
@@ -182,7 +182,7 @@ function AttributionModule({
 
       {/* Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-green-50 p-4 border-2 border-green-600 shadow-neo">
+        <div className="bg-green-50 p-4 border border-green-200 rounded-xl">
           <div className="flex items-center gap-2 mb-1">
             <DollarSign className="w-4 h-4 text-green-600" />
             <div className="text-sm text-gray-600">Total Attributed Revenue</div>
@@ -190,7 +190,7 @@ function AttributionModule({
           <div className="text-2xl font-bold text-green-700">{formatCurrency(metrics.totalAttributed)}</div>
         </div>
 
-        <div className="bg-blue-50 p-4 border-2 border-blue-600 shadow-neo">
+        <div className="bg-blue-50 p-4 border border-blue-200 rounded-xl">
           <div className="flex items-center gap-2 mb-1">
             <TrendingUp className="w-4 h-4 text-blue-600" />
             <div className="text-sm text-gray-600">Conversions</div>
@@ -198,7 +198,7 @@ function AttributionModule({
           <div className="text-2xl font-bold text-blue-700">{metrics.totalConversions}</div>
         </div>
 
-        <div className="bg-purple-50 p-4 border-2 border-purple-600 shadow-neo">
+        <div className="bg-purple-50 p-4 border border-purple-200 rounded-xl">
           <div className="flex items-center gap-2 mb-1">
             <Users className="w-4 h-4 text-purple-600" />
             <div className="text-sm text-gray-600">Total Attributions</div>
@@ -206,7 +206,7 @@ function AttributionModule({
           <div className="text-2xl font-bold text-purple-700">{filteredAttributions.length}</div>
         </div>
 
-        <div className="bg-orange-50 p-4 border-2 border-orange-600 shadow-neo">
+        <div className="bg-orange-50 p-4 border border-orange-200 rounded-xl">
           <div className="text-sm text-gray-600 mb-1">Avg Revenue / Attribution</div>
           <div className="text-2xl font-bold text-orange-700">
             {formatCurrency(metrics.avgRevenuePerAttribution)}
@@ -215,18 +215,18 @@ function AttributionModule({
       </div>
 
       {/* Attribution Type Breakdown */}
-      <div className="bg-white p-6 border-2 border-black shadow-neo">
+      <div className="bg-white p-6 border border-gray-200 rounded-2xl shadow-lg">
         <h3 className="text-lg font-semibold mb-4">Attribution Model Breakdown</h3>
         <div className="grid grid-cols-3 gap-4">
-          <div className="text-center p-4 bg-blue-50 border-2 border-blue-300">
+          <div className="text-center p-4 bg-blue-50 border border-blue-200 rounded-xl">
             <div className="text-sm text-gray-600 mb-1">First Touch</div>
             <div className="text-3xl font-bold text-blue-700">{metrics.byType.first_touch}</div>
           </div>
-          <div className="text-center p-4 bg-purple-50 border-2 border-purple-300">
+          <div className="text-center p-4 bg-purple-50 border border-purple-200 rounded-xl">
             <div className="text-sm text-gray-600 mb-1">Last Touch</div>
             <div className="text-3xl font-bold text-purple-700">{metrics.byType.last_touch}</div>
           </div>
-          <div className="text-center p-4 bg-green-50 border-2 border-green-300">
+          <div className="text-center p-4 bg-green-50 border border-green-200 rounded-xl">
             <div className="text-sm text-gray-600 mb-1">Multi Touch</div>
             <div className="text-3xl font-bold text-green-700">{metrics.byType.multi_touch}</div>
           </div>
@@ -235,7 +235,7 @@ function AttributionModule({
 
       {/* Attribution Form */}
       {showForm && (
-        <div className="bg-white p-6 border-2 border-black shadow-neo">
+        <div className="bg-white p-6 border border-gray-200 rounded-2xl shadow-lg">
           <h3 className="text-xl font-semibold mb-4">Create Attribution Link</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -244,7 +244,7 @@ function AttributionModule({
                 <select
                   value={formData.marketingItemId}
                   onChange={(e) => setFormData({ ...formData, marketingItemId: e.target.value })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full p-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400"
                   required
                 >
                   <option value="">Select a campaign...</option>
@@ -261,7 +261,7 @@ function AttributionModule({
                 <select
                   value={formData.crmItemId}
                   onChange={(e) => setFormData({ ...formData, crmItemId: e.target.value })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full p-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400"
                   required
                 >
                   <option value="">Select a deal...</option>
@@ -280,7 +280,7 @@ function AttributionModule({
                 <select
                   value={formData.contactId}
                   onChange={(e) => setFormData({ ...formData, contactId: e.target.value })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full p-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400"
                 >
                   <option value="">Select a contact...</option>
                   {contacts.map(contact => (
@@ -296,7 +296,7 @@ function AttributionModule({
                 <select
                   value={formData.attributionType}
                   onChange={(e) => setFormData({ ...formData, attributionType: e.target.value as any })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full p-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400"
                 >
                   <option value="first_touch">First Touch</option>
                   <option value="last_touch">Last Touch</option>
@@ -314,7 +314,7 @@ function AttributionModule({
                   type="text"
                   value={formData.utmSource}
                   onChange={(e) => setFormData({ ...formData, utmSource: e.target.value })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full p-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400"
                   placeholder="google"
                 />
               </div>
@@ -326,7 +326,7 @@ function AttributionModule({
                   type="text"
                   value={formData.utmMedium}
                   onChange={(e) => setFormData({ ...formData, utmMedium: e.target.value })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full p-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400"
                   placeholder="cpc"
                 />
               </div>
@@ -338,7 +338,7 @@ function AttributionModule({
                   type="text"
                   value={formData.utmCampaign}
                   onChange={(e) => setFormData({ ...formData, utmCampaign: e.target.value })}
-                  className="w-full p-2 border-2 border-black focus:outline-none focus:border-blue-500"
+                  className="w-full p-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400"
                   placeholder="summer_sale_2024"
                 />
               </div>
@@ -348,13 +348,13 @@ function AttributionModule({
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="px-4 py-2 border-2 border-black bg-white hover:bg-gray-100 font-semibold"
+                className="px-4 py-2 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 font-semibold text-slate-700"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 border-2 border-black bg-purple-600 text-white hover:bg-purple-700 font-semibold shadow-neo-btn"
+                className="px-4 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800 font-semibold shadow-sm hover:shadow-md transition-all"
               >
                 Create Attribution
               </button>
@@ -364,7 +364,7 @@ function AttributionModule({
       )}
 
       {/* Filters */}
-      <div className="bg-white p-4 border-2 border-black shadow-neo">
+      <div className="bg-white p-4 border border-gray-200 rounded-xl">
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4" />
@@ -373,7 +373,7 @@ function AttributionModule({
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="px-3 py-1 border-2 border-black text-sm font-mono focus:outline-none focus:border-blue-500"
+            className="px-3 py-1 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400"
           >
             <option value="all">All Types</option>
             <option value="first_touch">First Touch</option>
@@ -383,7 +383,7 @@ function AttributionModule({
           <select
             value={filterCampaign}
             onChange={(e) => setFilterCampaign(e.target.value)}
-            className="px-3 py-1 border-2 border-black text-sm font-mono focus:outline-none focus:border-blue-500"
+            className="px-3 py-1 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400"
           >
             <option value="all">All Campaigns</option>
             {marketingItems.map(item => (
@@ -396,7 +396,7 @@ function AttributionModule({
       </div>
 
       {/* Attributions List */}
-      <div className="bg-white p-6 border-2 border-black shadow-neo">
+      <div className="bg-white p-6 border border-gray-200 rounded-2xl shadow-lg">
         <h3 className="text-xl font-semibold mb-4">Attribution History</h3>
         <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
           {filteredAttributions.length > 0 ? (
@@ -406,7 +406,7 @@ function AttributionModule({
               const contact = attribution.contactId ? contacts.find(c => c.id === attribution.contactId) : null;
 
               return (
-                <div key={attribution.id} className="p-4 border-2 border-black shadow-neo hover:shadow-neo-lg transition-shadow">
+                <div key={attribution.id} className="p-4 border border-gray-200 rounded-xl hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between">
                     <div className="flex-grow">
                       <div className="flex items-center gap-2 mb-2">
@@ -474,7 +474,7 @@ function AttributionModule({
 
                     <button
                       onClick={() => actions.deleteCampaignAttribution(attribution.id)}
-                      className="px-3 py-1 text-xs bg-white text-red-600 border border-black hover:bg-red-50 font-semibold ml-4"
+                      className="px-3 py-1 text-xs bg-white text-red-600 rounded-lg border border-red-200 hover:bg-red-50 hover:shadow-sm font-semibold ml-4 transition-all"
                     >
                       Delete
                     </button>

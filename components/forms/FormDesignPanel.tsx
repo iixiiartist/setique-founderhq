@@ -24,11 +24,11 @@ export const FormDesignPanel: React.FC<FormDesignPanelProps> = ({
 }) => {
   return (
     <div className="space-y-4">
-      <h3 className="font-mono font-bold text-sm uppercase">Form Design</h3>
+      <h3 className="font-semibold text-sm text-slate-700">Form Design</h3>
       
       {/* Primary Color */}
       <div>
-        <label className="block font-mono text-sm font-semibold mb-2">Primary Color</label>
+        <label className="block text-sm font-medium text-slate-700 mb-2">Primary Color</label>
         <div className="flex gap-2">
           <input
             type="color"
@@ -40,7 +40,7 @@ export const FormDesignPanel: React.FC<FormDesignPanelProps> = ({
                 primaryColor: e.target.value 
               } 
             })}
-            className="w-12 h-10 border-2 border-black cursor-pointer p-0"
+            className="w-12 h-10 rounded-lg border border-gray-200 cursor-pointer p-0"
           />
           <Input
             value={form.theme?.primaryColor || '#8B5CF6'}
@@ -58,7 +58,7 @@ export const FormDesignPanel: React.FC<FormDesignPanelProps> = ({
 
       {/* Background Color */}
       <div>
-        <label className="block font-mono text-sm font-semibold mb-2">Background Color</label>
+        <label className="block text-sm font-medium text-slate-700 mb-2">Background Color</label>
         <div className="flex gap-2">
           <input
             type="color"
@@ -70,7 +70,7 @@ export const FormDesignPanel: React.FC<FormDesignPanelProps> = ({
                 backgroundColor: e.target.value 
               } 
             })}
-            className="w-12 h-10 border-2 border-black cursor-pointer p-0"
+            className="w-12 h-10 rounded-lg border border-gray-200 cursor-pointer p-0"
           />
           <Input
             value={form.theme?.backgroundColor || '#FFFFFF'}
@@ -88,7 +88,7 @@ export const FormDesignPanel: React.FC<FormDesignPanelProps> = ({
 
       {/* Text Color */}
       <div>
-        <label className="block font-mono text-sm font-semibold mb-2">Text Color</label>
+        <label className="block text-sm font-medium text-slate-700 mb-2">Text Color</label>
         <div className="flex gap-2">
           <input
             type="color"
@@ -100,7 +100,7 @@ export const FormDesignPanel: React.FC<FormDesignPanelProps> = ({
                 textColor: e.target.value 
               } 
             })}
-            className="w-12 h-10 border-2 border-black cursor-pointer p-0"
+            className="w-12 h-10 rounded-lg border border-gray-200 cursor-pointer p-0"
           />
           <Input
             value={form.theme?.textColor || '#1F2937'}
@@ -118,7 +118,7 @@ export const FormDesignPanel: React.FC<FormDesignPanelProps> = ({
 
       {/* Input Background */}
       <div>
-        <label className="block font-mono text-sm font-semibold mb-2">Input Background</label>
+        <label className="block text-sm font-medium text-slate-700 mb-2">Input Background</label>
         <div className="flex gap-2">
           <input
             type="color"
@@ -130,7 +130,7 @@ export const FormDesignPanel: React.FC<FormDesignPanelProps> = ({
                 inputBackground: e.target.value 
               } 
             })}
-            className="w-12 h-10 border-2 border-black cursor-pointer p-0"
+            className="w-12 h-10 rounded-lg border border-gray-200 cursor-pointer p-0"
           />
           <Input
             value={form.theme?.inputBackground || '#F9FAFB'}
@@ -208,13 +208,13 @@ export const FormDesignPanel: React.FC<FormDesignPanelProps> = ({
 
       <hr className="border-gray-200 my-4" />
 
-      <h4 className="font-mono font-bold text-sm uppercase">Branding</h4>
+      <h4 className="font-semibold text-sm text-slate-700">Branding</h4>
 
       {/* Logo Upload/URL */}
       <div>
-        <label className="block font-mono text-sm font-semibold mb-2">Logo</label>
+        <label className="block text-sm font-medium text-slate-700 mb-2">Logo</label>
         {form.branding?.logoUrl && (
-          <div className="mb-2 p-2 bg-gray-50 border-2 border-gray-200 rounded flex items-center gap-2">
+          <div className="mb-2 p-2 bg-gray-50 border border-gray-200 rounded-xl flex items-center gap-2">
             <img 
               src={form.branding.logoUrl} 
               alt="Logo preview" 
@@ -320,9 +320,9 @@ export const FormDesignPanel: React.FC<FormDesignPanelProps> = ({
 
       {/* Theme Preview */}
       <div className="mt-4 pt-4 border-t border-gray-200">
-        <label className="block font-mono text-sm font-semibold mb-2">Preview</label>
+        <label className="block text-sm font-medium text-slate-700 mb-2">Preview</label>
         <div 
-          className="p-4 border-2 border-black"
+          className="p-4 rounded-xl border border-gray-200"
           style={{ 
             backgroundColor: form.theme?.backgroundColor || '#FFFFFF',
             fontFamily: form.theme?.fontFamily || 'Inter, system-ui, sans-serif',
@@ -336,8 +336,8 @@ export const FormDesignPanel: React.FC<FormDesignPanelProps> = ({
             Sample Question
           </p>
           <div 
-            className="h-8 border-2 mb-2"
-            style={{ 
+            className="h-8 border mb-2"
+            style={{{ 
               borderColor: form.theme?.primaryColor || '#8B5CF6',
               backgroundColor: form.theme?.inputBackground || '#F9FAFB',
               borderRadius: form.theme?.borderRadius || '8px',

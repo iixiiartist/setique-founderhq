@@ -147,7 +147,7 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
     if (status === 'loading') {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 to-blue-600 p-4">
-                <div className="bg-white border-4 border-black shadow-neo-brutal p-8 max-w-md w-full text-center">
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl p-8 max-w-md w-full text-center">
                     <div className="animate-spin text-6xl mb-4">⚙️</div>
                     <h2 className="text-2xl font-bold mb-2">Processing Invitation</h2>
                     <p className="text-gray-600">{message}</p>
@@ -172,7 +172,7 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
     if (status === 'needs_login') {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 to-blue-600 p-4">
-                <div className="bg-white border-4 border-black shadow-neo-brutal p-8 max-w-md w-full text-center">
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl p-8 max-w-md w-full text-center">
                     <div className="text-6xl mb-4">👋</div>
                     <h2 className="text-2xl font-bold mb-4">Welcome Back!</h2>
                     <p className="text-gray-600 mb-6">{message}</p>
@@ -180,7 +180,7 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
                         onClick={() => {
                             navigate('/app', { replace: true });
                         }}
-                        className="w-full bg-blue-600 text-white border-4 border-black p-4 font-bold text-lg shadow-neo-btn hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-none transition-all"
+                        className="w-full bg-blue-600 text-white rounded-xl border border-blue-700 p-4 font-bold text-lg shadow-sm hover:shadow-md hover:bg-blue-700 transition-all"
                     >
                         Go to Login →
                     </button>
@@ -192,13 +192,13 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
     if (status === 'success') {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-600 to-blue-600 p-4">
-                <div className="bg-white border-4 border-black shadow-neo-brutal p-8 max-w-md w-full text-center">
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl p-8 max-w-md w-full text-center">
                     <div className="text-6xl mb-4">✅</div>
                     <h2 className="text-2xl font-bold mb-4">Success!</h2>
                     <p className="text-gray-600 whitespace-pre-line mb-6">{message}</p>
                     
                     {(inviteData?.isNewUser || inviteData?.passwordResetSent) && (
-                        <div className="bg-blue-50 border-2 border-blue-600 p-4 mb-4 text-left">
+                        <div className="bg-blue-50 rounded-xl border border-blue-200 p-4 mb-4 text-left">
                             <h3 className="font-bold mb-2">📧 Next Steps:</h3>
                             <ol className="list-decimal list-inside space-y-1 text-sm">
                                 <li>Check your email inbox</li>
@@ -216,7 +216,7 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
                     
                     <button
                         onClick={() => navigate('/app', { replace: true })}
-                        className="w-full bg-green-600 text-white border-4 border-black p-4 font-bold text-lg shadow-neo-btn hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-none transition-all"
+                        className="w-full bg-green-600 text-white rounded-xl border border-green-700 p-4 font-bold text-lg shadow-sm hover:shadow-md hover:bg-green-700 transition-all"
                     >
                         {inviteData?.isNewUser ? 'Go to Login' : 'Continue to App'} →
                     </button>
@@ -228,7 +228,7 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
     // Error state
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-600 to-pink-600 p-4">
-            <div className="bg-white border-4 border-black shadow-neo-brutal p-8 max-w-md w-full text-center">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl p-8 max-w-md w-full text-center">
                 <div className="text-6xl mb-4">❌</div>
                 <h2 className="text-2xl font-bold mb-4">Oops!</h2>
                 <p className="text-gray-600 mb-6">{message}</p>
@@ -238,13 +238,13 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
                         hasAttemptedRef.current = false;
                         acceptInvitation();
                     }}
-                    className="w-full bg-blue-600 text-white border-4 border-black p-4 font-bold text-lg shadow-neo-btn hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-none transition-all mb-3"
+                    className="w-full bg-blue-600 text-white rounded-xl border border-blue-700 p-4 font-bold text-lg shadow-sm hover:shadow-md hover:bg-blue-700 transition-all mb-3"
                 >
                     Try Again →
                 </button>
                 <button
                     onClick={() => navigate('/', { replace: true })}
-                    className="w-full bg-gray-600 text-white border-4 border-black p-4 font-bold text-lg shadow-neo-btn hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-none transition-all"
+                    className="w-full bg-gray-600 text-white rounded-xl border border-gray-700 p-4 font-bold text-lg shadow-sm hover:shadow-md hover:bg-gray-700 transition-all"
                 >
                     Go to Home
                 </button>

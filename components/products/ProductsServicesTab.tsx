@@ -11,6 +11,7 @@ import { getAiResponse } from '../../services/groqService';
 import { ModerationError, formatModerationErrorMessage } from '../../lib/services/moderationService';
 import { searchWeb } from '../../src/lib/services/youSearchService';
 import { MarketResearchPanel } from './MarketResearchPanel';
+import { showSuccess, showError } from '../../lib/utils/toast';
 
 interface ProductsServicesTabProps {
     workspaceId: string;
@@ -472,8 +473,13 @@ export function ProductsServicesTab({
                 <ProductServiceCreateModal
                     workspaceId={workspaceId}
                     onClose={() => setShowCreateModal(false)}
-                    onCreate={(product) => {
-                        actions.createProductService?.(product);
+                    onCreate={async (product) => {
+                        const result = await actions.createProductService?.(product);
+                        if (result?.success) {
+                            showSuccess('Product/Service created successfully');
+                        } else {
+                            showError(result?.message || 'Failed to create product/service');
+                        }
                         setShowCreateModal(false);
                     }}
                 />
@@ -484,15 +490,37 @@ export function ProductsServicesTab({
                     product={selectedProduct}
                     priceHistory={productPriceHistory.filter(h => h.productServiceId === selectedProduct.id)}
                     onClose={() => setSelectedProduct(null)}
-                    onUpdate={(updates) => {
-                        actions.updateProductService?.(selectedProduct.id, updates);
+                    onUpdate={async (updates) => {
+                        const result = await actions.updateProductService?.(selectedProduct.id, updates);
+                        if (result?.success) {
+                            showSuccess('Product/Service updated successfully');
+                        } else {
+                            showError(result?.message || 'Failed to update product/service');
+                        }
                         setSelectedProduct(null);
                     }}
                     onDelete={() => {
-                        deleteProductConfirm.requestConfirm(selectedProduct, (p) => {
-                            actions.deleteProductService?.(p.id);
+                        deleteProductConfirm.requestConfirm(selectedProduct, async (p) => {
+                            const result = await actions.deleteProductService?.(p.id);
+                            if (result?.success) {
+                                showSuccess('Product/Service deleted successfully');
+                            } else {
+                                showError(result?.message || 'Failed to delete product/service');
+                            }
                             setSelectedProduct(null);
                         });
+                    }}
+                    onAdjustInventory={async (quantityChange, reason) => {
+                        const result = await actions.updateProductInventory?.(selectedProduct.id, quantityChange, reason);
+                        return result || { success: false, message: 'Action not available' };
+                    }}
+                    onReserveInventory={async (quantity) => {
+                        const result = await actions.reserveProductInventory?.(selectedProduct.id, quantity);
+                        return result || { success: false, message: 'Action not available' };
+                    }}
+                    onReleaseInventory={async (quantity) => {
+                        const result = await actions.releaseProductInventory?.(selectedProduct.id, quantity);
+                        return result || { success: false, message: 'Action not available' };
                     }}
                 />
             )}

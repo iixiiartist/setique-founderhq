@@ -73,8 +73,8 @@ const FilterChip = ({ label, isActive, onClick }: FilterChipProps) => (
     <button
         type="button"
         onClick={onClick}
-        className={`px-3 py-1 text-xs font-semibold border-2 border-black font-mono transition-colors ${
-            isActive ? 'bg-black text-white' : 'bg-white text-black hover:bg-gray-100'
+        className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+            isActive ? 'bg-slate-900 text-white shadow-sm' : 'bg-gray-100 text-slate-700 hover:bg-gray-200'
         }`}
     >
         {label}
@@ -85,7 +85,7 @@ const ActiveFilterChip = ({ label, onRemove }: ActiveFilterChipProps) => (
     <button
         type="button"
         onClick={onRemove}
-        className="flex items-center gap-1 px-2 py-1 text-xs font-semibold border border-black font-mono text-black hover:bg-gray-100"
+        className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full border border-gray-200 bg-white text-slate-700 hover:bg-gray-100"
     >
         {label}
         <span aria-hidden="true">✕</span>
@@ -201,7 +201,7 @@ export function TaskFilters({ filters, onFilterChange, workspaceMembers, userId,
                 <div>
                     <label
                         htmlFor="tasks-search-input"
-                        className="font-mono font-bold text-xs uppercase tracking-wide text-gray-600 mb-2 block"
+                        className="font-medium text-xs uppercase tracking-wide text-gray-600 mb-2 block"
                     >
                         Search Tasks
                     </label>
@@ -212,20 +212,20 @@ export function TaskFilters({ filters, onFilterChange, workspaceMembers, userId,
                         placeholder="Title, assignee, linked entity..."
                         value={filters.search}
                         onChange={(e) => onFilterChange({ search: e.target.value })}
-                        className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
                     />
                 </div>
 
                 {activeFilters.length > 0 && (
                     <div>
                         <div className="flex items-center justify-between mb-2">
-                            <span className="font-mono text-xs font-bold text-gray-600 uppercase tracking-wide">
+                            <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">
                                 Active Filters ({activeFilters.length})
                             </span>
                             <button
                                 type="button"
                                 onClick={handleClearAll}
-                                className="text-xs font-semibold font-mono underline text-gray-700 hover:text-black"
+                                className="text-xs font-medium underline text-gray-700 hover:text-black"
                             >
                                 Clear all
                             </button>
@@ -399,11 +399,11 @@ export function TaskFilters({ filters, onFilterChange, workspaceMembers, userId,
                 </div>
 
                 <div>
-                    <h3 className="font-mono font-bold text-sm text-gray-800 mb-2">🔧 Sort</h3>
+                    <h3 className="font-semibold text-sm text-slate-800 mb-2">🔧 Sort</h3>
                     <select
                         value={filters.sortBy}
                         onChange={(e) => onFilterChange({ sortBy: e.target.value as TaskFiltersState['sortBy'] })}
-                        className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent mb-3"
                     >
                         <option value="dueDate">Due date</option>
                         <option value="priority">Priority</option>
@@ -415,8 +415,8 @@ export function TaskFilters({ filters, onFilterChange, workspaceMembers, userId,
                         <button
                             type="button"
                             onClick={() => onFilterChange({ sortOrder: 'asc' })}
-                            className={`flex-1 px-3 py-1 border-2 border-black font-mono text-xs font-semibold ${
-                                filters.sortOrder === 'asc' ? 'bg-black text-white' : 'bg-white text-black hover:bg-gray-100'
+                            className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                                filters.sortOrder === 'asc' ? 'bg-slate-900 text-white shadow-sm' : 'bg-gray-100 text-slate-700 hover:bg-gray-200'
                             }`}
                         >
                             ↑ Asc
@@ -424,8 +424,8 @@ export function TaskFilters({ filters, onFilterChange, workspaceMembers, userId,
                         <button
                             type="button"
                             onClick={() => onFilterChange({ sortOrder: 'desc' })}
-                            className={`flex-1 px-3 py-1 border-2 border-black font-mono text-xs font-semibold ${
-                                filters.sortOrder === 'desc' ? 'bg-black text-white' : 'bg-white text-black hover:bg-gray-100'
+                            className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                                filters.sortOrder === 'desc' ? 'bg-slate-900 text-white shadow-sm' : 'bg-gray-100 text-slate-700 hover:bg-gray-200'
                             }`}
                         >
                             ↓ Desc
@@ -434,11 +434,11 @@ export function TaskFilters({ filters, onFilterChange, workspaceMembers, userId,
                 </div>
             </div>
 
-            <div className="p-4 border-t-2 border-black">
+            <div className="p-4 border-t border-gray-200">
                 <button
                     type="button"
                     onClick={handleClearAll}
-                    className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm font-semibold bg-white text-black hover:bg-gray-100"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm font-medium bg-white text-slate-700 hover:bg-gray-50 transition-colors"
                 >
                     Reset Filters
                 </button>

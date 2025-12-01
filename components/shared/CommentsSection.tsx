@@ -137,9 +137,9 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-2 pb-2 border-b-2 border-black">
-        <MessageSquare className="w-5 h-5" />
-        <h3 className="font-mono text-lg font-bold">
+      <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
+        <MessageSquare className="w-5 h-5 text-slate-700" />
+        <h3 className="text-lg font-semibold text-slate-900">
           Comments ({comments.length})
         </h3>
       </div>
@@ -147,20 +147,20 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
       {/* Comments List */}
       <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar pr-2">
         {comments.length === 0 ? (
-          <p className="text-gray-500 text-sm font-mono italic py-4 text-center">
+          <p className="text-gray-500 text-sm italic py-4 text-center">
             No comments yet. Be the first to comment!
           </p>
         ) : (
           comments.map((comment) => (
             <div
               key={comment.id}
-              className="bg-gray-50 border-2 border-black p-3 space-y-2"
+              className="bg-gray-50 rounded-xl border border-gray-200 p-3 space-y-2"
             >
               {/* Comment Header */}
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-sm">
+                    <span className="font-semibold text-sm text-slate-900">
                       {comment.authorName}
                     </span>
                     <span className="text-xs text-gray-500">
@@ -179,14 +179,14 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
                   <div className="flex gap-1">
                     <button
                       onClick={() => startEditing(comment)}
-                      className="p-1 hover:bg-gray-200 border border-black"
+                      className="p-1 hover:bg-gray-200 rounded-lg border border-gray-200"
                       title="Edit comment"
                     >
                       <Edit2 className="w-3 h-3" />
                     </button>
                     <button
                       onClick={() => handleDeleteComment(comment.id)}
-                      className="p-1 hover:bg-red-100 border border-black text-red-600"
+                      className="p-1 hover:bg-red-100 rounded-lg border border-gray-200 text-red-600"
                       title="Delete comment"
                       disabled={submitting}
                     >
@@ -210,7 +210,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
                     <button
                       onClick={() => handleEditComment(comment.id)}
                       disabled={submitting || !editingContent.trim()}
-                      className="flex items-center gap-1 px-3 py-1 bg-blue-500 text-white border-2 border-black font-mono text-sm hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                      className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
                     >
                       <Send className="w-3 h-3" />
                       Save
@@ -218,7 +218,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
                     <button
                       onClick={cancelEditing}
                       disabled={submitting}
-                      className="px-3 py-1 bg-white border-2 border-black font-mono text-sm hover:bg-gray-100"
+                      className="px-3 py-1.5 bg-white rounded-lg border border-gray-200 text-sm hover:bg-gray-100"
                     >
                       Cancel
                     </button>
@@ -235,7 +235,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
       </div>
 
       {/* New Comment Input */}
-      <div className="space-y-2 pt-2 border-t-2 border-black">
+      <div className="space-y-2 pt-2 border-t border-gray-200">
         <MentionInput
           value={newComment}
           onChange={setNewComment}
@@ -246,7 +246,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
         <button
           onClick={handleSubmitComment}
           disabled={submitting || !newComment.trim()}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white border-2 border-black font-mono font-bold hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-medium shadow-sm hover:shadow-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all"
         >
           <Send className="w-4 h-4" />
           {submitting ? 'Posting...' : 'Post Comment'}

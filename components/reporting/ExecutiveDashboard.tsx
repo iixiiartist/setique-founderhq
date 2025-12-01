@@ -184,17 +184,17 @@ const ExecutiveDashboard: React.FC = () => {
             {/* Header with time range selector */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="font-mono font-bold text-2xl text-black">Executive Dashboard</h2>
-                    <p className="font-mono text-sm text-gray-600 mt-1">Key performance metrics at a glance</p>
+                    <h2 className="font-semibold text-2xl text-slate-900">Executive Dashboard</h2>
+                    <p className="text-sm text-gray-600 mt-1">Key performance metrics at a glance</p>
                 </div>
-                <div className="flex border-2 border-black">
+                <div className="flex rounded-xl border border-gray-200 overflow-hidden">
                     {(['7d', '30d', '90d'] as const).map((range) => (
                         <button
                             key={range}
                             onClick={() => setTimeRange(range)}
-                            className={`py-2 px-4 font-mono font-semibold ${
-                                timeRange === range ? 'bg-black text-white' : 'bg-white text-black'
-                            } ${range !== '7d' ? 'border-l-2 border-black' : ''}`}
+                            className={`py-2 px-4 font-medium transition-colors ${
+                                timeRange === range ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 hover:bg-gray-50'
+                            } ${range !== '7d' ? 'border-l border-gray-200' : ''}`}
                         >
                             {range === '7d' ? '7 Days' : range === '30d' ? '30 Days' : '90 Days'}
                         </button>
@@ -205,105 +205,105 @@ const ExecutiveDashboard: React.FC = () => {
             {/* Key metrics grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Revenue */}
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 bg-green-100 border-2 border-black rounded flex items-center justify-center">
+                        <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
                             <DollarSign size={24} className="text-green-600" />
                         </div>
-                        <div className={`flex items-center gap-1 px-2 py-1 rounded font-mono text-xs font-bold ${
+                        <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
                             metrics.revenue.trend >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                         }`}>
                             {metrics.revenue.trend >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                             {formatPercent(metrics.revenue.trend)}
                         </div>
                     </div>
-                    <div className="font-mono text-3xl font-bold text-black mb-1">
+                    <div className="text-3xl font-bold text-slate-900 mb-1">
                         {formatCurrency(metrics.revenue.current)}
                     </div>
-                    <div className="font-mono text-sm text-gray-600">Total Revenue</div>
+                    <div className="text-sm text-gray-600">Total Revenue</div>
                 </div>
 
                 {/* MRR */}
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 bg-blue-100 border-2 border-black rounded flex items-center justify-center">
+                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
                             <TrendingUp size={24} className="text-blue-600" />
                         </div>
-                        <div className={`flex items-center gap-1 px-2 py-1 rounded font-mono text-xs font-bold ${
+                        <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
                             metrics.mrr.trend >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                         }`}>
                             {metrics.mrr.trend >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                             {formatPercent(metrics.mrr.trend)}
                         </div>
                     </div>
-                    <div className="font-mono text-3xl font-bold text-black mb-1">
+                    <div className="text-3xl font-bold text-slate-900 mb-1">
                         {formatCurrency(metrics.mrr.current)}
                     </div>
-                    <div className="font-mono text-sm text-gray-600">Monthly Recurring Revenue</div>
+                    <div className="text-sm text-gray-600">Monthly Recurring Revenue</div>
                 </div>
 
                 {/* Customers */}
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 bg-purple-100 border-2 border-black rounded flex items-center justify-center">
+                        <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
                             <Users size={24} className="text-purple-600" />
                         </div>
-                        <div className={`flex items-center gap-1 px-2 py-1 rounded font-mono text-xs font-bold ${
+                        <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
                             metrics.customers.trend >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                         }`}>
                             {metrics.customers.trend >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                             {formatPercent(metrics.customers.trend)}
                         </div>
                     </div>
-                    <div className="font-mono text-3xl font-bold text-black mb-1">
+                    <div className="text-3xl font-bold text-slate-900 mb-1">
                         {metrics.customers.current}
                     </div>
-                    <div className="font-mono text-sm text-gray-600">Total Customers</div>
+                    <div className="text-sm text-gray-600">Total Customers</div>
                 </div>
 
                 {/* Pipeline */}
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 bg-amber-100 border-2 border-black rounded flex items-center justify-center">
+                        <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
                             <Target size={24} className="text-amber-600" />
                         </div>
-                        <div className="px-2 py-1 rounded font-mono text-xs font-bold bg-gray-100 text-gray-800">
+                        <div className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                             {metrics.pipeline.count} deals
                         </div>
                     </div>
-                    <div className="font-mono text-3xl font-bold text-black mb-1">
+                    <div className="text-3xl font-bold text-slate-900 mb-1">
                         {formatCurrency(metrics.pipeline.value)}
                     </div>
-                    <div className="font-mono text-sm text-gray-600">Deal Pipeline</div>
+                    <div className="text-sm text-gray-600">Deal Pipeline</div>
                 </div>
             </div>
 
             {/* Secondary metrics */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Task completion */}
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-3 mb-4">
                         <CheckCircle2 size={20} className="text-green-600" />
-                        <h3 className="font-mono font-bold text-lg">Task Completion</h3>
+                        <h3 className="font-semibold text-lg text-slate-900">Task Completion</h3>
                     </div>
                     <div className="space-y-3">
                         <div>
                             <div className="flex items-center justify-between mb-1">
-                                <span className="font-mono text-sm text-gray-600">Completion Rate</span>
-                                <span className="font-mono font-bold text-black">
+                                <span className="text-sm text-gray-600">Completion Rate</span>
+                                <span className="font-semibold text-slate-900">
                                     {metrics.tasks.total > 0 ? Math.round((metrics.tasks.completed / metrics.tasks.total) * 100) : 0}%
                                 </span>
                             </div>
-                            <div className="w-full bg-gray-200 h-2 border border-black">
+                            <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
                                 <div
-                                    className="bg-green-600 h-full"
+                                    className="bg-green-600 h-full rounded-full"
                                     style={{ width: `${metrics.tasks.total > 0 ? (metrics.tasks.completed / metrics.tasks.total) * 100 : 0}%` }}
                                 />
                             </div>
                         </div>
                         <div className="flex items-center justify-between">
-                            <span className="font-mono text-sm text-gray-600">On-Time</span>
-                            <span className="font-mono font-semibold text-black">
+                            <span className="text-sm text-gray-600">On-Time</span>
+                            <span className="font-medium text-slate-900">
                                 {metrics.tasks.onTime} / {metrics.tasks.completed}
                             </span>
                         </div>
@@ -311,28 +311,28 @@ const ExecutiveDashboard: React.FC = () => {
                 </div>
 
                 {/* Runway */}
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-3 mb-4">
                         <Clock size={20} className="text-blue-600" />
-                        <h3 className="font-mono font-bold text-lg">Cash Runway</h3>
+                        <h3 className="font-semibold text-lg text-slate-900">Cash Runway</h3>
                     </div>
-                    <div className="font-mono text-4xl font-bold text-black mb-2">
+                    <div className="text-4xl font-bold text-slate-900 mb-2">
                         {metrics.runway.toFixed(1)}
                     </div>
-                    <div className="font-mono text-sm text-gray-600">months remaining</div>
+                    <div className="text-sm text-gray-600">months remaining</div>
                     {metrics.runway < 6 && (
                         <div className="mt-3 flex items-center gap-2 text-amber-600">
                             <AlertTriangle size={16} />
-                            <span className="font-mono text-xs font-semibold">Low runway warning</span>
+                            <span className="text-xs font-medium">Low runway warning</span>
                         </div>
                     )}
                 </div>
 
                 {/* Health score */}
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-3 mb-4">
                         <Target size={20} className="text-purple-600" />
-                        <h3 className="font-mono font-bold text-lg">Business Health</h3>
+                        <h3 className="font-semibold text-lg text-slate-900">Business Health</h3>
                     </div>
                     <div className="space-y-2">
                         {[
@@ -343,12 +343,12 @@ const ExecutiveDashboard: React.FC = () => {
                         ].map((metric, i) => (
                             <div key={i}>
                                 <div className="flex items-center justify-between mb-1">
-                                    <span className="font-mono text-xs text-gray-600">{metric.label}</span>
-                                    <span className="font-mono text-xs font-bold text-black">{Math.round(metric.score)}%</span>
+                                    <span className="text-xs text-gray-600">{metric.label}</span>
+                                    <span className="text-xs font-semibold text-slate-900">{Math.round(metric.score)}%</span>
                                 </div>
-                                <div className="w-full bg-gray-200 h-1.5 border border-black">
+                                <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden">
                                     <div
-                                        className={`h-full ${metric.score >= 75 ? 'bg-green-600' : metric.score >= 50 ? 'bg-amber-600' : 'bg-red-600'}`}
+                                        className={`h-full rounded-full ${metric.score >= 75 ? 'bg-green-600' : metric.score >= 50 ? 'bg-amber-600' : 'bg-red-600'}`}
                                         style={{ width: `${metric.score}%` }}
                                     />
                                 </div>

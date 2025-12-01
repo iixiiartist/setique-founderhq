@@ -58,21 +58,21 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
     // Show admin banner if user is admin
     if (isAdmin && !isLoading) {
         return (
-            <div className="bg-gradient-to-r from-purple-500 to-indigo-600 border-2 border-black shadow-neo p-4 mb-6">
+            <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-lg p-4 mb-6">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="text-3xl">👑</div>
                         <div>
                             <h3 className="text-lg font-bold text-white flex items-center gap-2">
                                 Admin Access
-                                <span className="text-xs bg-white text-black px-2 py-1 border border-black font-mono">UNLIMITED</span>
+                                <span className="text-xs bg-white text-slate-900 px-2 py-1 rounded-full font-semibold">UNLIMITED</span>
                             </h3>
-                            <p className="text-sm text-white mt-1 font-mono">
+                            <p className="text-sm text-gray-300 mt-1">
                                 You have full access to all features with no limits
                             </p>
                         </div>
                     </div>
-                    <div className="text-white text-sm font-mono bg-black bg-opacity-20 px-4 py-2 border border-white">
+                    <div className="text-white text-sm bg-slate-800 px-4 py-2 rounded-xl border border-slate-600">
                         ∞ AI • ∞ Storage • ∞ Files
                     </div>
                 </div>
@@ -81,7 +81,7 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
     }
 
     if (isLoading) {
-        return <div className="bg-gray-100 border-2 border-black p-4 mb-6 animate-pulse h-32" />;
+        return <div className="bg-gray-100 border border-gray-200 rounded-2xl p-4 mb-6 animate-pulse h-32" />;
     }
 
     const limits = PLAN_LIMITS[planType];
@@ -100,9 +100,9 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
     const showFileWarning = isApproachingLimit(fileCountUsed, limits.fileCount) || isLimitExceeded(fileCountUsed, limits.fileCount);
 
     const getProgressColor = (percentage: number) => {
-        if (percentage >= 100) return 'bg-red-600';
-        if (percentage >= 80) return 'bg-yellow-400';
-        return 'bg-blue-600';
+        if (percentage >= 100) return 'bg-black';
+        if (percentage >= 80) return 'bg-gray-700';
+        return 'bg-gray-500';
     };
 
     const renderUsageBar = (label: string, used: number, limit: number | null, formatFn?: (val: number) => string) => {
@@ -113,13 +113,13 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
 
         return (
             <div className="flex-1 min-w-[200px]">
-                <div className="flex justify-between text-xs text-black font-bold mb-1">
+                <div className="flex justify-between text-xs text-slate-700 font-semibold mb-1">
                     <span>{label}</span>
-                    <span className={isUnlimited ? 'text-green-600' : ''}>{displayUsed} / {displayLimit}</span>
+                    <span className={isUnlimited ? 'text-slate-900' : ''}>{displayUsed} / {displayLimit}</span>
                 </div>
-                <div className="w-full bg-gray-200 border-2 border-black h-6">
+                <div className="w-full bg-gray-200 rounded-full h-6">
                     <div
-                        className={`h-full transition-all ${isUnlimited ? 'bg-green-600' : getProgressColor(percentage)}`}
+                        className={`h-full transition-all rounded-full ${isUnlimited ? 'bg-slate-900' : getProgressColor(percentage)}`}
                         style={{ width: `${isUnlimited ? 100 : Math.min(percentage, 100)}%` }}
                     />
                 </div>
@@ -128,23 +128,23 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
     };
 
     return (
-        <div className="bg-white border-2 border-black shadow-neo p-4 mb-6">
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-lg p-4 mb-6">
             <div className="flex justify-between items-start mb-4 flex-wrap gap-3">
                 <div className="max-w-xl">
-                    <h3 className="text-lg font-bold text-black flex items-center gap-2">
+                    <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                         {limits.name} Plan
                         {planType === 'free' && (
-                            <span className="text-xs bg-gray-200 text-black px-2 py-1 border border-black font-mono">FREE</span>
+                            <span className="text-xs bg-gray-100 text-slate-700 px-2 py-1 rounded-full font-semibold">FREE</span>
                         )}
                         {planType === 'team-pro' && (
-                            <span className="text-xs bg-green-100 text-green-900 px-2 py-1 border border-black font-mono">PRO</span>
+                            <span className="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded-full font-semibold">PRO</span>
                         )}
                     </h3>
-                    <p className="text-sm text-gray-700 mt-1 font-mono">
+                    <p className="text-sm text-slate-600 mt-1">
                         {planSummary[planType]}
                     </p>
                     {isTeamPlan && seatCount && (
-                        <p className="text-xs text-black mt-1 font-mono">
+                        <p className="text-xs text-slate-700 mt-1">
                             Seats in use: {usedSeats || 0} / {seatCount}
                         </p>
                     )}
@@ -152,7 +152,7 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
                 {planType !== 'team-pro' && (
                     <button
                         onClick={onUpgrade}
-                        className="font-mono bg-blue-600 border-2 border-black text-white cursor-pointer py-2 px-4 font-semibold shadow-neo-btn transition-all hover:bg-blue-700 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+                        className="bg-slate-900 text-white cursor-pointer py-2 px-4 font-semibold rounded-xl shadow-sm hover:shadow-md hover:bg-slate-800 transition-all"
                     >
                         Upgrade Plan
                     </button>
@@ -182,19 +182,19 @@ export const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({
                 }
 
                 return (
-                    <div className="mt-4 p-3 bg-yellow-100 border-2 border-black">
+                    <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl">
                         <div className="flex items-start gap-2">
-                            <svg className="w-5 h-5 text-black flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                             </svg>
                             <div className="flex-1">
-                                <p className="text-sm font-bold text-black">Usage Warning</p>
-                                <ul className="text-xs text-black mt-1 list-disc pl-4 space-y-1">
+                                <p className="text-sm font-semibold text-amber-800">Usage Warning</p>
+                                <ul className="text-xs text-amber-700 mt-1 list-disc pl-4 space-y-1">
                                     {warningLines.map((line, idx) => (
                                         <li key={idx}>{line}</li>
                                     ))}
                                 </ul>
-                                <button onClick={onUpgrade} className="underline font-bold hover:text-blue-600 text-xs mt-2">
+                                <button onClick={onUpgrade} className="underline font-semibold hover:text-amber-900 text-xs mt-2">
                                     Upgrade now
                                 </button>
                             </div>

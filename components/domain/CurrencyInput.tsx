@@ -164,12 +164,12 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
             aria-describedby={
               error ? `${inputId}-error` : helpText ? `${inputId}-help` : undefined
             }
-            className={`w-full bg-white border-2 text-black p-2 rounded-none focus:outline-none transition-colors ${
+            className={`w-full bg-white border text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors ${
               showSymbol ? 'pl-8' : 'pl-2'
             } ${
               hasError
-                ? 'border-red-600 focus:border-red-600'
-                : 'border-black focus:border-blue-500'
+                ? 'border-red-500 focus:border-red-600'
+                : 'border-gray-200 focus:border-blue-500'
             } ${disabled ? 'bg-gray-100 cursor-not-allowed text-gray-500' : ''}`}
           />
         </div>

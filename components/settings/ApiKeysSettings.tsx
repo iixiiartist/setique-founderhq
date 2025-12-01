@@ -107,29 +107,29 @@ const CreateKeyModal: React.FC<CreateKeyModalProps> = ({ onClose, onCreate, isCr
   if (newKey) {
     return (
       <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-        <div className="bg-white border-2 border-black p-6 max-w-lg w-full mx-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          <h3 className="text-xl font-bold font-mono mb-4">✅ API Key Created</h3>
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 max-w-lg w-full mx-4 shadow-2xl">
+          <h3 className="text-xl font-semibold text-slate-900 mb-4">✅ API Key Created</h3>
           
-          <div className="bg-yellow-50 border-2 border-yellow-400 p-4 mb-4">
-            <p className="text-sm font-bold text-yellow-800 mb-2">
+          <div className="bg-yellow-50 rounded-xl border border-yellow-200 p-4 mb-4">
+            <p className="text-sm font-medium text-yellow-800 mb-2">
               ⚠️ Copy your API key now! It will not be shown again.
             </p>
           </div>
 
-          <div className="bg-gray-100 border border-gray-300 p-3 rounded font-mono text-sm break-all mb-4">
+          <div className="bg-gray-100 border border-gray-200 p-3 rounded-xl text-sm break-all mb-4">
             {newKey}
           </div>
 
           <div className="flex gap-3">
             <button
               onClick={handleCopy}
-              className="flex-1 bg-black text-white px-4 py-2 font-bold hover:bg-gray-800 transition-colors"
+              className="flex-1 bg-slate-900 text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-slate-800 transition-colors"
             >
               {copied ? '✓ Copied!' : '📋 Copy to Clipboard'}
             </button>
             <button
               onClick={handleClose}
-              className="px-4 py-2 border-2 border-black font-bold hover:bg-gray-100 transition-colors"
+              className="px-4 py-2.5 rounded-xl border border-gray-200 font-medium hover:bg-gray-50 transition-colors"
             >
               Done
             </button>
@@ -141,18 +141,18 @@ const CreateKeyModal: React.FC<CreateKeyModalProps> = ({ onClose, onCreate, isCr
 
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white border-2 border-black p-6 max-w-lg w-full mx-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] max-h-[90vh] overflow-y-auto">
-        <h3 className="text-xl font-bold font-mono mb-4">Create API Key</h3>
+      <div className="bg-white rounded-2xl border border-gray-200 p-6 max-w-lg w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <h3 className="text-xl font-semibold text-slate-900 mb-4">Create API Key</h3>
 
         {/* Name */}
         <div className="mb-4">
-          <label className="block text-sm font-bold mb-1">Name</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g., Production Integration"
-            className="w-full border-2 border-black px-3 py-2 font-mono"
+            className="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
           />
         </div>
 
@@ -186,11 +186,11 @@ const CreateKeyModal: React.FC<CreateKeyModalProps> = ({ onClose, onCreate, isCr
 
         {/* Expiration */}
         <div className="mb-6">
-          <label className="block text-sm font-bold mb-2">Expiration</label>
+          <label className="block text-sm font-medium text-slate-700 mb-2">Expiration</label>
           <select
             value={expiresInDays ?? ''}
             onChange={(e) => setExpiresInDays(e.target.value ? parseInt(e.target.value) : null)}
-            className="w-full border-2 border-black px-3 py-2 font-mono"
+            className="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
           >
             <option value="">Never expires</option>
             <option value="30">30 days</option>
@@ -205,13 +205,13 @@ const CreateKeyModal: React.FC<CreateKeyModalProps> = ({ onClose, onCreate, isCr
           <button
             onClick={handleCreate}
             disabled={isCreating}
-            className="flex-1 bg-black text-white px-4 py-2 font-bold hover:bg-gray-800 transition-colors disabled:opacity-50"
+            className="flex-1 bg-slate-900 text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-slate-800 transition-colors disabled:opacity-50"
           >
             {isCreating ? 'Creating...' : 'Create API Key'}
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-2 border-2 border-black font-bold hover:bg-gray-100 transition-colors"
+            className="px-4 py-2.5 rounded-xl border border-gray-200 font-medium hover:bg-gray-50 transition-colors"
           >
             Cancel
           </button>
@@ -248,19 +248,19 @@ const ApiKeyRow: React.FC<ApiKeyRowProps> = ({ apiKey, onRevoke, onDelete, isUpd
   };
 
   return (
-    <div className={`p-4 border-2 ${apiKey.isActive ? 'border-black' : 'border-gray-300 bg-gray-50'}`}>
+    <div className={`p-4 rounded-xl border ${apiKey.isActive ? 'border-gray-200' : 'border-gray-200 bg-gray-50'}`}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-bold font-mono truncate">{apiKey.name}</span>
+            <span className="font-semibold text-slate-900 truncate">{apiKey.name}</span>
             {!apiKey.isActive && (
-              <span className="px-2 py-0.5 text-xs font-bold bg-red-100 text-red-800 border border-red-300">
+              <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-700">
                 REVOKED
               </span>
             )}
           </div>
           
-          <div className="font-mono text-sm text-gray-600 mb-2">
+          <div className="text-sm text-gray-600 mb-2">
             {apiKey.keyPrefix}...
           </div>
 
@@ -268,7 +268,7 @@ const ApiKeyRow: React.FC<ApiKeyRowProps> = ({ apiKey, onRevoke, onDelete, isUpd
             {apiKey.scopes.map(scope => (
               <span
                 key={scope}
-                className="px-2 py-0.5 text-xs font-mono bg-blue-100 text-blue-800 border border-blue-300"
+                className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700"
               >
                 {scope}
               </span>
@@ -287,7 +287,7 @@ const ApiKeyRow: React.FC<ApiKeyRowProps> = ({ apiKey, onRevoke, onDelete, isUpd
             <button
               onClick={() => onRevoke(apiKey.id)}
               disabled={isUpdating}
-              className="px-3 py-1 text-sm font-bold border-2 border-yellow-500 text-yellow-700 hover:bg-yellow-50 disabled:opacity-50"
+              className="px-3 py-1.5 text-sm font-medium rounded-lg border border-yellow-400 text-yellow-700 hover:bg-yellow-50 disabled:opacity-50 transition-colors"
             >
               Revoke
             </button>
@@ -298,13 +298,13 @@ const ApiKeyRow: React.FC<ApiKeyRowProps> = ({ apiKey, onRevoke, onDelete, isUpd
               <button
                 onClick={handleDelete}
                 disabled={isUpdating}
-                className="px-3 py-1 text-sm font-bold bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                className="px-3 py-1.5 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
               >
                 Confirm
               </button>
               <button
                 onClick={() => setShowConfirmDelete(false)}
-                className="px-3 py-1 text-sm font-bold border-2 border-black hover:bg-gray-100"
+                className="px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
               >
                 Cancel
               </button>
@@ -312,7 +312,7 @@ const ApiKeyRow: React.FC<ApiKeyRowProps> = ({ apiKey, onRevoke, onDelete, isUpd
           ) : (
             <button
               onClick={() => setShowConfirmDelete(true)}
-              className="px-3 py-1 text-sm font-bold border-2 border-red-500 text-red-700 hover:bg-red-50"
+              className="px-3 py-1.5 text-sm font-medium rounded-lg border border-red-400 text-red-700 hover:bg-red-50 transition-colors"
             >
               Delete
             </button>

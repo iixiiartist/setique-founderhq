@@ -20,15 +20,15 @@ export interface ConfirmWithInputDialogProps {
 const variantStyles = {
   danger: {
     icon: '⚠️',
-    confirmBg: 'bg-red-500 hover:bg-red-600 text-white',
+    confirmBg: 'bg-red-600 hover:bg-red-700 text-white',
     iconBg: 'bg-red-100',
     inputFocusBorder: 'focus:border-red-500 focus:ring-red-500',
   },
   warning: {
     icon: '⚠️',
-    confirmBg: 'bg-yellow-500 hover:bg-yellow-600 text-black',
-    iconBg: 'bg-yellow-100',
-    inputFocusBorder: 'focus:border-yellow-500 focus:ring-yellow-500',
+    confirmBg: 'bg-amber-600 hover:bg-amber-700 text-white',
+    iconBg: 'bg-amber-100',
+    inputFocusBorder: 'focus:border-amber-500 focus:ring-amber-500',
   },
 };
 
@@ -95,13 +95,13 @@ export const ConfirmWithInputDialog: React.FC<ConfirmWithInputDialogProps> = ({
       aria-describedby="confirm-input-dialog-description"
     >
       <div 
-        className="bg-white border-2 border-black shadow-neo-lg w-full max-w-md animate-in fade-in zoom-in-95 duration-200"
+        className="bg-white rounded-2xl border border-gray-200 shadow-xl w-full max-w-md animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header with icon */}
         <div className="p-6 pb-4">
           <div className="flex items-start gap-4">
-            <div className={`w-12 h-12 rounded-full ${styles.iconBg} flex items-center justify-center text-2xl flex-shrink-0`}>
+            <div className={`w-12 h-12 rounded-xl ${styles.iconBg} flex items-center justify-center text-2xl flex-shrink-0`}>
               {styles.icon}
             </div>
             <div className="flex-1 min-w-0">
@@ -123,10 +123,10 @@ export const ConfirmWithInputDialog: React.FC<ConfirmWithInputDialogProps> = ({
 
         {/* Input Section */}
         <div className="px-6 pb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-slate-900 mb-2">
             {inputLabel}
           </label>
-          <code className="block px-2 py-1 bg-gray-100 rounded text-sm font-mono mb-2 select-all">
+          <code className="block px-2 py-1 bg-gray-100 rounded-lg border border-gray-200 text-sm font-mono mb-2 select-all">
             {confirmationText}
           </code>
           <input
@@ -136,12 +136,12 @@ export const ConfirmWithInputDialog: React.FC<ConfirmWithInputDialogProps> = ({
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="Type to confirm..."
             disabled={isLoading}
-            className={`w-full px-3 py-2 border-2 border-gray-300 rounded-md font-mono text-sm transition-colors ${styles.inputFocusBorder} ${
-              inputValue.length > 0 && !isMatch ? 'border-red-300 bg-red-50' : ''
-            } ${isMatch ? 'border-green-500 bg-green-50' : ''}`}
+            className={`w-full px-3 py-2 rounded-xl border border-gray-200 text-sm transition-colors ${styles.inputFocusBorder} ${
+              inputValue.length > 0 && !isMatch ? 'bg-gray-50' : ''
+            } ${isMatch ? 'bg-green-50 border-green-300' : ''}`}
           />
           {inputValue.length > 0 && !isMatch && (
-            <p className="mt-1 text-xs text-red-500">Text does not match</p>
+            <p className="mt-1 text-xs text-gray-600">Text does not match</p>
           )}
         </div>
 
@@ -157,7 +157,7 @@ export const ConfirmWithInputDialog: React.FC<ConfirmWithInputDialogProps> = ({
           <button
             onClick={handleConfirm}
             disabled={isLoading || !isMatch}
-            className={`px-4 py-2 font-medium border-2 border-black shadow-neo transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none disabled:opacity-50 disabled:cursor-not-allowed ${styles.confirmBg}`}
+            className={`px-4 py-2 font-medium rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed ${styles.confirmBg}`}
           >
             {isLoading ? (
               <span className="flex items-center gap-2">

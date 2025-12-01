@@ -12,27 +12,27 @@ interface AgentResponsePresenterProps {
 }
 
 const SECTION_ICONS: Record<string, React.ReactNode> = {
-  'snapshot': <Building2 size={16} className="text-blue-500" />,
-  'overview': <FileText size={16} className="text-blue-500" />,
-  'company': <Building2 size={16} className="text-blue-500" />,
-  'icp': <Target size={16} className="text-green-500" />,
-  'customer': <Users size={16} className="text-green-500" />,
-  'pain': <Zap size={16} className="text-orange-500" />,
-  'problem': <Zap size={16} className="text-orange-500" />,
-  'trend': <TrendingUp size={16} className="text-purple-500" />,
-  'market': <TrendingUp size={16} className="text-purple-500" />,
-  'competitive': <Target size={16} className="text-red-500" />,
-  'landscape': <Target size={16} className="text-red-500" />,
-  'angle': <Lightbulb size={16} className="text-yellow-600" />,
-  'outreach': <Lightbulb size={16} className="text-yellow-600" />,
-  'gtm': <Rocket size={16} className="text-indigo-500" />,
-  'recommendation': <Lightbulb size={16} className="text-yellow-600" />,
-  'signal': <AlertTriangle size={16} className="text-amber-500" />,
-  'risk': <AlertTriangle size={16} className="text-red-500" />,
-  'summary': <BookOpen size={16} className="text-emerald-500" />,
-  'takeaway': <BookOpen size={16} className="text-emerald-500" />,
-  'how to use': <FileText size={16} className="text-blue-500" />,
-  'founderhq': <FileText size={16} className="text-blue-500" />,
+  'snapshot': <Building2 size={16} className="text-slate-700" />,
+  'overview': <FileText size={16} className="text-slate-700" />,
+  'company': <Building2 size={16} className="text-slate-700" />,
+  'icp': <Target size={16} className="text-slate-600" />,
+  'customer': <Users size={16} className="text-slate-600" />,
+  'pain': <Zap size={16} className="text-slate-600" />,
+  'problem': <Zap size={16} className="text-slate-600" />,
+  'trend': <TrendingUp size={16} className="text-slate-500" />,
+  'market': <TrendingUp size={16} className="text-slate-500" />,
+  'competitive': <Target size={16} className="text-slate-700" />,
+  'landscape': <Target size={16} className="text-slate-700" />,
+  'angle': <Lightbulb size={16} className="text-slate-500" />,
+  'outreach': <Lightbulb size={16} className="text-slate-500" />,
+  'gtm': <Rocket size={16} className="text-slate-600" />,
+  'recommendation': <Lightbulb size={16} className="text-slate-500" />,
+  'signal': <AlertTriangle size={16} className="text-slate-600" />,
+  'risk': <AlertTriangle size={16} className="text-slate-700" />,
+  'summary': <BookOpen size={16} className="text-slate-600" />,
+  'takeaway': <BookOpen size={16} className="text-slate-600" />,
+  'how to use': <FileText size={16} className="text-slate-700" />,
+  'founderhq': <FileText size={16} className="text-slate-700" />,
 };
 
 const getIconForHeading = (heading: string): React.ReactNode => {
@@ -70,8 +70,8 @@ export const AgentResponsePresenter: React.FC<AgentResponsePresenterProps> = ({
 
   if (response.error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-        <p className="font-medium">Error</p>
+      <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-800">
+        <p className="font-semibold">Error</p>
         <p className="text-sm mt-1">{response.error}</p>
       </div>
     );
@@ -80,18 +80,18 @@ export const AgentResponsePresenter: React.FC<AgentResponsePresenterProps> = ({
   return (
     <div className="space-y-4">
       {/* Action Bar */}
-      <div className="flex items-center justify-end gap-2 pb-2 border-b border-gray-100">
+      <div className="flex items-center justify-end gap-2 pb-3 border-b border-gray-200">
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-700 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors"
         >
-          {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+          {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
           {copied ? 'Copied!' : 'Copy'}
         </button>
         {onInsertToDoc && (
           <button
             onClick={() => onInsertToDoc(response.output || '')}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-yellow-400 hover:bg-yellow-500 text-black font-medium rounded-md transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-slate-900 text-white font-medium rounded-lg shadow-sm hover:shadow-md hover:bg-slate-800 transition-all"
           >
             <FileText size={14} />
             Insert to Doc
@@ -107,7 +107,7 @@ export const AgentResponsePresenter: React.FC<AgentResponsePresenterProps> = ({
       {/* Sources */}
       {response.sources && response.sources.length > 0 && (
         <div className="mt-6 pt-4 border-t border-gray-200">
-          <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+          <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
             <ExternalLink size={14} />
             Sources ({response.sources.length})
           </h4>
@@ -272,10 +272,10 @@ function renderMarkdown(text: string): React.ReactNode {
       const content = headingMatch[2].replace(/\*\*/g, ''); // Remove bold markers from headings
       
       const headingClasses: Record<number, string> = {
-        1: 'text-xl font-bold text-gray-900 mt-6 mb-3 flex items-center gap-2',
-        2: 'text-lg font-semibold text-gray-800 mt-5 mb-2 flex items-center gap-2',
-        3: 'text-base font-semibold text-gray-700 mt-4 mb-2 flex items-center gap-2',
-        4: 'text-sm font-medium text-gray-700 mt-3 mb-2 flex items-center gap-2',
+        1: 'text-xl font-semibold text-slate-900 mt-6 mb-3 flex items-center gap-2',
+        2: 'text-lg font-semibold text-slate-900 mt-5 mb-2 flex items-center gap-2',
+        3: 'text-base font-semibold text-slate-800 mt-4 mb-2 flex items-center gap-2',
+        4: 'text-sm font-medium text-slate-700 mt-3 mb-2 flex items-center gap-2',
       };
 
       const headingClass = headingClasses[level] || headingClasses[4];
@@ -321,7 +321,7 @@ function renderMarkdown(text: string): React.ReactNode {
       flushTable();
       const quoteContent = trimmedLine.slice(1).trim();
       elements.push(
-        <blockquote key={key++} className="border-l-4 border-blue-300 pl-4 py-2 my-3 bg-blue-50/50 text-gray-700 italic text-sm">
+        <blockquote key={key++} className="border-l-4 border-slate-300 pl-4 py-2 my-3 bg-slate-50 rounded-r-lg text-slate-700 italic text-sm">
           {formatInlineMarkdown(quoteContent)}
         </blockquote>
       );
@@ -364,7 +364,7 @@ function formatInlineMarkdown(text: string): React.ReactNode {
           href={linkMatch[2]} 
           target="_blank" 
           rel="noopener noreferrer"
-          className="text-blue-600 hover:text-blue-800 underline"
+          className="text-slate-900 underline underline-offset-2 hover:text-slate-600 font-medium transition-colors"
         >
           {linkMatch[1]}
         </a>
@@ -393,7 +393,7 @@ function formatInlineMarkdown(text: string): React.ReactNode {
     const codeMatch = remaining.match(/^`([^`]+)`/);
     if (codeMatch) {
       parts.push(
-        <code key={key++} className="px-1.5 py-0.5 bg-gray-100 text-gray-800 rounded text-xs font-mono">
+        <code key={key++} className="px-1.5 py-0.5 bg-slate-100 text-slate-800 border border-slate-200 rounded text-xs font-mono">
           {codeMatch[1]}
         </code>
       );
@@ -434,14 +434,14 @@ const SourceCard: React.FC<{ source: AgentSource }> = ({ source }) => {
       href={source.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-start gap-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors group text-left border border-gray-100"
+      className="flex items-start gap-2 p-3 bg-slate-50 hover:bg-slate-100 transition-colors group text-left rounded-xl border border-gray-200"
     >
-      <ExternalLink size={12} className="text-gray-400 group-hover:text-blue-500 flex-shrink-0 mt-0.5" />
+      <ExternalLink size={12} className="text-slate-400 group-hover:text-slate-600 flex-shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-gray-700 truncate group-hover:text-blue-600">
+        <p className="text-xs font-medium text-slate-700 truncate group-hover:text-slate-900">
           {source.title || domain}
         </p>
-        <p className="text-xs text-gray-400 truncate">{domain}</p>
+        <p className="text-xs text-slate-400 truncate">{domain}</p>
       </div>
     </a>
   );

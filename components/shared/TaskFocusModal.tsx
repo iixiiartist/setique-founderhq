@@ -13,8 +13,8 @@ interface TaskFocusItemProps {
 const TaskFocusItem: React.FC<TaskFocusItemProps> = ({ task, onUpdateTask, canEdit }) => {
     const tagColorClass = TASK_TAG_BG_COLORS[task.tag] || 'bg-gray-300';
     return (
-        <li className="flex items-stretch bg-white border-2 border-black shadow-neo-sm mb-3">
-            <div className={`w-2 shrink-0 ${tagColorClass}`}></div>
+        <li className="flex items-stretch bg-white border border-gray-200 rounded-xl shadow-sm mb-3 overflow-hidden">
+            <div className={`w-1.5 shrink-0 ${tagColorClass}`}></div>
             <div className="flex items-center justify-between p-3 flex-grow overflow-hidden">
                 <div className="flex items-center flex-grow overflow-hidden">
                     <input 
@@ -23,12 +23,12 @@ const TaskFocusItem: React.FC<TaskFocusItemProps> = ({ task, onUpdateTask, canEd
                         checked={task.status === 'Done'}
                         onChange={(e) => onUpdateTask(task.id, { status: e.target.checked ? 'Done' : 'Todo' })}
                         disabled={!canEdit}
-                        className="w-5 h-5 mr-3 accent-blue-500 shrink-0 border-2 border-black rounded-none disabled:opacity-50 disabled:cursor-not-allowed" 
+                        className="w-5 h-5 mr-3 accent-slate-900 shrink-0 border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed" 
                         title={!canEdit ? 'You cannot edit this task' : ''}
                     />
                     <label htmlFor={`focus-task-${task.id}`} className={`flex flex-col overflow-hidden ${canEdit ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
-                        <span className="font-mono text-xs font-semibold text-blue-600">{task.tag}</span>
-                        <span className={`text-black truncate ${!canEdit ? 'opacity-50' : ''}`}>{task.text}</span>
+                        <span className="text-xs font-medium text-slate-500">{task.tag}</span>
+                        <span className={`text-slate-900 truncate ${!canEdit ? 'opacity-50' : ''}`}>{task.text}</span>
                     </label>
                 </div>
             </div>
@@ -71,10 +71,10 @@ const TaskFocusModal: React.FC<TaskFocusModalProps> = ({ isOpen, onClose, tasks,
                     ))}
                 </ul>
             ) : (
-                <div className="text-center p-8 border-2 border-dashed border-black">
+                <div className="text-center p-8 border border-dashed border-gray-300 rounded-xl">
                     <p className="text-2xl mb-2">🎉</p>
-                    <p className="font-semibold text-lg">All tasks completed!</p>
-                    <p className="text-gray-600">Great job. Time to create some new ones!</p>
+                    <p className="font-semibold text-lg text-slate-900">All tasks completed!</p>
+                    <p className="text-slate-600">Great job. Time to create some new ones!</p>
                 </div>
             )}
         </Modal>

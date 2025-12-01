@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type BadgeVariant = 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info';
+export type BadgeVariant = 'default' | 'filled' | 'outline' | 'success' | 'warning' | 'danger';
 export type BadgeSize = 'sm' | 'md' | 'lg';
 
 export interface BadgeProps {
@@ -11,19 +11,20 @@ export interface BadgeProps {
   onRemove?: () => void;
 }
 
+// Modern design: Pill-shaped badges with subtle colors
 const variantStyles: Record<BadgeVariant, string> = {
-  default: 'bg-gray-200 text-gray-800 border-gray-400',
-  primary: 'bg-blue-100 text-blue-800 border-blue-500',
-  success: 'bg-green-100 text-green-800 border-green-500',
-  warning: 'bg-yellow-100 text-yellow-800 border-yellow-500',
-  danger: 'bg-red-100 text-red-800 border-red-500',
-  info: 'bg-purple-100 text-purple-800 border-purple-500',
+  default: 'bg-gray-100 text-slate-700 border-transparent',
+  filled: 'bg-slate-900 text-white border-transparent',
+  outline: 'bg-transparent text-slate-700 border-gray-300',
+  success: 'bg-emerald-50 text-emerald-700 border-transparent',
+  warning: 'bg-amber-50 text-amber-700 border-transparent',
+  danger: 'bg-red-50 text-red-700 border-transparent',
 };
 
 const sizeStyles: Record<BadgeSize, string> = {
-  sm: 'text-xs px-1.5 py-0.5',
-  md: 'text-sm px-2 py-0.5',
-  lg: 'text-base px-2.5 py-1',
+  sm: 'text-xs px-2 py-0.5',
+  md: 'text-sm px-2.5 py-0.5',
+  lg: 'text-sm px-3 py-1',
 };
 
 export function Badge({
@@ -36,7 +37,7 @@ export function Badge({
   return (
     <span
       className={`
-        inline-flex items-center gap-1 font-mono font-semibold border
+        inline-flex items-center gap-1 font-medium rounded-full border
         ${variantStyles[variant]}
         ${sizeStyles[size]}
         ${className}
@@ -47,7 +48,7 @@ export function Badge({
         <button
           type="button"
           onClick={onRemove}
-          className="ml-1 hover:opacity-70 transition-opacity focus:outline-none"
+          className="ml-0.5 hover:opacity-70 transition-opacity focus:outline-none"
           aria-label="Remove"
         >
           ×

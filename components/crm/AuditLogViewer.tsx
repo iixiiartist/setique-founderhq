@@ -85,7 +85,7 @@ export function AuditLogViewer({ workspaceId, crmItemId }: AuditLogViewerProps) 
                     return (
                         <div 
                             key={log.id}
-                            className="border-2 border-black bg-white p-3"
+                            className="rounded-xl border border-gray-200 bg-white p-3"
                         >
                             <div className="flex items-start justify-between mb-2">
                                 <div className="flex items-center gap-2">

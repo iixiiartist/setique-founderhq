@@ -98,30 +98,30 @@ export const IntegrationsSettings: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white border-2 border-black p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-        <h3 className="text-xl font-bold font-mono mb-4">Email Integrations</h3>
-        <p className="text-gray-600 mb-6">
+      <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+        <h3 className="text-xl font-semibold text-slate-900 mb-4">Email Integrations</h3>
+        <p className="text-slate-600 mb-6">
           Connect your email accounts to sync messages, draft replies with AI, and trigger automations.
         </p>
 
         <div className="grid gap-4">
           {/* Gmail */}
-          <div className="flex items-center justify-between p-4 border-2 border-black bg-gray-50">
+          <div className="flex items-center justify-between p-4 rounded-xl border border-gray-200 bg-gray-50">
             <div className="flex items-center gap-3">
               <div className="text-2xl">📧</div>
               <div>
-                <h4 className="font-bold">Gmail</h4>
-                <p className="text-sm text-gray-500">Connect your Google Workspace or Gmail account</p>
+                <h4 className="font-semibold text-slate-900">Gmail</h4>
+                <p className="text-sm text-slate-500">Connect your Google Workspace or Gmail account</p>
               </div>
             </div>
             {accounts.find(a => a.provider === 'gmail') ? (
                <div className="flex items-center gap-3">
-                 <span className="text-green-600 font-bold text-sm">
+                 <span className="text-green-600 font-medium text-sm">
                    ● Connected as {accounts.find(a => a.provider === 'gmail')?.email_address}
                  </span>
                  <button 
                    onClick={() => handleDisconnect(accounts.find(a => a.provider === 'gmail')!.id)}
-                   className="text-red-600 hover:underline text-sm font-bold"
+                   className="text-red-600 hover:underline text-sm font-medium"
                  >
                    Disconnect
                  </button>
@@ -129,7 +129,7 @@ export const IntegrationsSettings: React.FC = () => {
             ) : (
               <button
                 onClick={() => handleConnect('gmail')}
-                className="bg-black text-white px-4 py-2 font-bold hover:bg-gray-800 transition-colors"
+                className="bg-slate-900 text-white px-4 py-2 font-medium rounded-xl shadow-sm hover:shadow-md hover:bg-slate-800 transition-all"
               >
                 Connect Gmail
               </button>

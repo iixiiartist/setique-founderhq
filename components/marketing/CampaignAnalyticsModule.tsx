@@ -228,7 +228,7 @@ function CampaignAnalyticsModule({
           <select
             value={selectedCampaign}
             onChange={(e) => setSelectedCampaign(e.target.value)}
-            className="px-3 py-2 border-2 border-black text-sm font-mono focus:outline-none focus:border-blue-500"
+            className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="all">All Campaigns</option>
             {marketingItems.map(campaign => (
@@ -240,7 +240,7 @@ function CampaignAnalyticsModule({
           <select
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value as '7' | '30' | '90')}
-            className="px-3 py-2 border-2 border-black text-sm font-mono focus:outline-none focus:border-blue-500"
+            className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="7">Last 7 Days</option>
             <option value="30">Last 30 Days</option>
@@ -251,7 +251,7 @@ function CampaignAnalyticsModule({
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div className="bg-blue-50 p-4 border-2 border-blue-600 shadow-neo">
+        <div className="bg-blue-50 p-4 rounded-2xl border border-blue-200 shadow-sm">
           <div className="flex items-center gap-2 mb-1">
             <Eye className="w-4 h-4 text-blue-600" />
             <div className="text-xs text-gray-600">Impressions</div>
@@ -259,7 +259,7 @@ function CampaignAnalyticsModule({
           <div className="text-xl font-bold text-blue-700">{formatNumber(aggregateMetrics.impressions)}</div>
         </div>
 
-        <div className="bg-purple-50 p-4 border-2 border-purple-600 shadow-neo">
+        <div className="bg-purple-50 p-4 rounded-2xl border border-purple-200 shadow-sm">
           <div className="flex items-center gap-2 mb-1">
             <MousePointer className="w-4 h-4 text-purple-600" />
             <div className="text-xs text-gray-600">Clicks</div>
@@ -268,7 +268,7 @@ function CampaignAnalyticsModule({
           <div className="text-xs text-gray-500">CTR: {aggregateMetrics.ctr.toFixed(2)}%</div>
         </div>
 
-        <div className="bg-green-50 p-4 border-2 border-green-600 shadow-neo">
+        <div className="bg-green-50 p-4 rounded-2xl border border-green-200 shadow-sm">
           <div className="flex items-center gap-2 mb-1">
             <Users className="w-4 h-4 text-green-600" />
             <div className="text-xs text-gray-600">Leads</div>
@@ -276,7 +276,7 @@ function CampaignAnalyticsModule({
           <div className="text-xl font-bold text-green-700">{formatNumber(aggregateMetrics.leads)}</div>
         </div>
 
-        <div className="bg-orange-50 p-4 border-2 border-orange-600 shadow-neo">
+        <div className="bg-orange-50 p-4 rounded-2xl border border-orange-200 shadow-sm">
           <div className="flex items-center gap-2 mb-1">
             <Target className="w-4 h-4 text-orange-600" />
             <div className="text-xs text-gray-600">Conversions</div>
@@ -285,7 +285,7 @@ function CampaignAnalyticsModule({
           <div className="text-xs text-gray-500">Rate: {aggregateMetrics.conversionRate.toFixed(2)}%</div>
         </div>
 
-        <div className="bg-red-50 p-4 border-2 border-red-600 shadow-neo">
+        <div className="bg-red-50 p-4 rounded-2xl border border-red-200 shadow-sm">
           <div className="flex items-center gap-2 mb-1">
             <DollarSign className="w-4 h-4 text-red-600" />
             <div className="text-xs text-gray-600">Spend</div>
@@ -294,7 +294,7 @@ function CampaignAnalyticsModule({
           <div className="text-xs text-gray-500">CPL: {formatCurrency(aggregateMetrics.costPerLead)}</div>
         </div>
 
-        <div className="bg-teal-50 p-4 border-2 border-teal-600 shadow-neo">
+        <div className="bg-teal-50 p-4 rounded-2xl border border-teal-200 shadow-sm">
           <div className="flex items-center gap-2 mb-1">
             <TrendingUp className="w-4 h-4 text-teal-600" />
             <div className="text-xs text-gray-600">ROI</div>
@@ -307,7 +307,7 @@ function CampaignAnalyticsModule({
       </div>
 
       {/* Performance Trend */}
-      <div className="bg-white p-6 border-2 border-black shadow-neo">
+      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
         <h3 className="text-xl font-semibold mb-4">Performance Trend</h3>
         {trendData.length > 0 ? (
           <ResponsiveContainer width="100%" height={300}>
@@ -339,7 +339,7 @@ function CampaignAnalyticsModule({
       {/* Channel Performance & Campaign Comparison */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Channel Performance */}
-        <div className="bg-white p-6 border-2 border-black shadow-neo">
+        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
           <h3 className="text-xl font-semibold mb-4">Channel Performance</h3>
           {channelData.length > 0 ? (
             <>
@@ -366,7 +366,7 @@ function CampaignAnalyticsModule({
                   <div key={index} className="flex items-center justify-between text-sm py-2 border-b border-gray-200">
                     <div className="flex items-center gap-2">
                       <div
-                        className="w-3 h-3 border border-black"
+                        className="w-3 h-3 rounded border border-gray-200"
                         style={{ backgroundColor: CHANNEL_COLORS[channel.channel] || '#6b7280' }}
                       />
                       <span className="font-semibold capitalize">{channel.channel.replace(/_/g, ' ')}</span>
@@ -389,7 +389,7 @@ function CampaignAnalyticsModule({
         </div>
 
         {/* Campaign Comparison */}
-        <div className="bg-white p-6 border-2 border-black shadow-neo">
+        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
           <h3 className="text-xl font-semibold mb-4">Campaign Comparison</h3>
           {campaignComparison.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
@@ -423,7 +423,7 @@ function CampaignAnalyticsModule({
       </div>
 
       {/* Detailed Metrics Table */}
-      <div className="bg-white p-6 border-2 border-black shadow-neo">
+      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
         <h3 className="text-xl font-semibold mb-4">Campaign Details</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

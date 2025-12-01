@@ -25,7 +25,7 @@ const KeyboardShortcutsHelp: React.FC<KeyboardShortcutsHelpProps> = ({ isOpen, o
                   <div className="flex items-center gap-1">
                     {item.keys.map((key, keyIdx) => (
                       <React.Fragment key={keyIdx}>
-                        <kbd className="px-2 py-1 text-xs font-bold border-2 border-black bg-white shadow-neo-sm">
+                        <kbd className="px-2 py-1 text-xs font-bold rounded-lg border border-gray-200 bg-white shadow-sm">
                           {key}
                         </kbd>
                         {keyIdx < item.keys.length - 1 && (
@@ -40,13 +40,13 @@ const KeyboardShortcutsHelp: React.FC<KeyboardShortcutsHelpProps> = ({ isOpen, o
           </div>
         ))}
         
-        <div className="mt-6 p-4 bg-yellow-50 border-2 border-black">
+        <div className="mt-6 p-4 bg-yellow-50 rounded-xl border border-yellow-200">
           <p className="text-sm">
-            <strong>Pro Tip:</strong> Press <kbd className="px-2 py-1 text-xs font-bold border-2 border-black bg-white shadow-neo-sm">?</kbd> anywhere to show this help.
+            <strong>Pro Tip:</strong> Press <kbd className="px-2 py-1 text-xs font-bold rounded-lg border border-gray-200 bg-white shadow-sm">?</kbd> anywhere to show this help.
           </p>
         </div>
 
-        <div className="mt-4 p-4 bg-blue-50 border-2 border-black">
+        <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
           <h4 className="font-bold mb-2">Accessibility Features</h4>
           <ul className="text-sm space-y-1 list-disc list-inside">
             <li>All features work with keyboard only (no mouse needed)</li>

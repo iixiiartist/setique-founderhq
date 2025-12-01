@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline' | 'success';
+export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'outline';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -11,19 +11,19 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   children: React.ReactNode;
 }
 
+// Modern design: Rounded, soft shadows, slate colors
 const variantStyles: Record<ButtonVariant, string> = {
-  primary: 'bg-black text-white hover:bg-gray-800',
-  secondary: 'bg-white text-black hover:bg-gray-100',
-  danger: 'bg-red-600 text-white hover:bg-red-700',
-  ghost: 'bg-transparent text-black hover:bg-gray-100',
-  outline: 'bg-white text-black border-gray-400 hover:bg-gray-50',
-  success: 'bg-green-500 text-white hover:bg-green-600',
+  primary: 'bg-slate-900 text-white hover:bg-slate-800 border-transparent',
+  secondary: 'bg-gray-100 text-slate-900 hover:bg-gray-200 border-transparent',
+  danger: 'bg-red-600 text-white hover:bg-red-700 border-transparent',
+  ghost: 'bg-transparent text-slate-700 hover:bg-gray-100 border-transparent',
+  outline: 'bg-white text-slate-900 hover:bg-gray-50 border-gray-200',
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
-  sm: 'py-1 px-3 text-sm',
-  md: 'py-2 px-4 text-base',
-  lg: 'py-3 px-6 text-lg',
+  sm: 'py-1.5 px-3 text-sm',
+  md: 'py-2.5 px-4 text-sm',
+  lg: 'py-3 px-6 text-base',
 };
 
 export function Button({
@@ -44,11 +44,11 @@ export function Button({
       type={type}
       disabled={isDisabled}
       className={`
-        font-mono font-semibold rounded-none cursor-pointer
-        transition-all border-2 border-black 
-        shadow-neo hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-neo-sm
-        active:translate-x-[4px] active:translate-y-[4px] active:shadow-none
-        disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-x-0 disabled:translate-y-0 disabled:shadow-none
+        font-semibold cursor-pointer
+        transition-all duration-200 border rounded-xl
+        shadow-sm hover:shadow-md
+        active:scale-[0.98]
+        disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:active:scale-100
         ${variantStyles[variant]}
         ${sizeStyles[size]}
         ${fullWidth ? 'w-full' : ''}

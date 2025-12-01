@@ -3372,16 +3372,39 @@ export class DatabaseService {
 
   static async createProductService(product: any) {
     try {
+      // Log the product data being inserted for debugging
+      logger.info('Creating product/service with data:', {
+        keys: Object.keys(product),
+        workspaceId: product.workspace_id,
+        name: product.name,
+        category: product.category,
+        type: product.type
+      });
+      
       const { data, error } = await supabase
         .from('products_services')
         .insert([product])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // Log detailed error information
+        logger.error('Product/service insert error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        throw error;
+      }
       return { data, error: null };
-    } catch (error) {
-      logger.error('Error creating product/service:', error);
+    } catch (error: any) {
+      logger.error('Error creating product/service:', {
+        error,
+        errorMessage: error?.message,
+        errorCode: error?.code,
+        productData: product
+      });
       return { data: null, error };
     }
   }

@@ -208,7 +208,7 @@ export const EmailInbox: React.FC = () => {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-6 h-6 border-2 border-gray-500 border-t-transparent rounded-full animate-spin"></div>
           <div className="text-sm text-gray-500">Loading inbox...</div>
         </div>
       </div>

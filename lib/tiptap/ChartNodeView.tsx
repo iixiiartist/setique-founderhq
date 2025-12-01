@@ -107,19 +107,19 @@ const ChartNodeView: React.FC<NodeViewProps> = ({
   return (
     <NodeViewWrapper className={`chart-node-wrapper ${selected ? 'ring-2 ring-blue-500' : ''}`}>
       <div 
-        className="chart-container border-2 border-black p-4 bg-white my-4" 
+        className="chart-container rounded-2xl border border-gray-200 p-4 bg-white my-4 shadow-sm" 
         style={{ width: width || '100%', minHeight: height + 60 }}
       >
-        {title && <h3 className="text-center font-bold mb-2 text-lg">{title}</h3>}
+        {title && <h3 className="text-center font-semibold mb-2 text-lg text-slate-900">{title}</h3>}
         <ResponsiveContainer width="100%" height={height}>
           {renderChart()}
         </ResponsiveContainer>
         
         {selected && (
-          <div className="chart-controls mt-2 flex gap-2 justify-end border-t-2 border-gray-200 pt-2">
+          <div className="chart-controls mt-2 flex gap-2 justify-end border-t border-gray-200 pt-2">
             <button 
               onClick={() => setIsEditing(!isEditing)}
-              className="px-3 py-1 bg-blue-500 text-white text-xs border-2 border-black hover:bg-blue-600"
+              className="px-3 py-1 bg-blue-500 text-white text-xs rounded-lg hover:bg-blue-600 transition-colors"
               title="Edit chart"
             >
               ✏️ Edit
@@ -130,7 +130,7 @@ const ChartNodeView: React.FC<NodeViewProps> = ({
                   deleteNode();
                 });
               }}
-              className="px-3 py-1 bg-red-500 text-white text-xs border-2 border-black hover:bg-red-600"
+              className="px-3 py-1 bg-red-500 text-white text-xs rounded-lg hover:bg-red-600 transition-colors"
               title="Delete chart"
             >
               🗑️ Delete
@@ -139,7 +139,7 @@ const ChartNodeView: React.FC<NodeViewProps> = ({
         )}
         
         {isEditing && (
-          <div className="mt-4 p-4 bg-gray-50 border-2 border-black">
+          <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
             <p className="text-sm text-gray-700 mb-2">
               <strong>Edit Mode:</strong> Use the chart editor modal to customize this chart. 
               <button 

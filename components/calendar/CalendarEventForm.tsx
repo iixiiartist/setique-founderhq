@@ -374,13 +374,13 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                                     </div>
 
                                     {showQuickAddCrm ? (
-                                        <div className="space-y-2 p-3 border-2 border-blue-300 bg-blue-50">
+                                        <div className="space-y-2 p-3 rounded-lg border border-blue-200 bg-blue-50">
                                             <input
                                                 type="text"
                                                 value={quickAddCrmName}
                                                 onChange={(e) => setQuickAddCrmName(e.target.value)}
                                                 placeholder="Company name..."
-                                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                className="w-full bg-white rounded-lg border border-gray-200 text-black p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                                 autoFocus
                                             />
                                             <Button
@@ -427,13 +427,13 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                                     </div>
 
                                     {showQuickAddContact ? (
-                                        <div className="space-y-2 p-3 border-2 border-blue-300 bg-blue-50">
+                                        <div className="space-y-2 p-3 rounded-lg border border-blue-200 bg-blue-50">
                                             <input
                                                 type="text"
                                                 value={quickAddContactName}
                                                 onChange={(e) => setQuickAddContactName(e.target.value)}
                                                 placeholder="Contact name..."
-                                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                className="w-full bg-white rounded-lg border border-gray-200 text-black p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                                 autoFocus
                                             />
                                             <input
@@ -441,7 +441,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                                                 value={quickAddContactEmail}
                                                 onChange={(e) => setQuickAddContactEmail(e.target.value)}
                                                 placeholder="Email (optional)..."
-                                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                className="w-full bg-white rounded-lg border border-gray-200 text-black p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                             />
                                             <Button
                                                 type="button"

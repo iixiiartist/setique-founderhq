@@ -167,7 +167,7 @@ export function PaginatedAccountManager({
                 </div>
                 <button
                     onClick={() => window.location.reload()}
-                    className="mt-4 font-mono bg-blue-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-blue-600"
+                    className="mt-4 bg-blue-500 text-white rounded-xl border border-blue-600 px-4 py-2 font-semibold shadow-sm hover:shadow-md hover:bg-blue-600 transition-all"
                 >
                     Reload Page
                 </button>
@@ -207,7 +207,7 @@ export function PaginatedAccountManager({
                     />
                     <button
                         onClick={toggleBulkSelect}
-                        className={`font-mono border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn transition-all ${
+                        className={`rounded-xl border border-gray-200 px-4 py-2 font-semibold shadow-sm hover:shadow-md transition-all ${
                             bulkSelectMode
                                 ? 'bg-orange-600 text-white hover:bg-orange-700'
                                 : 'bg-orange-500 text-white hover:bg-orange-600'
@@ -296,12 +296,12 @@ export function PaginatedAccountManager({
                     value={searchQuery}
                     onChange={(e) => handleSearchChange(e.target.value)}
                     placeholder="Search accounts..."
-                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 font-mono"
+                    className="w-full bg-white rounded-xl border border-gray-200 text-slate-900 p-2 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 />
                 <select
                     value={filterByStatus}
                     onChange={(e) => handleFilterChange('status', e.target.value)}
-                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 font-mono"
+                    className="w-full bg-white rounded-xl border border-gray-200 text-slate-900 p-2 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 >
                     <option value="">All Statuses</option>
                     {allStatuses.map(status => (
@@ -311,7 +311,7 @@ export function PaginatedAccountManager({
                 <select
                     value={filterByPriority}
                     onChange={(e) => handleFilterChange('priority', e.target.value)}
-                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 font-mono"
+                    className="w-full bg-white rounded-xl border border-gray-200 text-slate-900 p-2 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 >
                     <option value="">All Priorities</option>
                     <option value="Low">Low</option>
@@ -319,11 +319,11 @@ export function PaginatedAccountManager({
                     <option value="High">High</option>
                 </select>
                 <div className="flex items-center gap-2">
-                    <span className="text-sm font-mono font-semibold text-gray-700">Sort:</span>
+                    <span className="text-sm font-semibold text-gray-700">Sort:</span>
                     <select
                         value={sortBy}
                         onChange={(e) => handleSortChange(e.target.value as typeof sortBy)}
-                        className="flex-1 bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 font-mono text-sm"
+                        className="flex-1 bg-white rounded-xl border border-gray-200 text-slate-900 p-2 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-sm"
                     >
                         <option value="company">Company</option>
                         <option value="priority">Priority</option>
@@ -333,7 +333,7 @@ export function PaginatedAccountManager({
                     </select>
                     <button
                         onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                        className="px-2 py-1.5 bg-gray-200 border-2 border-black text-black text-sm font-mono hover:bg-gray-300 transition-all"
+                        className="px-2 py-1.5 bg-gray-200 rounded-lg border border-gray-300 text-slate-900 text-sm hover:bg-gray-300 hover:shadow-sm transition-all"
                         title={`Sort ${sortOrder === 'asc' ? 'ascending' : 'descending'}`}
                     >
                         {sortOrder === 'asc' ? '↑' : '↓'}

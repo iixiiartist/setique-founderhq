@@ -97,12 +97,12 @@ export const DocLibraryPicker: React.FC<DocLibraryPickerProps> = ({
                         placeholder="Search docs..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full px-3 py-2 border-2 border-black font-mono text-sm"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
                     />
                     <select
                         value={docTypeFilter}
                         onChange={(e) => setDocTypeFilter(e.target.value as DocType | 'all')}
-                        className="w-full px-2 py-2 text-sm border-2 border-black font-mono"
+                        className="w-full px-2 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
                     >
                         <option value="all">All Types</option>
                         {Object.entries(DOC_TYPE_LABELS).map(([type, label]) => (
@@ -114,7 +114,7 @@ export const DocLibraryPicker: React.FC<DocLibraryPickerProps> = ({
                 </div>
 
                 {/* Document List */}
-                <div className="max-h-[400px] overflow-y-auto border-2 border-black">
+                <div className="max-h-[400px] overflow-y-auto rounded-xl border border-gray-200">
                     {isLoading ? (
                         <div className="p-4 text-center text-gray-500">Loading...</div>
                     ) : filteredDocs.length === 0 ? (
@@ -158,10 +158,10 @@ export const DocLibraryPicker: React.FC<DocLibraryPickerProps> = ({
                     )}
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2 border-t-2 border-black">
+                <div className="flex justify-end gap-2 pt-2 border-t border-gray-200">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 bg-white border-2 border-black font-bold hover:bg-gray-100 transition-colors"
+                        className="px-4 py-2 bg-white border border-gray-200 rounded-xl font-medium hover:bg-gray-50 transition-colors"
                     >
                         Cancel
                     </button>

@@ -1,6 +1,6 @@
 # FounderHQ
 
-**A comprehensive platform for founders to manage their startup operations, fundraising, customer relationships, and go-to-market strategy.**
+**The AI-powered GTM workspace. CRM, pipeline, marketing, email, documents, calendar, financials, and team chat—unified for teams that scale.**
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19.2-61dafb.svg)](https://reactjs.org/)
@@ -30,58 +30,77 @@
 
 ## 🎯 Overview
 
-FounderHQ is a Setique tool designed specifically for startup founders and early-stage teams. It combines CRM functionality, task management, financial tracking, marketing campaign management, and AI-powered assistance into a single, integrated platform.
+FounderHQ is a complete GTM (Go-to-Market) workspace that replaces 10+ tools with one AI-powered platform. Built for founders, sales teams, and GTM consultants who want to stop juggling disconnected apps and start scaling.
+
+**What FounderHQ Replaces:**
+- **CRM**: HubSpot, Pipedrive, Salesforce
+- **Team Chat**: Slack, Microsoft Teams
+- **Task Management**: Asana, Monday.com
+- **Documents & Wikis**: Notion, Google Docs
+- **Email Client**: Gmail, Outlook
+- **Calendar**: Google Calendar, Calendly
+- **Expense Tracking**: Expensify, QuickBooks
+- **AI Tools**: ChatGPT, various point solutions
 
 **Key Capabilities:**
-- **CRM Management**: Track investors, customers, and partners with contact management and deal flow
-- **Task & Project Management**: Organize work across products, services, marketing, and fundraising
-- **Financial Dashboard**: Monitor MRR, burn rate, expenses, and revenue transactions
-- **Marketing Campaigns**: Plan, execute, and measure campaign performance
-- **AI Assistant**: Context-aware AI helper for each module (powered by Groq)
-- **Document Library**: Centralized storage for pitch decks, case studies, and GTM materials
+- **CRM & Pipeline**: Manage leads, contacts, accounts, and deals with AI-powered insights
+- **Huddle Team Chat**: Real-time messaging with AI assistance, file sharing, and threaded conversations
+- **Marketing & Campaigns**: Plan campaigns, generate content with AI, track outreach and attribution
+- **Email & Outreach**: Integrated email with AI-drafted responses, templates, and automatic CRM logging
+- **Documents & Files**: Centralized document hub with smart search, version control, and AI summaries
+- **Calendar & Scheduling**: Unified calendar for meetings, deadlines, and follow-ups
+- **Financial Tracking**: Log expenses, track revenue, monitor cash flow with AI auto-categorization
+- **Analytics & Reports**: AI-generated insights, customizable dashboards, and strategic forecasts
+- **AI Research Agents**: Specialized agents for market research, competitive analysis, and deal strategy
+- **AI Content Creation**: Generate emails, proposals, marketing copy—all trained on your business context
+- **Task Management**: Organize work with AI-powered task creation, automation, and tracking
 - **Team Collaboration**: Multi-user workspaces with role-based access control
-- **Subscription Management**: Stripe-powered billing with tiered plans
 
 ---
 
 ## ✨ Features
 
+### Complete GTM Toolkit
+
+| Feature | Description |
+|---------|-------------|
+| **CRM & Pipeline** | Full contact, account, and deal management with custom fields, stages, and AI insights |
+| **Huddle Chat** | Real-time team messaging with AI assistant, file sharing, threads, and reactions |
+| **Marketing Hub** | Campaign planning, content calendar, outreach tracking, and ROI analytics |
+| **Email Integration** | Gmail sync, AI-drafted responses, templates, and automatic CRM activity logging |
+| **Document Library** | Centralized storage for pitch decks, proposals, contracts with smart search |
+| **Calendar** | Unified view of meetings, deadlines, follow-ups, and team schedules |
+| **Financials** | Expense logging, revenue tracking, cash flow monitoring, budget planning |
+| **Analytics** | Custom dashboards, sales forecasts, pipeline reports, and AI recommendations |
+| **Tasks** | Project and task management with AI creation, assignments, and automation |
+
+### AI Throughout Every Workflow
+
+AI isn't just a chatbot—it's woven into every feature:
+
+- **Content Creation**: Generate emails, proposals, marketing copy, and more
+- **Strategic Insights**: AI-powered forecasts, deal scoring, and next-step suggestions
+- **Smart Data Entry**: Auto-create contacts, log expenses, and update records via natural language
+- **Market Research**: Research prospects, competitors, and market trends with AI agents
+- **Task Automation**: Auto-assign tasks, set reminders, and track workflows
+- **Deal Intelligence**: Pipeline analysis, risk identification, and strategy recommendations
+
+### AI Research Agents
+
+Specialized agents powered by You.com API with SSE streaming:
+
+- **Research & Briefing Agent**: Deep-dive company research, ICP analysis, competitive intelligence
+- **Why Now Agent**: Timing signals, buying triggers, and outreach recommendations  
+- **Deal Strategist Agent**: CRM-to-strategy analysis, pipeline risks, and next moves
+- Report saving, HTML/PDF export, and file library integration
+
 ### Business Operations
+
 - Multi-workspace support with team collaboration
 - Real-time data synchronization via Supabase
 - Comprehensive business profile and onboarding flow
 - Role-based permissions (Owner, Admin, Member)
-
-### CRM & Sales
-- Investor pipeline management with check size tracking
-- Customer relationship tracking with deal values
-- Partner opportunity management
-- Contact management with meeting notes and follow-ups
-- Deal flow tracking across multiple stages
-
-### Financial Management
-- Revenue transaction tracking
-- Expense management and categorization
-- Financial forecasting and budget planning
-- MRR/ARR calculations and burn rate monitoring
-
-### Marketing & Growth
-- Campaign planning and execution
-- Marketing attribution and ROI tracking
-- Campaign analytics and performance metrics
-- Calendar integration for campaign scheduling
-
-### AI-Powered Features
-- **AI Agents** - Specialized research and strategy assistants:
-  - **Research & Briefing Agent**: Deep-dive company research, ICP analysis, competitive intelligence
-  - **Why Now Agent**: Timing signals, buying triggers, and outreach recommendations
-  - **Deal Strategist Agent**: CRM-to-strategy analysis, pipeline risks, and next moves
-- SSE streaming for real-time response delivery (prevents timeouts)
-- Context-aware AI assistant for each module
-- Natural language task creation and management
-- Automated insights and recommendations
-- Function calling for direct data manipulation
-- Report saving, exporting (HTML/PDF), and file library integration
+- Stripe-powered subscription management with tiered plans
 
 ---
 
@@ -343,37 +362,55 @@ supabase secrets set STRIPE_WEBHOOK_SECRET=your-key-here
 
 ```
 setique-founderhq/
-├── src/
-│   ├── components/          # React components
-│   │   ├── agents/          # AI agents (Research, Why Now, Deal Strategist)
-│   │   ├── assistant/       # AI assistant UI
-│   │   ├── crm/            # CRM modules
-│   │   ├── financials/     # Financial dashboards
-│   │   ├── marketing/      # Marketing tools
-│   │   ├── shared/         # Reusable components
-│   │   └── ui/             # Base UI components
-│   ├── contexts/           # React contexts (Auth, Workspace)
-│   ├── hooks/              # Custom React hooks
-│   ├── lib/
-│   │   ├── config/         # Configuration & env validation
-│   │   ├── services/       # Business logic & API clients
-│   │   └── utils/          # Utility functions
-│   ├── services/           # Domain services
-│   ├── types/              # TypeScript type definitions
-│   ├── App.tsx             # Main app component
-│   └── main.tsx            # Application entry point
+├── components/
+│   ├── agents/              # AI Research Agents (Research, Why Now, Deal Strategist)
+│   ├── assistant/           # AI Assistant UI and chat interface
+│   ├── auth/                # Authentication components
+│   ├── business-profile/    # Business profile setup and onboarding
+│   ├── calendar/            # Calendar and scheduling
+│   ├── crm/                 # CRM modules (contacts, accounts, pipeline)
+│   ├── dashboard/           # Main dashboard widgets and views
+│   ├── documents/           # Document editor and library
+│   ├── email/               # Email integration and composer
+│   ├── files/               # File library and management
+│   ├── financials/          # Financial tracking (expenses, revenue)
+│   ├── forms/               # Form builder and responses
+│   ├── huddle/              # Team chat (Huddle) components
+│   ├── landing/             # Landing page sections
+│   ├── marketing/           # Marketing campaigns and analytics
+│   ├── notifications/       # Notification system
+│   ├── reporting/           # Reports and analytics
+│   ├── settings/            # User and workspace settings
+│   ├── shared/              # Reusable shared components
+│   ├── tasks/               # Task management
+│   ├── team/                # Team management and invites
+│   ├── ui/                  # Base UI components
+│   └── workspace/           # Workspace management
+├── contexts/                # React contexts (Auth, Workspace, Notifications)
+├── hooks/                   # Custom React hooks
+├── lib/
+│   ├── config/              # Configuration & env validation
+│   ├── services/            # Business logic & API clients
+│   └── utils/               # Utility functions
+├── services/                # Domain services
+├── types/                   # TypeScript type definitions
 ├── supabase/
-│   ├── functions/          # Edge Functions (Deno)
-│   └── migrations/         # Database migrations
-├── scripts/                # Build & utility scripts
-├── tests/                  # Test suites
-├── electron/               # Electron app configuration
-├── public/                 # Static assets
-├── .env.example            # Environment variable template
-├── package.json            # Dependencies & scripts
-├── tsconfig.json           # TypeScript configuration
-├── vite.config.ts          # Vite configuration
-└── README.md              # This file
+│   ├── functions/           # Edge Functions (Deno)
+│   │   ├── groq-chat/       # AI chat assistant
+│   │   ├── you-agent-run/   # AI research agents
+│   │   └── stripe-webhook/  # Payment webhooks
+│   └── migrations/          # Database migrations
+├── scripts/                 # Build & utility scripts
+├── tests/                   # Test suites
+├── electron/                # Electron desktop app configuration
+├── public/                  # Static assets
+├── App.tsx                  # Main app component with routing
+├── DashboardApp.tsx         # Dashboard layout and tab navigation
+├── .env.example             # Environment variable template
+├── package.json             # Dependencies & scripts
+├── tsconfig.json            # TypeScript configuration
+├── vite.config.ts           # Vite configuration
+└── README.md                # This file
 ```
 
 ---

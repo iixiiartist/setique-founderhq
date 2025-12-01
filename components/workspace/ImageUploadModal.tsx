@@ -172,15 +172,15 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-200/10 flex items-center justify-center z-[10000] p-4">
-      <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] w-full max-w-2xl max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-[2px] flex items-center justify-center z-[10000] p-4">
+      <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="p-4 border-b-4 border-black bg-yellow-300">
+        <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-slate-800 to-slate-900 rounded-t-2xl">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-black">Insert Image</h2>
+            <h2 className="text-lg font-semibold text-white">Insert Image</h2>
             <button
               onClick={onClose}
-              className="text-2xl font-bold hover:text-red-600 leading-none"
+              className="text-xl text-white/70 hover:text-white leading-none transition-colors"
             >
               ×
             </button>
@@ -188,19 +188,19 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
         </div>
 
         {/* Mode Selector */}
-        <div className="flex border-b-4 border-black">
+        <div className="flex border-b border-gray-200">
           <button
             onClick={() => setMode('file')}
-            className={`flex-1 py-3 font-bold border-r-4 border-black ${
-              mode === 'file' ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
+            className={`flex-1 py-3 font-semibold transition-colors ${
+              mode === 'file' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 hover:bg-gray-50'
             }`}
           >
             📁 Upload File
           </button>
           <button
             onClick={() => setMode('url')}
-            className={`flex-1 py-3 font-bold ${
-              mode === 'url' ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
+            className={`flex-1 py-3 font-semibold transition-colors ${
+              mode === 'url' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 hover:bg-gray-50'
             }`}
           >
             🔗 Image URL
@@ -215,13 +215,13 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
               {!selectedFile && (
                 <div
                   {...getRootProps()}
-                  className={`border-4 border-dashed border-black p-8 text-center cursor-pointer transition-colors ${
-                    isDragActive ? 'bg-yellow-100' : 'bg-gray-50 hover:bg-gray-100'
+                  className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+                    isDragActive ? 'border-slate-400 bg-slate-50' : 'border-gray-300 bg-gray-50 hover:bg-gray-100 hover:border-gray-400'
                   }`}
                 >
                   <input {...getInputProps()} />
-                  <div className="text-6xl mb-4">📸</div>
-                  <p className="text-lg font-bold mb-2">
+                  <div className="text-5xl mb-4">📸</div>
+                  <p className="text-lg font-semibold text-slate-900 mb-2">
                     {isDragActive ? 'Drop image here' : 'Drag & drop image here'}
                   </p>
                   <p className="text-sm text-gray-600">or click to browse</p>
@@ -247,7 +247,7 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
                         setPreviewUrl(null);
                         setShowCrop(false);
                       }}
-                      className="px-3 py-1 bg-red-500 text-white font-bold border-2 border-black hover:bg-red-600"
+                      className="px-3 py-1.5 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition-colors"
                     >
                       Remove
                     </button>
@@ -256,15 +256,15 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
                   {/* Crop Toggle */}
                   <button
                     onClick={() => setShowCrop(!showCrop)}
-                    className={`w-full py-2 font-bold border-2 border-black ${
-                      showCrop ? 'bg-yellow-300' : 'bg-white hover:bg-gray-100'
+                    className={`w-full py-2.5 font-semibold rounded-xl border transition-all ${
+                      showCrop ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-gray-200 hover:bg-gray-50'
                     }`}
                   >
                     {showCrop ? '✂️ Cropping Enabled' : '✂️ Enable Crop'}
                   </button>
 
                   {/* Image Preview/Crop */}
-                  <div className="border-4 border-black bg-gray-900 p-2">
+                  <div className="border border-gray-200 rounded-xl bg-gray-900 p-2 overflow-hidden">
                     {showCrop ? (
                       <ReactCrop
                         crop={crop}
@@ -289,7 +289,7 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
 
                   {/* Alt Text */}
                   <div>
-                    <label className="block text-sm font-bold mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
                       Alt Text (optional but recommended)
                     </label>
                     <input
@@ -297,7 +297,7 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
                       value={altText}
                       onChange={(e) => setAltText(e.target.value)}
                       placeholder="Describe the image..."
-                      className="w-full px-3 py-2 border-2 border-black font-mono text-sm"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                     />
                   </div>
                 </div>
@@ -307,19 +307,19 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
             <div className="space-y-4">
               {/* URL Input */}
               <div>
-                <label className="block text-sm font-bold mb-2">Image URL</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Image URL</label>
                 <input
                   type="url"
                   value={imageUrl}
                   onChange={(e) => setImageUrl(e.target.value)}
                   placeholder="https://example.com/image.jpg"
-                  className="w-full px-3 py-2 border-2 border-black font-mono text-sm"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                 />
               </div>
 
               {/* Alt Text */}
               <div>
-                <label className="block text-sm font-bold mb-2">
+                <label className="block text-sm font-medium text-slate-700 mb-2">
                   Alt Text (optional but recommended)
                 </label>
                 <input
@@ -327,13 +327,13 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
                   value={altText}
                   onChange={(e) => setAltText(e.target.value)}
                   placeholder="Describe the image..."
-                  className="w-full px-3 py-2 border-2 border-black font-mono text-sm"
+                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                 />
               </div>
 
               {/* URL Preview */}
               {imageUrl && (
-                <div className="border-4 border-black bg-gray-900 p-4">
+                <div className="border border-gray-200 rounded-xl bg-gray-900 p-4 overflow-hidden">
                   <img
                     src={imageUrl}
                     alt="Preview"
@@ -348,33 +348,31 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
           {/* Upload Progress */}
           {uploading && (
             <div className="mt-4">
-              <div className="bg-gray-200 border-2 border-black h-8 overflow-hidden">
+              <div className="bg-gray-200 rounded-full h-3 overflow-hidden">
                 <div
-                  className="bg-yellow-300 h-full transition-all duration-300 flex items-center justify-center font-bold"
+                  className="bg-slate-900 h-full rounded-full transition-all duration-300"
                   style={{ width: `${uploadProgress}%` }}
-                >
-                  {uploadProgress}%
-                </div>
+                />
               </div>
               <p className="text-center text-sm text-gray-600 mt-2">
-                Uploading image...
+                Uploading image... {uploadProgress}%
               </p>
             </div>
           )}
 
           {/* Error */}
           {error && (
-            <div className="mt-4 p-3 bg-red-100 border-2 border-red-500 text-red-800 font-bold">
+            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
               ⚠️ {error}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t-4 border-black bg-gray-50 flex gap-2 justify-end">
+        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-2xl flex gap-3 justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-white border-2 border-black font-bold hover:bg-gray-100"
+            className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl font-semibold text-slate-700 hover:bg-gray-50 transition-colors"
             disabled={uploading}
           >
             Cancel
@@ -382,7 +380,7 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
           <button
             onClick={mode === 'file' ? handleFileUpload : handleUrlInsert}
             disabled={uploading || (mode === 'file' ? !selectedFile : !imageUrl)}
-            className="px-6 py-2 bg-yellow-300 border-2 border-black font-bold hover:bg-yellow-400 disabled:bg-gray-300 disabled:cursor-not-allowed shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none transition-all"
+            className="px-6 py-2.5 bg-slate-900 text-white rounded-xl font-semibold shadow-sm hover:shadow-md hover:bg-slate-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all"
           >
             {uploading ? 'Uploading...' : 'Insert Image'}
           </button>

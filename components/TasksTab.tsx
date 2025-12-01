@@ -363,7 +363,7 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
                             onDragStart={handleDragStart} 
                             onDragEnd={handleDragEnd}
                         >
-                            <div className="h-full overflow-y-auto bg-gray-50 pb-20 md:pb-4">
+                            <div className="h-full overflow-y-auto bg-white pb-20 md:pb-4">
                                 <div className="grid gap-3 sm:gap-4 p-3 sm:p-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 auto-rows-min" style={{ gridAutoRows: 'minmax(0, 1fr)' }}>
                                     {STATUS_COLUMNS.map(column => (
                                         <TaskColumn

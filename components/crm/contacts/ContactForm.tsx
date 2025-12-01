@@ -46,7 +46,7 @@ export function ContactForm({
                     onChange={(e) => onFormDataChange({ name: e.target.value })}
                     placeholder="e.g., John Smith"
                     required
-                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
             </div>
 
@@ -62,7 +62,7 @@ export function ContactForm({
                     onChange={(e) => onFormDataChange({ email: e.target.value })}
                     placeholder="e.g., john@example.com"
                     required
-                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
             </div>
 
@@ -77,7 +77,7 @@ export function ContactForm({
                     value={formData.phone}
                     onChange={(e) => onFormDataChange({ phone: e.target.value })}
                     placeholder="e.g., (555) 123-4567"
-                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
             </div>
 
@@ -92,7 +92,7 @@ export function ContactForm({
                     value={formData.title}
                     onChange={(e) => onFormDataChange({ title: e.target.value })}
                     placeholder="e.g., CEO, VP of Sales"
-                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
             </div>
 
@@ -107,7 +107,7 @@ export function ContactForm({
                     value={formData.linkedin}
                     onChange={(e) => onFormDataChange({ linkedin: e.target.value })}
                     placeholder="https://linkedin.com/in/username"
-                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
             </div>
 
@@ -121,7 +121,7 @@ export function ContactForm({
                         name={`${idPrefix}-contact-link-crm`}
                         value={formData.linkedCrmId}
                         onChange={(e) => onFormDataChange({ linkedCrmId: e.target.value })}
-                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 mb-2"
+                        className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-2"
                     >
                         <option value="">-- Select existing account or create new --</option>
                         {crmItems.map(item => (
@@ -143,7 +143,7 @@ export function ContactForm({
                                 value={formData.newAccountName}
                                 onChange={(e) => onFormDataChange({ newAccountName: e.target.value })}
                                 placeholder={`e.g., New ${crmTypeLabel} Company`}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
                         </div>
                     )}
@@ -153,7 +153,7 @@ export function ContactForm({
             <div className="flex gap-2 pt-4">
                 <button
                     type="submit"
-                    className={`flex-1 font-mono font-semibold text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn ${
+                    className={`flex-1 font-semibold text-white py-2 px-4 rounded-xl cursor-pointer transition-all shadow-sm ${
                         isEdit ? 'bg-blue-500 hover:bg-blue-600' : 'bg-green-500 hover:bg-green-600'
                     }`}
                 >
@@ -162,7 +162,7 @@ export function ContactForm({
                 <button
                     type="button"
                     onClick={onCancel}
-                    className="flex-1 font-mono font-semibold bg-white text-black py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-100"
+                    className="flex-1 font-semibold bg-white text-slate-700 py-2 px-4 rounded-xl cursor-pointer transition-all border border-gray-200 shadow-sm hover:bg-gray-50"
                 >
                     Cancel
                 </button>

@@ -78,8 +78,8 @@ export function VirtualizedAccountList({
         <AutoSizer>
             {({ height = 0, width = 0 }) => (
                 <List
-                    className="border-2 border-black"
-                    style={{
+                    className="rounded-xl border border-gray-200"
+                    style={{{
                         height: Math.max(height, ITEM_HEIGHT),
                         width: width || '100%'
                     }}
@@ -183,14 +183,14 @@ function AccountRow({
 
                             {/* Status & Priority Badges */}
                             <div className="flex flex-wrap items-center gap-2 mt-2">
-                                <span className={`text-xs px-2 py-0.5 rounded font-mono border border-black ${
-                                    item.priority === 'High' ? 'bg-red-100 text-red-800' :
-                                    item.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-                                    'bg-gray-100 text-gray-800'
+                                <span className={`text-xs px-2 py-0.5 rounded-full border ${
+                                    item.priority === 'High' ? 'bg-red-100 text-red-800 border-red-200' :
+                                    item.priority === 'Medium' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                                    'bg-gray-100 text-gray-800 border-gray-200'
                                 }`}>
                                     {item.priority}
                                 </span>
-                                <span className="text-xs px-2 py-0.5 bg-gray-100 border border-black rounded font-mono">
+                                <span className="text-xs px-2 py-0.5 bg-gray-100 border border-gray-200 rounded-full">
                                     {item.status}
                                 </span>
                                 {item.assignedToName && (
@@ -199,7 +199,7 @@ function AccountRow({
                                     </span>
                                 )}
                                 {isOverdue && (
-                                    <span className="text-xs px-2 py-0.5 bg-red-500 text-white rounded font-mono font-bold">
+                                    <span className="text-xs px-2 py-0.5 bg-red-500 text-white rounded-full font-semibold">
                                         OVERDUE
                                     </span>
                                 )}

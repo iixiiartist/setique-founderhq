@@ -111,24 +111,24 @@ const MarketingTab: React.FC<{
             {currentView === 'calendar' && (
         <div className="space-y-6 sm:space-y-8">
             {/* Campaign List with Create Button */}
-            <div className="bg-white p-4 sm:p-6 border-2 border-black shadow-neo">
+            <div className="bg-white p-4 sm:p-6 border border-gray-200 rounded-2xl shadow-lg">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-6">
-                    <h2 className="text-xl sm:text-2xl font-bold text-black">Marketing Campaigns</h2>
+                    <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Marketing Campaigns</h2>
                     <button
                         ref={newCampaignButtonRef}
                         onClick={handleNewCampaign}
-                        className="font-mono font-semibold bg-black text-white min-h-[44px] sm:min-h-0 py-2 sm:py-3 px-4 sm:px-6 text-sm sm:text-base rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+                        className="font-semibold bg-slate-900 text-white min-h-[44px] sm:min-h-0 py-2 sm:py-3 px-4 sm:px-6 text-sm sm:text-base rounded-xl cursor-pointer transition-all shadow-sm hover:shadow-md hover:bg-slate-800"
                     >
                         + New Campaign
                     </button>
                 </div>
                 
                 {sortedItems.length === 0 ? (
-                    <div className="text-center py-12 border-2 border-dashed border-gray-300">
+                    <div className="text-center py-12 border border-dashed border-gray-300 rounded-xl">
                         <p className="text-gray-500 mb-4">No campaigns yet. Create your first marketing campaign!</p>
                         <button
                             onClick={handleNewCampaign}
-                            className="font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn"
+                            className="font-semibold bg-slate-900 text-white py-2 px-4 rounded-xl cursor-pointer transition-all shadow-sm hover:shadow-md hover:bg-slate-800"
                         >
                             Create Campaign
                         </button>

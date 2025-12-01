@@ -48,7 +48,7 @@ export const FormFieldEditor: React.FC<FormFieldEditorProps> = ({
 
   return (
     <div className="space-y-4">
-      <h3 className="font-mono font-bold text-sm uppercase">Field Settings</h3>
+      <h3 className="font-semibold text-sm text-slate-700">Field Settings</h3>
       
       {/* Label */}
       <Input
@@ -61,12 +61,12 @@ export const FormFieldEditor: React.FC<FormFieldEditorProps> = ({
       {/* Description for paragraph/heading */}
       {(selectedField.type === 'paragraph' || selectedField.type === 'heading') && (
         <div className="space-y-1">
-          <label htmlFor="field-description" className="block font-mono text-sm font-semibold">Content</label>
+          <label htmlFor="field-description" className="block text-sm font-medium text-slate-700">Content</label>
           <textarea
             id="field-description"
             value={selectedField.description || ''}
             onChange={(e) => onUpdateField(selectedField.id, { description: e.target.value })}
-            className="w-full p-2 border-2 border-black text-sm resize-none"
+            className="w-full p-2 rounded-xl border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             rows={4}
             placeholder={selectedField.type === 'heading' ? 'Heading text...' : 'Paragraph text...'}
           />
@@ -108,7 +108,7 @@ export const FormFieldEditor: React.FC<FormFieldEditorProps> = ({
       {/* Options for select/radio/checkbox/multi_select */}
       {hasOptions && (
         <div className="space-y-2">
-          <label className="block font-mono text-sm font-semibold">Options</label>
+          <label className="block text-sm font-medium text-slate-700">Options</label>
           {selectedField.options?.map((opt, idx) => (
             <div key={opt.id} className="flex gap-2">
               <input
@@ -123,7 +123,7 @@ export const FormFieldEditor: React.FC<FormFieldEditorProps> = ({
                   };
                   onUpdateField(selectedField.id, { options: newOptions });
                 }}
-                className="flex-1 p-2 border-2 border-black text-sm"
+                className="flex-1 p-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder={`Option ${idx + 1}`}
               />
               <button

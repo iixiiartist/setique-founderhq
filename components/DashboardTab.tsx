@@ -115,7 +115,7 @@ const DashboardTab: React.FC<{
                             detail: latestEmail.snippet || 'No preview available.',
                             metaLabel: 'From',
                             metaValue: fromName,
-                            accent: latestEmail.is_read ? 'text-gray-600' : 'text-blue-600',
+                            accent: latestEmail.is_read ? 'text-gray-600' : 'text-black',
                             icon: 'mail',
                         });
                     } else {
@@ -168,7 +168,7 @@ const DashboardTab: React.FC<{
                     : 'No high-confidence deals yet — nurture top prospects.',
                 metaLabel: 'Next close',
                 metaValue: pipelineData.openDealsCount > 0 ? formatRelativeDate(pipelineData.nextCloseDeal?.expectedCloseDate) : 'Not scheduled',
-                accent: 'text-blue-600',
+                accent: 'text-black',
                 icon: 'briefcase',
             },
             {
@@ -182,7 +182,7 @@ const DashboardTab: React.FC<{
                     : 'No launch scheduled — plan the next push.',
                 metaLabel: 'Next launch',
                 metaValue: formatRelativeDate(marketingData.upcomingCampaign?.dueDate),
-                accent: 'text-orange-600',
+                accent: 'text-gray-700',
                 icon: 'megaphone',
             },
             {
@@ -196,7 +196,7 @@ const DashboardTab: React.FC<{
                     : 'Log another update to watch momentum.',
                 metaLabel: 'GMV delta',
                 metaValue: financialData.gmvDelta ? `${financialData.gmvDelta > 0 ? '+' : ''}${formatCurrency(Math.abs(financialData.gmvDelta))}` : 'Flat',
-                accent: 'text-emerald-600',
+                accent: 'text-gray-800',
                 icon: 'wallet',
             },
         ];
@@ -224,7 +224,7 @@ const DashboardTab: React.FC<{
                 detail: 'Link your Gmail or Outlook in Settings → Integrations to see your latest messages here.',
                 metaLabel: 'Quick setup',
                 metaValue: 'Settings → Integrations',
-                accent: 'text-purple-600',
+                accent: 'text-gray-600',
                 icon: 'mail',
             });
         }

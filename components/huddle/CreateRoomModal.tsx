@@ -177,7 +177,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
                         value={name}
                         onChange={(e) => setName(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
                         placeholder="e.g. marketing-team"
-                        className="w-full pl-8 pr-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-purple-400 focus:outline-none"
+                        className="w-full pl-8 pr-4 py-2.5 border border-gray-200 rounded-xl focus:border-slate-400 focus:ring-2 focus:ring-slate-300 focus:outline-none transition-all"
                         maxLength={80}
                       />
                     </div>
@@ -195,7 +195,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
                       onChange={(e) => setDescription(e.target.value)}
                       placeholder="What's this channel about?"
                       rows={2}
-                      className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-purple-400 focus:outline-none resize-none"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-slate-400 focus:ring-2 focus:ring-slate-300 focus:outline-none resize-none transition-all"
                       maxLength={250}
                     />
                   </div>
@@ -222,7 +222,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
                         onChange={(e) => setIsPrivate(e.target.checked)}
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900"></div>
                     </label>
                   </div>
                 </>
@@ -241,7 +241,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search by name or email..."
-                    className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl focus:border-purple-400 focus:outline-none mb-2"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:border-slate-400 focus:ring-2 focus:ring-slate-300 focus:outline-none mb-2 transition-all"
                   />
 
                   {/* Selected members */}
@@ -253,13 +253,13 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
                         return (
                           <span
                             key={userId}
-                            className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-sm"
+                            className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-700 rounded-full text-sm"
                           >
                             {member.profile?.full_name || member.profile?.email || 'Unknown'}
                             <button
                               type="button"
                               onClick={() => toggleMember(userId)}
-                              className="hover:text-purple-900"
+                              className="hover:text-slate-900"
                             >
                               ✕
                             </button>
@@ -270,7 +270,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
                   )}
 
                   {/* Member list */}
-                  <div className="border-2 border-gray-200 rounded-xl max-h-[200px] overflow-y-auto">
+                  <div className="border border-gray-200 rounded-xl max-h-[200px] overflow-y-auto">
                     {loadingMembers ? (
                       <div className="p-4 text-center text-gray-400">
                         Loading members...
@@ -286,7 +286,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
                           type="button"
                           onClick={() => toggleMember(member.user_id)}
                           className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors ${
-                            selectedMembers.includes(member.user_id) ? 'bg-purple-50' : ''
+                            selectedMembers.includes(member.user_id) ? 'bg-slate-50' : ''
                           }`}
                         >
                           {member.profile?.avatar_url ? (
@@ -309,7 +309,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
                             </div>
                           </div>
                           {selectedMembers.includes(member.user_id) && (
-                            <span className="text-purple-600">✓</span>
+                            <span className="text-slate-700">✓</span>
                           )}
                         </button>
                       ))
@@ -338,17 +338,17 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
                     onChange={(e) => setAiAllowed(e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900"></div>
                 </label>
               </div>
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t-2 border-gray-200 bg-gray-50 flex gap-3">
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex gap-3">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-4 py-2.5 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors"
+                className="flex-1 px-4 py-2.5 border border-gray-200 text-slate-700 rounded-xl hover:bg-gray-100 transition-all shadow-sm hover:shadow-md"
               >
                 Cancel
               </button>
@@ -359,7 +359,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
                   (mode === 'channel' && !name.trim()) ||
                   (mode === 'dm' && selectedMembers.length === 0)
                 }
-                className="flex-1 px-4 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                className="flex-1 px-4 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
               >
                 {isLoading ? 'Creating...' : mode === 'channel' ? 'Create Channel' : 'Start Chat'}
               </button>

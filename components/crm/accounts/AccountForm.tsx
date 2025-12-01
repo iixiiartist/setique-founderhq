@@ -55,7 +55,7 @@ export function AccountForm({
                     onChange={(e) => onFormDataChange({ ...formData, company: e.target.value })}
                     placeholder="e.g., Acme Corp"
                     required
-                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
             </div>
 
@@ -69,7 +69,7 @@ export function AccountForm({
                         name={`${idPrefix}-priority`}
                         value={formData.priority}
                         onChange={(e) => onFormDataChange({ ...formData, priority: e.target.value as Priority })}
-                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                        className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                         <option value="Low">Low</option>
                         <option value="Medium">Medium</option>
@@ -87,7 +87,7 @@ export function AccountForm({
                         value={formData.status}
                         onChange={(e) => onFormDataChange({ ...formData, status: e.target.value })}
                         placeholder="e.g., Active, Prospect"
-                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                        className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                 </div>
             </div>
@@ -105,7 +105,7 @@ export function AccountForm({
                         value={formData.website || ''}
                         onChange={(e) => onFormDataChange({ ...formData, website: e.target.value })}
                         placeholder="https://example.com"
-                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                        className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                 </div>
                 <div>
@@ -119,7 +119,7 @@ export function AccountForm({
                         value={formData.industry || ''}
                         onChange={(e) => onFormDataChange({ ...formData, industry: e.target.value })}
                         placeholder="e.g., SaaS, Fintech"
-                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                        className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                 </div>
             </div>
@@ -135,7 +135,7 @@ export function AccountForm({
                     onChange={(e) => onFormDataChange({ ...formData, description: e.target.value })}
                     placeholder="Brief description of the company..."
                     rows={3}
-                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 resize-none"
+                    className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 />
             </div>
 
@@ -153,7 +153,7 @@ export function AccountForm({
                             value={formData.checkSize || ''}
                             onChange={(e) => onFormDataChange({ ...formData, checkSize: e.target.value ? Number(e.target.value) : undefined })}
                             placeholder="e.g., 100000"
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                     </div>
                     <div>
@@ -165,7 +165,7 @@ export function AccountForm({
                             name={`${idPrefix}-stage`}
                             value={formData.stage || ''}
                             onChange={(e) => onFormDataChange({ ...formData, stage: e.target.value })}
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
                             <option value="">Select stage...</option>
                             <option value="Pre-Seed">Pre-Seed</option>
@@ -193,7 +193,7 @@ export function AccountForm({
                             value={formData.dealValue || ''}
                             onChange={(e) => onFormDataChange({ ...formData, dealValue: e.target.value ? Number(e.target.value) : undefined })}
                             placeholder="e.g., 50000"
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                     </div>
                     <div>
@@ -205,7 +205,7 @@ export function AccountForm({
                             name={`${idPrefix}-deal-stage`}
                             value={formData.dealStage || ''}
                             onChange={(e) => onFormDataChange({ ...formData, dealStage: e.target.value })}
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
                             <option value="">Select stage...</option>
                             <option value="Lead">Lead</option>
@@ -233,7 +233,7 @@ export function AccountForm({
                             value={formData.opportunity || ''}
                             onChange={(e) => onFormDataChange({ ...formData, opportunity: e.target.value })}
                             placeholder="e.g., Co-marketing campaign"
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                     </div>
                     <div>
@@ -245,7 +245,7 @@ export function AccountForm({
                             name={`${idPrefix}-partner-type`}
                             value={formData.partnerType || ''}
                             onChange={(e) => onFormDataChange({ ...formData, partnerType: e.target.value })}
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
                             <option value="">Select type...</option>
                             <option value="Technology">Technology</option>
@@ -270,7 +270,7 @@ export function AccountForm({
                     value={formData.nextAction}
                     onChange={(e) => onFormDataChange({ ...formData, nextAction: e.target.value })}
                     placeholder="e.g., Send intro email"
-                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                    className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
             </div>
 
@@ -285,7 +285,7 @@ export function AccountForm({
                         type="date"
                         value={formData.nextActionDate}
                         onChange={(e) => onFormDataChange({ ...formData, nextActionDate: e.target.value })}
-                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                        className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                 </div>
                 <div>
@@ -298,7 +298,7 @@ export function AccountForm({
                         type="time"
                         value={formData.nextActionTime}
                         onChange={(e) => onFormDataChange({ ...formData, nextActionTime: e.target.value })}
-                        className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                        className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                 </div>
             </div>
@@ -306,7 +306,7 @@ export function AccountForm({
             <div className="flex gap-2 pt-4">
                 <button
                     type="submit"
-                    className={`flex-1 font-mono font-semibold text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn ${
+                    className={`flex-1 font-semibold text-white py-2 px-4 rounded-xl cursor-pointer transition-all shadow-sm ${
                         mode === 'add' 
                             ? 'bg-green-500 hover:bg-green-600' 
                             : 'bg-blue-500 hover:bg-blue-600'
@@ -317,7 +317,7 @@ export function AccountForm({
                 <button
                     type="button"
                     onClick={onCancel}
-                    className="flex-1 font-mono font-semibold bg-white text-black py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-100"
+                    className="flex-1 font-semibold bg-white text-slate-700 py-2 px-4 rounded-xl cursor-pointer transition-all border border-gray-200 shadow-sm hover:bg-gray-50"
                 >
                     Cancel
                 </button>

@@ -29,22 +29,22 @@ const TaskEditForm: React.FC<TaskEditFormProps> = ({
 }) => (
     <>
         <div>
-            <label htmlFor="edit-task-text" className="block text-sm font-medium text-gray-700 mb-1">Task Description</label>
+            <label htmlFor="edit-task-text" className="block text-sm font-medium text-slate-700 mb-1.5">Task Description</label>
             <textarea
                 id="edit-task-text"
                 value={editText || ''}
                 onChange={e => onTextChange(e.target.value)}
-                className="w-full bg-white border border-gray-300 text-gray-900 p-3 rounded-md min-h-[100px] focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                className="w-full bg-white border border-gray-200 rounded-xl text-slate-900 p-3 min-h-[100px] focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
             />
         </div>
         <div className="grid grid-cols-2 gap-4">
             <div>
-                <label htmlFor="edit-task-priority" className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                <label htmlFor="edit-task-priority" className="block text-sm font-medium text-slate-700 mb-1.5">Priority</label>
                 <select
                     id="edit-task-priority"
                     value={editPriority || 'Medium'}
                     onChange={e => onPriorityChange(e.target.value as Priority)}
-                    className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                    className="w-full bg-white border border-gray-200 rounded-xl text-slate-900 p-2.5 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                 >
                     <option>Low</option>
                     <option>Medium</option>
@@ -52,24 +52,24 @@ const TaskEditForm: React.FC<TaskEditFormProps> = ({
                 </select>
             </div>
             <div>
-                <label htmlFor="edit-task-duedate" className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                <label htmlFor="edit-task-duedate" className="block text-sm font-medium text-slate-700 mb-1.5">Due Date</label>
                 <input
                     id="edit-task-duedate"
                     type="date"
                     value={editDueDate || ''}
                     onChange={e => onDueDateChange(e.target.value)}
-                    className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                    className="w-full bg-white border border-gray-200 rounded-xl text-slate-900 p-2.5 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                 />
             </div>
         </div>
         <div>
-            <label htmlFor="edit-task-duetime" className="block text-sm font-medium text-gray-700 mb-1">Due Time (Optional)</label>
+            <label htmlFor="edit-task-duetime" className="block text-sm font-medium text-slate-700 mb-1.5">Due Time (Optional)</label>
             <input
                 id="edit-task-duetime"
                 type="time"
                 value={editTime || ''}
                 onChange={e => onTimeChange(e.target.value)}
-                className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                className="w-full bg-white border border-gray-200 rounded-xl text-slate-900 p-2.5 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
             />
         </div>
     </>
@@ -92,23 +92,23 @@ const MarketingEditForm: React.FC<MarketingEditFormProps> = ({
 }) => (
     <>
         <div>
-            <label htmlFor="edit-mkt-title" className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+            <label htmlFor="edit-mkt-title" className="block text-sm font-medium text-slate-700 mb-1.5">Title</label>
             <input
                 id="edit-mkt-title"
                 type="text"
                 value={editTitle || ''}
                 onChange={e => onTitleChange(e.target.value)}
-                className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                className="w-full bg-white border border-gray-200 rounded-xl text-slate-900 p-2.5 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
             />
         </div>
         <div className="grid grid-cols-2 gap-4">
             <div>
-                <label htmlFor="edit-mkt-status" className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <label htmlFor="edit-mkt-status" className="block text-sm font-medium text-slate-700 mb-1.5">Status</label>
                 <select
                     id="edit-mkt-status"
                     value={editStatus || 'Planned'}
                     onChange={e => onStatusChange(e.target.value as MarketingItem['status'])}
-                    className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                    className="w-full bg-white border border-gray-200 rounded-xl text-slate-900 p-2.5 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                 >
                     <option>Planned</option>
                     <option>In Progress</option>
@@ -118,24 +118,24 @@ const MarketingEditForm: React.FC<MarketingEditFormProps> = ({
                 </select>
             </div>
             <div>
-                <label htmlFor="edit-mkt-duedate" className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                <label htmlFor="edit-mkt-duedate" className="block text-sm font-medium text-slate-700 mb-1.5">Due Date</label>
                 <input
                     id="edit-mkt-duedate"
                     type="date"
                     value={editDueDate || ''}
                     onChange={e => onDueDateChange(e.target.value)}
-                    className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                    className="w-full bg-white border border-gray-200 rounded-xl text-slate-900 p-2.5 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                 />
             </div>
         </div>
         <div>
-            <label htmlFor="edit-mkt-duetime" className="block text-sm font-medium text-gray-700 mb-1">Due Time (Optional)</label>
+            <label htmlFor="edit-mkt-duetime" className="block text-sm font-medium text-slate-700 mb-1.5">Due Time (Optional)</label>
             <input
                 id="edit-mkt-duetime"
                 type="time"
                 value={editTime || ''}
                 onChange={e => onTimeChange(e.target.value)}
-                className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                className="w-full bg-white border border-gray-200 rounded-xl text-slate-900 p-2.5 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
             />
         </div>
     </>
@@ -160,26 +160,26 @@ const MeetingEditForm: React.FC<MeetingEditFormProps> = ({
 }) => (
     <>
         <div>
-            <label htmlFor="edit-meet-title" className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-            <input id="edit-meet-title" type="text" value={editTitle || ''} onChange={e => onTitleChange(e.target.value)} className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent" />
+            <label htmlFor="edit-meet-title" className="block text-sm font-medium text-slate-700 mb-1.5">Title</label>
+            <input id="edit-meet-title" type="text" value={editTitle || ''} onChange={e => onTitleChange(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl text-slate-900 p-2.5 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors" />
         </div>
         <div className="grid grid-cols-2 gap-4">
             <div>
-                <label htmlFor="edit-meet-date" className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                <input id="edit-meet-date" type="date" value={editDueDate || ''} onChange={e => onDueDateChange(e.target.value)} className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent" />
+                <label htmlFor="edit-meet-date" className="block text-sm font-medium text-slate-700 mb-1.5">Date</label>
+                <input id="edit-meet-date" type="date" value={editDueDate || ''} onChange={e => onDueDateChange(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl text-slate-900 p-2.5 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors" />
             </div>
             <div>
-                <label htmlFor="edit-meet-time" className="block text-sm font-medium text-gray-700 mb-1">Time</label>
-                <input id="edit-meet-time" type="time" value={editTime || ''} onChange={e => onTimeChange(e.target.value)} className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent" />
+                <label htmlFor="edit-meet-time" className="block text-sm font-medium text-slate-700 mb-1.5">Time</label>
+                <input id="edit-meet-time" type="time" value={editTime || ''} onChange={e => onTimeChange(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl text-slate-900 p-2.5 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors" />
             </div>
         </div>
         <div>
-            <label htmlFor="edit-meet-attendees" className="block text-sm font-medium text-gray-700 mb-1">Attendees</label>
-            <input id="edit-meet-attendees" type="text" value={editAttendees || ''} onChange={e => onAttendeesChange(e.target.value)} className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent" />
+            <label htmlFor="edit-meet-attendees" className="block text-sm font-medium text-slate-700 mb-1.5">Attendees</label>
+            <input id="edit-meet-attendees" type="text" value={editAttendees || ''} onChange={e => onAttendeesChange(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl text-slate-900 p-2.5 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors" />
         </div>
         <div>
-            <label htmlFor="edit-meet-summary" className="block text-sm font-medium text-gray-700 mb-1">Summary (Markdown)</label>
-            <textarea id="edit-meet-summary" value={editSummary || ''} onChange={e => onSummaryChange(e.target.value)} className="w-full bg-white border border-gray-300 text-gray-900 p-3 rounded-md min-h-[150px] focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent" />
+            <label htmlFor="edit-meet-summary" className="block text-sm font-medium text-slate-700 mb-1.5">Summary (Markdown)</label>
+            <textarea id="edit-meet-summary" value={editSummary || ''} onChange={e => onSummaryChange(e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl text-slate-900 p-3 min-h-[150px] focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors" />
         </div>
     </>
 );
@@ -200,39 +200,39 @@ const CrmActionEditForm: React.FC<CrmActionEditFormProps> = ({
 }) => (
     <>
         <div>
-            <label htmlFor="edit-crm-action" className="block text-sm font-medium text-gray-700 mb-1">Next Action</label>
+            <label htmlFor="edit-crm-action" className="block text-sm font-medium text-slate-700 mb-1.5">Next Action</label>
             <input
                 id="edit-crm-action"
                 type="text"
                 value={editNextAction || ''}
                 onChange={e => onNextActionChange(e.target.value)}
-                className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                className="w-full bg-white border border-gray-200 rounded-xl text-slate-900 p-2.5 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                 placeholder="e.g., Send follow-up email"
             />
         </div>
         <div>
-            <label htmlFor="edit-crm-date" className="block text-sm font-medium text-gray-700 mb-1">Next Action Date</label>
+            <label htmlFor="edit-crm-date" className="block text-sm font-medium text-slate-700 mb-1.5">Next Action Date</label>
             <input
                 id="edit-crm-date"
                 type="date"
                 value={editDueDate || ''}
                 onChange={e => onDueDateChange(e.target.value)}
-                className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                className="w-full bg-white border border-gray-200 rounded-xl text-slate-900 p-2.5 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
             />
         </div>
         <div>
-            <label htmlFor="edit-crm-time" className="block text-sm font-medium text-gray-700 mb-1">Next Action Time (Optional)</label>
+            <label htmlFor="edit-crm-time" className="block text-sm font-medium text-slate-700 mb-1.5">Next Action Time (Optional)</label>
             <input
                 id="edit-crm-time"
                 type="time"
                 value={editTime || ''}
                 onChange={e => onTimeChange(e.target.value)}
-                className="w-full bg-white border border-gray-300 text-gray-900 p-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                className="w-full bg-white border border-gray-200 rounded-xl text-slate-900 p-2.5 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
             />
         </div>
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800">
-                <strong>Company:</strong> {editCompany}
+        <div className="p-4 bg-slate-50 rounded-xl border border-gray-200">
+            <p className="text-sm text-slate-700">
+                <span className="font-medium">Company:</span> {editCompany}
             </p>
         </div>
     </>
@@ -472,9 +472,9 @@ export const EventDetailModalContent: React.FC<EventDetailModalContentProps> = (
                         onTimeChange={setEditTime}
                     />
                 )}
-                <div className="flex gap-2 mt-4">
-                    <button onClick={handleSaveChanges} className="w-full font-medium bg-black text-white py-2.5 px-4 rounded-md hover:bg-gray-800 transition-colors">Save Changes</button>
-                    <button onClick={handleCancelEditing} className="w-full font-medium bg-gray-100 text-gray-700 py-2.5 px-4 rounded-md border border-gray-200 hover:bg-gray-200 transition-colors">Cancel</button>
+                <div className="flex gap-3 mt-6">
+                    <button onClick={handleSaveChanges} className="flex-1 font-semibold text-sm bg-slate-900 text-white py-2.5 px-4 rounded-xl shadow-sm hover:shadow-md hover:bg-slate-800 transition-all">Save Changes</button>
+                    <button onClick={handleCancelEditing} className="flex-1 font-semibold text-sm bg-white text-slate-700 py-2.5 px-4 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all">Cancel</button>
                 </div>
             </div>
         );
@@ -482,70 +482,70 @@ export const EventDetailModalContent: React.FC<EventDetailModalContentProps> = (
     
     return (
         <div className="space-y-4">
-            <h3 className={`text-2xl p-2 border-2 border-black ${TASK_TAG_BG_COLORS[event.tag]}`}>{event.title}</h3>
+            <h3 className={`text-xl font-semibold p-3 rounded-xl ${TASK_TAG_BG_COLORS[event.tag]}`}>{event.title}</h3>
             {isTask && task && (
-                <div className="flex items-center gap-2 p-2 bg-gray-100 border-2 border-dashed border-black">
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-gray-200">
                     <input
                         type="checkbox"
                         id={`complete-task-${task.id}`}
                         checked={task.status === 'Done'}
                         onChange={(e) => actions.updateTask(task.id, { status: e.target.checked ? 'Done' : 'Todo' })}
-                        className="w-5 h-5 accent-blue-500 shrink-0 border-2 border-black rounded-none"
+                        className="w-5 h-5 accent-emerald-500 shrink-0 rounded"
                     />
-                    <label htmlFor={`complete-task-${task.id}`} className="font-mono font-semibold">Mark as Complete</label>
+                    <label htmlFor={`complete-task-${task.id}`} className="font-medium text-slate-700">Mark as Complete</label>
                 </div>
             )}
             <div className="grid grid-cols-2 gap-4">
-                <div><p className="font-mono text-sm uppercase">Module</p><p className="font-semibold text-lg">{event.tag}</p></div>
+                <div><p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Module</p><p className="font-semibold text-slate-900">{event.tag}</p></div>
                 <div>
-                    <p className="font-mono text-sm uppercase">Type</p>
-                    <p className="font-semibold text-lg capitalize">
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Type</p>
+                    <p className="font-semibold text-slate-900 capitalize">
                         {isMarketing ? event.contentType : event.type}
                     </p>
                 </div>
                 <div>
-                    <p className="font-mono text-sm uppercase">Date & Time</p>
-                    <p className="font-semibold text-lg">
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Date & Time</p>
+                    <p className="font-semibold text-slate-900">
                         {new Date(event.dueDate + 'T00:00:00').toLocaleDateString(undefined, { timeZone: 'UTC', dateStyle: 'long' })}
                         {isMeeting && (
-                            <span className="ml-2 text-blue-600">
+                            <span className="ml-2 text-slate-500 font-normal">
                                 {new Date(event.timestamp).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                             </span>
                         )}
                         {(isTask && 'dueTime' in event && event.dueTime) && (
-                            <span className="ml-2 text-blue-600">{event.dueTime}</span>
+                            <span className="ml-2 text-slate-500 font-normal">{event.dueTime}</span>
                         )}
                         {(isMarketing && 'dueTime' in event && event.dueTime) && (
-                            <span className="ml-2 text-blue-600">{event.dueTime}</span>
+                            <span className="ml-2 text-slate-500 font-normal">{event.dueTime}</span>
                         )}
                         {(isCrmAction && 'nextActionTime' in event && event.nextActionTime) && (
-                            <span className="ml-2 text-blue-600">{event.nextActionTime}</span>
+                            <span className="ml-2 text-slate-500 font-normal">{event.nextActionTime}</span>
                         )}
                     </p>
                 </div>
-                {isTask && <div><p className="font-mono text-sm uppercase">Status</p><p className="font-semibold text-lg">{event.status}</p></div>}
-                {isMarketing && <div><p className="font-mono text-sm uppercase">Status</p><p className="font-semibold text-lg">{event.status}</p></div>}
+                {isTask && <div><p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Status</p><p className="font-semibold text-slate-900">{event.status}</p></div>}
+                {isMarketing && <div><p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Status</p><p className="font-semibold text-slate-900">{event.status}</p></div>}
             </div>
             {isTask && (
-                <div><p className="font-mono text-sm uppercase">Priority</p><p className="font-semibold text-lg">{task!.priority}</p></div>
+                <div><p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Priority</p><p className="font-semibold text-slate-900">{task!.priority}</p></div>
             )}
             {isTask && task!.assignedToName && (
-                <div><p className="font-mono text-sm uppercase">Assigned To</p><p className="font-semibold text-lg">👤 {task!.assignedToName}</p></div>
+                <div><p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Assigned To</p><p className="font-semibold text-slate-900">👤 {task!.assignedToName}</p></div>
             )}
             {isMeeting && (
                  <>
                     <div className="grid grid-cols-2 gap-4">
-                        <div><p className="font-mono text-sm uppercase">Company</p><p className="font-semibold text-lg">{event.companyName}</p></div>
-                        <div><p className="font-mono text-sm uppercase">Contact</p><p className="font-semibold text-lg">{event.contactName}</p></div>
+                        <div><p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Company</p><p className="font-semibold text-slate-900">{event.companyName}</p></div>
+                        <div><p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Contact</p><p className="font-semibold text-slate-900">{event.contactName}</p></div>
                     </div>
                     <div>
-                        <p className="font-mono text-sm uppercase">Attendees</p>
-                        <p className="font-semibold text-lg">{event.attendees || 'N/A'}</p>
+                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Attendees</p>
+                        <p className="font-semibold text-slate-900">{event.attendees || 'N/A'}</p>
                     </div>
                     <div>
-                        <p className="font-mono text-sm uppercase">Summary</p>
-                        <div className="bg-gray-50 border-2 border-dashed border-black p-4 max-h-48 overflow-y-auto custom-scrollbar">
-                            <ReactMarkdown className="markdown-content" remarkPlugins={[remarkGfm]}>
+                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Summary</p>
+                        <div className="bg-slate-50 rounded-xl border border-gray-200 p-4 max-h-48 overflow-y-auto custom-scrollbar">
+                            <ReactMarkdown className="markdown-content prose prose-sm max-w-none" remarkPlugins={[remarkGfm]}>
                                 {event.summary}
                             </ReactMarkdown>
                         </div>
@@ -555,21 +555,21 @@ export const EventDetailModalContent: React.FC<EventDetailModalContentProps> = (
             {isCrmAction && (
                 <>
                     <div>
-                        <p className="font-mono text-sm uppercase">Company</p>
-                        <p className="font-semibold text-lg">{event.companyName}</p>
+                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Company</p>
+                        <p className="font-semibold text-slate-900">{event.companyName}</p>
                     </div>
                     <div>
-                        <p className="font-mono text-sm uppercase">Priority</p>
-                        <p className="font-semibold text-lg">{event.priority}</p>
+                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Priority</p>
+                        <p className="font-semibold text-slate-900">{event.priority}</p>
                     </div>
                     <div>
-                        <p className="font-mono text-sm uppercase">Status</p>
-                        <p className="font-semibold text-lg">{event.status}</p>
+                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Status</p>
+                        <p className="font-semibold text-slate-900">{event.status}</p>
                     </div>
                     {event.assignedToName && (
                         <div>
-                            <p className="font-mono text-sm uppercase">Assigned To</p>
-                            <p className="font-semibold text-lg">👤 {event.assignedToName}</p>
+                            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">Assigned To</p>
+                            <p className="font-semibold text-slate-900">👤 {event.assignedToName}</p>
                         </div>
                     )}
                 </>
@@ -577,13 +577,18 @@ export const EventDetailModalContent: React.FC<EventDetailModalContentProps> = (
             
             {/* Linked GTM Docs Section */}
             {workspace && (isMeeting || isTask) && (
-                <div className="border-t-2 border-gray-200 pt-4 mt-4">
-                    <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-mono text-sm font-semibold text-black">📎 Linked Documents</h4>
+                <div className="border-t border-gray-200 pt-4 mt-4">
+                    <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                            </svg>
+                            Linked Documents
+                        </h4>
                         <button
                             type="button"
                             onClick={() => setShowDocPicker(true)}
-                            className="font-mono bg-blue-500 border-2 border-black text-white text-xs py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-blue-600"
+                            className="bg-slate-900 text-white text-xs py-1.5 px-3 font-medium rounded-lg shadow-sm hover:shadow-md hover:bg-slate-800 transition-all"
                         >
                             + Attach Doc
                         </button>
@@ -598,10 +603,10 @@ export const EventDetailModalContent: React.FC<EventDetailModalContentProps> = (
                 </div>
             )}
             
-            <div className="flex gap-2 mt-4">
-                <button onClick={handleEditClick} className="flex-1 font-mono font-semibold bg-white text-black py-2 px-4 rounded-none border-2 border-black shadow-neo-btn hover:bg-gray-100">Edit</button>
-                <button onClick={handleDelete} className="flex-1 font-mono font-semibold bg-red-600 text-white py-2 px-4 rounded-none border-2 border-black shadow-neo-btn hover:bg-red-700">Delete</button>
-                <button onClick={onClose} className="flex-1 font-mono font-semibold bg-black text-white py-2 px-4 rounded-none border-2 border-black shadow-neo-btn">Close</button>
+            <div className="flex gap-3 mt-6">
+                <button onClick={handleEditClick} className="flex-1 font-semibold text-sm bg-white text-slate-700 py-2.5 px-4 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all">Edit</button>
+                <button onClick={handleDelete} className="flex-1 font-semibold text-sm bg-red-50 text-red-600 py-2.5 px-4 rounded-xl border border-red-200 hover:bg-red-100 transition-all">Delete</button>
+                <button onClick={onClose} className="flex-1 font-semibold text-sm bg-slate-900 text-white py-2.5 px-4 rounded-xl shadow-sm hover:shadow-md hover:bg-slate-800 transition-all">Close</button>
             </div>
             
             {/* Doc Library Picker Modal */}

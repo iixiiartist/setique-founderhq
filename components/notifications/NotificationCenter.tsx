@@ -362,14 +362,14 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
             <button
               onClick={() => markAllAsReadHook()}
               disabled={unreadCount === 0}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium bg-blue-500 text-white border-2 border-black hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium bg-blue-500 text-white rounded-lg hover:bg-blue-600 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <CheckCheck className="w-4 h-4" />
               Mark All Read
             </button>
             <button
               onClick={() => deleteAllReadHook()}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium bg-red-500 text-white border-2 border-black hover:bg-red-600 transition-colors"
+              className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 shadow-sm transition-colors"
             >
               <Trash2 className="w-4 h-4" />
               Clear Read

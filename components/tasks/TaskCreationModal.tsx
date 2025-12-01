@@ -81,25 +81,25 @@ export function TaskCreationModal({
         >
             <div className="space-y-4 p-4" data-testid="task-creation-modal">
                 <div>
-                    <label className="block font-mono text-sm font-bold mb-1">Task Description *</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Task Description *</label>
                     <textarea
                         data-testid="task-description-input"
                         value={text}
                         onChange={(e) => setText(e.target.value)}
                         placeholder="What needs to be done?"
-                        className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-400"
                         rows={3}
                         autoFocus
                     />
                 </div>
 
                 <div>
-                    <label className="block font-mono text-sm font-bold mb-1">Module *</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Module *</label>
                     <select
                         data-testid="task-module-select"
                         value={category}
                         onChange={(e) => setCategory(e.target.value as TaskCollectionName)}
-                        className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-400"
                     >
                         <option value="productsServicesTasks">📦 Products & Services</option>
                         <option value="investorTasks">💰 Investors</option>
@@ -112,12 +112,12 @@ export function TaskCreationModal({
 
                 <div className="grid grid-cols-3 gap-4">
                     <div>
-                        <label className="block font-mono text-sm font-bold mb-1">Priority</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Priority</label>
                         <select
                             data-testid="task-priority-select"
                             value={priority}
                             onChange={(e) => setPriority(e.target.value as Priority)}
-                            className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-400"
                         >
                             <option value="High">🔴 High</option>
                             <option value="Medium">🟡 Medium</option>
@@ -125,34 +125,34 @@ export function TaskCreationModal({
                         </select>
                     </div>
                     <div>
-                        <label className="block font-mono text-sm font-bold mb-1">Due Date</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Due Date</label>
                         <input
                             data-testid="task-due-date-input"
                             type="date"
                             value={dueDate}
                             onChange={(e) => setDueDate(e.target.value)}
-                            className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-400"
                         />
                     </div>
                     <div>
-                        <label className="block font-mono text-sm font-bold mb-1">Due Time</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Due Time</label>
                         <input
                             data-testid="task-due-time-input"
                             type="time"
                             value={dueTime}
                             onChange={(e) => setDueTime(e.target.value)}
-                            className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-400"
                         />
                     </div>
                 </div>
 
                 <div>
-                    <label className="block font-mono text-sm font-bold mb-1">Assign To</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Assign To</label>
                     <select
                         data-testid="task-assignee-select"
                         value={assignedTo}
                         onChange={(e) => setAssignedTo(e.target.value)}
-                        className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-400"
                     >
                         <option value="">Unassigned</option>
                         {workspaceMembers.map(member => (
@@ -164,7 +164,7 @@ export function TaskCreationModal({
                 </div>
 
                 <div>
-                    <label className="block font-mono text-sm font-bold mb-1">Link to Account (Optional)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Link to Account (Optional)</label>
                     <select
                         data-testid="task-crm-select"
                         value={crmItemId}
@@ -172,7 +172,7 @@ export function TaskCreationModal({
                             setCrmItemId(e.target.value);
                             setContactId(''); // Reset contact when account changes
                         }}
-                        className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-400"
                     >
                         <option value="">No linked account</option>
                         {filteredCrmItems.map(item => (
@@ -185,12 +185,12 @@ export function TaskCreationModal({
 
                 {availableContacts.length > 0 && (
                     <div>
-                        <label className="block font-mono text-sm font-bold mb-1">Link to Contact (Optional)</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Link to Contact (Optional)</label>
                         <select
                             data-testid="task-contact-select"
                             value={contactId}
                             onChange={(e) => setContactId(e.target.value)}
-                            className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-400"
                         >
                             <option value="">No linked contact</option>
                             {availableContacts.map(contact => (
@@ -205,12 +205,12 @@ export function TaskCreationModal({
                 {/* Deal linking for financial tasks */}
                 {category === 'financialTasks' && deals.length > 0 && (
                     <div>
-                        <label className="block font-mono text-sm font-bold mb-1">Link to Deal (Optional)</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Link to Deal (Optional)</label>
                         <select
                             data-testid="task-deal-select"
                             value={dealId}
                             onChange={(e) => setDealId(e.target.value)}
-                            className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-400"
                         >
                             <option value="">No linked deal</option>
                             {deals.map(deal => (
@@ -225,12 +225,12 @@ export function TaskCreationModal({
                 {/* Campaign linking for marketing tasks */}
                 {category === 'marketingTasks' && campaigns.length > 0 && (
                     <div>
-                        <label className="block font-mono text-sm font-bold mb-1">Link to Campaign (Optional)</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Link to Campaign (Optional)</label>
                         <select
                             data-testid="task-campaign-select"
                             value={campaignId}
                             onChange={(e) => setCampaignId(e.target.value)}
-                            className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-400"
                         >
                             <option value="">No linked campaign</option>
                             {campaigns.map(campaign => (
@@ -245,12 +245,12 @@ export function TaskCreationModal({
                 {/* Product linking for product/service tasks */}
                 {category === 'productsServicesTasks' && products.length > 0 && (
                     <div>
-                        <label className="block font-mono text-sm font-bold mb-1">Link to Product/Service (Optional)</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Link to Product/Service (Optional)</label>
                         <select
                             data-testid="task-product-select"
                             value={productId}
                             onChange={(e) => setProductId(e.target.value)}
-                            className="w-full px-3 py-2 border-2 border-black rounded-none font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-400"
                         >
                             <option value="">No linked product</option>
                             {products.map(product => (
@@ -263,27 +263,27 @@ export function TaskCreationModal({
                 )}
 
                 {/* Subtasks Section */}
-                <div className="border-t-2 border-black pt-4 mt-2">
-                    <label className="block font-mono text-sm font-bold mb-2">📋 Subtasks (Optional)</label>
+                <div className="border-t border-gray-200 pt-4 mt-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">📋 Subtasks (Optional)</label>
                     <SubtaskManager 
                         subtasks={subtasks}
                         onSubtasksChange={setSubtasks}
                     />
                 </div>
 
-                <div className="flex gap-3 pt-4 border-t-2 border-black mt-2">
+                <div className="flex gap-3 pt-4 border-t border-gray-200 mt-2">
                     <button
                         onClick={handleSubmit}
                         disabled={!text.trim()}
                         data-testid="task-create-button"
-                        className="flex-1 px-4 py-2 bg-black text-white border-2 border-black rounded-none font-mono font-semibold shadow-neo-btn hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 px-4 py-2.5 bg-slate-900 text-white rounded-xl font-medium shadow-sm hover:bg-slate-800 hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Create Task
                     </button>
                     <button
                         onClick={onClose}
                         data-testid="task-cancel-button"
-                        className="flex-1 px-4 py-2 bg-white text-black border-2 border-black rounded-none font-mono font-semibold shadow-neo-btn hover:bg-gray-100"
+                        className="flex-1 px-4 py-2.5 bg-white text-slate-700 border border-gray-200 rounded-xl font-medium shadow-sm hover:bg-gray-50 hover:shadow-md transition-all"
                     >
                         Cancel
                     </button>

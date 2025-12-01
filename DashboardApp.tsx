@@ -2324,16 +2324,22 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
         // Product Inventory & Service Capacity
         updateProductInventory: async (id, quantityChange, reason) => {
-            // Placeholder implementation
+            const result = await DataPersistenceAdapter.adjustProductInventory(id, quantityChange, reason);
+            if (result.error) return { success: false, message: result.error.message };
+            await reload();
             return { success: true, message: 'Inventory updated' };
         },
         reserveProductInventory: async (id, quantity) => {
-             // Placeholder implementation
-            return { success: true, message: 'Inventory reserved' };
+            const result = await DataPersistenceAdapter.reserveProductInventory(id, quantity);
+            if (result.error) return { success: false, message: result.error.message };
+            await reload();
+            return { success: true, message: `Reserved ${quantity} units` };
         },
         releaseProductInventory: async (id, quantity) => {
-             // Placeholder implementation
-            return { success: true, message: 'Inventory released' };
+            const result = await DataPersistenceAdapter.releaseProductInventory(id, quantity);
+            if (result.error) return { success: false, message: result.error.message };
+            await reload();
+            return { success: true, message: `Released ${quantity} units` };
         },
         updateServiceCapacity: async (id, capacityChange, period) => {
              // Placeholder implementation
@@ -2782,10 +2788,10 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             {/* Show "No Workspace Found" screen */}
             {!isLoadingWorkspace && !workspace && (
                 <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                    <div className="max-w-md w-full bg-white p-8 border-2 border-black shadow-neo m-4">
+                    <div className="max-w-md w-full bg-white p-8 rounded-2xl border border-gray-200 shadow-lg m-4">
                         <div className="text-center mb-6">
                             <div className="text-6xl mb-4">🔒</div>
-                            <h2 className="text-2xl font-bold text-black mb-2">No Workspace Found</h2>
+                            <h2 className="text-2xl font-semibold text-slate-900 mb-2">No Workspace Found</h2>
                         </div>
                         
                         <div className="space-y-4 text-gray-700 mb-6">
@@ -2799,8 +2805,8 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             </ul>
                         </div>
 
-                        <div className="bg-blue-50 border-2 border-blue-200 p-4 mb-6">
-                            <p className="text-sm text-blue-900">
+                        <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 mb-6">
+                            <p className="text-sm text-gray-900">
                                 <strong>Want to use the app independently?</strong><br />
                                 Sign up with a different email address to create your own workspace.
                             </p>
@@ -2808,7 +2814,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         
                         <button
                             onClick={signOut}
-                            className="w-full bg-blue-600 text-white py-3 px-4 border-2 border-black font-bold shadow-neo hover:bg-blue-700 transition-colors"
+                            className="w-full bg-gray-900 text-white py-3 px-4 rounded-xl font-semibold shadow-sm hover:shadow-md hover:bg-black transition-all"
                         >
                             Sign Out
                         </button>
@@ -2850,13 +2856,13 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                             </svg>
                         </button>
-                        <h1 className="text-lg sm:text-2xl md:text-3xl font-bold text-black truncate">
+                        <h1 className="text-lg sm:text-2xl md:text-3xl font-bold text-gray-900 truncate">
                             FounderHQ <span className="text-gray-600 hidden md:inline" style={{ fontWeight: 400, fontFamily: "'Inter', sans-serif" }}>A Setique Tool</span>
                         </h1>
                         
                         {/* Workspace name display (no switching in single-workspace model) */}
                         {workspace && (
-                            <div className="px-2 sm:px-3 py-1 text-xs sm:text-sm border-2 border-black bg-gray-50 truncate max-w-[100px] sm:max-w-none" role="status" aria-label={`Current workspace: ${workspace.name}`}>
+                            <div className="px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-lg border border-gray-200 bg-gray-50 truncate max-w-[100px] sm:max-w-none" role="status" aria-label={`Current workspace: ${workspace.name}`}>
                                 {workspace.name}
                             </div>
                         )}
@@ -2896,7 +2902,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                             <span className="text-xs sm:text-sm text-gray-600 hidden md:inline truncate max-w-[150px]">{user?.email}</span>
                             <button
                                 onClick={() => signOut()}
-                                className="px-3 py-2 text-xs sm:text-sm border-2 border-black bg-white hover:bg-gray-100 transition-colors whitespace-nowrap min-h-[44px]"
+                                className="px-3 py-2 text-xs sm:text-sm rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors whitespace-nowrap min-h-[44px]"
                                 aria-label="Sign out of your account"
                             >
                                 Sign Out
@@ -2907,7 +2913,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
                 {isLoading ? (
                      <div className="flex justify-center items-center h-64" role="status" aria-live="polite" aria-label="Loading dashboard">
-                        <svg className="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                        <svg className="animate-spin h-8 w-8 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>

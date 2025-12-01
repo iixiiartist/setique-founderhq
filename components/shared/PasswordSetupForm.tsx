@@ -88,7 +88,7 @@ export const PasswordSetupForm: React.FC<PasswordSetupFormProps> = ({ email, wor
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 to-blue-600 p-4">
-            <div className="bg-white border-4 border-black shadow-neo-brutal p-8 max-w-md w-full">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl p-8 max-w-md w-full">
                 <div className="text-center mb-6">
                     <div className="text-6xl mb-4">🔐</div>
                     <h2 className="text-2xl font-bold mb-2">Set Your Password</h2>
@@ -173,7 +173,7 @@ export const PasswordSetupForm: React.FC<PasswordSetupFormProps> = ({ email, wor
                     <button
                         type="submit"
                         disabled={isSubmitting || !password || !confirmPassword}
-                        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 border-4 border-black shadow-neo-brutal hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0"
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-xl border border-purple-700 shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isSubmitting ? 'Setting Password...' : 'Set Password & Continue'}
                     </button>

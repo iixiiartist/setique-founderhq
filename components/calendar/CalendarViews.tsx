@@ -93,12 +93,12 @@ export const WeekView: React.FC<CalendarViewsProps> = ({
                             <p className="font-mono text-sm">{day.toLocaleDateString(undefined, { weekday: 'short' })}</p>
                             <p className="font-bold text-2xl">{day.getDate()}</p>
                         </div>
-                        <div className="flex-grow p-2 border-r-2 border-black grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                        <div className="flex-grow p-2 border-r border-gray-200 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                            {dayEvents.length > 0 ? dayEvents.map(event => (
                                 <button 
                                     key={event.id} 
                                     onClick={(e) => onEventClick(event, { current: e.currentTarget })}
-                                    className={`text-left text-sm font-semibold p-2 shadow-neo-sm border-2 border-black ${TASK_TAG_BG_COLORS[event.tag] || 'bg-gray-300'}`}
+                                    className={`text-left text-sm font-semibold p-2 rounded-lg shadow-sm border border-gray-200 ${TASK_TAG_BG_COLORS[event.tag] || 'bg-gray-100'}`}
                                 >
                                     <p className="truncate font-bold">{event.title}</p>
                                     <p className="font-normal">{event.tag}</p>
@@ -158,17 +158,17 @@ export const DayView: React.FC<CalendarViewsProps> = ({
     });
 
     return (
-        <div className="border-2 border-black">
+        <div className="rounded-xl border border-gray-200">
             {/* Events without time section */}
             {eventsWithoutTime.length > 0 && (
-                <div className="p-4 bg-gray-50 border-b-2 border-black">
-                    <h3 className="font-mono font-bold text-sm uppercase mb-2">No Specific Time</h3>
+                <div className="p-4 bg-gray-50 border-b border-gray-200 rounded-t-xl">
+                    <h3 className="font-semibold text-sm text-slate-700 mb-2">No Specific Time</h3>
                     <div className="space-y-2">
                         {eventsWithoutTime.map(event => (
                             <button
                                 key={event.id}
                                 onClick={(e) => onEventClick(event, { current: e.currentTarget })}
-                                className={`w-full text-left p-2 text-sm shadow-neo-sm border-2 border-black ${TASK_TAG_BG_COLORS[event.tag] || 'bg-gray-300'}`}
+                                className={`w-full text-left p-2 text-sm rounded-lg shadow-sm border border-gray-200 ${TASK_TAG_BG_COLORS[event.tag] || 'bg-gray-100'}`}
                             >
                                 <span className="font-bold">{event.title}</span>
                                 {event.type === 'task' && (event as Task).assignedToName && (
@@ -192,7 +192,7 @@ export const DayView: React.FC<CalendarViewsProps> = ({
                             className={`flex border-b border-gray-300 ${isCurrentHour ? 'bg-blue-50' : ''}`}
                         >
                             {/* Time label */}
-                            <div className={`w-20 flex-shrink-0 p-2 border-r-2 border-black text-center font-mono text-sm font-semibold ${isCurrentHour ? 'bg-blue-100' : 'bg-gray-100'}`}>
+                            <div className={`w-20 flex-shrink-0 p-2 border-r border-gray-200 text-center text-sm font-semibold ${isCurrentHour ? 'bg-blue-100' : 'bg-gray-50'}`}>
                                 {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
                             </div>
                             
@@ -213,7 +213,7 @@ export const DayView: React.FC<CalendarViewsProps> = ({
                                             <button
                                                 key={event.id}
                                                 onClick={(e) => onEventClick(event, { current: e.currentTarget })}
-                                                className={`w-full text-left p-2 text-sm shadow-neo-sm border-2 border-black ${TASK_TAG_BG_COLORS[event.tag] || 'bg-gray-300'}`}
+                                                className={`w-full text-left p-2 text-sm rounded-lg shadow-sm border border-gray-200 ${TASK_TAG_BG_COLORS[event.tag] || 'bg-gray-100'}`}
                                             >
                                                 <div className="flex items-center justify-between">
                                                     <span className="font-bold">{event.title}</span>

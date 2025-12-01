@@ -358,11 +358,11 @@ export const DocShareModal: React.FC<DocShareModalProps> = ({
                                     key={option.value}
                                     onClick={() => handleVisibilityUpdate(option.value)}
                                     disabled={isDisabled}
-                                    className={`flex items-start gap-3 border rounded-xl px-3 py-3 text-left transition ${
-                                        isActive ? 'border-black bg-yellow-100' : 'border-gray-200 hover:border-gray-400'
+                                    className={`flex items-start gap-3 border rounded-xl px-4 py-3 text-left transition ${
+                                        isActive ? 'border-slate-500 bg-slate-50 ring-2 ring-slate-200' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                                     } ${isDisabled ? 'opacity-60 cursor-not-allowed' : ''}`}
                                 >
-                                    <div className={`mt-1 ${isActive ? 'text-black' : 'text-gray-500'}`}>{option.icon}</div>
+                                    <div className={`mt-1 ${isActive ? 'text-slate-900' : 'text-gray-500'}`}>{option.icon}</div>
                                     <div>
                                         <p className="font-semibold text-sm">{option.label}</p>
                                         <p className="text-xs text-gray-600">{option.description}</p>
@@ -445,13 +445,13 @@ export const DocShareModal: React.FC<DocShareModalProps> = ({
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             disabled={maxLinksReached}
-                            className={`flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm ${maxLinksReached ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            className={`flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 ${maxLinksReached ? 'opacity-50 cursor-not-allowed' : ''}`}
                         />
                         <select
                             value={filter}
                             onChange={(e) => setFilter(e.target.value as ShareFilter)}
                             disabled={maxLinksReached}
-                            className={`border border-gray-300 rounded-md px-3 py-2 text-sm w-full md:w-44 ${maxLinksReached ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            className={`border border-gray-200 rounded-xl px-4 py-2.5 text-sm w-full md:w-44 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 ${maxLinksReached ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             <option value="all">All types</option>
                             <option value="task">Tasks</option>
@@ -475,7 +475,7 @@ export const DocShareModal: React.FC<DocShareModalProps> = ({
                                         key={targetKey}
                                         onClick={() => handleAttachTarget(target)}
                                         disabled={!!linkingKey}
-                                        className="w-full text-left border border-gray-200 rounded-lg px-3 py-2 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-black/20"
+                                        className="w-full text-left border border-gray-200 rounded-xl px-4 py-3 hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-900/10 transition-colors"
                                     >
                                         <div className="flex items-center justify-between">
                                             <div>

@@ -30,12 +30,12 @@ function StepIndicator({ currentStep, totalSteps }: { currentStep: number; total
             {Array.from({ length: totalSteps }).map((_, idx) => (
                 <div
                     key={idx}
-                    className={`h-3 w-12 border-2 border-black transition-colors ${
+                    className={`h-2 w-12 rounded-full transition-colors ${
                         idx + 1 === currentStep
                             ? 'bg-blue-600'
                             : idx + 1 < currentStep
-                            ? 'bg-green-600'
-                            : 'bg-white'
+                            ? 'bg-blue-400'
+                            : 'bg-gray-200'
                     }`}
                 />
             ))}
@@ -48,12 +48,12 @@ function MissingFieldsWarning({ fields }: { fields: { key: string; label: string
     if (fields.length === 0) return null;
     
     return (
-        <div className="mb-6 border-2 border-yellow-400 bg-yellow-50 p-4">
-            <h2 className="font-mono font-semibold text-yellow-800 mb-2">Almost there ⏱️</h2>
-            <p className="text-sm font-mono text-yellow-700">
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <h2 className="font-semibold text-slate-900 mb-2">Almost there ⏱️</h2>
+            <p className="text-sm text-slate-700">
                 These fields power Copilot personalization. Please fill them in before finishing:
             </p>
-            <ul className="list-disc pl-5 text-sm font-mono text-yellow-900 mt-2 space-y-1">
+            <ul className="list-disc pl-5 text-sm text-slate-900 mt-2 space-y-1">
                 {fields.map(field => (
                     <li key={field.key}>{field.label}</li>
                 ))}
@@ -143,14 +143,14 @@ export function BusinessProfileSetupRefactored({
             onClick={(e) => e.stopPropagation()}
         >
             <div 
-                className="bg-white border-2 border-black shadow-neo max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                className="bg-white rounded-2xl border border-gray-200 shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="border-b-2 border-black p-6 flex items-center justify-between sticky top-0 bg-white z-10">
+                <div className="border-b border-gray-200 p-6 flex items-center justify-between sticky top-0 bg-white z-10 rounded-t-2xl">
                     <div>
-                        <h1 className="text-xl font-bold font-mono">Business Profile Setup</h1>
-                        <p className="text-sm font-mono text-gray-600">
+                        <h1 className="text-xl font-semibold text-slate-900">Business Profile Setup</h1>
+                        <p className="text-sm text-gray-600">
                             Step {form.step} of {form.totalSteps} • 
                             <span className="text-green-600 ml-1">✓ Draft auto-saved</span>
                         </p>
@@ -174,12 +174,12 @@ export function BusinessProfileSetupRefactored({
                 </div>
 
                 {/* Footer */}
-                <div className="border-t-2 border-black p-6 flex items-center justify-between sticky bottom-0 bg-white">
+                <div className="border-t border-gray-200 p-6 flex items-center justify-between sticky bottom-0 bg-white rounded-b-2xl">
                     <div>
                         {form.step > 1 && (
                             <button
                                 onClick={form.prevStep}
-                                className="px-6 py-3 border-2 border-black bg-white font-mono font-bold hover:bg-gray-100 transition-colors"
+                                className="px-6 py-3 rounded-xl border border-gray-200 bg-white font-medium text-slate-700 hover:bg-gray-50 transition-colors"
                             >
                                 ← Back
                             </button>
@@ -189,7 +189,7 @@ export function BusinessProfileSetupRefactored({
                         {onSkip && form.step === 1 && (
                             <button
                                 onClick={onSkip}
-                                className="px-6 py-3 border-2 border-black bg-white font-mono font-bold hover:bg-gray-100 transition-colors"
+                                className="px-6 py-3 rounded-xl border border-gray-200 bg-white font-medium text-slate-700 hover:bg-gray-50 transition-colors"
                             >
                                 Skip for now
                             </button>
@@ -197,10 +197,10 @@ export function BusinessProfileSetupRefactored({
                         <button
                             onClick={form.nextStep}
                             disabled={!form.canProceed()}
-                            className={`px-6 py-3 border-2 border-black font-mono font-bold transition-colors ${
+                            className={`px-6 py-3 rounded-xl font-medium transition-colors ${
                                 form.canProceed()
-                                    ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-neo'
-                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg'
+                                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                             }`}
                         >
                             {form.step === form.totalSteps ? 'Complete Setup →' : 'Next →'}

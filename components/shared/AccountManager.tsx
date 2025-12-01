@@ -1071,7 +1071,7 @@ export function AccountManager({
             >
                 <form onSubmit={handleAddAccount} className="space-y-4">
                     <div>
-                        <label htmlFor="add-company" className="block font-mono text-sm font-semibold text-black mb-1">
+                        <label htmlFor="add-company" className="block text-sm font-medium text-slate-700 mb-1">
                             Company Name *
                         </label>
                         <input
@@ -1082,13 +1082,13 @@ export function AccountManager({
                             onChange={(e) => setFormData(p => ({ ...p, company: e.target.value }))}
                             placeholder="e.g., Acme Corp"
                             required
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                         />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor="add-priority" className="block font-mono text-sm font-semibold text-black mb-1">
+                            <label htmlFor="add-priority" className="block text-sm font-medium text-slate-700 mb-1">
                                 Priority
                             </label>
                             <select
@@ -1096,7 +1096,7 @@ export function AccountManager({
                                 name="add-priority"
                                 value={formData.priority}
                                 onChange={(e) => setFormData(p => ({ ...p, priority: e.target.value as Priority }))}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                             >
                                 <option value="Low">Low</option>
                                 <option value="Medium">Medium</option>
@@ -1104,7 +1104,7 @@ export function AccountManager({
                             </select>
                         </div>
                         <div>
-                            <label htmlFor="add-status" className="block font-mono text-sm font-semibold text-black mb-1">
+                            <label htmlFor="add-status" className="block text-sm font-medium text-slate-700 mb-1">
                                 Status
                             </label>
                             <input
@@ -1114,7 +1114,7 @@ export function AccountManager({
                                 value={formData.status}
                                 onChange={(e) => setFormData(p => ({ ...p, status: e.target.value }))}
                                 placeholder="e.g., Active, Prospect"
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                             />
                         </div>
                     </div>
@@ -1122,7 +1122,7 @@ export function AccountManager({
                     {/* Additional Details */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor="add-website" className="block font-mono text-sm font-semibold text-black mb-1">
+                            <label htmlFor="add-website" className="block text-sm font-medium text-slate-700 mb-1">
                                 Website
                             </label>
                             <input
@@ -1132,11 +1132,11 @@ export function AccountManager({
                                 value={formData.website || ''}
                                 onChange={(e) => setFormData(p => ({ ...p, website: e.target.value }))}
                                 placeholder="https://example.com"
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                             />
                         </div>
                         <div>
-                            <label htmlFor="add-industry" className="block font-mono text-sm font-semibold text-black mb-1">
+                            <label htmlFor="add-industry" className="block text-sm font-medium text-slate-700 mb-1">
                                 Industry
                             </label>
                             <input
@@ -1146,13 +1146,13 @@ export function AccountManager({
                                 value={formData.industry || ''}
                                 onChange={(e) => setFormData(p => ({ ...p, industry: e.target.value }))}
                                 placeholder="e.g., SaaS, Fintech"
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                             />
                         </div>
                     </div>
 
                     <div>
-                        <label htmlFor="add-description" className="block font-mono text-sm font-semibold text-black mb-1">
+                        <label htmlFor="add-description" className="block text-sm font-medium text-slate-700 mb-1">
                             Description
                         </label>
                         <textarea
@@ -1162,7 +1162,7 @@ export function AccountManager({
                             onChange={(e) => setFormData(p => ({ ...p, description: e.target.value }))}
                             placeholder="Brief description of the company..."
                             rows={3}
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 resize-none"
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors resize-none"
                         />
                     </div>
 
@@ -1170,7 +1170,7 @@ export function AccountManager({
                     {crmType === 'investors' && (
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor="add-check-size" className="block font-mono text-sm font-semibold text-black mb-1">
+                                <label htmlFor="add-check-size" className="block text-sm font-medium text-slate-700 mb-1">
                                     Check Size ($)
                                 </label>
                                 <input
@@ -1180,11 +1180,11 @@ export function AccountManager({
                                     value={formData.checkSize || ''}
                                     onChange={(e) => setFormData(p => ({ ...p, checkSize: e.target.value ? Number(e.target.value) : undefined }))}
                                     placeholder="e.g., 100000"
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                    className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                                 />
                             </div>
                             <div>
-                                <label htmlFor="add-stage" className="block font-mono text-sm font-semibold text-black mb-1">
+                                <label htmlFor="add-stage" className="block text-sm font-medium text-slate-700 mb-1">
                                     Investment Stage
                                 </label>
                                 <select
@@ -1192,7 +1192,7 @@ export function AccountManager({
                                     name="add-stage"
                                     value={formData.stage || ''}
                                     onChange={(e) => setFormData(p => ({ ...p, stage: e.target.value }))}
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                    className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                                 >
                                     <option value="">Select stage...</option>
                                     <option value="Pre-Seed">Pre-Seed</option>
@@ -1209,7 +1209,7 @@ export function AccountManager({
                     {crmType === 'customers' && (
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor="add-deal-value" className="block font-mono text-sm font-semibold text-black mb-1">
+                                <label htmlFor="add-deal-value" className="block text-sm font-medium text-slate-700 mb-1">
                                     Deal Value ($)
                                 </label>
                                 <input
@@ -1219,11 +1219,11 @@ export function AccountManager({
                                     value={formData.dealValue || ''}
                                     onChange={(e) => setFormData(p => ({ ...p, dealValue: e.target.value ? Number(e.target.value) : undefined }))}
                                     placeholder="e.g., 50000"
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                    className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                                 />
                             </div>
                             <div>
-                                <label htmlFor="add-deal-stage" className="block font-mono text-sm font-semibold text-black mb-1">
+                                <label htmlFor="add-deal-stage" className="block text-sm font-medium text-slate-700 mb-1">
                                     Deal Stage
                                 </label>
                                 <select
@@ -1231,7 +1231,7 @@ export function AccountManager({
                                     name="add-deal-stage"
                                     value={formData.dealStage || ''}
                                     onChange={(e) => setFormData(p => ({ ...p, dealStage: e.target.value }))}
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                    className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                                 >
                                     <option value="">Select stage...</option>
                                     <option value="Lead">Lead</option>
@@ -1248,7 +1248,7 @@ export function AccountManager({
                     {crmType === 'partners' && (
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor="add-opportunity" className="block font-mono text-sm font-semibold text-black mb-1">
+                                <label htmlFor="add-opportunity" className="block text-sm font-medium text-slate-700 mb-1">
                                     Opportunity
                                 </label>
                                 <input
@@ -1258,11 +1258,11 @@ export function AccountManager({
                                     value={formData.opportunity || ''}
                                     onChange={(e) => setFormData(p => ({ ...p, opportunity: e.target.value }))}
                                     placeholder="e.g., Co-marketing campaign"
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                    className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                                 />
                             </div>
                             <div>
-                                <label htmlFor="add-partner-type" className="block font-mono text-sm font-semibold text-black mb-1">
+                                <label htmlFor="add-partner-type" className="block text-sm font-medium text-slate-700 mb-1">
                                     Partner Type
                                 </label>
                                 <select
@@ -1270,7 +1270,7 @@ export function AccountManager({
                                     name="add-partner-type"
                                     value={formData.partnerType || ''}
                                     onChange={(e) => setFormData(p => ({ ...p, partnerType: e.target.value }))}
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                    className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                                 >
                                     <option value="">Select type...</option>
                                     <option value="Technology">Technology</option>
@@ -1285,7 +1285,7 @@ export function AccountManager({
                     )}
 
                     <div>
-                        <label htmlFor="add-next-action" className="block font-mono text-sm font-semibold text-black mb-1">
+                        <label htmlFor="add-next-action" className="block text-sm font-medium text-slate-700 mb-1">
                             Next Action
                         </label>
                         <input
@@ -1295,13 +1295,13 @@ export function AccountManager({
                             value={formData.nextAction}
                             onChange={(e) => setFormData(p => ({ ...p, nextAction: e.target.value }))}
                             placeholder="e.g., Send intro email"
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                         />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor="add-next-action-date" className="block font-mono text-sm font-semibold text-black mb-1">
+                            <label htmlFor="add-next-action-date" className="block text-sm font-medium text-slate-700 mb-1">
                                 Next Action Date
                             </label>
                             <input
@@ -1310,11 +1310,11 @@ export function AccountManager({
                                 type="date"
                                 value={formData.nextActionDate}
                                 onChange={(e) => setFormData(p => ({ ...p, nextActionDate: e.target.value }))}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                             />
                         </div>
                         <div>
-                            <label htmlFor="add-next-action-time" className="block font-mono text-sm font-semibold text-black mb-1">
+                            <label htmlFor="add-next-action-time" className="block text-sm font-medium text-slate-700 mb-1">
                                 Next Action Time
                             </label>
                             <input
@@ -1323,7 +1323,7 @@ export function AccountManager({
                                 type="time"
                                 value={formData.nextActionTime}
                                 onChange={(e) => setFormData(p => ({ ...p, nextActionTime: e.target.value }))}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                             />
                         </div>
                     </div>
@@ -1331,14 +1331,14 @@ export function AccountManager({
                     <div className="flex gap-2 pt-4">
                         <button
                             type="submit"
-                            className="flex-1 font-mono font-semibold bg-green-500 text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-green-600"
+                            className="flex-1 font-medium bg-green-600 text-white py-2 px-4 rounded-xl cursor-pointer transition-all shadow-sm hover:shadow-md hover:bg-green-700"
                         >
                             Create {getCrmTypeLabel()}
                         </button>
                         <button
                             type="button"
                             onClick={closeAddModal}
-                            className="flex-1 font-mono font-semibold bg-white text-black py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-100"
+                            className="flex-1 font-medium bg-white text-slate-700 py-2 px-4 rounded-xl cursor-pointer transition-all border border-gray-200 hover:bg-gray-50"
                         >
                             Cancel
                         </button>
@@ -1355,7 +1355,7 @@ export function AccountManager({
                 <form onSubmit={handleEditAccount} className="space-y-4">
                     {/* Similar form fields as Add Modal */}
                     <div>
-                        <label htmlFor="edit-company" className="block font-mono text-sm font-semibold text-black mb-1">
+                        <label htmlFor="edit-company" className="block text-sm font-medium text-slate-700 mb-1">
                             Company Name *
                         </label>
                         <input
@@ -1366,13 +1366,13 @@ export function AccountManager({
                             onChange={(e) => setFormData(p => ({ ...p, company: e.target.value }))}
                             placeholder="e.g., Acme Corp"
                             required
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                         />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor="edit-priority" className="block font-mono text-sm font-semibold text-black mb-1">
+                            <label htmlFor="edit-priority" className="block text-sm font-medium text-slate-700 mb-1">
                                 Priority
                             </label>
                             <select
@@ -1380,7 +1380,7 @@ export function AccountManager({
                                 name="edit-priority"
                                 value={formData.priority}
                                 onChange={(e) => setFormData(p => ({ ...p, priority: e.target.value as Priority }))}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                             >
                                 <option value="Low">Low</option>
                                 <option value="Medium">Medium</option>
@@ -1388,7 +1388,7 @@ export function AccountManager({
                             </select>
                         </div>
                         <div>
-                            <label htmlFor="edit-status" className="block font-mono text-sm font-semibold text-black mb-1">
+                            <label htmlFor="edit-status" className="block text-sm font-medium text-slate-700 mb-1">
                                 Status
                             </label>
                             <input
@@ -1398,7 +1398,7 @@ export function AccountManager({
                                 value={formData.status}
                                 onChange={(e) => setFormData(p => ({ ...p, status: e.target.value }))}
                                 placeholder="e.g., Active, Prospect"
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                             />
                         </div>
                     </div>
@@ -1406,7 +1406,7 @@ export function AccountManager({
                     {/* Additional Details */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor="edit-website" className="block font-mono text-sm font-semibold text-black mb-1">
+                            <label htmlFor="edit-website" className="block text-sm font-medium text-slate-700 mb-1">
                                 Website
                             </label>
                             <input
@@ -1416,11 +1416,11 @@ export function AccountManager({
                                 value={formData.website || ''}
                                 onChange={(e) => setFormData(p => ({ ...p, website: e.target.value }))}
                                 placeholder="https://example.com"
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                             />
                         </div>
                         <div>
-                            <label htmlFor="edit-industry" className="block font-mono text-sm font-semibold text-black mb-1">
+                            <label htmlFor="edit-industry" className="block text-sm font-medium text-slate-700 mb-1">
                                 Industry
                             </label>
                             <input
@@ -1430,13 +1430,13 @@ export function AccountManager({
                                 value={formData.industry || ''}
                                 onChange={(e) => setFormData(p => ({ ...p, industry: e.target.value }))}
                                 placeholder="e.g., SaaS, Fintech"
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                             />
                         </div>
                     </div>
 
                     <div>
-                        <label htmlFor="edit-description" className="block font-mono text-sm font-semibold text-black mb-1">
+                        <label htmlFor="edit-description" className="block text-sm font-medium text-slate-700 mb-1">
                             Description
                         </label>
                         <textarea
@@ -1446,7 +1446,7 @@ export function AccountManager({
                             onChange={(e) => setFormData(p => ({ ...p, description: e.target.value }))}
                             placeholder="Brief description of the company..."
                             rows={3}
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 resize-none"
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors resize-none"
                         />
                     </div>
 
@@ -1454,7 +1454,7 @@ export function AccountManager({
                     {crmType === 'investors' && (
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor="edit-check-size" className="block font-mono text-sm font-semibold text-black mb-1">
+                                <label htmlFor="edit-check-size" className="block text-sm font-medium text-slate-700 mb-1">
                                     Check Size ($)
                                 </label>
                                 <input
@@ -1464,11 +1464,11 @@ export function AccountManager({
                                     value={formData.checkSize || ''}
                                     onChange={(e) => setFormData(p => ({ ...p, checkSize: e.target.value ? Number(e.target.value) : undefined }))}
                                     placeholder="e.g., 100000"
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                    className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                                 />
                             </div>
                             <div>
-                                <label htmlFor="edit-stage" className="block font-mono text-sm font-semibold text-black mb-1">
+                                <label htmlFor="edit-stage" className="block text-sm font-medium text-slate-700 mb-1">
                                     Investment Stage
                                 </label>
                                 <select
@@ -1476,7 +1476,7 @@ export function AccountManager({
                                     name="edit-stage"
                                     value={formData.stage || ''}
                                     onChange={(e) => setFormData(p => ({ ...p, stage: e.target.value }))}
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                    className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                                 >
                                     <option value="">Select stage...</option>
                                     <option value="Pre-Seed">Pre-Seed</option>
@@ -1493,7 +1493,7 @@ export function AccountManager({
                     {crmType === 'customers' && (
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor="edit-deal-value" className="block font-mono text-sm font-semibold text-black mb-1">
+                                <label htmlFor="edit-deal-value" className="block text-sm font-medium text-slate-700 mb-1">
                                     Deal Value ($)
                                 </label>
                                 <input
@@ -1503,11 +1503,11 @@ export function AccountManager({
                                     value={formData.dealValue || ''}
                                     onChange={(e) => setFormData(p => ({ ...p, dealValue: e.target.value ? Number(e.target.value) : undefined }))}
                                     placeholder="e.g., 50000"
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                    className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                                 />
                             </div>
                             <div>
-                                <label htmlFor="edit-deal-stage" className="block font-mono text-sm font-semibold text-black mb-1">
+                                <label htmlFor="edit-deal-stage" className="block text-sm font-medium text-slate-700 mb-1">
                                     Deal Stage
                                 </label>
                                 <select
@@ -1515,7 +1515,7 @@ export function AccountManager({
                                     name="edit-deal-stage"
                                     value={formData.dealStage || ''}
                                     onChange={(e) => setFormData(p => ({ ...p, dealStage: e.target.value }))}
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                    className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                                 >
                                     <option value="">Select stage...</option>
                                     <option value="Lead">Lead</option>
@@ -1532,7 +1532,7 @@ export function AccountManager({
                     {crmType === 'partners' && (
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor="edit-opportunity" className="block font-mono text-sm font-semibold text-black mb-1">
+                                <label htmlFor="edit-opportunity" className="block text-sm font-medium text-slate-700 mb-1">
                                     Opportunity
                                 </label>
                                 <input
@@ -1542,11 +1542,11 @@ export function AccountManager({
                                     value={formData.opportunity || ''}
                                     onChange={(e) => setFormData(p => ({ ...p, opportunity: e.target.value }))}
                                     placeholder="e.g., Co-marketing campaign"
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                    className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                                 />
                             </div>
                             <div>
-                                <label htmlFor="edit-partner-type" className="block font-mono text-sm font-semibold text-black mb-1">
+                                <label htmlFor="edit-partner-type" className="block text-sm font-medium text-slate-700 mb-1">
                                     Partner Type
                                 </label>
                                 <select
@@ -1554,7 +1554,7 @@ export function AccountManager({
                                     name="edit-partner-type"
                                     value={formData.partnerType || ''}
                                     onChange={(e) => setFormData(p => ({ ...p, partnerType: e.target.value }))}
-                                    className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                    className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                                 >
                                     <option value="">Select type...</option>
                                     <option value="Technology">Technology</option>
@@ -1569,7 +1569,7 @@ export function AccountManager({
                     )}
 
                     <div>
-                        <label htmlFor="edit-next-action" className="block font-mono text-sm font-semibold text-black mb-1">
+                        <label htmlFor="edit-next-action" className="block text-sm font-medium text-slate-700 mb-1">
                             Next Action
                         </label>
                         <input
@@ -1579,13 +1579,13 @@ export function AccountManager({
                             value={formData.nextAction}
                             onChange={(e) => setFormData(p => ({ ...p, nextAction: e.target.value }))}
                             placeholder="e.g., Send intro email"
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                         />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor="edit-next-action-date" className="block font-mono text-sm font-semibold text-black mb-1">
+                            <label htmlFor="edit-next-action-date" className="block text-sm font-medium text-slate-700 mb-1">
                                 Next Action Date
                             </label>
                             <input
@@ -1594,11 +1594,11 @@ export function AccountManager({
                                 type="date"
                                 value={formData.nextActionDate}
                                 onChange={(e) => setFormData(p => ({ ...p, nextActionDate: e.target.value }))}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                             />
                         </div>
                         <div>
-                            <label htmlFor="edit-next-action-time" className="block font-mono text-sm font-semibold text-black mb-1">
+                            <label htmlFor="edit-next-action-time" className="block text-sm font-medium text-slate-700 mb-1">
                                 Next Action Time
                             </label>
                             <input
@@ -1607,7 +1607,7 @@ export function AccountManager({
                                 type="time"
                                 value={formData.nextActionTime}
                                 onChange={(e) => setFormData(p => ({ ...p, nextActionTime: e.target.value }))}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
                             />
                         </div>
                     </div>
@@ -1615,14 +1615,14 @@ export function AccountManager({
                     <div className="flex gap-2 pt-4">
                         <button
                             type="submit"
-                            className="flex-1 font-mono font-semibold bg-blue-500 text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-blue-600"
+                            className="flex-1 font-medium bg-blue-600 text-white py-2 px-4 rounded-xl cursor-pointer transition-all shadow-sm hover:shadow-md hover:bg-blue-700"
                         >
                             Save Changes
                         </button>
                         <button
                             type="button"
                             onClick={closeEditModal}
-                            className="flex-1 font-mono font-semibold bg-white text-black py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-100"
+                            className="flex-1 font-medium bg-white text-slate-700 py-2 px-4 rounded-xl cursor-pointer transition-all border border-gray-200 hover:bg-gray-50"
                         >
                             Cancel
                         </button>
@@ -1645,13 +1645,13 @@ export function AccountManager({
                             <div className="flex gap-2">
                                 <button
                                     onClick={executeBulkDelete}
-                                    className="flex-1 font-mono bg-red-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-red-600 transition-all"
+                                    className="flex-1 font-medium bg-red-600 text-white px-4 py-2 rounded-xl shadow-sm hover:shadow-md hover:bg-red-700 transition-all"
                                 >
                                     Confirm Delete
                                 </button>
                                 <button
                                     onClick={bulkActionsModal.close}
-                                    className="flex-1 font-mono bg-gray-200 text-black border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-gray-300 transition-all"
+                                    className="flex-1 font-medium bg-gray-100 text-slate-700 px-4 py-2 rounded-xl border border-gray-200 hover:bg-gray-200 transition-all"
                                 >
                                     Cancel
                                 </button>
@@ -1667,13 +1667,13 @@ export function AccountManager({
                             <div className="flex gap-2">
                                 <button
                                     onClick={executeBulkExport}
-                                    className="flex-1 font-mono bg-blue-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-blue-600 transition-all"
+                                    className="flex-1 font-medium bg-blue-600 text-white px-4 py-2 rounded-xl shadow-sm hover:shadow-md hover:bg-blue-700 transition-all"
                                 >
                                     Export to CSV
                                 </button>
                                 <button
                                     onClick={bulkActionsModal.close}
-                                    className="flex-1 font-mono bg-gray-200 text-black border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-gray-300 transition-all"
+                                    className="flex-1 font-medium bg-gray-100 text-slate-700 px-4 py-2 rounded-xl border border-gray-200 hover:bg-gray-200 transition-all"
                                 >
                                     Cancel
                                 </button>
@@ -1721,7 +1721,7 @@ export function AccountManager({
                             </div>
                             <button
                                 onClick={duplicateModal.close}
-                                className="w-full mt-4 font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800"
+                                className="w-full mt-4 font-medium bg-slate-900 text-white py-2 px-4 rounded-xl cursor-pointer transition-all shadow-sm hover:shadow-md hover:bg-slate-800"
                             >
                                 Close
                             </button>

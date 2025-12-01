@@ -138,31 +138,31 @@ export const TeamActivityFeed: React.FC<TeamActivityFeedProps> = ({
 
   if (loading) {
     return (
-      <div className={`border-2 border-black p-6 ${className}`}>
+      <div className={`rounded-2xl border border-gray-200 p-6 ${className}`}>
         <div className="animate-pulse space-y-4">
           <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-12 bg-gray-200 rounded"></div>
-          <div className="h-12 bg-gray-200 rounded"></div>
-          <div className="h-12 bg-gray-200 rounded"></div>
+          <div className="h-12 bg-gray-200 rounded-xl"></div>
+          <div className="h-12 bg-gray-200 rounded-xl"></div>
+          <div className="h-12 bg-gray-200 rounded-xl"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`border-2 border-black shadow-neo bg-white ${className}`}>
+    <div className={`rounded-2xl border border-gray-200 shadow-sm bg-white ${className}`}>
       {/* Header */}
-      <div className="border-b-2 border-black p-4">
+      <div className="border-b border-gray-200 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users size={24} className="text-blue-600" />
-            <h3 className="text-lg font-bold">Team Activity</h3>
+            <h3 className="text-lg font-semibold text-slate-900">Team Activity</h3>
           </div>
           {showFilters && (
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value as any)}
-              className="px-3 py-1 border-2 border-black text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-1.5 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
             >
               <option value="all">All Activity</option>
               <option value="tasks">Tasks Only</option>
@@ -204,7 +204,7 @@ export const TeamActivityFeed: React.FC<TeamActivityFeedProps> = ({
                       {formatTimestamp(activity.timestamp)}
                     </p>
                   </div>
-                  <span className="flex-shrink-0 px-2 py-1 text-xs font-bold uppercase border border-black bg-white">
+                  <span className="flex-shrink-0 px-2 py-1 text-xs font-medium uppercase rounded-full border border-gray-200 bg-gray-50 text-slate-600">
                     {activity.entityType}
                   </span>
                 </div>
@@ -216,13 +216,13 @@ export const TeamActivityFeed: React.FC<TeamActivityFeedProps> = ({
 
       {/* Footer */}
       {activities.length > 0 && (
-        <div className="border-t-2 border-black p-3 bg-gray-50 text-center">
+        <div className="border-t border-gray-200 p-3 bg-gray-50 rounded-b-2xl text-center">
           <button
             onClick={() => {
               logger.info('[TeamActivityFeed] View all clicked');
               onViewAllActivity?.();
             }}
-            className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+            className="text-sm font-medium text-blue-600 hover:text-blue-700"
           >
             View All Activity →
           </button>

@@ -119,12 +119,12 @@ export function LoadTestPanel({ workspaceId, userId }: LoadTestPanelProps) {
     };
 
     return (
-        <div className="p-6 bg-white border-4 border-black space-y-6">
+        <div className="p-6 bg-white rounded-2xl border border-gray-200 shadow-sm space-y-6">
             <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold">⚡ Load Testing & Performance</h2>
                 <button
                     onClick={downloadReport}
-                    className="px-4 py-2 bg-blue-500 text-white border-2 border-black hover:bg-blue-600 font-bold"
+                    className="px-4 py-2 bg-blue-500 text-white rounded-xl border border-blue-600 hover:bg-blue-600 hover:shadow-md font-bold transition-all"
                 >
                     📊 Download Report
                 </button>
@@ -134,32 +134,32 @@ export function LoadTestPanel({ workspaceId, userId }: LoadTestPanelProps) {
             <div className="grid grid-cols-4 gap-2">
                 <button
                     onClick={() => setTestType('create')}
-                    className={`px-4 py-2 border-2 border-black font-bold ${
-                        testType === 'create' ? 'bg-black text-white' : 'bg-white'
+                    className={`px-4 py-2 rounded-xl border border-gray-200 font-bold transition-all ${
+                        testType === 'create' ? 'bg-slate-900 text-white' : 'bg-white hover:bg-gray-50'
                     }`}
                 >
                     Create Data
                 </button>
                 <button
                     onClick={() => setTestType('pagination')}
-                    className={`px-4 py-2 border-2 border-black font-bold ${
-                        testType === 'pagination' ? 'bg-black text-white' : 'bg-white'
+                    className={`px-4 py-2 rounded-xl border border-gray-200 font-bold transition-all ${
+                        testType === 'pagination' ? 'bg-slate-900 text-white' : 'bg-white hover:bg-gray-50'
                     }`}
                 >
                     Pagination
                 </button>
                 <button
                     onClick={() => setTestType('search')}
-                    className={`px-4 py-2 border-2 border-black font-bold ${
-                        testType === 'search' ? 'bg-black text-white' : 'bg-white'
+                    className={`px-4 py-2 rounded-xl border border-gray-200 font-bold transition-all ${
+                        testType === 'search' ? 'bg-slate-900 text-white' : 'bg-white hover:bg-gray-50'
                     }`}
                 >
                     Search
                 </button>
                 <button
                     onClick={() => setTestType('concurrent')}
-                    className={`px-4 py-2 border-2 border-black font-bold ${
-                        testType === 'concurrent' ? 'bg-black text-white' : 'bg-white'
+                    className={`px-4 py-2 rounded-xl border border-gray-200 font-bold transition-all ${
+                        testType === 'concurrent' ? 'bg-slate-900 text-white' : 'bg-white hover:bg-gray-50'
                     }`}
                 >
                     Concurrent
@@ -176,7 +176,7 @@ export function LoadTestPanel({ workspaceId, userId }: LoadTestPanelProps) {
                         else if (testType === 'concurrent') runConcurrentTest();
                     }}
                     disabled={isRunning}
-                    className="px-6 py-3 bg-green-500 text-white border-2 border-black hover:bg-green-600 font-bold disabled:opacity-50"
+                    className="px-6 py-3 bg-green-500 text-white rounded-xl border border-green-600 hover:bg-green-600 hover:shadow-md font-bold disabled:opacity-50 transition-all"
                 >
                     {isRunning ? '⏳ Running...' : '▶️ Run Test'}
                 </button>
@@ -184,7 +184,7 @@ export function LoadTestPanel({ workspaceId, userId }: LoadTestPanelProps) {
                 <button
                     onClick={handleCleanup}
                     disabled={isRunning}
-                    className="px-6 py-3 bg-red-500 text-white border-2 border-black hover:bg-red-600 font-bold disabled:opacity-50"
+                    className="px-6 py-3 bg-red-500 text-white rounded-xl border border-red-600 hover:bg-red-600 hover:shadow-md font-bold disabled:opacity-50 transition-all"
                 >
                     🗑️ Cleanup Test Data
                 </button>
@@ -192,7 +192,7 @@ export function LoadTestPanel({ workspaceId, userId }: LoadTestPanelProps) {
 
             {/* Results Display */}
             {results && (
-                <div className="p-4 bg-gray-100 border-2 border-gray-300 font-mono text-sm">
+                <div className="p-4 bg-gray-100 rounded-xl border border-gray-200 font-mono text-sm">
                     <h3 className="font-bold mb-2">Test Results:</h3>
                     <pre className="whitespace-pre-wrap">
                         {JSON.stringify(results, null, 2)}

@@ -28,22 +28,22 @@ interface AssistantModalProps {
 
 // Map tab types to friendly display names and colors
 const TAB_DISPLAY_INFO: Record<TabType, { label: string; color: string; bgColor: string }> = {
-  [Tab.Dashboard]: { label: 'Dashboard', color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
-  [Tab.Calendar]: { label: 'Calendar', color: 'text-violet-600', bgColor: 'bg-violet-50' },
-  [Tab.Tasks]: { label: 'Tasks', color: 'text-amber-600', bgColor: 'bg-amber-50' },
-  [Tab.ProductsServices]: { label: 'Products & Services', color: 'text-cyan-600', bgColor: 'bg-cyan-50' },
-  [Tab.Accounts]: { label: 'Accounts', color: 'text-teal-600', bgColor: 'bg-teal-50' },
-  [Tab.Investors]: { label: 'Investors', color: 'text-blue-600', bgColor: 'bg-blue-50' },
-  [Tab.Customers]: { label: 'Customers', color: 'text-green-600', bgColor: 'bg-green-50' },
-  [Tab.Partners]: { label: 'Partners', color: 'text-purple-600', bgColor: 'bg-purple-50' },
-  [Tab.Marketing]: { label: 'Marketing', color: 'text-orange-600', bgColor: 'bg-orange-50' },
-  [Tab.Financials]: { label: 'Financials', color: 'text-emerald-600', bgColor: 'bg-emerald-50' },
-  [Tab.Workspace]: { label: 'Workspace', color: 'text-indigo-600', bgColor: 'bg-indigo-50' },
-  [Tab.Documents]: { label: 'Documents', color: 'text-amber-600', bgColor: 'bg-amber-50' },
-  [Tab.Email]: { label: 'Email', color: 'text-sky-600', bgColor: 'bg-sky-50' },
-  [Tab.Agents]: { label: 'AI Agents', color: 'text-yellow-600', bgColor: 'bg-yellow-50' },
-  [Tab.Settings]: { label: 'Settings', color: 'text-gray-600', bgColor: 'bg-gray-50' },
-  [Tab.Admin]: { label: 'Admin', color: 'text-red-600', bgColor: 'bg-red-50' },
+  [Tab.Dashboard]: { label: 'Dashboard', color: 'text-slate-700', bgColor: 'bg-slate-100' },
+  [Tab.Calendar]: { label: 'Calendar', color: 'text-slate-700', bgColor: 'bg-slate-100' },
+  [Tab.Tasks]: { label: 'Tasks', color: 'text-slate-700', bgColor: 'bg-slate-100' },
+  [Tab.ProductsServices]: { label: 'Products & Services', color: 'text-slate-700', bgColor: 'bg-slate-100' },
+  [Tab.Accounts]: { label: 'Accounts', color: 'text-slate-700', bgColor: 'bg-slate-100' },
+  [Tab.Investors]: { label: 'Investors', color: 'text-slate-700', bgColor: 'bg-slate-100' },
+  [Tab.Customers]: { label: 'Customers', color: 'text-slate-700', bgColor: 'bg-slate-100' },
+  [Tab.Partners]: { label: 'Partners', color: 'text-slate-700', bgColor: 'bg-slate-100' },
+  [Tab.Marketing]: { label: 'Marketing', color: 'text-slate-700', bgColor: 'bg-slate-100' },
+  [Tab.Financials]: { label: 'Financials', color: 'text-slate-700', bgColor: 'bg-slate-100' },
+  [Tab.Workspace]: { label: 'Workspace', color: 'text-slate-700', bgColor: 'bg-slate-100' },
+  [Tab.Documents]: { label: 'Documents', color: 'text-slate-700', bgColor: 'bg-slate-100' },
+  [Tab.Email]: { label: 'Email', color: 'text-slate-700', bgColor: 'bg-slate-100' },
+  [Tab.Agents]: { label: 'AI Agents', color: 'text-slate-700', bgColor: 'bg-slate-100' },
+  [Tab.Settings]: { label: 'Settings', color: 'text-slate-700', bgColor: 'bg-slate-100' },
+  [Tab.Admin]: { label: 'Admin', color: 'text-slate-700', bgColor: 'bg-slate-100' },
 };
 
 export const AssistantModal: React.FC<AssistantModalProps> = ({
@@ -202,7 +202,7 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
         px-4 py-3
         border-b border-gray-100
         flex items-center justify-between
-        bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600
+        bg-gradient-to-r from-slate-800 to-slate-900
         flex-shrink-0
       ">
         {/* Left side - Title and Context */}
@@ -213,14 +213,13 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
             bg-white/20 backdrop-blur-sm
             flex items-center justify-center
             border border-white/30
-            shadow-inner
           ">
             <Bot className="w-5 h-5 text-white" strokeWidth={2.5} />
           </div>
           
           {/* Title and Context Selector */}
           <div className="flex flex-col">
-            <h2 id="assistant-title" className="text-white font-bold text-sm flex items-center gap-1.5">
+            <h2 id="assistant-title" className="text-white font-semibold text-sm flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5" />
               AI Assistant
             </h2>
@@ -241,7 +240,7 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
               <span className={`
                 px-2 py-0.5 rounded-full
                 ${tabInfo.bgColor} ${tabInfo.color}
-                text-[10px] font-semibold uppercase tracking-wide
+                text-[10px] font-medium
               `}>
                 {tabInfo.label}
               </span>
@@ -255,7 +254,7 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
             className="
-              p-2 rounded-xl
+              p-2 rounded-lg
               hover:bg-white/20
               text-white/90 hover:text-white
               transition-all duration-200
@@ -273,7 +272,7 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
           <button
             onClick={isFullscreen ? () => setIsFullscreen(false) : onMinimize}
             className="
-              p-2 rounded-xl
+              p-2 rounded-lg
               hover:bg-white/20
               text-white/90 hover:text-white
               transition-all duration-200
@@ -288,7 +287,7 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
             <button
               onClick={onClose}
               className="
-                p-2 rounded-xl
+                p-2 rounded-lg
                 hover:bg-red-500/30
                 text-white/90 hover:text-white
                 transition-all duration-200
@@ -324,7 +323,7 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
                 <span className={`w-2 h-2 rounded-full ${info.bgColor.replace('50', '500')}`} />
                 {info.label}
                 {currentTab === tab && (
-                  <span className="ml-auto text-blue-500">✓</span>
+                  <span className="ml-auto text-gray-500">✓</span>
                 )}
               </button>
             ))}
@@ -363,7 +362,7 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
           className={`
             fixed inset-0 
             ${isFullscreen ? 'bg-black/50' : 'bg-black/5'} 
-            backdrop-blur-[3px]
+            backdrop-blur-[2px]
             backdrop-fade-enter
           `}
           style={{ zIndex: isFullscreen ? 99999 : 99997 }}

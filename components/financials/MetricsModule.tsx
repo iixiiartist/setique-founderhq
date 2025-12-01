@@ -204,7 +204,7 @@ function MetricsModule({
         <select
           value={timeRange}
           onChange={(e) => setTimeRange(e.target.value as '30' | '90' | '180')}
-          className="px-3 py-1 border-2 border-black text-sm font-mono focus:outline-none focus:border-blue-500"
+          className="px-3 py-1 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value="30">Last 30 Days</option>
           <option value="90">Last 90 Days</option>
@@ -216,7 +216,7 @@ function MetricsModule({
       {(health.warnings.length > 0 || health.successes.length > 0) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {health.warnings.length > 0 && (
-            <div className="bg-red-50 p-4 border-2 border-red-600 shadow-neo">
+            <div className="bg-red-50 p-4 rounded-xl border border-red-200 shadow-sm">
               <div className="flex items-center gap-2 mb-2">
                 <AlertTriangle className="w-5 h-5 text-red-600" />
                 <h3 className="font-semibold text-red-900">Action Required</h3>
@@ -229,7 +229,7 @@ function MetricsModule({
             </div>
           )}
           {health.successes.length > 0 && (
-            <div className="bg-green-50 p-4 border-2 border-green-600 shadow-neo">
+            <div className="bg-green-50 p-4 rounded-xl border border-green-200 shadow-sm">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="w-5 h-5 text-green-600" />
                 <h3 className="font-semibold text-green-900">Healthy Metrics</h3>
@@ -246,7 +246,7 @@ function MetricsModule({
 
       {/* Core Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-blue-50 p-4 border-2 border-blue-600 shadow-neo">
+        <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <TrendingUp className="w-4 h-4 text-blue-600" />
             <div className="text-sm text-gray-600">MRR</div>
@@ -255,7 +255,7 @@ function MetricsModule({
           <div className="text-xs text-gray-600 mt-1">Monthly Recurring Revenue</div>
         </div>
 
-        <div className="bg-purple-50 p-4 border-2 border-purple-600 shadow-neo">
+        <div className="bg-purple-50 p-4 rounded-xl border border-purple-200 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <Target className="w-4 h-4 text-purple-600" />
             <div className="text-sm text-gray-600">ARR</div>
@@ -264,7 +264,7 @@ function MetricsModule({
           <div className="text-xs text-gray-600 mt-1">Annual Recurring Revenue</div>
         </div>
 
-        <div className="bg-orange-50 p-4 border-2 border-orange-600 shadow-neo">
+        <div className="bg-orange-50 p-4 rounded-xl border border-orange-200 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <DollarSign className="w-4 h-4 text-orange-600" />
             <div className="text-sm text-gray-600">CAC</div>
@@ -273,7 +273,7 @@ function MetricsModule({
           <div className="text-xs text-gray-600 mt-1">Customer Acquisition Cost</div>
         </div>
 
-        <div className="bg-green-50 p-4 border-2 border-green-600 shadow-neo">
+        <div className="bg-green-50 p-4 rounded-xl border border-green-200 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <Users className="w-4 h-4 text-green-600" />
             <div className="text-sm text-gray-600">LTV</div>
@@ -285,7 +285,7 @@ function MetricsModule({
 
       {/* Financial Health Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-4 border-2 border-black shadow-neo">
+        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <Clock className="w-4 h-4 text-gray-600" />
             <div className="text-sm text-gray-600">Cash Runway</div>
@@ -298,13 +298,13 @@ function MetricsModule({
           </div>
         </div>
 
-        <div className="bg-white p-4 border-2 border-black shadow-neo">
+        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
           <div className="text-sm text-gray-600 mb-2">Burn Rate</div>
           <div className="text-2xl font-bold">{formatCurrency(metrics.burnRate)}</div>
           <div className="text-xs text-gray-500 mt-1">per month</div>
         </div>
 
-        <div className="bg-white p-4 border-2 border-black shadow-neo">
+        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
           <div className="text-sm text-gray-600 mb-2">LTV:CAC Ratio</div>
           <div className={`text-2xl font-bold ${insights.ltvCacRatio >= 3 ? 'text-green-700' : 'text-orange-700'}`}>
             {insights.ltvCacRatio > 0 ? `${insights.ltvCacRatio.toFixed(1)}x` : 'N/A'}
@@ -317,7 +317,7 @@ function MetricsModule({
 
       {/* Growth & Customer Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 border-2 border-black shadow-neo">
+        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
           <h3 className="text-lg font-semibold mb-4">Growth Metrics</h3>
           <div className="space-y-4">
             <div className="flex justify-between items-center pb-3 border-b border-gray-200">
@@ -343,7 +343,7 @@ function MetricsModule({
           </div>
         </div>
 
-        <div className="bg-white p-6 border-2 border-black shadow-neo">
+        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
           <h3 className="text-lg font-semibold mb-4">Unit Economics</h3>
           <div className="space-y-4">
             <div className="flex justify-between items-center pb-3 border-b border-gray-200">
@@ -394,7 +394,7 @@ function MetricsModule({
       </div>
 
       {/* Definitions */}
-      <div className="bg-gray-50 p-6 border-2 border-gray-300 shadow-neo">
+      <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
         <h3 className="text-lg font-semibold mb-3">Metric Definitions</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-gray-700">
           <div>

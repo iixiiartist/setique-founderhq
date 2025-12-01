@@ -120,13 +120,13 @@ function DefaultErrorFallback({
   return (
     <div
       className={`${
-        isComponent ? 'p-4 border-2' : 'p-6 border-4'
-      } border-red-500 bg-red-50 rounded-none`}
+        isComponent ? 'p-4 border' : 'p-6 border-2'
+      } border-red-500 bg-red-50 rounded-xl`}
     >
       <div className="flex items-start gap-3">
         <div className="text-2xl">⚠️</div>
         <div className="flex-1">
-          <h3 className="font-bold text-red-900 mb-1">
+          <h3 className="font-semibold text-red-900 mb-1">
             {isComponent ? 'Component Error' : 'Section Error'}
           </h3>
           <p className="text-sm text-red-700 mb-3">
@@ -134,7 +134,7 @@ function DefaultErrorFallback({
           </p>
           <button
             onClick={onReset}
-            className="text-sm px-3 py-1 bg-red-600 text-white border-2 border-red-900 font-bold hover:bg-red-700 transition-colors"
+            className="text-sm px-3 py-1 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
           >
             Retry
           </button>

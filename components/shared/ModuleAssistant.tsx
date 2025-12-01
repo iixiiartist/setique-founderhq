@@ -1393,21 +1393,21 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                                         </button>
                                         {webSearchMeta && (
                                             <div className="mt-3 flex flex-wrap gap-2 text-[10px] text-gray-600">
-                                                <span className="inline-flex items-center gap-1 rounded-none bg-white/80 px-2 py-0.5 border border-gray-200">
+                                                <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 border border-gray-200">
                                                     {webSearchMeta.provider || 'You.com'}
                                                 </span>
                                                 {webSearchMeta.count !== undefined && (
-                                                    <span className="inline-flex items-center gap-1 rounded-none bg-white/80 px-2 py-0.5 border border-gray-200">
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 border border-gray-200">
                                                         {webSearchMeta.count} source{webSearchMeta.count === 1 ? '' : 's'}
                                                     </span>
                                                 )}
                                                 {webSearchMeta.fetchedAt && (
-                                                    <span className="inline-flex items-center gap-1 rounded-none bg-white/80 px-2 py-0.5 border border-gray-200">
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 border border-gray-200">
                                                         {formatRelativeTime(webSearchMeta.fetchedAt)}
                                                     </span>
                                                 )}
                                                 {webSearchMeta.query && (
-                                                    <span className="inline-flex items-center gap-1 rounded-none bg-white/80 px-2 py-0.5 border border-gray-200 max-w-[200px] truncate">
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 border border-gray-200 max-w-[200px] truncate">
                                                         “{webSearchMeta.query}”
                                                     </span>
                                                 )}
@@ -1534,14 +1534,14 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                     )}
                 </div>
                 {isWebSearchEnabled && webSearchMode === 'images' && (
-                    <div className="rounded-none border border-dashed border-gray-300 bg-white/80 p-3 space-y-2">
+                    <div className="rounded-xl border border-dashed border-gray-300 bg-white/80 p-3 space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
                             <button
                                 type="button"
                                 onClick={() => runImageSearch(userInput || lastImageQuery || '')}
                                 disabled={imageSearchLoading}
-                                className={`inline-flex items-center gap-2 rounded-none px-3 py-1.5 text-xs font-semibold ${
-                                    imageSearchLoading ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-black text-white'
+                                className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold ${
+                                    imageSearchLoading ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-slate-900 text-white'
                                 }`}
                             >
                                 {imageSearchLoading ? 'Fetching…' : 'Fetch visuals'}
@@ -1553,22 +1553,22 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                         {imageSearchError && <p className="text-xs text-red-600">{imageSearchError}</p>}
                         {imageSearchMetadata && (
                             <div className="flex flex-wrap gap-2 text-[10px] text-gray-600">
-                                <span className="inline-flex items-center gap-1 rounded-none bg-gray-100 px-2 py-0.5">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5">
                                     {imageSearchMetadata.provider || 'You.com'}
                                 </span>
                                 {imageSearchMetadata.fetchedAt && (
-                                    <span className="inline-flex items-center gap-1 rounded-none bg-gray-100 px-2 py-0.5">
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5">
                                         {formatRelativeTime(imageSearchMetadata.fetchedAt)}
                                     </span>
                                 )}
-                                <span className="inline-flex items-center gap-1 rounded-none bg-gray-100 px-2 py-0.5">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5">
                                     {(imageSearchMetadata.count ?? imageResults.length) || 0} results
                                 </span>
                             </div>
                         )}
                         <div className="max-h-48 overflow-y-auto">
                             {imageResults.length === 0 ? (
-                                <div className="rounded-none border border-dashed border-gray-200 px-3 py-4 text-center text-xs text-gray-500">
+                                <div className="rounded-xl border border-dashed border-gray-200 px-3 py-4 text-center text-xs text-gray-500">
                                     Describe the type of visual you need in the prompt box, then tap “Fetch visuals” to preview research-ready images.
                                 </div>
                             ) : (
@@ -1576,7 +1576,7 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                                     {imageResults.slice(0, 6).map((image) => {
                                         const host = formatHostname(image.url) || image.source || 'source';
                                         return (
-                                            <div key={`${image.imageUrl}-${image.url}`} className="rounded-none border border-gray-200 bg-gray-50 p-2 space-y-2">
+                                            <div key={`${image.imageUrl}-${image.url}`} className="rounded-xl border border-gray-200 bg-gray-50 p-2 space-y-2">
                                                 <div className="aspect-video overflow-hidden rounded-lg bg-gray-200">
                                                     <img src={image.thumbnail || image.imageUrl} alt={image.title || 'Research visual'} className="h-full w-full object-cover" />
                                                 </div>

@@ -32,7 +32,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, actions, onEdit, taskCollecti
     const canComplete = canCompleteTask(task.assignedTo);
 
     return (
-         <li className={`flex items-stretch bg-white border-2 border-black shadow-neo mb-3 transition-all ${task.status === 'Done' ? 'opacity-60' : ''}`}>
+         <li className={`flex items-stretch bg-white rounded-xl border border-gray-200 shadow-sm mb-3 transition-all ${task.status === 'Done' ? 'opacity-60' : ''}`}>
             <div className={`w-2 shrink-0 ${tagColorClass}`}></div>
             <div className="flex-grow p-3">
                 <div className="flex items-start justify-between">
@@ -52,7 +52,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, actions, onEdit, taskCollecti
                                 }
                             }}
                             disabled={!canComplete}
-                            className="w-5 h-5 mr-3 mt-1 accent-blue-500 shrink-0 border-2 border-black rounded-none disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-5 h-5 mr-3 mt-1 accent-blue-500 shrink-0 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                             title={!canComplete ? 'You cannot complete this task' : ''}
                         />
                         <div className="flex-grow">
@@ -87,7 +87,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, actions, onEdit, taskCollecti
                                 onEdit(task, editButtonRef);
                             }}
                             disabled={!canEdit}
-                            className="font-mono bg-white border-2 border-black text-black cursor-pointer text-sm py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                            className="bg-white rounded-lg border border-gray-200 text-slate-900 cursor-pointer text-sm py-1 px-3 font-semibold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                             Edit
                         </button>
                         <button 
@@ -242,7 +242,7 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
     
     return (
         <>
-            <div className="bg-white p-6 border-2 border-black shadow-neo">
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                 <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
                     <h2 className="text-xl font-semibold text-black">{title}</h2>
                 </div>
@@ -257,7 +257,7 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
                             type="text"
                             value={newTaskText}
                             onChange={(e) => setNewTaskText(e.target.value)}
-                            className="w-full bg-white border-2 border-black text-black p-3 rounded-none focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50"
+                            className="w-full bg-white rounded-xl border border-gray-200 text-slate-900 p-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                             placeholder={placeholder}
                             required
                         />
@@ -269,7 +269,7 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
                                 id={`new-${taskCollectionName}-priority`}
                                 value={newTaskPriority}
                                 onChange={(e) => setNewTaskPriority(e.target.value as Priority)}
-                                className="w-full bg-white border-2 border-black text-black p-3 rounded-none focus:outline-none focus:border-blue-500 h-full"
+                                className="w-full bg-white rounded-xl border border-gray-200 text-slate-900 p-3 focus:outline-none focus:border-blue-500 h-full"
                             >
                                 <option value="Medium">Medium</option>
                                 <option value="Low">Low</option>
@@ -278,12 +278,12 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
                         </div>
                         {workspaceMembers.length > 0 && (
                             <div>
-                                <label htmlFor={`new-${taskCollectionName}-assignee`} className="block font-mono text-sm font-semibold text-black mb-1">Assign To</label>
+                                <label htmlFor={`new-${taskCollectionName}-assignee`} className="block text-sm font-semibold text-slate-900 mb-1">Assign To</label>
                                 <select
                                     id={`new-${taskCollectionName}-assignee`}
                                     value={newTaskAssignedTo}
                                     onChange={(e) => setNewTaskAssignedTo(e.target.value)}
-                                    className="w-full bg-white border-2 border-black text-black p-3 rounded-none focus:outline-none focus:border-blue-500 h-full"
+                                    className="w-full bg-white rounded-xl border border-gray-200 text-slate-900 p-3 focus:outline-none focus:border-blue-500 h-full"
                                 >
                                     <option value="">Unassigned</option>
                                     {workspaceMembers.map(member => (
@@ -301,21 +301,21 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
                                 type="date"
                                 value={newTaskDueDate}
                                 onChange={(e) => setNewTaskDueDate(e.target.value)}
-                                className="w-full bg-white border-2 border-black text-black p-3 rounded-none focus:outline-none focus:border-blue-500"
+                                className="w-full bg-white rounded-xl border border-gray-200 text-slate-900 p-3 focus:outline-none focus:border-blue-500"
                             />
                         </div>
                         <div>
-                            <label htmlFor={`new-${taskCollectionName}-duetime`} className="block font-mono text-sm font-semibold text-black mb-1">Due Time</label>
+                            <label htmlFor={`new-${taskCollectionName}-duetime`} className="block text-sm font-semibold text-slate-900 mb-1">Due Time</label>
                             <input
                                 id={`new-${taskCollectionName}-duetime`}
                                 type="time"
                                 value={newTaskDueTime}
                                 onChange={(e) => setNewTaskDueTime(e.target.value)}
-                                className="w-full bg-white border-2 border-black text-black p-3 rounded-none focus:outline-none focus:border-blue-500"
+                                className="w-full bg-white rounded-xl border border-gray-200 text-slate-900 p-3 focus:outline-none focus:border-blue-500"
                             />
                         </div>
                         <div className="md:self-end">
-                            <button type="submit" className="w-full h-full font-mono font-semibold bg-black text-white py-2 px-6 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn">Add Task</button>
+                            <button type="submit" className="w-full h-full font-semibold bg-slate-900 text-white py-2 px-6 rounded-xl cursor-pointer transition-all shadow-sm hover:shadow-md">Add Task</button>
                         </div>
                     </div>
                     
@@ -335,7 +335,7 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
                         id={`${taskCollectionName}-assignment-filter`}
                         value={filterAssignment}
                         onChange={(e) => setFilterAssignment(e.target.value as 'all' | 'assigned-to-me' | 'unassigned' | 'created-by-me')}
-                        className="bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                        className="bg-white rounded-xl border border-gray-200 text-slate-900 p-2 focus:outline-none focus:border-blue-500"
                     >
                         <option value="all">All Tasks</option>
                         <option value="assigned-to-me">Assigned to Me</option>
@@ -347,7 +347,7 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
                         id={`${taskCollectionName}-task-filter`}
                         value={filterStatus}
                         onChange={(e) => setFilterStatus(e.target.value as 'all' | 'incomplete' | 'completed')}
-                        className="bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                        className="bg-white rounded-xl border border-gray-200 text-slate-900 p-2 focus:outline-none focus:border-blue-500"
                     >
                         <option value="all">Filter: All</option>
                         <option value="incomplete">Filter: Incomplete</option>
@@ -358,7 +358,7 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
                         id={`${taskCollectionName}-task-sort`}
                         value={sortOption}
                         onChange={(e) => setSortOption(e.target.value as 'newest' | 'oldest')}
-                        className="bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                        className="bg-white rounded-xl border border-gray-200 text-slate-900 p-2 focus:outline-none focus:border-blue-500"
                     >
                         <option value="newest">Sort: Newest First</option>
                         <option value="oldest">Sort: Oldest First</option>
@@ -383,17 +383,17 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
                                 id={`edit-task-${editingTask.id}`}
                                 value={editText || ''}
                                 onChange={(e) => setEditText(e.target.value)}
-                                className="w-full bg-white border-2 border-black text-black rounded-none focus:outline-none p-2 min-h-[80px]"
+                                className="w-full bg-white rounded-xl border border-gray-200 text-slate-900 focus:outline-none focus:border-blue-500 p-2 min-h-[80px]"
                             />
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
-                                <label htmlFor={`edit-priority-${editingTask.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Priority</label>
+                                <label htmlFor={`edit-priority-${editingTask.id}`} className="block text-sm font-semibold text-slate-900 mb-1">Priority</label>
                                 <select
                                     id={`edit-priority-${editingTask.id}`}
                                     value={editPriority || 'Medium'}
                                     onChange={(e) => setEditPriority(e.target.value as Priority)}
-                                    className="w-full bg-white border-2 border-black text-black rounded-none focus:outline-none p-2 h-full"
+                                    className="w-full bg-white rounded-xl border border-gray-200 text-slate-900 focus:outline-none focus:border-blue-500 p-2 h-full"
                                 >
                                     <option value="Medium">Medium</option>
                                     <option value="Low">Low</option>
@@ -402,12 +402,12 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
                             </div>
                             {workspaceMembers.length > 0 && (
                                 <div>
-                                    <label htmlFor={`edit-assignee-${editingTask.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Assign To</label>
+                                    <label htmlFor={`edit-assignee-${editingTask.id}`} className="block text-sm font-semibold text-slate-900 mb-1">Assign To</label>
                                     <select
                                         id={`edit-assignee-${editingTask.id}`}
                                         value={editAssignedTo || ''}
                                         onChange={(e) => setEditAssignedTo(e.target.value)}
-                                        className="w-full bg-white border-2 border-black text-black rounded-none focus:outline-none p-2 h-full"
+                                        className="w-full bg-white rounded-xl border border-gray-200 text-slate-900 focus:outline-none focus:border-blue-500 p-2 h-full"
                                     >
                                         <option value="">Unassigned</option>
                                         {workspaceMembers.map(member => (
@@ -419,13 +419,13 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
                                 </div>
                             )}
                             <div>
-                                <label htmlFor={`edit-duedate-${editingTask.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Due Date</label>
+                                <label htmlFor={`edit-duedate-${editingTask.id}`} className="block text-sm font-semibold text-slate-900 mb-1">Due Date</label>
                                 <input
                                     id={`edit-duedate-${editingTask.id}`}
                                     type="date"
                                     value={editDueDate || ''}
                                     onChange={(e) => setEditDueDate(e.target.value)}
-                                    className="w-full bg-white border-2 border-black text-black rounded-none focus:outline-none p-2 h-full"
+                                    className="w-full bg-white rounded-xl border border-gray-200 text-slate-900 focus:outline-none focus:border-blue-500 p-2 h-full"
                                 />
                             </div>
                         </div>
@@ -437,7 +437,7 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
                                     <button
                                         type="button"
                                         onClick={() => setShowDocPicker(true)}
-                                        className="font-mono bg-blue-500 border-2 border-black text-white text-xs py-1 px-3 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-blue-600"
+                                        className="bg-blue-500 rounded-lg border border-blue-600 text-white text-xs py-1 px-3 font-semibold shadow-sm hover:shadow-md hover:bg-blue-600 transition-all"
                                     >
                                         + Attach Doc
                                     </button>
@@ -489,7 +489,7 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
                             </div>
                         )}
                         
-                        <button onClick={handleUpdateTask} className="mt-4 font-mono w-full bg-black border-2 border-black text-white cursor-pointer text-sm py-2 px-3 rounded-none font-semibold shadow-neo-btn transition-all">
+                        <button onClick={handleUpdateTask} className="mt-4 w-full bg-slate-900 text-white cursor-pointer text-sm py-2 px-3 rounded-xl font-semibold shadow-sm hover:shadow-md transition-all">
                             Save Changes
                         </button>
                     </div>

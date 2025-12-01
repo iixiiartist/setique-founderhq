@@ -105,8 +105,8 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
     if (isLoading) {
         return (
             <div className="p-8 text-center">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-black border-t-transparent"></div>
-                <p className="mt-4 font-mono text-sm text-gray-600">Loading automation settings...</p>
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-slate-900 border-t-transparent"></div>
+                <p className="mt-4 text-sm text-gray-600">Loading automation settings...</p>
             </div>
         );
     }
@@ -114,10 +114,10 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
     if (!preferences) {
         return (
             <div className="p-8 text-center">
-                <p className="font-mono text-red-600">Failed to load automation preferences.</p>
+                <p className="text-red-600">Failed to load automation preferences.</p>
                 <button
                     onClick={loadPreferences}
-                    className="mt-4 px-4 py-2 bg-black text-white font-mono font-semibold border-2 border-black"
+                    className="mt-4 px-4 py-2 bg-slate-900 text-white font-medium rounded-xl"
                 >
                     Retry
                 </button>
@@ -130,8 +130,8 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
             {/* Save Message */}
             {saveMessage && (
                 <div
-                    className={`p-4 border-2 border-black font-mono text-sm ${
-                        saveMessage.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+                    className={`p-4 rounded-xl text-sm ${
+                        saveMessage.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
                     }`}
                 >
                     {saveMessage.text}
@@ -139,8 +139,8 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
             )}
 
             {/* Global Toggle */}
-            <fieldset className="border-2 border-black p-6 bg-yellow-50">
-                <legend className="text-lg font-mono font-bold px-2 text-black">🔌 Global Automation Control</legend>
+            <fieldset className="rounded-2xl border border-gray-200 p-6 bg-amber-50">
+                <legend className="text-lg font-semibold px-2 text-slate-900">🔌 Global Automation Control</legend>
                 <div className="space-y-4">
                     <div className="flex items-start gap-4">
                         <label className="flex items-center gap-3 cursor-pointer">
@@ -148,10 +148,10 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
                                 type="checkbox"
                                 checked={preferences.automation_enabled}
                                 onChange={(e) => updatePreference('automation_enabled', e.target.checked)}
-                                className="w-5 h-5 border-2 border-black"
+                                className="w-5 h-5 rounded border-gray-300"
                             />
                             <div>
-                                <span className="font-mono font-bold text-black">Enable All Automations</span>
+                                <span className="font-medium text-slate-900">Enable All Automations</span>
                                 <p className="text-sm text-gray-700 mt-1">
                                     Master switch for all automation features. When disabled, no automations will run.
                                 </p>
@@ -160,7 +160,7 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
                     </div>
 
                     <div>
-                        <label className="block font-mono font-bold text-black mb-2">
+                        <label className="block font-medium text-slate-900 mb-2">
                             Max Automations Per Hour
                         </label>
                         <input
@@ -169,7 +169,7 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
                             max="1000"
                             value={preferences.max_automations_per_hour}
                             onChange={(e) => updatePreference('max_automations_per_hour', parseInt(e.target.value) || 100)}
-                            className="w-32 border-2 border-black px-3 py-2 font-mono"
+                            className="w-32 rounded-xl border border-gray-200 px-3 py-2"
                             disabled={!preferences.automation_enabled}
                         />
                         <p className="text-sm text-gray-600 mt-1">
@@ -180,8 +180,8 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
             </fieldset>
 
             {/* Feature Toggles */}
-            <fieldset className="border-2 border-black p-6">
-                <legend className="text-lg font-mono font-bold px-2 text-black">⚙️ Automation Features</legend>
+            <fieldset className="rounded-2xl border border-gray-200 p-6">
+                <legend className="text-lg font-semibold px-2 text-slate-900">⚙️ Automation Features</legend>
                 <div className="space-y-4">
                     <label className="flex items-center gap-3 cursor-pointer">
                         <input
@@ -189,10 +189,10 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
                             checked={preferences.auto_create_revenue_enabled}
                             onChange={(e) => updatePreference('auto_create_revenue_enabled', e.target.checked)}
                             disabled={!preferences.automation_enabled}
-                            className="w-5 h-5 border-2 border-black"
+                            className="w-5 h-5 rounded border-gray-300"
                         />
                         <div>
-                            <span className="font-mono font-semibold">Auto-Create Revenue</span>
+                            <span className="font-medium">Auto-Create Revenue</span>
                             <p className="text-sm text-gray-600">Automatically create revenue records when deals close</p>
                         </div>
                     </label>
@@ -203,10 +203,10 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
                             checked={preferences.auto_create_tasks_enabled}
                             onChange={(e) => updatePreference('auto_create_tasks_enabled', e.target.checked)}
                             disabled={!preferences.automation_enabled}
-                            className="w-5 h-5 border-2 border-black"
+                            className="w-5 h-5 rounded border-gray-300"
                         />
                         <div>
-                            <span className="font-mono font-semibold">Auto-Create Tasks</span>
+                            <span className="font-medium">Auto-Create Tasks</span>
                             <p className="text-sm text-gray-600">Automatically create follow-up tasks based on triggers</p>
                         </div>
                     </label>
@@ -217,10 +217,10 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
                             checked={preferences.auto_invoice_enabled}
                             onChange={(e) => updatePreference('auto_invoice_enabled', e.target.checked)}
                             disabled={!preferences.automation_enabled}
-                            className="w-5 h-5 border-2 border-black"
+                            className="w-5 h-5 rounded border-gray-300"
                         />
                         <div>
-                            <span className="font-mono font-semibold">Auto-Invoice Generation</span>
+                            <span className="font-medium">Auto-Invoice Generation</span>
                             <p className="text-sm text-gray-600">Automatically generate invoices for completed deals</p>
                         </div>
                     </label>
@@ -231,10 +231,10 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
                             checked={preferences.auto_notifications_enabled}
                             onChange={(e) => updatePreference('auto_notifications_enabled', e.target.checked)}
                             disabled={!preferences.automation_enabled}
-                            className="w-5 h-5 border-2 border-black"
+                            className="w-5 h-5 rounded border-gray-300"
                         />
                         <div>
-                            <span className="font-mono font-semibold">Auto-Notifications</span>
+                            <span className="font-medium">Auto-Notifications</span>
                             <p className="text-sm text-gray-600">Send automated notifications for important events</p>
                         </div>
                     </label>
@@ -242,11 +242,11 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
             </fieldset>
 
             {/* Thresholds & Timings */}
-            <fieldset className="border-2 border-black p-6">
-                <legend className="text-lg font-mono font-bold px-2 text-black">⏱️ Thresholds & Timings</legend>
+            <fieldset className="rounded-2xl border border-gray-200 p-6">
+                <legend className="text-lg font-semibold px-2 text-slate-900">⏱️ Thresholds & Timings</legend>
                 <div className="space-y-4">
                     <div>
-                        <label className="block font-mono font-semibold mb-2">
+                        <label className="block font-medium mb-2">
                             Inventory Reorder Threshold
                         </label>
                         <div className="flex items-center gap-2">
@@ -257,7 +257,7 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
                                 value={preferences.inventory_reorder_threshold}
                                 onChange={(e) => updatePreference('inventory_reorder_threshold', parseInt(e.target.value) || 10)}
                                 disabled={!preferences.automation_enabled}
-                                className="w-32 border-2 border-black px-3 py-2 font-mono"
+                                className="w-32 rounded-xl border border-gray-200 px-3 py-2"
                             />
                             <span className="text-sm text-gray-600">units</span>
                         </div>
@@ -267,7 +267,7 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
                     </div>
 
                     <div>
-                        <label className="block font-mono font-semibold mb-2">
+                        <label className="block font-medium mb-2">
                             Contract Renewal Lead Time
                         </label>
                         <div className="flex items-center gap-2">
@@ -278,7 +278,7 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
                                 value={preferences.contract_renewal_lead_time_days}
                                 onChange={(e) => updatePreference('contract_renewal_lead_time_days', parseInt(e.target.value) || 30)}
                                 disabled={!preferences.automation_enabled}
-                                className="w-32 border-2 border-black px-3 py-2 font-mono"
+                                className="w-32 rounded-xl border border-gray-200 px-3 py-2"
                             />
                             <span className="text-sm text-gray-600">days</span>
                         </div>
@@ -288,7 +288,7 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
                     </div>
 
                     <div>
-                        <label className="block font-mono font-semibold mb-2">
+                        <label className="block font-medium mb-2">
                             Deal Follow-Up Time
                         </label>
                         <div className="flex items-center gap-2">
@@ -299,7 +299,7 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
                                 value={preferences.deal_follow_up_days}
                                 onChange={(e) => updatePreference('deal_follow_up_days', parseInt(e.target.value) || 7)}
                                 disabled={!preferences.automation_enabled}
-                                className="w-32 border-2 border-black px-3 py-2 font-mono"
+                                className="w-32 rounded-xl border border-gray-200 px-3 py-2"
                             />
                             <span className="text-sm text-gray-600">days</span>
                         </div>
@@ -311,8 +311,8 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
             </fieldset>
 
             {/* Notification Preferences */}
-            <fieldset className="border-2 border-black p-6">
-                <legend className="text-lg font-mono font-bold px-2 text-black">🔔 Notification Preferences</legend>
+            <fieldset className="rounded-2xl border border-gray-200 p-6">
+                <legend className="text-lg font-semibold px-2 text-slate-900">🔔 Notification Preferences</legend>
                 <div className="space-y-4">
                     <p className="text-sm text-gray-600 mb-4">
                         Choose which automated notifications you want to receive
@@ -324,10 +324,10 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
                             checked={preferences.notification_preferences.deal_closed}
                             onChange={(e) => updateNotificationPreference('deal_closed', e.target.checked)}
                             disabled={!preferences.automation_enabled || !preferences.auto_notifications_enabled}
-                            className="w-5 h-5 border-2 border-black"
+                            className="w-5 h-5 rounded border-gray-300"
                         />
                         <div>
-                            <span className="font-mono font-semibold">Deal Closed</span>
+                            <span className="font-medium">Deal Closed</span>
                             <p className="text-sm text-gray-600">Notify when a deal is marked as closed/won</p>
                         </div>
                     </label>
@@ -338,10 +338,10 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
                             checked={preferences.notification_preferences.revenue_created}
                             onChange={(e) => updateNotificationPreference('revenue_created', e.target.checked)}
                             disabled={!preferences.automation_enabled || !preferences.auto_notifications_enabled}
-                            className="w-5 h-5 border-2 border-black"
+                            className="w-5 h-5 rounded border-gray-300"
                         />
                         <div>
-                            <span className="font-mono font-semibold">Revenue Created</span>
+                            <span className="font-medium">Revenue Created</span>
                             <p className="text-sm text-gray-600">Notify when revenue is automatically created</p>
                         </div>
                     </label>
@@ -352,10 +352,10 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
                             checked={preferences.notification_preferences.inventory_low}
                             onChange={(e) => updateNotificationPreference('inventory_low', e.target.checked)}
                             disabled={!preferences.automation_enabled || !preferences.auto_notifications_enabled}
-                            className="w-5 h-5 border-2 border-black"
+                            className="w-5 h-5 rounded border-gray-300"
                         />
                         <div>
-                            <span className="font-mono font-semibold">Low Inventory</span>
+                            <span className="font-medium">Low Inventory</span>
                             <p className="text-sm text-gray-600">Notify when inventory falls below threshold</p>
                         </div>
                     </label>
@@ -366,10 +366,10 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
                             checked={preferences.notification_preferences.contract_expiring}
                             onChange={(e) => updateNotificationPreference('contract_expiring', e.target.checked)}
                             disabled={!preferences.automation_enabled || !preferences.auto_notifications_enabled}
-                            className="w-5 h-5 border-2 border-black"
+                            className="w-5 h-5 rounded border-gray-300"
                         />
                         <div>
-                            <span className="font-mono font-semibold">Contract Expiring</span>
+                            <span className="font-medium">Contract Expiring</span>
                             <p className="text-sm text-gray-600">Notify when contracts are approaching renewal date</p>
                         </div>
                     </label>
@@ -380,10 +380,10 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
                             checked={preferences.notification_preferences.automation_failed}
                             onChange={(e) => updateNotificationPreference('automation_failed', e.target.checked)}
                             disabled={!preferences.automation_enabled || !preferences.auto_notifications_enabled}
-                            className="w-5 h-5 border-2 border-black"
+                            className="w-5 h-5 rounded border-gray-300"
                         />
                         <div>
-                            <span className="font-mono font-semibold">Automation Failed</span>
+                            <span className="font-medium">Automation Failed</span>
                             <p className="text-sm text-gray-600">Notify when an automation fails to execute (Recommended)</p>
                         </div>
                     </label>
@@ -395,9 +395,9 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
                 <button
                     onClick={savePreferences}
                     disabled={!hasChanges || isSaving}
-                    className={`font-mono border-2 border-black py-3 px-8 font-bold shadow-neo-btn transition-all ${
+                    className={`py-3 px-8 font-medium rounded-xl shadow-sm transition-all ${
                         hasChanges && !isSaving
-                            ? 'bg-green-600 text-white hover:bg-green-700 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none cursor-pointer'
+                            ? 'bg-green-600 text-white hover:bg-green-700 hover:shadow-md cursor-pointer'
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     }`}
                 >
@@ -408,7 +408,7 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
                     <button
                         onClick={loadPreferences}
                         disabled={isSaving}
-                        className="font-mono bg-white border-2 border-black text-black py-3 px-6 font-semibold hover:bg-gray-100"
+                        className="bg-white border border-gray-200 text-slate-900 py-3 px-6 font-medium rounded-xl hover:bg-gray-50"
                     >
                         Reset
                     </button>
@@ -416,8 +416,8 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
             </div>
 
             {/* Info Footer */}
-            <div className="bg-blue-50 border-2 border-blue-300 p-4">
-                <p className="text-sm font-mono text-blue-900">
+            <div className="bg-blue-50 rounded-xl border border-blue-200 p-4">
+                <p className="text-sm text-blue-900">
                     💡 <strong>Tip:</strong> Changes take effect immediately. All automation rules will respect these preferences.
                 </p>
             </div>

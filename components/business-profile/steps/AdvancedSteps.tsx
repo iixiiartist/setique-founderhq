@@ -24,13 +24,13 @@ interface PricingTierItemProps {
 
 export function PricingTierItem({ tier, index, onUpdate, onRemove }: PricingTierItemProps) {
     return (
-        <div className="border-2 border-black p-3 space-y-2">
+        <div className="rounded-xl border border-gray-200 p-3 space-y-2">
             <div className="flex justify-between items-center">
-                <h4 className="font-bold font-mono">Tier {index + 1}</h4>
+                <h4 className="font-semibold text-slate-700">Tier {index + 1}</h4>
                 <button
                     type="button"
                     onClick={() => onRemove(index)}
-                    className="text-sm text-red-600 font-mono"
+                    className="text-sm text-red-600"
                 >
                     Remove
                 </button>
@@ -41,7 +41,7 @@ export function PricingTierItem({ tier, index, onUpdate, onRemove }: PricingTier
                     value={tier.name || ''}
                     onChange={(e) => onUpdate(index, 'name', e.target.value)}
                     placeholder="Tier name (e.g., Pro, Enterprise)"
-                    className="w-full px-3 py-2 border-2 border-black font-mono"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <div className="flex gap-2">
                     <input
@@ -53,13 +53,13 @@ export function PricingTierItem({ tier, index, onUpdate, onRemove }: PricingTier
                             onUpdate(index, 'price', nextValue as PricingTier['price']);
                         }}
                         placeholder="Price"
-                        className="w-full px-3 py-2 border-2 border-black font-mono"
+                        className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         min="0"
                     />
                     <select
                         value={tier.billingCycle || DEFAULT_BILLING_CYCLE}
                         onChange={(e) => onUpdate(index, 'billingCycle', e.target.value)}
-                        className="px-3 py-2 border-2 border-black font-mono bg-white"
+                        className="px-3 py-2 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                         {BILLING_CYCLES.map(opt => (
                             <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -72,7 +72,7 @@ export function PricingTierItem({ tier, index, onUpdate, onRemove }: PricingTier
                 value={tier.features?.join(', ') || ''}
                 onChange={(e) => onUpdate(index, 'features', e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
                 placeholder="Key features (comma-separated)"
-                className="w-full px-3 py-2 border-2 border-black font-mono"
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
         </div>
     );
@@ -105,11 +105,11 @@ export function Step6Monetization({ formData, updateField, onAddTier, onUpdateTi
             </div>
 
             <div>
-                <label className="block text-sm font-bold font-mono mb-2">Monetization Model</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Monetization Model</label>
                 <select
                     value={formData.monetizationModel || ''}
                     onChange={(e) => updateField('monetizationModel', e.target.value as any || undefined)}
-                    className="w-full px-4 py-3 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                     <option value="">Select a model...</option>
                     {MONETIZATION_MODELS.map(opt => (
@@ -147,11 +147,11 @@ export function Step6Monetization({ formData, updateField, onAddTier, onUpdateTi
             {/* Pricing Tiers */}
             <div>
                 <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-bold font-mono">Pricing Tiers</label>
+                    <label className="text-sm font-medium text-slate-700">Pricing Tiers</label>
                     <button
                         type="button"
                         onClick={onAddTier}
-                        className="text-sm font-mono border-2 border-black px-3 py-1 bg-white hover:bg-gray-100"
+                        className="text-sm rounded-lg border border-gray-200 px-3 py-1 bg-white hover:bg-gray-50 transition-colors"
                     >
                         + Add Tier
                     </button>
@@ -174,9 +174,9 @@ export function Step6Monetization({ formData, updateField, onAddTier, onUpdateTi
                 </div>
             </div>
 
-            <div className="bg-yellow-50 border-2 border-black p-4">
-                <p className="text-sm font-mono">
-                    <span className="font-bold">💰 Note:</span> Pricing tiers and deal types power AI recommendations in CRM and automation emails.
+            <div className="bg-yellow-50 rounded-xl border border-yellow-200 p-4">
+                <p className="text-sm text-slate-700">
+                    <span className="font-semibold">💰 Note:</span> Pricing tiers and deal types power AI recommendations in CRM and automation emails.
                 </p>
             </div>
         </div>
@@ -193,13 +193,13 @@ interface CoreProductItemProps {
 
 export function CoreProductItem({ product, index, onUpdate, onRemove }: CoreProductItemProps) {
     return (
-        <div className="border-2 border-black p-3 space-y-2">
+        <div className="rounded-xl border border-gray-200 p-3 space-y-2">
             <div className="flex justify-between items-center">
-                <h4 className="font-bold font-mono">Product {index + 1}</h4>
+                <h4 className="font-semibold text-slate-700">Product {index + 1}</h4>
                 <button
                     type="button"
                     onClick={() => onRemove(index)}
-                    className="text-sm text-red-600 font-mono"
+                    className="text-sm text-red-600"
                 >
                     Remove
                 </button>
@@ -209,13 +209,13 @@ export function CoreProductItem({ product, index, onUpdate, onRemove }: CoreProd
                 value={product.name || ''}
                 onChange={(e) => onUpdate(index, 'name', e.target.value)}
                 placeholder="Product name"
-                className="w-full px-3 py-2 border-2 border-black font-mono"
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <textarea
                 value={product.description || ''}
                 onChange={(e) => onUpdate(index, 'description', e.target.value)}
                 placeholder="Short description"
-                className="w-full px-3 py-2 border-2 border-black font-mono h-20"
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 h-20 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <div className="grid grid-cols-2 gap-3">
                 <input
@@ -223,14 +223,14 @@ export function CoreProductItem({ product, index, onUpdate, onRemove }: CoreProd
                     value={product.type || ''}
                     onChange={(e) => onUpdate(index, 'type', e.target.value)}
                     placeholder="Type (e.g., SaaS, Mobile)"
-                    className="w-full px-3 py-2 border-2 border-black font-mono"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <input
                     type="text"
                     value={product.status || ''}
                     onChange={(e) => onUpdate(index, 'status', e.target.value)}
                     placeholder="Status (Idea, Beta, GA...)"
-                    className="w-full px-3 py-2 border-2 border-black font-mono"
+                    className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
             </div>
         </div>
@@ -247,13 +247,13 @@ interface ServiceOfferingItemProps {
 
 export function ServiceOfferingItem({ service, index, onUpdate, onRemove }: ServiceOfferingItemProps) {
     return (
-        <div className="border-2 border-black p-3 space-y-2">
+        <div className="rounded-xl border border-gray-200 p-3 space-y-2">
             <div className="flex justify-between items-center">
-                <h4 className="font-bold font-mono">Service {index + 1}</h4>
+                <h4 className="font-semibold text-slate-700">Service {index + 1}</h4>
                 <button
                     type="button"
                     onClick={() => onRemove(index)}
-                    className="text-sm text-red-600 font-mono"
+                    className="text-sm text-red-600"
                 >
                     Remove
                 </button>
@@ -263,20 +263,20 @@ export function ServiceOfferingItem({ service, index, onUpdate, onRemove }: Serv
                 value={service.name || ''}
                 onChange={(e) => onUpdate(index, 'name', e.target.value)}
                 placeholder="Service name"
-                className="w-full px-3 py-2 border-2 border-black font-mono"
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <textarea
                 value={service.description || ''}
                 onChange={(e) => onUpdate(index, 'description', e.target.value)}
                 placeholder="What does this service include?"
-                className="w-full px-3 py-2 border-2 border-black font-mono h-20"
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 h-20 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <input
                 type="text"
                 value={service.pricing || ''}
                 onChange={(e) => onUpdate(index, 'pricing', e.target.value)}
                 placeholder="Pricing notes (hourly, retainer, per project)"
-                className="w-full px-3 py-2 border-2 border-black font-mono"
+                className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
         </div>
     );
@@ -326,11 +326,11 @@ export function Step7ProductsTech({
             {/* Core Products */}
             <div>
                 <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-bold font-mono">Core Products</label>
+                    <label className="text-sm font-medium text-slate-700">Core Products</label>
                     <button
                         type="button"
                         onClick={onAddProduct}
-                        className="text-sm font-mono border-2 border-black px-3 py-1 bg-white hover:bg-gray-100"
+                        className="text-sm rounded-lg border border-gray-200 px-3 py-1 bg-white hover:bg-gray-50 transition-colors"
                     >
                         + Add Product
                     </button>
@@ -356,11 +356,11 @@ export function Step7ProductsTech({
             {/* Service Offerings */}
             <div>
                 <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-bold font-mono">Service Offerings</label>
+                    <label className="text-sm font-medium text-slate-700">Service Offerings</label>
                     <button
                         type="button"
                         onClick={onAddService}
-                        className="text-sm font-mono border-2 border-black px-3 py-1 bg-white hover:bg-gray-100"
+                        className="text-sm rounded-lg border border-gray-200 px-3 py-1 bg-white hover:bg-gray-50 transition-colors"
                     >
                         + Add Service
                     </button>
@@ -383,9 +383,9 @@ export function Step7ProductsTech({
                 </div>
             </div>
 
-            <div className="bg-green-50 border-2 border-black p-4">
-                <p className="text-sm font-mono">
-                    <span className="font-bold">🎉 Almost done!</span> This enhanced profile will help the AI provide highly personalized insights and recommendations.
+            <div className="bg-green-50 rounded-xl border border-green-200 p-4">
+                <p className="text-sm text-slate-700">
+                    <span className="font-semibold">🎉 Almost done!</span> This enhanced profile will help the AI provide highly personalized insights and recommendations.
                 </p>
             </div>
         </div>

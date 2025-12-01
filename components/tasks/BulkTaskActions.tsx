@@ -41,16 +41,16 @@ export function BulkTaskActions({
     };
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t-4 border-black shadow-[0_-8px_0_0_rgba(0,0,0,1)] p-4 z-40">
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg p-4 z-40">
             <div className="max-w-7xl mx-auto flex items-center justify-between">
-                <div className="font-mono font-bold">
+                <div className="font-semibold text-slate-900">
                     {selectedCount} task{selectedCount !== 1 ? 's' : ''} selected
                 </div>
 
                 <div className="flex gap-3">
                     <button
                         onClick={onCompleteAll}
-                        className="px-4 py-2 bg-green-500 text-white border-2 border-black rounded-none font-mono font-semibold shadow-neo-btn hover:bg-green-600 transition-colors"
+                        className="px-4 py-2 bg-green-600 text-white rounded-xl font-semibold shadow-sm hover:shadow-md hover:bg-green-700 transition-all"
                     >
                         ✓ Complete All
                     </button>
@@ -58,20 +58,20 @@ export function BulkTaskActions({
                     <div className="relative">
                         <button
                             onClick={() => setShowReassignDropdown(!showReassignDropdown)}
-                            className="px-4 py-2 bg-blue-500 text-white border-2 border-black rounded-none font-mono font-semibold shadow-neo-btn hover:bg-blue-600 transition-colors"
+                            className="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold shadow-sm hover:shadow-md hover:bg-blue-700 transition-all"
                         >
                             👤 Reassign All
                         </button>
                         {showReassignDropdown && (
-                            <div className="absolute bottom-full mb-2 right-0 bg-white border-2 border-black shadow-neo max-h-64 overflow-y-auto min-w-[200px]">
+                            <div className="absolute bottom-full mb-2 right-0 bg-white rounded-xl border border-gray-200 shadow-lg max-h-64 overflow-y-auto min-w-[200px]">
                                 {workspaceMembers.map(member => (
                                     <button
                                         key={member.userId}
                                         onClick={() => handleReassign(member.userId)}
-                                        className="w-full px-4 py-2 text-left font-mono text-sm hover:bg-gray-100 border-b border-gray-200 last:border-b-0"
+                                        className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 border-b border-gray-100 last:border-b-0 first:rounded-t-xl last:rounded-b-xl"
                                     >
                                         {member.fullName}
-                                        {member.role && <span className="text-gray-600 ml-2">({member.role})</span>}
+                                        {member.role && <span className="text-gray-500 ml-2">({member.role})</span>}
                                     </button>
                                 ))}
                             </div>
@@ -80,14 +80,14 @@ export function BulkTaskActions({
 
                     <button
                         onClick={handleDelete}
-                        className={`px-4 py-2 ${showDeleteConfirm ? 'bg-red-700' : 'bg-red-500'} text-white border-2 border-black rounded-none font-mono font-semibold shadow-neo-btn hover:bg-red-600 transition-colors`}
+                        className={`px-4 py-2 ${showDeleteConfirm ? 'bg-red-700' : 'bg-red-600'} text-white rounded-xl font-semibold shadow-sm hover:shadow-md hover:bg-red-700 transition-all`}
                     >
                         {showDeleteConfirm ? '⚠️ Click Again to Confirm' : '🗑️ Delete All'}
                     </button>
 
                     <button
                         onClick={onCancel}
-                        className="px-4 py-2 bg-gray-300 text-black border-2 border-black rounded-none font-mono font-semibold shadow-neo-btn hover:bg-gray-400 transition-colors"
+                        className="px-4 py-2 bg-gray-100 text-slate-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
                     >
                         Cancel
                     </button>

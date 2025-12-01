@@ -41,9 +41,9 @@ export function CsvExportButton({ workspaceId, options = {}, className }: CsvExp
                 onClick={handleExport}
                 disabled={isExporting}
                 className={`
-                    px-4 py-2 bg-white border-2 border-black 
-                    hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed
-                    font-bold flex items-center gap-2
+                    px-4 py-2 bg-white rounded-xl border border-gray-200 
+                    hover:bg-gray-50 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed
+                    font-medium flex items-center gap-2 transition-all
                     ${className || ''}
                 `}
                 onMouseEnter={checkRowCount}
@@ -100,17 +100,17 @@ export function AdvancedExportDialog({ workspaceId, isOpen, onClose }: AdvancedE
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white border-4 border-black p-6 max-w-md w-full">
-                <h2 className="text-xl font-bold mb-4">Export CRM Data</h2>
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl p-6 max-w-md w-full">
+                <h2 className="text-xl font-semibold text-slate-900 mb-4">Export CRM Data</h2>
                 
                 <div className="space-y-4">
                     {/* Type Filter */}
                     <div>
-                        <label className="block font-bold mb-2">Type</label>
+                        <label className="block font-medium text-slate-700 mb-2">Type</label>
                         <select
                             value={options.type || 'all'}
                             onChange={(e) => setOptions({ ...options, type: e.target.value as any })}
-                            className="w-full border-2 border-black p-2"
+                            className="w-full rounded-xl border border-gray-200 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                             <option value="all">All Types</option>
                             <option value="investor">Investors Only</option>
@@ -134,7 +134,7 @@ export function AdvancedExportDialog({ workspaceId, isOpen, onClose }: AdvancedE
 
                     {/* Row Count */}
                     {rowCount !== null && (
-                        <div className="p-3 bg-gray-100 border-2 border-gray-300">
+                        <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
                             <strong>{rowCount.toLocaleString()}</strong> rows will be exported
                             {rowCount > 10000 && (
                                 <p className="text-sm text-red-600 mt-1">
@@ -148,14 +148,14 @@ export function AdvancedExportDialog({ workspaceId, isOpen, onClose }: AdvancedE
                     <div className="flex gap-2 justify-end pt-4">
                         <button
                             onClick={onClose}
-                            className="px-4 py-2 border-2 border-black hover:bg-gray-100"
+                            className="px-4 py-2 rounded-xl border border-gray-200 hover:bg-gray-50 font-medium transition-colors"
                         >
                             Cancel
                         </button>
                         <button
                             onClick={handleExport}
                             disabled={rowCount === 0}
-                            className="px-4 py-2 bg-black text-white border-2 border-black hover:bg-gray-800 disabled:opacity-50"
+                            className="px-4 py-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 disabled:opacity-50 font-medium transition-colors"
                         >
                             📥 Export
                         </button>

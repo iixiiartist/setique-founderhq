@@ -29,7 +29,7 @@ export const EmailToolbar: React.FC<EmailToolbarProps> = ({
                     {/* Compose Button - Mobile/Tablet */}
                     <button
                         onClick={onCompose}
-                        className="lg:hidden flex items-center justify-center gap-2 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                        className="lg:hidden flex items-center justify-center gap-2 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 px-3 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-black transition-colors shadow-sm"
                         title="Compose new email"
                     >
                         <PenSquare size={18} className="sm:w-4 sm:h-4" />
@@ -52,7 +52,7 @@ export const EmailToolbar: React.FC<EmailToolbarProps> = ({
                     placeholder="Search emails..."
                     value={searchQuery}
                     onChange={(e) => onSearchChange(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent"
                 />
                 <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
             </div>
@@ -61,7 +61,7 @@ export const EmailToolbar: React.FC<EmailToolbarProps> = ({
                 <button
                     onClick={() => onFolderChange('inbox')}
                     className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] sm:min-h-0 py-2 text-xs font-medium rounded-lg transition-colors
-                        ${activeFolder === 'inbox' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                        ${activeFolder === 'inbox' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
                 >
                     <Inbox size={16} className="sm:w-3.5 sm:h-3.5" />
                     <span>Inbox</span>
@@ -69,7 +69,7 @@ export const EmailToolbar: React.FC<EmailToolbarProps> = ({
                 <button
                     onClick={() => onFolderChange('sent')}
                     className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] sm:min-h-0 py-2 text-xs font-medium rounded-lg transition-colors
-                        ${activeFolder === 'sent' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                        ${activeFolder === 'sent' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
                 >
                     <Send size={16} className="sm:w-3.5 sm:h-3.5" />
                     <span>Sent</span>
@@ -77,7 +77,7 @@ export const EmailToolbar: React.FC<EmailToolbarProps> = ({
                 <button
                     onClick={() => onFolderChange('drafts')}
                     className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] sm:min-h-0 py-2 text-xs font-medium rounded-lg transition-colors
-                        ${activeFolder === 'drafts' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                        ${activeFolder === 'drafts' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
                 >
                     <FileEdit size={16} className="sm:w-3.5 sm:h-3.5" />
                     <span>Drafts</span>

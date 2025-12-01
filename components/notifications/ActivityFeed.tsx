@@ -271,17 +271,17 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
   ];
 
   return (
-    <div className={`bg-white border-2 border-black ${compact ? '' : 'h-full'} flex flex-col`}>
+    <div className={`bg-white rounded-2xl border border-gray-200 shadow-sm ${compact ? '' : 'h-full'} flex flex-col`}>
       {/* Header */}
-      <div className="border-b-2 border-black p-4 flex items-center justify-between">
+      <div className="border-b border-gray-200 p-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Activity className="w-5 h-5" />
-          <h3 className="font-bold">Recent Activity</h3>
+          <Activity className="w-5 h-5 text-slate-700" />
+          <h3 className="font-semibold text-slate-900">Recent Activity</h3>
         </div>
         <button
           onClick={() => loadActivities(true)}
           disabled={refreshing}
-          className="p-1.5 hover:bg-gray-100 rounded transition-colors disabled:opacity-50"
+          className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
           aria-label="Refresh activity"
         >
           <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
@@ -296,9 +296,9 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
               <button
                 key={f.id}
                 onClick={() => setFilter(f.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded whitespace-nowrap transition-colors ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors ${
                   filter === f.id
-                    ? 'bg-black text-white'
+                    ? 'bg-slate-900 text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >

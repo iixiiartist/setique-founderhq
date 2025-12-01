@@ -61,7 +61,7 @@ export const AssignmentDropdown: React.FC<AssignmentDropdownProps> = ({
         disabled={disabled}
         className={`
           w-full flex items-center justify-between gap-2 px-3 py-2 
-          border-2 border-black font-mono text-sm
+          rounded-xl border border-gray-200 text-sm
           ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white cursor-pointer hover:bg-gray-50'}
           transition-colors
         `}
@@ -69,13 +69,13 @@ export const AssignmentDropdown: React.FC<AssignmentDropdownProps> = ({
         <div className="flex items-center gap-2 flex-1 min-w-0">
           {currentMember ? (
             <>
-              <div className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+              <div className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-medium flex-shrink-0">
                 {getInitials(currentMember.name)}
               </div>
-              <span className="truncate font-semibold">{currentMember.name}</span>
+              <span className="truncate font-medium text-slate-900">{currentMember.name}</span>
               {currentMember.role === 'owner' && (
-                <span className="text-xs bg-yellow-100 border border-yellow-600 px-1 py-0.5">
-                  OWNER
+                <span className="text-xs bg-yellow-100 text-yellow-800 rounded px-1.5 py-0.5">
+                  Owner
                 </span>
               )}
             </>
@@ -87,7 +87,7 @@ export const AssignmentDropdown: React.FC<AssignmentDropdownProps> = ({
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white border-2 border-black shadow-neo max-h-64 overflow-y-auto">
+        <div className="absolute z-50 w-full mt-1 bg-white rounded-xl border border-gray-200 shadow-lg max-h-64 overflow-y-auto">
           {/* Unassign option */}
           <button
             type="button"
@@ -96,7 +96,7 @@ export const AssignmentDropdown: React.FC<AssignmentDropdownProps> = ({
               e.stopPropagation();
               handleSelect(null, null);
             }}
-            className="w-full px-3 py-2 text-left hover:bg-gray-100 border-b border-gray-200 font-mono text-sm flex items-center gap-2"
+            className="w-full px-3 py-2 text-left hover:bg-gray-100 border-b border-gray-200 text-sm flex items-center gap-2"
           >
             <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center text-xs flex-shrink-0">
               ✕
@@ -115,25 +115,25 @@ export const AssignmentDropdown: React.FC<AssignmentDropdownProps> = ({
                 handleSelect(member.id, member.name);
               }}
               className={`
-                w-full px-3 py-2 text-left hover:bg-gray-100 border-b border-gray-200 
-                font-mono text-sm flex items-center gap-2
+                w-full px-3 py-2 text-left hover:bg-gray-100 border-b border-gray-100 
+                text-sm flex items-center gap-2
                 ${member.id === currentAssignee ? 'bg-blue-50' : ''}
               `}
             >
-              <div className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+              <div className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-medium flex-shrink-0">
                 {getInitials(member.name)}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="truncate font-semibold">{member.name}</div>
+                <div className="truncate font-medium text-slate-900">{member.name}</div>
                 <div className="truncate text-xs text-gray-500">{member.email}</div>
               </div>
               {member.role === 'owner' && (
-                <span className="text-xs bg-yellow-100 border border-yellow-600 px-1 py-0.5 flex-shrink-0">
-                  OWNER
+                <span className="text-xs bg-yellow-100 text-yellow-800 rounded px-1.5 py-0.5 flex-shrink-0">
+                  Owner
                 </span>
               )}
               {member.id === currentAssignee && (
-                <span className="text-blue-600 font-bold flex-shrink-0">✓</span>
+                <span className="text-blue-600 font-semibold flex-shrink-0">✓</span>
               )}
             </button>
           ))}

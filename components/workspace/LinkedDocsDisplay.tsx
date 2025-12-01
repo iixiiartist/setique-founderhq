@@ -87,10 +87,10 @@ export const LinkedDocsDisplay: React.FC<LinkedDocsDisplayProps> = ({
         <div className={compact ? 'space-y-1' : 'space-y-2'}>
             {!compact && onAttach && (
                 <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-bold">Linked Docs</h4>
+                    <h4 className="text-sm font-semibold text-slate-900">Linked Docs</h4>
                     <button
                         onClick={onAttach}
-                        className="text-xs px-2 py-1 bg-purple-100 border border-purple-600 text-purple-700 font-bold hover:bg-purple-200 transition-colors"
+                        className="text-xs px-3 py-1.5 rounded-lg bg-purple-50 border border-purple-200 text-purple-700 font-medium hover:bg-purple-100 transition-colors"
                     >
                         + Attach Doc
                     </button>
@@ -108,8 +108,8 @@ export const LinkedDocsDisplay: React.FC<LinkedDocsDisplayProps> = ({
                             key={doc.id}
                             className={`flex items-center justify-between ${
                                 compact
-                                    ? 'px-2 py-1 bg-purple-50 border border-purple-300 text-xs'
-                                    : 'p-2 bg-white border-2 border-black'
+                                    ? 'px-2 py-1 bg-purple-50 border border-purple-200 rounded-lg text-xs'
+                                    : 'p-2 bg-white rounded-xl border border-gray-200'
                             }`}
                         >
                             <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -117,7 +117,7 @@ export const LinkedDocsDisplay: React.FC<LinkedDocsDisplayProps> = ({
                                     {DOC_TYPE_ICONS[doc.docType] || '📄'}
                                 </span>
                                 <div className="flex-1 min-w-0">
-                                    <p className={`font-bold truncate ${compact ? 'text-xs' : 'text-sm'}`}>
+                                    <p className={`font-semibold truncate ${compact ? 'text-xs' : 'text-sm'} text-slate-900`}>
                                         {doc.title}
                                     </p>
                                     {!compact && (
@@ -129,7 +129,7 @@ export const LinkedDocsDisplay: React.FC<LinkedDocsDisplayProps> = ({
                             </div>
                             <button
                                 onClick={() => handleUnlink(doc.linkId!)}
-                                className={`ml-2 font-bold text-red-600 hover:text-red-800 ${
+                                className={`ml-2 font-medium text-red-500 hover:text-red-700 ${
                                     compact ? 'text-sm' : 'text-lg'
                                 }`}
                                 title="Unlink document"

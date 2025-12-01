@@ -150,10 +150,10 @@ const ExpenseItem: React.FC<{
                         </select>
                     </div>
                     <input type="text" value={editForm.vendor || ''} onChange={(e) => setEditForm({ ...editForm, vendor: e.target.value })}
-                        className="w-full p-2 border-2 border-black" placeholder="Vendor (optional)" />
+                        className="w-full p-2 border border-gray-200 rounded-xl" placeholder="Vendor (optional)" />
                     <div className="flex gap-2">
-                        <button onClick={handleSave} className="px-4 py-2 bg-green-500 text-white border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all font-mono font-bold">Save</button>
-                        <button onClick={handleCancel} className="px-4 py-2 bg-gray-300 text-black border-2 border-black shadow-neo-btn hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all font-mono font-bold">Cancel</button>
+                        <button onClick={handleSave} className="px-4 py-2 bg-green-500 text-white rounded-xl font-semibold shadow-sm hover:bg-green-600 transition-all">Save</button>
+                        <button onClick={handleCancel} className="px-4 py-2 bg-gray-200 text-slate-700 rounded-xl font-semibold shadow-sm hover:bg-gray-300 transition-all">Cancel</button>
                     </div>
                 </div>
             </li>
@@ -161,7 +161,7 @@ const ExpenseItem: React.FC<{
     }
 
     return (
-        <li className="flex items-center justify-between p-3 bg-white border-2 border-black shadow-neo">
+        <li className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-200 shadow-sm">
             <div className="flex-grow">
                 <div className="flex items-center justify-between mb-1">
                     <p className="font-semibold">{item.description}</p>
@@ -305,7 +305,7 @@ const FinancialsTab: React.FC<{
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                         <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* Revenue Trends Chart */}
-                            <div className="bg-white p-4 border-2 border-black shadow-neo">
+                            <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
                                 <h2 className="text-lg font-semibold text-black mb-2">Revenue Trends</h2>
                                 <div className="h-48">
                                     <ResponsiveContainer width="100%" height="100%">
@@ -327,7 +327,7 @@ const FinancialsTab: React.FC<{
                             </div>
 
                             {/* Expenses Pie Chart */}
-                            <div className="bg-white p-4 border-2 border-black shadow-neo">
+                            <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
                                 <h2 className="text-lg font-semibold text-black mb-2">Expenses by Category</h2>
                                 {expensesByCategory.length > 0 ? (
                                     <div className="h-48 flex items-center">
@@ -343,7 +343,7 @@ const FinancialsTab: React.FC<{
                                             {expensesByCategory.slice(0, 5).map((cat, idx) => (
                                                 <div key={cat.name} className="flex justify-between items-center">
                                                     <span className="flex items-center gap-1 truncate">
-                                                        <div className="w-2 h-2 shrink-0 border border-black" style={{ backgroundColor: EXPENSE_COLORS[idx] }}></div>
+                                                        <div className="w-2 h-2 shrink-0 rounded border border-gray-200" style={{ backgroundColor: EXPENSE_COLORS[idx] }}></div>
                                                         <span className="truncate">{cat.name}</span>
                                                     </span>
                                                     <span className="font-mono font-bold ml-1">{currencyFormatterNoCents.format(cat.value)}</span>
@@ -355,7 +355,7 @@ const FinancialsTab: React.FC<{
                             </div>
 
                             {/* Financial Log History */}
-                            <div className="bg-white p-4 border-2 border-black shadow-neo">
+                            <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
                                 <h2 className="text-lg font-semibold text-black mb-2">Financial History</h2>
                                 <ul className="max-h-48 overflow-y-auto custom-scrollbar pr-1 space-y-2">
                                     {sortedLogs.length > 0
@@ -366,16 +366,16 @@ const FinancialsTab: React.FC<{
                             </div>
 
                             {/* Expense History */}
-                            <div className="bg-white p-4 border-2 border-black shadow-neo">
+                            <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
                                 <div className="flex items-center justify-between mb-2">
                                     <h2 className="text-lg font-semibold text-black">Expense History</h2>
                                     <div className="flex gap-1">
                                         <select value={expenseFilter} onChange={e => setExpenseFilter(e.target.value as ExpenseCategory | 'All')}
-                                            className="bg-white border border-black text-black px-1 py-0.5 text-xs font-mono rounded-none focus:outline-none">
+                                            className="bg-white border border-gray-200 text-slate-900 px-1 py-0.5 text-xs rounded-lg focus:outline-none focus:border-blue-500">
                                             {expenseFilterOptions.map(option => <option key={option} value={option}>{option}</option>)}
                                         </select>
                                         <select value={expenseSortBy} onChange={e => setExpenseSortBy(e.target.value as 'date' | 'amount')}
-                                            className="bg-white border border-black text-black px-1 py-0.5 text-xs font-mono rounded-none focus:outline-none">
+                                            className="bg-white border border-gray-200 text-slate-900 px-1 py-0.5 text-xs rounded-lg focus:outline-none focus:border-blue-500">
                                             <option value="date">Date</option>
                                             <option value="amount">Amount</option>
                                         </select>
@@ -397,7 +397,7 @@ const FinancialsTab: React.FC<{
                         {/* Right Column: Forms */}
                         <div className="space-y-4">
                             {/* Log Financial Snapshot Form */}
-                            <div className="bg-white p-4 border-2 border-black shadow-neo">
+                            <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
                                 <h2 className="text-lg font-semibold text-black mb-3">Log Snapshot</h2>
                                 <Form schema={financialLogSchema} defaultValues={{ date: new Date().toISOString().split('T')[0], mrr: 0, gmv: 0, signups: 0 }}
                                     onSubmit={handleLog} className="space-y-2">
@@ -423,7 +423,7 @@ const FinancialsTab: React.FC<{
                             </div>
 
                             {/* Log Expense Form */}
-                            <div className="bg-white p-4 border-2 border-black shadow-neo">
+                            <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
                                 <h2 className="text-lg font-semibold text-black mb-3">Log Expense</h2>
                                 <Form schema={expenseSchema}
                                     defaultValues={{ date: new Date().toISOString().split('T')[0], amount: 0, description: '', category: 'Other' as ExpenseCategory, vendor: '', paymentMethod: undefined }}

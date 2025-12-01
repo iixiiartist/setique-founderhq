@@ -170,7 +170,7 @@ const OperationalDashboard: React.FC = () => {
     if (!metrics) {
         return (
             <div className="flex items-center justify-center p-12">
-                <div className="font-mono text-sm text-gray-500">No operational data available</div>
+                <div className="text-sm text-gray-500">No operational data available</div>
             </div>
         );
     }
@@ -179,28 +179,28 @@ const OperationalDashboard: React.FC = () => {
         <div className="space-y-6">
             {/* Header */}
             <div>
-                <h2 className="font-mono font-bold text-2xl text-black">Operational Dashboard</h2>
-                <p className="font-mono text-sm text-gray-600 mt-1">Track team productivity and task completion</p>
+                <h2 className="font-semibold text-2xl text-slate-900">Operational Dashboard</h2>
+                <p className="text-sm text-gray-600 mt-1">Track team productivity and task completion</p>
             </div>
 
             {/* Key metrics */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 bg-blue-100 border-2 border-black rounded flex items-center justify-center">
+                        <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
                             <Activity size={20} className="text-blue-600" />
                         </div>
                         <div>
-                            <div className="font-mono text-3xl font-bold text-black">{metrics.taskVelocity}</div>
-                            <div className="font-mono text-xs text-gray-600">Task Velocity</div>
+                            <div className="text-3xl font-bold text-slate-900">{metrics.taskVelocity}</div>
+                            <div className="text-xs text-gray-600">Task Velocity</div>
                         </div>
                     </div>
-                    <div className="font-mono text-xs text-gray-500">tasks completed this week</div>
+                    <div className="text-xs text-gray-500">tasks completed this week</div>
                 </div>
 
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-3 mb-3">
-                        <div className={`w-10 h-10 border-2 border-black rounded flex items-center justify-center ${
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                             metrics.overdueRate < 10 ? 'bg-green-100' : metrics.overdueRate < 25 ? 'bg-amber-100' : 'bg-red-100'
                         }`}>
                             <AlertCircle size={20} className={
@@ -208,78 +208,78 @@ const OperationalDashboard: React.FC = () => {
                             } />
                         </div>
                         <div>
-                            <div className="font-mono text-3xl font-bold text-black">{metrics.overdueRate.toFixed(1)}%</div>
-                            <div className="font-mono text-xs text-gray-600">Overdue Rate</div>
+                            <div className="text-3xl font-bold text-slate-900">{metrics.overdueRate.toFixed(1)}%</div>
+                            <div className="text-xs text-gray-600">Overdue Rate</div>
                         </div>
                     </div>
-                    <div className="font-mono text-xs text-gray-500">{metrics.taskBreakdown.overdue} tasks overdue</div>
+                    <div className="text-xs text-gray-500">{metrics.taskBreakdown.overdue} tasks overdue</div>
                 </div>
 
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 bg-green-100 border-2 border-black rounded flex items-center justify-center">
+                        <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
                             <CheckCircle2 size={20} className="text-green-600" />
                         </div>
                         <div>
-                            <div className="font-mono text-3xl font-bold text-black">
+                            <div className="text-3xl font-bold text-slate-900">
                                 {metrics.taskBreakdown.done + metrics.taskBreakdown.inProgress + metrics.taskBreakdown.notStarted}
                             </div>
-                            <div className="font-mono text-xs text-gray-600">Total Tasks</div>
+                            <div className="text-xs text-gray-600">Total Tasks</div>
                         </div>
                     </div>
-                    <div className="font-mono text-xs text-gray-500">{metrics.taskBreakdown.done} completed</div>
+                    <div className="text-xs text-gray-500">{metrics.taskBreakdown.done} completed</div>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Task breakdown */}
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
-                    <h3 className="font-mono font-bold text-xl mb-4">Task Status</h3>
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                    <h3 className="font-semibold text-xl mb-4 text-slate-900">Task Status</h3>
                     <div className="space-y-4">
                         <div>
                             <div className="flex items-center justify-between mb-2">
-                                <span className="font-mono text-sm font-semibold">Done</span>
-                                <span className="font-mono text-sm text-gray-600">{metrics.taskBreakdown.done}</span>
+                                <span className="text-sm font-semibold text-slate-700">Done</span>
+                                <span className="text-sm text-gray-600">{metrics.taskBreakdown.done}</span>
                             </div>
-                            <div className="w-full bg-gray-200 h-6 border-2 border-black">
-                                <div className="bg-green-500 h-full" style={{ width: `${(metrics.taskBreakdown.done / (metrics.taskBreakdown.done + metrics.taskBreakdown.inProgress + metrics.taskBreakdown.notStarted)) * 100}%` }} />
-                            </div>
-                        </div>
-                        <div>
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="font-mono text-sm font-semibold">In Progress</span>
-                                <span className="font-mono text-sm text-gray-600">{metrics.taskBreakdown.inProgress}</span>
-                            </div>
-                            <div className="w-full bg-gray-200 h-6 border-2 border-black">
-                                <div className="bg-blue-500 h-full" style={{ width: `${(metrics.taskBreakdown.inProgress / (metrics.taskBreakdown.done + metrics.taskBreakdown.inProgress + metrics.taskBreakdown.notStarted)) * 100}%` }} />
+                            <div className="w-full bg-gray-200 h-6 rounded-full overflow-hidden">
+                                <div className="bg-green-500 h-full rounded-full" style={{ width: `${(metrics.taskBreakdown.done / (metrics.taskBreakdown.done + metrics.taskBreakdown.inProgress + metrics.taskBreakdown.notStarted)) * 100}%` }} />
                             </div>
                         </div>
                         <div>
                             <div className="flex items-center justify-between mb-2">
-                                <span className="font-mono text-sm font-semibold">Not Started</span>
-                                <span className="font-mono text-sm text-gray-600">{metrics.taskBreakdown.notStarted}</span>
+                                <span className="text-sm font-semibold text-slate-700">In Progress</span>
+                                <span className="text-sm text-gray-600">{metrics.taskBreakdown.inProgress}</span>
                             </div>
-                            <div className="w-full bg-gray-200 h-6 border-2 border-black">
-                                <div className="bg-gray-400 h-full" style={{ width: `${(metrics.taskBreakdown.notStarted / (metrics.taskBreakdown.done + metrics.taskBreakdown.inProgress + metrics.taskBreakdown.notStarted)) * 100}%` }} />
+                            <div className="w-full bg-gray-200 h-6 rounded-full overflow-hidden">
+                                <div className="bg-blue-500 h-full rounded-full" style={{ width: `${(metrics.taskBreakdown.inProgress / (metrics.taskBreakdown.done + metrics.taskBreakdown.inProgress + metrics.taskBreakdown.notStarted)) * 100}%` }} />
                             </div>
                         </div>
                         <div>
                             <div className="flex items-center justify-between mb-2">
-                                <span className="font-mono text-sm font-semibold">Overdue</span>
-                                <span className="font-mono text-sm text-gray-600">{metrics.taskBreakdown.overdue}</span>
+                                <span className="text-sm font-semibold text-slate-700">Not Started</span>
+                                <span className="text-sm text-gray-600">{metrics.taskBreakdown.notStarted}</span>
                             </div>
-                            <div className="w-full bg-gray-200 h-6 border-2 border-black">
-                                <div className="bg-red-500 h-full" style={{ width: `${(metrics.taskBreakdown.overdue / (metrics.taskBreakdown.done + metrics.taskBreakdown.inProgress + metrics.taskBreakdown.notStarted)) * 100}%` }} />
+                            <div className="w-full bg-gray-200 h-6 rounded-full overflow-hidden">
+                                <div className="bg-gray-400 h-full rounded-full" style={{ width: `${(metrics.taskBreakdown.notStarted / (metrics.taskBreakdown.done + metrics.taskBreakdown.inProgress + metrics.taskBreakdown.notStarted)) * 100}%` }} />
+                            </div>
+                        </div>
+                        <div>
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm font-semibold text-slate-700">Overdue</span>
+                                <span className="text-sm text-gray-600">{metrics.taskBreakdown.overdue}</span>
+                            </div>
+                            <div className="w-full bg-gray-200 h-6 rounded-full overflow-hidden">
+                                <div className="bg-red-500 h-full rounded-full" style={{ width: `${(metrics.taskBreakdown.overdue / (metrics.taskBreakdown.done + metrics.taskBreakdown.inProgress + metrics.taskBreakdown.notStarted)) * 100}%` }} />
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Weekly trend */}
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-2 mb-4">
                         <TrendingUp size={24} className="text-blue-600" />
-                        <h3 className="font-mono font-bold text-xl">Completion Trend</h3>
+                        <h3 className="font-semibold text-xl text-slate-900">Completion Trend</h3>
                     </div>
                     <div className="space-y-3">
                         {metrics.weeklyTrend.map((week, index) => {
@@ -289,16 +289,16 @@ const OperationalDashboard: React.FC = () => {
                             return (
                                 <div key={index}>
                                     <div className="flex items-center justify-between mb-1">
-                                        <span className="font-mono text-sm font-semibold">{week.week}</span>
-                                        <span className="font-mono text-sm text-gray-600">{week.completed} tasks</span>
+                                        <span className="text-sm font-semibold text-slate-700">{week.week}</span>
+                                        <span className="text-sm text-gray-600">{week.completed} tasks</span>
                                     </div>
-                                    <div className="w-full bg-gray-200 h-8 border-2 border-black">
+                                    <div className="w-full bg-gray-200 h-8 rounded-full overflow-hidden">
                                         <div
-                                            className="bg-blue-500 h-full flex items-center justify-end pr-2"
+                                            className="bg-blue-500 h-full rounded-full flex items-center justify-end pr-2"
                                             style={{ width: `${percentage}%` }}
                                         >
                                             {percentage > 15 && (
-                                                <span className="font-mono text-xs font-bold text-white">
+                                                <span className="text-xs font-bold text-white">
                                                     {week.completed}
                                                 </span>
                                             )}
@@ -313,38 +313,38 @@ const OperationalDashboard: React.FC = () => {
 
             {/* Team capacity */}
             {metrics.teamCapacity.length > 0 && (
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-2 mb-4">
                         <Users size={24} className="text-purple-600" />
-                        <h3 className="font-mono font-bold text-xl">Team Capacity</h3>
+                        <h3 className="font-semibold text-xl text-slate-900">Team Capacity</h3>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {metrics.teamCapacity.map(member => (
-                            <div key={member.userId} className="p-4 bg-gray-50 border-2 border-gray-300 rounded">
-                                <div className="font-mono font-bold text-lg mb-3">{member.userName}</div>
+                            <div key={member.userId} className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                                <div className="font-semibold text-lg mb-3 text-slate-900">{member.userName}</div>
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
-                                        <span className="font-mono text-xs text-gray-600">Assigned</span>
-                                        <span className="font-mono text-sm font-bold">{member.assignedTasks}</span>
+                                        <span className="text-xs text-gray-600">Assigned</span>
+                                        <span className="text-sm font-semibold text-slate-900">{member.assignedTasks}</span>
                                     </div>
                                     <div className="flex items-center justify-between">
-                                        <span className="font-mono text-xs text-gray-600">Completed</span>
-                                        <span className="font-mono text-sm font-bold text-green-600">{member.completedTasks}</span>
+                                        <span className="text-xs text-gray-600">Completed</span>
+                                        <span className="text-sm font-semibold text-green-600">{member.completedTasks}</span>
                                     </div>
                                     <div className="flex items-center justify-between">
-                                        <span className="font-mono text-xs text-gray-600">Overdue</span>
-                                        <span className="font-mono text-sm font-bold text-red-600">{member.overdueTasks}</span>
+                                        <span className="text-xs text-gray-600">Overdue</span>
+                                        <span className="text-sm font-semibold text-red-600">{member.overdueTasks}</span>
                                     </div>
-                                    <div className="pt-2 border-t border-gray-300">
+                                    <div className="pt-2 border-t border-gray-200">
                                         <div className="flex items-center justify-between mb-1">
-                                            <span className="font-mono text-xs text-gray-600">Completion Rate</span>
-                                            <span className="font-mono text-xs font-bold">
+                                            <span className="text-xs text-gray-600">Completion Rate</span>
+                                            <span className="text-xs font-semibold text-slate-900">
                                                 {member.assignedTasks > 0 ? Math.round((member.completedTasks / member.assignedTasks) * 100) : 0}%
                                             </span>
                                         </div>
-                                        <div className="w-full bg-gray-200 h-2 border border-black">
+                                        <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
                                             <div
-                                                className="bg-green-600 h-full"
+                                                className="bg-green-600 h-full rounded-full"
                                                 style={{ width: `${member.assignedTasks > 0 ? (member.completedTasks / member.assignedTasks) * 100 : 0}%` }}
                                             />
                                         </div>
@@ -358,8 +358,8 @@ const OperationalDashboard: React.FC = () => {
 
             {/* Category distribution */}
             {metrics.categoryDistribution.length > 0 && (
-                <div className="bg-white p-6 border-2 border-black shadow-neo">
-                    <h3 className="font-mono font-bold text-xl mb-4">Tasks by Category</h3>
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                    <h3 className="font-semibold text-xl mb-4 text-slate-900">Tasks by Category</h3>
                     <div className="space-y-3">
                         {metrics.categoryDistribution.map((cat, index) => {
                             const completionRate = cat.count > 0 ? (cat.completed / cat.count) * 100 : 0;
@@ -367,14 +367,14 @@ const OperationalDashboard: React.FC = () => {
                             return (
                                 <div key={index}>
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className="font-mono text-sm font-semibold">{cat.category}</span>
-                                        <span className="font-mono text-sm text-gray-600">
+                                        <span className="text-sm font-semibold text-slate-700">{cat.category}</span>
+                                        <span className="text-sm text-gray-600">
                                             {cat.completed}/{cat.count} ({completionRate.toFixed(0)}%)
                                         </span>
                                     </div>
-                                    <div className="w-full bg-gray-200 h-6 border-2 border-black">
+                                    <div className="w-full bg-gray-200 h-6 rounded-full overflow-hidden">
                                         <div
-                                            className={`h-full ${completionRate >= 75 ? 'bg-green-500' : completionRate >= 50 ? 'bg-blue-500' : 'bg-amber-500'}`}
+                                            className={`h-full rounded-full ${completionRate >= 75 ? 'bg-green-500' : completionRate >= 50 ? 'bg-blue-500' : 'bg-amber-500'}`}
                                             style={{ width: `${completionRate}%` }}
                                         />
                                     </div>

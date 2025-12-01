@@ -43,8 +43,8 @@ export const FinancialsCharts: React.FC = () => {
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {/* Revenue Trend Chart */}
-            <div className="bg-white p-3 sm:p-6 border-2 border-black shadow-neo">
-                <h3 className="text-base sm:text-lg font-bold font-mono mb-4">
+            <div className="bg-white p-3 sm:p-6 rounded-2xl border border-gray-200 shadow-sm">
+                <h3 className="text-base sm:text-lg font-semibold text-slate-900 mb-4">
                     Revenue Trend
                 </h3>
                 <div className="h-[200px] sm:h-[250px] w-full">
@@ -81,8 +81,8 @@ export const FinancialsCharts: React.FC = () => {
             </div>
 
             {/* Expense Breakdown Chart */}
-            <div className="bg-white p-3 sm:p-6 border-2 border-black shadow-neo">
-                <h3 className="text-base sm:text-lg font-bold font-mono mb-4">
+            <div className="bg-white p-3 sm:p-6 rounded-2xl border border-gray-200 shadow-sm">
+                <h3 className="text-base sm:text-lg font-semibold text-slate-900 mb-4">
                     Expense Breakdown
                 </h3>
                 <div className="h-[200px] sm:h-[250px] w-full">

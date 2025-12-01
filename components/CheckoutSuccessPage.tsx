@@ -33,10 +33,10 @@ export const CheckoutSuccessPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="max-w-md w-full">
-        <div className="bg-white border-4 border-black shadow-neo p-8 text-center">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl p-8 text-center">
           {/* Success Icon */}
           <div className="mb-6">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-green-500 border-4 border-black rounded-full">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-green-500 rounded-full shadow-lg">
               <svg
                 className="w-12 h-12 text-white"
                 fill="none"
@@ -66,7 +66,7 @@ export const CheckoutSuccessPage: React.FC = () => {
 
           {/* Session ID (for debugging) */}
           {sessionId && (
-            <div className="mb-6 p-3 bg-gray-100 border-2 border-black text-xs font-mono break-all">
+            <div className="mb-6 p-3 bg-gray-100 rounded-xl border border-gray-200 text-xs font-mono break-all">
               Session: {sessionId}
             </div>
           )}
@@ -76,7 +76,7 @@ export const CheckoutSuccessPage: React.FC = () => {
             <p className="text-sm text-gray-600 mb-2">
               Redirecting to dashboard in {countdown} seconds...
             </p>
-            <div className="w-full bg-gray-200 border-2 border-black h-2">
+            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
               <div
                 className="bg-blue-500 h-full transition-all duration-1000"
                 style={{ width: `${((5 - countdown) / 5) * 100}%` }}
@@ -87,7 +87,7 @@ export const CheckoutSuccessPage: React.FC = () => {
           {/* Manual Navigation */}
           <button
             onClick={() => navigate('/dashboard')}
-            className="font-mono bg-blue-600 border-2 border-black text-white cursor-pointer py-3 px-8 rounded-none font-semibold shadow-neo-btn transition-all hover:bg-blue-700 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+            className="bg-blue-600 text-white cursor-pointer py-3 px-8 rounded-xl font-semibold shadow-sm transition-all hover:bg-blue-700 hover:shadow-md"
           >
             Go to Dashboard Now
           </button>

@@ -5,20 +5,20 @@ export function PrivacyPolicyPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="border-b border-black bg-white shadow-neo sticky top-0 z-50">
+      <header className="border-b border-gray-200 bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-black text-white flex items-center justify-center font-mono font-bold text-xl border-2 border-black shadow-neo-sm">
+            <div className="w-10 h-10 bg-slate-900 text-white flex items-center justify-center font-semibold text-xl rounded-xl shadow-sm">
               FHQ
             </div>
             <div>
-              <h1 className="text-xl font-bold font-mono">FounderHQ</h1>
+              <h1 className="text-xl font-bold">FounderHQ</h1>
               <p className="text-xs text-gray-600">A Setique Tool</p>
             </div>
           </Link>
           <Link
             to="/"
-            className="px-4 py-2 border-2 border-black hover:bg-gray-100 font-medium transition-all"
+            className="px-4 py-2 rounded-xl border border-gray-200 hover:bg-gray-50 font-medium transition-all"
           >
             Back to Home
           </Link>
@@ -209,7 +209,7 @@ export function PrivacyPolicyPage() {
 
           <Section title="14. Contact Us">
             <p>If you have questions about this Privacy Policy or our data practices, please contact us:</p>
-            <div className="bg-gray-50 border-2 border-black p-6 mt-4">
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 mt-4">
               <p><strong>Email:</strong> joe@setique.com</p>
               <p><strong>Website:</strong> https://setique.com</p>
               <p><strong>Support:</strong> Available through the application</p>
@@ -225,7 +225,7 @@ export function PrivacyPolicyPage() {
             </ul>
           </Section>
 
-          <div className="bg-yellow-50 border-2 border-black p-6 mt-8">
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mt-8">
             <p className="font-bold mb-2">Acknowledgment</p>
             <p>
               By using FounderHQ, you acknowledge that you have read, understood, and agree to be bound by this Privacy Policy.
@@ -235,7 +235,7 @@ export function PrivacyPolicyPage() {
       </div>
 
       {/* Footer */}
-      <footer className="bg-white border-t-2 border-black py-8 mt-12">
+      <footer className="bg-white border-t border-gray-200 py-8 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-gray-600">
           <p>&copy; 2025 Setique. All rights reserved.</p>
         </div>
@@ -247,7 +247,7 @@ export function PrivacyPolicyPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mb-8">
-      <h2 className="text-2xl font-bold mb-4 pb-2 border-b-2 border-black">{title}</h2>
+      <h2 className="text-2xl font-bold mb-4 pb-2 border-b border-gray-200">{title}</h2>
       <div className="space-y-4">{children}</div>
     </section>
   );

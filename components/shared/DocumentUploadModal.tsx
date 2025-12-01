@@ -91,7 +91,7 @@ const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
             {file && (
                 <div className="space-y-4">
                     <div>
-                        <label htmlFor="file-name" className="block font-mono text-sm font-semibold text-black mb-1">
+                        <label htmlFor="file-name" className="block text-sm font-medium text-slate-700 mb-1.5">
                             File Name
                         </label>
                         <input
@@ -99,32 +99,32 @@ const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
                             type="text"
                             value={fileName || ''}
                             onChange={(e) => setFileName(e.target.value)}
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500"
+                            className="w-full bg-white border border-gray-200 text-slate-900 px-4 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-400 transition-all"
                         />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor="file-module" className="block font-mono text-sm font-semibold text-black mb-1">
+                            <label htmlFor="file-module" className="block text-sm font-medium text-slate-700 mb-1.5">
                                 Assign to Module
                             </label>
                             <select
                                 id="file-module"
                                 value={selectedModule || ''}
                                 onChange={(e) => setSelectedModule(e.target.value as TabType)}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 h-full"
+                                className="w-full bg-white border border-gray-200 text-slate-900 px-4 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-400 transition-all h-full"
                             >
                                 {NAV_ITEMS.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
                             </select>
                         </div>
                         <div>
-                            <label htmlFor="file-company" className="block font-mono text-sm font-semibold text-black mb-1">
+                            <label htmlFor="file-company" className="block text-sm font-medium text-slate-700 mb-1.5">
                                 Link to Company (Optional)
                             </label>
                             <select
                                 id="file-company"
                                 value={selectedCompanyId || ''}
                                 onChange={(e) => setSelectedCompanyId(e.target.value)}
-                                className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 h-full"
+                                className="w-full bg-white border border-gray-200 text-slate-900 px-4 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-400 transition-all h-full"
                             >
                                 <option value="">None</option>
                                 {companies.map(c => <option key={c.id} value={c.id}>{c.company}</option>)}
@@ -132,14 +132,14 @@ const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
                         </div>
                     </div>
                     <div>
-                        <label htmlFor="file-contact" className="block font-mono text-sm font-semibold text-black mb-1">
+                        <label htmlFor="file-contact" className="block text-sm font-medium text-slate-700 mb-1.5">
                             Link to Contact (Optional)
                         </label>
                         <select
                             id="file-contact"
                             value={selectedContactId || ''}
                             onChange={(e) => setSelectedContactId(e.target.value)}
-                            className="w-full bg-white border-2 border-black text-black p-2 rounded-none focus:outline-none focus:border-blue-500 h-full"
+                            className="w-full bg-white border border-gray-200 text-slate-900 px-4 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-400 transition-all h-full disabled:bg-gray-100 disabled:text-slate-400"
                             disabled={!selectedCompanyId || filteredContacts.length === 0}
                         >
                             <option value="">None</option>
@@ -147,17 +147,17 @@ const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
                         </select>
                     </div>
 
-                    <div className="flex gap-2 mt-6">
+                    <div className="flex gap-3 mt-6">
                         <button 
                             onClick={handleUpload} 
                             disabled={isUploading}
-                            className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none border-2 border-black shadow-neo-btn disabled:opacity-50"
+                            className="w-full bg-slate-900 text-white py-2.5 px-4 rounded-xl font-medium shadow-sm hover:bg-slate-800 hover:shadow-md transition-all disabled:opacity-50"
                         >
                             {isUploading ? 'Uploading...' : 'Upload File'}
                         </button>
                         <button 
                             onClick={onClose} 
-                            className="w-full font-mono font-semibold bg-gray-200 text-black py-2 px-4 rounded-none border-2 border-black shadow-neo-btn"
+                            className="w-full bg-white text-slate-700 py-2.5 px-4 rounded-xl font-medium border border-gray-200 shadow-sm hover:bg-gray-50 hover:shadow-md transition-all"
                         >
                             Cancel
                         </button>
