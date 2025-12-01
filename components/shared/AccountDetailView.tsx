@@ -5,11 +5,13 @@ import {
 } from 'lucide-react';
 import { AnyCrmItem, Task, AppActions, CrmCollectionName, TaskCollectionName, Investor, Customer, Partner, Priority, Note, Contact, WorkspaceMember, Subtask } from '../../types';
 import Modal from './Modal';
+import { ConfirmDialog } from './ConfirmDialog';
 import NotesManager from './NotesManager';
 import { LinkedDocumentsSection } from './LinkedDocumentsSection';
 import { TASK_TAG_BG_COLORS } from '../../constants';
 import { AssignmentDropdown } from './AssignmentDropdown';
 import { SubtaskManager } from './SubtaskManager';
+import { useDeleteConfirm } from '../../hooks';
 import { searchWeb } from '../../src/lib/services/youSearchService';
 import { getAiResponse } from '../../services/groqService';
 import { ModerationError, formatModerationErrorMessage } from '../../lib/services/moderationService';
@@ -30,6 +32,7 @@ interface AccountDetailViewProps {
 const AccountTaskItem: React.FC<{ task: Task; onEdit: (task: Task, triggerRef: React.RefObject<HTMLButtonElement>) => void; actions: AppActions; tag: string; taskCollection: TaskCollectionName; }> = ({ task, onEdit, actions, tag, taskCollection }) => {
     const editButtonRef = useRef<HTMLButtonElement>(null);
     const tagColorClass = TASK_TAG_BG_COLORS[tag] || 'bg-gray-300';
+    const deleteConfirm = useDeleteConfirm<Task>('task');
     return (
         <li className="flex items-stretch rounded-md overflow-hidden border border-gray-100 hover:border-gray-200 transition-colors">
             <div className={`w-1 shrink-0 ${tagColorClass}`}></div>
@@ -56,15 +59,27 @@ const AccountTaskItem: React.FC<{ task: Task; onEdit: (task: Task, triggerRef: R
                     </button>
                     <button 
                         onClick={() => {
-                            if (window.confirm('Delete this task?')) {
-                                actions.deleteItem(taskCollection, task.id);
-                            }
+                            deleteConfirm.requestConfirm(task, (t) => {
+                                actions.deleteItem(taskCollection, t.id);
+                            });
                         }}
                         className="text-gray-400 hover:text-red-600 text-xs py-1 px-2 rounded hover:bg-red-50 transition-colors">
                         Del
                     </button>
                 </div>
             </div>
+            {/* Delete Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={deleteConfirm.isOpen}
+                onClose={deleteConfirm.cancel}
+                onConfirm={deleteConfirm.confirm}
+                title={deleteConfirm.title}
+                message={deleteConfirm.message}
+                confirmLabel={deleteConfirm.confirmLabel}
+                cancelLabel={deleteConfirm.cancelLabel}
+                variant={deleteConfirm.variant}
+                isLoading={deleteConfirm.isProcessing}
+            />
         </li>
     );
 };
@@ -125,6 +140,9 @@ function AccountDetailView({
     const editTaskModalTriggerRef = useRef<HTMLButtonElement | null>(null);
 
     const [isEnriching, setIsEnriching] = useState(false);
+    
+    // Confirmation hook for account deletion
+    const deleteAccountConfirm = useDeleteConfirm<AnyCrmItem>('account');
 
     const handleEnrich = async () => {
         setIsEnriching(true);
@@ -316,10 +334,10 @@ function AccountDetailView({
                             <button 
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    if (window.confirm(`Delete ${item.company}? This will also delete all contacts, tasks, meetings, and documents.`)) {
-                                        actions.deleteItem(crmCollection, item.id);
+                                    deleteAccountConfirm.requestConfirm({ ...item, name: item.company }, async (i) => {
+                                        await actions.deleteItem(crmCollection, i.id);
                                         onBack();
-                                    }
+                                    });
                                 }} 
                                 className="flex items-center gap-1.5 text-gray-400 hover:text-red-600 text-sm font-medium transition-colors min-h-[44px] px-2"
                             >
@@ -883,6 +901,19 @@ function AccountDetailView({
                     </div>
                 )}
             </Modal>
+
+            {/* Delete Account Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={deleteAccountConfirm.isOpen}
+                onClose={deleteAccountConfirm.cancel}
+                onConfirm={deleteAccountConfirm.confirm}
+                title={deleteAccountConfirm.title}
+                message={`${deleteAccountConfirm.message} This will also delete all contacts, tasks, meetings, and documents.`}
+                confirmLabel={deleteAccountConfirm.confirmLabel}
+                cancelLabel={deleteAccountConfirm.cancelLabel}
+                variant={deleteAccountConfirm.variant}
+                isLoading={deleteAccountConfirm.isProcessing}
+            />
         </div>
     );
 }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatRelativeTime } from '../../lib/utils/dateUtils';
 import { Clock, User, CheckCircle, AlertCircle, TrendingUp, Users } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { logger } from '../../lib/logger';
@@ -110,20 +111,8 @@ export const TeamActivityFeed: React.FC<TeamActivityFeedProps> = ({
     }
   };
 
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
-  };
+  // Use shared formatRelativeTime from dateUtils as formatTimestamp
+  const formatTimestamp = formatRelativeTime;
 
   const getActionText = (activity: ActivityEvent) => {
     const action = activity.action;

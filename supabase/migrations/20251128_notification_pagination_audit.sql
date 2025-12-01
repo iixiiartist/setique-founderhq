@@ -367,6 +367,8 @@ ON notification_audit_log(user_id, action, action_at DESC);
 -- RLS
 ALTER TABLE notification_audit_log ENABLE ROW LEVEL SECURITY;
 
+-- Drop and recreate policy to avoid "already exists" error
+DROP POLICY IF EXISTS "Users can view own notification audit" ON notification_audit_log;
 CREATE POLICY "Users can view own notification audit"
     ON notification_audit_log FOR SELECT
     USING (user_id = auth.uid());

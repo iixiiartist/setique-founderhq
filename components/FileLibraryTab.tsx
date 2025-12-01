@@ -12,6 +12,7 @@ import { supabase } from '../lib/supabase';
 import { showError } from '../lib/utils/toast';
 import mammoth from 'mammoth';
 import { Upload } from 'lucide-react';
+import { useConfirmAction } from '../hooks';
 
 // Import extracted components
 import {
@@ -210,14 +211,8 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
     const [isConverting, setIsConverting] = useState(false);
     const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
-    // Confirm dialog state
-    const [confirmDialog, setConfirmDialog] = useState<{
-        isOpen: boolean;
-        title: string;
-        message: string;
-        onConfirm: () => void;
-        variant: 'danger' | 'warning' | 'info';
-    }>({ isOpen: false, title: '', message: '', onConfirm: () => {}, variant: 'danger' });
+    // Confirm dialog using shared hook
+    const confirmAction = useConfirmAction();
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const notesModalTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -348,15 +343,11 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
         if (silent) {
             await performDelete();
         } else {
-            setConfirmDialog({
-                isOpen: true,
+            confirmAction.confirm({
                 title: 'Delete File',
                 message: `Delete "${doc.name}"? This action cannot be undone.`,
                 variant: 'danger',
-                onConfirm: async () => {
-                    setConfirmDialog(prev => ({ ...prev, isOpen: false }));
-                    await performDelete();
-                },
+                onConfirm: performDelete,
             });
         }
     };
@@ -536,13 +527,11 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
 
     const handleBulkDelete = async () => {
         if (!selectedIds.size) return;
-        setConfirmDialog({
-            isOpen: true,
+        confirmAction.confirm({
             title: 'Delete Files',
             message: `Delete ${selectedIds.size} selected file(s)? This action cannot be undone.`,
             variant: 'danger',
             onConfirm: async () => {
-                setConfirmDialog(prev => ({ ...prev, isOpen: false }));
                 setBulkBusy(true);
                 for (const id of Array.from(selectedIds)) {
                     const doc = libraryDocs.find(d => d.id === id);
@@ -636,9 +625,9 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
 
     return (
         <div className="flex h-full bg-[#FDF9F2] text-black font-mono overflow-hidden border-t border-gray-200" onDrop={handleDrop} onDragOver={handleDragOver}>
-            {/* Mobile sidebar overlay */}
+            {/* Mobile sidebar overlay - z-20 so main navigation menu (z-40/z-50) can appear on top */}
             {showMobileSidebar && (
-                <div className="fixed inset-0 z-40 lg:hidden" onClick={() => setShowMobileSidebar(false)}>
+                <div className="fixed inset-0 z-20 lg:hidden" onClick={() => setShowMobileSidebar(false)}>
                     <div className="absolute inset-0 bg-black/50" />
                 </div>
             )}
@@ -808,12 +797,12 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
             />
 
             <ConfirmDialog
-                isOpen={confirmDialog.isOpen}
-                onClose={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
-                onConfirm={confirmDialog.onConfirm}
-                title={confirmDialog.title}
-                message={confirmDialog.message}
-                variant={confirmDialog.variant}
+                isOpen={confirmAction.isOpen}
+                onClose={confirmAction.cancel}
+                onConfirm={confirmAction.handleConfirm}
+                title={confirmAction.state.title}
+                message={confirmAction.state.message}
+                variant={confirmAction.state.variant}
             />
         </div>
     );

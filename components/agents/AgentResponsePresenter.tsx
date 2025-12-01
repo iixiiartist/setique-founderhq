@@ -2,8 +2,8 @@
 // Renders You.com agent responses with proper markdown rendering
 
 import React, { useMemo } from 'react';
+import { useCopyToClipboard } from '../../hooks';
 import { ExternalLink, FileText, Lightbulb, Target, TrendingUp, Users, Zap, Copy, Check, Building2, AlertTriangle, Rocket, BookOpen } from 'lucide-react';
-import { useState } from 'react';
 import type { RunAgentResponse, AgentSource } from '../../lib/services/youAgentClient';
 
 interface AgentResponsePresenterProps {
@@ -47,18 +47,11 @@ export const AgentResponsePresenter: React.FC<AgentResponsePresenterProps> = ({
   response,
   onInsertToDoc,
 }) => {
-  const [copied, setCopied] = useState(false);
+  const { isCopied: copied, copy } = useCopyToClipboard();
 
   const handleCopy = async () => {
     if (!response.output) return;
-    
-    try {
-      await navigator.clipboard.writeText(response.output);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
-    }
+    await copy(response.output);
   };
 
   // Convert markdown to React elements

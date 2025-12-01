@@ -10,6 +10,8 @@ import { WhyNowAgentModal } from './WhyNowAgentModal';
 import { DealStrategistModal } from './DealStrategistModal';
 import { SavedReportsList } from './SavedReportsList';
 import { useAgentReports } from '../../hooks/useAgentReports';
+import { useDeleteConfirm } from '../../hooks';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { useAuth } from '../../contexts/AuthContext';
 import type { AppActions } from '../../types';
@@ -27,6 +29,8 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({ actions, onInsertToDoc }) 
   
   const [activeModal, setActiveModal] = useState<YouAgentSlug | null>(null);
   const [viewingReport, setViewingReport] = useState<AgentReport | null>(null);
+  
+  const deleteReportConfirm = useDeleteConfirm<{ id: string }>('report');
 
   const handleOpenAgent = useCallback((slug: YouAgentSlug) => {
     setActiveModal(slug);
@@ -46,11 +50,11 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({ actions, onInsertToDoc }) 
     setActiveModal(report.agent_slug as YouAgentSlug);
   }, []);
 
-  const handleDeleteReport = useCallback(async (reportId: string) => {
-    if (confirm('Delete this report? This cannot be undone.')) {
-      await deleteReport(reportId);
-    }
-  }, [deleteReport]);
+  const handleDeleteReport = useCallback((reportId: string) => {
+    deleteReportConfirm.requestConfirm({ id: reportId, name: 'report' }, async (data) => {
+      await deleteReport(data.id);
+    });
+  }, [deleteReport, deleteReportConfirm]);
 
   // Only show enabled agents
   const enabledAgentSlugs = getEnabledAgents();
@@ -166,6 +170,19 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({ actions, onInsertToDoc }) 
           savedReport={viewingReport}
         />
       )}
+
+      {/* Delete Report Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteReportConfirm.isOpen}
+        onClose={deleteReportConfirm.cancel}
+        onConfirm={deleteReportConfirm.confirm}
+        title={deleteReportConfirm.title}
+        message={deleteReportConfirm.message}
+        confirmLabel={deleteReportConfirm.confirmLabel}
+        cancelLabel={deleteReportConfirm.cancelLabel}
+        variant={deleteReportConfirm.variant}
+        isLoading={deleteReportConfirm.isProcessing}
+      />
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { Globe, Copy, Download, Sparkles } from 'lucide-react';
+import { useCopyToClipboard } from '../../hooks';
+import { Globe, Copy, Download, Sparkles, Check } from 'lucide-react';
 
 interface MarketResearchPanelProps {
   query: string;
@@ -155,13 +156,11 @@ export const MarketResearchPanel: React.FC<MarketResearchPanelProps> = ({
     return cleaned || 'Fresh insights generated from live sources and product context.';
   }, [normalized]);
 
+  const { isCopied, copy } = useCopyToClipboard();
+
   const handleCopy = async () => {
-    if (!rawReport || typeof navigator === 'undefined' || !navigator.clipboard) return;
-    try {
-      await navigator.clipboard.writeText(rawReport);
-    } catch (error) {
-      console.error('Unable to copy market research report', error);
-    }
+    if (!rawReport) return;
+    await copy(rawReport);
   };
 
   const handleDownload = () => {
@@ -192,7 +191,8 @@ export const MarketResearchPanel: React.FC<MarketResearchPanelProps> = ({
             onClick={handleCopy}
             className="flex items-center gap-1 rounded-full border border-white/30 bg-white/10 px-3 py-2 text-sm font-semibold hover:bg-white/20"
           >
-            <Copy className="w-4 h-4" /> Copy
+            {isCopied ? <Check className="w-4 h-4 text-green-300" /> : <Copy className="w-4 h-4" />}
+            {isCopied ? 'Copied!' : 'Copy'}
           </button>
           <button
             onClick={handleDownload}

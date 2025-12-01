@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSuccessState } from '../../hooks';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { DatabaseService } from '../../lib/services/database';
@@ -29,7 +30,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
   });
 
   const [isDirty, setIsDirty] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveSuccess, triggerSaveSuccess, resetSaveSuccess] = useSuccessState(3000);
 
   // Allowed file types and max size
   const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -82,11 +83,8 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
       // Reload profile to get updated data
       await loadProfile();
       setIsDirty(false);
-      setSaveSuccess(true);
+      triggerSaveSuccess();
       onSave?.();
-
-      // Auto-hide success message after 3 seconds
-      setTimeout(() => setSaveSuccess(false), 3000);
     } catch (error) {
       console.error('Failed to save profile:', error);
       alert('Failed to save profile. Please try again.');
@@ -103,7 +101,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
       avatarUrl: profile.avatar_url || '',
     });
     setIsDirty(false);
-    setSaveSuccess(false);
+    resetSaveSuccess();
   };
 
   const handleFileSelect = () => {

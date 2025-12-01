@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useTemporaryBoolean } from '../hooks';
 import { AnyCrmItem, Task, AppActions, CrmCollectionName, TaskCollectionName, Contact, Document, BusinessProfile, WorkspaceMember, Deal, ProductService } from '../types';
 import AccountDetailView from './shared/AccountDetailView';
 import ContactDetailView from './shared/ContactDetailView';
-import { ContactManager } from './shared/ContactManager';
-import { AccountManager } from './shared/AccountManager';
+import { ContactManagerRefactored } from './crm/contacts';
+import { AccountManagerRefactored } from './crm/accounts';
 import { FollowUpsManager } from './shared/FollowUpsManager';
 import { DealsModule, CrmQuickAccessSidebar, CrmViewTabs, CrmViewType } from './crm';
 import { logger } from '../lib/logger';
@@ -40,7 +41,7 @@ function CrmTabComponent({
     const [selectedItem, setSelectedItem] = useState<AnyCrmItem | null>(null);
     const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
     const [activeView, setActiveView] = useState<CrmViewType>('accounts');
-    const [showDeletedToast, setShowDeletedToast] = useState(false);
+    const [showDeletedToast, triggerDeletedToast] = useTemporaryBoolean(3000);
     const isUpdatingRef = useRef(false);
 
     const { crmCollection, taskCollection, tag } = useMemo(() => {
@@ -82,16 +83,14 @@ function CrmTabComponent({
                     } else {
                         // Contact was deleted or moved
                         setSelectedContact(null);
-                        setShowDeletedToast(true);
-                        setTimeout(() => setShowDeletedToast(false), 3000);
+                        triggerDeletedToast();
                     }
                 }
             } else {
                 // Item was deleted
                 setSelectedItem(null);
                 setSelectedContact(null);
-                setShowDeletedToast(true);
-                setTimeout(() => setShowDeletedToast(false), 3000);
+                triggerDeletedToast();
             }
         }
         // Reset updating flag after sync
@@ -265,7 +264,7 @@ function CrmTabComponent({
                     <CrmViewTabs activeView={activeView} onViewChange={setActiveView} />
                     <div className="p-3 sm:p-5">
                         {activeView === 'accounts' && (
-                            <AccountManager
+                            <AccountManagerRefactored
                                 crmItems={crmItems}
                                 actions={actions}
                                 crmCollection={crmCollection}
@@ -275,11 +274,11 @@ function CrmTabComponent({
                             />
                         )}
                         {activeView === 'contacts' && (
-                            <ContactManager
+                            <ContactManagerRefactored
                                 contacts={crmItems.flatMap(item => item.contacts || [])}
                                 crmItems={crmItems}
                                 actions={actions}
-                                crmType={crmCollection}
+                                crmType={getCrmType()}
                                 workspaceId={workspaceId}
                                 onViewContact={(contact, parentItem) => {
                                     setSelectedItem(parentItem);

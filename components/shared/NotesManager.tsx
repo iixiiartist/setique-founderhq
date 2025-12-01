@@ -1,8 +1,10 @@
 
 import React, { useState } from 'react';
+import { useDeleteConfirm } from '../../hooks';
 import { Note, NoteableCollectionName, AppActions } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface NotesManagerProps {
     notes: Note[];
@@ -19,6 +21,7 @@ const NotesManager: React.FC<NotesManagerProps> = ({ notes, itemId, collection, 
     const [editText, setEditText] = useState('');
     const { user } = useAuth();
     const { isWorkspaceOwner } = useWorkspace();
+    const deleteConfirm = useDeleteConfirm();
 
     const handleAddNote = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -104,9 +107,9 @@ const NotesManager: React.FC<NotesManagerProps> = ({ notes, itemId, collection, 
                                                 )}
                                                 <button 
                                                     onClick={() => {
-                                                        if (window.confirm('Delete this note?')) {
-                                                            deleteNoteAction(collection, itemId, note.timestamp);
-                                                        }
+                                                        deleteConfirm.requestConfirm(note.timestamp.toString(), 'note', async () => {
+                                                            await deleteNoteAction(collection, itemId, note.timestamp);
+                                                        });
                                                     }} 
                                                     className="font-mono text-xs font-semibold text-red-600 hover:underline"
                                                     title={note.userId === user.id ? 'Delete note' : 'Delete note (workspace owner)'}
@@ -124,6 +127,17 @@ const NotesManager: React.FC<NotesManagerProps> = ({ notes, itemId, collection, 
                     <p className="text-sm text-gray-500 italic">No notes yet.</p>
                 )}
             </div>
+            
+            {/* Delete confirmation dialog */}
+            <ConfirmDialog
+                isOpen={deleteConfirm.isConfirming}
+                onClose={deleteConfirm.cancel}
+                onConfirm={deleteConfirm.confirm}
+                title="Delete Note"
+                message="Are you sure you want to delete this note? This action cannot be undone."
+                confirmText="Delete"
+                variant="danger"
+            />
         </div>
     );
 };

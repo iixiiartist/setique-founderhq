@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useTemporaryBoolean } from '../hooks';
 import { CrmItem, AnyCrmItem, Task, AppActions, Contact, Document, BusinessProfile, WorkspaceMember, Deal, ProductService, CrmType, Meeting } from '../types';
 import AccountDetailView from './shared/AccountDetailView';
 import ContactDetailView from './shared/ContactDetailView';
-import { ContactManager } from './shared/ContactManager';
-import { AccountManager } from './shared/AccountManager';
+import { ContactManagerRefactored } from './crm/contacts';
+import { AccountManagerRefactored } from './crm/accounts';
 import { PaginatedAccountManager } from './shared/PaginatedAccountManager';
 import { FollowUpsManager } from './shared/FollowUpsManager';
 import { DealsModule } from './crm';
@@ -42,7 +43,7 @@ function AccountsTab({
     const [activeView, setActiveView] = useState<'accounts' | 'contacts' | 'followups' | 'deals'>('accounts');
     const [typeFilter, setTypeFilter] = useState<CrmType | 'all'>('all');
     const [searchQuery, setSearchQuery] = useState('');
-    const [showDeletedToast, setShowDeletedToast] = useState(false);
+    const [showDeletedToast, triggerDeletedToast] = useTemporaryBoolean(3000);
     const isUpdatingRef = useRef(false);
 
     // Check if paginated CRM is enabled
@@ -108,15 +109,13 @@ function AccountsTab({
                         setSelectedContact(contactData.contact);
                     } else {
                         setSelectedContact(null);
-                        setShowDeletedToast(true);
-                        setTimeout(() => setShowDeletedToast(false), 3000);
+                        triggerDeletedToast();
                     }
                 }
             } else {
                 setSelectedItem(null);
                 setSelectedContact(null);
-                setShowDeletedToast(true);
-                setTimeout(() => setShowDeletedToast(false), 3000);
+                triggerDeletedToast();
             }
         }
         if (isUpdatingRef.current) {
@@ -371,7 +370,7 @@ function AccountsTab({
                             onViewAccount={setSelectedItem}
                         />
                     ) : (
-                        <AccountManager
+                        <AccountManagerRefactored
                             crmItems={filteredItems as AnyCrmItem[]}
                             onViewAccount={setSelectedItem}
                             workspaceId={workspaceId}
@@ -381,7 +380,7 @@ function AccountsTab({
                         />
                     )
                 ) : activeView === 'contacts' ? (
-                    <ContactManager
+                    <ContactManagerRefactored
                         contacts={filteredItems.flatMap(item => 
                             (item.contacts || []).map(c => ({ ...c, parentType: item.type }))
                         )}
@@ -389,8 +388,7 @@ function AccountsTab({
                         actions={wrappedActions}
                         crmType={typeFilter === 'all' ? 'investors' : typeFilter === 'investor' ? 'investors' : typeFilter === 'customer' ? 'customers' : 'partners'}
                         workspaceId={workspaceId}
-                        onViewContact={(contact) => {
-                            const parentItem = crmItems.find(item => item.id === contact.crmItemId);
+                        onViewContact={(contact, parentItem) => {
                             if (parentItem) {
                                 setSelectedItem(parentItem);
                                 setSelectedContact(contact);

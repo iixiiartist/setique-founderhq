@@ -1,5 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useDeleteConfirm } from '../../hooks';
+import { formatRelativeTime } from '../../lib/utils/dateUtils';
 import { MentionInput } from './MentionInput';
+import { ConfirmDialog } from './ConfirmDialog';
 import { createComment, getTaskComments, updateComment, deleteComment, type TaskComment } from '../../lib/services/commentsService';
 import { MessageSquare, Edit2, Trash2, Send } from 'lucide-react';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
@@ -32,6 +35,9 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const { isWorkspaceOwner } = useWorkspace();
+  
+  // Use shared delete confirmation hook
+  const deleteConfirmation = useDeleteConfirm();
 
   // Load comments
   useEffect(() => {
@@ -106,8 +112,14 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
     setSubmitting(false);
   };
 
-  const handleDeleteComment = async (commentId: string) => {
-    if (!confirm('Are you sure you want to delete this comment?')) return;
+  const handleDeleteComment = useCallback(async (commentId: string) => {
+    const confirmed = await deleteConfirmation.confirm({
+      title: 'Delete Comment',
+      message: 'Are you sure you want to delete this comment?',
+      itemName: 'comment'
+    });
+    
+    if (!confirmed) return;
 
     setSubmitting(true);
     const { success, error } = await deleteComment(commentId);
@@ -120,7 +132,7 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
     }
 
     setSubmitting(false);
-  };
+  }, [comments, deleteConfirmation]);
 
   const startEditing = (comment: TaskComment) => {
     setEditingCommentId(comment.id);
@@ -150,20 +162,8 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
     });
   };
 
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (minutes < 1) return 'just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    if (days < 7) return `${days}d ago`;
-    return date.toLocaleDateString();
-  };
+  // Use shared formatRelativeTime from dateUtils as formatTimestamp
+  const formatTimestamp = formatRelativeTime;
 
   return (
     <div className="space-y-4">
@@ -310,6 +310,17 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
           </div>
         </div>
       )}
+      
+      {/* Delete confirmation dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirmation.isOpen}
+        onClose={deleteConfirmation.cancel}
+        onConfirm={deleteConfirmation.handleConfirm}
+        title={deleteConfirmation.state?.title || 'Delete Comment'}
+        message={deleteConfirmation.state?.message || 'Are you sure you want to delete this comment?'}
+        confirmText="Delete"
+        variant="danger"
+      />
     </div>
   );
 };

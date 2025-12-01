@@ -2,6 +2,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDeleteConfirm } from '../../hooks';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { showSuccess, showError } from '../../lib/utils/toast';
 import { EmailThread } from './EmailThread';
 import { EmailComposer } from './EmailComposer';
@@ -26,6 +28,8 @@ export const EmailInbox: React.FC = () => {
   const [defaultAccountId, setDefaultAccountId] = useState<string | null>(null);
   const [activeFolder, setActiveFolder] = useState<EmailFolder>('inbox');
   const [editingDraft, setEditingDraft] = useState<EditingDraft | null>(null);
+  
+  const deleteDraftConfirm = useDeleteConfirm<EmailMessage>('draft');
 
   const fetchDefaultAccount = useCallback(async () => {
     try {
@@ -167,25 +171,25 @@ export const EmailInbox: React.FC = () => {
     }
   }, [activeFolder]);
 
-  const handleDeleteDraft = useCallback(async (e: React.MouseEvent, msg: EmailMessage) => {
+  const handleDeleteDraft = useCallback((e: React.MouseEvent, msg: EmailMessage) => {
     e.stopPropagation();
     
-    if (!confirm('Are you sure you want to delete this draft?')) return;
-    
-    try {
-      const { error } = await supabase
-        .from('email_messages')
-        .delete()
-        .eq('id', msg.id);
-      
-      if (error) throw error;
-      
-      showSuccess('Draft deleted');
-      fetchMessages();
-    } catch (err: any) {
-      showError(`Failed to delete draft: ${err.message}`);
-    }
-  }, [fetchMessages]);
+    deleteDraftConfirm.requestConfirm(msg, async (draft) => {
+      try {
+        const { error } = await supabase
+          .from('email_messages')
+          .delete()
+          .eq('id', draft.id);
+        
+        if (error) throw error;
+        
+        showSuccess('Draft deleted');
+        fetchMessages();
+      } catch (err: any) {
+        showError(`Failed to delete draft: ${err.message}`);
+      }
+    });
+  }, [fetchMessages, deleteDraftConfirm]);
 
   const handleComposerClose = useCallback(() => {
     setIsComposerOpen(false);
@@ -271,6 +275,19 @@ export const EmailInbox: React.FC = () => {
         defaultAccountId={defaultAccountId || undefined}
         editDraft={editingDraft || undefined}
         onDraftDeleted={fetchMessages}
+      />
+
+      {/* Delete Draft Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteDraftConfirm.isOpen}
+        onClose={deleteDraftConfirm.cancel}
+        onConfirm={deleteDraftConfirm.confirm}
+        title={deleteDraftConfirm.title}
+        message={deleteDraftConfirm.message}
+        confirmLabel={deleteDraftConfirm.confirmLabel}
+        cancelLabel={deleteDraftConfirm.cancelLabel}
+        variant={deleteDraftConfirm.variant}
+        isLoading={deleteDraftConfirm.isProcessing}
       />
     </div>
   );

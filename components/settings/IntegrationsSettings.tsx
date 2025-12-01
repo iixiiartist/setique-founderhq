@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDeleteConfirm } from '../../hooks';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 
 interface IntegratedAccount {
   id: string;
@@ -17,6 +19,8 @@ export const IntegrationsSettings: React.FC = () => {
   const { user } = useAuth();
   const [accounts, setAccounts] = useState<IntegratedAccount[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  const disconnectConfirm = useDeleteConfirm<{ id: string }>('account');
 
   useEffect(() => {
     if (workspace?.id && user?.id) {
@@ -75,21 +79,21 @@ export const IntegrationsSettings: React.FC = () => {
     }
   };
 
-  const handleDisconnect = async (accountId: string) => {
-    if (!confirm('Are you sure you want to disconnect this account?')) return;
-    
-    try {
-      const { error } = await supabase
-        .from('integrated_accounts')
-        .delete()
-        .eq('id', accountId);
+  const handleDisconnect = (accountId: string) => {
+    disconnectConfirm.requestConfirm({ id: accountId, name: 'account' }, async (data) => {
+      try {
+        const { error } = await supabase
+          .from('integrated_accounts')
+          .delete()
+          .eq('id', data.id);
 
-      if (error) throw error;
-      fetchAccounts();
-    } catch (err) {
-      console.error('Error disconnecting:', err);
-      alert('Failed to disconnect account');
-    }
+        if (error) throw error;
+        fetchAccounts();
+      } catch (err) {
+        console.error('Error disconnecting:', err);
+        alert('Failed to disconnect account');
+      }
+    });
   };
 
   return (
@@ -133,6 +137,19 @@ export const IntegrationsSettings: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Disconnect Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={disconnectConfirm.isOpen}
+        onClose={disconnectConfirm.cancel}
+        onConfirm={disconnectConfirm.confirm}
+        title="Disconnect Account"
+        message="Are you sure you want to disconnect this account?"
+        confirmLabel="Disconnect"
+        cancelLabel={disconnectConfirm.cancelLabel}
+        variant="warning"
+        isLoading={disconnectConfirm.isProcessing}
+      />
     </div>
   );
 };

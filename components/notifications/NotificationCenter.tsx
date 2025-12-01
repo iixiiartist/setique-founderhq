@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useContext } from 'react';
+import { formatRelativeTime } from '../../lib/utils/dateUtils';
 import {
   Bell,
   X,
@@ -17,10 +18,12 @@ import {
   AlertTriangle,
   ChevronRight,
   RefreshCw,
+  Loader2,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
-import { useNotifications, CATEGORY_TYPES, type NotificationCategory } from '../../hooks/useNotifications';
+import NotificationContext from '../../contexts/NotificationContext';
+import { useNotifications, CATEGORY_TYPES, type NotificationCategory, type ExtendedNotification } from '../../hooks/useNotifications';
 import { logger } from '../../lib/logger';
 import type { NotificationType, Notification } from '../../lib/services/notificationService';
 
@@ -147,14 +150,33 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   const { workspace } = useWorkspace();
   const [selectedCategory, setSelectedCategory] = useState<NotificationCategory>('all');
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreTriggerRef = useRef<HTMLDivElement>(null);
 
-  // Use the unified notifications hook
+  // Check if context is available
+  const contextValue = useContext(NotificationContext);
+  const useContextMode = contextValue !== null;
+
+  // Use context if available, otherwise fallback to standalone hook
+  const standaloneHook = useNotifications({
+    userId: user?.id || '',
+    workspaceId: workspace?.id,
+    pageSize: 50,
+    realtime: isOpen, // Only subscribe when open
+    respectPreferences: true,
+    enablePagination: true,
+  });
+
+  // Select the appropriate source
   const {
     notifications,
     filteredNotifications,
     unreadCount,
     loading,
     refreshing,
+    pagination,
+    loadMore,
     markAsRead,
     markAllAsRead: markAllAsReadHook,
     deleteNotification: deleteNotificationHook,
@@ -162,13 +184,10 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     refresh,
     setFilters,
     getCategoryCount,
-  } = useNotifications({
-    userId: user?.id || '',
-    workspaceId: workspace?.id,
-    limit: 100,
-    realtime: isOpen, // Only subscribe when open
-    respectPreferences: true,
-  });
+    markAsDelivered,
+    markAsSeen,
+    markAsAcknowledged,
+  } = useContextMode ? contextValue : standaloneHook;
 
   // Update filters when category/unread changes
   useEffect(() => {
@@ -185,11 +204,56 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     }
   }, [isOpen, user, workspace, refresh]);
 
-  // Handle notification click
-  const handleNotificationClick = async (notification: Notification) => {
-    await markAsRead(notification.id);
+  // Mark notifications as delivered when displayed
+  useEffect(() => {
+    if (!isOpen || !markAsDelivered) return;
     
-    if (onNavigate && notification.entityType && notification.entityId) {
+    const undelivered = notifications.filter(
+      (n: ExtendedNotification) => n.deliveryStatus === 'created'
+    );
+    
+    // Mark as delivered in batches to avoid overwhelming the API
+    undelivered.slice(0, 10).forEach((n: ExtendedNotification) => {
+      markAsDelivered(n.id);
+    });
+  }, [isOpen, notifications, markAsDelivered]);
+
+  // Setup infinite scroll with IntersectionObserver
+  useEffect(() => {
+    if (!loadMoreTriggerRef.current || !pagination?.hasMore) return;
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && pagination.hasMore && !pagination.loadingMore) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observerRef.current.observe(loadMoreTriggerRef.current);
+
+    return () => {
+      observerRef.current?.disconnect();
+    };
+  }, [pagination?.hasMore, pagination?.loadingMore, loadMore]);
+
+  // Handle notification click with delivery tracking
+  const handleNotificationClick = async (notification: Notification) => {
+    // Mark as acknowledged (also marks as read)
+    if (markAsAcknowledged) {
+      await markAsAcknowledged(notification.id);
+    } else {
+      await markAsRead(notification.id);
+    }
+    
+    // Navigate using action_url if available, otherwise use entity routing
+    const extNotif = notification as ExtendedNotification & { actionUrl?: string };
+    if (extNotif.actionUrl) {
+      // Use action_url for navigation
+      window.location.href = extNotif.actionUrl;
+      onClose();
+    } else if (onNavigate && notification.entityType && notification.entityId) {
       onNavigate(notification.entityType, notification.entityId);
       onClose();
     }
@@ -201,21 +265,8 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     return acc;
   }, {} as Record<NotificationCategory, number>);
 
-  // Format timestamp
-  const formatTimestamp = (timestamp: string): string => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
-  };
+  // Use shared formatRelativeTime from dateUtils as formatTimestamp
+  const formatTimestamp = formatRelativeTime;
 
   if (!isOpen) return null;
 
@@ -426,6 +477,28 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                   </div>
                 );
               })}
+              
+              {/* Infinite scroll trigger */}
+              {pagination?.hasMore && (
+                <div 
+                  ref={loadMoreTriggerRef}
+                  className="p-4 flex items-center justify-center"
+                >
+                  {pagination.loadingMore ? (
+                    <div className="flex items-center gap-2 text-gray-500">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span className="text-sm">Loading more...</span>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => loadMore()}
+                      className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      Load more notifications
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

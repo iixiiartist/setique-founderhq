@@ -313,43 +313,71 @@ export function useNotifications(options: UseNotificationsOptions): UseNotificat
   }, [userId, workspaceId, pageSize, respectPreferences]);
 
   // Filter notifications by user preferences
+  // Optimized: batch by type and check in parallel instead of serial calls
   const filterByPreferences = async (
     notifs: ExtendedNotification[],
     uid: string,
     wsId: string
   ): Promise<ExtendedNotification[]> => {
-    const results: ExtendedNotification[] = [];
+    if (notifs.length === 0) return [];
     
-    for (const notif of notifs) {
-      // Urgent priority bypasses preferences
-      if (notif.priority === 'urgent') {
-        results.push(notif);
-        continue;
-      }
-      
-      const cacheKey = `${uid}-${wsId}-${notif.type}`;
-      
-      // Check cache first
-      if (preferenceCache.current.has(cacheKey)) {
-        if (preferenceCache.current.get(cacheKey)) {
-          results.push(notif);
-        }
-        continue;
-      }
-      
-      // Check preference
+    // Separate urgent notifications (they always pass through)
+    const urgentNotifs = notifs.filter(n => n.priority === 'urgent');
+    const normalNotifs = notifs.filter(n => n.priority !== 'urgent');
+    
+    if (normalNotifs.length === 0) return urgentNotifs;
+    
+    // Get unique preference types that need checking
+    const uncachedTypes: Set<string> = new Set();
+    for (const notif of normalNotifs) {
       const prefType = TYPE_TO_PREFERENCE_TYPE[notif.type] || notif.type;
-      const shouldShow = await shouldNotifyUser(uid, wsId, prefType, 'in_app');
-      
-      // Cache result for 5 minutes (cleared on unmount)
-      preferenceCache.current.set(cacheKey, shouldShow);
-      
-      if (shouldShow) {
-        results.push(notif);
+      const cacheKey = `${uid}-${wsId}-${prefType}`;
+      if (!preferenceCache.current.has(cacheKey)) {
+        uncachedTypes.add(prefType);
       }
     }
     
-    return results;
+    // Check all uncached preferences in parallel (one call per unique type)
+    if (uncachedTypes.size > 0) {
+      const prefChecks = Array.from(uncachedTypes).map(async (prefType) => {
+        try {
+          const shouldShow = await shouldNotifyUser(uid, wsId, prefType, 'in_app');
+          const cacheKey = `${uid}-${wsId}-${prefType}`;
+          preferenceCache.current.set(cacheKey, shouldShow);
+          return { prefType, shouldShow };
+        } catch (err) {
+          // Default to true on error - better to over-notify
+          logger.warn('[useNotifications] Preference check failed for type:', prefType, err);
+          return { prefType, shouldShow: true };
+        }
+      });
+      
+      // Wait for all preference checks with a timeout
+      try {
+        await Promise.race([
+          Promise.all(prefChecks),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Preference check timeout')), 5000))
+        ]);
+      } catch (err) {
+        // On timeout, default uncached types to true
+        logger.warn('[useNotifications] Preference check timed out, defaulting to show');
+        for (const prefType of uncachedTypes) {
+          const cacheKey = `${uid}-${wsId}-${prefType}`;
+          if (!preferenceCache.current.has(cacheKey)) {
+            preferenceCache.current.set(cacheKey, true);
+          }
+        }
+      }
+    }
+    
+    // Filter using cached preferences
+    const filteredNormal = normalNotifs.filter(notif => {
+      const prefType = TYPE_TO_PREFERENCE_TYPE[notif.type] || notif.type;
+      const cacheKey = `${uid}-${wsId}-${prefType}`;
+      return preferenceCache.current.get(cacheKey) !== false;
+    });
+    
+    return [...urgentNotifs, ...filteredNormal];
   };
 
   const fetchUnreadCount = useCallback(async () => {

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useDebouncedValue, useCopyToClipboard } from '../../hooks';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Badge } from '../ui/Badge';
@@ -57,13 +58,12 @@ export const FormsList: React.FC<FormsListProps> = ({
   const [forms, setForms] = useState<ExtendedForm[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'updated' | 'created' | 'name' | 'submissions'>('updated');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [shareModalForm, setShareModalForm] = useState<ExtendedForm | null>(null);
-  const [copiedText, setCopiedText] = useState<string | null>(null);
+  const { copiedText, copy: copyToClipboard } = useCopyToClipboard();
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; formId: string | null; formName: string }>({ isOpen: false, formId: null, formName: '' });
   const [isDeleting, setIsDeleting] = useState(false);
   
@@ -72,31 +72,22 @@ export const FormsList: React.FC<FormsListProps> = ({
   const [totalCount, setTotalCount] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
   
-  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Use shared debounce hook instead of manual implementation
+  const debouncedSearch = useDebouncedValue(searchQuery.trim(), SEARCH_DEBOUNCE_MS);
   
-  // Debounce search query
+  // Track searching state
   useEffect(() => {
-    if (searchDebounceRef.current) {
-      clearTimeout(searchDebounceRef.current);
-    }
-    
-    if (searchQuery.trim()) {
+    if (searchQuery.trim() && searchQuery.trim() !== debouncedSearch) {
       setIsSearching(true);
-      searchDebounceRef.current = setTimeout(() => {
-        setDebouncedSearch(searchQuery.trim());
-        setCurrentPage(1); // Reset to first page on new search
-      }, SEARCH_DEBOUNCE_MS);
     } else {
-      setDebouncedSearch('');
       setIsSearching(false);
     }
-    
-    return () => {
-      if (searchDebounceRef.current) {
-        clearTimeout(searchDebounceRef.current);
-      }
-    };
-  }, [searchQuery]);
+  }, [searchQuery, debouncedSearch]);
+  
+  // Reset page when debounced search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch]);
   
   // Reset page when filters change
   useEffect(() => {
@@ -193,13 +184,7 @@ export const FormsList: React.FC<FormsListProps> = ({
   };
 
   const handleCopyLink = async (text: string, label: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedText(label);
-      setTimeout(() => setCopiedText(null), 2000);
-    } catch (error) {
-      console.error('Failed to copy:', error);
-    }
+    await copyToClipboard(text);
   };
 
   const getFormUrl = (slug: string) => {

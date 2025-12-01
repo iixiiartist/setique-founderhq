@@ -1,4 +1,16 @@
+/**
+ * @deprecated This component is deprecated and will be removed in a future release.
+ * Use NotificationCenter from './components/notifications' instead, which provides:
+ * - Centralized state via NotificationContext (no duplicate subscriptions)
+ * - User preference filtering
+ * - Delivery tracking (delivered/seen/acknowledged)
+ * - Cursor-based pagination with infinite scroll
+ * - Priority levels (urgent bypasses quiet hours)
+ * - action_url support for deep-linking
+ */
+
 import React, { useState, useEffect } from 'react';
+import { formatRelativeTime } from '../../lib/utils/dateUtils';
 import { Bell, X, Check, Trash2, Filter, CheckCheck } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
@@ -24,6 +36,9 @@ interface InAppNotificationsPanelProps {
   onClose: () => void;
 }
 
+/**
+ * @deprecated Use NotificationCenter instead
+ */
 export const InAppNotificationsPanel: React.FC<InAppNotificationsPanelProps> = ({
   isOpen,
   onClose,
@@ -208,20 +223,8 @@ export const InAppNotificationsPanel: React.FC<InAppNotificationsPanelProps> = (
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const formatTimestamp = (timestamp: string): string => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
-  };
+  // Use shared formatRelativeTime from dateUtils as formatTimestamp
+  const formatTimestamp = formatRelativeTime;
 
   if (!isOpen) return null;
 

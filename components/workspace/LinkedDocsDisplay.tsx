@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useDeleteConfirm } from '../../hooks';
 import { GTMDocMetadata, LinkedDoc } from '../../types';
 import { DOC_TYPE_ICONS, DOC_TYPE_LABELS } from '../../constants';
 import { DatabaseService } from '../../lib/services/database';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 
 interface LinkedDocsDisplayProps {
     entityType: 'task' | 'event' | 'crm' | 'chat' | 'contact';
@@ -20,6 +22,7 @@ export const LinkedDocsDisplay: React.FC<LinkedDocsDisplayProps> = ({
 }) => {
     const [linkedDocs, setLinkedDocs] = useState<LinkedDoc[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const deleteConfirm = useDeleteConfirm();
 
     useEffect(() => {
         loadLinkedDocs();
@@ -49,23 +52,23 @@ export const LinkedDocsDisplay: React.FC<LinkedDocsDisplayProps> = ({
     };
 
     const handleUnlink = async (linkId: string) => {
-        if (!window.confirm('Remove this document link?')) return;
+        deleteConfirm.requestConfirm(linkId, 'document link', async () => {
+            try {
+                const { error } = await DatabaseService.unlinkDocFromEntity(linkId);
 
-        try {
-            const { error } = await DatabaseService.unlinkDocFromEntity(linkId);
+                if (error) {
+                    console.error('Error unlinking doc:', error);
+                    alert('Failed to unlink document');
+                    return;
+                }
 
-            if (error) {
-                console.error('Error unlinking doc:', error);
+                // Refresh the list
+                await loadLinkedDocs();
+            } catch (error) {
+                console.error('Failed to unlink doc:', error);
                 alert('Failed to unlink document');
-                return;
             }
-
-            // Refresh the list
-            await loadLinkedDocs();
-        } catch (error) {
-            console.error('Failed to unlink doc:', error);
-            alert('Failed to unlink document');
-        }
+        });
     };
 
     if (isLoading) {
@@ -137,6 +140,19 @@ export const LinkedDocsDisplay: React.FC<LinkedDocsDisplayProps> = ({
                     ))}
                 </div>
             )}
+
+            {/* Unlink Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={deleteConfirm.isOpen}
+                onClose={deleteConfirm.cancel}
+                onConfirm={deleteConfirm.confirm}
+                title={deleteConfirm.title}
+                message={deleteConfirm.message}
+                confirmLabel={deleteConfirm.confirmLabel}
+                cancelLabel={deleteConfirm.cancelLabel}
+                variant={deleteConfirm.variant}
+                isLoading={deleteConfirm.isProcessing}
+            />
         </div>
     );
 };

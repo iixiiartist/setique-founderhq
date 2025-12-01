@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { AnyCrmItem, AppActions, CrmCollectionName, Investor, Customer, Partner, Priority } from '../../types';
 import Modal from './Modal';
+import { useModal, useBulkSelection } from '../../hooks';
+import { toCSV, downloadCSV, createCSVFilename } from '../../lib/utils/csvUtils';
 
 interface AccountManagerProps {
     crmItems: AnyCrmItem[];
@@ -49,11 +51,11 @@ export function AccountManager({
     workspaceId,
     onViewAccount
 }: AccountManagerProps) {
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [showImportModal, setShowImportModal] = useState(false);
-    const [showTagModal, setShowTagModal] = useState(false);
-    const [selectedItem, setSelectedItem] = useState<AnyCrmItem | null>(null);
+    // Modal state using shared hook
+    const addModal = useModal();
+    const editModal = useModal<AnyCrmItem>();
+    const importModal = useModal();
+    const tagModal = useModal<AnyCrmItem>();
     const [searchQuery, setSearchQuery] = useState('');
     const [filterByStatus, setFilterByStatus] = useState<string>('');
     const [filterByPriority, setFilterByPriority] = useState<string>('');
@@ -62,14 +64,14 @@ export function AccountManager({
     const [importProgress, setImportProgress] = useState(0);
     const [importResult, setImportResult] = useState<CSVImportResult | null>(null);
     const [newTag, setNewTag] = useState('');
-    const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+    const duplicateModal = useModal();
     const [duplicateGroups, setDuplicateGroups] = useState<AnyCrmItem[][]>([]);
     const [selectedDuplicateGroup, setSelectedDuplicateGroup] = useState<AnyCrmItem[] | null>(null);
     const [primaryItem, setPrimaryItem] = useState<AnyCrmItem | null>(null);
-    const [bulkSelectMode, setBulkSelectMode] = useState(false);
-    const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
-    const [showBulkActionsModal, setShowBulkActionsModal] = useState(false);
-    const [bulkAction, setBulkAction] = useState<'tag' | 'delete' | 'export' | null>(null);
+    
+    // Bulk selection using shared hook
+    const bulkSelection = useBulkSelection<string>();
+    const bulkActionsModal = useModal<'tag' | 'delete' | 'export'>();
     const [bulkTagToAdd, setBulkTagToAdd] = useState('');
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
     const [filterByContactCount, setFilterByContactCount] = useState<'any' | 'none' | 'has'>('any');
@@ -270,7 +272,7 @@ export function AccountManager({
             
             // Reset form
             setFormData(resetFormData());
-            setShowAddModal(false);
+            addModal.close();
         } catch (error) {
             console.error('Error creating account:', error);
             alert('Failed to create account. Please try again.');
@@ -280,7 +282,7 @@ export function AccountManager({
     const handleEditAccount = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        if (!selectedItem) return;
+        if (!editModal.data) return;
 
         try {
             const updates: any = {
@@ -309,10 +311,9 @@ export function AccountManager({
             }
 
             console.log('[AccountManager] Updating account with data:', updates);
-            await actions.updateCrmItem(crmCollection, selectedItem.id, updates);
+            await actions.updateCrmItem(crmCollection, editModal.data.id, updates);
             
-            setShowEditModal(false);
-            setSelectedItem(null);
+            editModal.close();
             setFormData(resetFormData());
         } catch (error) {
             console.error('Error updating account:', error);
@@ -332,7 +333,6 @@ export function AccountManager({
     };
 
     const openEditModal = (item: AnyCrmItem) => {
-        setSelectedItem(item);
         const formUpdate: AccountFormData = {
             company: item.company,
             priority: item.priority,
@@ -360,7 +360,7 @@ export function AccountManager({
         }
 
         setFormData(formUpdate);
-        setShowEditModal(true);
+        editModal.openWith(item);
     };
 
     const resetFormData = () => ({
@@ -376,52 +376,44 @@ export function AccountManager({
     });
 
     const closeAddModal = () => {
-        setShowAddModal(false);
+        addModal.close();
         setFormData(resetFormData());
     };
 
     const closeEditModal = () => {
-        setShowEditModal(false);
-        setSelectedItem(null);
+        editModal.close();
         setFormData(resetFormData());
     };
 
-    // CSV Export
+    // CSV Export using shared utility
     const exportAccountsToCSV = () => {
         if (filteredItems.length === 0) {
             alert('No accounts to export');
             return;
         }
 
-        // CSV headers
-        const headers = ['company', 'status', 'priority', 'contacts', 'next_action', 'next_action_date'];
-        const csvRows = [headers.join(',')];
+        const csvData = filteredItems.map(item => ({
+            company: item.company,
+            status: item.status,
+            priority: item.priority,
+            contacts: (item.contacts || []).map(c => c.name).join('; '),
+            next_action: item.nextAction || '',
+            next_action_date: item.nextActionDate || ''
+        }));
 
-        // Add data rows
-        filteredItems.forEach(item => {
-            const contactNames = (item.contacts || []).map(c => c.name).join('; ');
-            const row = [
-                `"${item.company.replace(/"/g, '""')}"`,
-                `"${item.status.replace(/"/g, '""')}"`,
-                item.priority,
-                `"${contactNames.replace(/"/g, '""')}"`,
-                `"${(item.nextAction || '').replace(/"/g, '""')}"`,
-                item.nextActionDate || ''
-            ];
-            csvRows.push(row.join(','));
+        const csv = toCSV(csvData, {
+            fields: ['company', 'status', 'priority', 'contacts', 'next_action', 'next_action_date'],
+            headerNames: {
+                company: 'Company',
+                status: 'Status', 
+                priority: 'Priority',
+                contacts: 'Contacts',
+                next_action: 'Next Action',
+                next_action_date: 'Next Action Date'
+            }
         });
 
-        const csvContent = csvRows.join('\n');
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        const today = new Date().toISOString().split('T')[0];
-        a.download = `${crmType}_export_${today}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
+        downloadCSV(csv, createCSVFilename(crmType));
     };
 
     // Duplicate Detection
@@ -468,50 +460,25 @@ export function AccountManager({
         });
 
         setDuplicateGroups(groups);
-        setShowDuplicateModal(true);
+        duplicateModal.open();
     };
 
-    // Bulk Operations
-    const toggleBulkSelect = () => {
-        setBulkSelectMode(!bulkSelectMode);
-        setSelectedItemIds(new Set());
-    };
-
-    const toggleItemSelection = (itemId: string) => {
-        const newSet = new Set(selectedItemIds);
-        if (newSet.has(itemId)) {
-            newSet.delete(itemId);
-        } else {
-            newSet.add(itemId);
-        }
-        setSelectedItemIds(newSet);
-    };
-
-    const selectAllFiltered = () => {
-        const allIds = new Set(filteredItems.map(i => i.id));
-        setSelectedItemIds(allIds);
-    };
-
-    const deselectAll = () => {
-        setSelectedItemIds(new Set());
-    };
-
+    // Bulk Operations - using shared hook
     const handleBulkAction = (action: 'tag' | 'delete' | 'export') => {
-        if (selectedItemIds.size === 0) {
+        if (bulkSelection.selectedCount === 0) {
             alert('Please select at least one account');
             return;
         }
-        setBulkAction(action);
-        setShowBulkActionsModal(true);
+        bulkActionsModal.openWith(action);
     };
 
     const executeBulkDelete = async () => {
-        if (!confirm(`Are you sure you want to delete ${selectedItemIds.size} account(s)? This cannot be undone.`)) {
+        if (!confirm(`Are you sure you want to delete ${bulkSelection.selectedCount} account(s)? This cannot be undone.`)) {
             return;
         }
 
         try {
-            const selectedItems = crmItems.filter(i => selectedItemIds.has(i.id));
+            const selectedItems = crmItems.filter(i => bulkSelection.isSelected(i.id));
             let successCount = 0;
 
             for (const item of selectedItems) {
@@ -521,9 +488,8 @@ export function AccountManager({
             }
 
             alert(`Successfully deleted ${successCount} account(s)`);
-            setShowBulkActionsModal(false);
-            setBulkSelectMode(false);
-            setSelectedItemIds(new Set());
+            bulkActionsModal.close();
+            bulkSelection.disableSelectionMode();
         } catch (error) {
             console.error('Error bulk deleting:', error);
             alert('Failed to delete some accounts');
@@ -531,46 +497,39 @@ export function AccountManager({
     };
 
     const executeBulkExport = () => {
-        const selectedItems = crmItems.filter(i => selectedItemIds.has(i.id));
+        const selectedItems = crmItems.filter(i => bulkSelection.isSelected(i.id));
         
         if (selectedItems.length === 0) {
             alert('No accounts selected for export');
             return;
         }
 
-        // Similar to exportAccountsToCSV but only for selected items
-        const headers = ['company', 'status', 'priority', 'contacts', 'next_action', 'next_action_date'];
-        const csvRows = [headers.join(',')];
+        const csvData = selectedItems.map(item => ({
+            company: item.company,
+            status: item.status,
+            priority: item.priority,
+            contacts: (item.contacts || []).map(c => c.name).join('; '),
+            next_action: item.nextAction || '',
+            next_action_date: item.nextActionDate || ''
+        }));
 
-        selectedItems.forEach(item => {
-            const contactNames = (item.contacts || []).map(c => c.name).join('; ');
-            const row = [
-                `"${item.company.replace(/"/g, '""')}"`,
-                `"${item.status.replace(/"/g, '""')}"`,
-                item.priority,
-                `"${contactNames.replace(/"/g, '""')}"`,
-                `"${(item.nextAction || '').replace(/"/g, '""')}"`,
-                item.nextActionDate || ''
-            ];
-            csvRows.push(row.join(','));
+        const csv = toCSV(csvData, {
+            fields: ['company', 'status', 'priority', 'contacts', 'next_action', 'next_action_date'],
+            headerNames: {
+                company: 'Company',
+                status: 'Status',
+                priority: 'Priority', 
+                contacts: 'Contacts',
+                next_action: 'Next Action',
+                next_action_date: 'Next Action Date'
+            }
         });
 
-        const csvContent = csvRows.join('\n');
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        const today = new Date().toISOString().split('T')[0];
-        a.download = `bulk_${crmType}_export_${today}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
+        downloadCSV(csv, createCSVFilename(`bulk_${crmType}`));
 
         alert(`Successfully exported ${selectedItems.length} account(s)`);
-        setShowBulkActionsModal(false);
-        setBulkSelectMode(false);
-        setSelectedItemIds(new Set());
+        bulkActionsModal.close();
+        bulkSelection.disableSelectionMode();
     };
 
     return (
@@ -609,13 +568,13 @@ export function AccountManager({
                             </svg>
                         </button>
                         <button
-                            onClick={toggleBulkSelect}
+                            onClick={bulkSelection.toggleSelectionMode}
                             className={`p-2 rounded-md transition-colors ${
-                                bulkSelectMode
+                                bulkSelection.isSelectionMode
                                     ? 'text-black bg-gray-200'
                                     : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
                             }`}
-                            title={bulkSelectMode ? 'Exit Bulk Select' : 'Bulk Select'}
+                            title={bulkSelection.isSelectionMode ? 'Exit Bulk Select' : 'Bulk Select'}
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
@@ -624,7 +583,7 @@ export function AccountManager({
                     </div>
                     {/* Primary action */}
                     <button
-                        onClick={() => setShowAddModal(true)}
+                        onClick={addModal.open}
                         className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-800 transition-colors"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -636,21 +595,21 @@ export function AccountManager({
             </div>
 
             {/* Bulk Actions Bar */}
-            {bulkSelectMode && (
+            {bulkSelection.isSelectionMode && (
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <span className="text-sm font-medium text-gray-700">
-                            {selectedItemIds.size} selected
+                            {bulkSelection.selectedCount} selected
                         </span>
                         <button
-                            onClick={selectAllFiltered}
+                            onClick={() => bulkSelection.selectAll(filteredItems.map(i => i.id))}
                             className="text-sm text-gray-600 hover:text-black hover:underline"
                         >
                             Select all {filteredItems.length}
                         </button>
-                        {selectedItemIds.size > 0 && (
+                        {bulkSelection.selectedCount > 0 && (
                             <button
-                                onClick={deselectAll}
+                                onClick={bulkSelection.clearSelection}
                                 className="text-sm text-gray-500 hover:text-gray-700 hover:underline"
                             >
                                 Clear
@@ -660,14 +619,14 @@ export function AccountManager({
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => handleBulkAction('export')}
-                            disabled={selectedItemIds.size === 0}
+                            disabled={bulkSelection.selectedCount === 0}
                             className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Export
                         </button>
                         <button
                             onClick={() => handleBulkAction('delete')}
-                            disabled={selectedItemIds.size === 0}
+                            disabled={bulkSelection.selectedCount === 0}
                             className="px-3 py-1.5 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-md hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Delete
@@ -916,7 +875,7 @@ export function AccountManager({
                         </div>
                         <p className="text-gray-500 mb-3">No {crmType === 'accounts' ? 'accounts' : crmType} found</p>
                         <button
-                            onClick={() => setShowAddModal(true)}
+                            onClick={addModal.open}
                             className="text-sm font-medium text-black hover:underline"
                         >
                             Add your first {crmType === 'accounts' ? 'account' : crmType.slice(0, -1)}
@@ -924,7 +883,7 @@ export function AccountManager({
                     </div>
                 ) : (
                     filteredItems.map(item => {
-                        const isSelected = selectedItemIds.has(item.id);
+                        const isSelected = bulkSelection.isSelected(item.id);
                         const todayStr = new Date().toISOString().split('T')[0];
                         const isOverdue = item.nextActionDate && item.nextActionDate < todayStr;
                         const lastNote = item.notes && item.notes.length > 0 
@@ -946,7 +905,7 @@ export function AccountManager({
                                 }`}
                             >
                                 <div className="flex items-start justify-between gap-4">
-                                    {bulkSelectMode && (
+                                    {bulkSelection.isSelectionMode && (
                                         <div className="flex-shrink-0 pt-1">
                                             <label htmlFor={`bulk-select-${item.id}`} className="sr-only">
                                                 Select {item.company}
@@ -956,7 +915,7 @@ export function AccountManager({
                                                 name={`bulk-select-${item.id}`}
                                                 type="checkbox"
                                                 checked={isSelected}
-                                                onChange={() => toggleItemSelection(item.id)}
+                                                onChange={() => bulkSelection.toggleItem(item.id)}
                                                 className="w-4 h-4 cursor-pointer accent-black rounded"
                                             />
                                         </div>
@@ -1106,7 +1065,7 @@ export function AccountManager({
 
             {/* Add Modal */}
             <Modal
-                isOpen={showAddModal}
+                isOpen={addModal.isOpen}
                 onClose={closeAddModal}
                 title={`Add New ${getCrmTypeLabel()}`}
             >
@@ -1389,7 +1348,7 @@ export function AccountManager({
 
             {/* Edit Modal - similar structure to Add Modal */}
             <Modal
-                isOpen={showEditModal}
+                isOpen={editModal.isOpen}
                 onClose={closeEditModal}
                 title={`Edit ${getCrmTypeLabel()}`}
             >
@@ -1673,18 +1632,15 @@ export function AccountManager({
 
             {/* Bulk Actions Modal */}
             <Modal
-                isOpen={showBulkActionsModal}
-                onClose={() => {
-                    setShowBulkActionsModal(false);
-                    setBulkAction(null);
-                }}
-                title={`Bulk ${bulkAction === 'delete' ? 'Delete' : 'Export'}`}
+                isOpen={bulkActionsModal.isOpen}
+                onClose={bulkActionsModal.close}
+                title={`Bulk ${bulkActionsModal.data === 'delete' ? 'Delete' : 'Export'}`}
             >
                 <div className="space-y-4">
-                    {bulkAction === 'delete' && (
+                    {bulkActionsModal.data === 'delete' && (
                         <div>
                             <p className="text-sm text-gray-600 mb-4">
-                                Are you sure you want to delete {selectedItemIds.size} account(s)? This action cannot be undone and will also delete all associated contacts, tasks, and data.
+                                Are you sure you want to delete {bulkSelection.selectedCount} account(s)? This action cannot be undone and will also delete all associated contacts, tasks, and data.
                             </p>
                             <div className="flex gap-2">
                                 <button
@@ -1694,7 +1650,7 @@ export function AccountManager({
                                     Confirm Delete
                                 </button>
                                 <button
-                                    onClick={() => setShowBulkActionsModal(false)}
+                                    onClick={bulkActionsModal.close}
                                     className="flex-1 font-mono bg-gray-200 text-black border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-gray-300 transition-all"
                                 >
                                     Cancel
@@ -1703,10 +1659,10 @@ export function AccountManager({
                         </div>
                     )}
 
-                    {bulkAction === 'export' && (
+                    {bulkActionsModal.data === 'export' && (
                         <div>
                             <p className="text-sm text-gray-600 mb-4">
-                                Export {selectedItemIds.size} selected account(s) to CSV file.
+                                Export {bulkSelection.selectedCount} selected account(s) to CSV file.
                             </p>
                             <div className="flex gap-2">
                                 <button
@@ -1716,7 +1672,7 @@ export function AccountManager({
                                     Export to CSV
                                 </button>
                                 <button
-                                    onClick={() => setShowBulkActionsModal(false)}
+                                    onClick={bulkActionsModal.close}
                                     className="flex-1 font-mono bg-gray-200 text-black border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-gray-300 transition-all"
                                 >
                                     Cancel
@@ -1729,9 +1685,9 @@ export function AccountManager({
 
             {/* Duplicate Detection Modal */}
             <Modal
-                isOpen={showDuplicateModal}
+                isOpen={duplicateModal.isOpen}
                 onClose={() => {
-                    setShowDuplicateModal(false);
+                    duplicateModal.close();
                     setDuplicateGroups([]);
                 }}
                 title="Duplicate Accounts Detected"
@@ -1764,7 +1720,7 @@ export function AccountManager({
                                 ))}
                             </div>
                             <button
-                                onClick={() => setShowDuplicateModal(false)}
+                                onClick={duplicateModal.close}
                                 className="w-full mt-4 font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800"
                             >
                                 Close

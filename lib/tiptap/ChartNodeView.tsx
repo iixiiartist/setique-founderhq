@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { NodeViewWrapper, NodeViewProps } from '@tiptap/react';
+import { useDeleteConfirm } from '../../hooks/useConfirmAction';
+import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell
@@ -13,6 +15,7 @@ const ChartNodeView: React.FC<NodeViewProps> = ({
 }) => {
   const { chartType, title, data, dataKeys, xAxisKey, colors, width, height, showLegend, showGrid } = node.attrs;
   const [isEditing, setIsEditing] = useState(false);
+  const deleteConfirm = useDeleteConfirm<void>('chart');
   
   const renderChart = () => {
     const commonProps = {
@@ -123,9 +126,9 @@ const ChartNodeView: React.FC<NodeViewProps> = ({
             </button>
             <button 
               onClick={() => {
-                if (confirm('Delete this chart?')) {
+                deleteConfirm.requestConfirm(undefined, () => {
                   deleteNode();
-                }
+                });
               }}
               className="px-3 py-1 bg-red-500 text-white text-xs border-2 border-black hover:bg-red-600"
               title="Delete chart"
@@ -153,6 +156,19 @@ const ChartNodeView: React.FC<NodeViewProps> = ({
             </div>
           </div>
         )}
+
+        {/* Delete Confirmation Dialog */}
+        <ConfirmDialog
+          isOpen={deleteConfirm.isOpen}
+          onClose={deleteConfirm.cancel}
+          onConfirm={deleteConfirm.confirm}
+          title={deleteConfirm.title}
+          message={deleteConfirm.message}
+          confirmLabel={deleteConfirm.confirmLabel}
+          cancelLabel={deleteConfirm.cancelLabel}
+          variant={deleteConfirm.variant}
+          isLoading={deleteConfirm.isProcessing}
+        />
       </div>
     </NodeViewWrapper>
   );

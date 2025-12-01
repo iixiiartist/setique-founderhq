@@ -17,6 +17,12 @@ import { showSuccess, showError } from '../../lib/utils/toast';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { GTM_TEMPLATES, DocumentTemplate } from '../../lib/templates/gtmTemplates';
+import { 
+  SIMPLE_FONT_FAMILIES, 
+  TEXT_COLORS, 
+  HIGHLIGHT_COLORS, 
+  LINE_SPACING_OPTIONS 
+} from '../../lib/editor/constants';
 
 // Rich text editor imports
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -87,7 +93,7 @@ interface AIAction {
   action: 'draft' | 'improve' | 'shorten' | 'expand' | 'formal' | 'friendly' | 'research' | 'suggest';
 }
 
-// Font sizes for the dropdown
+// Font sizes for the dropdown (kept local as it's email-specific)
 const FONT_SIZES = [
   { label: 'Small', value: '12px' },
   { label: 'Normal', value: '14px' },
@@ -95,50 +101,6 @@ const FONT_SIZES = [
   { label: 'Large', value: '18px' },
   { label: 'X-Large', value: '24px' },
   { label: 'XX-Large', value: '32px' },
-];
-
-// Text colors
-const TEXT_COLORS = [
-  { label: 'Default', value: '#000000' },
-  { label: 'Gray', value: '#6B7280' },
-  { label: 'Red', value: '#DC2626' },
-  { label: 'Orange', value: '#EA580C' },
-  { label: 'Yellow', value: '#CA8A04' },
-  { label: 'Green', value: '#16A34A' },
-  { label: 'Blue', value: '#2563EB' },
-  { label: 'Purple', value: '#9333EA' },
-  { label: 'Pink', value: '#DB2777' },
-];
-
-// Highlight colors
-const HIGHLIGHT_COLORS = [
-  { label: 'None', value: '' },
-  { label: 'Yellow', value: '#FEF08A' },
-  { label: 'Green', value: '#BBF7D0' },
-  { label: 'Blue', value: '#BFDBFE' },
-  { label: 'Purple', value: '#DDD6FE' },
-  { label: 'Pink', value: '#FBCFE8' },
-  { label: 'Orange', value: '#FED7AA' },
-];
-
-// Font family options
-const FONT_FAMILIES = [
-  { id: 'system', label: 'System Default', stack: 'ui-sans-serif, system-ui, sans-serif' },
-  { id: 'inter', label: 'Inter', stack: 'Inter, ui-sans-serif, system-ui, sans-serif' },
-  { id: 'roboto', label: 'Roboto', stack: 'Roboto, ui-sans-serif, system-ui, sans-serif' },
-  { id: 'georgia', label: 'Georgia', stack: 'Georgia, ui-serif, serif' },
-  { id: 'times', label: 'Times New Roman', stack: '"Times New Roman", Times, serif' },
-  { id: 'arial', label: 'Arial', stack: 'Arial, Helvetica, sans-serif' },
-  { id: 'courier', label: 'Courier New', stack: '"Courier New", Courier, monospace' },
-  { id: 'verdana', label: 'Verdana', stack: 'Verdana, Geneva, sans-serif' },
-];
-
-// Line spacing options
-const LINE_SPACING_OPTIONS = [
-  { label: 'Single', value: 1.0 },
-  { label: '1.15', value: 1.15 },
-  { label: '1.5', value: 1.5 },
-  { label: 'Double', value: 2.0 },
 ];
 
 // Email templates for quick access
@@ -1054,19 +1016,19 @@ Format as a bulleted list. Consider: goals, objections to address, questions to 
           <select
             className="h-7 px-2 text-sm bg-transparent hover:bg-gray-200 rounded border-none focus:ring-0 cursor-pointer text-gray-700 w-28"
             onChange={(e) => {
-              const family = FONT_FAMILIES.find(f => f.id === e.target.value);
+              const family = SIMPLE_FONT_FAMILIES.find(f => f.id === e.target.value);
               if (family) {
                 if (family.id === 'system') {
                   editor?.chain().focus().unsetFontFamily().run();
                 } else {
-                  editor?.chain().focus().setFontFamily(family.stack).run();
+                  editor?.chain().focus().setFontFamily(family.value).run();
                 }
               }
             }}
-            value={FONT_FAMILIES.find(f => editor?.isActive('textStyle', { fontFamily: f.stack }))?.id || 'system'}
+            value={SIMPLE_FONT_FAMILIES.find(f => editor?.isActive('textStyle', { fontFamily: f.value }))?.id || 'system'}
           >
-            {FONT_FAMILIES.map(family => (
-              <option key={family.id} value={family.id}>{family.label}</option>
+            {SIMPLE_FONT_FAMILIES.map(family => (
+              <option key={family.id} value={family.id}>{family.name}</option>
             ))}
           </select>
         </div>
@@ -1189,7 +1151,7 @@ Format as a bulleted list. Consider: goals, objections to address, questions to 
                     }}
                     className="w-7 h-7 rounded border border-gray-200 hover:scale-110 transition-transform"
                     style={{ backgroundColor: color.value }}
-                    title={color.label}
+                    title={color.name}
                   />
                 ))}
               </div>
@@ -1235,7 +1197,7 @@ Format as a bulleted list. Consider: goals, objections to address, questions to 
                     }}
                     className="w-7 h-7 rounded border border-gray-200 hover:scale-110 transition-transform"
                     style={{ backgroundColor: color.value }}
-                    title={color.label}
+                    title={color.name}
                   />
                 ))}
                 <button

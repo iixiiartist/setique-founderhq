@@ -11,8 +11,10 @@ import { setUser as setSentryUser, setWorkspaceContext, trackAction } from './li
 import { useAnalytics } from './hooks/useAnalytics';
 import { notifyTaskReassigned, notifyDeadlineChanged } from './lib/services/taskReminderService';
 import { notifyDealWon, notifyDealLost, notifyDealStageChanged, notifyDealReassigned } from './lib/services/dealNotificationService';
-import InAppNotificationsPanel from './components/shared/InAppNotificationsPanel';
+// Legacy panel - deprecated, use NotificationCenter instead
+// import InAppNotificationsPanel from './components/shared/InAppNotificationsPanel';
 import { NotificationCenter, NotificationSettings } from './components/notifications';
+import { NotificationProvider } from './contexts/NotificationContext';
 
 // Lazy load heavy tab components for code splitting
 // This reduces initial bundle size and improves first load performance
@@ -30,7 +32,7 @@ const TasksTab = lazy(() => import('./components/TasksTab'));
 const WorkspaceTab = lazy(() => import('./components/workspace/WorkspaceTab'));
 const AgentsTab = lazy(() => import('./components/agents/AgentsTab')); // AI Agents
 const HuddleTab = lazy(() => import('./components/huddle/HuddleTab')); // Team chat with AI
-import { BusinessProfileSetup } from './components/BusinessProfileSetup';
+import { BusinessProfileSetupRefactored as BusinessProfileSetup } from './components/business-profile';
 import { AcceptInviteNotification } from './components/shared/AcceptInviteNotification';
 import { NotificationBell } from './components/shared/NotificationBell';
 import { FloatingAIAssistant } from './components/assistant/FloatingAIAssistant';
@@ -2816,7 +2818,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
             {/* Show dashboard only when workspace exists */}
             {!isLoadingWorkspace && workspace && (
-                <>
+                <NotificationProvider>
             {/* Skip to content link for accessibility */}
             <a href="#main-content" className="skip-to-content">
                 Skip to main content
@@ -2860,12 +2862,10 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         )}
                     </div>
                     <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-end">
-                        {/* Notification Bell */}
+                        {/* Notification Bell - uses NotificationContext */}
                         {user && workspace && (
                             <>
                                 <NotificationBell 
-                                    userId={user.id}
-                                    workspaceId={workspace.id}
                                     onNotificationClick={() => setIsNotificationsPanelOpen(true)}
                                 />
                                 <NotificationCenter
@@ -2975,12 +2975,10 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
 
             {/* Workspace Invitation Notifications */}
             <AcceptInviteNotification onAccepted={refreshWorkspace} />
-                </>
-            )}
 
             {/* Floating AI Assistant - Available across all tabs when workspace exists */}
             {/* Temporarily disabled plan check for local development */}
-            {workspace && (() => {
+            {(() => {
                 // Build business context from profile
                 const profile = businessProfile as any;
                 const companyName = profile?.company_name || profile?.companyName || 'your company';
@@ -3077,6 +3075,8 @@ ${workspaceMembers.map(member => `- ${member.fullName || member.email || 'Unknow
                     />
                 );
             })()}
+        </NotificationProvider>
+            )}
         </>
     );
 };

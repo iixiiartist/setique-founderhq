@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useDeleteConfirm } from '../../hooks';
+import { formatRelativeTime } from '../../lib/utils/dateUtils';
 import { MentionInput } from './MentionInput';
+import { ConfirmDialog } from './ConfirmDialog';
 import { MessageSquare, Edit2, Trash2, Send } from 'lucide-react';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 
@@ -54,6 +57,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
   const [editingContent, setEditingContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { isWorkspaceOwner } = useWorkspace();
+  const deleteConfirm = useDeleteConfirm();
 
   const handleSubmitComment = async () => {
     if (!newComment.trim() || submitting) return;
@@ -95,21 +99,21 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
   };
 
   const handleDeleteComment = async (commentId: string) => {
-    if (!confirm('Are you sure you want to delete this comment?')) return;
+    deleteConfirm.requestConfirm(commentId, 'comment', async () => {
+      setSubmitting(true);
+      const result = await onDeleteComment(commentId);
 
-    setSubmitting(true);
-    const result = await onDeleteComment(commentId);
-
-    if (result.error) {
-      console.error(`[CommentsSection] Failed to delete comment:`, result.error);
-      alert('Failed to delete comment. Please try again.');
-    } else {
-      if (onRefresh) {
-        await onRefresh();
+      if (result.error) {
+        console.error(`[CommentsSection] Failed to delete comment:`, result.error);
+        alert('Failed to delete comment. Please try again.');
+      } else {
+        if (onRefresh) {
+          await onRefresh();
+        }
       }
-    }
 
-    setSubmitting(false);
+      setSubmitting(false);
+    });
   };
 
   const startEditing = (comment: Comment) => {
@@ -122,22 +126,8 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
     setEditingContent('');
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    if (diffInSeconds < 60) return 'Just now';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-    
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric',
-      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-    });
-  };
+  // Use shared formatRelativeTime from dateUtils
+  const formatDate = formatRelativeTime;
 
   // Can user edit/delete? Author or workspace owner
   const canModifyComment = (comment: Comment) => {
@@ -262,6 +252,17 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
           {submitting ? 'Posting...' : 'Post Comment'}
         </button>
       </div>
+
+      {/* Delete confirmation dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirm.isConfirming}
+        onClose={deleteConfirm.cancel}
+        onConfirm={deleteConfirm.confirm}
+        title="Delete Comment"
+        message="Are you sure you want to delete this comment? This action cannot be undone."
+        confirmText="Delete"
+        variant="danger"
+      />
     </div>
   );
 };

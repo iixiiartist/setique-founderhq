@@ -4,9 +4,11 @@
  */
 
 import React, { useCallback, useMemo, useState } from 'react';
+import { useDeleteConfirm } from '../../hooks';
 import { Task, AppActions, TaskCollectionName, TaskStatus, Priority } from '../../types';
 import { TASK_TAG_BG_COLORS } from '../../constants';
 import { Trash2, MessageSquare, Share2 } from 'lucide-react';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 
 interface TaskItemProps {
     task: Task;
@@ -63,6 +65,7 @@ export function TaskItem({
     const [isEditing, setIsEditing] = useState(false);
     const [draftTitle, setDraftTitle] = useState(task.text || '');
     const [isSaving, setIsSaving] = useState(false);
+    const deleteConfirm = useDeleteConfirm<Task>('task');
 
     const isDirty = useMemo(() => draftTitle.trim() !== (task.text || '').trim(), [draftTitle, task.text]);
 
@@ -340,11 +343,11 @@ export function TaskItem({
                             )}
                             <button
                                 type="button"
-                                onClick={async (e) => {
+                                onClick={(e) => {
                                     e.stopPropagation();
-                                    if (confirm('Are you sure you want to delete this task?')) {
+                                    deleteConfirm.requestConfirm(task, async () => {
                                         await actions.deleteTask(task.id);
-                                    }
+                                    });
                                 }}
                                 data-testid="task-delete-button"
                                 className="px-2 py-1 border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-400"
@@ -356,6 +359,17 @@ export function TaskItem({
                     </div>
                 </div>
             </div>
+
+            {/* Delete confirmation dialog */}
+            <ConfirmDialog
+                isOpen={deleteConfirm.isOpen}
+                onClose={deleteConfirm.cancel}
+                onConfirm={deleteConfirm.handleConfirm}
+                title="Delete Task"
+                message={`Are you sure you want to delete "${task.text}"? This action cannot be undone.`}
+                confirmText="Delete"
+                variant="danger"
+            />
         </div>
     );
 }

@@ -1,11 +1,13 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Task, AppActions, Priority, TaskCollectionName, NoteableCollectionName, Subtask } from '../../types';
 import Modal from './Modal';
+import { ConfirmDialog } from './ConfirmDialog';
 import NotesManager from './NotesManager';
 import { TaskComments } from './TaskComments';
 import { TASK_TAG_BG_COLORS } from '../../constants';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDeleteConfirm } from '../../hooks';
 import { DocLibraryPicker } from '../workspace/DocLibraryPicker';
 import { LinkedDocsDisplay } from '../workspace/LinkedDocsDisplay';
 import { SubtaskManager } from './SubtaskManager';
@@ -24,6 +26,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, actions, onEdit, taskCollecti
     const editButtonRef = useRef<HTMLButtonElement>(null);
     const tagColorClass = TASK_TAG_BG_COLORS[tag];
     const { canEditTask, canCompleteTask } = useWorkspace();
+    const deleteConfirm = useDeleteConfirm<Task>('task');
     
     const canEdit = !task.userId || canEditTask(task.userId, task.assignedTo);
     const canComplete = canCompleteTask(task.assignedTo);
@@ -93,9 +96,9 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, actions, onEdit, taskCollecti
                                     alert('You do not have permission to delete this task');
                                     return;
                                 }
-                                if (window.confirm('Delete this task?')) {
-                                    actions.deleteItem(taskCollection, task.id);
-                                }
+                                deleteConfirm.requestConfirm(task, async (t) => {
+                                    actions.deleteItem(taskCollection, t.id);
+                                });
                             }}
                             disabled={!canEdit}
                             className="text-xl font-bold hover:text-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -103,6 +106,19 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, actions, onEdit, taskCollecti
                     </div>
                 </div>
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={deleteConfirm.isOpen}
+                onClose={deleteConfirm.cancel}
+                onConfirm={deleteConfirm.confirm}
+                title={deleteConfirm.title}
+                message={deleteConfirm.message}
+                confirmLabel={deleteConfirm.confirmLabel}
+                cancelLabel={deleteConfirm.cancelLabel}
+                variant={deleteConfirm.variant}
+                isLoading={deleteConfirm.isProcessing}
+            />
         </li>
     );
 };

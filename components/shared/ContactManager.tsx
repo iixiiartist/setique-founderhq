@@ -6,6 +6,9 @@ import {
 } from 'lucide-react';
 import { Contact, AnyCrmItem, AppActions, CrmCollectionName } from '../../types';
 import Modal from './Modal';
+import { ConfirmDialog } from './ConfirmDialog';
+import { useModal, useBulkSelection, useDeleteConfirm, useBulkDeleteConfirm } from '../../hooks';
+import { parseCSV, toCSV, downloadCSV, createCSVFilename, processCSVImport } from '../../lib/utils/csvUtils';
 
 interface ContactManagerProps {
     contacts: Contact[];
@@ -40,11 +43,22 @@ export function ContactManager({
     workspaceId,
     onViewContact
 }: ContactManagerProps) {
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [showImportModal, setShowImportModal] = useState(false);
-    const [showTagModal, setShowTagModal] = useState(false);
-    const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+    // Modal state using shared hooks
+    const addModal = useModal();
+    const editModal = useModal<Contact>();
+    const importModal = useModal();
+    const tagModal = useModal<Contact>();
+    const notesModal = useModal<Contact>();
+    const duplicateModal = useModal();
+    const bulkActionsModal = useModal<'tag' | 'delete' | 'export'>();
+    const timelineModal = useModal<Contact>();
+    const relationshipModal = useModal<Contact>();
+    
+    // Confirmation dialogs
+    const deleteContactConfirm = useDeleteConfirm<Contact>('contact');
+    const bulkDeleteConfirm = useBulkDeleteConfirm('contacts');
+    const deleteNoteConfirm = useDeleteConfirm<{ timestamp: number }>('note');
+    
     const [searchQuery, setSearchQuery] = useState('');
     const [filterBy, setFilterBy] = useState<'all' | 'linked' | 'unlinked'>('all');
     const [filterByTag, setFilterByTag] = useState<string>('');
@@ -52,24 +66,19 @@ export function ContactManager({
     const [importProgress, setImportProgress] = useState(0);
     const [importResult, setImportResult] = useState<CSVImportResult | null>(null);
     const [newTag, setNewTag] = useState('');
-    const [showDuplicateModal, setShowDuplicateModal] = useState(false);
     const [duplicateGroups, setDuplicateGroups] = useState<Contact[][]>([]);
     const [selectedDuplicateGroup, setSelectedDuplicateGroup] = useState<Contact[] | null>(null);
     const [primaryContact, setPrimaryContact] = useState<Contact | null>(null);
-    const [bulkSelectMode, setBulkSelectMode] = useState(false);
-    const [selectedContactIds, setSelectedContactIds] = useState<Set<string>>(new Set());
-    const [showBulkActionsModal, setShowBulkActionsModal] = useState(false);
-    const [bulkAction, setBulkAction] = useState<'tag' | 'delete' | 'export' | null>(null);
+    
+    // Bulk selection using shared hook
+    const bulkSelection = useBulkSelection<string>();
     const [bulkTagToAdd, setBulkTagToAdd] = useState('');
-    const [showNotesModal, setShowNotesModal] = useState(false);
     const [noteDraft, setNoteDraft] = useState('');
     const [editingNoteTimestamp, setEditingNoteTimestamp] = useState<number | null>(null);
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
     const [filterByTitle, setFilterByTitle] = useState('');
     const [filterByNoteCount, setFilterByNoteCount] = useState<'any' | 'none' | 'has'>('any');
     const [filterByMeetingCount, setFilterByMeetingCount] = useState<'any' | 'none' | 'has'>('any');
-    const [showTimelineModal, setShowTimelineModal] = useState(false);
-    const [showRelationshipModal, setShowRelationshipModal] = useState(false);
     const [formData, setFormData] = useState<ContactFormData>({
         name: '',
         email: '',
@@ -223,7 +232,7 @@ export function ContactManager({
                     linkedCrmId: '',
                     newAccountName: ''
                 });
-                setShowAddModal(false);
+                addModal.close();
             }
         } catch (error) {
             console.error('Error creating contact:', error);
@@ -257,7 +266,7 @@ export function ContactManager({
                 }
             );
 
-            setShowEditModal(false);
+            editModal.close();
             setSelectedContact(null);
             setFormData({
                 name: '',
@@ -274,20 +283,20 @@ export function ContactManager({
         }
     };
 
-    const handleDeleteContact = async (contact: Contact) => {
-        if (!confirm(`Delete contact ${contact.name}?`)) return;
-
-        try {
-            const linkedAccount = getLinkedAccount(contact);
-            if (!linkedAccount) {
-                alert('Cannot delete contact: No linked account found.');
-                return;
+    const handleDeleteContact = (contact: Contact) => {
+        deleteContactConfirm.requestConfirm(contact, async (c) => {
+            try {
+                const linkedAccount = getLinkedAccount(c);
+                if (!linkedAccount) {
+                    alert('Cannot delete contact: No linked account found.');
+                    return;
+                }
+                await actions.deleteContact(crmType, linkedAccount.id, c.id);
+            } catch (error) {
+                console.error('Error deleting contact:', error);
+                alert('Failed to delete contact. Please try again.');
             }
-            await actions.deleteContact(crmType, linkedAccount.id, contact.id);
-        } catch (error) {
-            console.error('Error deleting contact:', error);
-            alert('Failed to delete contact. Please try again.');
-        }
+        });
     };
 
     const openEditModal = (contact: Contact) => {
@@ -301,11 +310,11 @@ export function ContactManager({
             linkedCrmId: getLinkedAccount(contact)?.id || '',
             newAccountName: ''
         });
-        setShowEditModal(true);
+        editModal.open();
     };
 
     const closeAddModal = () => {
-        setShowAddModal(false);
+        addModal.close();
         setFormData({
             name: '',
             email: '',
@@ -318,7 +327,7 @@ export function ContactManager({
     };
 
     const closeEditModal = () => {
-        setShowEditModal(false);
+        editModal.close();
         setSelectedContact(null);
         setFormData({
             name: '',
@@ -335,7 +344,7 @@ export function ContactManager({
     const openTagModal = (contact: Contact) => {
         setSelectedContact(contact);
         setNewTag('');
-        setShowTagModal(true);
+        tagModal.open();
     };
 
     const handleAddTag = async () => {
@@ -479,7 +488,7 @@ export function ContactManager({
         });
 
         setDuplicateGroups(groups);
-        setShowDuplicateModal(true);
+        duplicateModal.open();
     };
 
     const startMergeWorkflow = (group: Contact[]) => {
@@ -552,38 +561,13 @@ export function ContactManager({
         }
     };
 
-    // Bulk Operations
-    const toggleBulkSelect = () => {
-        setBulkSelectMode(!bulkSelectMode);
-        setSelectedContactIds(new Set());
-    };
-
-    const toggleContactSelection = (contactId: string) => {
-        const newSet = new Set(selectedContactIds);
-        if (newSet.has(contactId)) {
-            newSet.delete(contactId);
-        } else {
-            newSet.add(contactId);
-        }
-        setSelectedContactIds(newSet);
-    };
-
-    const selectAllFilteredContacts = () => {
-        const allIds = new Set(filteredContacts.map(c => c.id));
-        setSelectedContactIds(allIds);
-    };
-
-    const deselectAllContacts = () => {
-        setSelectedContactIds(new Set());
-    };
-
+    // Bulk Operations - using shared hook
     const handleBulkAction = (action: 'tag' | 'delete' | 'export') => {
-        if (selectedContactIds.size === 0) {
+        if (bulkSelection.selectedCount === 0) {
             alert('Please select at least one contact');
             return;
         }
-        setBulkAction(action);
-        setShowBulkActionsModal(true);
+        bulkActionsModal.openWith(action);
     };
 
     const executeBulkTag = async () => {
@@ -593,7 +577,7 @@ export function ContactManager({
         }
 
         try {
-            const selectedContacts = allContacts.filter(c => selectedContactIds.has(c.id));
+            const selectedContacts = allContacts.filter(c => bulkSelection.isSelected(c.id));
             let successCount = 0;
 
             for (const contact of selectedContacts) {
@@ -616,95 +600,65 @@ export function ContactManager({
 
             alert(`Successfully added tag "${bulkTagToAdd}" to ${successCount} contact(s)`);
             setBulkTagToAdd('');
-            setShowBulkActionsModal(false);
-            setBulkSelectMode(false);
-            setSelectedContactIds(new Set());
+            bulkActionsModal.close();
+            bulkSelection.exitSelectionMode();
         } catch (error) {
             console.error('Error bulk tagging:', error);
             alert('Failed to add tags to some contacts');
         }
     };
 
-    const executeBulkDelete = async () => {
-        if (!confirm(`Are you sure you want to delete ${selectedContactIds.size} contact(s)? This cannot be undone.`)) {
-            return;
-        }
+    const executeBulkDelete = () => {
+        bulkDeleteConfirm.requestConfirm({ count: bulkSelection.selectedCount }, async () => {
+            try {
+                const selectedContacts = allContacts.filter(c => bulkSelection.isSelected(c.id));
+                let successCount = 0;
 
-        try {
-            const selectedContacts = allContacts.filter(c => selectedContactIds.has(c.id));
-            let successCount = 0;
-
-            for (const contact of selectedContacts) {
-                const linkedAccount = getLinkedAccount(contact);
-                if (linkedAccount) {
-                    await actions.deleteContact(crmType, linkedAccount.id, contact.id);
-                    successCount++;
+                for (const contact of selectedContacts) {
+                    const linkedAccount = getLinkedAccount(contact);
+                    if (linkedAccount) {
+                        await actions.deleteContact(crmType, linkedAccount.id, contact.id);
+                        successCount++;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 50));
                 }
-                await new Promise(resolve => setTimeout(resolve, 50));
-            }
 
-            alert(`Successfully deleted ${successCount} contact(s)`);
-            setShowBulkActionsModal(false);
-            setBulkSelectMode(false);
-            setSelectedContactIds(new Set());
-        } catch (error) {
-            console.error('Error bulk deleting:', error);
-            alert('Failed to delete some contacts');
-        }
+                alert(`Successfully deleted ${successCount} contact(s)`);
+                bulkActionsModal.close();
+                bulkSelection.exitSelectionMode();
+            } catch (error) {
+                console.error('Error bulk deleting:', error);
+                alert('Failed to delete some contacts');
+            }
+        });
     };
 
     const executeBulkExport = () => {
-        const selectedContacts = allContacts.filter(c => selectedContactIds.has(c.id));
+        const selectedContacts = allContacts.filter(c => bulkSelection.isSelected(c.id));
         
         if (selectedContacts.length === 0) {
             alert('No contacts selected for export');
             return;
         }
 
-        // CSV Header
-        const headers = ['name', 'email', 'phone', 'title', 'company', 'tags'];
-        const csvRows = [headers.join(',')];
-
-        // CSV Data
-        selectedContacts.forEach(contact => {
+        // Use shared CSV utilities
+        const csvData = selectedContacts.map(contact => {
             const linkedAccount = getLinkedAccount(contact);
-            const row = [
-                contact.name,
-                contact.email,
-                contact.phone || '',
-                contact.title || '',
-                linkedAccount?.company || '',
-                (contact.tags || []).join('; ')
-            ];
-            
-            // Escape and wrap fields with commas/quotes
-            const escapedRow = row.map(field => {
-                const stringField = String(field);
-                if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
-                    return `"${stringField.replace(/"/g, '""')}"`;
-                }
-                return stringField;
-            });
-            
-            csvRows.push(escapedRow.join(','));
+            return {
+                name: contact.name,
+                email: contact.email,
+                phone: contact.phone || '',
+                title: contact.title || '',
+                company: linkedAccount?.company || '',
+                tags: (contact.tags || []).join('; ')
+            };
         });
 
-        // Download
-        const csvContent = csvRows.join('\n');
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `bulk_contacts_export_${new Date().toISOString().split('T')[0]}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
+        downloadCSV(csvData, createCSVFilename('bulk_contacts_export'));
 
         alert(`Successfully exported ${selectedContacts.length} contact(s)`);
-        setShowBulkActionsModal(false);
-        setBulkSelectMode(false);
-        setSelectedContactIds(new Set());
+        bulkActionsModal.close();
+        bulkSelection.exitSelectionMode();
     };
 
     // Notes: view/add/edit/delete notes for a contact
@@ -712,7 +666,7 @@ export function ContactManager({
         setSelectedContact(contact);
         setNoteDraft('');
         setEditingNoteTimestamp(null);
-        setShowNotesModal(true);
+        notesModal.open();
     };
 
     const handleAddNote = async () => {
@@ -761,23 +715,24 @@ export function ContactManager({
         }
     };
 
-    const handleDeleteNote = async (noteTimestamp: number) => {
+    const handleDeleteNote = (noteTimestamp: number) => {
         if (!selectedContact) return;
-        if (!confirm('Delete this note?')) return;
-
-        try {
-            const linkedAccount = getLinkedAccount(selectedContact);
-            const res = await actions.deleteNote('contacts', selectedContact.id, noteTimestamp, linkedAccount?.id);
-            if (res.success) {
-                const remaining = (selectedContact.notes || []).filter(n => n.timestamp !== noteTimestamp);
-                setSelectedContact({ ...selectedContact, notes: remaining });
-            } else {
-                alert('Failed to delete note: ' + res.message);
+        
+        deleteNoteConfirm.requestConfirm({ timestamp: noteTimestamp, name: 'note' }, async () => {
+            try {
+                const linkedAccount = getLinkedAccount(selectedContact);
+                const res = await actions.deleteNote('contacts', selectedContact.id, noteTimestamp, linkedAccount?.id);
+                if (res.success) {
+                    const remaining = (selectedContact.notes || []).filter(n => n.timestamp !== noteTimestamp);
+                    setSelectedContact({ ...selectedContact, notes: remaining });
+                } else {
+                    alert('Failed to delete note: ' + res.message);
+                }
+            } catch (err) {
+                console.error('Error deleting note:', err);
+                alert('Failed to delete note');
             }
-        } catch (err) {
-            console.error('Error deleting note:', err);
-            alert('Failed to delete note');
-        }
+        });
     };
 
     // Activity Timeline
@@ -818,61 +773,36 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
         window.URL.revokeObjectURL(url);
     };
 
-    // CSV Export
+    // CSV Export using shared utility
     const exportContactsToCSV = () => {
         if (filteredContacts.length === 0) {
             alert('No contacts to export');
             return;
         }
 
-        // CSV headers
-        const headers = ['name', 'email', 'phone', 'title', 'company'];
-        const csvRows = [headers.join(',')];
-
-        // Add data rows
-        filteredContacts.forEach(contact => {
+        const csvData = filteredContacts.map(contact => {
             const linkedAccount = getLinkedAccount(contact);
-            const row = [
-                `"${contact.name.replace(/"/g, '""')}"`, // Escape quotes
-                contact.email,
-                contact.phone || '',
-                `"${(contact.title || '').replace(/"/g, '""')}"`,
-                `"${(linkedAccount?.company || '').replace(/"/g, '""')}"`
-            ];
-            csvRows.push(row.join(','));
+            return {
+                name: contact.name,
+                email: contact.email,
+                phone: contact.phone || '',
+                title: contact.title || '',
+                company: linkedAccount?.company || ''
+            };
         });
 
-        const csvContent = csvRows.join('\n');
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        const today = new Date().toISOString().split('T')[0];
-        a.download = `contacts_export_${today}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-    };
+        const csv = toCSV(csvData, {
+            fields: ['name', 'email', 'phone', 'title', 'company'],
+            headerNames: {
+                name: 'Name',
+                email: 'Email',
+                phone: 'Phone',
+                title: 'Title',
+                company: 'Company'
+            }
+        });
 
-    // Parse CSV file
-    const parseCSV = (text: string): Array<any> => {
-        const lines = text.split('\n').filter(line => line.trim());
-        if (lines.length < 2) return [];
-
-        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-        const rows = [];
-
-        for (let i = 1; i < lines.length; i++) {
-            const values = lines[i].split(',').map(v => v.trim());
-            const row: any = {};
-            headers.forEach((header, index) => {
-                row[header] = values[index] || '';
-            });
-            rows.push(row);
-        }
-
-        return rows;
+        downloadCSV(csv, createCSVFilename('contacts'));
     };
 
     // Handle CSV Import
@@ -1016,7 +946,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                         Export
                     </button>
                     <button
-                        onClick={() => setShowImportModal(true)}
+                        onClick={() => importModal.open()}
                         className="flex items-center gap-1.5 text-gray-600 hover:text-gray-900 text-sm font-medium px-3 py-1.5 rounded-md border border-gray-200 hover:border-gray-300 transition-all"
                     >
                         <Upload className="w-4 h-4" />
@@ -1031,18 +961,18 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                         Find Duplicates
                     </button>
                     <button
-                        onClick={toggleBulkSelect}
+                        onClick={() => bulkSelection.toggleSelectionMode()}
                         className={`flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-md transition-all ${
-                            bulkSelectMode
+                            bulkSelection.isSelectionMode
                                 ? 'bg-gray-900 text-white'
                                 : 'text-gray-600 hover:text-gray-900 border border-gray-200 hover:border-gray-300'
                         }`}
                     >
                         <CheckSquare className="w-4 h-4" />
-                        {bulkSelectMode ? 'Exit Select' : 'Bulk Select'}
+                        {bulkSelection.isSelectionMode ? 'Exit Select' : 'Bulk Select'}
                     </button>
                     <button
-                        onClick={() => setShowAddModal(true)}
+                        onClick={() => addModal.open()}
                         className="flex items-center gap-1.5 bg-gray-900 text-white text-sm font-medium px-3 py-1.5 rounded-md hover:bg-gray-800 transition-colors"
                     >
                         <Plus className="w-4 h-4" />
@@ -1052,22 +982,22 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
             </div>
 
             {/* Bulk Actions Bar */}
-            {bulkSelectMode && (
+            {bulkSelection.isSelectionMode && (
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                     <div className="flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-3">
                             <span className="text-sm font-medium text-gray-700">
-                                {selectedContactIds.size} selected
+                                {bulkSelection.selectedCount} selected
                             </span>
                             <button
-                                onClick={selectAllFilteredContacts}
+                                onClick={() => bulkSelection.selectAll(filteredContacts.map(c => c.id))}
                                 className="text-xs text-gray-500 hover:text-gray-700 underline"
                             >
                                 Select All ({filteredContacts.length})
                             </button>
-                            {selectedContactIds.size > 0 && (
+                            {bulkSelection.selectedCount > 0 && (
                                 <button
-                                    onClick={deselectAllContacts}
+                                    onClick={() => bulkSelection.clearSelection()}
                                     className="text-xs text-gray-500 hover:text-gray-700 underline"
                                 >
                                     Deselect All
@@ -1077,7 +1007,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                         <div className="flex gap-2">
                             <button
                                 onClick={() => handleBulkAction('tag')}
-                                disabled={selectedContactIds.size === 0}
+                                disabled={bulkSelection.selectedCount === 0}
                                 className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md bg-white border border-gray-200 text-gray-600 hover:border-gray-300 transition-all disabled:opacity-50"
                             >
                                 <Tag className="w-3.5 h-3.5" />
@@ -1085,7 +1015,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                             </button>
                             <button
                                 onClick={() => handleBulkAction('export')}
-                                disabled={selectedContactIds.size === 0}
+                                disabled={bulkSelection.selectedCount === 0}
                                 className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md bg-white border border-gray-200 text-gray-600 hover:border-gray-300 transition-all disabled:opacity-50"
                             >
                                 <Download className="w-3.5 h-3.5" />
@@ -1093,7 +1023,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                             </button>
                             <button
                                 onClick={() => handleBulkAction('delete')}
-                                disabled={selectedContactIds.size === 0}
+                                disabled={bulkSelection.selectedCount === 0}
                                 className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md bg-white border border-gray-200 text-red-500 hover:border-red-200 hover:bg-red-50 transition-all disabled:opacity-50"
                             >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -1234,7 +1164,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                         <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
                         <p className="text-sm">No contacts found</p>
                         <button
-                            onClick={() => setShowAddModal(true)}
+                            onClick={() => addModal.open()}
                             className="mt-2 text-sm text-gray-500 hover:text-gray-700 underline"
                         >
                             Add your first contact
@@ -1243,7 +1173,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                 ) : (
                     filteredContacts.map(contact => {
                         const linkedAccount = getLinkedAccount(contact);
-                        const isSelected = selectedContactIds.has(contact.id);
+                        const isSelected = bulkSelection.isSelected(contact.id);
                         return (
                             <div
                                 key={contact.id}
@@ -1254,7 +1184,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                 }`}
                             >
                                 <div className="flex items-start justify-between gap-4">
-                                    {bulkSelectMode && (
+                                    {bulkSelection.isSelectionMode && (
                                         <div className="flex-shrink-0">
                                             <label htmlFor={`bulk-select-${contact.id}`} className="sr-only">
                                                 Select {contact.name}
@@ -1264,7 +1194,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                                 name={`bulk-select-${contact.id}`}
                                                 type="checkbox"
                                                 checked={isSelected}
-                                                onChange={() => toggleContactSelection(contact.id)}
+                                                onChange={() => bulkSelection.toggleItem(contact.id)}
                                                 className="w-4 h-4 cursor-pointer accent-black rounded"
                                             />
                                         </div>
@@ -1398,7 +1328,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
 
             {/* Add Contact Modal */}
             <Modal
-                isOpen={showAddModal}
+                isOpen={addModal.isOpen}
                 onClose={closeAddModal}
                 title="Add New Contact"
             >
@@ -1788,9 +1718,9 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
 
             {/* Notes Modal */}
             <Modal
-                isOpen={showNotesModal}
+                isOpen={notesModal.isOpen}
                 onClose={() => {
-                    setShowNotesModal(false);
+                    notesModal.close();
                     setSelectedContact(null);
                     setNoteDraft('');
                     setEditingNoteTimestamp(null);
@@ -1881,7 +1811,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
 
                         <button
                             onClick={() => {
-                                setShowNotesModal(false);
+                                notesModal.close();
                                 setSelectedContact(null);
                                 setNoteDraft('');
                                 setEditingNoteTimestamp(null);
@@ -1895,7 +1825,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
             </Modal>
             {/* Edit Contact Modal */}
             <Modal
-                isOpen={showEditModal}
+                isOpen={editModal.isOpen}
                 onClose={closeEditModal}
                 title="Edit Contact"
             >
@@ -1997,10 +1927,10 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
 
             {/* CSV Import Modal */}
             <Modal
-                isOpen={showImportModal}
+                isOpen={importModal.isOpen}
                 onClose={() => {
                     if (!isImporting) {
-                        setShowImportModal(false);
+                        importModal.close();
                         setImportResult(null);
                         setImportProgress(0);
                     }
@@ -2102,7 +2032,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                             {/* Close Button */}
                             <button
                                 onClick={() => {
-                                    setShowImportModal(false);
+                                    importModal.close();
                                     setImportResult(null);
                                     setImportProgress(0);
                                 }}
@@ -2117,9 +2047,9 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
 
             {/* Tag Management Modal */}
             <Modal
-                isOpen={showTagModal}
+                isOpen={tagModal.isOpen}
                 onClose={() => {
-                    setShowTagModal(false);
+                    tagModal.close();
                     setSelectedContact(null);
                     setNewTag('');
                 }}
@@ -2211,7 +2141,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                         {/* Close Button */}
                         <button
                             onClick={() => {
-                                setShowTagModal(false);
+                                tagModal.close();
                                 setSelectedContact(null);
                                 setNewTag('');
                             }}
@@ -2225,19 +2155,18 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
 
             {/* Bulk Actions Modal */}
             <Modal
-                isOpen={showBulkActionsModal}
+                isOpen={bulkActionsModal.isOpen}
                 onClose={() => {
-                    setShowBulkActionsModal(false);
-                    setBulkAction(null);
+                    bulkActionsModal.close();
                     setBulkTagToAdd('');
                 }}
-                title={`Bulk ${bulkAction === 'tag' ? 'Tag' : bulkAction === 'delete' ? 'Delete' : 'Export'}`}
+                title={`Bulk ${bulkActionsModal.data === 'tag' ? 'Tag' : bulkActionsModal.data === 'delete' ? 'Delete' : 'Export'}`}
             >
                 <div className="space-y-4">
-                    {bulkAction === 'tag' && (
+                    {bulkActionsModal.data === 'tag' && (
                         <div className="space-y-3">
                             <p className="text-sm text-gray-600">
-                                Add a tag to {selectedContactIds.size} selected contact(s)
+                                Add a tag to {bulkSelection.selectedCount} selected contact(s)
                             </p>
                             <div className="flex gap-2">
                                 <label htmlFor="bulk-tag-input" className="sr-only">Tag name for bulk action</label>
@@ -2282,11 +2211,11 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                         </div>
                     )}
 
-                    {bulkAction === 'delete' && (
+                    {bulkActionsModal.data === 'delete' && (
                         <div className="space-y-3">
                             <div className="bg-red-50 border-2 border-red-300 p-3">
                                 <p className="text-sm font-mono text-red-800">
-                                    <strong>⚠️ Warning:</strong> You are about to delete {selectedContactIds.size} contact(s). 
+                                    <strong>⚠️ Warning:</strong> You are about to delete {bulkSelection.selectedCount} contact(s). 
                                     This action cannot be undone.
                                 </p>
                             </div>
@@ -2295,10 +2224,10 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                                     onClick={executeBulkDelete}
                                     className="flex-1 font-mono bg-red-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-red-600 transition-all"
                                 >
-                                    Delete {selectedContactIds.size} Contact(s)
+                                    Delete {bulkSelection.selectedCount} Contact(s)
                                 </button>
                                 <button
-                                    onClick={() => setShowBulkActionsModal(false)}
+                                    onClick={() => bulkActionsModal.close()}
                                     className="font-mono bg-gray-500 text-white border-2 border-black px-4 py-2 rounded-none font-semibold shadow-neo-btn hover:bg-gray-600 transition-all"
                                 >
                                     Cancel
@@ -2307,10 +2236,10 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                         </div>
                     )}
 
-                    {bulkAction === 'export' && (
+                    {bulkActionsModal.data === 'export' && (
                         <div className="space-y-3">
                             <p className="text-sm text-gray-600">
-                                Export {selectedContactIds.size} selected contact(s) to CSV file
+                                Export {bulkSelection.selectedCount} selected contact(s) to CSV file
                             </p>
                             <button
                                 onClick={executeBulkExport}
@@ -2322,7 +2251,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                     )}
 
                     <button
-                        onClick={() => setShowBulkActionsModal(false)}
+                        onClick={() => bulkActionsModal.close()}
                         className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800"
                     >
                         Close
@@ -2332,9 +2261,9 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
 
             {/* Duplicate Detection Modal */}
             <Modal
-                isOpen={showDuplicateModal}
+                isOpen={duplicateModal.isOpen}
                 onClose={() => {
-                    setShowDuplicateModal(false);
+                    duplicateModal.close();
                     setSelectedDuplicateGroup(null);
                     setPrimaryContact(null);
                 }}
@@ -2466,7 +2395,7 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                             )}
 
                             <button
-                                onClick={() => setShowDuplicateModal(false)}
+                                onClick={() => duplicateModal.close()}
                                 className="w-full font-mono font-semibold bg-black text-white py-2 px-4 rounded-none cursor-pointer transition-all border-2 border-black shadow-neo-btn hover:bg-gray-800"
                             >
                                 Close
@@ -2475,6 +2404,45 @@ Jane Smith,jane@example.com,555-5678,CTO,Tech Inc`;
                     )}
                 </div>
             </Modal>
+
+            {/* Delete Contact Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={deleteContactConfirm.isOpen}
+                onClose={deleteContactConfirm.cancel}
+                onConfirm={deleteContactConfirm.confirm}
+                title={deleteContactConfirm.title}
+                message={deleteContactConfirm.message}
+                confirmLabel={deleteContactConfirm.confirmLabel}
+                cancelLabel={deleteContactConfirm.cancelLabel}
+                variant={deleteContactConfirm.variant}
+                isLoading={deleteContactConfirm.isProcessing}
+            />
+
+            {/* Bulk Delete Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={bulkDeleteConfirm.isOpen}
+                onClose={bulkDeleteConfirm.cancel}
+                onConfirm={bulkDeleteConfirm.confirm}
+                title={bulkDeleteConfirm.title}
+                message={bulkDeleteConfirm.message}
+                confirmLabel={bulkDeleteConfirm.confirmLabel}
+                cancelLabel={bulkDeleteConfirm.cancelLabel}
+                variant={bulkDeleteConfirm.variant}
+                isLoading={bulkDeleteConfirm.isProcessing}
+            />
+
+            {/* Delete Note Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={deleteNoteConfirm.isOpen}
+                onClose={deleteNoteConfirm.cancel}
+                onConfirm={deleteNoteConfirm.confirm}
+                title={deleteNoteConfirm.title}
+                message={deleteNoteConfirm.message}
+                confirmLabel={deleteNoteConfirm.confirmLabel}
+                cancelLabel={deleteNoteConfirm.cancelLabel}
+                variant={deleteNoteConfirm.variant}
+                isLoading={deleteNoteConfirm.isProcessing}
+            />
         </div>
     );
 };

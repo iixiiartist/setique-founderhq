@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useIntersectionObserver } from '../hooks';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
@@ -25,32 +26,6 @@ import {
   Sparkles
 } from 'lucide-react';
 
-// Animation hook for scroll-triggered animations
-const useIntersectionObserver = (options = {}) => {
-  const [isIntersecting, setIsIntersecting] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        setIsIntersecting(true);
-      }
-    }, { threshold: 0.1, ...options });
-
-    if (ref.current) {
-      observer.observe(ref.current);
-    }
-
-    return () => {
-      if (ref.current) {
-        observer.unobserve(ref.current);
-      }
-    };
-  }, []);
-
-  return [ref, isIntersecting] as const;
-};
-
 // Neo-brutalist feature card
 const FeatureCard = ({ 
   icon: Icon, 
@@ -65,7 +40,7 @@ const FeatureCard = ({
   bgColor: string;
   delay?: number;
 }) => {
-  const [ref, isVisible] = useIntersectionObserver();
+  const { ref, isIntersecting: isVisible } = useIntersectionObserver({ triggerOnce: true, threshold: 0.1 });
   
   return (
     <div 

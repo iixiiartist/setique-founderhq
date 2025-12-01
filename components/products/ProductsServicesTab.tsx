@@ -5,6 +5,8 @@ import { ProductServiceCard } from './ProductServiceCard';
 import { ProductServiceCreateModal } from './ProductServiceCreateModal';
 import { ProductServiceDetailModal } from './ProductServiceDetailModal';
 import ProductAnalyticsDashboard from './ProductAnalyticsDashboard';
+import { useDeleteConfirm } from '../../hooks';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { getAiResponse } from '../../services/groqService';
 import { ModerationError, formatModerationErrorMessage } from '../../lib/services/moderationService';
 import { searchWeb } from '../../src/lib/services/youSearchService';
@@ -43,6 +45,8 @@ export function ProductsServicesTab({
     const [isSearching, setIsSearching] = useState(false);
     const [marketResearchResult, setMarketResearchResult] = useState<string | null>(null);
     const [showMarketResearch, setShowMarketResearch] = useState(false);
+    
+    const deleteProductConfirm = useDeleteConfirm<ProductService>('product');
 
     const handleSmartSearch = async () => {
         if (!searchTerm.trim()) return;
@@ -452,9 +456,9 @@ export function ProductsServicesTab({
                             onClick={() => handleProductClick(product)}
                             onEdit={() => handleProductClick(product)}
                             onDelete={() => {
-                                if (window.confirm(`Delete ${product.name}?`)) {
-                                    actions.deleteProductService?.(product.id);
-                                }
+                                deleteProductConfirm.requestConfirm(product, (p) => {
+                                    actions.deleteProductService?.(p.id);
+                                });
                             }}
                         />
                     ))}
@@ -485,13 +489,26 @@ export function ProductsServicesTab({
                         setSelectedProduct(null);
                     }}
                     onDelete={() => {
-                        if (window.confirm(`Delete ${selectedProduct.name}?`)) {
-                            actions.deleteProductService?.(selectedProduct.id);
+                        deleteProductConfirm.requestConfirm(selectedProduct, (p) => {
+                            actions.deleteProductService?.(p.id);
                             setSelectedProduct(null);
-                        }
+                        });
                     }}
                 />
             )}
+
+            {/* Delete Product Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={deleteProductConfirm.isOpen}
+                onClose={deleteProductConfirm.cancel}
+                onConfirm={deleteProductConfirm.confirm}
+                title={deleteProductConfirm.title}
+                message={deleteProductConfirm.message}
+                confirmLabel={deleteProductConfirm.confirmLabel}
+                cancelLabel={deleteProductConfirm.cancelLabel}
+                variant={deleteProductConfirm.variant}
+                isLoading={deleteProductConfirm.isProcessing}
+            />
         </div>
     );
 }

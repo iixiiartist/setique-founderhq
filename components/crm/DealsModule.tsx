@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Deal, AnyCrmItem, Contact, AppActions, Priority, ProductService } from '../../types';
+import { useDeleteConfirm } from '../../hooks';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { DollarSign, Plus, TrendingUp, Calendar, User, Target, Filter, X, Edit, Trash2, Package } from 'lucide-react';
 
 interface DealsModuleProps {
@@ -56,6 +58,7 @@ function DealsModule({
   const [filterStage, setFilterStage] = useState<string>('all');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'value' | 'stage' | 'date'>('date');
+  const deleteDealConfirm = useDeleteConfirm<Deal>('deal');
   const [formData, setFormData] = useState({
     title: '',
     crmItemId: '',
@@ -277,13 +280,13 @@ function DealsModule({
     setShowForm(true);
   };
 
-  const handleDelete = async (dealId: string) => {
-    if (!confirm('Are you sure you want to delete this deal?')) return;
-    
-    const result = await actions.deleteDeal(dealId);
-    if (!result.success) {
-      alert(result.message);
-    }
+  const handleDelete = (deal: Deal) => {
+    deleteDealConfirm.requestConfirm(deal, async (d) => {
+      const result = await actions.deleteDeal(d.id);
+      if (!result.success) {
+        alert(result.message);
+      }
+    });
   };
 
   const handleCancelEdit = () => {
@@ -750,7 +753,7 @@ function DealsModule({
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleDelete(deal.id)}
+                        onClick={() => handleDelete(deal)}
                         className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
                         title="Delete deal"
                       >
@@ -804,6 +807,19 @@ function DealsModule({
           })
         )}
       </div>
+
+      {/* Delete Deal Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteDealConfirm.isOpen}
+        onClose={deleteDealConfirm.cancel}
+        onConfirm={deleteDealConfirm.confirm}
+        title={deleteDealConfirm.title}
+        message={deleteDealConfirm.message}
+        confirmLabel={deleteDealConfirm.confirmLabel}
+        cancelLabel={deleteDealConfirm.cancelLabel}
+        variant={deleteDealConfirm.variant}
+        isLoading={deleteDealConfirm.isProcessing}
+      />
     </div>
   );
 }

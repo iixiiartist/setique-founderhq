@@ -29,5 +29,5 @@ export {
 // Hooks
 export {
     useIntersectionObserver,
-    useScrolled
+    useScrollState
 } from './hooks';

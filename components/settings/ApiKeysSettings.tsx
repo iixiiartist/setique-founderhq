@@ -2,6 +2,7 @@
 // Settings component for managing Premium API keys
 
 import React, { useState, useCallback } from 'react';
+import { useCopyToClipboard } from '../../hooks';
 import { useApiKeys, type CreateApiKeyInput } from '../../hooks/useApiKeys';
 import { useAuth } from '../../contexts/AuthContext';
 import { ApiScope, ApiKey } from '../../lib/services/apiKeyService';
@@ -55,7 +56,7 @@ const CreateKeyModal: React.FC<CreateKeyModalProps> = ({ onClose, onCreate, isCr
   const [scopes, setScopes] = useState<ApiScope[]>(['contacts:read', 'tasks:read', 'deals:read']);
   const [expiresInDays, setExpiresInDays] = useState<number | null>(null);
   const [newKey, setNewKey] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const { isCopied: copied, copy } = useCopyToClipboard();
 
   const toggleScope = (scope: ApiScope) => {
     setScopes(prev => 
@@ -88,9 +89,7 @@ const CreateKeyModal: React.FC<CreateKeyModalProps> = ({ onClose, onCreate, isCr
 
   const handleCopy = async () => {
     if (newKey) {
-      await navigator.clipboard.writeText(newKey);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await copy(newKey);
     }
   };
 

@@ -6,6 +6,8 @@ import React, {
 	useRef,
 	useState,
 } from 'react';
+import { useClickOutside } from '../../hooks';
+import { formatRelativeTime } from '../../lib/utils/dateUtils';
 import type { Editor } from '@tiptap/react';
 import {
 	AlertTriangle,
@@ -268,19 +270,7 @@ const formatHostname = (value?: string | null) => {
 	}
 };
 
-const formatRelativeTime = (iso?: string | null) => {
-	if (!iso) return '';
-	const date = new Date(iso);
-	if (Number.isNaN(date.getTime())) return '';
-	const diffMs = Date.now() - date.getTime();
-	const diffMinutes = Math.round(diffMs / 60000);
-	if (diffMinutes < 1) return 'just now';
-	if (diffMinutes < 60) return `${diffMinutes}m ago`;
-	const diffHours = Math.round(diffMinutes / 60);
-	if (diffHours < 24) return `${diffHours}h ago`;
-	const diffDays = Math.round(diffHours / 24);
-	return `${diffDays}d ago`;
-};
+// formatRelativeTime is now imported from ../../lib/utils/dateUtils
 
 const formatResearchForPrompt = (results: YouSearchResponse | null): string => {
 	if (!results?.hits?.length) return '';
@@ -819,16 +809,8 @@ ${TIPTAP_TOOLKIT_HINT}`;
 		return () => document.removeEventListener('keydown', handleKeyDown);
 	});
 
-	useEffect(() => {
-		const handleClickOutside = (event: MouseEvent) => {
-			if (!paletteRef.current) return;
-			if (!paletteRef.current.contains(event.target as Node)) {
-				onClose();
-			}
-		};
-		document.addEventListener('mousedown', handleClickOutside);
-		return () => document.removeEventListener('mousedown', handleClickOutside);
-	}, [onClose]);
+	// Close on click outside using shared hook
+	const clickOutsideRef = useClickOutside<HTMLDivElement>(onClose, true);
 
 	const buildUserMessage = useCallback(async () => {
 		let researchSnippet = '';

@@ -70,6 +70,8 @@ import { SnapLinesOverlay } from '../../lib/docs/snapUtils';
 import { telemetry } from '../../lib/services/telemetry';
 import { useDocCollab } from '../../hooks/useDocCollab';
 import { v4 as uuidv4 } from 'uuid';
+import { useConfirmAction } from '../../hooks/useConfirmAction';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 
 // Configure DOMPurify for safe HTML storage
 const SANITIZE_CONFIG: DOMPurify.Config = {
@@ -1196,34 +1198,46 @@ export const DocEditor: React.FC<DocEditorProps> = ({
         }
     };
 
+    // Confirmation dialog for applying template
+    const applyTemplateConfirm = useConfirmAction<DocumentTemplate>({
+        title: 'Apply Template',
+        getMessage: (template) => `Applying a template will replace all current content.\n\nTemplate: ${template.name}\n\nAre you sure you want to continue?`,
+        confirmLabel: 'Apply Template',
+        variant: 'warning'
+    });
+
     const handleApplyTemplate = (template: DocumentTemplate) => {
         if (!editor) return;
         
         // Confirm if document has content
         const currentContent = editor.getText().trim();
         if (currentContent.length > 0) {
-            const confirmed = window.confirm(
-                `Applying a template will replace all current content.\n\nTemplate: ${template.name}\n\nAre you sure you want to continue?`
-            );
-            if (!confirmed) {
+            applyTemplateConfirm.requestConfirm(template, (t) => {
+                // Apply template content
+                editor.commands.setContent(t.content);
+                
+                // Update document title if it's still "Untitled Document"
+                if (title === 'Untitled Document') {
+                    setTitle(t.name);
+                }
+                
+                // Close menu
                 setShowTemplateMenu(false);
-                return;
+                
+                // Focus editor
+                editor.commands.focus();
+            });
+        } else {
+            // No content, apply directly without confirmation
+            editor.commands.setContent(template.content);
+            
+            if (title === 'Untitled Document') {
+                setTitle(template.name);
             }
+            
+            setShowTemplateMenu(false);
+            editor.commands.focus();
         }
-        
-        // Apply template content
-        editor.commands.setContent(template.content);
-        
-        // Update document title if it's still "Untitled Document"
-        if (title === 'Untitled Document') {
-            setTitle(template.name);
-        }
-        
-        // Close menu
-        setShowTemplateMenu(false);
-        
-        // Focus editor
-        editor.commands.focus();
     };
 
     // Removed handleSendToAI - use AI Command Palette (Cmd+K) instead
@@ -1418,49 +1432,53 @@ export const DocEditor: React.FC<DocEditorProps> = ({
         };
     }, [editor, docId, performAutosave]);
 
+    // Confirmation dialog for saving to file library
+    const saveToLibraryConfirm = useConfirmAction<void>({
+        title: 'Save to File Library',
+        getMessage: () => 'Save this document to the File Library? This will create an HTML version that can be shared and attached to tasks.',
+        confirmLabel: 'Save to Library',
+        variant: 'info'
+    });
+
     const handleSaveToFileLibrary = async () => {
         if (!editor) {
             showError('Editor not ready');
             return;
         }
 
-        const confirmed = window.confirm(
-            'Save this document to the File Library? This will create an HTML version that can be shared and attached to tasks.'
-        );
-        
-        if (!confirmed) return;
-
-        try {
-            // Get the HTML content and sanitize it to prevent XSS
-            const rawHtml = editor.getHTML();
-            const sanitizedHtml = DOMPurify.sanitize(rawHtml, SANITIZE_CONFIG);
+        saveToLibraryConfirm.requestConfirm(undefined, async () => {
+            try {
+                // Get the HTML content and sanitize it to prevent XSS
+                const rawHtml = editor.getHTML();
+                const sanitizedHtml = DOMPurify.sanitize(rawHtml, SANITIZE_CONFIG);
             
-            // Create a document entry in the file library
-            const { data, error } = await DatabaseService.createDocument(userId, workspaceId, {
-                name: `${title}.html`,
-                module: 'workspace', // GTM Docs workspace
-                mime_type: 'text/html',
-                content: sanitizedHtml,
-                notes: {
-                    gtmDocId: docId || null,
-                    docType: docType,
-                    tags: tags,
-                    source: 'gtm_docs'
-                }
-            });
+                // Create a document entry in the file library
+                const { data, error } = await DatabaseService.createDocument(userId, workspaceId, {
+                    name: `${title}.html`,
+                    module: 'workspace', // GTM Docs workspace
+                    mime_type: 'text/html',
+                    content: sanitizedHtml,
+                    notes: {
+                        gtmDocId: docId || null,
+                        docType: docType,
+                        tags: tags,
+                        source: 'gtm_docs'
+                    }
+                });
 
-            if (error) {
+                if (error) {
+                    console.error('Error saving to file library:', error);
+                    showError('Failed to save to file library: ' + error.message);
+                } else {
+                    showSuccess('Document saved to File Library!');
+                    // Reload the docs list to show the new file
+                    onReloadList?.();
+                }
+            } catch (error) {
                 console.error('Error saving to file library:', error);
-                showError('Failed to save to file library: ' + error.message);
-            } else {
-                showSuccess('Document saved to File Library!');
-                // Reload the docs list to show the new file
-                onReloadList?.();
+                showError('Failed to save to file library');
             }
-        } catch (error) {
-            console.error('Error saving to file library:', error);
-            showError('Failed to save to file library');
-        }
+        });
     };
 
     const characterCountStorage = (editor?.storage as any)?.characterCount;
@@ -2631,6 +2649,32 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                     {gridAnnouncement}
                 </div>
             )}
+
+            {/* Apply Template Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={applyTemplateConfirm.isOpen}
+                onClose={applyTemplateConfirm.cancel}
+                onConfirm={applyTemplateConfirm.confirm}
+                title={applyTemplateConfirm.title}
+                message={applyTemplateConfirm.message}
+                confirmLabel={applyTemplateConfirm.confirmLabel}
+                cancelLabel={applyTemplateConfirm.cancelLabel}
+                variant={applyTemplateConfirm.variant}
+                isLoading={applyTemplateConfirm.isProcessing}
+            />
+
+            {/* Save to File Library Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={saveToLibraryConfirm.isOpen}
+                onClose={saveToLibraryConfirm.cancel}
+                onConfirm={saveToLibraryConfirm.confirm}
+                title={saveToLibraryConfirm.title}
+                message={saveToLibraryConfirm.message}
+                confirmLabel={saveToLibraryConfirm.confirmLabel}
+                cancelLabel={saveToLibraryConfirm.cancelLabel}
+                variant={saveToLibraryConfirm.variant}
+                isLoading={saveToLibraryConfirm.isProcessing}
+            />
 
         </div>
     );

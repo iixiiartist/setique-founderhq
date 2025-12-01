@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { useDeleteConfirm } from '../../hooks';
 import { FileText, Mail, ExternalLink, Trash2, Loader2, FolderOpen, Eye } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { showError, showSuccess } from '../../lib/utils/toast';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface LinkedDocument {
   id: string;
@@ -29,6 +31,7 @@ export const LinkedDocumentsSection: React.FC<LinkedDocumentsSectionProps> = ({
   const [loading, setLoading] = useState(true);
   const [viewingDoc, setViewingDoc] = useState<LinkedDocument | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const deleteConfirm = useDeleteConfirm();
 
   useEffect(() => {
     fetchLinkedDocuments();
@@ -64,25 +67,25 @@ export const LinkedDocumentsSection: React.FC<LinkedDocumentsSectionProps> = ({
   };
 
   const handleDeleteDocument = async (docId: string) => {
-    if (!confirm('Remove this linked document?')) return;
-    
-    setDeletingId(docId);
-    try {
-      const { error } = await supabase
-        .from('documents')
-        .delete()
-        .eq('id', docId);
+    deleteConfirm.requestConfirm(docId, 'document', async () => {
+      setDeletingId(docId);
+      try {
+        const { error } = await supabase
+          .from('documents')
+          .delete()
+          .eq('id', docId);
 
-      if (error) throw error;
-      
-      setDocuments(prev => prev.filter(d => d.id !== docId));
-      showSuccess('Document removed');
-    } catch (err: any) {
-      console.error('[LinkedDocumentsSection] Delete error:', err);
-      showError(`Failed to remove: ${err.message}`);
-    } finally {
-      setDeletingId(null);
-    }
+        if (error) throw error;
+        
+        setDocuments(prev => prev.filter(d => d.id !== docId));
+        showSuccess('Document removed');
+      } catch (err: any) {
+        console.error('[LinkedDocumentsSection] Delete error:', err);
+        showError(`Failed to remove: ${err.message}`);
+      } finally {
+        setDeletingId(null);
+      }
+    });
   };
 
   const handleViewDocument = async (doc: LinkedDocument) => {
@@ -264,6 +267,17 @@ export const LinkedDocumentsSection: React.FC<LinkedDocumentsSectionProps> = ({
           </div>
         </div>
       )}
+
+      {/* Delete confirmation dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirm.isConfirming}
+        onClose={deleteConfirm.cancel}
+        onConfirm={deleteConfirm.confirm}
+        title="Remove Document"
+        message="Are you sure you want to remove this linked document? This action cannot be undone."
+        confirmText="Remove"
+        variant="danger"
+      />
     </>
   );
 };

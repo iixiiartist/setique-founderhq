@@ -53,18 +53,23 @@ CREATE INDEX IF NOT EXISTS idx_notification_preferences_workspace ON notificatio
 -- RLS policies
 ALTER TABLE notification_preferences ENABLE ROW LEVEL SECURITY;
 
+-- Drop and recreate policies to avoid "already exists" errors
+DROP POLICY IF EXISTS "Users can view own notification preferences" ON notification_preferences;
 CREATE POLICY "Users can view own notification preferences"
     ON notification_preferences FOR SELECT
     USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Users can insert own notification preferences" ON notification_preferences;
 CREATE POLICY "Users can insert own notification preferences"
     ON notification_preferences FOR INSERT
     WITH CHECK (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Users can update own notification preferences" ON notification_preferences;
 CREATE POLICY "Users can update own notification preferences"
     ON notification_preferences FOR UPDATE
     USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Users can delete own notification preferences" ON notification_preferences;
 CREATE POLICY "Users can delete own notification preferences"
     ON notification_preferences FOR DELETE
     USING (user_id = auth.uid());
@@ -105,6 +110,7 @@ CREATE INDEX IF NOT EXISTS idx_email_queue_user ON email_notification_queue(user
 -- RLS for email queue (service role only for writing)
 ALTER TABLE email_notification_queue ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view own email queue" ON email_notification_queue;
 CREATE POLICY "Users can view own email queue"
     ON email_notification_queue FOR SELECT
     USING (user_id = auth.uid());
@@ -181,6 +187,7 @@ CREATE INDEX IF NOT EXISTS idx_activity_log_entity ON activity_log(entity_type, 
 -- RLS for activity log
 ALTER TABLE activity_log ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view activity in their workspace" ON activity_log;
 CREATE POLICY "Users can view activity in their workspace"
     ON activity_log FOR SELECT
     USING (
@@ -190,6 +197,7 @@ CREATE POLICY "Users can view activity in their workspace"
         )
     );
 
+DROP POLICY IF EXISTS "Users can insert activity in their workspace" ON activity_log;
 CREATE POLICY "Users can insert activity in their workspace"
     ON activity_log FOR INSERT
     WITH CHECK (
@@ -378,43 +386,38 @@ CREATE INDEX IF NOT EXISTS idx_task_comments_task ON task_comments(task_id, crea
 CREATE INDEX IF NOT EXISTS idx_task_comments_workspace ON task_comments(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_task_comments_user ON task_comments(user_id);
 
--- RLS for task_comments if not already set
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_policies 
-        WHERE tablename = 'task_comments' 
-        AND policyname = 'Users can view comments in their workspace'
-    ) THEN
-        ALTER TABLE task_comments ENABLE ROW LEVEL SECURITY;
-        
-        CREATE POLICY "Users can view comments in their workspace"
-            ON task_comments FOR SELECT
-            USING (
-                workspace_id IN (
-                    SELECT workspace_id FROM workspace_members 
-                    WHERE user_id = auth.uid()
-                )
-            );
-        
-        CREATE POLICY "Users can create comments in their workspace"
-            ON task_comments FOR INSERT
-            WITH CHECK (
-                workspace_id IN (
-                    SELECT workspace_id FROM workspace_members 
-                    WHERE user_id = auth.uid()
-                )
-            );
-        
-        CREATE POLICY "Users can update own comments"
-            ON task_comments FOR UPDATE
-            USING (user_id = auth.uid());
-        
-        CREATE POLICY "Users can delete own comments"
-            ON task_comments FOR DELETE
-            USING (user_id = auth.uid());
-    END IF;
-END $$;
+-- RLS for task_comments - drop and recreate to be idempotent
+ALTER TABLE task_comments ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view comments in their workspace" ON task_comments;
+CREATE POLICY "Users can view comments in their workspace"
+    ON task_comments FOR SELECT
+    USING (
+        workspace_id IN (
+            SELECT workspace_id FROM workspace_members 
+            WHERE user_id = auth.uid()
+        )
+    );
+
+DROP POLICY IF EXISTS "Users can create comments in their workspace" ON task_comments;
+CREATE POLICY "Users can create comments in their workspace"
+    ON task_comments FOR INSERT
+    WITH CHECK (
+        workspace_id IN (
+            SELECT workspace_id FROM workspace_members 
+            WHERE user_id = auth.uid()
+        )
+    );
+
+DROP POLICY IF EXISTS "Users can update own comments" ON task_comments;
+CREATE POLICY "Users can update own comments"
+    ON task_comments FOR UPDATE
+    USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "Users can delete own comments" ON task_comments;
+CREATE POLICY "Users can delete own comments"
+    ON task_comments FOR DELETE
+    USING (user_id = auth.uid());
 
 -- ============================================
 -- 10. VERIFICATION

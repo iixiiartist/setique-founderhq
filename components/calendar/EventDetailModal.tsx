@@ -6,6 +6,8 @@ import remarkGfm from 'remark-gfm';
 import { DocLibraryPicker } from '../workspace/DocLibraryPicker';
 import { LinkedDocsDisplay } from '../workspace/LinkedDocsDisplay';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDeleteConfirm } from '../../hooks';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { DatabaseService } from '../../lib/services/database';
 import { showError } from '../../lib/utils/toast';
 
@@ -285,6 +287,9 @@ export const EventDetailModalContent: React.FC<EventDetailModalContentProps> = (
 
     // Shared edit state
     const [editDueDate, setEditDueDate] = useState('');
+    
+    // Delete confirmation
+    const deleteEventConfirm = useDeleteConfirm<CalendarEvent>('event');
 
     const isTask = event.type === 'task';
     const isMarketing = event.type === 'marketing';
@@ -368,26 +373,25 @@ export const EventDetailModalContent: React.FC<EventDetailModalContentProps> = (
     };
 
     const handleDelete = () => {
-        const confirmDelete = window.confirm(`Are you sure you want to delete this ${event.type}? This action cannot be undone.`);
-        if (!confirmDelete) return;
-
-        if (isTask) {
-            actions.deleteTask(event.id);
-        } else if (isMarketing) {
-            actions.deleteMarketingItem(event.id);
-        } else if (isMeeting) {
-            const collection = getCrmCollection(event.tag);
-            actions.deleteMeeting(collection, event.crmItemId, event.contactId, event.id);
-        } else if (isCrmAction) {
-            const collection = getCrmCollection(event.tag);
-            // Clear the next action (this is how we "delete" a CRM action)
-            actions.updateCrmItem(collection, event.id, {
-                nextAction: undefined,
-                nextActionDate: undefined,
-                nextActionTime: undefined,
-            });
-        }
-        onClose();
+        deleteEventConfirm.requestConfirm(event, () => {
+            if (isTask) {
+                actions.deleteTask(event.id);
+            } else if (isMarketing) {
+                actions.deleteMarketingItem(event.id);
+            } else if (isMeeting) {
+                const collection = getCrmCollection(event.tag);
+                actions.deleteMeeting(collection, event.crmItemId, event.contactId, event.id);
+            } else if (isCrmAction) {
+                const collection = getCrmCollection(event.tag);
+                // Clear the next action (this is how we "delete" a CRM action)
+                actions.updateCrmItem(collection, event.id, {
+                    nextAction: undefined,
+                    nextActionDate: undefined,
+                    nextActionTime: undefined,
+                });
+            }
+            onClose();
+        });
     };
 
     const handleLinkDoc = async (doc: { id: string }) => {
@@ -611,6 +615,19 @@ export const EventDetailModalContent: React.FC<EventDetailModalContentProps> = (
                     title={isMeeting ? "Attach Document to Meeting" : "Attach Document to Task"}
                 />
             )}
+
+            {/* Delete Event Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={deleteEventConfirm.isOpen}
+                onClose={deleteEventConfirm.cancel}
+                onConfirm={deleteEventConfirm.confirm}
+                title={`Delete ${event.type}`}
+                message={`Are you sure you want to delete this ${event.type}? This action cannot be undone.`}
+                confirmLabel={deleteEventConfirm.confirmLabel}
+                cancelLabel={deleteEventConfirm.cancelLabel}
+                variant={deleteEventConfirm.variant}
+                isLoading={deleteEventConfirm.isProcessing}
+            />
         </div>
     );
 };

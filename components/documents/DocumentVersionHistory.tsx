@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useConfirmAction } from '../../hooks/useConfirmAction';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 import {
     getDocumentVersions,
     restoreDocumentVersion,
@@ -25,6 +27,13 @@ const DocumentVersionHistory: React.FC<DocumentVersionHistoryProps> = ({
     const [selectedVersion, setSelectedVersion] = useState<DocumentVersion | null>(null);
     const [comparisonDiff, setComparisonDiff] = useState<VersionDiff | null>(null);
     const [loading, setLoading] = useState(true);
+    
+    const restoreConfirm = useConfirmAction<DocumentVersion>({
+        title: 'Restore Version',
+        message: (version) => `Restore document to version ${version.version_number}? This will create a new version with the restored content.`,
+        confirmLabel: 'Restore',
+        variant: 'warning'
+    });
 
     useEffect(() => {
         loadVersions();
@@ -46,27 +55,25 @@ const DocumentVersionHistory: React.FC<DocumentVersionHistoryProps> = ({
         setComparisonDiff(diff);
     };
 
-    const handleRestore = async () => {
+    const handleRestore = () => {
         if (!selectedVersion || !user) return;
 
-        if (!confirm(`Restore document to version ${selectedVersion.version_number}? This will create a new version with the restored content.`)) {
-            return;
-        }
+        restoreConfirm.requestConfirm(selectedVersion, async (version) => {
+            const result = await restoreDocumentVersion(
+                documentId,
+                version.id,
+                user.id,
+                user.email?.split('@')[0] || 'Anonymous'
+            );
 
-        const result = await restoreDocumentVersion(
-            documentId,
-            selectedVersion.id,
-            user.id,
-            user.email?.split('@')[0] || 'Anonymous'
-        );
-
-        if (result.success && result.restoredVersion) {
-            onRestore(result.restoredVersion);
-            setSelectedVersion(null);
-            loadVersions(); // Reload versions list
-        } else {
-            alert(`Failed to restore version: ${result.error}`);
-        }
+            if (result.success && result.restoredVersion) {
+                onRestore(result.restoredVersion);
+                setSelectedVersion(null);
+                loadVersions(); // Reload versions list
+            } else {
+                alert(`Failed to restore version: ${result.error}`);
+            }
+        });
     };
 
     const formatTimestamp = (timestamp: string) => {
@@ -289,6 +296,19 @@ const DocumentVersionHistory: React.FC<DocumentVersionHistoryProps> = ({
                     )}
                 </div>
             </div>
+
+            {/* Restore Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={restoreConfirm.isOpen}
+                onClose={restoreConfirm.cancel}
+                onConfirm={restoreConfirm.confirm}
+                title={restoreConfirm.title}
+                message={restoreConfirm.message}
+                confirmLabel={restoreConfirm.confirmLabel}
+                cancelLabel={restoreConfirm.cancelLabel}
+                variant={restoreConfirm.variant}
+                isLoading={restoreConfirm.isProcessing}
+            />
         </div>
     );
 };

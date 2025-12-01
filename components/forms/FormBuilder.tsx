@@ -821,8 +821,12 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({
                   <button
                     onClick={async () => {
                       const url = `${window.location.origin}/forms/${state.form.slug}`;
-                      await navigator.clipboard.writeText(url);
-                      alert('Link copied to clipboard!');
+                      try {
+                        await navigator.clipboard.writeText(url);
+                        alert('Link copied to clipboard!');
+                      } catch (err) {
+                        console.error('Copy failed:', err);
+                      }
                     }}
                     className="ml-1 p-0.5 hover:bg-green-200 rounded"
                     title="Copy link"

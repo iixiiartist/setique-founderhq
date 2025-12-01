@@ -1,11 +1,14 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import ReactDOM from 'react-dom';
+import { formatRelativeTime } from '../../lib/utils/dateUtils';
 import { AppActions, TaskCollectionName, NoteableCollectionName, CrmCollectionName, DeletableCollectionName, TabType, GTMDocMetadata, AnyCrmItem } from '../../types';
 import { getAiResponse, AILimitError } from '../../services/groqService';
 import { ModerationError, formatModerationErrorMessage } from '../../lib/services/moderationService';
 import { parseAIResponse, isSafeContent } from '../../utils/aiContentParser';
 import { Tab } from '../../constants';
 import { useConversationHistory } from '../../hooks/useConversationHistory';
+import { useConfirmAction } from '../../hooks/useConfirmAction';
+import { ConfirmDialog } from './ConfirmDialog';
 import type { AssistantMessagePayload } from '../../hooks/useConversationHistory';
 import { useFullscreenChat } from '../../hooks/useFullscreenChat';
 import { getRelevantHistory, pruneFunctionResponse } from '../../utils/conversationUtils';
@@ -64,19 +67,7 @@ const formatHostname = (value?: string | null) => {
     }
 };
 
-const formatRelativeTime = (iso?: string | null) => {
-    if (!iso) return '';
-    const date = new Date(iso);
-    if (Number.isNaN(date.getTime())) return '';
-    const diffMs = Date.now() - date.getTime();
-    const diffMinutes = Math.round(diffMs / 60000);
-    if (diffMinutes < 1) return 'just now';
-    if (diffMinutes < 60) return `${diffMinutes}m ago`;
-    const diffHours = Math.round(diffMinutes / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
-    const diffDays = Math.round(diffHours / 24);
-    return `${diffDays}d ago`;
-};
+// formatRelativeTime is now imported from ../../lib/utils/dateUtils
 
 interface ChartConfigPayload {
     title?: string;
@@ -330,6 +321,12 @@ function ModuleAssistant({
     const [file, setFile] = useState<File | null>(null);
     const [fileContent, setFileContent] = useState<string>(''); // base64 content
     const [isCopied, setIsCopied] = useState(false);
+    const clearConversationConfirm = useConfirmAction<void>({
+        title: 'Clear Conversation',
+        message: 'Clear this conversation? This cannot be undone.',
+        confirmLabel: 'Clear',
+        variant: 'warning'
+    });
     const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null);
     const [aiLimitError, setAiLimitError] = useState<AILimitError | null>(null);
     const [rateLimitError, setRateLimitError] = useState<string | null>(null);
@@ -1304,9 +1301,9 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                         </button>
                         <button
                             onClick={() => {
-                                if (window.confirm('Clear this conversation? This cannot be undone.')) {
+                                clearConversationConfirm.requestConfirm(undefined, () => {
                                     clearPersistedHistory();
-                                }
+                                });
                             }}
                             className="inline-flex items-center justify-center px-3 py-1.5 rounded-xl text-xs font-semibold text-red-600 bg-white border border-red-200 hover:bg-red-50 hover:border-red-300 transition-all duration-200 disabled:opacity-50 shrink-0"
                             disabled={history.length === 0}
@@ -1817,6 +1814,19 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                     workspaceId={workspaceId}
                 />
             )}
+
+            {/* Clear Conversation Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={clearConversationConfirm.isOpen}
+                onClose={clearConversationConfirm.cancel}
+                onConfirm={clearConversationConfirm.confirm}
+                title={clearConversationConfirm.title}
+                message={clearConversationConfirm.message}
+                confirmLabel={clearConversationConfirm.confirmLabel}
+                cancelLabel={clearConversationConfirm.cancelLabel}
+                variant={clearConversationConfirm.variant}
+                isLoading={clearConversationConfirm.isProcessing}
+            />
         </>
     );
 };

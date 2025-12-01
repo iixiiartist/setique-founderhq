@@ -10,4 +10,4 @@ export { useAccountManager } from './hooks/useAccountManager';
 export { AccountManagerRefactored } from './AccountManagerRefactored';
 
 // Default export is the refactored manager
-export default AccountManagerRefactored;
+export { AccountManagerRefactored as default } from './AccountManagerRefactored';

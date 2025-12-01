@@ -68,6 +68,10 @@ interface CreateNotificationParams {
   priority?: NotificationPriority;
   /** Skip preference check - use for system-critical notifications */
   bypassPreferences?: boolean;
+  /** Direct URL for navigation when notification is clicked */
+  actionUrl?: string;
+  /** Additional metadata for the notification */
+  metadata?: Record<string, unknown>;
 }
 
 interface GetNotificationsParams {
@@ -175,6 +179,8 @@ export async function createNotificationsBatch(
       entity_type: params.entityType,
       entity_id: params.entityId,
       priority: params.priority || 'normal',
+      action_url: params.actionUrl || null,
+      metadata: params.metadata || {},
       delivery_status: 'created',
       read: false,
     }));
@@ -235,6 +241,8 @@ export async function createNotification(
         entity_type: params.entityType,
         entity_id: params.entityId,
         priority: params.priority || 'normal',
+        action_url: params.actionUrl || null,
+        metadata: params.metadata || {},
         delivery_status: 'created',
         read: false,
       })

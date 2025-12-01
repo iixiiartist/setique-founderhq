@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useDeleteConfirm } from '../../hooks';
 import { z } from 'zod';
 import { Meeting, CrmCollectionName, AppActions } from '../../types';
 import Modal from './Modal';
+import { ConfirmDialog } from './ConfirmDialog';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Form } from '../forms/Form';
@@ -30,6 +32,7 @@ const MeetingsManager: React.FC<MeetingsManagerProps> = ({ meetings, contactId, 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
     const modalTriggerRef = useRef<HTMLButtonElement>(null);
+    const deleteConfirm = useDeleteConfirm();
 
     const formatDateForInput = (timestamp: number) => {
         const date = new Date(timestamp);
@@ -99,9 +102,9 @@ const MeetingsManager: React.FC<MeetingsManagerProps> = ({ meetings, contactId, 
 
 
     const handleDelete = (meetingId: string) => {
-        if (window.confirm('Are you sure you want to delete this meeting note?')) {
+        deleteConfirm.requestConfirm(meetingId, 'meeting note', async () => {
             actions.deleteMeeting(crmCollection, crmItemId, contactId, meetingId);
-        }
+        });
     };
     
     const sortedMeetings = meetings ? [...meetings].sort((a,b) => b.timestamp - a.timestamp) : [];
@@ -209,6 +212,17 @@ const MeetingsManager: React.FC<MeetingsManagerProps> = ({ meetings, contactId, 
                     }}
                 </Form>
             </Modal>
+
+            {/* Delete confirmation dialog */}
+            <ConfirmDialog
+                isOpen={deleteConfirm.isConfirming}
+                onClose={deleteConfirm.cancel}
+                onConfirm={deleteConfirm.confirm}
+                title="Delete Meeting Note"
+                message="Are you sure you want to delete this meeting note? This action cannot be undone."
+                confirmText="Delete"
+                variant="danger"
+            />
         </div>
     );
 };

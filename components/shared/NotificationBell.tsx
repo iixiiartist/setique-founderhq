@@ -1,26 +1,47 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
+import { useClickOutside } from '../../hooks';
+import { formatRelativeTime } from '../../lib/utils/dateUtils';
 import { Bell, Check, CheckCheck, Trash2, X } from 'lucide-react';
 import { useNotifications } from '../../hooks/useNotifications';
+import NotificationContext, { useNotificationContext } from '../../contexts/NotificationContext';
 import type { Notification } from '../../lib/services/notificationService';
 import { showError, showSuccess } from '../../lib/utils/toast';
 import * as Sentry from '@sentry/react';
 
 interface NotificationBellProps {
-  userId: string;
+  /** @deprecated Pass nothing - uses NotificationContext if available */
+  userId?: string;
+  /** @deprecated Pass nothing - uses NotificationContext if available */
   workspaceId?: string;
   onNotificationClick?: (notification: Notification) => void;
+  /** If true, uses standalone hook instead of context (legacy mode) */
+  standalone?: boolean;
 }
 
 export const NotificationBell: React.FC<NotificationBellProps> = ({
   userId,
   workspaceId,
   onNotificationClick,
+  standalone = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useClickOutside<HTMLDivElement>(() => setIsOpen(false), isOpen);
   const unreadCountRef = useRef<HTMLDivElement>(null);
 
-  // Use the unified notifications hook
+  // Check if context is available
+  const contextValue = useContext(NotificationContext);
+  const useContextMode = !standalone && contextValue !== null;
+
+  // Use context if available, otherwise fallback to standalone hook
+  const standaloneHook = useNotifications({
+    userId: userId || '',
+    workspaceId,
+    pageSize: 20,
+    realtime: true,
+    respectPreferences: true,
+  });
+
+  // Select the appropriate source
   const {
     notifications,
     unreadCount,
@@ -30,13 +51,9 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
     markAllAsRead,
     deleteNotification,
     refresh,
-  } = useNotifications({
-    userId,
-    workspaceId,
-    limit: 20,
-    realtime: true,
-    respectPreferences: true, // Filter by user preferences
-  });
+    markAsDelivered,
+    markAsAcknowledged,
+  } = useContextMode ? contextValue : standaloneHook;
 
   // Refresh when dropdown opens
   useEffect(() => {
@@ -44,20 +61,6 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
       refresh();
     }
   }, [isOpen, refresh]);
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isOpen]);
 
   // Update screen reader announcement when count changes
   useEffect(() => {
@@ -67,8 +70,10 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
   }, [unreadCount]);
 
   const handleNotificationClick = useCallback(async (notification: Notification) => {
-    // Mark as read
-    if (!notification.read) {
+    // Mark as acknowledged (also marks as read)
+    if (markAsAcknowledged) {
+      await markAsAcknowledged(notification.id);
+    } else if (!notification.read) {
       const success = await markAsRead(notification.id);
       if (!success) {
         showError('Failed to mark notification as read');
@@ -83,7 +88,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
 
     // Close dropdown
     setIsOpen(false);
-  }, [markAsRead, onNotificationClick]);
+  }, [markAsRead, markAsAcknowledged, onNotificationClick]);
 
   const handleMarkAllAsRead = useCallback(async () => {
     const success = await markAllAsRead();
@@ -102,20 +107,8 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
     }
   }, [deleteNotification]);
 
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (minutes < 1) return 'just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    if (days < 7) return `${days}d ago`;
-    return date.toLocaleDateString();
-  };
+  // Use shared formatRelativeTime from dateUtils as formatTimestamp
+  const formatTimestamp = formatRelativeTime;
 
   const getNotificationIcon = (type: string) => {
     switch (type) {

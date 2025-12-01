@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useDebouncedValue, useDeleteConfirm } from '../../hooks';
 import { GTMDocMetadata, DocType } from '../../types';
 import { DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '../../constants';
 import { DatabaseService } from '../../lib/services/database';
 import { ChevronLeft, ChevronRight, Search, Loader2 } from 'lucide-react';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 
 interface DocsListProps {
     workspaceId: string;
@@ -28,7 +30,6 @@ export const DocsList: React.FC<DocsListProps> = ({
     const [filter, setFilter] = useState<FilterType>('all');
     const [docTypeFilter, setDocTypeFilter] = useState<DocType | 'all'>('all');
     const [searchQuery, setSearchQuery] = useState('');
-    const [debouncedSearch, setDebouncedSearch] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [isSearching, setIsSearching] = useState(false);
     const [isSeeding, setIsSeeding] = useState(false);
@@ -36,32 +37,24 @@ export const DocsList: React.FC<DocsListProps> = ({
     const [totalCount, setTotalCount] = useState(0);
     const [error, setError] = useState<string | null>(null);
     
-    const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Use shared debounce hook
+    const debouncedSearch = useDebouncedValue(searchQuery.trim(), SEARCH_DEBOUNCE_MS);
     const abortControllerRef = useRef<AbortController | null>(null);
+    const deleteConfirm = useDeleteConfirm();
 
-    // Debounce search query
+    // Track searching state when searchQuery changes
     useEffect(() => {
-        if (searchDebounceRef.current) {
-            clearTimeout(searchDebounceRef.current);
-        }
-        
-        if (searchQuery.trim()) {
+        if (searchQuery.trim() && searchQuery.trim() !== debouncedSearch) {
             setIsSearching(true);
-            searchDebounceRef.current = setTimeout(() => {
-                setDebouncedSearch(searchQuery.trim());
-                setCurrentPage(1); // Reset to first page on new search
-            }, SEARCH_DEBOUNCE_MS);
         } else {
-            setDebouncedSearch('');
             setIsSearching(false);
         }
-
-        return () => {
-            if (searchDebounceRef.current) {
-                clearTimeout(searchDebounceRef.current);
-            }
-        };
-    }, [searchQuery]);
+    }, [searchQuery, debouncedSearch]);
+    
+    // Reset page when debounced search changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [debouncedSearch]);
 
     // Reset page when filters change
     useEffect(() => {
@@ -209,23 +202,21 @@ export const DocsList: React.FC<DocsListProps> = ({
     const handleDeleteDoc = async (docId: string, docTitle: string, e: React.MouseEvent) => {
         e.stopPropagation();
         
-        if (!window.confirm(`Delete "${docTitle}"? This action cannot be undone.`)) {
-            return;
-        }
-
-        try {
-            const { error: deleteError } = await DatabaseService.deleteGTMDoc(docId, workspaceId);
-            
-            if (deleteError) {
-                console.error('Error deleting doc:', deleteError);
+        deleteConfirm.requestConfirm(docId, 'document', async () => {
+            try {
+                const { error: deleteError } = await DatabaseService.deleteGTMDoc(docId, workspaceId);
+                
+                if (deleteError) {
+                    console.error('Error deleting doc:', deleteError);
+                    setError('Failed to delete document');
+                } else {
+                    await loadDocs();
+                }
+            } catch (err) {
+                console.error('Error deleting doc:', err);
                 setError('Failed to delete document');
-            } else {
-                await loadDocs();
             }
-        } catch (err) {
-            console.error('Error deleting doc:', err);
-            setError('Failed to delete document');
-        }
+        });
     };
 
     const totalPages = Math.ceil(totalCount / PAGE_SIZE);
@@ -428,6 +419,19 @@ export const DocsList: React.FC<DocsListProps> = ({
                     </button>
                 </div>
             )}
+
+            {/* Delete Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={deleteConfirm.isOpen}
+                onClose={deleteConfirm.cancel}
+                onConfirm={deleteConfirm.confirm}
+                title={deleteConfirm.title}
+                message={deleteConfirm.message}
+                confirmLabel={deleteConfirm.confirmLabel}
+                cancelLabel={deleteConfirm.cancelLabel}
+                variant={deleteConfirm.variant}
+                isLoading={deleteConfirm.isProcessing}
+            />
         </div>
     );
 };

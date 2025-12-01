@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useDeleteConfirm } from '../../hooks';
 import { z } from 'zod';
 import {
     ArrowLeft, Trash2, Pencil, Mail, Phone, Linkedin, Building, User, Calendar, CheckSquare
@@ -13,6 +14,7 @@ import { SubtaskManager } from './SubtaskManager';
 import { Form } from '../forms/Form';
 import { FormField } from '../forms/FormField';
 import { Button } from '../ui/Button';
+import { ConfirmDialog } from './ConfirmDialog';
 
 const contactEditSchema = z.object({
     name: z.string().min(1, 'Name is required'),
@@ -40,7 +42,9 @@ interface ContactDetailViewProps {
 const ContactTaskItem: React.FC<{ task: Task; onEdit: (task: Task, triggerRef: React.RefObject<HTMLButtonElement>) => void; actions: AppActions; tag: string; taskCollection: TaskCollectionName; }> = ({ task, onEdit, actions, tag, taskCollection }) => {
     const editButtonRef = useRef<HTMLButtonElement>(null);
     const tagColorClass = TASK_TAG_BG_COLORS[tag] || 'bg-gray-300';
+    const deleteTaskConfirm = useDeleteConfirm<Task>('task');
     return (
+        <>
         <li className="flex items-stretch rounded-md overflow-hidden border border-gray-100 hover:border-gray-200 transition-colors">
             <div className={`w-1 shrink-0 ${tagColorClass}`}></div>
             <div className="flex items-start justify-between py-2.5 flex-grow pl-3 pr-2">
@@ -66,9 +70,9 @@ const ContactTaskItem: React.FC<{ task: Task; onEdit: (task: Task, triggerRef: R
                     </button>
                     <button 
                         onClick={() => {
-                            if (window.confirm('Delete this task?')) {
-                                actions.deleteItem(taskCollection, task.id);
-                            }
+                            deleteTaskConfirm.requestConfirm(task, (t) => {
+                                actions.deleteItem(taskCollection, t.id);
+                            });
                         }}
                         className="text-gray-400 hover:text-red-600 text-xs py-1 px-2 rounded hover:bg-red-50 transition-colors">
                         Del
@@ -76,6 +80,18 @@ const ContactTaskItem: React.FC<{ task: Task; onEdit: (task: Task, triggerRef: R
                 </div>
             </div>
         </li>
+        <ConfirmDialog
+            isOpen={deleteTaskConfirm.isOpen}
+            onClose={deleteTaskConfirm.cancel}
+            onConfirm={deleteTaskConfirm.confirm}
+            title={deleteTaskConfirm.title}
+            message={deleteTaskConfirm.message}
+            confirmLabel={deleteTaskConfirm.confirmLabel}
+            cancelLabel={deleteTaskConfirm.cancelLabel}
+            variant={deleteTaskConfirm.variant}
+            isLoading={deleteTaskConfirm.isProcessing}
+        />
+        </>
     );
 };
 
@@ -93,6 +109,7 @@ function ContactDetailView({ contact, parentItem, tasks, actions, onBack, crmCol
     
     const editContactModalTriggerRef = useRef<HTMLButtonElement | null>(null);
     const editTaskModalTriggerRef = useRef<HTMLButtonElement | null>(null);
+    const deleteContactConfirm = useDeleteConfirm();
 
     useEffect(() => {
         if (editingTask) {
@@ -219,10 +236,10 @@ function ContactDetailView({ contact, parentItem, tasks, actions, onBack, crmCol
                                 )}
                                 <button 
                                     onClick={() => {
-                                        if (window.confirm(`Delete ${contact.name}? This will also delete all associated tasks and meetings.`)) {
+                                        deleteContactConfirm.requestConfirm(contact.id, 'contact', async () => {
                                             actions.deleteContact(crmCollection, contact.crmItemId, contact.id);
                                             onBack();
-                                        }
+                                        });
                                     }} 
                                     className="flex items-center gap-1.5 text-gray-400 hover:text-red-600 text-sm font-medium transition-colors min-h-[44px] px-2"
                                 >
@@ -513,6 +530,17 @@ function ContactDetailView({ contact, parentItem, tasks, actions, onBack, crmCol
                     </div>
                 )}
             </Modal>
+
+            {/* Delete contact confirmation dialog */}
+            <ConfirmDialog
+                isOpen={deleteContactConfirm.isConfirming}
+                onClose={deleteContactConfirm.cancel}
+                onConfirm={deleteContactConfirm.confirm}
+                title="Delete Contact"
+                message={`Are you sure you want to delete ${contact.name}? This will also delete all associated tasks and meetings.`}
+                confirmText="Delete"
+                variant="danger"
+            />
         </div>
     );
 }

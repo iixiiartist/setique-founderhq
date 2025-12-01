@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDeleteConfirm } from '../../hooks';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { MessageSquare, Send, Check, X, MoreVertical, Trash2, Edit2 } from 'lucide-react';
 
 interface DocumentComment {
@@ -38,6 +40,8 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
     const [editContent, setEditContent] = useState('');
     const [showResolved, setShowResolved] = useState(false);
     const [loading, setLoading] = useState(true);
+    
+    const deleteCommentConfirm = useDeleteConfirm<{ id: string }>('comment');
 
     const loadComments = async () => {
         try {
@@ -148,19 +152,19 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
         }
     };
 
-    const deleteComment = async (commentId: string) => {
-        if (!confirm('Delete this comment?')) return;
+    const deleteComment = (commentId: string) => {
+        deleteCommentConfirm.requestConfirm({ id: commentId, name: 'comment' }, async (data) => {
+            try {
+                const { error } = await supabase
+                    .from('document_comments')
+                    .delete()
+                    .eq('id', data.id);
 
-        try {
-            const { error } = await supabase
-                .from('document_comments')
-                .delete()
-                .eq('id', commentId);
-
-            if (error) throw error;
-        } catch (error) {
-            console.error('Error deleting comment:', error);
-        }
+                if (error) throw error;
+            } catch (error) {
+                console.error('Error deleting comment:', error);
+            }
+        });
     };
 
     const toggleResolved = async (commentId: string, currentResolved: boolean) => {
@@ -444,6 +448,19 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
                     </div>
                 )}
             </div>
+
+            {/* Delete Comment Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={deleteCommentConfirm.isOpen}
+                onClose={deleteCommentConfirm.cancel}
+                onConfirm={deleteCommentConfirm.confirm}
+                title={deleteCommentConfirm.title}
+                message={deleteCommentConfirm.message}
+                confirmLabel={deleteCommentConfirm.confirmLabel}
+                cancelLabel={deleteCommentConfirm.cancelLabel}
+                variant={deleteCommentConfirm.variant}
+                isLoading={deleteCommentConfirm.isProcessing}
+            />
         </div>
     );
 };

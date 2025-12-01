@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { DashboardData, DocVisibility, GTMDocLink, LinkedEntityType, Task, AnyCrmItem, Contact, PlanType, WorkspaceRole } from '../../types';
 import Modal from '../shared/Modal';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { DatabaseService } from '../../lib/services/database';
+import { useDeleteConfirm } from '../../hooks';
 import { Link2, Loader2, ShieldCheck, Users, AlertTriangle, Crown } from 'lucide-react';
 
 interface DocShareModalProps {
@@ -72,6 +74,8 @@ export const DocShareModal: React.FC<DocShareModalProps> = ({
     const [filter, setFilter] = useState<ShareFilter>('all');
     const [localVisibility, setLocalVisibility] = useState<DocVisibility>(visibility);
     const [error, setError] = useState<string | null>(null);
+    
+    const removeLinkConfirm = useDeleteConfirm<{ id: string }>('share link');
 
     // Permission checks
     const canChangeVisibility = isDocOwner || workspaceRole === 'owner' || workspaceRole === 'admin';
@@ -278,21 +282,22 @@ export const DocShareModal: React.FC<DocShareModalProps> = ({
         }
     };
 
-    const handleRemoveLink = async (linkId: string) => {
-        if (!window.confirm('Remove this share link?')) return;
-        setError(null);
-        const { error: unlinkError } = await DatabaseService.unlinkDocFromEntity(linkId);
-        if (unlinkError) {
-            console.error('Failed to remove link', unlinkError);
-            if (unlinkError.message?.includes('permission') || unlinkError.code === '42501') {
-                setError('Permission denied: Cannot remove this link.');
-            } else {
-                setError('Failed to remove link.');
+    const handleRemoveLink = (linkId: string) => {
+        removeLinkConfirm.requestConfirm({ id: linkId, name: 'share link' }, async (data) => {
+            setError(null);
+            const { error: unlinkError } = await DatabaseService.unlinkDocFromEntity(data.id);
+            if (unlinkError) {
+                console.error('Failed to remove link', unlinkError);
+                if (unlinkError.message?.includes('permission') || unlinkError.code === '42501') {
+                    setError('Permission denied: Cannot remove this link.');
+                } else {
+                    setError('Failed to remove link.');
+                }
+                return;
             }
-            return;
-        }
-        await loadLinkedEntities();
-        onLinksUpdated?.();
+            await loadLinkedEntities();
+            onLinksUpdated?.();
+        });
     };
 
     const existingShares = linkedEntities.map((link) => ({
@@ -494,6 +499,19 @@ export const DocShareModal: React.FC<DocShareModalProps> = ({
                     )}
                 </section>
             </div>
+
+            {/* Remove Link Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={removeLinkConfirm.isOpen}
+                onClose={removeLinkConfirm.cancel}
+                onConfirm={removeLinkConfirm.confirm}
+                title="Remove Share Link"
+                message="Remove this share link? The entity will no longer have access to this document."
+                confirmLabel="Remove"
+                cancelLabel={removeLinkConfirm.cancelLabel}
+                variant={removeLinkConfirm.variant}
+                isLoading={removeLinkConfirm.isProcessing}
+            />
         </Modal>
     );
 };

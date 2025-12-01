@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
-import { useDebounce } from '../lib/hooks/usePerformance';
+import { useDebouncedValue } from '../hooks';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
@@ -15,6 +15,7 @@ import {
     UserTable,
     AutomationMonitor
 } from './admin';
+import { ConfirmWithInputDialog } from './shared/ConfirmWithInputDialog';
 
 function AdminTab() {
     const { workspace, refreshWorkspace } = useWorkspace();
@@ -40,8 +41,11 @@ function AdminTab() {
     const [selectedSeats, setSelectedSeats] = useState<number>(5);
     const [isUpdatingPlan, setIsUpdatingPlan] = useState(false);
 
+    // Delete user confirmation state
+    const [deleteUserDialog, setDeleteUserDialog] = useState<{ isOpen: boolean; userId: string; userEmail: string }>({ isOpen: false, userId: '', userEmail: '' });
+
     // Debounce search query
-    const debouncedSearchQuery = useDebounce(searchQuery, 300);
+    const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
 
     useEffect(() => {
         loadUserData();
@@ -114,27 +118,13 @@ function AdminTab() {
     }, [selectedPlan, selectedSeats, user?.id, queryClient, refreshWorkspace, loadUserData]);
 
     const deleteUser = useCallback(async (userId: string, userEmail: string) => {
-        const confirmed = window.confirm(
-            `⚠️ DELETE USER: ${userEmail}\n\n` +
-            `This will permanently delete:\n` +
-            `• User account and profile\n` +
-            `• All CRM data (investors, customers, partners)\n` +
-            `• All contacts and meetings\n` +
-            `• All tasks and marketing items\n` +
-            `• All financial data\n` +
-            `• All documents\n\n` +
-            `This action CANNOT be undone!\n\n` +
-            `Click OK to continue.`
-        );
+        // Open the confirmation dialog
+        setDeleteUserDialog({ isOpen: true, userId, userEmail });
+    }, []);
 
-        if (!confirmed) return;
-
-        const emailConfirm = window.prompt(`Type "${userEmail}" to confirm deletion:`);
-        
-        if (emailConfirm !== userEmail) {
-            alert('Email does not match. Deletion cancelled.');
-            return;
-        }
+    const handleConfirmDeleteUser = useCallback(async () => {
+        const { userId, userEmail } = deleteUserDialog;
+        setDeleteUserDialog({ isOpen: false, userId: '', userEmail: '' });
 
         try {
             setIsUpdatingPlan(true);
@@ -167,7 +157,7 @@ function AdminTab() {
         } finally {
             setIsUpdatingPlan(false);
         }
-    }, [loadUserData]);
+    }, [deleteUserDialog, loadUserData]);
 
     // Memoize filtered users
     const filteredUsers = useMemo(() => {
@@ -236,6 +226,21 @@ function AdminTab() {
                     />
                 </>
             )}
+
+            {/* Delete User Confirmation Dialog */}
+            <ConfirmWithInputDialog
+                isOpen={deleteUserDialog.isOpen}
+                onClose={() => setDeleteUserDialog({ isOpen: false, userId: '', userEmail: '' })}
+                onConfirm={handleConfirmDeleteUser}
+                title="Delete User Account"
+                message={`This will permanently delete:\n• User account and profile\n• All CRM data (investors, customers, partners)\n• All contacts and meetings\n• All tasks and marketing items\n• All financial data\n• All documents\n\nThis action CANNOT be undone!`}
+                confirmationText={deleteUserDialog.userEmail}
+                inputLabel="Type the email address to confirm deletion:"
+                confirmLabel="Delete User"
+                cancelLabel="Cancel"
+                variant="danger"
+                isLoading={isUpdatingPlan}
+            />
         </div>
     );
 }

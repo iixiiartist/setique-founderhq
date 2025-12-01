@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useClickOutside } from '../../hooks';
 
 interface WorkspaceMember {
   id: string;
@@ -27,25 +28,12 @@ export const AssignmentDropdown: React.FC<AssignmentDropdownProps> = ({
   disabled = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Close dropdown when clicking outside
+  const dropdownRef = useClickOutside<HTMLDivElement>(() => setIsOpen(false), isOpen);
 
   // Find current assignee details
   const currentMember = workspaceMembers.find(m => m.id === currentAssignee);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    if (isOpen) {
-      // Use 'click' instead of 'mousedown' to avoid race conditions
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
-    }
-  }, [isOpen]);
 
   const handleSelect = (userId: string | null, userName: string | null) => {
     onAssign(userId, userName);
