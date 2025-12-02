@@ -223,6 +223,9 @@ export const FormDesignPanel: React.FC<FormDesignPanelProps> = ({
                 (e.target as HTMLImageElement).style.display = 'none';
               }}
             />
+            <div className="flex-1">
+              <p className="text-xs text-green-600 font-medium">✓ Logo uploaded</p>
+            </div>
             <Button
               variant="outline"
               size="sm"
@@ -239,44 +242,46 @@ export const FormDesignPanel: React.FC<FormDesignPanelProps> = ({
           </div>
         )}
         
-        {/* File Upload Option */}
-        <div className="space-y-2">
-          <div className="flex gap-2">
-            <label 
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300 rounded cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-colors ${uploadingLogo ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <Upload className="w-4 h-4" />
-              <span className="text-sm">{uploadingLogo ? 'Uploading...' : 'Upload Image'}</span>
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
-                onChange={onLogoUpload}
-                disabled={uploadingLogo}
-                className="hidden"
-              />
-            </label>
+        {/* File Upload Option - only show if no logo */}
+        {!form.branding?.logoUrl && (
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <label 
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300 rounded cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-colors ${uploadingLogo ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <Upload className="w-4 h-4" />
+                <span className="text-sm">{uploadingLogo ? 'Uploading...' : 'Upload Image'}</span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                  onChange={onLogoUpload}
+                  disabled={uploadingLogo}
+                  className="hidden"
+                />
+              </label>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-400">or enter URL</span>
+            </div>
+            
+            <Input
+              id="design-logo-url"
+              value=""
+              onChange={(e) => onUpdateForm({ 
+                branding: { 
+                  ...DEFAULT_FORM_BRANDING,
+                  ...form.branding, 
+                  logoUrl: e.target.value 
+                } 
+              })}
+              placeholder="https://your-logo-url.com/logo.png"
+            />
+            <p className="text-xs text-gray-500">
+              Upload an image or enter a URL (PNG, JPG, SVG, WebP • Max 2MB)
+            </p>
           </div>
-          
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400">or</span>
-          </div>
-          
-          <Input
-            id="design-logo-url"
-            value={form.branding?.logoUrl || ''}
-            onChange={(e) => onUpdateForm({ 
-              branding: { 
-                ...DEFAULT_FORM_BRANDING,
-                ...form.branding, 
-                logoUrl: e.target.value 
-              } 
-            })}
-            placeholder="https://your-logo-url.com/logo.png"
-          />
-          <p className="text-xs text-gray-500">
-            Upload an image or enter a URL (PNG, JPG, SVG, WebP • Max 2MB)
-          </p>
-        </div>
+        )}
       </div>
 
       {/* Logo Position */}

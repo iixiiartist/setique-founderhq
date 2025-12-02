@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '../ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { Badge } from '../ui/Badge';
-import { Form, FormSubmission, FormAnalyticsSummary } from '../../types/forms';
-import { getFormAnalytics, getFormSubmissions } from '../../services/formService';
+import { Form, FormSubmission, FormAnalyticsSummary, FormField, FORM_FIELD_TYPES } from '../../types/forms';
+import { getFormAnalytics, getFormSubmissions, getForm } from '../../services/formService';
 import { formatDistanceToNow, format } from 'date-fns';
 
 interface FormAnalyticsProps {
@@ -11,14 +11,63 @@ interface FormAnalyticsProps {
   onBack: () => void;
 }
 
+// Helper to get field type icon
+const getFieldTypeIcon = (type: string): string => {
+  const fieldType = FORM_FIELD_TYPES.find(ft => ft.type === type);
+  return fieldType?.icon || '📝';
+};
+
+// Helper to format field values for display
+const formatFieldValue = (value: any, fieldType?: string): string => {
+  if (value === null || value === undefined || value === '') {
+    return '—';
+  }
+  if (Array.isArray(value)) {
+    return value.join(', ');
+  }
+  if (typeof value === 'object') {
+    // Handle address or other complex objects
+    if (value.street || value.city || value.state) {
+      return [value.street, value.city, value.state, value.zip, value.country]
+        .filter(Boolean)
+        .join(', ');
+    }
+    return JSON.stringify(value);
+  }
+  if (typeof value === 'boolean') {
+    return value ? 'Yes' : 'No';
+  }
+  // Handle rating/NPS display
+  if (fieldType === 'rating') {
+    return '⭐'.repeat(Number(value)) || String(value);
+  }
+  if (fieldType === 'nps') {
+    const score = Number(value);
+    const emoji = score >= 9 ? '😊' : score >= 7 ? '😐' : '😞';
+    return `${emoji} ${value}/10`;
+  }
+  return String(value);
+};
+
 export const FormAnalytics: React.FC<FormAnalyticsProps> = ({ form, onBack }) => {
   const [analytics, setAnalytics] = useState<FormAnalyticsSummary | null>(null);
   const [submissions, setSubmissions] = useState<FormSubmission[]>([]);
+  const [formFields, setFormFields] = useState<FormField[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'submissions' | 'sources'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'responses' | 'sources'>('overview');
   const [submissionsPage, setSubmissionsPage] = useState(0);
   const [totalSubmissions, setTotalSubmissions] = useState(0);
+  const [expandedSubmission, setExpandedSubmission] = useState<string | null>(null);
   const pageSize = 10;
+
+  // Create a mapping from field ID to field details
+  const fieldMap = useMemo(() => {
+    const map: Record<string, { label: string; type: string }> = {};
+    formFields.forEach(field => {
+      map[field.id] = { label: field.label, type: field.type };
+    });
+    return map;
+  }, [formFields]);
 
   useEffect(() => {
     loadData();
@@ -27,6 +76,16 @@ export const FormAnalytics: React.FC<FormAnalyticsProps> = ({ form, onBack }) =>
   const loadData = async () => {
     setLoading(true);
     try {
+      // Fetch form with fields if not already present
+      let fields = form.fields || [];
+      if (!fields.length) {
+        const { data: fullForm } = await getForm(form.id);
+        if (fullForm?.fields) {
+          fields = fullForm.fields;
+        }
+      }
+      setFormFields(fields);
+
       const [analyticsResult, submissionsResult] = await Promise.all([
         getFormAnalytics(form.id),
         getFormSubmissions(form.id, { limit: pageSize, offset: 0 }),
@@ -92,7 +151,7 @@ export const FormAnalytics: React.FC<FormAnalyticsProps> = ({ form, onBack }) =>
 
         {/* Tabs */}
         <div className="border-b border-gray-200 flex">
-          {(['overview', 'submissions', 'sources'] as const).map(tab => (
+          {(['overview', 'responses', 'sources'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -102,7 +161,7 @@ export const FormAnalytics: React.FC<FormAnalyticsProps> = ({ form, onBack }) =>
                   : 'hover:bg-gray-50 text-gray-600'
               }`}
             >
-              {tab === 'overview' ? '📈 Overview' : tab === 'submissions' ? '📥 Responses' : '🔗 Sources'}
+              {tab === 'overview' ? '📈 Overview' : tab === 'responses' ? '📥 Responses' : '🔗 Sources'}
             </button>
           ))}
         </div>
@@ -185,7 +244,7 @@ export const FormAnalytics: React.FC<FormAnalyticsProps> = ({ form, onBack }) =>
             </div>
           )}
 
-          {activeTab === 'submissions' && (
+          {activeTab === 'responses' && (
             <div className="space-y-4">
               {submissions.length === 0 ? (
                 <Card>
@@ -199,49 +258,146 @@ export const FormAnalytics: React.FC<FormAnalyticsProps> = ({ form, onBack }) =>
                 </Card>
               ) : (
                 <>
-                  <p className="text-sm text-gray-600">{totalSubmissions} total responses</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-gray-600 font-medium">{totalSubmissions} total responses</p>
+                    {formFields.length > 0 && (
+                      <p className="text-xs text-gray-400">{formFields.filter(f => !['heading', 'paragraph', 'divider', 'image'].includes(f.type)).length} questions</p>
+                    )}
+                  </div>
                   <div className="space-y-3">
-                    {submissions.map((submission, index) => (
-                      <Card key={submission.id} className="hover:shadow-md transition-shadow">
-                        <CardContent className="py-3">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Badge variant="default" size="sm">#{totalSubmissions - index}</Badge>
-                                <span className="text-xs text-gray-500">
-                                  {format(new Date(submission.created_at), 'MMM d, yyyy h:mm a')}
+                    {submissions.map((submission, index) => {
+                      const isExpanded = expandedSubmission === submission.id;
+                      const responseData = submission.data || {};
+                      const responseEntries = Object.entries(responseData);
+                      
+                      // Sort entries by field position if we have field info
+                      const sortedEntries = responseEntries.sort((a, b) => {
+                        const fieldA = formFields.find(f => f.id === a[0]);
+                        const fieldB = formFields.find(f => f.id === b[0]);
+                        return (fieldA?.position || 999) - (fieldB?.position || 999);
+                      });
+                      
+                      return (
+                        <Card 
+                          key={submission.id} 
+                          className={`hover:shadow-md transition-all cursor-pointer ${isExpanded ? 'ring-2 ring-blue-500' : ''}`}
+                          onClick={() => setExpandedSubmission(isExpanded ? null : submission.id)}
+                        >
+                          <CardContent className="py-4">
+                            {/* Response Header */}
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-3">
+                                <Badge variant="default" size="sm" className="bg-purple-100 text-purple-700">
+                                  #{totalSubmissions - index}
+                                </Badge>
+                                <span className="text-sm text-gray-600">
+                                  {format(new Date(submission.created_at), 'MMM d, yyyy')}
                                 </span>
+                                <span className="text-xs text-gray-400">
+                                  {format(new Date(submission.created_at), 'h:mm a')}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
                                 {submission.completion_time_seconds && (
-                                  <span className="text-xs text-gray-400">
+                                  <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">
                                     ⏱️ {Math.floor(submission.completion_time_seconds / 60)}m {submission.completion_time_seconds % 60}s
                                   </span>
                                 )}
+                                <span className="text-xs text-gray-400">
+                                  {isExpanded ? '▼' : '▶'}
+                                </span>
                               </div>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                                {Object.entries(submission.data || {}).slice(0, 4).map(([key, value]) => (
-                                  <div key={key} className="truncate">
-                                    <span className="text-gray-500">{key}:</span>{' '}
-                                    <span className="font-medium">
-                                      {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                                    </span>
-                                  </div>
-                                ))}
-                                {Object.keys(submission.data || {}).length > 4 && (
-                                  <span className="text-gray-400 text-xs">
-                                    +{Object.keys(submission.data || {}).length - 4} more fields
+                            </div>
+                            
+                            {/* Response Preview (collapsed) */}
+                            {!isExpanded && (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                {sortedEntries.slice(0, 4).map(([fieldId, value]) => {
+                                  const fieldInfo = fieldMap[fieldId];
+                                  const label = fieldInfo?.label || fieldId;
+                                  const displayValue = formatFieldValue(value, fieldInfo?.type);
+                                  
+                                  return (
+                                    <div key={fieldId} className="text-sm truncate">
+                                      <span className="text-gray-500 font-medium">{label}:</span>{' '}
+                                      <span className="text-gray-800">{displayValue}</span>
+                                    </div>
+                                  );
+                                })}
+                                {sortedEntries.length > 4 && (
+                                  <span className="text-gray-400 text-xs col-span-2">
+                                    +{sortedEntries.length - 4} more answers • Click to expand
                                   </span>
                                 )}
                               </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                            )}
+                            
+                            {/* Full Response (expanded) */}
+                            {isExpanded && (
+                              <div className="space-y-4 mt-2">
+                                <div className="border-t pt-4">
+                                  {sortedEntries.length === 0 ? (
+                                    <p className="text-gray-500 text-sm italic">No response data</p>
+                                  ) : (
+                                    <div className="space-y-3">
+                                      {sortedEntries.map(([fieldId, value]) => {
+                                        const fieldInfo = fieldMap[fieldId];
+                                        const label = fieldInfo?.label || fieldId;
+                                        const fieldType = fieldInfo?.type || 'text';
+                                        const displayValue = formatFieldValue(value, fieldType);
+                                        
+                                        return (
+                                          <div key={fieldId} className="bg-gray-50 rounded-lg p-3">
+                                            <div className="flex items-center gap-2 mb-1">
+                                              <span className="text-xs text-gray-400 uppercase tracking-wide">
+                                                {fieldType.replace('_', ' ')}
+                                              </span>
+                                            </div>
+                                            <p className="text-sm font-medium text-gray-700 mb-1">{label}</p>
+                                            <p className="text-base text-gray-900">
+                                              {displayValue}
+                                            </p>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {/* Submission Metadata */}
+                                <div className="border-t pt-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-gray-400">
+                                  {submission.source_url && (
+                                    <div>
+                                      <span className="block text-gray-500">Source</span>
+                                      <span className="truncate block" title={submission.source_url}>
+                                        {new URL(submission.source_url).hostname}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {submission.utm_params?.utm_source && (
+                                    <div>
+                                      <span className="block text-gray-500">UTM Source</span>
+                                      {submission.utm_params.utm_source}
+                                    </div>
+                                  )}
+                                  {submission.utm_params?.utm_campaign && (
+                                    <div>
+                                      <span className="block text-gray-500">Campaign</span>
+                                      {submission.utm_params.utm_campaign}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                   {submissions.length < totalSubmissions && (
-                    <div className="text-center">
+                    <div className="text-center pt-4">
                       <Button variant="outline" onClick={loadMoreSubmissions}>
-                        Load More
+                        Load More Responses
                       </Button>
                     </div>
                   )}

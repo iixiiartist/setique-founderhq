@@ -120,15 +120,26 @@ export const FormSettingsPanel: React.FC<FormSettingsPanelProps> = ({
         id="settings-redirect"
         label="Redirect URL (optional)"
         value={form.settings?.redirectUrl || ''}
-        onChange={(e) => onUpdateForm({ 
-          settings: { 
-            ...DEFAULT_FORM_SETTINGS, 
-            ...form.settings, 
-            redirectUrl: e.target.value 
-          } 
-        })}
-        placeholder="https://..."
+        onChange={(e) => {
+          let url = e.target.value.trim();
+          // Auto-prepend https:// if user enters a domain without protocol
+          if (url && !url.match(/^https?:\/\//i) && url.includes('.') && !url.startsWith('/')) {
+            // Only add protocol if it looks like a domain (has a dot)
+            url = 'https://' + url;
+          }
+          onUpdateForm({ 
+            settings: { 
+              ...DEFAULT_FORM_SETTINGS, 
+              ...form.settings, 
+              redirectUrl: url 
+            } 
+          });
+        }}
+        placeholder="https://yoursite.com"
       />
+      <p className="text-xs text-gray-500 -mt-1">
+        Where to redirect users after form submission
+      </p>
 
       {/* Visibility */}
       <Select

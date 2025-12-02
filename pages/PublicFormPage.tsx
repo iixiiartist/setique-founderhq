@@ -704,7 +704,12 @@ export const PublicFormPage: React.FC = () => {
       // Redirect if configured
       if (form.settings?.redirectUrl) {
         setTimeout(() => {
-          window.location.href = form.settings!.redirectUrl!;
+          let redirectUrl = form.settings!.redirectUrl!.trim();
+          // Ensure URL has a protocol, default to https://
+          if (redirectUrl && !redirectUrl.match(/^https?:\/\//i)) {
+            redirectUrl = 'https://' + redirectUrl;
+          }
+          window.location.href = redirectUrl;
         }, 1500);
       }
     } catch (err) {
