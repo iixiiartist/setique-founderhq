@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { EmailComposer } from './EmailComposer';
+import { EmailComposer } from './EmailComposerWrapper';
 import { SaveEmailModal } from './SaveEmailModal';
 import { supabase } from '../../lib/supabase';
 import { DatabaseService } from '../../lib/services/database';

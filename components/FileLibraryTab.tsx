@@ -7,7 +7,7 @@ import { ConfirmDialog } from './shared/ConfirmDialog';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { DatabaseService } from '../lib/services/database';
-import { EmailComposer, EmailAttachment } from './email/EmailComposer';
+import { EmailComposer, EmailAttachment } from './email/EmailComposerWrapper';
 import { supabase } from '../lib/supabase';
 import { showError } from '../lib/utils/toast';
 import mammoth from 'mammoth';

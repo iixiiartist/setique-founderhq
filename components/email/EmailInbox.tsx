@@ -6,7 +6,7 @@ import { useDeleteConfirm } from '../../hooks';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { showSuccess, showError } from '../../lib/utils/toast';
 import { EmailThread } from './EmailThread';
-import { EmailComposer } from './EmailComposer';
+import { EmailComposer } from './EmailComposerWrapper';
 import { EmailSidebar } from './EmailSidebar';
 import { EmailToolbar } from './EmailToolbar';
 import { EmailList } from './EmailList';
