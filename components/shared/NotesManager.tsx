@@ -21,7 +21,7 @@ const NotesManager: React.FC<NotesManagerProps> = ({ notes, itemId, collection, 
     const [editText, setEditText] = useState('');
     const { user } = useAuth();
     const { isWorkspaceOwner } = useWorkspace();
-    const deleteConfirm = useDeleteConfirm();
+    const deleteConfirm = useDeleteConfirm<{ id: string }>('note');
 
     const handleAddNote = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -107,7 +107,7 @@ const NotesManager: React.FC<NotesManagerProps> = ({ notes, itemId, collection, 
                                                 )}
                                                 <button 
                                                     onClick={() => {
-                                                        deleteConfirm.requestConfirm(note.timestamp.toString(), 'note', async () => {
+                                                        deleteConfirm.requestConfirm({ id: note.timestamp.toString() }, async () => {
                                                             await deleteNoteAction(collection, itemId, note.timestamp);
                                                         });
                                                     }} 
@@ -130,13 +130,13 @@ const NotesManager: React.FC<NotesManagerProps> = ({ notes, itemId, collection, 
             
             {/* Delete confirmation dialog */}
             <ConfirmDialog
-                isOpen={deleteConfirm.isConfirming}
+                isOpen={deleteConfirm.isOpen}
                 onClose={deleteConfirm.cancel}
                 onConfirm={deleteConfirm.confirm}
-                title="Delete Note"
-                message="Are you sure you want to delete this note? This action cannot be undone."
-                confirmText="Delete"
-                variant="danger"
+                title={deleteConfirm.title}
+                message={deleteConfirm.message}
+                confirmLabel={deleteConfirm.confirmLabel}
+                variant={deleteConfirm.variant}
             />
         </div>
     );

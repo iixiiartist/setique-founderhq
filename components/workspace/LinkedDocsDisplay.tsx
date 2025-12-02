@@ -22,7 +22,7 @@ export const LinkedDocsDisplay: React.FC<LinkedDocsDisplayProps> = ({
 }) => {
     const [linkedDocs, setLinkedDocs] = useState<LinkedDoc[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const deleteConfirm = useDeleteConfirm();
+    const deleteConfirm = useDeleteConfirm<{ id: string }>('document link');
 
     useEffect(() => {
         loadLinkedDocs();
@@ -52,7 +52,7 @@ export const LinkedDocsDisplay: React.FC<LinkedDocsDisplayProps> = ({
     };
 
     const handleUnlink = async (linkId: string) => {
-        deleteConfirm.requestConfirm(linkId, 'document link', async () => {
+        deleteConfirm.requestConfirm({ id: linkId }, async () => {
             try {
                 const { error } = await DatabaseService.unlinkDocFromEntity(linkId);
 

@@ -114,7 +114,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     const urlPattern = /(https?:\/\/[^\s<>"']+)/g;
     processed = processed.replace(
       urlPattern,
-      '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-purple-600 hover:text-purple-800 underline break-all">$1</a>'
+      '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-gray-700 hover:text-gray-900 underline break-all">$1</a>'
     );
 
     // Apply inline markdown
@@ -127,7 +127,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold">$1</strong>')
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
       // Inline code
-      .replace(/`([^`]+)`/g, '<code class="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono text-purple-700">$1</code>')
+      .replace(/`([^`]+)`/g, '<code class="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono text-gray-700">$1</code>')
       // Numbered lists (basic)
       .replace(/^(\d+)\. (.+)$/gm, '<div class="flex gap-2 ml-1"><span class="text-gray-500 font-medium min-w-[1.5rem]">$1.</span><span>$2</span></div>')
       // Line breaks
@@ -201,8 +201,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     if (!hasWebSources) return null;
 
     return (
-      <div className="mt-4 pt-3 border-t border-purple-100">
-        <p className="text-xs font-semibold text-purple-700 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+      <div className="mt-4 pt-3 border-t border-gray-200">
+        <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2 flex items-center gap-1.5">
           <ExternalLink size={12} />
           Sources
         </p>
@@ -213,20 +213,20 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               href={source.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="block p-2.5 bg-white border border-gray-200 rounded-lg hover:border-purple-300 hover:shadow-sm transition-all group"
+              className="block p-2.5 bg-white border border-gray-200 rounded-lg hover:border-gray-400 hover:shadow-sm transition-all group"
             >
               <div className="flex items-start gap-2">
-                <span className="flex-shrink-0 w-5 h-5 bg-purple-100 text-purple-700 rounded text-xs font-bold flex items-center justify-center">
+                <span className="flex-shrink-0 w-5 h-5 bg-gray-200 text-gray-700 rounded text-xs font-bold flex items-center justify-center">
                   {idx + 1}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 group-hover:text-purple-700 transition-colors line-clamp-1">
+                  <p className="text-sm font-medium text-gray-900 group-hover:text-gray-700 transition-colors line-clamp-1">
                     {source.title || 'Untitled'}
                   </p>
                   {source.snippet && (
                     <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{source.snippet}</p>
                   )}
-                  <p className="text-xs text-purple-600 mt-1 truncate flex items-center gap-1">
+                  <p className="text-xs text-gray-700 mt-1 truncate flex items-center gap-1">
                     <ExternalLink size={10} />
                     {new URL(source.url).hostname}
                   </p>
@@ -253,7 +253,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   return (
     <div
       className={`group relative px-3 sm:px-4 py-2 sm:py-3 hover:bg-gray-50/50 transition-colors ${
-        isAIMessage ? 'bg-gradient-to-r from-purple-50/80 to-indigo-50/50 border-l-2 border-purple-300' : ''
+        isAIMessage ? 'bg-gradient-to-r from-gray-100/80 to-gray-50/50 border-l-2 border-gray-400' : ''
       }`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => {
@@ -265,7 +265,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         {/* Avatar */}
         <div className="flex-shrink-0">
           {isAIMessage ? (
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-700 flex items-center justify-center text-white shadow-md">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center text-white shadow-md">
               <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
@@ -287,11 +287,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         <div className="flex-1 min-w-0">
           {/* Header */}
           <div className="flex items-baseline gap-1.5 sm:gap-2 mb-1 sm:mb-1.5 flex-wrap">
-            <span className={`font-semibold text-xs sm:text-sm ${isAIMessage ? 'text-purple-800' : 'text-gray-900'}`}>
+            <span className={`font-semibold text-xs sm:text-sm ${isAIMessage ? 'text-gray-800' : 'text-gray-900'}`}>
               {isAIMessage ? 'FounderHQ AI' : message.user?.full_name || 'Unknown'}
             </span>
             {isAIMessage && (
-              <span className="text-[9px] sm:text-[10px] px-1.5 py-0.5 bg-purple-200 text-purple-700 rounded-full font-medium uppercase tracking-wide">
+              <span className="text-[9px] sm:text-[10px] px-1.5 py-0.5 bg-gray-300 text-gray-700 rounded-full font-medium uppercase tracking-wide">
                 Assistant
               </span>
             )}
@@ -378,7 +378,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   onClick={() => onReact(emoji)}
                   className={`inline-flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-xs sm:text-sm transition-colors ${
                     hasOwn
-                      ? 'bg-purple-100 border border-purple-300'
+                      ? 'bg-gray-200 border border-gray-400'
                       : 'bg-gray-100 hover:bg-gray-200 border border-transparent'
                   }`}
                 >
@@ -393,7 +393,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           {hasThreadReplies && !isThreadView && (
             <button
               onClick={onReply}
-              className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-purple-600 hover:text-purple-700 hover:underline flex items-center gap-1"
+              className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-700 hover:text-gray-700 hover:underline flex items-center gap-1"
             >
               <span>💬</span>
               <span>{message.reply_count} {message.reply_count === 1 ? 'reply' : 'replies'}</span>

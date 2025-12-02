@@ -129,8 +129,8 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId,
                             onClick={() => setView('docs')}
                             className={`flex-1 px-4 py-3 font-bold text-sm transition-colors ${
                                 view === 'docs'
-                                    ? 'bg-yellow-400 text-black border-r-2 border-black'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-r-2 border-black'
+                                    ? 'bg-black text-white border-r border-gray-300'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-r border-gray-300'
                             }`}
                         >
                             📄 Documents
@@ -139,7 +139,7 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId,
                             onClick={() => setView('forms')}
                             className={`flex-1 px-4 py-3 font-bold text-sm transition-colors ${
                                 view === 'forms'
-                                    ? 'bg-purple-500 text-white'
+                                    ? 'bg-black text-white'
                                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                         >
@@ -158,7 +158,7 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId,
                         {isDocsEditorOpen && (
                             <button
                                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                                className="lg:hidden fixed top-20 left-4 z-50 p-2 bg-yellow-400 border border-gray-300 rounded-md shadow-sm"
+                                className="lg:hidden fixed top-20 left-4 z-50 p-2 bg-white border border-gray-300 rounded-xl shadow-sm hover:bg-gray-50"
                                 aria-label="Toggle document list"
                             >
                                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -223,7 +223,7 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId,
                                         </p>
                                         <button
                                             onClick={handleCreateNewDoc}
-                                            className="px-4 lg:px-6 py-2 lg:py-3 text-sm lg:text-base bg-yellow-400 text-black font-bold border border-yellow-500 rounded-md shadow-sm hover:bg-yellow-500 transition-colors"
+                                            className="px-4 lg:px-6 py-2 lg:py-3 text-sm lg:text-base bg-black text-white font-bold rounded-xl shadow-sm hover:bg-gray-800 transition-colors"
                                         >
                                             Create Your First Doc
                                         </button>
@@ -239,7 +239,7 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId,
                     <div className="flex-1 overflow-hidden">
                         <Suspense fallback={
                             <div className="h-full flex items-center justify-center">
-                                <div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full" />
+                                <div className="animate-spin w-8 h-8 border-4 border-gray-600 border-t-transparent rounded-full" />
                             </div>
                         }>
                             {analyticsForm ? (

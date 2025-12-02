@@ -39,7 +39,6 @@ async function initPdfJs() {
     pdfjsLib = await import('pdfjs-dist');
     pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
     pdfWorkerInitialized = true;
-    console.log('[FileLibraryTab] PDF.js initialized, version:', pdfjsLib.version);
     return pdfjsLib;
 }
 
@@ -48,8 +47,6 @@ const MAX_ACTIVITY_ITEMS = 80;
 // Extract text from PDF using pdfjs-dist
 async function extractTextFromPDF(base64Content: string): Promise<string> {
     try {
-        console.log('[FileLibraryTab] Starting PDF extraction, content length:', base64Content?.length);
-        
         const pdfjs = await initPdfJs();
         if (!pdfjs) throw new Error('Failed to load PDF.js library');
         
@@ -59,24 +56,18 @@ async function extractTextFromPDF(base64Content: string): Promise<string> {
             bytes[i] = binaryString.charCodeAt(i);
         }
         
-        console.log('[FileLibraryTab] PDF binary size:', bytes.length, 'bytes');
-        
         const loadingTask = pdfjs.getDocument({ data: bytes, useSystemFonts: true });
         const pdf = await loadingTask.promise;
         const textParts: string[] = [];
-        
-        console.log('[FileLibraryTab] PDF has', pdf.numPages, 'pages');
         
         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
             const page = await pdf.getPage(pageNum);
             const textContent = await page.getTextContent();
             const pageText = textContent.items.map((item: any) => item.str || '').join(' ');
             textParts.push(pageText);
-            console.log('[FileLibraryTab] Page', pageNum, 'extracted, chars:', pageText.length);
         }
         
         const result = textParts.join('\n\n').trim();
-        console.log('[FileLibraryTab] Total extracted text length:', result.length);
         
         if (!result) {
             console.warn('[FileLibraryTab] PDF extraction returned empty text - PDF may be scanned/image-based');
@@ -114,8 +105,6 @@ async function extractTextFromDOCX(base64Content: string): Promise<{ text: strin
 // Use Groq AI to intelligently structure and format extracted document content
 async function formatDocumentWithAI(rawText: string, fileName: string): Promise<{ contentJson: any; contentPlain: string }> {
     try {
-        console.log('[FileLibraryTab] Starting AI formatting for:', fileName, 'text length:', rawText.length);
-        
         if (!rawText || rawText.trim().length < 10) {
             throw new Error('Not enough text content to format');
         }
@@ -147,37 +136,27 @@ RULES:
             }
         });
 
-        console.log('[FileLibraryTab] Groq response:', { 
-            hasError: !!response.error, 
-            hasData: !!response.data,
-            responseType: typeof response.data?.response,
-            responseLength: response.data?.response?.length
-        });
-
         if (response.error) {
             console.error('[FileLibraryTab] Groq error:', response.error);
             throw new Error('AI formatting failed: ' + (response.error.message || JSON.stringify(response.error)));
         }
 
         let aiContent = response.data?.response || '';
-        console.log('[FileLibraryTab] AI content preview:', aiContent.slice(0, 200));
         
         if (!aiContent) {
-            console.error('[FileLibraryTab] Empty AI response, full data:', response.data);
+            console.error('[FileLibraryTab] Empty AI response');
             throw new Error('Empty AI response');
         }
 
         let jsonString = aiContent.trim();
         const codeBlockMatch = jsonString.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
         if (codeBlockMatch) {
-            console.log('[FileLibraryTab] Found code block in response');
             jsonString = codeBlockMatch[1].trim();
         }
         
         if (!jsonString.startsWith('{')) {
             const jsonStart = jsonString.indexOf('{"type":"doc"');
             if (jsonStart !== -1) {
-                console.log('[FileLibraryTab] Found JSON start at index:', jsonStart);
                 jsonString = jsonString.slice(jsonStart);
             }
         }
@@ -191,11 +170,9 @@ RULES:
             if (endIndex > 0) jsonString = jsonString.slice(0, endIndex);
         }
         
-        console.log('[FileLibraryTab] Attempting to parse JSON, length:', jsonString.length);
         const parsedContent = JSON.parse(jsonString);
         
         if (parsedContent.type === 'doc' && Array.isArray(parsedContent.content)) {
-            console.log('[FileLibraryTab] AI formatting successful, nodes:', parsedContent.content.length);
             return { contentJson: parsedContent, contentPlain: rawText };
         }
         
@@ -415,7 +392,6 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
         if (!workspace?.id || !user?.id || !onOpenInEditor) return;
         
         setIsConverting(true);
-        console.log('[FileLibraryTab] Starting handleEditInEditor for:', doc.name, 'mimeType:', doc.mimeType);
         
         try {
             let textContent = '';
@@ -424,16 +400,11 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
             
             // Extract text based on file type
             if (mimeType === 'application/pdf' || mimeType.includes('pdf')) {
-                console.log('[FileLibraryTab] Extracting text from PDF...');
                 textContent = await extractTextFromPDF(doc.content);
-                console.log('[FileLibraryTab] PDF text extracted, length:', textContent.length);
             } else if (mimeType.includes('wordprocessingml') || fileName.endsWith('.docx')) {
-                console.log('[FileLibraryTab] Extracting text from DOCX...');
                 const result = await extractTextFromDOCX(doc.content);
                 textContent = result.text;
-                console.log('[FileLibraryTab] DOCX text extracted, length:', textContent.length);
             } else if (mimeType === 'application/msword' || fileName.endsWith('.doc')) {
-                console.log('[FileLibraryTab] Extracting text from DOC...');
                 try {
                     const result = await extractTextFromDOCX(doc.content);
                     textContent = result.text;
@@ -441,7 +412,6 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                     textContent = atob(doc.content).replace(/[^\x20-\x7E\n\r\t]/g, ' ').trim();
                 }
             } else {
-                console.log('[FileLibraryTab] Decoding base64 content...');
                 try { textContent = atob(doc.content); } catch { textContent = doc.content || ''; }
             }
             
@@ -452,7 +422,6 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
             }
             
             // Create the GTM doc first
-            console.log('[FileLibraryTab] Creating GTM doc...');
             const { data: newDoc, error } = await DatabaseService.createGTMDoc({
                 workspaceId: workspace.id,
                 userId: user.id,
@@ -470,8 +439,6 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
                 return;
             }
             
-            console.log('[FileLibraryTab] GTM doc created:', newDoc.id);
-            
             const isTeamPro = workspace?.planType === 'team-pro';
             const needsAiFormatting = mimeType.includes('pdf') || mimeType.includes('wordprocessingml') || fileName.endsWith('.docx') || fileName.endsWith('.doc');
             
@@ -479,29 +446,23 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
             
             // Try AI formatting for supported file types on team-pro plan
             if (needsAiFormatting && textContent.length > 50 && isTeamPro) {
-                console.log('[FileLibraryTab] Attempting AI formatting (team-pro plan)...');
                 try {
                     const aiFormatted = await formatDocumentWithAI(textContent, fileName);
                     finalContentJson = aiFormatted.contentJson;
-                    console.log('[FileLibraryTab] AI formatting succeeded');
                 } catch (aiError) {
                     console.warn('[FileLibraryTab] AI formatting failed, using basic formatting:', aiError);
                     finalContentJson = createBasicContent(doc.name, textContent);
                 }
             } else {
-                console.log('[FileLibraryTab] Using basic content formatting (needsAI:', needsAiFormatting, 'textLen:', textContent.length, 'isTeamPro:', isTeamPro, ')');
                 finalContentJson = createBasicContent(doc.name, textContent);
             }
             
             // Update the doc with the formatted content
-            console.log('[FileLibraryTab] Updating GTM doc with formatted content...');
             await DatabaseService.updateGTMDoc(newDoc.id, workspace.id, { contentJson: finalContentJson, contentPlain: textContent });
             
             // Open in editor
-            console.log('[FileLibraryTab] Opening document in editor...');
             onOpenInEditor(newDoc.id);
             recordActivity(doc.id, 'viewed', { editedInGtmEditor: true });
-            console.log('[FileLibraryTab] Document opened successfully');
         } catch (err) {
             console.error('[FileLibraryTab] Error opening in editor:', err);
             showError('Failed to open document in editor. The file format may not be supported.');

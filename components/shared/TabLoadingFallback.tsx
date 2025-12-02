@@ -8,7 +8,7 @@ export const TabLoadingFallback: React.FC = () => {
   return (
     <div className="flex items-center justify-center h-full min-h-[400px]">
       <div className="text-center">
-        <div className="inline-block animate-spin h-12 w-12 border-4 border-blue-600 border-t-transparent rounded-full mb-4" />
+        <div className="inline-block animate-spin h-12 w-12 border-4 border-gray-600 border-t-transparent rounded-full mb-4" />
         <p className="text-slate-600 text-sm">Loading tab...</p>
       </div>
     </div>

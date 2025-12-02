@@ -453,7 +453,7 @@ export const HuddleTab: React.FC<HuddleTabProps> = ({ isMainMenuOpen = false }) 
                 <div className="p-3 sm:p-4 border-b-2 border-black bg-white">
                     <div className="flex items-center justify-between mb-2 sm:mb-3">
                         <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">
-                            <MessageSquare size={18} className="text-purple-600 sm:w-5 sm:h-5" />
+                            <MessageSquare size={18} className="text-gray-700 sm:w-5 sm:h-5" />
                             Huddle
                         </h2>
                         <div className="flex items-center gap-2">
@@ -461,7 +461,7 @@ export const HuddleTab: React.FC<HuddleTabProps> = ({ isMainMenuOpen = false }) 
                             <button onClick={() => setShowMobileRoomList(false)} className="p-1.5 hover:bg-gray-100 rounded sm:hidden"><X size={18} /></button>
                         </div>
                     </div>
-                    <button onClick={() => setShowCreateChannel(true)} className="w-full px-3 py-2 bg-purple-600 text-white font-medium rounded-xl hover:bg-purple-700 hover:shadow-md transition-all text-sm">
+                    <button onClick={() => setShowCreateChannel(true)} className="w-full px-3 py-2 bg-black text-white font-medium rounded-xl hover:bg-gray-800 hover:shadow-md transition-all text-sm">
                         + New Channel
                     </button>
                 </div>
@@ -530,7 +530,7 @@ export const HuddleTab: React.FC<HuddleTabProps> = ({ isMainMenuOpen = false }) 
             {loadingEntity && (
                 <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center">
                     <div className="bg-white rounded-lg shadow-xl p-6 flex items-center gap-3">
-                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-indigo-600 border-t-transparent" />
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-600 border-t-transparent" />
                         <span className="text-gray-700">Loading...</span>
                     </div>
                 </div>

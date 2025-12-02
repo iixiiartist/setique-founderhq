@@ -57,7 +57,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
   const [editingContent, setEditingContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { isWorkspaceOwner } = useWorkspace();
-  const deleteConfirm = useDeleteConfirm();
+  const deleteConfirm = useDeleteConfirm<{ id: string }>('comment');
 
   const handleSubmitComment = async () => {
     if (!newComment.trim() || submitting) return;
@@ -99,7 +99,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
   };
 
   const handleDeleteComment = async (commentId: string) => {
-    deleteConfirm.requestConfirm(commentId, 'comment', async () => {
+    deleteConfirm.requestConfirm({ id: commentId }, async () => {
       setSubmitting(true);
       const result = await onDeleteComment(commentId);
 

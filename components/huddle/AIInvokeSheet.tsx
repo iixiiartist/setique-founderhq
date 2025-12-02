@@ -159,7 +159,7 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
           <div>
             <h2 id="ai-invoke-title" className="text-base sm:text-lg font-bold text-gray-900">Ask AI</h2>
             {threadRootId ? (
-              <p className="text-xs sm:text-sm text-purple-600">Replying in thread</p>
+              <p className="text-xs sm:text-sm text-gray-700">Replying in thread</p>
             ) : roomName && (
               <p className="text-xs sm:text-sm text-gray-500">in #{roomName}</p>
             )}
@@ -187,7 +187,7 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
               onKeyDown={handleKeyDown}
               placeholder="Ask anything about your workspace data, get summaries, or request analysis..."
               rows={3}
-              className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-base focus:border-purple-400 focus:outline-none resize-none"
+              className="w-full border-2 border-gray-200 rounded-xl px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-base focus:border-gray-400 focus:outline-none resize-none"
               disabled={isLoading}
             />
             <p className="mt-1 text-xs text-gray-400 hidden sm:block">
@@ -210,7 +210,7 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
                   disabled={isLoading}
                   className={`flex items-center gap-1.5 sm:gap-2 p-2 sm:p-3 rounded-xl border-2 transition-all text-left min-h-[52px] ${
                     isContextSelected(source.id)
-                      ? 'border-purple-400 bg-purple-50'
+                      ? 'border-gray-400 bg-gray-100'
                       : 'border-gray-200 hover:border-gray-300 bg-white'
                   } disabled:opacity-50`}
                 >
@@ -224,7 +224,7 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
                     </div>
                   </div>
                   {isContextSelected(source.id) && (
-                    <Check size={14} className="text-purple-600 flex-shrink-0 sm:w-4 sm:h-4" />
+                    <Check size={14} className="text-gray-700 flex-shrink-0 sm:w-4 sm:h-4" />
                   )}
                 </button>
               )})}
@@ -252,7 +252,7 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
                 disabled={isLoading}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
             </label>
           </div>
 
@@ -264,7 +264,7 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
               </label>
               <div
                 ref={responseRef}
-                className="p-3 sm:p-4 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border border-purple-200 max-h-[200px] sm:max-h-[300px] overflow-y-auto"
+                className="p-3 sm:p-4 bg-gradient-to-br from-gray-100 to-gray-50 rounded-xl border border-gray-300 max-h-[200px] sm:max-h-[300px] overflow-y-auto"
               >
                 <div className="prose prose-sm max-w-none text-gray-800 text-sm leading-relaxed">
                   {streamingResponse.split('\n').map((line, i) => {
@@ -273,7 +273,7 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
                     if (numberedMatch) {
                       return (
                         <div key={i} className="flex gap-2 mb-2">
-                          <span className="flex-shrink-0 w-5 h-5 bg-purple-200 text-purple-700 rounded text-xs font-bold flex items-center justify-center">
+                          <span className="flex-shrink-0 w-5 h-5 bg-gray-300 text-gray-700 rounded text-xs font-bold flex items-center justify-center">
                             {numberedMatch[1]}
                           </span>
                           <span className="flex-1">{numberedMatch[2]}</span>
@@ -295,7 +295,7 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
                         return (
                           <p key={i} className="mb-1">
                             {parts[0]}
-                            <a href={urlMatch[0]} target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:text-purple-800 underline break-all">
+                            <a href={urlMatch[0]} target="_blank" rel="noopener noreferrer" className="text-gray-700 hover:text-gray-900 underline break-all">
                               {urlMatch[0]}
                             </a>
                             {parts[1]}
@@ -306,7 +306,7 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
                     // Handle Source: lines
                     if (line.trim().startsWith('Source:')) {
                       return (
-                        <p key={i} className="text-xs text-purple-600 mb-2">{line}</p>
+                        <p key={i} className="text-xs text-gray-700 mb-2">{line}</p>
                       );
                     }
                     // Regular lines
@@ -316,7 +316,7 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
                     return <br key={i} />;
                   })}
                   {isLoading && (
-                    <span className="inline-block w-2 h-4 bg-purple-500 animate-pulse ml-0.5" />
+                    <span className="inline-block w-2 h-4 bg-gray-1000 animate-pulse ml-0.5" />
                   )}
                 </div>
               </div>
@@ -363,7 +363,7 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
             <button
               onClick={handleInvoke}
               disabled={!prompt.trim() || isLoading}
-              className="flex-1 px-3 sm:px-4 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 min-h-[44px] text-sm sm:text-base"
+              className="flex-1 px-3 sm:px-4 py-2.5 bg-black text-white rounded-xl hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 min-h-[44px] text-sm sm:text-base"
             >
               {isLoading ? (
                 <>
@@ -393,7 +393,7 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
                 if (!source) return null;
                 const IconComponent = source.icon;
                 return (
-                  <span key={ctx.type} className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs">
+                  <span key={ctx.type} className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-200 text-gray-700 rounded-full text-xs">
                     <IconComponent size={10} />
                     {source.label}
                   </span>

@@ -109,7 +109,7 @@ function ContactDetailView({ contact, parentItem, tasks, actions, onBack, crmCol
     
     const editContactModalTriggerRef = useRef<HTMLButtonElement | null>(null);
     const editTaskModalTriggerRef = useRef<HTMLButtonElement | null>(null);
-    const deleteContactConfirm = useDeleteConfirm();
+    const deleteContactConfirm = useDeleteConfirm<{ id: string; name: string }>('contact');
 
     useEffect(() => {
         if (editingTask) {
@@ -236,7 +236,7 @@ function ContactDetailView({ contact, parentItem, tasks, actions, onBack, crmCol
                                 )}
                                 <button 
                                     onClick={() => {
-                                        deleteContactConfirm.requestConfirm(contact.id, 'contact', async () => {
+                                        deleteContactConfirm.requestConfirm({ id: contact.id, name: contact.name }, async () => {
                                             actions.deleteContact(crmCollection, contact.crmItemId, contact.id);
                                             onBack();
                                         });

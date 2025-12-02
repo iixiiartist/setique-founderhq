@@ -98,7 +98,7 @@ export const RoomList: React.FC<RoomListProps> = ({
           <div className="mt-1">
             <button
               onClick={onNewDM}
-              className="w-full px-4 py-2 text-left text-sm text-purple-600 hover:bg-purple-50 flex items-center gap-2"
+              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
             >
               <Plus size={14} />
               New Message
@@ -175,7 +175,7 @@ const RoomItem: React.FC<RoomItemProps> = ({ room, isActive, unreadCount, onClic
       onClick={onClick}
       className={`w-full px-4 py-2 flex items-center gap-2 text-sm transition-colors ${
         isActive
-          ? 'bg-purple-100 text-purple-900 font-semibold'
+          ? 'bg-gray-200 text-gray-900 font-semibold'
           : 'hover:bg-gray-50 text-gray-700'
       }`}
     >
@@ -202,7 +202,7 @@ const RoomItem: React.FC<RoomItemProps> = ({ room, isActive, unreadCount, onClic
       
       {/* AI enabled indicator */}
       {room.settings?.ai_allowed && (
-        <Sparkles size={12} className="text-purple-400 opacity-60" title="AI enabled" />
+        <Sparkles size={12} className="text-gray-400 opacity-60" title="AI enabled" />
       )}
     </button>
   );

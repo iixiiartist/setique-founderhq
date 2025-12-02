@@ -32,7 +32,7 @@ const MeetingsManager: React.FC<MeetingsManagerProps> = ({ meetings, contactId, 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
     const modalTriggerRef = useRef<HTMLButtonElement>(null);
-    const deleteConfirm = useDeleteConfirm();
+    const deleteConfirm = useDeleteConfirm<{ id: string; title: string }>('meeting note');
 
     const formatDateForInput = (timestamp: number) => {
         const date = new Date(timestamp);
@@ -101,8 +101,8 @@ const MeetingsManager: React.FC<MeetingsManagerProps> = ({ meetings, contactId, 
     }, [editingMeeting, actions, crmCollection, crmItemId, contactId, closeModal]);
 
 
-    const handleDelete = (meetingId: string) => {
-        deleteConfirm.requestConfirm(meetingId, 'meeting note', async () => {
+    const handleDelete = (meetingId: string, meetingTitle?: string) => {
+        deleteConfirm.requestConfirm({ id: meetingId, title: meetingTitle || 'meeting' }, async () => {
             actions.deleteMeeting(crmCollection, crmItemId, contactId, meetingId);
         });
     };
@@ -134,7 +134,7 @@ const MeetingsManager: React.FC<MeetingsManagerProps> = ({ meetings, contactId, 
                                 View/Edit
                             </button>
                             <button 
-                                onClick={() => handleDelete(meeting.id)} 
+                                onClick={() => handleDelete(meeting.id, meeting.title)} 
                                 className="font-mono text-xs font-semibold text-red-600 hover:underline"
                             >
                                 Delete

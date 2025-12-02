@@ -155,9 +155,9 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
     <div className="border-t-2 border-gray-200 bg-white safe-area-bottom">
       {/* Reply indicator */}
       {replyingTo && (
-        <div className="px-3 sm:px-4 py-1.5 sm:py-2 bg-purple-50 border-b border-purple-100 flex items-center justify-between">
+        <div className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-100 border-b border-gray-200 flex items-center justify-between">
           <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm min-w-0">
-            <span className="text-purple-600 flex-shrink-0">Replying to:</span>
+            <span className="text-gray-700 flex-shrink-0">Replying to:</span>
             <span className="text-gray-600 truncate">{replyingTo.preview}</span>
           </div>
           <button
@@ -259,7 +259,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
               placeholder={placeholder}
               disabled={disabled}
               rows={1}
-              className="w-full resize-none border-2 border-gray-200 rounded-xl px-3 py-1.5 sm:px-4 sm:py-2 pr-8 sm:pr-10 text-sm sm:text-base focus:border-purple-400 focus:outline-none disabled:bg-gray-50 disabled:text-gray-400"
+              className="w-full resize-none border-2 border-gray-200 rounded-xl px-3 py-1.5 sm:px-4 sm:py-2 pr-8 sm:pr-10 text-sm sm:text-base focus:border-gray-400 focus:outline-none disabled:bg-gray-50 disabled:text-gray-400"
               style={{ maxHeight: '150px' }}
             />
           </div>
@@ -271,7 +271,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
               onClick={() => setShowFormatting(!showFormatting)}
               className={`hidden sm:flex p-2 rounded-lg transition-colors ${
                 showFormatting 
-                  ? 'bg-purple-100 text-purple-600' 
+                  ? 'bg-gray-200 text-gray-700' 
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
               }`}
               title="Formatting"
@@ -283,7 +283,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
             {aiEnabled && onAIInvoke && (
               <button
                 onClick={onAIInvoke}
-                className="p-1.5 sm:p-2 text-purple-500 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="p-1.5 sm:p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                 title="Ask AI"
               >
                 <Sparkles size={18} className="sm:w-5 sm:h-5" />
@@ -294,7 +294,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
             <button
               onClick={handleSend}
               disabled={disabled || (!content.trim() && attachments.length === 0)}
-              className="p-1.5 sm:p-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="p-1.5 sm:p-2 bg-black text-white rounded-lg hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
               title="Send (Enter)"
             >
               <Send size={18} className="sm:w-5 sm:h-5" />

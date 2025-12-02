@@ -25,7 +25,7 @@ export const HuddleEmptyState: React.FC<HuddleEmptyStateProps> = ({
                 <p className="text-gray-400 mb-4 text-sm sm:text-base">Select a channel or start a conversation</p>
                 <button
                     onClick={onCreateChannel}
-                    className="px-4 py-2 bg-purple-600 text-white font-medium rounded-xl hover:bg-purple-700 hover:shadow-md transition-all text-sm sm:text-base"
+                    className="px-4 py-2 bg-black text-white font-medium rounded-xl hover:bg-gray-800 hover:shadow-md transition-all text-sm sm:text-base"
                 >
                     Create Channel
                 </button>

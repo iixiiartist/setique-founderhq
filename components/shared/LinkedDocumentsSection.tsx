@@ -31,7 +31,7 @@ export const LinkedDocumentsSection: React.FC<LinkedDocumentsSectionProps> = ({
   const [loading, setLoading] = useState(true);
   const [viewingDoc, setViewingDoc] = useState<LinkedDocument | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const deleteConfirm = useDeleteConfirm();
+  const deleteConfirm = useDeleteConfirm<{ id: string; name: string }>('document');
 
   useEffect(() => {
     fetchLinkedDocuments();
@@ -67,7 +67,8 @@ export const LinkedDocumentsSection: React.FC<LinkedDocumentsSectionProps> = ({
   };
 
   const handleDeleteDocument = async (docId: string) => {
-    deleteConfirm.requestConfirm(docId, 'document', async () => {
+    const docToDelete = documents.find(d => d.id === docId);
+    deleteConfirm.requestConfirm({ id: docId, name: docToDelete?.name || 'document' }, async () => {
       setDeletingId(docId);
       try {
         const { error } = await supabase

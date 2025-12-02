@@ -40,7 +40,7 @@ export const DocsList: React.FC<DocsListProps> = ({
     // Use shared debounce hook
     const debouncedSearch = useDebouncedValue(searchQuery.trim(), SEARCH_DEBOUNCE_MS);
     const abortControllerRef = useRef<AbortController | null>(null);
-    const deleteConfirm = useDeleteConfirm();
+    const deleteConfirm = useDeleteConfirm<{ id: string; title: string }>('document');
 
     // Track searching state when searchQuery changes
     useEffect(() => {
@@ -202,7 +202,7 @@ export const DocsList: React.FC<DocsListProps> = ({
     const handleDeleteDoc = async (docId: string, docTitle: string, e: React.MouseEvent) => {
         e.stopPropagation();
         
-        deleteConfirm.requestConfirm(docId, 'document', async () => {
+        deleteConfirm.requestConfirm({ id: docId, title: docTitle }, async () => {
             try {
                 const { error: deleteError } = await DatabaseService.deleteGTMDoc(docId, workspaceId);
                 
@@ -246,11 +246,11 @@ export const DocsList: React.FC<DocsListProps> = ({
                         placeholder="Search docs..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-9 pr-8 py-2 rounded-xl border border-gray-200 text-sm"
+                        className="w-full pl-9 pr-8 py-2 rounded-xl border border-gray-600 bg-slate-800 text-white text-sm placeholder:text-gray-400"
                         aria-label="Search documents"
                     />
                     {isSearching && (
-                        <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 animate-spin" size={16} />
+                        <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 animate-spin" size={16} />
                     )}
                 </div>
             </div>
@@ -320,7 +320,7 @@ export const DocsList: React.FC<DocsListProps> = ({
                                     <button
                                         onClick={handleSeedTemplates}
                                         disabled={isSeeding}
-                                        className="w-full mb-3 px-3 py-2 bg-purple-100 rounded-xl border border-purple-300 text-purple-900 font-medium hover:bg-purple-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="w-full mb-3 px-3 py-2 bg-gray-100 rounded-xl border border-gray-300 text-gray-900 font-medium hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {isSeeding ? 'Creating Templates...' : '📋 Create GTM Templates'}
                                     </button>
@@ -329,7 +329,7 @@ export const DocsList: React.FC<DocsListProps> = ({
                         )}
                         <button
                             onClick={onCreateNew}
-                            className="text-sm text-blue-600 hover:underline"
+                            className="text-sm text-gray-600 hover:text-black hover:underline"
                         >
                             Create a new document
                         </button>
@@ -340,7 +340,7 @@ export const DocsList: React.FC<DocsListProps> = ({
                             <div
                                 key={doc.id}
                                 className={`w-full p-3 lg:p-3 min-h-[60px] relative group ${
-                                    selectedDocId === doc.id ? 'bg-blue-50' : 'bg-white hover:bg-gray-50'
+                                    selectedDocId === doc.id ? 'bg-gray-100' : 'bg-white hover:bg-gray-50'
                                 }`}
                             >
                                 <div className="flex items-start gap-2 justify-between">

@@ -45,7 +45,7 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
                 {aiAllowed ? (
                     <button
                         onClick={onOpenAI}
-                        className="p-1.5 sm:px-3 sm:py-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-medium text-sm rounded-xl hover:shadow-md transition-all flex items-center gap-1"
+                        className="p-1.5 sm:px-3 sm:py-1.5 bg-gradient-to-r from-gray-700 to-gray-900 text-white font-medium text-sm rounded-xl hover:shadow-md transition-all flex items-center gap-1"
                         title="Ask AI"
                     >
                         <Sparkles size={16} />
