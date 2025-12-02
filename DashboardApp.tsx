@@ -39,7 +39,7 @@ import { FloatingAIAssistant } from './components/assistant/FloatingAIAssistant'
 import { useAuth } from './contexts/AuthContext';
 import { useWorkspace } from './contexts/WorkspaceContext';
 import { LoadingSpinner } from './components/shared/Loading';
-import { useQueryDataPersistence } from './hooks/useQueryDataPersistence';
+import { useDashboardData } from './hooks/useDashboardData';
 import { DataPersistenceAdapter } from './lib/services/dataPersistenceAdapter';
 import { DatabaseService } from './lib/services/database';
 import { supabase } from './lib/supabase';
@@ -64,57 +64,40 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
         return (savedTab as TabType) || Tab.Dashboard;
     });
     
-    // Use React Query for data fetching (improved caching and performance)
-    const lazyDataPersistence = useQueryDataPersistence();
-    const {
-        loadCoreData,
-        loadTasks,
-        loadCrmItems,
-        loadMarketing,
-        loadFinancials,
-        loadDocuments,
-        loadDocumentsMetadata,
-        loadDeals,
-        loadProductsServices,
-        invalidateCache,
-        invalidateAllCache,
-        isLoading: isDataLoading,
-        error: dataError
-    } = lazyDataPersistence;
-    
-    // Create a ref to access lazy data methods in actions
-    const useLazyDataPersistenceRef = useRef(lazyDataPersistence);
-    useEffect(() => {
-        useLazyDataPersistenceRef.current = lazyDataPersistence;
-    }, [lazyDataPersistence]);
-    
-    // State management for lazy-loaded data
-    const [data, setData] = useState<DashboardData>(EMPTY_DASHBOARD_DATA);
-    const [isLoading, setIsLoading] = useState(true);
-    const loadedTabsRef = useRef<Set<string>>(new Set()); // Use ref to avoid infinite loop
     const userId = user?.id;
     
-    // Create unified crmItems array for AccountsTab
-    const dataWithUnifiedCrm = useMemo(() => {
-        const crmItems = [
-            ...(data.investors || []),
-            ...(data.customers || []),
-            ...(data.partners || [])
-        ];
-        
-        // Also create unified crmTasks array for AccountsTab
-        const crmTasks = [
-            ...(data.investorTasks || []),
-            ...(data.customerTasks || []),
-            ...(data.partnerTasks || [])
-        ];
-        
-        return {
-            ...data,
-            crmItems,
-            crmTasks
-        };
-    }, [data]);
+    // Use the consolidated dashboard data hook (centralizes all data loading logic)
+    const {
+        data,
+        crmItems,
+        crmTasks,
+        isLoading,
+        isDataLoading,
+        error: dataError,
+        loadTabData,
+        reloadTab,
+        initializeApp,
+        invalidateCache,
+        invalidateAllCache,
+        clearLoadedTabs,
+        setData,
+        lazyDataRef: useLazyDataPersistenceRef,
+        loadedTabs
+    } = useDashboardData({
+        userId,
+        workspaceId: workspace?.id,
+        onError: (error) => {
+            handleToast('Failed to load data from database', 'info');
+            logger.error('Data loading error:', error);
+        }
+    });
+    
+    // Create unified data object for components that expect crmItems/crmTasks
+    const dataWithUnifiedCrm = useMemo(() => ({
+        ...data,
+        crmItems,
+        crmTasks
+    }), [data, crmItems, crmTasks]);
     
     const [sentNotifications, setSentNotifications] = useState<Set<string>>(new Set());
     const [lastNotificationCheckDate, setLastNotificationCheckDate] = useState<string | null>(null);
@@ -210,212 +193,19 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
         }
     }, [subscribePlan, workspace, isLoadingWorkspace]);
 
-    // Initialize app - load only core data (settings)
+    // Initialize app - load core data and document metadata
     useEffect(() => {
-        const initializeApp = async () => {
-            if (!user || !workspace) {
-                setIsLoading(false);
-                return;
-            }
-
-            try {
-                setIsLoading(true);
-                
-                // Load core data + document metadata on app start
-                // Document metadata is lightweight (no base64 content) so AI can access files across all tabs
-                const [coreData, documentsMetadata] = await Promise.all([
-                    loadCoreData(),
-                    loadDocumentsMetadata()
-                ]);
-                
-                setData(prev => ({
-                    ...prev,
-                    settings: coreData.settings,
-                    documentsMetadata: documentsMetadata
-                }));
-                
-                setIsLoading(false);
-            } catch (error) {
-                logger.error('Error initializing app:', error);
-                setIsLoading(false);
-            }
-        };
-
-        initializeApp();
-    }, [user?.id, workspace?.id]); // Only re-run when user or workspace ID actually changes
-
-    // Load tab-specific data when tab changes (lazy loading)
-    useEffect(() => {
-        const loadTabData = async () => {
-            logger.info(`[DashboardApp] Lazy load effect triggered for tab: ${activeTab}`, {
-                hasUser: !!user,
-                hasWorkspace: !!workspace,
-                alreadyLoaded: loadedTabsRef.current.has(activeTab),
-                loadedTabs: Array.from(loadedTabsRef.current)
-            });
-            
-            if (!user || !workspace || loadedTabsRef.current.has(activeTab)) {
-                logger.info('[DashboardApp] Skipping tab data load', {
-                    reason: !user ? 'no user' : !workspace ? 'no workspace' : 'already loaded'
-                });
-                return; // Already loaded this tab
-            }
-
-            try {
-                setIsLoading(true);
-                logger.info(`[DashboardApp] Loading data for tab: ${activeTab}`);
-                
-                switch (activeTab) {
-                    case Tab.Dashboard:
-                    case Tab.Calendar:
-                        // Load tasks for dashboard and calendar
-                        if (!loadedTabsRef.current.has('tasks')) {
-                            const tasks = await loadTasks();
-                            setData(prev => ({ ...prev, ...tasks }));
-                            loadedTabsRef.current.add('tasks');
-                        }
-                        
-                        // Calendar also needs marketing items and CRM items for events
-                        if (activeTab === Tab.Calendar) {
-                            if (!loadedTabsRef.current.has('marketing')) {
-                                const marketingData = await loadMarketing();
-                                setData(prev => ({ ...prev, ...marketingData }));
-                                loadedTabsRef.current.add('marketing');
-                            }
-                            
-                            if (!loadedTabsRef.current.has('crm')) {
-                                const crm = await loadCrmItems();
-                                setData(prev => ({ ...prev, ...crm }));
-                                loadedTabsRef.current.add('crm');
-                            }
-                        }
-                        break;
-
-                    case Tab.Accounts:
-                    case Tab.Investors:
-                    case Tab.Customers:
-                    case Tab.Partners:
-                        // Load CRM items (loadCrmItems returns both split and unified formats)
-                        if (!loadedTabsRef.current.has('crm')) {
-                            const crm = await loadCrmItems();
-                            setData(prev => ({ ...prev, ...crm }));
-                            loadedTabsRef.current.add('crm');
-                        }
-                        
-                        // Also load tasks for CRM tabs
-                        if (!loadedTabsRef.current.has('tasks')) {
-                            const tasks = await loadTasks();
-                            setData(prev => ({ ...prev, ...tasks }));
-                            loadedTabsRef.current.add('tasks');
-                        }
-                        break;
-
-                    case Tab.Marketing:
-                        // Load marketing items
-                        if (!loadedTabsRef.current.has('marketing')) {
-                            const marketingData = await loadMarketing();
-                            setData(prev => ({ ...prev, ...marketingData }));
-                            loadedTabsRef.current.add('marketing');
-                        }
-                        
-                        // Also load marketing tasks
-                        if (!loadedTabsRef.current.has('tasks')) {
-                            const tasks = await loadTasks();
-                            setData(prev => ({ ...prev, ...tasks }));
-                            loadedTabsRef.current.add('tasks');
-                        }
-                        break;
-
-                    case Tab.Financials:
-                        // Load financial logs and expenses
-                        if (!loadedTabsRef.current.has('financials')) {
-                            const financials = await loadFinancials();
-                            setData(prev => ({ ...prev, ...financials }));
-                            loadedTabsRef.current.add('financials');
-                        }
-                        
-                        // Also load financial tasks
-                        if (!loadedTabsRef.current.has('tasks')) {
-                            const tasks = await loadTasks();
-                            setData(prev => ({ ...prev, ...tasks }));
-                            loadedTabsRef.current.add('tasks');
-                        }
-                        break;
-
-                    case Tab.Documents:
-                        // Load documents
-                        if (!loadedTabsRef.current.has('documents')) {
-                            const documents = await loadDocuments();
-                            setData(prev => ({ ...prev, ...documents }));
-                            loadedTabsRef.current.add('documents');
-                        }
-                        break;
-
-                    case Tab.ProductsServices:
-                        // Load products & services tasks
-                        if (!loadedTabsRef.current.has('tasks')) {
-                            const tasks = await loadTasks();
-                            setData(prev => ({ ...prev, ...tasks }));
-                            loadedTabsRef.current.add('tasks');
-                        }
-                        
-                        // Load products/services data
-                        if (!loadedTabsRef.current.has('productsServices')) {
-                            const productsData = await loadProductsServices();
-                            setData(prev => ({ 
-                                ...prev, 
-                                productsServices: productsData.productsServices,
-                                productPriceHistory: productsData.productPriceHistory,
-                                productBundles: productsData.productBundles
-                            }));
-                            loadedTabsRef.current.add('productsServices');
-                        }
-                        
-                        // Load documents for products/services tab
-                        if (!loadedTabsRef.current.has('documents')) {
-                            const documents = await loadDocuments();
-                            setData(prev => ({ ...prev, ...documents }));
-                            loadedTabsRef.current.add('documents');
-                        }
-                        break;
-
-                    case Tab.Tasks:
-                        // Load all tasks for the Tasks tab
-                        logger.info('[DashboardApp] Tab.Tasks case hit', {
-                            tasksAlreadyLoaded: loadedTabsRef.current.has('tasks')
-                        });
-                        if (!loadedTabsRef.current.has('tasks')) {
-                            logger.info('[DashboardApp] Loading tasks for Tasks tab...');
-                            const tasks = await loadTasks();
-                            logger.info('[DashboardApp] Tasks loaded', tasks);
-                            setData(prev => ({ ...prev, ...tasks }));
-                            loadedTabsRef.current.add('tasks');
-                        }
-                        break;
-
-                    case Tab.Settings:
-                        // No additional data needed (uses core data)
-                        break;
-                }
-
-                loadedTabsRef.current.add(activeTab);
-                setIsLoading(false); // Done loading
-            } catch (error) {
-                logger.error(`Error loading data for tab ${activeTab}:`, error);
-                setIsLoading(false); // Stop loading on error
-            }
-        };
-
-        loadTabData();
-    }, [activeTab, user?.id, workspace?.id]); // Only depend on tab and user/workspace changes
-
-    // Handle data loading errors
-    useEffect(() => {
-        if (dataError) {
-            handleToast('Failed to load data from database', 'info');
-            logger.error('Data loading error:', dataError);
+        if (user && workspace) {
+            initializeApp();
         }
-    }, [dataError, handleToast]);
+    }, [user?.id, workspace?.id, initializeApp]);
+
+    // Load tab-specific data when tab changes (lazy loading via hook)
+    useEffect(() => {
+        if (user && workspace) {
+            loadTabData(activeTab);
+        }
+    }, [activeTab, user?.id, workspace?.id, loadTabData]);
 
     // Disable desktop notifications when browser doesn't support or permission denied
     const disableDesktopNotifications = useCallback(async () => {
@@ -586,105 +376,10 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
         setIsMenuOpen(false);
     };
 
-    // Reload function for lazy loading - invalidates cache and reloads current tab data
+    // Reload function for lazy loading - uses hook's reloadTab for current tab
     const reload = useCallback(async () => {
-        // Invalidate all caches
-        invalidateAllCache();
-        loadedTabsRef.current.clear();
-        
-        // Reload core data
-        try {
-            const coreData = await loadCoreData();
-            setData(prev => ({
-                ...prev,
-                settings: coreData.settings
-            }));
-            
-            // Reload current tab data
-            switch (activeTab) {
-                case Tab.Dashboard:
-                case Tab.Calendar:
-                case Tab.ProductsServices:
-                    const tasks = await loadTasks({ force: true });
-                    setData(prev => ({ ...prev, ...tasks }));
-                    loadedTabsRef.current.add('tasks');
-                    
-                    // Calendar tab needs marketing data for calendar events
-                    if (activeTab === Tab.Calendar) {
-                        const marketing = await loadMarketing({ force: true });
-                        setData(prev => ({ ...prev, ...marketing }));
-                        loadedTabsRef.current.add('marketing');
-                        
-                        const crm = await loadCrmItems({ force: true });
-                        setData(prev => ({ ...prev, ...crm }));
-                        loadedTabsRef.current.add('crm');
-                    }
-                    
-                    if (activeTab === Tab.ProductsServices) {
-                        const productsData = await loadProductsServices({ force: true });
-                        setData(prev => ({ 
-                            ...prev, 
-                            productsServices: productsData.productsServices,
-                            productPriceHistory: productsData.productPriceHistory,
-                            productBundles: productsData.productBundles
-                        }));
-                        loadedTabsRef.current.add('productsServices');
-                        
-                        const documents = await loadDocuments({ force: true });
-                        setData(prev => ({ ...prev, ...documents }));
-                        loadedTabsRef.current.add('documents');
-                    }
-                    break;
-
-                case Tab.Accounts:
-                case Tab.Investors:
-                case Tab.Customers:
-                case Tab.Partners:
-                    const crm = await loadCrmItems({ force: true });
-                    setData(prev => ({ ...prev, ...crm }));
-                    loadedTabsRef.current.add('crm');
-                    
-                    const crmTasks = await loadTasks({ force: true });
-                    setData(prev => ({ ...prev, ...crmTasks }));
-                    loadedTabsRef.current.add('tasks');
-                    break;
-
-                case Tab.Marketing:
-                    const marketing = await loadMarketing({ force: true });
-                    setData(prev => ({ ...prev, ...marketing }));
-                    loadedTabsRef.current.add('marketing');
-                    
-                    const marketingTasks = await loadTasks({ force: true });
-                    setData(prev => ({ ...prev, ...marketingTasks }));
-                    loadedTabsRef.current.add('tasks');
-                    break;
-
-                case Tab.Financials:
-                    const financials = await loadFinancials({ force: true });
-                    setData(prev => ({ ...prev, ...financials }));
-                    loadedTabsRef.current.add('financials');
-                    
-                    const financialTasks = await loadTasks({ force: true });
-                    setData(prev => ({ ...prev, ...financialTasks }));
-                    loadedTabsRef.current.add('tasks');
-                    break;
-
-                case Tab.Documents:
-                    const docs = await loadDocuments({ force: true });
-                    setData(prev => ({ ...prev, ...docs }));
-                    loadedTabsRef.current.add('documents');
-                    break;
-
-                case Tab.Settings:
-                    // No additional data needed
-                    break;
-            }
-            
-            loadedTabsRef.current.add(activeTab);
-        } catch (error) {
-            logger.error('Error reloading data:', error);
-        }
-    }, [activeTab, loadCoreData, loadTasks, loadCrmItems, loadMarketing, loadFinancials, loadDocuments, loadProductsServices, invalidateAllCache]);
+        await reloadTab(activeTab);
+    }, [activeTab, reloadTab]);
 
     const allTasks = useMemo(() => {
         const taskCollections: { tasks: Task[]; tag: string }[] = [
@@ -718,80 +413,10 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
     // --- AI Data Loading Handler ---
     const handleAIDataLoad = useCallback(async (tab: TabType) => {
         console.log(`[DashboardApp] AI requested data load for tab: ${tab}`);
-        
-        switch (tab) {
-            case Tab.Accounts:
-            case Tab.Investors:
-            case Tab.Customers:
-            case Tab.Partners:
-                // Load CRM items and deals with force refresh
-                await loadCrmItems({ force: true });
-                await loadTasks({ force: true });
-                if (useLazyDataPersistenceRef.current?.loadDeals) {
-                    const deals = await useLazyDataPersistenceRef.current.loadDeals({ force: true });
-                    setData(prev => ({ ...prev, ...deals }));
-                }
-                break;
-            
-            case Tab.Marketing:
-                // Load marketing items with force refresh
-                await loadMarketing({ force: true });
-                await loadTasks({ force: true });
-                break;
-            
-            case Tab.Financials:
-                // Load financial data with force refresh
-                await loadFinancials({ force: true });
-                await loadTasks({ force: true });
-                break;
-            
-            case Tab.ProductsServices:
-                // Load products & services with force refresh
-                await loadTasks({ force: true });
-                const productsData = await loadProductsServices({ force: true });
-                setData(prev => ({ 
-                    ...prev, 
-                    productsServices: productsData.productsServices,
-                    productPriceHistory: productsData.productPriceHistory,
-                    productBundles: productsData.productBundles
-                }));
-                break;
-            
-            case Tab.Calendar:
-                // Calendar needs multiple data sources
-                await loadTasks({ force: true });
-                await loadCrmItems({ force: true });
-                await loadMarketing({ force: true });
-                break;
-            
-            case Tab.Tasks:
-                // Tasks tab needs all task collections
-                await loadTasks({ force: true });
-                await loadCrmItems({ force: true }); // For linked accounts/contacts
-                break;
-            
-            case Tab.Dashboard:
-                // Dashboard needs overview data
-                await loadCoreData();
-                await loadTasks({ force: true });
-                await loadCrmItems({ force: true });
-                await loadMarketing({ force: true });
-                break;
-            
-            case Tab.Documents:
-            case Tab.Workspace:
-                // Load documents
-                await loadDocuments({ force: true });
-                break;
-            
-            default:
-                // For other tabs, just ensure core data is loaded
-                await loadCoreData();
-                break;
-        }
-        
+        // Use the hook's reloadTab to force refresh data for the requested tab
+        await reloadTab(tab);
         console.log(`[DashboardApp] Data load complete for tab: ${tab}`);
-    }, [loadCrmItems, loadMarketing, loadFinancials, loadTasks, loadCoreData, loadDocuments]);
+    }, [reloadTab]);
     
     // --- AI Action Implementations ---
     const allCompanies = useMemo(() => {
@@ -1003,7 +628,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 
                 // Reload tasks to get fresh data
                 invalidateCache('tasks');
-                const updatedTasks = await loadTasks({ force: true });
+                const updatedTasks = await useLazyDataPersistenceRef.current.loadTasks({ force: true });
                 setData(prev => ({ ...prev, ...updatedTasks }));
 
                 // Award XP if task was just completed (not already done)
@@ -1267,9 +892,9 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 handleToast(`${titleCase(collection.slice(0, -1))} "${newCompanyName}" created successfully.`, 'success');
                 
                 // Reload CRM data immediately to update UI
-                const crm = await loadCrmItems({ force: true });
+                const crm = await useLazyDataPersistenceRef.current.loadCrmItems({ force: true });
                 setData(prev => ({ ...prev, ...crm }));
-                loadedTabsRef.current.add('crm');
+                
 
                 return { success: true, message: `${collection} item created.`, itemId: createdItem.id };
             } catch (error) {
@@ -1293,9 +918,9 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 invalidateCache('crm');
                 
                 // Reload CRM data immediately to update UI (works on any tab, including Calendar)
-                const crm = await loadCrmItems({ force: true });
+                const crm = await useLazyDataPersistenceRef.current.loadCrmItems({ force: true });
                 setData(prev => ({ ...prev, ...crm }));
-                loadedTabsRef.current.add('crm');
+                
                 
                 return { success: true, message: 'CRM item updated.' };
             } catch (error) {
@@ -1323,9 +948,9 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 handleToast(`Contact "${contactData.name}" created.`, 'success');
                 
                 // Reload CRM data immediately to update UI
-                const crm = await loadCrmItems({ force: true });
+                const crm = await useLazyDataPersistenceRef.current.loadCrmItems({ force: true });
                 setData(prev => ({ ...prev, ...crm }));
-                loadedTabsRef.current.add('crm');
+                
                 
                 return { success: true, message: 'Contact created.', contactId: createdContact.id };
             } catch (error) {
@@ -1382,9 +1007,9 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 await DataPersistenceAdapter.createMeeting(userId, workspace.id, contactId, meetingData);
                 
                 // Reload CRM data immediately to update UI (works on any tab, including Calendar)
-                const crm = await loadCrmItems({ force: true });
+                const crm = await useLazyDataPersistenceRef.current.loadCrmItems({ force: true });
                 setData(prev => ({ ...prev, ...crm }));
-                loadedTabsRef.current.add('crm');
+                
                 
                 handleToast(`Meeting "${meetingData.title}" logged.`, 'success');
                 
@@ -1446,7 +1071,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 invalidateCache('financials');
                 
                 // Reload financial data immediately (this will fetch fresh data since cache is invalidated)
-                const freshFinancials = await loadFinancials({ force: true });
+                const freshFinancials = await useLazyDataPersistenceRef.current.loadFinancials({ force: true });
                 setData(prev => ({ 
                     ...prev, 
                     financials: freshFinancials.financials,
@@ -1454,7 +1079,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 }));
                 
                 // Mark as loaded
-                loadedTabsRef.current.add('financials');
+                
                 
                 handleToast(`Financials logged for ${logData.date}.`, 'success');
                 
@@ -1481,13 +1106,13 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 
                 // Invalidate cache and reload
                 invalidateCache('financials');
-                const freshFinancials = await loadFinancials({ force: true });
+                const freshFinancials = await useLazyDataPersistenceRef.current.loadFinancials({ force: true });
                 setData(prev => ({ 
                     ...prev, 
                     financials: freshFinancials.financials,
                     expenses: freshFinancials.expenses 
                 }));
-                loadedTabsRef.current.add('financials');
+                
                 
                 return { success: true, message: `Expense created: ${expenseData.description}` };
             } catch (error) {
@@ -1507,13 +1132,13 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 
                 // Invalidate cache and reload
                 invalidateCache('financials');
-                const freshFinancials = await loadFinancials({ force: true });
+                const freshFinancials = await useLazyDataPersistenceRef.current.loadFinancials({ force: true });
                 setData(prev => ({ 
                     ...prev, 
                     financials: freshFinancials.financials,
                     expenses: freshFinancials.expenses 
                 }));
-                loadedTabsRef.current.add('financials');
+                
                 
                 return { success: true, message: 'Expense updated successfully' };
             } catch (error) {
@@ -1594,19 +1219,19 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 
                 // Rollback on error - reload the data
                 if (collection === 'financials' || collection === 'expenses') {
-                    const freshFinancials = await loadFinancials({ force: true });
+                    const freshFinancials = await useLazyDataPersistenceRef.current.loadFinancials({ force: true });
                     setData(prev => ({ ...prev, ...freshFinancials }));
                 } else if (collection === 'marketing') {
-                    const freshMarketing = await loadMarketing({ force: true });
+                    const freshMarketing = await useLazyDataPersistenceRef.current.loadMarketing({ force: true });
                     setData(prev => ({ ...prev, ...freshMarketing }));
                 } else if (['investors', 'customers', 'partners'].includes(collection) || collection === 'contacts') {
-                    const freshCrm = await loadCrmItems({ force: true });
+                    const freshCrm = await useLazyDataPersistenceRef.current.loadCrmItems({ force: true });
                     setData(prev => ({ ...prev, ...freshCrm }));
                 } else if (['productsServicesTasks', 'investorTasks', 'customerTasks', 'partnerTasks', 'marketingTasks', 'financialTasks'].includes(collection)) {
-                    const freshTasks = await loadTasks({ force: true });
+                    const freshTasks = await useLazyDataPersistenceRef.current.loadTasks({ force: true });
                     setData(prev => ({ ...prev, ...freshTasks }));
                 } else if (collection === 'documents') {
-                    const freshDocuments = await loadDocuments({ force: true });
+                    const freshDocuments = await useLazyDataPersistenceRef.current.loadDocuments({ force: true });
                     setData(prev => ({ ...prev, ...freshDocuments }));
                 }
                 
@@ -1645,9 +1270,9 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 
                 // Reload marketing data immediately
                 invalidateCache('marketing');
-                const freshMarketing = await loadMarketing({ force: true });
+                const freshMarketing = await useLazyDataPersistenceRef.current.loadMarketing({ force: true });
                 setData(prev => ({ ...prev, ...freshMarketing }));
-                loadedTabsRef.current.add('marketing');
+                
                 
                 logger.info('[createMarketingItem] Created successfully, reloaded data');
                 handleToast(`Campaign "${itemData.title}" created successfully.`, 'success');
@@ -1699,7 +1324,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 
                 // Reload marketing data (important for calendar sync)
                 logger.info('[updateMarketingItem] Reloading marketing data...');
-                const marketingData = await loadMarketing({ force: true });
+                const marketingData = await useLazyDataPersistenceRef.current.loadMarketing({ force: true });
                 setData(prev => ({ ...prev, ...marketingData }));
                 invalidateCache('marketing');
                 logger.info('[updateMarketingItem] Update complete');
@@ -1785,10 +1410,10 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 await DatabaseService.incrementFileCount(workspace.id, fileSizeBytes);
 
                 // Force reload documents by clearing the loaded tab flag
-                loadedTabsRef.current.delete('documents');
+                
                 
                 // Reload documents immediately
-                const documents = await loadDocuments({ force: true });
+                const documents = await useLazyDataPersistenceRef.current.loadDocuments({ force: true });
                 setData(prev => ({ ...prev, ...documents }));
                 
                 invalidateCache('documents');
