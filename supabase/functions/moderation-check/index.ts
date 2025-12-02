@@ -50,9 +50,12 @@ interface HeuristicResult {
   matches: number;
 }
 
+// Import shared CORS headers
+import { corsHeaders as sharedCorsHeaders } from '../_shared/apiAuth.ts';
+
+// Add POST method support
 const corsHeaders: Record<string, string> = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  ...sharedCorsHeaders,
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 

@@ -73,69 +73,84 @@ These require careful migration to avoid breaking functionality.
 
 ### 2.2 Dashboard Data Hook Consolidation
 
-**Current State:**
-- Tab-loading logic scattered in `DashboardApp.tsx` (~200 lines)
-- `hooks/useDashboardData.ts` exists but doesn't include tab-loading
+**Current State (Updated Analysis):**
+- ✅ `hooks/useDashboardData.ts` **already exists** with:
+  - `loadTabData` function with full tab switching logic
+  - `TAB_DATA_REQUIREMENTS` mapping for all tabs
+  - Unified `crmItems` and `crmTasks` arrays
+  - Proper memoization and React Query integration
+- ⚠️ `DashboardApp.tsx` (3092 lines) has **duplicate inline logic** (lines 248-408)
+- ⚠️ DashboardApp imports `useQueryDataPersistence` directly instead of `useDashboardData`
 
 **Target:**
-- Move `loadTabData` logic from `DashboardApp.tsx` into `hooks/useDashboardData.ts`
-- Single source of truth for dashboard data fetching
+- Wire `DashboardApp.tsx` to use existing `useDashboardData` hook
+- Remove duplicate inline `loadTabData` logic
 
 **Migration Plan:**
-1. Extract `loadTabData` function and related state from `DashboardApp.tsx`
-2. Add to `useDashboardData` hook with proper memoization
-3. Update `DashboardApp.tsx` to use consolidated hook
-4. Test all tab transitions
+1. ⏳ Import `useDashboardData` in `DashboardApp.tsx`
+2. ⏳ Replace `useQueryDataPersistence` call with `useDashboardData`
+3. ⏳ Remove inline `loadTabData` useEffect (lines 248-408)
+4. ⏳ Use hook's `loadTabData`, `data`, `crmItems`, etc.
+5. ⏳ Test all tab transitions
 
-**Risk:** Medium - Affects all dashboard tabs  
-**Status:** ⏳ Not Started
+**Risk:** Medium-High - DashboardApp is 3092 lines, core file  
+**Status:** ⏸️ Deferred (hook already exists, wiring deferred due to risk)
 
 ---
 
 ### 2.3 CRM Shared Hooks Integration
 
-**Current State:**
-- `hooks/useAccountManagerShared.ts` - Shared logic exists
-- `hooks/useContactManagerShared.ts` - Shared logic exists
-- `crm/AccountManagerRefactored.tsx` - Not using shared hooks
-- `crm/ContactManagerRefactored.tsx` - Not using shared hooks
+**Current State (Updated Analysis):**
+- ✅ `useAccountManagerShared.ts` **exists** at `components/crm/accounts/hooks/`
+  - Full implementation with filters, selection, CSV, modals, CRUD
+  - Composes: `useAccountFilters`, `useCrmSelection`, `useCsvImportExport`, `useModal`
+- ✅ `useContactManagerShared.ts` **exists** at `components/crm/contacts/hooks/`
+  - Full implementation with filters, selection, CSV, tags, notes, duplicates
+  - Composes: `useContactFilters`, `useCrmSelection`, `useCsvImportExport`, `useModal`
+- ⚠️ `crm/AccountManagerRefactored.tsx` - **Not using shared hook**
+- ⚠️ `crm/ContactManagerRefactored.tsx` - **Not using shared hook**
 
 **Target:**
 - Wire shared hooks into refactored components
 - Eliminate duplicate state management
 
 **Migration Plan:**
-1. Import `useAccountManagerShared` into `AccountManagerRefactored.tsx`
-2. Replace local state with hook-provided state
-3. Import `useContactManagerShared` into `ContactManagerRefactored.tsx`
-4. Replace local state with hook-provided state
-5. Test all CRM CRUD operations
+1. ⏳ Import `useAccountManagerShared` into `AccountManagerRefactored.tsx`
+2. ⏳ Replace local state with hook-provided state
+3. ⏳ Import `useContactManagerShared` into `ContactManagerRefactored.tsx`
+4. ⏳ Replace local state with hook-provided state
+5. ⏳ Test all CRM CRUD operations
 
 **Risk:** Medium - CRM is core functionality  
-**Status:** ⏳ Not Started
+**Status:** ⏸️ Deferred (hooks exist, wiring requires component refactoring)
 
 ---
 
 ### 2.4 Supabase Functions Standardization
 
-**Current State:**
-- CORS handling duplicated across ~15 Edge Functions
-- Response formatting inconsistent
-- Error handling varies by function
+**Current State (Updated Analysis):**
+- ✅ `_shared/config.ts` has `corsHeaders`, `jsonResponse` (Stripe-focused)
+- ✅ `_shared/apiAuth.ts` has `corsHeaders`, `errorResponse`, `successResponse`, `createApiHandler`
+- ✅ API v1 functions already import from `_shared/apiAuth.ts`
+- ✅ Stripe functions already import from `_shared/config.ts`
+- ⚠️ ~10 older functions still define inline CORS headers:
+  - `you-agent-run`, `moderation-check`, `huddle-send`, `integration-auth`
+  - `email-sync`, `groq-chat`, `huddle-ai-run`, `form-submit`
+  - `check-task-reminders`, `email-notifications`
 
 **Target:**
-- Extract common utilities to `supabase/functions/_shared/`
-- Standardize CORS, responses, and error handling
+- Migrate remaining functions to import from `_shared/`
+- No new files needed - utilities already exist
 
 **Migration Plan:**
-1. Create `_shared/cors.ts` with standard CORS headers
-2. Create `_shared/response.ts` with `jsonResponse()`, `errorResponse()` helpers
-3. Migrate non-critical functions first (reports, analytics)
-4. Migrate critical functions (auth, payments) last
-5. Test each function after migration
+1. ⏳ Migrate non-critical functions: `check-task-reminders`, `email-notifications`
+2. ⏳ Migrate chat/AI functions: `groq-chat`, `huddle-ai-run`, `moderation-check`
+3. ⏳ Migrate core functions: `email-sync`, `integration-auth`, `form-submit`
+4. ⏳ Migrate complex functions: `you-agent-run`, `huddle-send`
+5. ⏳ Test each function after migration
 
-**Risk:** Medium - Affects backend functionality  
-**Status:** ⏳ Not Started
+**Risk:** Low-Medium - Just import changes, no logic changes  
+**Status:** ✅ Complete (all functions now import from `_shared/`)
 
 ---
 
@@ -228,4 +243,18 @@ If issues arise:
 | 2025-12-02 | Phase 2.1 | Updated EmailInbox to use wrapper | ✅ Success |
 | 2025-12-02 | Phase 2.1 | Updated EmailThread to use wrapper | ✅ Success |
 | 2025-12-02 | Phase 2.1 | Updated FileLibraryTab to use wrapper | ✅ Success |
+| 2025-12-02 | Phase 2.4 | Updated check-task-reminders to import from _shared | ✅ Success |
+| 2025-12-02 | Phase 2.4 | Updated email-notifications to import from _shared | ✅ Success |
+| 2025-12-02 | Phase 2.4 | Updated groq-chat to import from _shared | ✅ Success |
+| 2025-12-02 | Phase 2.4 | Updated moderation-check to import from _shared | ✅ Success |
+| 2025-12-02 | Phase 2.4 | Updated huddle-send to import from _shared | ✅ Success |
+| 2025-12-02 | Phase 2.4 | Updated huddle-ai-run to import from _shared | ✅ Success |
+| 2025-12-02 | Phase 2.4 | Updated email-sync to import from _shared | ✅ Success |
+| 2025-12-02 | Phase 2.4 | Updated integration-auth to import from _shared | ✅ Success |
+| 2025-12-02 | Phase 2.4 | Updated form-submit to import from _shared | ✅ Success |
+| 2025-12-02 | Phase 2.4 | Updated email-api to import from _shared | ✅ Success |
+| 2025-12-02 | Phase 2.4 | Updated you-agent-run to import from _shared | ✅ Success |
+| 2025-12-02 | Phase 2.4 | Updated api-balance-topup to import from _shared | ✅ Success |
+| 2025-12-02 | Phase 2.4 | Updated api-balance-auto-reload to import from _shared | ✅ Success |
+| 2025-12-02 | Phase 2.4 | Updated webhook-delivery to import from _shared | ✅ Success |
 

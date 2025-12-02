@@ -6,6 +6,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0'
+import { corsHeaders as sharedCorsHeaders } from '../_shared/apiAuth.ts';
 
 // You.com Agents API endpoint
 const YOUCOM_API_URL = "https://api.you.com/v1/agents/runs";
@@ -19,9 +20,9 @@ const rateLimits = new Map<string, { count: number; resetAt: number }>();
 const STREAM_TIMEOUT_MS = 300_000; // 5 minutes for streaming (client handles keepalive)
 const NON_STREAM_TIMEOUT_MS = 120_000; // 2 minutes for non-streaming
 
-// CORS headers
+// Extended CORS headers with extra allowed headers
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  ...sharedCorsHeaders,
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-workspace-id',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
