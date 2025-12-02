@@ -3,7 +3,7 @@ import { Button } from '../ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Form, FormSubmission, FormAnalyticsSummary, FormField, FORM_FIELD_TYPES } from '../../types/forms';
-import { getFormAnalytics, getFormSubmissions, getForm } from '../../services/formService';
+import { getFormAnalytics, getFormSubmissions, getForm } from '../../src/services/formService';
 import { formatDistanceToNow, format } from 'date-fns';
 
 interface FormAnalyticsProps {

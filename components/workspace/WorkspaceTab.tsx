@@ -3,7 +3,7 @@ import { GTMDocMetadata, AppActions, DashboardData } from '../../types';
 import { DocsList } from './DocsList';
 import { DocEditor } from './DocEditor';
 import { Form, FormField as FormFieldType } from '../../types/forms';
-import { createForm, updateForm, bulkSaveFields, getForm } from '../../services/formService';
+import { createForm, updateForm, bulkSaveFields, getForm } from '../../src/services/formService';
 
 // Lazy load forms components (from root components folder)
 const FormBuilder = lazy(() => import('../forms/FormBuilder'));

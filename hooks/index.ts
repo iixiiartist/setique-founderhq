@@ -64,10 +64,6 @@ export type {
 // Click outside detection
 export { useClickOutside, useClickOutsideMultiple, useClickOutsideOrEscape } from './useClickOutside';
 
-// Toast notifications
-export { useToast } from './useToast';
-export type { Toast, ToastType, ToastOptions, UseToastReturn } from './useToast';
-
 // Clipboard operations
 export { useCopyToClipboard, useCopyWithId } from './useCopyToClipboard';
 export type { UseCopyToClipboardReturn } from './useCopyToClipboard';

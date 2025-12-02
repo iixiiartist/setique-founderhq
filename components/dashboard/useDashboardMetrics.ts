@@ -24,7 +24,20 @@ export interface FinancialData {
     gmvDelta: number;
 }
 
-export const useDashboardData = (data: DashboardData) => {
+/**
+ * useDashboardMetrics
+ * 
+ * Transforms raw DashboardData into computed presentation values for the dashboard.
+ * This hook handles:
+ * - Pipeline metrics (open deals, values, probabilities)
+ * - Marketing metrics (campaign counts, upcoming campaigns)
+ * - Financial metrics (MRR/GMV deltas)
+ * - Date and currency formatting utilities
+ * 
+ * Note: This hook was renamed from useDashboardData to avoid naming collision
+ * with hooks/useDashboardData.ts which handles data fetching/persistence.
+ */
+export const useDashboardMetrics = (data: DashboardData) => {
     const currencyFormatter = useMemo(() => new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: 'USD',
@@ -131,3 +144,6 @@ export const useDashboardData = (data: DashboardData) => {
         formatDistanceToNow,
     };
 };
+
+// Backwards compatibility alias - allows existing consumers to keep using useDashboardData
+export const useDashboardData = useDashboardMetrics;

@@ -4,5 +4,5 @@ export { OperatingMetricsGrid, type OperatingMetric } from './OperatingMetricsGr
 export { PipelineRadar } from './PipelineRadar';
 export { QuickLinksCard, QuickLinkItem, type QuickLink } from './QuickLinksCard';
 
-// Hooks
-export { useDashboardData, type PipelineData, type MarketingData, type FinancialData } from './useDashboardData';
+// Hooks - useDashboardMetrics is the primary export, useDashboardData is a backwards-compat alias
+export { useDashboardMetrics, useDashboardData, type PipelineData, type MarketingData, type FinancialData } from './useDashboardMetrics';

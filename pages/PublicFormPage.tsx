@@ -6,7 +6,7 @@ import { Select } from '../components/ui/Select';
 import { Card, CardContent } from '../components/ui/Card';
 import { Checkbox } from '../components/ui/Checkbox';
 import { Form, FormField, FormTheme, FormSettings } from '../types/forms';
-import { getFormBySlug, secureSubmitForm, trackFormEvent, uploadFormFile } from '../services/formService';
+import { getFormBySlug, secureSubmitForm, trackFormEvent, uploadFormFile } from '../src/services/formService';
 
 // Signature Canvas Component with proper scaling
 const SignatureCanvas: React.FC<{

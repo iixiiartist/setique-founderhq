@@ -5,7 +5,7 @@ import { featureFlags } from './lib/featureFlags';
 import { DashboardData, AppActions, Task, TaskCollectionName, CrmCollectionName, NoteableCollectionName, AnyCrmItem, FinancialLog, Note, BaseCrmItem, MarketingItem, SettingsData, Document, Contact, TabType, Priority, CalendarEvent, Meeting, TaskStatus } from './types';
 import SideMenu from './components/SideMenu';
 import DashboardTab from './components/DashboardTab';
-import Toast from './components/shared/Toast';
+import { showSuccess, showError } from './lib/utils/toast';
 import { TabLoadingFallback } from './components/shared/TabLoadingFallback';
 import { setUser as setSentryUser, setWorkspaceContext, trackAction } from './lib/sentry.tsx';
 import { useAnalytics } from './hooks/useAnalytics';
@@ -116,7 +116,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
         };
     }, [data]);
     
-    const [toast, setToast] = useState<{ message: string; type: 'info' | 'success' } | null>(null);
     const [sentNotifications, setSentNotifications] = useState<Set<string>>(new Set());
     const [lastNotificationCheckDate, setLastNotificationCheckDate] = useState<string | null>(null);
     const [isTaskFocusModalOpen, setIsTaskFocusModal] = useState(false);
@@ -132,10 +131,14 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
     // Ref for AI assistant toggle function (set by FloatingAIAssistant)
     const toggleAIAssistantRef = useRef<(() => void) | null>(null);
 
-    // Toast handler - defined early so it can be used in notification logic
+    // Toast handler - uses react-hot-toast via shared utility
     const handleToast = useCallback((message: string, type: 'info' | 'success' = 'success') => {
-        setToast({ message, type });
-        setTimeout(() => setToast(null), 3000);
+        if (type === 'success') {
+            showSuccess(message);
+        } else {
+            // 'info' type uses showError with neutral styling since react-hot-toast doesn't have 'info'
+            showError(message);
+        }
     }, []);
 
     // Save active tab to localStorage whenever it changes
@@ -2830,8 +2833,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 Skip to main content
             </a>
 
-            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-            
             <SideMenu
                 isOpen={isMenuOpen}
                 onClose={() => setIsMenuOpen(false)}
