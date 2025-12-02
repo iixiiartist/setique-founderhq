@@ -39,7 +39,8 @@ function CalendarTab({
     const [currentDate, setCurrentDate] = useState(realTimeNow);
     const [viewMode, setViewMode] = useState<ViewMode>('month');
     const [calendarMode, setCalendarMode] = useState<CalendarMode>('personal');
-    const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+    // Extended type to support both personal and team calendar events (including deals)
+    const [selectedEvent, setSelectedEvent] = useState<(CalendarEvent | { id: string; title: string; type: string; [key: string]: any }) | null>(null);
     const modalTriggerRef = useRef<HTMLButtonElement | null>(null);
     
     // New event modal state
@@ -118,7 +119,8 @@ function CalendarTab({
                     formData.crmItemId,
                     {
                         nextAction: formData.nextAction!,
-                        nextActionDate: formData.dueDate
+                        nextActionDate: formData.dueDate,
+                        nextActionTime: formData.dueTime
                     }
                 );
             }
@@ -185,6 +187,11 @@ function CalendarTab({
             {calendarMode === 'team' ? (
                 <TeamCalendarView 
                     onEventClick={(event: any) => openEventModal(event, { current: null })}
+                    currentDate={currentDate}
+                    viewMode={viewMode}
+                    onDateChange={setCurrentDate}
+                    onViewChange={setViewMode}
+                    hideNavigation={true}
                 />
             ) : (
                 <>
@@ -203,10 +210,12 @@ function CalendarTab({
             >
                 {selectedEvent && (
                     <EventDetailModalContent 
-                        event={selectedEvent} 
+                        event={selectedEvent as any} 
                         actions={actions}
                         onClose={() => setSelectedEvent(null)}
                         workspace={workspace}
+                        crmItems={crmItems}
+                        workspaceMembers={workspaceMembers}
                     />
                 )}
             </Modal>

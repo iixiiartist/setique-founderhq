@@ -508,10 +508,11 @@ export class DataPersistenceAdapter {
   static async updateMeeting(meetingId: string, updates: Partial<Meeting>) {
     const dbUpdates: any = {}
     
-    if (updates.title) dbUpdates.title = updates.title
-    if (updates.attendees) dbUpdates.attendees = updates.attendees
-    if (updates.summary) dbUpdates.summary = updates.summary
-    if (updates.timestamp) dbUpdates.timestamp = new Date(updates.timestamp).toISOString()
+    // Use 'in' operator to check if property exists (allows empty strings and null values)
+    if ('title' in updates) dbUpdates.title = updates.title
+    if ('attendees' in updates) dbUpdates.attendees = updates.attendees
+    if ('summary' in updates) dbUpdates.summary = updates.summary
+    if ('timestamp' in updates && updates.timestamp) dbUpdates.timestamp = new Date(updates.timestamp).toISOString()
 
     const { data, error } = await DatabaseService.updateMeeting(meetingId, dbUpdates)
     return { data, error }

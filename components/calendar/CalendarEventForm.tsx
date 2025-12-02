@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { z } from 'zod';
+import { useFormContext } from 'react-hook-form';
 import { Priority, TaskCollectionName, CrmCollectionName, BaseCrmItem, WorkspaceMember, Subtask } from '../../types';
 import { SubtaskManager } from '../shared/SubtaskManager';
 import { Form } from '../forms/Form';
@@ -151,7 +152,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
         }
     };
 
-    const handleQuickAddCrm = async () => {
+    const handleQuickAddCrm = async (setFormValue?: (name: string, value: any) => void) => {
         if (!quickAddCrmName.trim() || !onCreateCrmItem) return;
 
         try {
@@ -159,6 +160,10 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
             setGlobalError(null);
             const newItemId = await onCreateCrmItem(crmCollection, quickAddCrmName.trim());
             setCrmItemId(newItemId);
+            // Also update the form field
+            if (setFormValue) {
+                setFormValue('crmItemId', newItemId);
+            }
             setShowQuickAddCrm(false);
             setQuickAddCrmName('');
         } catch (err) {
@@ -168,19 +173,22 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
         }
     };
 
-    const handleQuickAddContact = async () => {
+    const handleQuickAddContact = async (setFormValue?: (name: string, value: any) => void, newContactId?: string) => {
         if (!quickAddContactName.trim() || !crmItemId || !onCreateContact) return;
 
         try {
             setIsQuickAdding(true);
             setGlobalError(null);
-            await onCreateContact(
+            const contactId = await onCreateContact(
                 crmCollection,
                 crmItemId,
                 quickAddContactName.trim(),
                 quickAddContactEmail.trim()
             );
-            // Update the form field
+            // Update the form field with the new contact ID
+            if (setFormValue && contactId) {
+                setFormValue('contactId', contactId);
+            }
             setShowQuickAddContact(false);
             setQuickAddContactName('');
             setQuickAddContactEmail('');
@@ -231,11 +239,12 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
 
     return (
         <Form
+            key={eventType}
             schema={calendarEventSchema}
             defaultValues={getDefaultValues()}
             onSubmit={handleFormSubmit}
         >
-            {({ formState }) => {
+            {({ formState, setValue }) => {
                 return (
                     <div className="space-y-4">
                         {/* Global Error */}
@@ -348,6 +357,9 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                                         const typedValue = (value || 'investors') as CrmCollectionName;
                                         setCrmCollection(typedValue);
                                         setCrmItemId('');
+                                        // Also clear the form's crmItemId when collection changes
+                                        setValue('crmItemId', '');
+                                        setValue('contactId', '');
                                     }}
                                     options={[
                                         { value: 'investors', label: 'Investor' },
@@ -385,7 +397,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                                             />
                                             <Button
                                                 type="button"
-                                                onClick={handleQuickAddCrm}
+                                                onClick={() => handleQuickAddCrm(setValue)}
                                                 disabled={!quickAddCrmName.trim() || isQuickAdding}
                                                 className="w-full"
                                             >
@@ -445,7 +457,7 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                                             />
                                             <Button
                                                 type="button"
-                                                onClick={handleQuickAddContact}
+                                                onClick={() => handleQuickAddContact(setValue)}
                                                 disabled={!quickAddContactName.trim() || isQuickAdding}
                                                 className="w-full"
                                             >
@@ -514,6 +526,8 @@ const CalendarEventForm: React.FC<CalendarEventFormProps> = ({
                                         const typedValue = (value || 'investors') as CrmCollectionName;
                                         setCrmCollection(typedValue);
                                         setCrmItemId('');
+                                        // Also clear the form's crmItemId when collection changes
+                                        setValue('crmItemId', '');
                                     }}
                                 />
 
