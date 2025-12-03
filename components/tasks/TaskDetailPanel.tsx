@@ -173,7 +173,7 @@ export function TaskDetailPanel({
                         <div className="flex items-center justify-between">
                             <div className="font-semibold text-slate-900">{linkedEntityName}</div>
                             <button
-                                onClick={() => onNavigateToEntity('account', task.crmItemId!)}
+                                onClick={() => onNavigateToEntity(task.crmType || 'account', task.crmItemId!)}
                                 className="px-2 py-1 bg-teal-600 text-white rounded-lg text-xs font-semibold hover:bg-teal-700 transition-colors"
                             >
                                 View →

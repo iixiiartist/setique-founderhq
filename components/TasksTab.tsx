@@ -276,9 +276,11 @@ export function TasksTab({ data, actions, workspaceMembers, userId, onNavigateTo
         setActiveTaskId(null);
     }, [onNavigateToTab]);
 
-    const handleNavigateToEntity = useCallback((entityType: string) => {
+    const handleNavigateToEntity = useCallback((entityType: string, entityId?: string) => {
         if (!onNavigateToTab) return;
-        const targetTab = ENTITY_TAB_TARGET[entityType] || Tab.Accounts;
+        // Check if entityType is a CRM type (customer, investor, partner)
+        const crmTargetTab = CRM_TAB_TARGET[entityType as CrmType];
+        const targetTab = crmTargetTab || ENTITY_TAB_TARGET[entityType] || Tab.Accounts;
         onNavigateToTab(targetTab);
         setActiveTaskId(null);
     }, [onNavigateToTab]);

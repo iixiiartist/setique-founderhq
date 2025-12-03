@@ -254,6 +254,13 @@ export function useDashboardData(options: UseDashboardDataOptions = {}): UseDash
             setData(prev => ({ ...prev, ...tasks }));
             loadedTabsRef.current.add('tasks');
           }
+          
+          // Also load CRM items to show linked account names in task details
+          if (!loadedTabsRef.current.has('crm')) {
+            const crm = await loadCrmItems();
+            setData(prev => ({ ...prev, ...crm }));
+            loadedTabsRef.current.add('crm');
+          }
           break;
 
         case Tab.Settings:

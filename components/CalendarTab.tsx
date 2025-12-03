@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { CalendarEvent, BaseCrmItem, Priority, Workspace, WorkspaceMember } from '../types';
+import React, { useState, useRef, useMemo } from 'react';
+import { CalendarEvent, BaseCrmItem, Priority, Workspace, WorkspaceMember, Task, AnyCrmItem } from '../types';
 import { AppActions } from '../types';
 import Modal from './shared/Modal';
 import TeamCalendarView from './team/TeamCalendarView';
@@ -15,6 +15,7 @@ import {
     NewEventModal,
     CalendarEventFormData
 } from './calendar';
+import { TaskEditModal } from './tasks';
 
 interface CalendarTabProps {
     events: CalendarEvent[];
@@ -49,6 +50,16 @@ function CalendarTab({
     const [newEventDate, setNewEventDate] = useState('');
     const [newEventTime, setNewEventTime] = useState('');
     const newEventModalTriggerRef = useRef<HTMLButtonElement | null>(null);
+
+    // Flatten CRM items for TaskEditModal
+    const allCrmItems: AnyCrmItem[] = useMemo(() => {
+        if (!crmItems) return [];
+        return [
+            ...crmItems.investors,
+            ...crmItems.customers,
+            ...crmItems.partners
+        ];
+    }, [crmItems]);
 
     const handlePrev = () => {
         setCurrentDate(prev => {
@@ -201,14 +212,25 @@ function CalendarTab({
                 </>
             )}
 
-            {/* Event Detail Modal */}
-            <Modal 
-                isOpen={!!selectedEvent} 
-                onClose={() => setSelectedEvent(null)} 
-                title="Event Details" 
-                triggerRef={modalTriggerRef}
-            >
-                {selectedEvent && (
+            {/* Task Detail Modal - Full featured task editing */}
+            {selectedEvent && selectedEvent.type === 'task' && (
+                <TaskEditModal
+                    task={selectedEvent as Task}
+                    actions={actions}
+                    onClose={() => setSelectedEvent(null)}
+                    workspaceMembers={workspaceMembers}
+                    crmItems={allCrmItems}
+                />
+            )}
+
+            {/* Event Detail Modal - For non-task events (meetings, marketing, CRM actions) */}
+            {selectedEvent && selectedEvent.type !== 'task' && (
+                <Modal 
+                    isOpen={true} 
+                    onClose={() => setSelectedEvent(null)} 
+                    title="Event Details" 
+                    triggerRef={modalTriggerRef}
+                >
                     <EventDetailModalContent 
                         event={selectedEvent as any} 
                         actions={actions}
@@ -217,8 +239,8 @@ function CalendarTab({
                         crmItems={crmItems}
                         workspaceMembers={workspaceMembers}
                     />
-                )}
-            </Modal>
+                </Modal>
+            )}
 
             {/* New Event Modal */}
             <NewEventModal

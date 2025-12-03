@@ -12,18 +12,18 @@ import { DocLibraryPicker } from '../workspace/DocLibraryPicker';
 import { LinkedDocsDisplay } from '../workspace/LinkedDocsDisplay';
 import { SubtaskManager } from './SubtaskManager';
 import { DatabaseService } from '../../lib/services/database';
+import { TaskEditModal } from '../tasks/TaskEditModal';
 
 interface TaskItemProps {
     task: Task;
     actions: AppActions;
-    onEdit: (task: Task, triggerRef: React.RefObject<HTMLButtonElement>) => void;
+    onEdit: (task: Task) => void;
     taskCollection: TaskCollectionName;
     tag: string;
 }
 
 const TaskItem: React.FC<TaskItemProps> = ({ task, actions, onEdit, taskCollection, tag }) => {
     const lastNote = task.notes?.length > 0 ? [...task.notes].sort((a,b) => b.timestamp - a.timestamp)[0] : null;
-    const editButtonRef = useRef<HTMLButtonElement>(null);
     const tagColorClass = TASK_TAG_BG_COLORS[tag];
     const { canEditTask, canCompleteTask } = useWorkspace();
     const deleteConfirm = useDeleteConfirm<Task>('task');
@@ -78,13 +78,12 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, actions, onEdit, taskCollecti
                     </div>
                     <div className="flex gap-2 shrink-0 ml-2">
                         <button 
-                            ref={editButtonRef}
                             onClick={() => {
                                 if (!canEdit) {
                                     alert('You do not have permission to edit this task');
                                     return;
                                 }
-                                onEdit(task, editButtonRef);
+                                onEdit(task);
                             }}
                             disabled={!canEdit}
                             className="bg-white rounded-lg border border-gray-200 text-slate-900 cursor-pointer text-sm py-1 px-3 font-semibold shadow-sm hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed">
@@ -144,41 +143,17 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
     const [filterAssignment, setFilterAssignment] = useState<'all' | 'assigned-to-me' | 'unassigned' | 'created-by-me'>('all');
     
     const [editingTask, setEditingTask] = useState<Task | null>(null);
-    const [editText, setEditText] = useState('');
-    const [editPriority, setEditPriority] = useState<Priority>('Medium');
-    const [editDueDate, setEditDueDate] = useState('');
-    const [editAssignedTo, setEditAssignedTo] = useState('');
-    const modalTriggerRef = useRef<HTMLButtonElement | null>(null);
-    const [showDocPicker, setShowDocPicker] = useState(false);
-    const [linkedDocsKey, setLinkedDocsKey] = useState(0); // Force re-render of LinkedDocsDisplay
     
     const { workspaceMembers, workspace, canEditTask } = useWorkspace();
     const { user } = useAuth();
 
-    useEffect(() => {
-        if (editingTask) {
-            setEditText(editingTask.text);
-            setEditPriority(editingTask.priority);
-            setEditDueDate(editingTask.dueDate || '');
-            setEditAssignedTo(editingTask.assignedTo || '');
-        }
-    }, [editingTask]);
-
-    // Sync editingTask with external changes (preserve local subtasks edits)
+    // Sync editingTask with external changes
     useEffect(() => {
         if (editingTask) {
             const updatedTask = tasks.find(t => t.id === editingTask.id);
-            if (updatedTask) {
-                // Preserve subtasks that may have been edited locally
-                setEditingTask({
-                    ...updatedTask,
-                    subtasks: editingTask.subtasks // Keep local subtask changes
-                });
-            } else {
-                setEditingTask(null);
-            }
+            setEditingTask(updatedTask || null);
         }
-    }, [tasks]);
+    }, [tasks, editingTask]);
 
 
     const handleAddTask = (e: React.FormEvent) => {
@@ -192,24 +167,9 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
         setNewTaskAssignedTo('');
         setNewTaskSubtasks([]);
     };
-
-    const handleUpdateTask = () => {
-        if (editingTask && editText.trim() !== '') {
-            console.log('[TaskManagement] Saving task with subtasks:', editingTask.subtasks);
-            actions.updateTask(editingTask.id, { 
-                text: editText, 
-                priority: editPriority, 
-                dueDate: editDueDate,
-                assignedTo: editAssignedTo || undefined,
-                subtasks: editingTask.subtasks || []
-            });
-        }
-        setEditingTask(null);
-    }
     
-    const openEditModal = (task: Task, triggerRef: React.RefObject<HTMLButtonElement>) => {
+    const openEditModal = (task: Task) => {
         setEditingTask(task);
-        modalTriggerRef.current = triggerRef.current;
     }
 
     const processedTasks = useMemo(() => {
@@ -374,160 +334,13 @@ const TaskManagement: React.FC<TaskManagementProps> = ({ tasks, actions, taskCol
                 </ul>
             </div>
 
-            <Modal isOpen={!!editingTask} onClose={() => setEditingTask(null)} title="Edit Task" triggerRef={modalTriggerRef}>
-                {editingTask && (
-                    <div className="space-y-4">
-                        <div>
-                            <label htmlFor={`edit-task-${editingTask.id}`} className="block font-mono text-sm font-semibold text-black mb-1">Task Description</label>
-                            <textarea 
-                                id={`edit-task-${editingTask.id}`}
-                                value={editText || ''}
-                                onChange={(e) => setEditText(e.target.value)}
-                                className="w-full bg-white rounded-xl border border-gray-200 text-slate-900 focus:outline-none focus:border-blue-500 p-2 min-h-[80px]"
-                            />
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label htmlFor={`edit-priority-${editingTask.id}`} className="block text-sm font-semibold text-slate-900 mb-1">Priority</label>
-                                <select
-                                    id={`edit-priority-${editingTask.id}`}
-                                    value={editPriority || 'Medium'}
-                                    onChange={(e) => setEditPriority(e.target.value as Priority)}
-                                    className="w-full bg-white rounded-xl border border-gray-200 text-slate-900 focus:outline-none focus:border-blue-500 p-2 h-full"
-                                >
-                                    <option value="Medium">Medium</option>
-                                    <option value="Low">Low</option>
-                                    <option value="High">High</option>
-                                </select>
-                            </div>
-                            {workspaceMembers.length > 0 && (
-                                <div>
-                                    <label htmlFor={`edit-assignee-${editingTask.id}`} className="block text-sm font-semibold text-slate-900 mb-1">Assign To</label>
-                                    <select
-                                        id={`edit-assignee-${editingTask.id}`}
-                                        value={editAssignedTo || ''}
-                                        onChange={(e) => setEditAssignedTo(e.target.value)}
-                                        className="w-full bg-white rounded-xl border border-gray-200 text-slate-900 focus:outline-none focus:border-blue-500 p-2 h-full"
-                                    >
-                                        <option value="">Unassigned</option>
-                                        {workspaceMembers.map(member => (
-                                            <option key={member.userId} value={member.userId}>
-                                                {member.fullName || member.email || 'Unknown'}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            )}
-                            <div>
-                                <label htmlFor={`edit-duedate-${editingTask.id}`} className="block text-sm font-semibold text-slate-900 mb-1">Due Date</label>
-                                <input
-                                    id={`edit-duedate-${editingTask.id}`}
-                                    type="date"
-                                    value={editDueDate || ''}
-                                    onChange={(e) => setEditDueDate(e.target.value)}
-                                    className="w-full bg-white rounded-xl border border-gray-200 text-slate-900 focus:outline-none focus:border-blue-500 p-2 h-full"
-                                />
-                            </div>
-                        </div>
-                        {/* Linked GTM Docs Section */}
-                        {workspace && (
-                            <div className="border-t-2 border-gray-200 pt-4 mt-4">
-                                <div className="flex items-center justify-between mb-2">
-                                    <h4 className="font-mono text-sm font-semibold text-black">📎 Linked Documents</h4>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowDocPicker(true)}
-                                        className="bg-blue-500 rounded-lg border border-blue-600 text-white text-xs py-1 px-3 font-semibold shadow-sm hover:shadow-md hover:bg-blue-600 transition-all"
-                                    >
-                                        + Attach Doc
-                                    </button>
-                                </div>
-                                <LinkedDocsDisplay
-                                    key={linkedDocsKey}
-                                    workspaceId={workspace.id}
-                                    entityType="task"
-                                    entityId={editingTask.id}
-                                    compact={false}
-                                />
-                            </div>
-                        )}
-
-                        {/* Subtasks Section */}
-                        <div className="border-t-2 border-gray-200 pt-4 mt-4">
-                            <SubtaskManager
-                                subtasks={editingTask.subtasks || []}
-                                onSubtasksChange={(subtasks) => {
-                                    setEditingTask({ ...editingTask, subtasks });
-                                }}
-                                disabled={!canEditTask(editingTask.userId, editingTask.assignedTo)}
-                            />
-                        </div>
-
-                        <NotesManager 
-                            notes={editingTask.notes} 
-                            itemId={editingTask.id} 
-                            collection={taskCollectionName as NoteableCollectionName} 
-                            addNoteAction={actions.addNote}
-                            updateNoteAction={actions.updateNote}
-                            deleteNoteAction={actions.deleteNote}
-                        />
-                        
-                        {/* Task Comments Section */}
-                        {user && workspace && workspaceMembers.length > 0 && (
-                            <div className="border-t-2 border-gray-200 pt-4 mt-4">
-                                <TaskComments
-                                    taskId={editingTask.id}
-                                    taskName={editingTask.text}
-                                    workspaceId={workspace.id}
-                                    userId={user.id}
-                                    workspaceMembers={workspaceMembers.map(member => ({
-                                        id: member.userId,
-                                        name: member.fullName || member.email || 'Unknown',
-                                        avatar: member.avatarUrl,
-                                    }))}
-                                />
-                            </div>
-                        )}
-                        
-                        <button onClick={handleUpdateTask} className="mt-4 w-full bg-slate-900 text-white cursor-pointer text-sm py-2 px-3 rounded-xl font-semibold shadow-sm hover:shadow-md transition-all">
-                            Save Changes
-                        </button>
-                    </div>
-                )}
-            </Modal>
-
-            {/* Doc Library Picker Modal */}
-            {showDocPicker && editingTask && workspace && user && (
-                <DocLibraryPicker
-                    isOpen={showDocPicker}
-                    workspaceId={workspace.id}
-                    userId={user.id}
-                    onClose={() => setShowDocPicker(false)}
-                    onSelect={async (doc) => {
-                        try {
-                            const { error } = await DatabaseService.linkDocToEntity(
-                                doc.id,
-                                workspace.id,
-                                'task',
-                                editingTask.id
-                            );
-
-                            if (error) {
-                                console.error('Error linking doc:', error);
-                                alert('Failed to link document');
-                                return;
-                            }
-
-                            setLinkedDocsKey(prev => prev + 1);
-                            setShowDocPicker(false);
-                        } catch (error) {
-                            console.error('Failed to link doc:', error);
-                            alert('Failed to link document');
-                        }
-                    }}
-                    title="Attach Document to Task"
-                />
-            )}
+            {/* Unified Task Edit Modal */}
+            <TaskEditModal
+                task={editingTask}
+                actions={actions}
+                onClose={() => setEditingTask(null)}
+                workspaceMembers={workspaceMembers}
+            />
         </>
     );
 };

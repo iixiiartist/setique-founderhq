@@ -7,6 +7,7 @@ export { TaskStats } from './TaskStats';
 export { TaskFilters } from './TaskFilters';
 export { TaskItem } from './TaskItem';
 export { TaskDetailPanel } from './TaskDetailPanel';
+export { TaskEditModal } from './TaskEditModal';
 export { TaskCreationModal } from './TaskCreationModal';
 export { BulkTaskActions } from './BulkTaskActions';
 

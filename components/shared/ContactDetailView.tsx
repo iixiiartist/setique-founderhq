@@ -15,6 +15,7 @@ import { Form } from '../forms/Form';
 import { FormField } from '../forms/FormField';
 import { Button } from '../ui/Button';
 import { ConfirmDialog } from './ConfirmDialog';
+import { TaskEditModal } from '../tasks/TaskEditModal';
 
 const contactEditSchema = z.object({
     name: z.string().min(1, 'Name is required'),
@@ -39,8 +40,7 @@ interface ContactDetailViewProps {
     onAssignContact?: (userId: string | null, userName: string | null, contactId: string) => void;
 }
 
-const ContactTaskItem: React.FC<{ task: Task; onEdit: (task: Task, triggerRef: React.RefObject<HTMLButtonElement>) => void; actions: AppActions; tag: string; taskCollection: TaskCollectionName; }> = ({ task, onEdit, actions, tag, taskCollection }) => {
-    const editButtonRef = useRef<HTMLButtonElement>(null);
+const ContactTaskItem: React.FC<{ task: Task; onEdit: (task: Task) => void; actions: AppActions; tag: string; taskCollection: TaskCollectionName; }> = ({ task, onEdit, actions, tag, taskCollection }) => {
     const tagColorClass = TASK_TAG_BG_COLORS[tag] || 'bg-gray-300';
     const deleteTaskConfirm = useDeleteConfirm<Task>('task');
     return (
@@ -63,8 +63,7 @@ const ContactTaskItem: React.FC<{ task: Task; onEdit: (task: Task, triggerRef: R
                 </div>
                 <div className="flex gap-1.5 shrink-0 ml-2">
                     <button 
-                        ref={editButtonRef}
-                        onClick={() => onEdit(task, editButtonRef)}
+                        onClick={() => onEdit(task)}
                         className="text-gray-500 hover:text-gray-700 text-xs py-1 px-2 rounded hover:bg-gray-100 transition-colors">
                         Edit
                     </button>
@@ -103,21 +102,9 @@ function ContactDetailView({ contact, parentItem, tasks, actions, onBack, crmCol
     const [newTaskSubtasks, setNewTaskSubtasks] = useState<Subtask[]>([]);
 
     const [editingTask, setEditingTask] = useState<Task | null>(null);
-    const [editText, setEditText] = useState('');
-    const [editPriority, setEditPriority] = useState<Priority>('Medium');
-    const [editDueDate, setEditDueDate] = useState('');
     
     const editContactModalTriggerRef = useRef<HTMLButtonElement | null>(null);
-    const editTaskModalTriggerRef = useRef<HTMLButtonElement | null>(null);
     const deleteContactConfirm = useDeleteConfirm<{ id: string; name: string }>('contact');
-
-    useEffect(() => {
-        if (editingTask) {
-            setEditText(editingTask.text);
-            setEditPriority(editingTask.priority);
-            setEditDueDate(editingTask.dueDate || '');
-        }
-    }, [editingTask]);
 
     // Sync editingTask with external changes
     useEffect(() => {
@@ -125,16 +112,12 @@ function ContactDetailView({ contact, parentItem, tasks, actions, onBack, crmCol
             const updatedTask = tasks.find(t => t.id === editingTask.id);
             setEditingTask(updatedTask || null);
         }
-    }, [tasks]);
+    }, [tasks, editingTask]);
 
     const contactTasks = useMemo(() => tasks.filter(t => t.contactId === contact.id), [tasks, contact.id]);
 
     const closeEditModal = useCallback(() => {
         setIsEditing(false);
-    }, []);
-
-    const closeEditTaskModal = useCallback(() => {
-        setEditingTask(null);
     }, []);
 
     const handleUpdate = useCallback(async (data: ContactEditFormData) => {
@@ -164,13 +147,6 @@ function ContactDetailView({ contact, parentItem, tasks, actions, onBack, crmCol
     const handleDeleteNote = useCallback((collection: NoteableCollectionName, itemId: string, ts: number) => {
         return actions.deleteNote(collection, itemId, ts, contact.crmItemId);
     }, [actions, contact.crmItemId]);
-    
-    const handleUpdateTask = () => {
-        if (editingTask && editText.trim() !== '') {
-            actions.updateTask(editingTask.id, { text: editText, priority: editPriority, dueDate: editDueDate });
-        }
-        setEditingTask(null);
-    }
 
     const handleAddTask = (e: React.FormEvent) => {
         e.preventDefault();
@@ -182,9 +158,8 @@ function ContactDetailView({ contact, parentItem, tasks, actions, onBack, crmCol
         setNewTaskSubtasks([]);
     };
 
-    const openEditTaskModal = (task: Task, triggerRef: React.RefObject<HTMLButtonElement>) => {
+    const openEditTaskModal = (task: Task) => {
         setEditingTask(task);
-        editTaskModalTriggerRef.current = triggerRef.current;
     }
 
     const valueDisplay = (label: string, value: string | React.ReactNode) => (
@@ -476,60 +451,15 @@ function ContactDetailView({ contact, parentItem, tasks, actions, onBack, crmCol
                      )}
                  </Form>
             </Modal>
-             <Modal isOpen={!!editingTask} onClose={closeEditTaskModal} title="Edit Task" triggerRef={editTaskModalTriggerRef}>
-                {editingTask && (
-                    <div className="space-y-4">
-                         <div>
-                            <label htmlFor={`edit-contact-task-${editingTask.id}`} className="block text-sm font-medium text-slate-700 mb-1">Task Description</label>
-                            <textarea 
-                                id={`edit-contact-task-${editingTask.id}`}
-                                name={`edit-contact-task-${editingTask.id}`}
-                                value={editText || ''}
-                                onChange={(e) => setEditText(e.target.value)}
-                                className="w-full bg-white border border-gray-200 text-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 p-3 min-h-[80px] transition-colors"
-                            />
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label htmlFor={`edit-priority-${editingTask.id}`} className="block text-sm font-medium text-slate-700 mb-1">Priority</label>
-                                <select
-                                    id={`edit-priority-${editingTask.id}`}
-                                    name={`edit-priority-${editingTask.id}`}
-                                    value={editPriority || 'Medium'}
-                                    onChange={(e) => setEditPriority(e.target.value as Priority)}
-                                    className="w-full bg-white border border-gray-200 text-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 p-3 h-full transition-colors"
-                                >
-                                    <option value="Medium">Medium</option>
-                                    <option value="Low">Low</option>
-                                    <option value="High">High</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label htmlFor={`edit-duedate-${editingTask.id}`} className="block text-sm font-medium text-slate-700 mb-1">Due Date</label>
-                                <input
-                                    id={`edit-duedate-${editingTask.id}`}
-                                    name={`edit-duedate-${editingTask.id}`}
-                                    type="date"
-                                    value={editDueDate || ''}
-                                    onChange={(e) => setEditDueDate(e.target.value)}
-                                    className="w-full bg-white border border-gray-200 text-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 p-3 h-full transition-colors"
-                                />
-                            </div>
-                        </div>
-                        <NotesManager 
-                            notes={editingTask.notes} 
-                            itemId={editingTask.id} 
-                            collection={taskCollection} 
-                            addNoteAction={actions.addNote}
-                            updateNoteAction={actions.updateNote}
-                            deleteNoteAction={actions.deleteNote}
-                        />
-                        <button onClick={handleUpdateTask} className="mt-4 w-full bg-slate-900 text-white cursor-pointer text-sm py-3 px-4 rounded-xl font-semibold shadow-sm hover:shadow-md hover:bg-slate-800 transition-all">
-                            Save Changes
-                        </button>
-                    </div>
-                )}
-            </Modal>
+            
+            {/* Unified Task Edit Modal */}
+            <TaskEditModal
+                task={editingTask}
+                actions={actions}
+                onClose={() => setEditingTask(null)}
+                workspaceMembers={workspaceMembers}
+                linkedEntityName={parentItem.company}
+            />
 
             {/* Delete contact confirmation dialog */}
             <ConfirmDialog
