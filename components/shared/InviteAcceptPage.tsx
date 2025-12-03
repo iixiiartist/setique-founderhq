@@ -147,10 +147,13 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
     if (status === 'loading') {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 to-blue-600 p-4">
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl p-8 max-w-md w-full text-center">
-                    <div className="animate-spin text-6xl mb-4">⚙️</div>
-                    <h2 className="text-2xl font-bold mb-2">Processing Invitation</h2>
-                    <p className="text-gray-600">{message}</p>
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl p-8 max-w-md w-full flex flex-col items-center gap-4">
+                    <div className="relative w-12 h-12">
+                        <div className="absolute inset-0 border-4 border-black animate-spin" style={{ animationDuration: '1.2s' }} />
+                        <div className="absolute inset-2 border-2 border-gray-400 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+                    </div>
+                    <h2 className="text-2xl font-bold">Processing Invitation</h2>
+                    <p className="text-gray-600 text-center">{message}</p>
                 </div>
             </div>
         );

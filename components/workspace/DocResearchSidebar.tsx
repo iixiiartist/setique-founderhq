@@ -5,7 +5,6 @@ import {
     Newspaper,
     Sparkles,
     X,
-    Loader2,
     Link as LinkIcon,
     BookmarkPlus,
     History,
@@ -523,7 +522,7 @@ export const DocResearchSidebar: React.FC<DocResearchSidebarProps> = ({
                                 className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {loading ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <span className="relative w-4 h-4 inline-block"><span className="absolute inset-0 border-2 border-white animate-spin" style={{ animationDuration: '1.2s' }} /><span className="absolute inset-0.5 border border-white/40 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} /></span>
                                 ) : isComingSoonMode ? (
                                     'Coming soon'
                                 ) : (
@@ -604,7 +603,10 @@ export const DocResearchSidebar: React.FC<DocResearchSidebarProps> = ({
                             )}
                             {loading && (
                                 <div className="flex flex-col items-center justify-center gap-2 py-12 text-sm text-gray-500">
-                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                    <span className="relative w-5 h-5 inline-block">
+                                        <span className="absolute inset-0 border-2 border-current animate-spin" style={{ animationDuration: '1.2s' }} />
+                                        <span className="absolute inset-0.5 border border-current/40 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+                                    </span>
                                     Searching live sources…
                                 </div>
                             )}

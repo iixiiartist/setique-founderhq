@@ -18,6 +18,7 @@ import {
 } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { Settings, Palette, Zap, Link2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/Card';
@@ -1018,23 +1019,29 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({
         </div>
 
         {/* Right Panel - Field Settings */}
-        <div className="w-80 flex-shrink-0 border-l-2 border-black bg-white overflow-y-auto">
-          {/* Panel Tabs */}
-          <div className="border-b-2 border-black flex flex-wrap">
-            {(['fields', 'design', 'settings', 'integrations'] as const).map(panel => (
+        <div className="w-80 flex-shrink-0 border-l border-gray-200 bg-white overflow-y-auto">
+          {/* Panel Tabs - Modern Design */}
+          <div className="border-b border-gray-200 flex">
+            {([
+              { id: 'fields', label: 'Field', Icon: Settings },
+              { id: 'design', label: 'Design', Icon: Palette },
+              { id: 'settings', label: 'Settings', Icon: Zap },
+              { id: 'integrations', label: 'CRM', Icon: Link2 },
+            ] as const).map(({ id, label, Icon }) => (
               <button
-                key={panel}
-                onClick={() => setActivePanel(panel)}
-                className={`flex-1 px-2 py-2 text-xs font-mono font-semibold transition-colors ${
-                  activePanel === panel
-                    ? 'bg-yellow-400 text-black'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                key={id}
+                onClick={() => setActivePanel(id)}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-3 text-sm font-medium transition-all relative ${
+                  activePanel === id
+                    ? 'text-slate-900'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                {panel === 'fields' ? '⚙️' : panel === 'design' ? '🎨' : panel === 'settings' ? '⚡' : '🔗'}
-                <span className="hidden sm:inline ml-1">
-                  {panel === 'fields' ? 'Field' : panel === 'design' ? 'Design' : panel === 'settings' ? 'Settings' : 'CRM'}
-                </span>
+                <Icon className="w-4 h-4" />
+                <span className="hidden sm:inline">{label}</span>
+                {activePanel === id && (
+                  <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-amber-500 rounded-full" />
+                )}
               </button>
             ))}
           </div>

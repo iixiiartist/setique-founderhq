@@ -8,7 +8,6 @@ import {
     History,
     Image as ImageIcon,
     Link as LinkIcon,
-    Loader2,
     Maximize2,
     Minimize2,
     Newspaper,
@@ -584,7 +583,10 @@ export const ResearchCopilot: React.FC<ResearchCopilotProps> = ({
                                     className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {loading ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <span className="relative w-4 h-4 inline-block">
+                                            <span className="absolute inset-0 border-2 border-current animate-spin" style={{ animationDuration: '1.2s' }} />
+                                            <span className="absolute inset-0.5 border border-current/40 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+                                        </span>
                                     ) : currentComingSoon ? (
                                         'Coming soon'
                                     ) : (
@@ -626,7 +628,10 @@ export const ResearchCopilot: React.FC<ResearchCopilotProps> = ({
                     <div className={`flex-1 overflow-y-auto ${horizontalPadding} py-4 space-y-4`}>
                         {loading && (
                             <div className="flex flex-col items-center justify-center gap-2 py-12 text-sm text-gray-500">
-                                <Loader2 className="h-5 w-5 animate-spin" />
+                                <span className="relative w-5 h-5 inline-block">
+                                    <span className="absolute inset-0 border-2 border-current animate-spin" style={{ animationDuration: '1.2s' }} />
+                                    <span className="absolute inset-0.5 border border-current/40 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+                                </span>
                                 Searching live sources…
                             </div>
                         )}

@@ -103,8 +103,11 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center p-8">
-        <div className="animate-spin h-8 w-8 border-2 border-gray-300 border-t-slate-900 rounded-full"></div>
+      <div className="flex flex-col justify-center items-center p-8 gap-4">
+        <div className="relative w-8 h-8">
+          <div className="absolute inset-0 border-2 border-black animate-spin" style={{ animationDuration: '1.2s' }} />
+          <div className="absolute inset-1.5 border border-gray-400 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+        </div>
       </div>
     );
   }

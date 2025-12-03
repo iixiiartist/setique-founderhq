@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useDeleteConfirm } from '../../hooks';
-import { FileText, Mail, ExternalLink, Trash2, Loader2, FolderOpen, Eye } from 'lucide-react';
+import { FileText, Mail, ExternalLink, Trash2, FolderOpen, Eye } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { showError, showSuccess } from '../../lib/utils/toast';
@@ -155,7 +155,10 @@ export const LinkedDocumentsSection: React.FC<LinkedDocumentsSectionProps> = ({
           <h2 className="text-lg font-semibold text-gray-900">Linked Documents</h2>
         </div>
         <div className="p-8 flex justify-center">
-          <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+          <span className="relative w-6 h-6 inline-block">
+            <span className="absolute inset-0 border-2 border-gray-400 animate-spin" style={{ animationDuration: '1.2s' }} />
+            <span className="absolute inset-0.5 border border-gray-300 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+          </span>
         </div>
       </div>
     );
@@ -218,7 +221,10 @@ export const LinkedDocumentsSection: React.FC<LinkedDocumentsSectionProps> = ({
                       title="Remove link"
                     >
                       {deletingId === doc.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="relative w-4 h-4 inline-block">
+                          <span className="absolute inset-0 border-2 border-current animate-spin" style={{ animationDuration: '1.2s' }} />
+                          <span className="absolute inset-0.5 border border-current/40 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+                        </span>
                       ) : (
                         <Trash2 className="w-4 h-4" />
                       )}

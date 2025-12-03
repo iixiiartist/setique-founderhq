@@ -7,6 +7,7 @@ import {
   FormAnalyticsSummary,
   FormThemePreset,
   FormStatus,
+  FormType,
   DEFAULT_FORM_THEME,
   DEFAULT_FORM_BRANDING,
   DEFAULT_FORM_SETTINGS,
@@ -53,6 +54,9 @@ function mapDbToForm(dbRow: any): Form {
     (dbRow.settings?.passwordProtected ? 'password_protected' : 
      dbRow.is_public ? 'public' : 'private');
   
+  // Map form_type: prefer form_type column, fall back to type column, default to 'form'
+  const formType = (dbRow.form_type ?? dbRow.type ?? 'form') as FormType;
+  
   return {
     id: dbRow.id,
     workspace_id: dbRow.workspace_id,
@@ -61,14 +65,16 @@ function mapDbToForm(dbRow: any): Form {
     description: dbRow.description,
     slug: dbRow.slug,
     status: dbRow.status as FormStatus,
+    form_type: formType,
     settings: mergedSettings,
     theme: mergedTheme,
     branding: mergedBranding,
     analytics_settings: mergedAnalytics,
     visibility,
     // Don't expose access_password to client - only indicate if protected
-    expires_at: dbRow.settings?.closeAfterDate,
-    response_limit: dbRow.settings?.closeAfterResponses,
+    // Prefer actual DB columns over settings for expires_at/response_limit
+    expires_at: dbRow.expires_at ?? dbRow.settings?.closeAfterDate,
+    response_limit: dbRow.response_limit ?? dbRow.settings?.closeAfterResponses,
     total_submissions: dbRow.total_submissions || 0,
     created_at: dbRow.created_at,
     updated_at: dbRow.updated_at,

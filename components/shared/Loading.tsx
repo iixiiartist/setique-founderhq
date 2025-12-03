@@ -1,5 +1,42 @@
 import React from 'react'
 
+interface SquareSpinnerProps {
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
+  className?: string
+}
+
+/**
+ * Neo-brutalism square spinner - the standard loading indicator for FounderHQ
+ * Use this component for all loading states in the app
+ */
+export const SquareSpinner: React.FC<SquareSpinnerProps> = ({ 
+  size = 'md',
+  className = ''
+}) => {
+  const sizeConfig = {
+    xs: { outer: 'w-4 h-4', inner: 'inset-0.5', outerBorder: 'border-2', innerBorder: 'border' },
+    sm: { outer: 'w-6 h-6', inner: 'inset-1', outerBorder: 'border-2', innerBorder: 'border' },
+    md: { outer: 'w-8 h-8', inner: 'inset-1.5', outerBorder: 'border-2', innerBorder: 'border' },
+    lg: { outer: 'w-12 h-12', inner: 'inset-2', outerBorder: 'border-4', innerBorder: 'border-2' },
+    xl: { outer: 'w-16 h-16', inner: 'inset-3', outerBorder: 'border-4', innerBorder: 'border-2' },
+  }
+
+  const config = sizeConfig[size]
+
+  return (
+    <div className={`relative ${config.outer} ${className}`}>
+      <div 
+        className={`absolute inset-0 ${config.outerBorder} border-black animate-spin`} 
+        style={{ animationDuration: '1.2s' }} 
+      />
+      <div 
+        className={`absolute ${config.inner} ${config.innerBorder} border-gray-400 animate-spin`} 
+        style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} 
+      />
+    </div>
+  )
+}
+
 interface Props {
   message?: string
   size?: 'sm' | 'md' | 'lg'
@@ -9,15 +46,11 @@ export const LoadingSpinner: React.FC<Props> = ({
   message = 'Loading...', 
   size = 'md' 
 }) => {
-  const sizeClasses = {
-    sm: 'w-4 h-4',
-    md: 'w-8 h-8',
-    lg: 'w-12 h-12'
-  }
+  const spinnerSize = size === 'sm' ? 'sm' : size === 'lg' ? 'lg' : 'md'
 
   return (
     <div className="flex flex-col items-center justify-center p-8">
-      <div className={`animate-spin border-2 border-gray-300 border-t-black ${sizeClasses[size]}`}></div>
+      <SquareSpinner size={spinnerSize} />
       {message && (
         <p className="mt-4 text-black font-mono text-sm">{message}</p>
       )}
@@ -28,9 +61,9 @@ export const LoadingSpinner: React.FC<Props> = ({
 export const FullPageLoading: React.FC<Props> = ({ message = 'Loading your dashboard...' }) => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-white">
-      <div className="text-center">
-        <div className="animate-spin h-16 w-16 border-4 border-gray-300 border-t-black mx-auto"></div>
-        <p className="mt-4 text-black font-mono">{message}</p>
+      <div className="flex flex-col items-center gap-4">
+        <SquareSpinner size="xl" />
+        <p className="text-black font-mono">{message}</p>
       </div>
     </div>
   )
@@ -57,7 +90,7 @@ export const OperationOverlay: React.FC<OperationOverlayProps> = ({
   if (inline) {
     return (
       <div className="inline-flex items-center gap-2 text-sm text-black font-mono">
-        <div className="w-4 h-4 animate-spin border-2 border-gray-300 border-t-black" />
+        <SquareSpinner size="xs" />
         <span>{message}</span>
       </div>
     );
@@ -66,7 +99,7 @@ export const OperationOverlay: React.FC<OperationOverlayProps> = ({
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center bg-white/80 backdrop-blur-sm">
       <div className="flex flex-col items-center gap-3 p-4">
-        <div className="w-8 h-8 animate-spin border-2 border-gray-300 border-t-black" />
+        <SquareSpinner size="md" />
         <p className="text-sm text-black font-mono font-medium">{message}</p>
       </div>
     </div>

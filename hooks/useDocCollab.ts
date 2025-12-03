@@ -38,13 +38,19 @@ interface HeartbeatOptions {
 
 function startHeartbeatMonitor(options: HeartbeatOptions): () => void {
   const { provider, onBeat } = options;
-  let lastOnline = true;
+  let hasEverBeenOnline = false;
   
   const interval = setInterval(() => {
     // Check provider connection status
     const online = provider.synced && provider.awareness.getLocalState() !== null;
-    onBeat({ online, timestamp: Date.now() });
-    lastOnline = online;
+    
+    // Track if we've ever been online - don't report offline until we've connected at least once
+    if (online) {
+      hasEverBeenOnline = true;
+    }
+    
+    // Only report offline if we were previously online (prevents false warning during initial connection)
+    onBeat({ online: hasEverBeenOnline ? online : true, timestamp: Date.now() });
   }, HEARTBEAT_INTERVAL_MS);
 
   return () => clearInterval(interval);

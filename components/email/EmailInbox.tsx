@@ -208,8 +208,11 @@ export const EmailInbox: React.FC = () => {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-6 h-6 border-2 border-gray-500 border-t-transparent rounded-full animate-spin"></div>
-          <div className="text-sm text-gray-500">Loading inbox...</div>
+          <div className="relative w-6 h-6">
+            <div className="absolute inset-0 border-2 border-black animate-spin" style={{ animationDuration: '1.2s' }} />
+            <div className="absolute inset-1 border border-gray-400 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+          </div>
+          <div className="text-sm text-black font-mono">Loading inbox...</div>
         </div>
       </div>
     );

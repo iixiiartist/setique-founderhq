@@ -36,7 +36,7 @@ import {
 import { AIActionMenu } from './AIActionMenu';
 import { GTM_TEMPLATES } from '../../../lib/templates/gtmTemplates';
 
-import { X, Maximize2, Minimize2, Loader2 } from 'lucide-react';
+import { X, Maximize2, Minimize2 } from 'lucide-react';
 
 export interface EmailComposerProps {
     replyTo?: {
@@ -280,7 +280,10 @@ ${replyTo.body?.html || replyTo.body?.text || replyTo.snippet || ''}
     if (!editor) {
         return (
             <div className="flex items-center justify-center h-64">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                <span className="relative w-8 h-8 inline-block">
+                    <span className="absolute inset-0 border-2 border-blue-600 animate-spin" style={{ animationDuration: '1.2s' }} />
+                    <span className="absolute inset-0.5 border border-blue-400 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+                </span>
             </div>
         );
     }

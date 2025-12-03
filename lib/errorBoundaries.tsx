@@ -186,8 +186,11 @@ export function AsyncBoundary({
       <React.Suspense
         fallback={
           fallback || (
-            <div className="p-6 flex items-center justify-center">
-              <div className="animate-spin h-8 w-8 border-4 border-gray-600 border-t-transparent rounded-full" />
+            <div className="p-6 flex flex-col items-center justify-center gap-4">
+              <div className="relative w-8 h-8">
+                <div className="absolute inset-0 border-2 border-black animate-spin" style={{ animationDuration: '1.2s' }} />
+                <div className="absolute inset-1.5 border border-gray-400 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+              </div>
             </div>
           )
         }

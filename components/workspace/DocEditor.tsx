@@ -220,6 +220,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     const canvasScrollRef = useRef<HTMLDivElement | null>(null);
     const bootStartRef = useRef<number>(Date.now());
     const bootTrackedRef = useRef(false);
+    const loadedDocIdRef = useRef<string | null>(null); // Track which doc has been loaded to prevent double-loading
     
     // Autosave and dirty state tracking
     const isDirtyRef = useRef(false);
@@ -908,22 +909,56 @@ export const DocEditor: React.FC<DocEditorProps> = ({
         editorRef.current = editor;
     }, [editor]);
 
+    // Reset loaded doc ref when docId changes (navigating to different doc)
+    // or when ydoc changes (editor is recreated with Collaboration)
+    useEffect(() => {
+        // Only reset if we're loading a different document
+        if (docId && loadedDocIdRef.current !== docId) {
+            loadedDocIdRef.current = null;
+        }
+        // Also reset on unmount
+        return () => {
+            loadedDocIdRef.current = null;
+        };
+    }, [docId]);
+
+    // Reset loadedDocIdRef when ydoc changes - the editor is recreated
+    useEffect(() => {
+        if (ydoc && loadedDocIdRef.current === docId) {
+            // Editor was recreated with new ydoc, need to re-hydrate
+            console.log('[DocEditor] Ydoc changed, resetting loadedDocIdRef to allow re-hydration');
+            loadedDocIdRef.current = null;
+        }
+    }, [ydoc, docId]);
+
     // Load document content - waits briefly for Yjs sync in collab mode
     // to determine if we should hydrate from content_json or let Yjs be authoritative
     useEffect(() => {
         if (docId && editor) {
-            // In collab mode, give Yjs a brief window to sync before loading
-            // This prevents overwriting collaborative state with stale DB content
+            // CRITICAL: Don't load content until the editor is stable
+            // The editor is recreated when ydoc/provider change from null to real values
+            // We need to wait for the collab-enabled editor to be ready
             const isCollabMode = Boolean(ydoc && provider);
+            
+            // If we have a docId but ydoc/provider aren't ready yet, wait for them
+            // The useEditor hook will recreate the editor when ydoc becomes available
+            if (docId && !ydoc) {
+                console.log('[DocEditor] Waiting for Yjs provider to initialize...');
+                return; // Wait for ydoc to be available
+            }
+            
             if (isCollabMode && !yjsInitialSyncComplete) {
-                // Wait for sync or timeout after 2 seconds
+                console.log('[DocEditor] Waiting for Yjs initial sync...');
+                // Wait for sync or timeout after 3 seconds
                 const timeout = setTimeout(() => {
+                    console.log('[DocEditor] Yjs sync timeout - loading from DB');
                     loadDoc();
-                }, 2000);
+                }, 3000);
                 
                 // If sync completes before timeout, load immediately
                 const checkSync = setInterval(() => {
                     if (yjsInitialSyncComplete) {
+                        console.log('[DocEditor] Yjs sync complete - loading doc');
                         clearTimeout(timeout);
                         clearInterval(checkSync);
                         loadDoc();
@@ -949,11 +984,28 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     const loadDoc = async () => {
         // Load document content from database and hydrate editor
         // This should be called once when opening a document
-        if (!editor) return;
+        if (!editor || !docId) return;
+        
+        // Prevent double-loading the same document (React StrictMode can cause double-mount)
+        if (loadedDocIdRef.current === docId) {
+            return;
+        }
+        loadedDocIdRef.current = docId;
         
         setIsLoading(true);
         try {
             const { data, error } = await DatabaseService.loadGTMDocById(docId!, workspaceId);
+            
+            // Debug: Log raw database response
+            console.log('[DocEditor] Raw doc data from DB:', {
+                docId,
+                title: data?.title,
+                isTemplate: data?.isTemplate,
+                contentJsonType: typeof data?.contentJson,
+                contentJsonEmpty: data?.contentJson === null || data?.contentJson === undefined || (typeof data?.contentJson === 'object' && Object.keys(data?.contentJson || {}).length === 0),
+                contentPlainLength: data?.contentPlain?.length || 0,
+                contentPlainPreview: data?.contentPlain?.slice(0, 200),
+            });
             
             if (error) {
                 console.error('Error loading doc:', error);
@@ -987,26 +1039,75 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                 });
                 
                 // Hydrate editor with database content ONLY if:
-                // 1. Yjs has synced and is empty (no collaborative content to preserve), OR
-                // 2. Yjs hasn't synced yet and we're not in collab mode (new doc or non-collab scenario)
+                // 1. Not in collab mode (no Yjs), OR
+                // 2. Yjs hasn't synced yet (safe to hydrate since Yjs state is unknown), OR
+                // 3. Yjs has synced but is empty (no collaborative content to preserve)
                 // 
                 // If Yjs has synced and HAS content, the Yjs state is authoritative
                 // and we should NOT override it with potentially stale content_json
                 const isCollabMode = Boolean(docId && ydoc && provider);
+                // Fix: Hydrate if Yjs hasn't synced yet OR if Yjs is empty
+                // Previously we blocked hydration when isCollabMode && !yjsInitialSyncComplete
                 const shouldHydrateFromDb = !isCollabMode || 
-                    (yjsInitialSyncComplete && !yjsHasContent);
+                    !yjsInitialSyncComplete ||  // Yjs hasn't synced - safe to hydrate from DB
+                    (yjsInitialSyncComplete && !yjsHasContent);  // Yjs synced but empty
                 
                 let contentSource = 'skipped_yjs_authoritative';
                 
+                // Debug: Log hydration decision
+                console.log('[DocEditor] Hydration decision:', {
+                    docId,
+                    isCollabMode: Boolean(docId && ydoc && provider),
+                    yjsInitialSyncComplete,
+                    yjsHasContent,
+                    shouldHydrateFromDb: !Boolean(docId && ydoc && provider) || 
+                        !yjsInitialSyncComplete ||
+                        (yjsInitialSyncComplete && !yjsHasContent),
+                    hasContentJson: !!data.contentJson,
+                    contentJsonType: typeof data.contentJson,
+                    contentJsonKeys: data.contentJson ? Object.keys(data.contentJson) : [],
+                    hasContentPlain: !!data.contentPlain,
+                    contentPlainLength: data.contentPlain?.length || 0,
+                    contentPlainPreview: data.contentPlain?.slice(0, 100),
+                });
+                
                 if (shouldHydrateFromDb) {
                     contentSource = 'database_empty';
-                    if (data.contentJson && Object.keys(data.contentJson).length > 0) {
+                    // Check if contentJson has actual content (not just an empty doc structure)
+                    const hasValidJsonContent = data.contentJson && 
+                        typeof data.contentJson === 'object' &&
+                        data.contentJson.content && 
+                        Array.isArray(data.contentJson.content) &&
+                        data.contentJson.content.length > 0 &&
+                        // Check it's not just empty paragraphs
+                        data.contentJson.content.some((node: any) => 
+                            node.content || (node.type !== 'paragraph')
+                        );
+                    
+                    console.log('[DocEditor] Content validation:', {
+                        hasValidJsonContent,
+                        contentJsonContent: data.contentJson?.content,
+                    });
+                    
+                    if (hasValidJsonContent) {
+                        console.log('[DocEditor] Setting content from contentJson');
                         editor.commands.setContent(data.contentJson);
                         contentSource = 'database_json';
                     } else if (data.contentPlain && data.contentPlain.trim()) {
+                        // Use contentPlain (which contains HTML for templates)
+                        console.log('[DocEditor] Setting content from contentPlain (HTML)');
                         editor.commands.setContent(data.contentPlain);
                         contentSource = 'database_plain';
                     }
+                    
+                    // Debug: Log editor state after setContent
+                    setTimeout(() => {
+                        console.log('[DocEditor] Editor content after setContent:', {
+                            isEmpty: editor.isEmpty,
+                            textLength: editor.state.doc.textContent.length,
+                            textPreview: editor.state.doc.textContent.slice(0, 100),
+                        });
+                    }, 100);
                 }
 
                 emitBootTelemetry({
@@ -1669,8 +1770,13 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     if (isLoading) {
         return (
             <div className="h-full flex items-center justify-center bg-[#fffdf3]">
-                <div className="px-6 py-4 rounded-2xl border border-gray-200 shadow-sm bg-white text-gray-700 text-sm">
-                    Loading your GTM doc...
+                <div className="flex flex-col items-center gap-4">
+                    {/* Square spinner animation */}
+                    <div className="relative w-12 h-12">
+                        <div className="absolute inset-0 border-4 border-black animate-spin" style={{ animationDuration: '1.2s' }} />
+                        <div className="absolute inset-2 border-2 border-gray-400 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+                    </div>
+                    <p className="text-black font-mono text-sm font-medium">Loading document...</p>
                 </div>
             </div>
         );

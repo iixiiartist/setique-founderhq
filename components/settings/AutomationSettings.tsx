@@ -104,9 +104,12 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
 
     if (isLoading) {
         return (
-            <div className="p-8 text-center">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-slate-900 border-t-transparent"></div>
-                <p className="mt-4 text-sm text-gray-600">Loading automation settings...</p>
+            <div className="p-8 flex flex-col items-center justify-center gap-4">
+                <div className="relative w-8 h-8">
+                    <div className="absolute inset-0 border-2 border-black animate-spin" style={{ animationDuration: '1.2s' }} />
+                    <div className="absolute inset-1.5 border border-gray-400 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+                </div>
+                <p className="text-sm text-black font-mono">Loading automation settings...</p>
             </div>
         );
     }

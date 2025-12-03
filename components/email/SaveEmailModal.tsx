@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Building2, User, Search, Mail, FileText, Loader2, Check } from 'lucide-react';
+import { X, Building2, User, Search, Mail, FileText, Check } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { DatabaseService } from '../../lib/services/database';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
@@ -246,7 +246,10 @@ export const SaveEmailModal: React.FC<SaveEmailModalProps> = ({
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-gray-600" />
+              <span className="relative w-6 h-6 inline-block">
+                <span className="absolute inset-0 border-2 border-gray-600 animate-spin" style={{ animationDuration: '1.2s' }} />
+                <span className="absolute inset-0.5 border border-gray-400 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+              </span>
             </div>
           ) : (
             <>
@@ -411,7 +414,10 @@ export const SaveEmailModal: React.FC<SaveEmailModalProps> = ({
           >
             {saving ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="relative w-4 h-4 inline-block">
+                  <span className="absolute inset-0 border-2 border-current animate-spin" style={{ animationDuration: '1.2s' }} />
+                  <span className="absolute inset-0.5 border border-current/40 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+                </span>
                 Saving...
               </>
             ) : (

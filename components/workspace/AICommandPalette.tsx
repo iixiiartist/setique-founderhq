@@ -15,7 +15,6 @@ import {
 	CheckCircle2,
 	Globe,
 	Image as ImageIcon,
-	Loader2,
 	Lock,
 	RefreshCw,
 	Search,
@@ -1140,7 +1139,7 @@ ${TIPTAP_TOOLKIT_HINT}`;
 								: 'bg-purple-600 text-white hover:bg-purple-700'
 						}`}
 					>
-						{loading ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+						{loading ? <span className="relative w-4 h-4"><span className="absolute inset-0 border-2 border-current animate-spin" style={{ animationDuration: '1.2s' }} /><span className="absolute inset-0.5 border border-current/40 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} /></span> : <Wand2 size={16} />}
 						{loading ? 'Generating...' : 'Generate'}
 					</button>
 

@@ -530,7 +530,7 @@ export const HuddleTab: React.FC<HuddleTabProps> = ({ isMainMenuOpen = false }) 
             {loadingEntity && (
                 <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center">
                     <div className="bg-white rounded-lg shadow-xl p-6 flex items-center gap-3">
-                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-600 border-t-transparent" />
+                        <span className="relative w-5 h-5 inline-block"><span className="absolute inset-0 border-2 border-gray-600 animate-spin" style={{ animationDuration: '1.2s' }} /><span className="absolute inset-0.5 border border-gray-400 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} /></span>
                         <span className="text-gray-700">Loading...</span>
                     </div>
                 </div>

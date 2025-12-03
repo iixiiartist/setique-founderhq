@@ -9,7 +9,7 @@ import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { Form, FormStatus } from '../../types/forms';
 import { getWorkspaceForms, deleteForm, duplicateForm, archiveForm, publishForm, unpublishForm, generateEmbedCode, generateShareLinks } from '../../src/services/formService';
 import { formatDistanceToNow } from 'date-fns';
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 // Form type from database
 type FormType = 'form' | 'survey' | 'poll' | 'quiz' | 'feedback';

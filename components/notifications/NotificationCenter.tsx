@@ -18,7 +18,6 @@ import {
   AlertTriangle,
   ChevronRight,
   RefreshCw,
-  Loader2,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
@@ -486,7 +485,10 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                 >
                   {pagination.loadingMore ? (
                     <div className="flex items-center gap-2 text-gray-500">
-                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span className="relative w-5 h-5 inline-block">
+                        <span className="absolute inset-0 border-2 border-current animate-spin" style={{ animationDuration: '1.2s' }} />
+                        <span className="absolute inset-0.5 border border-current/40 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+                      </span>
                       <span className="text-sm">Loading more...</span>
                     </div>
                   ) : (

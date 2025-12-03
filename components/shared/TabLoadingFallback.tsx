@@ -1,4 +1,5 @@
 import React from 'react';
+import { SquareSpinner } from './Loading';
 
 /**
  * Tab Loading Fallback Component
@@ -7,9 +8,9 @@ import React from 'react';
 export const TabLoadingFallback: React.FC = () => {
   return (
     <div className="flex items-center justify-center h-full min-h-[400px]">
-      <div className="text-center">
-        <div className="inline-block animate-spin h-12 w-12 border-4 border-gray-600 border-t-transparent rounded-full mb-4" />
-        <p className="text-slate-600 text-sm">Loading tab...</p>
+      <div className="flex flex-col items-center gap-4">
+        <SquareSpinner size="lg" />
+        <p className="text-black font-mono text-sm">Loading tab...</p>
       </div>
     </div>
   );

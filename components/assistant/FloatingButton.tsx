@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { Sparkles, Loader2, Lock, MessageCircle, GripVertical } from 'lucide-react';
+import { Sparkles, Lock, MessageCircle, GripVertical } from 'lucide-react';
 import './animations.css';
 
 interface FloatingButtonProps {
@@ -192,7 +192,10 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
     if (isLoading) {
       return (
         <div className="relative">
-          <Loader2 className="w-6 h-6 animate-spin" strokeWidth={2} />
+          <span className="relative w-6 h-6 inline-block">
+            <span className="absolute inset-0 border-2 border-current animate-spin" style={{ animationDuration: '1.2s' }} />
+            <span className="absolute inset-0.5 border border-current/40 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+          </span>
         </div>
       );
     }

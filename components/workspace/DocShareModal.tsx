@@ -4,7 +4,7 @@ import Modal from '../shared/Modal';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { DatabaseService } from '../../lib/services/database';
 import { useDeleteConfirm } from '../../hooks';
-import { Link2, Loader2, ShieldCheck, Users, AlertTriangle, Crown } from 'lucide-react';
+import { Link2, ShieldCheck, Users, AlertTriangle, Crown } from 'lucide-react';
 
 interface DocShareModalProps {
     isOpen: boolean;
@@ -378,7 +378,10 @@ export const DocShareModal: React.FC<DocShareModalProps> = ({
                         <h4 className="text-sm font-semibold text-gray-700">Linked workspace items</h4>
                         {loadingLinks && (
                             <div className="flex items-center gap-1 text-xs text-gray-500">
-                                <Loader2 className="animate-spin" size={14} /> Loading
+                                <span className="relative w-3.5 h-3.5 inline-block">
+                                    <span className="absolute inset-0 border-2 border-current animate-spin" style={{ animationDuration: '1.2s' }} />
+                                    <span className="absolute inset-0.5 border border-current/40 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+                                </span> Loading
                             </div>
                         )}
                     </div>
@@ -489,7 +492,12 @@ export const DocShareModal: React.FC<DocShareModalProps> = ({
                                             </div>
                                             <div className="flex items-center gap-1 text-xs text-gray-600">
                                                 <span className="uppercase text-[10px] tracking-wide">{ENTITY_LABELS[target.type] || target.type}</span>
-                                                {isProcessing ? <Loader2 size={14} className="animate-spin" /> : <Link2 size={14} />}
+                                                {isProcessing ? (
+                                                    <span className="relative w-3.5 h-3.5 inline-block">
+                                                        <span className="absolute inset-0 border-2 border-current animate-spin" style={{ animationDuration: '1.2s' }} />
+                                                        <span className="absolute inset-0.5 border border-current/40 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+                                                    </span>
+                                                ) : <Link2 size={14} />}
                                             </div>
                                         </div>
                                     </button>

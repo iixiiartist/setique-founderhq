@@ -12,7 +12,6 @@ import {
     StarOff,
     FileText,
     Edit2,
-    Loader2,
     Activity as ActivityIcon
 } from 'lucide-react';
 
@@ -235,7 +234,7 @@ export function FileDetailPanel({
                                 disabled={isConverting}
                             >
                                 {isConverting ? (
-                                    <><Loader2 size={16} className="animate-spin" /> Converting...</>
+                                    <><span className="relative w-4 h-4 inline-block"><span className="absolute inset-0 border-2 border-current animate-spin" style={{ animationDuration: '1.2s' }} /><span className="absolute inset-0.5 border border-current/40 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} /></span> Converting...</>
                                 ) : (
                                     <><Edit2 size={16} /> Edit in GTM Editor</>
                                 )}

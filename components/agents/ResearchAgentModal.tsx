@@ -2,7 +2,7 @@
 // Modal for running the Research & Briefing agent
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { X, Loader2, Globe, FileText, AlertCircle, Sparkles, Save, Check, Download, FolderPlus, ChevronDown } from 'lucide-react';
+import { X, Globe, FileText, AlertCircle, Sparkles, Save, Check, Download, FolderPlus, ChevronDown } from 'lucide-react';
 import { useYouAgent } from '../../hooks/useYouAgent';
 import { useAgentReports } from '../../hooks/useAgentReports';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
@@ -413,7 +413,7 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
                 >
                   {loading ? (
                     <>
-                      <Loader2 size={18} className="animate-spin" />
+                      <span className="relative w-4.5 h-4.5 inline-block"><span className="absolute inset-0 border-2 border-current animate-spin" style={{ animationDuration: '1.2s' }} /><span className="absolute inset-0.5 border border-current/40 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} /></span>
                       {isStreaming ? 'Receiving data...' : 'Researching...'}
                     </>
                   ) : (
@@ -486,7 +486,7 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
                             className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 text-left disabled:opacity-50"
                           >
                             {exportingPdf ? (
-                              <Loader2 size={14} className="animate-spin" />
+                              <span className="relative w-3.5 h-3.5 inline-block"><span className="absolute inset-0 border-2 border-current animate-spin" style={{ animationDuration: '1.2s' }} /><span className="absolute inset-0.5 border border-current/40 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} /></span>
                             ) : (
                               <Download size={14} />
                             )}
@@ -505,7 +505,7 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
                               </>
                             ) : savingToLibrary ? (
                               <>
-                                <Loader2 size={14} className="animate-spin" />
+                                <span className="relative w-3.5 h-3.5 inline-block"><span className="absolute inset-0 border-2 border-current animate-spin" style={{ animationDuration: '1.2s' }} /><span className="absolute inset-0.5 border border-current/40 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} /></span>
                                 Saving...
                               </>
                             ) : (
@@ -534,7 +534,7 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
                         </>
                       ) : isSaving ? (
                         <>
-                          <Loader2 size={14} className="animate-spin" />
+                          <span className="relative w-3.5 h-3.5 inline-block"><span className="absolute inset-0 border-2 border-current animate-spin" style={{ animationDuration: '1.2s' }} /><span className="absolute inset-0.5 border border-current/40 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} /></span>
                           Saving...
                         </>
                       ) : (

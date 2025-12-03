@@ -238,8 +238,11 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId,
                 {view === 'forms' && (
                     <div className="flex-1 overflow-hidden">
                         <Suspense fallback={
-                            <div className="h-full flex items-center justify-center">
-                                <div className="animate-spin w-8 h-8 border-4 border-gray-600 border-t-transparent rounded-full" />
+                            <div className="h-full flex flex-col items-center justify-center gap-4">
+                                <div className="relative w-8 h-8">
+                                    <div className="absolute inset-0 border-2 border-black animate-spin" style={{ animationDuration: '1.2s' }} />
+                                    <div className="absolute inset-1.5 border border-gray-400 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+                                </div>
                             </div>
                         }>
                             {analyticsForm ? (

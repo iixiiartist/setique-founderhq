@@ -2716,62 +2716,69 @@ export class DatabaseService {
 
   static async seedGTMTemplates(workspaceId: string, userId: string) {
     try {
-      // Get existing templates by title
+      // Import templates from centralized template file
+      const { GTM_TEMPLATES } = await import('../templates/gtmTemplates')
+      
+      // Get existing templates by title (with content to check if they need updating)
       const { data: existing } = await supabase
         .from('gtm_docs')
-        .select('title')
+        .select('id, title, content_plain')
         .eq('workspace_id', workspaceId)
         .eq('is_template', true)
 
-      const existingTitles = new Set((existing || []).map(t => t.title))
+      const existingByTitle = new Map((existing || []).map(t => [t.title, t]))
 
-      const templates = [
-        {
-          title: 'GTM Launch Brief Template',
-          doc_type: 'brief',
-          template_category: 'launch',
-          tags: ['template', 'gtm', 'launch', 'brief'],
-          content_plain: 'GTM Launch Brief\n\nExecutive Summary\n[Brief overview of the product/feature launch and key objectives]\n\nProduct Positioning\nValue Proposition: [What unique value does this provide?]\nPositioning Statement: [For WHO, our product does WHAT, unlike COMPETITORS]\n\nTarget Audience\n• Primary: [Define primary audience]\n• Secondary: [Define secondary audience]\n• Pain points: [Key challenges we solve]\n\nKey Messaging\nCore Message: [One-sentence core message]\nSupporting Messages:\n1. [Message pillar 1]\n2. [Message pillar 2]\n3. [Message pillar 3]\n\nChannel Strategy\n• Content marketing\n• Email campaigns\n• Social media\n• Sales enablement\n\nSuccess Metrics\n• Awareness\n• Engagement\n• Conversion\n• Revenue',
-        },
-        {
-          title: 'Ideal Customer Profile (ICP) Template',
-          doc_type: 'icp_sheet',
-          template_category: 'targeting',
-          tags: ['template', 'icp', 'targeting', 'qualification'],
-          content_plain: 'Ideal Customer Profile (ICP)\n\nCompany Profile\n• Industry: [Target industries]\n• Company Size: [Employee count]\n• Revenue: [ARR range]\n• Geography: [Target regions]\n• Tech Stack: [Technologies they use]\n\nPain Points & Challenges\n1. [Key pain point 1]\n2. [Key pain point 2]\n3. [Key pain point 3]\n\nDecision Makers\n• Economic Buyer\n• Technical Buyer\n• Champion\n\nBuying Process\nTypical Timeline: [Sales cycle]\nEvaluation Criteria:\n• [Criterion 1]\n• [Criterion 2]\n• [Criterion 3]',
-        },
-        {
-          title: 'Campaign Plan Template',
-          doc_type: 'campaign',
-          template_category: 'campaign',
-          tags: ['template', 'campaign', 'marketing', 'planning'],
-          content_plain: 'Campaign Plan\n\nCampaign Overview\nGoal: [What are we trying to achieve?]\nTarget Audience: [Who are we targeting?]\nDuration: [Start - End date]\n\nKey Objectives & KPIs\n• Objective 1: [Measurable goal]\n• Objective 2: [Measurable goal]\n• Objective 3: [Measurable goal]\n\nCampaign Tactics\nContent: [Blog, guides, videos]\nEmail: [Sequences, newsletters]\nSocial Media: [Platform tactics]\nPaid Media: [Ad platforms, budget]\n\nBudget: $[Amount]\n\nTimeline & Milestones',
-        },
-        {
-          title: 'Competitive Battlecard Template',
-          doc_type: 'battlecard',
-          template_category: 'competitive',
-          tags: ['template', 'battlecard', 'competitive', 'sales'],
-          content_plain: 'Competitive Battlecard: [Competitor Name]\n\nCompetitor Overview\n• Founded: [Year]\n• Size: [Company size]\n• Funding: [Total raised]\n• Target Market: [Their focus]\n\nOur Advantages\n1. [Key differentiator 1]\n2. [Key differentiator 2]\n3. [Key differentiator 3]\n\nTheir Weaknesses\n• [Weakness 1]\n• [Weakness 2]\n• [Weakness 3]\n\nCommon Objections & Responses\nObjection: [What they say]\nResponse: [How we respond]\n\nWin Stories\n[Recent competitive wins]',
-        },
-        {
-          title: 'Buyer Persona Template',
-          doc_type: 'persona',
-          template_category: 'persona',
-          tags: ['template', 'persona', 'buyer', 'targeting'],
-          content_plain: 'Buyer Persona: [Persona Name]\n\nDemographics\n• Title: [Job title]\n• Department: [Department]\n• Company Size: [Size range]\n• Industry: [Industries]\n\nGoals & Objectives\n1. [Primary goal]\n2. [Secondary goal]\n3. [Success metrics]\n\nChallenges & Pain Points\n• [Challenge 1]\n• [Challenge 2]\n• [Challenge 3]\n\nA Day in the Life\n[Typical workflow and tasks]\n\nHow We Help\n[How our product solves their problems]\n\nPreferred Channels\n• [Where they consume content]',
-        },
-      ];
-
-      // Filter out templates that already exist
-      const templatesToCreate = templates.filter(t => !existingTitles.has(t.title))
-      
-      if (templatesToCreate.length === 0) {
-        logger.info('[Database] All templates already exist for workspace:', { workspaceId })
-        return { data: { message: 'All templates already exist', count: existingTitles.size }, error: null }
+      // Map template IDs to doc_types and categories
+      // Valid doc_types: 'brief', 'campaign', 'meeting_notes', 'battlecard', 'outbound_template', 'icp_sheet', 'persona', 'competitive_snapshot'
+      const templateMetadata: Record<string, { doc_type: string; template_category: string }> = {
+        'executive-summary': { doc_type: 'brief', template_category: 'strategy' },
+        'product-brief': { doc_type: 'brief', template_category: 'product' },
+        'launch-plan': { doc_type: 'brief', template_category: 'launch' },
+        'competitive-analysis': { doc_type: 'battlecard', template_category: 'competitive' },
+        'sales-deck': { doc_type: 'outbound_template', template_category: 'sales' },
+        'ideal-customer-profile': { doc_type: 'icp_sheet', template_category: 'targeting' },
+        'campaign-plan': { doc_type: 'campaign', template_category: 'marketing' },
+        'meeting-notes': { doc_type: 'meeting_notes', template_category: 'operations' },
+        'quarterly-business-review': { doc_type: 'brief', template_category: 'strategy' },
       }
 
-      const results = await Promise.all(
+      // Transform GTM_TEMPLATES to database format
+      const templates = GTM_TEMPLATES.map(template => {
+        const metadata = templateMetadata[template.id] || { doc_type: 'other', template_category: 'general' }
+        // Create unique tags array (deduplicated)
+        const tags = [...new Set(['template', 'gtm', metadata.template_category, template.category || metadata.doc_type])]
+        
+        return {
+          id: template.id,
+          title: template.name,
+          doc_type: metadata.doc_type,
+          template_category: metadata.template_category,
+          tags,
+          content_html: template.content,
+        }
+      })
+
+      // Separate templates into create vs update
+      const templatesToCreate: typeof templates = []
+      const templatesToUpdate: Array<{ id: string; content_html: string }> = []
+      
+      for (const template of templates) {
+        const existingTemplate = existingByTitle.get(template.title)
+        if (!existingTemplate) {
+          templatesToCreate.push(template)
+        } else if (
+          !existingTemplate.content_plain || 
+          existingTemplate.content_plain.trim().length < 500 ||  // Update if minimal content
+          !existingTemplate.content_plain.includes('data-type="taskList"')  // Update if missing rich elements
+        ) {
+          // Update if existing template has no/minimal content or lacks rich formatting
+          // This ensures templates are updated when we add new styled content
+          templatesToUpdate.push({ id: existingTemplate.id, content_html: template.content_html })
+        }
+      }
+
+      // Create new templates
+      const createResults = await Promise.all(
         templatesToCreate.map(template =>
           supabase
             .from('gtm_docs')
@@ -2780,8 +2787,9 @@ export class DatabaseService {
               owner_id: userId,
               title: template.title,
               doc_type: template.doc_type,
-              content_json: null, // Let users fill in content
-              content_plain: template.content_plain,
+              // Store HTML in content_plain - TipTap's setContent() can parse HTML strings
+              content_json: null,
+              content_plain: template.content_html,
               visibility: 'team',
               is_template: true,
               template_category: template.template_category,
@@ -2791,15 +2799,57 @@ export class DatabaseService {
         )
       );
 
-      const errors = results.filter(r => r.error);
-      if (errors.length > 0) {
-        logger.error('[Database] Error seeding some templates:', errors);
+      // Update existing empty templates with new content
+      const updateResults = await Promise.all(
+        templatesToUpdate.map(template =>
+          supabase
+            .from('gtm_docs')
+            .update({
+              content_json: null,
+              content_plain: template.content_html,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', template.id)
+            .eq('workspace_id', workspaceId)
+            .select()
+        )
+      );
+
+      const createErrors = createResults.filter(r => r.error);
+      const updateErrors = updateResults.filter(r => r.error);
+      
+      if (createErrors.length > 0 || updateErrors.length > 0) {
+        // Log detailed error info for debugging
+        createErrors.forEach((r, i) => {
+          logger.error(`[Database] Template create error ${i + 1}:`, { 
+            error: r.error,
+            message: r.error?.message,
+            details: r.error?.details,
+            hint: r.error?.hint,
+            code: r.error?.code,
+          });
+        });
+        updateErrors.forEach((r, i) => {
+          logger.error(`[Database] Template update error ${i + 1}:`, { 
+            error: r.error,
+            message: r.error?.message,
+          });
+        });
       }
 
-      const successCount = results.filter(r => !r.error).length;
-      logger.info('[Database] Seeded GTM templates:', { workspaceId, count: successCount });
+      const createCount = createResults.filter(r => !r.error).length;
+      const updateCount = updateResults.filter(r => !r.error).length;
+      
+      logger.info('[Database] Seeded GTM templates:', { workspaceId, created: createCount, updated: updateCount });
 
-      return { data: { message: 'Templates seeded successfully', count: successCount }, error: null };
+      return { 
+        data: { 
+          message: `Templates seeded successfully (${createCount} created, ${updateCount} updated)`, 
+          created: createCount,
+          updated: updateCount,
+        }, 
+        error: null 
+      };
     } catch (error) {
       logger.error('Error seeding GTM templates:', error);
       return { data: null, error };

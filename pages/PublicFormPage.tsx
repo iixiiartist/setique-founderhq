@@ -722,9 +722,12 @@ export const PublicFormPage: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="text-center">
-          <div className="animate-spin w-12 h-12 border-4 border-gray-600 border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-slate-600">Loading form...</p>
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative w-12 h-12">
+            <div className="absolute inset-0 border-4 border-black animate-spin" style={{ animationDuration: '1.2s' }} />
+            <div className="absolute inset-2 border-2 border-gray-400 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+          </div>
+          <p className="text-black font-mono">Loading form...</p>
         </div>
       </div>
     );
@@ -1235,8 +1238,11 @@ export const PublicFormPage: React.FC = () => {
                               }}
                             />
                             {isUploading ? (
-                              <div className="space-y-2">
-                                <div className="animate-spin mx-auto w-8 h-8 border-2 border-t-transparent rounded-full" style={{ borderColor: theme?.primaryColor || '#8B5CF6', borderTopColor: 'transparent' }}></div>
+                              <div className="flex flex-col items-center gap-2">
+                                <div className="relative w-8 h-8">
+                                  <div className="absolute inset-0 border-2 animate-spin" style={{ borderColor: theme?.primaryColor || '#8B5CF6', animationDuration: '1.2s' }} />
+                                  <div className="absolute inset-1 border animate-spin" style={{ borderColor: theme?.primaryColor || '#8B5CF6', opacity: 0.4, animationDuration: '0.8s', animationDirection: 'reverse' }} />
+                                </div>
                                 <p className="text-sm" style={{ color: theme?.textColor || '#6B7280' }}>Uploading...</p>
                               </div>
                             ) : value ? (

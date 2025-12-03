@@ -1,4 +1,5 @@
 import React from 'react';
+import { X } from 'lucide-react';
 
 export type BadgeVariant = 'default' | 'filled' | 'outline' | 'success' | 'warning' | 'danger' | 'primary' | 'info';
 export type BadgeSize = 'sm' | 'md' | 'lg';
@@ -50,10 +51,10 @@ export function Badge({
         <button
           type="button"
           onClick={onRemove}
-          className="ml-0.5 hover:opacity-70 transition-opacity focus:outline-none"
-          aria-label="Remove"
+          className="ml-0.5 -mr-1 p-0.5 rounded-full hover:bg-black/10 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-current"
+          aria-label="Remove badge"
         >
-          ×
+          <X className="w-3 h-3" aria-hidden="true" />
         </button>
       )}
     </span>

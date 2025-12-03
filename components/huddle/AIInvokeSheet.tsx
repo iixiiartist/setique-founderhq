@@ -367,7 +367,7 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
             >
               {isLoading ? (
                 <>
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span className="relative w-4 h-4 inline-block"><span className="absolute inset-0 border-2 border-white animate-spin" style={{ animationDuration: '1.2s' }} /><span className="absolute inset-0.5 border border-white/40 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} /></span>
                   <span className="hidden sm:inline">Processing...</span>
                   <span className="sm:hidden">...</span>
                 </>

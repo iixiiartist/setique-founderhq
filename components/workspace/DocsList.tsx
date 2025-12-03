@@ -3,7 +3,7 @@ import { useDebouncedValue, useDeleteConfirm } from '../../hooks';
 import { GTMDocMetadata, DocType } from '../../types';
 import { DOC_TYPE_LABELS, DOC_TYPE_ICONS } from '../../constants';
 import { DatabaseService } from '../../lib/services/database';
-import { ChevronLeft, ChevronRight, Search, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
 
 interface DocsListProps {
@@ -250,7 +250,12 @@ export const DocsList: React.FC<DocsListProps> = ({
                         aria-label="Search documents"
                     />
                     {isSearching && (
-                        <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 animate-spin" size={16} />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2">
+                            <span className="relative block w-4 h-4">
+                                <span className="absolute inset-0 border border-gray-400 animate-spin" style={{ animationDuration: '1.2s' }} />
+                                <span className="absolute inset-0.5 border border-gray-300 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+                            </span>
+                        </span>
                     )}
                 </div>
             </div>
@@ -305,9 +310,12 @@ export const DocsList: React.FC<DocsListProps> = ({
             {/* Document List */}
             <div className="flex-1 overflow-y-auto">
                 {isLoading ? (
-                    <div className="p-4 text-center text-gray-500 flex flex-col items-center gap-2">
-                        <Loader2 className="animate-spin" size={24} />
-                        <span>Loading documents...</span>
+                    <div className="p-4 flex flex-col items-center gap-3">
+                        <div className="relative w-6 h-6">
+                            <div className="absolute inset-0 border-2 border-black animate-spin" style={{ animationDuration: '1.2s' }} />
+                            <div className="absolute inset-1 border border-gray-400 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+                        </div>
+                        <span className="text-sm text-black font-mono">Loading documents...</span>
                     </div>
                 ) : docs.length === 0 ? (
                     <div className="p-4 text-center text-gray-500">

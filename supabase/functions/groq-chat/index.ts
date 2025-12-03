@@ -74,6 +74,19 @@ serve(async (req) => {
     // Use requested model or fall back to a reliable default
     const requestedModel = model || 'llama-3.3-70b-versatile';
     
+    // Validate model against allowlist before making API call
+    if (!VALID_MODELS.includes(requestedModel)) {
+      console.error('[groq-chat] Invalid model requested:', requestedModel);
+      return new Response(JSON.stringify({
+        error: `Invalid model '${requestedModel}'. Valid models are: ${VALID_MODELS.join(', ')}`,
+        code: 'invalid_model',
+        validModels: VALID_MODELS,
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
     const requestBody: any = {
       model: requestedModel,
       messages,

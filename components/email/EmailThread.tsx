@@ -9,7 +9,7 @@ import { showSuccess, showError } from '../../lib/utils/toast';
 import { fixEmailEncoding, fixHtmlEncoding } from '../../lib/utils/textDecoder';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { Paperclip, Download, FolderPlus, Loader2, FileText, Image, File, UserPlus, X, Check, Save, Link2, Maximize2, Minimize2 } from 'lucide-react';
+import { Paperclip, Download, FolderPlus, FileText, Image, File, UserPlus, X, Check, Save, Link2, Maximize2, Minimize2 } from 'lucide-react';
 
 interface EmailAttachment {
   id: string;
@@ -470,8 +470,11 @@ Return the JSON array of contacts found.`;
     return (
       <div className="h-full flex items-center justify-center bg-white">
         <div className="flex flex-col items-center gap-3">
-            <div className="w-6 h-6 border-2 border-gray-500 border-t-transparent rounded-full animate-spin"></div>
-            <div className="text-sm text-gray-500">Loading message...</div>
+            <div className="relative w-6 h-6">
+                <div className="absolute inset-0 border-2 border-black animate-spin" style={{ animationDuration: '1.2s' }} />
+                <div className="absolute inset-1 border border-gray-400 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+            </div>
+            <div className="text-sm text-black font-mono">Loading message...</div>
         </div>
       </div>
     );
@@ -606,7 +609,7 @@ Return the JSON array of contacts found.`;
         <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 animate-in slide-in-from-top-2">
             {processingAi ? (
                 <div className="flex items-center gap-3 text-gray-600">
-                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    <span className="relative w-4 h-4 inline-block"><span className="absolute inset-0 border-2 border-current animate-spin" style={{ animationDuration: '1.2s' }} /><span className="absolute inset-0.5 border border-current/40 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} /></span>
                     <span className="text-sm font-medium">Processing...</span>
                 </div>
             ) : summary ? (
@@ -685,7 +688,10 @@ Return the JSON array of contacts found.`;
                     title={isSaved ? 'Added to CRM' : 'Add to CRM'}
                   >
                     {isSaving ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span className="relative w-4 h-4 inline-block">
+                        <span className="absolute inset-0 border-2 border-current animate-spin" style={{ animationDuration: '1.2s' }} />
+                        <span className="absolute inset-0.5 border border-current/40 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+                      </span>
                     ) : isSaved ? (
                       <Check className="w-4 h-4" />
                     ) : (
@@ -759,7 +765,10 @@ Return the JSON array of contacts found.`;
                     title="Save to File Library"
                   >
                     {savingAttachment === attachment.id ? (
-                      <Loader2 size={16} className="animate-spin" />
+                      <span className="relative w-4 h-4 inline-block">
+                        <span className="absolute inset-0 border-2 border-current animate-spin" style={{ animationDuration: '1.2s' }} />
+                        <span className="absolute inset-0.5 border border-current/40 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+                      </span>
                     ) : (
                       <FolderPlus size={16} />
                     )}

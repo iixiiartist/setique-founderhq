@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { DatabaseService } from '../../lib/services/database';
 import { uploadBinary } from '../../lib/services/uploadService';
-import { Upload, User, Mail, Save, X, Camera, Loader2, Trash2 } from 'lucide-react';
+import { Upload, User, Mail, Save, X, Camera, Trash2 } from 'lucide-react';
 
 interface ProfileSettingsProps {
   onSave?: () => void;
@@ -188,8 +188,11 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-4 border-gray-600 border-t-transparent"></div>
+      <div className="flex flex-col items-center justify-center p-8 gap-4">
+        <div className="relative w-8 h-8">
+          <div className="absolute inset-0 border-2 border-black animate-spin" style={{ animationDuration: '1.2s' }} />
+          <div className="absolute inset-1.5 border border-gray-400 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+        </div>
       </div>
     );
   }
@@ -268,7 +271,10 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
             {/* Upload Progress Overlay */}
             {uploading && (
               <div className="absolute inset-0 rounded-full bg-black/70 flex flex-col items-center justify-center">
-                <Loader2 className="w-8 h-8 text-white animate-spin" />
+                <span className="relative w-8 h-8 inline-block">
+                  <span className="absolute inset-0 border-2 border-white animate-spin" style={{ animationDuration: '1.2s' }} />
+                  <span className="absolute inset-0.5 border border-white/40 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+                </span>
                 <span className="text-white text-xs mt-1 font-mono">{uploadProgress}%</span>
               </div>
             )}
@@ -299,7 +305,10 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
               >
                 {uploading ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="relative w-4 h-4 inline-block">
+                      <span className="absolute inset-0 border-2 border-current animate-spin" style={{ animationDuration: '1.2s' }} />
+                      <span className="absolute inset-0.5 border border-current/40 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+                    </span>
                     Uploading...
                   </>
                 ) : (
