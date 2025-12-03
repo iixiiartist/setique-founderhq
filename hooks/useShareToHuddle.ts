@@ -123,19 +123,20 @@ export function useShareToHuddle(): UseShareToHuddleReturn {
 
     // Get title - different properties depending on event type
     const title = (event as any).title || (event as any).name || 'Calendar Event';
+    const eventAny = event as any;
 
     openShareModal({
       type: 'calendar_event',
       id: event.id,
       title,
-      description: event.description || undefined,
+      description: eventAny.description || undefined,
       preview: {
-        snippet: [dateStr, event.location].filter(Boolean).join(' | '),
+        snippet: [dateStr, eventAny.location].filter(Boolean).join(' | '),
       },
-      startTime: (event as any).start || undefined,
-      endTime: (event as any).end || undefined,
-      location: event.location || undefined,
-      attendees: (event as any).attendees || undefined,
+      startTime: eventAny.start || undefined,
+      endTime: eventAny.end || undefined,
+      location: eventAny.location || undefined,
+      attendees: eventAny.attendees || undefined,
     });
   }, [openShareModal]);
 

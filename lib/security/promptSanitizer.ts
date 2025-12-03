@@ -230,8 +230,8 @@ export function sanitizeAssistantContext(
   
   const totalThreats = Object.values(results).reduce((sum, r) => sum + r.threats.length, 0);
   
-  // Log threats in development
-  if (process.env.NODE_ENV === 'development' && totalThreats > 0) {
+  // Log threats in development (only for medium+ risk to reduce noise)
+  if (process.env.NODE_ENV === 'development' && totalThreats > 0 && riskPriority[highestRiskLevel] >= riskPriority['medium']) {
     console.warn('[PromptSanitizer] Detected threats in assistant context:', {
       totalThreats,
       highestRiskLevel,

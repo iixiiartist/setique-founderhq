@@ -37,7 +37,7 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
   const { isWorkspaceOwner } = useWorkspace();
   
   // Use shared delete confirmation hook
-  const deleteConfirmation = useDeleteConfirm();
+  const deleteConfirmation = useDeleteConfirm<{ id: string }>('comment');
 
   // Load comments
   useEffect(() => {
@@ -113,26 +113,21 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
   };
 
   const handleDeleteComment = useCallback(async (commentId: string) => {
-    const confirmed = await deleteConfirmation.confirm({
-      title: 'Delete Comment',
-      message: 'Are you sure you want to delete this comment?',
-      itemName: 'comment'
+    // Use requestConfirm pattern for async confirmation
+    deleteConfirmation.requestConfirm({ id: commentId }, async () => {
+      setSubmitting(true);
+      const { success, error } = await deleteComment(commentId);
+
+      if (error) {
+        console.error('Failed to delete comment:', error);
+        alert('Failed to delete comment. Please try again.');
+      } else if (success) {
+        setComments(prev => prev.filter((c) => c.id !== commentId));
+      }
+
+      setSubmitting(false);
     });
-    
-    if (!confirmed) return;
-
-    setSubmitting(true);
-    const { success, error } = await deleteComment(commentId);
-
-    if (error) {
-      console.error('Failed to delete comment:', error);
-      alert('Failed to delete comment. Please try again.');
-    } else if (success) {
-      setComments(comments.filter((c) => c.id !== commentId));
-    }
-
-    setSubmitting(false);
-  }, [comments, deleteConfirmation]);
+  }, [deleteConfirmation]);
 
   const startEditing = (comment: TaskComment) => {
     setEditingCommentId(comment.id);

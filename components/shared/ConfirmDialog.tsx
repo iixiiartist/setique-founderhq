@@ -8,6 +8,8 @@ export interface ConfirmDialogProps {
   title: string;
   message: string;
   confirmLabel?: string;
+  /** Alias for confirmLabel (backwards compatibility) */
+  confirmText?: string;
   cancelLabel?: string;
   variant?: 'danger' | 'warning' | 'info';
   isLoading?: boolean;
@@ -37,7 +39,8 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   onConfirm,
   title,
   message,
-  confirmLabel = 'Confirm',
+  confirmLabel,
+  confirmText,
   cancelLabel = 'Cancel',
   variant = 'danger',
   isLoading = false,
@@ -45,6 +48,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   if (!isOpen) return null;
 
   const styles = variantStyles[variant];
+  const resolvedConfirmLabel = confirmLabel || confirmText || 'Confirm';
 
   const handleConfirm = () => {
     onConfirm();
@@ -122,7 +126,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 Processing...
               </span>
             ) : (
-              confirmLabel
+              resolvedConfirmLabel
             )}
           </button>
         </div>

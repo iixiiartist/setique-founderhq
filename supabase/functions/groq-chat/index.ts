@@ -12,6 +12,41 @@ const VALID_MODELS = [
   'gemma2-9b-it',
 ];
 
+// Retry configuration for rate limits
+const MAX_RETRIES = 2;
+const BASE_DELAY_MS = 1000;
+
+async function callGroqWithRetry(
+  requestBody: any,
+  apiKey: string,
+  retryCount = 0
+): Promise<{ data: any; status: number; ok: boolean }> {
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+
+  const data = await response.json();
+  
+  // If rate limited and we have retries left, wait and retry
+  if (response.status === 429 && retryCount < MAX_RETRIES) {
+    // Parse retry-after from error or use exponential backoff
+    const match = data.error?.message?.match(/try again in (\d+\.?\d*)/i);
+    const retryAfter = match ? Math.ceil(parseFloat(match[1]) * 1000) : BASE_DELAY_MS * Math.pow(2, retryCount);
+    
+    console.log(`[groq-chat] Rate limited, retrying in ${retryAfter}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+    await new Promise(resolve => setTimeout(resolve, retryAfter));
+    
+    return callGroqWithRetry(requestBody, apiKey, retryCount + 1);
+  }
+  
+  return { data, status: response.status, ok: response.ok };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -25,6 +60,7 @@ serve(async (req) => {
       model: model || 'default',
       messagesCount: messages?.length,
       hasTools: !!tools,
+      toolCount: tools?.length || 0,
       maxTokens: max_tokens
     });
     
@@ -38,7 +74,7 @@ serve(async (req) => {
     // Use requested model or fall back to a reliable default
     const requestedModel = model || 'llama-3.3-70b-versatile';
     
-    const requestBody = {
+    const requestBody: any = {
       model: requestedModel,
       messages,
       temperature: temperature ?? 0.7,
@@ -47,36 +83,28 @@ serve(async (req) => {
     
     // Only add tools if provided
     if (tools && tools.length > 0) {
-      (requestBody as any).tools = tools;
+      requestBody.tools = tools;
       if (tool_choice) {
-        (requestBody as any).tool_choice = tool_choice;
+        requestBody.tool_choice = tool_choice;
       }
     }
 
     console.log('[groq-chat] Calling Groq API with model:', requestedModel);
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    const data = await response.json();
+    // Use retry wrapper for rate limit handling
+    const { data, status, ok } = await callGroqWithRetry(requestBody, apiKey);
     
-    console.log('[groq-chat] Groq API response status:', response.status, 'ok:', response.ok);
+    console.log('[groq-chat] Groq API response status:', status, 'ok:', ok);
 
-    if (!response.ok) {
+    if (!ok) {
       console.error('[groq-chat] Groq API error:', data.error);
       
-      // Handle rate limits specifically
-      if (data.error?.code === 'rate_limit_exceeded') {
+      // Handle rate limits specifically (after retries exhausted)
+      if (status === 429 || data.error?.code === 'rate_limit_exceeded') {
          const match = data.error?.message?.match(/try again in (\d+\.?\d*)/i);
          const retryAfter = match ? Math.ceil(parseFloat(match[1])) : 5;
          return new Response(JSON.stringify({ 
-             error: data.error.message, 
+             error: data.error?.message || 'Rate limit exceeded', 
              isRateLimit: true,
              retryAfter 
          }), {

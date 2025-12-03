@@ -20,7 +20,7 @@ export const IntegrationsSettings: React.FC = () => {
   const [accounts, setAccounts] = useState<IntegratedAccount[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const disconnectConfirm = useDeleteConfirm<{ id: string }>('account');
+  const disconnectConfirm = useDeleteConfirm<{ id: string; name?: string }>('account');
 
   useEffect(() => {
     if (workspace?.id && user?.id) {

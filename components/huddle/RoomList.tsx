@@ -202,7 +202,9 @@ const RoomItem: React.FC<RoomItemProps> = ({ room, isActive, unreadCount, onClic
       
       {/* AI enabled indicator */}
       {room.settings?.ai_allowed && (
-        <Sparkles size={12} className="text-gray-400 opacity-60" title="AI enabled" />
+        <span title="AI enabled">
+          <Sparkles size={12} className="text-gray-400 opacity-60" />
+        </span>
       )}
     </button>
   );

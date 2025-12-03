@@ -235,7 +235,7 @@ export async function getFormBySlug(
           .order('page_number')
           .order('sort_order');
         
-        form.fields = fields || [];
+        (form as any).fields = fields || [];
         return { data: mapDbToForm(form), error: null };
       }
       return { data: null, error: error.message };

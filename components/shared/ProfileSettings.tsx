@@ -61,14 +61,14 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
   const handleInputChange = (field: 'fullName' | 'avatarUrl', value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setIsDirty(true);
-    setSaveSuccess(false);
+    resetSaveSuccess();
   };
 
   const handleSave = async () => {
     if (!user || !isDirty) return;
 
     setSaving(true);
-    setSaveSuccess(false);
+    resetSaveSuccess();
 
     try {
       const { error } = await DatabaseService.updateUserProfile(user.id, {
@@ -163,7 +163,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
         // Update form data with new URL
         setFormData(prev => ({ ...prev, avatarUrl: result.publicUrl! }));
         setIsDirty(true);
-        setSaveSuccess(false);
+        resetSaveSuccess();
       } else {
         throw new Error('Upload succeeded but no public URL was returned');
       }
@@ -183,7 +183,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
   const handleRemoveAvatar = () => {
     setFormData(prev => ({ ...prev, avatarUrl: '' }));
     setIsDirty(true);
-    setSaveSuccess(false);
+    resetSaveSuccess();
   };
 
   if (loading) {
@@ -229,7 +229,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
         <div className="bg-green-50 rounded-xl border border-green-200 text-green-800 px-4 py-3 flex items-center justify-between">
           <span className="font-semibold">✓ Profile updated successfully!</span>
           <button
-            onClick={() => setSaveSuccess(false)}
+            onClick={resetSaveSuccess}
             className="text-green-800 hover:text-green-900"
           >
             <X className="w-4 h-4" />

@@ -538,7 +538,9 @@ export function ProductServiceDetailModal({
                 </div>
                 
                 {/* Billing Period for Subscriptions */}
-                {(isEditing ? formData.pricingModel === 'subscription' : product.pricingModel === 'subscription') && (
+                {(isEditing 
+                    ? ['monthly', 'annual', 'weekly'].includes(formData.pricingModel || '') 
+                    : ['monthly', 'annual', 'weekly'].includes(product.pricingModel || '')) && (
                     <div className="mt-4">
                         <p className="text-sm text-gray-600 mb-1">Billing Period</p>
                         {isEditing ? (

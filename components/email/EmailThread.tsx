@@ -4,7 +4,7 @@ import { EmailComposer } from './EmailComposerWrapper';
 import { SaveEmailModal } from './SaveEmailModal';
 import { supabase } from '../../lib/supabase';
 import { DatabaseService } from '../../lib/services/database';
-import { getAiResponse, Content, AILimitError } from '../../services/groqService';
+import { getAiResponse, Content, AILimitError, getCachedSummary, setCachedSummary, truncateToTokenLimit } from '../../services/groqService';
 import { showSuccess, showError } from '../../lib/utils/toast';
 import { fixEmailEncoding, fixHtmlEncoding } from '../../lib/utils/textDecoder';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
@@ -139,6 +139,17 @@ Tasks with dates will automatically appear on the calendar.`;
 
     const handleSummarize = async () => {
     if (!data) return;
+    
+    // Check cache first to avoid unnecessary API calls
+    const cacheKey = `email-summary-${messageId}`;
+    const cachedSummary = getCachedSummary(cacheKey);
+    if (cachedSummary) {
+        console.log('[EmailThread] Using cached summary');
+        setSummary(cachedSummary);
+        showSuccess('Summary loaded from cache!');
+        return;
+    }
+    
     setProcessingAi(true);
     console.log('[EmailThread] Starting summarization...');
     try {
@@ -150,15 +161,18 @@ Tasks with dates will automatically appear on the calendar.`;
             return;
         }
         
-        const systemPrompt = `You are a helpful assistant. Summarize the following email thread concisely in 2-3 sentences.`;
+        // Optimized system prompt - shorter to reduce tokens
+        const systemPrompt = `Summarize this email in 2-3 concise sentences. Focus on key points and action items.`;
         const cleanedBody = cleanEmailContent(data.body?.text || data.snippet || '');
-        console.log('[EmailThread] Email body length:', cleanedBody.length);
         
-        const userPrompt = `Please summarize this email:
+        // Truncate long emails to save tokens (max ~1000 tokens for content)
+        const truncatedBody = truncateToTokenLimit(cleanedBody, 1000);
+        console.log('[EmailThread] Email body length:', cleanedBody.length, '-> truncated to:', truncatedBody.length);
         
-From: ${data.from_address}
+        // Simplified user prompt to reduce tokens
+        const userPrompt = `From: ${data.from_address}
 Subject: ${data.subject}
-Content: ${cleanedBody}`;
+Content: ${truncatedBody}`;
 
         const history: Content[] = [{ role: 'user', parts: [{ text: userPrompt }] }];
         
@@ -173,6 +187,8 @@ Content: ${cleanedBody}`;
             
             if (summaryText && summaryText.trim()) {
                 setSummary(summaryText);
+                // Cache the summary for future use
+                setCachedSummary(cacheKey, summaryText);
                 showSuccess('Summary generated!');
             } else {
                 console.error('[EmailThread] Empty summary text received');
@@ -309,11 +325,9 @@ Return the JSON array of contacts found.`;
       const { data: newContact, error } = await DatabaseService.createContact(user.id, workspace.id, {
         name: contact.name,
         email: contact.email,
-        phone: contact.phone || null,
-        title: contact.title || null,
         linkedin: contact.linkedin || '',
-        tags: ['from-email'],
-      });
+        crm_item_id: '', // Will be linked separately if needed
+      } as any);
 
       if (error) throw error;
 
@@ -399,9 +413,8 @@ Return the JSON array of contacts found.`;
         name: attachment.filename,
         content: base64Data,
         mime_type: attachment.mimeType,
-        size: attachment.size,
-        tags: ['email-attachment'],
-      });
+        module: 'email',
+      } as any);
       
       if (error) throw error;
       

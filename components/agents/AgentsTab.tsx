@@ -30,7 +30,7 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({ actions, onInsertToDoc }) 
   const [activeModal, setActiveModal] = useState<YouAgentSlug | null>(null);
   const [viewingReport, setViewingReport] = useState<AgentReport | null>(null);
   
-  const deleteReportConfirm = useDeleteConfirm<{ id: string }>('report');
+  const deleteReportConfirm = useDeleteConfirm<{ id: string; name?: string }>('report');
 
   const handleOpenAgent = useCallback((slug: YouAgentSlug) => {
     setActiveModal(slug);

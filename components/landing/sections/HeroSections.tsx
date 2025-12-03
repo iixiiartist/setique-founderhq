@@ -19,12 +19,17 @@ import { useScrollState } from '../hooks';
 
 // Navigation Component
 interface NavigationProps {
-    mobileMenuOpen: boolean;
-    setMobileMenuOpen: (open: boolean) => void;
+    mobileMenuOpen?: boolean;
+    setMobileMenuOpen?: (open: boolean) => void;
 }
 
-export function Navigation({ mobileMenuOpen, setMobileMenuOpen }: NavigationProps) {
+export function Navigation({ mobileMenuOpen: propMobileMenuOpen, setMobileMenuOpen: propSetMobileMenuOpen }: NavigationProps = {}) {
     const scrolled = useScrollState();
+    const [internalMobileMenuOpen, setInternalMobileMenuOpen] = React.useState(false);
+    
+    // Use props if provided, otherwise use internal state
+    const mobileMenuOpen = propMobileMenuOpen ?? internalMobileMenuOpen;
+    const setMobileMenuOpen = propSetMobileMenuOpen ?? setInternalMobileMenuOpen;
 
     return (
         <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white shadow-sm border-b border-gray-100' : 'bg-transparent'}`}>

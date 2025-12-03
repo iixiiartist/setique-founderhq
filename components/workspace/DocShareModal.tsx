@@ -75,10 +75,10 @@ export const DocShareModal: React.FC<DocShareModalProps> = ({
     const [localVisibility, setLocalVisibility] = useState<DocVisibility>(visibility);
     const [error, setError] = useState<string | null>(null);
     
-    const removeLinkConfirm = useDeleteConfirm<{ id: string }>('share link');
+    const removeLinkConfirm = useDeleteConfirm<{ id: string; name?: string }>('share link');
 
     // Permission checks
-    const canChangeVisibility = isDocOwner || workspaceRole === 'owner' || workspaceRole === 'admin';
+    const canChangeVisibility = isDocOwner || workspaceRole === 'owner';
     const canLinkEntities = planType !== 'free' || linkedEntities.length < 3; // Free tier: max 3 links
     const isFreeTier = planType === 'free';
     const maxLinksReached = isFreeTier && linkedEntities.length >= 3;

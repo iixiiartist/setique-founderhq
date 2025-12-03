@@ -14,14 +14,19 @@ const VIEWS: MarketingViewTab[] = [
 ];
 
 interface MarketingViewSelectorProps {
-  currentView: MarketingViewType;
+  currentView?: MarketingViewType;
+  /** Alias for currentView (backwards compatibility) */
+  activeView?: MarketingViewType;
   onViewChange: (view: MarketingViewType) => void;
 }
 
 export const MarketingViewSelector: React.FC<MarketingViewSelectorProps> = ({
   currentView,
+  activeView,
   onViewChange,
 }) => {
+  const view = currentView ?? activeView ?? 'calendar';
+  
   return (
     <div className="bg-white p-3 sm:p-4 rounded-xl border border-gray-200 shadow-sm">
       <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1">
@@ -30,7 +35,7 @@ export const MarketingViewSelector: React.FC<MarketingViewSelectorProps> = ({
             key={view.id}
             onClick={() => onViewChange(view.id)}
             className={`min-h-[44px] sm:min-h-0 px-3 sm:px-4 py-2 rounded-lg font-medium text-xs sm:text-sm whitespace-nowrap transition-all flex-shrink-0 ${
-              currentView === view.id
+              (currentView ?? activeView ?? 'calendar') === view.id
                 ? 'bg-slate-900 text-white shadow-sm'
                 : 'bg-white text-slate-700 border border-gray-200 hover:bg-gray-50 hover:shadow-sm'
             }`}

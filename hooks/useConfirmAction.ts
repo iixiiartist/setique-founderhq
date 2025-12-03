@@ -51,6 +51,8 @@ export interface ConfirmActionConfig {
 export interface UseConfirmActionReturn<T> {
   /** Whether the dialog is open */
   isOpen: boolean;
+  /** Alias for isOpen (for backwards compatibility) */
+  isConfirming: boolean;
   /** Whether the action is being processed */
   isProcessing: boolean;
   /** The data being confirmed (the item to delete, etc.) */
@@ -196,6 +198,7 @@ export function useConfirmAction<T = any>(
 
   return {
     isOpen,
+    isConfirming: isOpen, // Alias for backwards compatibility
     isProcessing,
     data,
     title: currentTitle,
@@ -222,13 +225,13 @@ export function useConfirmAction<T = any>(
 /**
  * Pre-configured confirmation for delete actions.
  */
-export function useDeleteConfirm<T extends { name?: string; title?: string }>(
+export function useDeleteConfirm<T = any>(
   entityName: string = 'item'
 ) {
   return useConfirmAction<T>({
     title: `Delete ${entityName}`,
-    message: (data) => {
-      const name = data?.name || data?.title || entityName;
+    message: (data: any) => {
+      const name = data?.name || data?.title || data?.company || data?.subject || entityName;
       return `Are you sure you want to delete "${name}"? This action cannot be undone.`;
     },
     confirmLabel: 'Delete',

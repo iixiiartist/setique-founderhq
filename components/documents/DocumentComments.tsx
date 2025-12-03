@@ -41,7 +41,7 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
     const [showResolved, setShowResolved] = useState(false);
     const [loading, setLoading] = useState(true);
     
-    const deleteCommentConfirm = useDeleteConfirm<{ id: string }>('comment');
+    const deleteCommentConfirm = useDeleteConfirm<{ id: string; name?: string }>('comment');
 
     const loadComments = async () => {
         try {

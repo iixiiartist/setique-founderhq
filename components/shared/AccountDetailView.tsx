@@ -334,7 +334,7 @@ function AccountDetailView({
                             <button 
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    deleteAccountConfirm.requestConfirm({ ...item, name: item.company }, async (i) => {
+                                    deleteAccountConfirm.requestConfirm(item, async (i) => {
                                         await actions.deleteItem(crmCollection, i.id);
                                         onBack();
                                     });

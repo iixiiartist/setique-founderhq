@@ -5,7 +5,7 @@ import { featureFlags } from './lib/featureFlags';
 import { DashboardData, AppActions, Task, TaskCollectionName, CrmCollectionName, NoteableCollectionName, AnyCrmItem, FinancialLog, Note, BaseCrmItem, MarketingItem, SettingsData, Document, Contact, TabType, Priority, CalendarEvent, Meeting, TaskStatus } from './types';
 import SideMenu from './components/SideMenu';
 import DashboardTab from './components/DashboardTab';
-import { showSuccess, showError } from './lib/utils/toast';
+import { showSuccess, showError, showLoading, updateToast } from './lib/utils/toast';
 import { TabLoadingFallback } from './components/shared/TabLoadingFallback';
 import { setUser as setSentryUser, setWorkspaceContext, trackAction } from './lib/sentry.tsx';
 import { useAnalytics } from './hooks/useAnalytics';
@@ -441,7 +441,8 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 return { success: false, message: 'No workspace available' };
             }
 
-            handleToast(`Creating task...`, 'info');
+            // Use loading toast that updates to success/error
+            const toastId = showLoading('Creating task...');
 
             try {
                 logger.info('[DashboardApp] Creating task with workspace:', workspace.id);
@@ -513,12 +514,14 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 trackAction('task_created', { category, priority, hasDate: !!dueDate });
                 track('task_created', { category, priority, has_due_date: !!dueDate, has_assignee: !!assignedTo });
                 
-                handleToast(`Task "${text}" created.`, 'success');
+                // Update the loading toast to success
+                updateToast(toastId, `Task "${text}" created.`, 'success');
                 return { success: true, message: `Task "${text}" created.` };
             } catch (error) {
                 logger.error('Error creating task:', error);
                 const errorMessage = error instanceof Error ? error.message : 'Failed to create task';
-                handleToast(errorMessage, 'info');
+                // Update the loading toast to error
+                updateToast(toastId, errorMessage, 'error');
                 return { success: false, message: errorMessage };
             }
         },
@@ -1159,28 +1162,23 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                         ...prev,
                         [collection]: (prev[collection as TaskCollectionName] as Task[]).filter(t => t.id !== itemId)
                     }));
-                    handleToast('Deleting task...', 'info');
                 } else if (collection === 'marketing') {
                     setData(prev => ({
                         ...prev,
                         marketing: prev.marketing.filter(m => m.id !== itemId)
                     }));
-                    handleToast('Deleting marketing item...', 'info');
                 } else if (collection === 'financials') {
                     setData(prev => ({
                         ...prev,
                         financials: prev.financials.filter(f => f.id !== itemId)
                     }));
-                    handleToast('Deleting financial log...', 'info');
                 } else if (collection === 'expenses') {
                     setData(prev => ({
                         ...prev,
                         expenses: prev.expenses.filter(e => e.id !== itemId)
                     }));
-                    handleToast('Deleting expense...', 'info');
-                } else {
-                    handleToast(`Deleting ${collection}...`, 'info');
                 }
+                // No intermediate "Deleting..." toast - just show success after completion
 
                 // Determine which delete method to use based on collection
                 if (collection === 'financials') {

@@ -80,6 +80,11 @@ export interface FormSettings {
   webhookUrl?: string;
   closedMessage?: string;
   limitMessage?: string;
+  // Response limits and access control
+  closeAfterDate?: string;
+  closeAfterResponses?: number;
+  passwordProtected?: boolean;
+  password?: string;
 }
 
 export interface FormAnalyticsSettings {

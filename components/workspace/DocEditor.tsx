@@ -74,7 +74,7 @@ import { useConfirmAction } from '../../hooks/useConfirmAction';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
 
 // Configure DOMPurify for safe HTML storage
-const SANITIZE_CONFIG: DOMPurify.Config = {
+const SANITIZE_CONFIG = {
     ALLOWED_TAGS: [
         'p', 'br', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
         'ul', 'ol', 'li', 'a', 'strong', 'em', 'b', 'i', 'u', 's',
@@ -1201,7 +1201,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     // Confirmation dialog for applying template
     const applyTemplateConfirm = useConfirmAction<DocumentTemplate>({
         title: 'Apply Template',
-        getMessage: (template) => `Applying a template will replace all current content.\n\nTemplate: ${template.name}\n\nAre you sure you want to continue?`,
+        message: (template) => `Applying a template will replace all current content.\n\nTemplate: ${template.name}\n\nAre you sure you want to continue?`,
         confirmLabel: 'Apply Template',
         variant: 'warning'
     });
@@ -1435,7 +1435,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
     // Confirmation dialog for saving to file library
     const saveToLibraryConfirm = useConfirmAction<void>({
         title: 'Save to File Library',
-        getMessage: () => 'Save this document to the File Library? This will create an HTML version that can be shared and attached to tasks.',
+        message: 'Save this document to the File Library? This will create an HTML version that can be shared and attached to tasks.',
         confirmLabel: 'Save to Library',
         variant: 'info'
     });
@@ -1450,7 +1450,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             try {
                 // Get the HTML content and sanitize it to prevent XSS
                 const rawHtml = editor.getHTML();
-                const sanitizedHtml = DOMPurify.sanitize(rawHtml, SANITIZE_CONFIG);
+                const sanitizedHtml = DOMPurify.sanitize(rawHtml, SANITIZE_CONFIG) as unknown as string;
             
                 // Create a document entry in the file library
                 const { data, error } = await DatabaseService.createDocument(userId, workspaceId, {

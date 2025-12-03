@@ -749,67 +749,118 @@ export const groqTools: GroqTool[] = [
 /**
  * Get context-aware tools for a specific tab
  * Reduces token usage by only sending relevant tools (~800 token savings per request)
+ * 
+ * TOKEN OPTIMIZATION STRATEGY:
+ * - Each tool definition costs ~50-100 tokens
+ * - Full toolset: ~30 tools = ~2000-3000 tokens overhead
+ * - Tab-specific: ~5-15 tools = ~500-1500 tokens overhead
+ * - Savings: 50-70% reduction in tool token usage
  */
 export const getRelevantTools = (tab: string): GroqTool[] => {
-    // Core tools available in all contexts
-    const coreTools = [addNoteTool, updateNoteTool, deleteNoteTool];
+    // Core tools available in all contexts (minimal set)
+    const coreTools = [addNoteTool];
     
-    // File management tools (available everywhere)
-    const fileTools = [uploadDocumentTool, updateDocumentTool, getFileContentTool];
+    // Task tools (essential for most operations)
+    const taskTools = [createTaskTool, updateTaskTool];
     
-    // Task tools (available everywhere for cross-module task creation)
-    const taskTools = [createTaskTool, updateTaskTool, deleteItemTool, createEventTool];
-    
-    // CRM tools (available everywhere for cross-module CRM management)
-    const crmTools = [
-        createCrmItemTool,
-        updateCrmItemTool,
-        createContactTool,
-        updateContactTool,
-        deleteContactTool,
-        searchContactsTool,
-        createMeetingTool,
-        updateMeetingTool,
-        deleteMeetingTool
-    ];
-    
-    // Marketing tools (available everywhere)
-    const marketingTools = [createMarketingItemTool, updateMarketingItemTool];
-    
-    // Financial tools (available everywhere)
-    const financialTools = [logFinancialsTool, createExpenseTool, updateExpenseTool];
-    
-    // Email tools (for Email tab and available in general context)
-    const emailTools = [listEmailsTool, searchEmailsTool, getEmailDetailsTool, createTaskFromEmailTool];
-    
-    // Tab-specific tools
+    // Tab-specific tools to minimize token usage
     switch(tab) {
         case 'settings':
-            // Settings: only settings-specific tools
-            return [
-                updateSettingsTool,
-                ...coreTools
-            ];
+            // Settings: minimal toolset
+            return [updateSettingsTool];
         
         case 'email':
-            // Email tab: prioritize email tools + task creation
+            // Email tab: prioritize email + task creation only
             return [
-                ...emailTools,
-                ...taskTools,
-                ...coreTools,
+                createTaskFromEmailTool,
+                createTaskTool,
                 createEventTool
             ];
         
-        default:
-            // All other tabs: full toolset for complete AI capabilities
+        case 'calendar':
+            // Calendar: events and tasks only
+            return [
+                createEventTool,
+                createTaskTool,
+                updateTaskTool
+            ];
+            
+        case 'tasks':
+        case 'productsServices':
+            // Task-focused tabs
             return [
                 ...taskTools,
-                ...crmTools,
-                ...marketingTools,
-                ...financialTools,
-                ...emailTools,
-                ...coreTools,
-                ...fileTools
+                deleteItemTool,
+                ...coreTools
+            ];
+            
+        case 'investors':
+        case 'customers':
+        case 'partners':
+        case 'accounts':
+            // CRM tabs: CRM-focused tools
+            return [
+                createCrmItemTool,
+                updateCrmItemTool,
+                createContactTool,
+                updateContactTool,
+                searchContactsTool,
+                createMeetingTool,
+                ...taskTools,
+                ...coreTools
+            ];
+            
+        case 'marketing':
+            // Marketing tab
+            return [
+                createMarketingItemTool,
+                updateMarketingItemTool,
+                ...taskTools,
+                ...coreTools
+            ];
+            
+        case 'financials':
+            // Financials tab
+            return [
+                logFinancialsTool,
+                createExpenseTool,
+                updateExpenseTool,
+                ...taskTools,
+                ...coreTools
+            ];
+            
+        case 'documents':
+        case 'workspace':
+            // Document-focused tabs
+            return [
+                getFileContentTool,
+                uploadDocumentTool,
+                ...taskTools,
+                ...coreTools
+            ];
+            
+        case 'dashboard':
+            // Dashboard: quick actions only
+            return [
+                ...taskTools,
+                createCrmItemTool,
+                createMarketingItemTool,
+                ...coreTools
+            ];
+        
+        default:
+            // Unknown tabs: medium-sized general toolset
+            return [
+                ...taskTools,
+                createCrmItemTool,
+                updateCrmItemTool,
+                createContactTool,
+                searchContactsTool,
+                createMarketingItemTool,
+                logFinancialsTool,
+                createExpenseTool,
+                createEventTool,
+                ...coreTools
             ];
     }
 };

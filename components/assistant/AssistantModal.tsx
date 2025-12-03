@@ -31,6 +31,7 @@ const TAB_DISPLAY_INFO: Record<TabType, { label: string; color: string; bgColor:
   [Tab.Dashboard]: { label: 'Dashboard', color: 'text-slate-700', bgColor: 'bg-slate-100' },
   [Tab.Calendar]: { label: 'Calendar', color: 'text-slate-700', bgColor: 'bg-slate-100' },
   [Tab.Tasks]: { label: 'Tasks', color: 'text-slate-700', bgColor: 'bg-slate-100' },
+  [Tab.Huddle]: { label: 'Huddle', color: 'text-slate-700', bgColor: 'bg-slate-100' },
   [Tab.ProductsServices]: { label: 'Products & Services', color: 'text-slate-700', bgColor: 'bg-slate-100' },
   [Tab.Accounts]: { label: 'Accounts', color: 'text-slate-700', bgColor: 'bg-slate-100' },
   [Tab.Investors]: { label: 'Investors', color: 'text-slate-700', bgColor: 'bg-slate-100' },
@@ -42,6 +43,7 @@ const TAB_DISPLAY_INFO: Record<TabType, { label: string; color: string; bgColor:
   [Tab.Documents]: { label: 'Documents', color: 'text-slate-700', bgColor: 'bg-slate-100' },
   [Tab.Email]: { label: 'Email', color: 'text-slate-700', bgColor: 'bg-slate-100' },
   [Tab.Agents]: { label: 'AI Agents', color: 'text-slate-700', bgColor: 'bg-slate-100' },
+  [Tab.Forms]: { label: 'Forms', color: 'text-slate-700', bgColor: 'bg-slate-100' },
   [Tab.Settings]: { label: 'Settings', color: 'text-slate-700', bgColor: 'bg-slate-100' },
   [Tab.Admin]: { label: 'Admin', color: 'text-slate-700', bgColor: 'bg-slate-100' },
 };
