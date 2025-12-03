@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { supabase } from '../../lib/supabase';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -75,7 +76,7 @@ export const IntegrationsSettings: React.FC = () => {
 
     } catch (err: any) {
       console.error('Error initiating connection:', err);
-      alert(`Failed to start connection process: ${err.message}`);
+      toast.error(`Failed to start connection process: ${err.message}`);
     }
   };
 
@@ -91,7 +92,7 @@ export const IntegrationsSettings: React.FC = () => {
         fetchAccounts();
       } catch (err) {
         console.error('Error disconnecting:', err);
-        alert('Failed to disconnect account');
+        toast.error('Failed to disconnect account');
       }
     });
   };

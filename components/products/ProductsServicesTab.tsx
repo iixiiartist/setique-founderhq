@@ -94,7 +94,7 @@ export function ProductsServicesTab({
 
         } catch (error) {
             if (error instanceof ModerationError) {
-                alert(formatModerationErrorMessage(error));
+                toast.error(formatModerationErrorMessage(error));
             } else {
                 console.error("Smart search failed", error);
             }

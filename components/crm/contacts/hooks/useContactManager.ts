@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { Contact, AnyCrmItem, AppActions, CrmCollectionName } from '../../../../types';
 
 interface ContactFormData {
@@ -358,11 +359,11 @@ export function useContactManager(
                 setEditingNoteTimestamp(null);
                 setNoteDraft('');
             } else {
-                alert('Failed to update note: ' + res.message);
+                toast.error('Failed to update note: ' + res.message);
             }
         } catch (err) {
             console.error('Error updating note:', err);
-            alert('Failed to update note');
+            toast.error('Failed to update note');
         }
     }, [selectedContact, editingNoteTimestamp, noteDraft, actions, getLinkedAccount]);
 
@@ -377,11 +378,11 @@ export function useContactManager(
                 const remaining = (selectedContact.notes || []).filter(n => n.timestamp !== noteTimestamp);
                 setSelectedContact({ ...selectedContact, notes: remaining });
             } else {
-                alert('Failed to delete note: ' + res.message);
+                toast.error('Failed to delete note: ' + res.message);
             }
         } catch (err) {
             console.error('Error deleting note:', err);
-            alert('Failed to delete note');
+            toast.error('Failed to delete note');
         }
     }, [selectedContact, actions, getLinkedAccount]);
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { useDeleteConfirm } from '../../hooks';
 import { formatRelativeTime } from '../../lib/utils/dateUtils';
 import { MentionInput } from './MentionInput';
@@ -64,7 +65,7 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
     
     // Prevent commenting on temporary tasks
     if (taskId.startsWith('temp-')) {
-      alert('Please wait for the task to finish creating before adding comments.');
+      toast.error('Please wait for the task to finish creating before adding comments.');
       return;
     }
 
@@ -79,7 +80,7 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
 
     if (error) {
       console.error('Failed to create comment:', error);
-      alert('Failed to add comment. Please try again.');
+      toast.error('Failed to add comment. Please try again.');
     } else if (comment) {
       setComments([...comments, comment]);
       setNewComment('');
@@ -100,7 +101,7 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
 
     if (error) {
       console.error('Failed to update comment:', error);
-      alert('Failed to update comment. Please try again.');
+      toast.error('Failed to update comment. Please try again.');
     } else if (comment) {
       setComments(
         comments.map((c) => (c.id === commentId ? comment : c))
@@ -120,7 +121,7 @@ export const TaskComments: React.FC<TaskCommentsProps> = ({
 
       if (error) {
         console.error('Failed to delete comment:', error);
-        alert('Failed to delete comment. Please try again.');
+        toast.error('Failed to delete comment. Please try again.');
       } else if (success) {
         setComments(prev => prev.filter((c) => c.id !== commentId));
       }

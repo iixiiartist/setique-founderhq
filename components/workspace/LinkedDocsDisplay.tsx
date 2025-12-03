@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useDeleteConfirm } from '../../hooks';
 import { GTMDocMetadata, LinkedDoc } from '../../types';
 import { DOC_TYPE_ICONS, DOC_TYPE_LABELS } from '../../constants';
@@ -58,7 +59,7 @@ export const LinkedDocsDisplay: React.FC<LinkedDocsDisplayProps> = ({
 
                 if (error) {
                     console.error('Error unlinking doc:', error);
-                    alert('Failed to unlink document');
+                    toast.error('Failed to unlink document');
                     return;
                 }
 
@@ -66,7 +67,7 @@ export const LinkedDocsDisplay: React.FC<LinkedDocsDisplayProps> = ({
                 await loadLinkedDocs();
             } catch (error) {
                 console.error('Failed to unlink doc:', error);
-                alert('Failed to unlink document');
+                toast.error('Failed to unlink document');
             }
         });
     };

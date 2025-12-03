@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import toast from 'react-hot-toast';
 import { useSuccessState } from '../../hooks';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
@@ -87,7 +88,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
       onSave?.();
     } catch (error) {
       console.error('Failed to save profile:', error);
-      alert('Failed to save profile. Please try again.');
+      toast.error('Failed to save profile. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -114,23 +115,23 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
 
     // Validate file type
     if (!ALLOWED_TYPES.includes(file.type)) {
-      alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+      toast.error('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
       return;
     }
 
     // Validate file size
     if (file.size > MAX_FILE_SIZE) {
-      alert('Image size must be less than 5MB');
+      toast.error('Image size must be less than 5MB');
       return;
     }
 
     if (!user) {
-      alert('You must be logged in to upload an avatar');
+      toast.error('You must be logged in to upload an avatar');
       return;
     }
 
     if (!workspace?.id) {
-      alert('No workspace found. Please refresh the page.');
+      toast.error('No workspace found. Please refresh the page.');
       return;
     }
 
@@ -169,7 +170,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ onSave }) => {
       }
     } catch (error) {
       console.error('Failed to upload avatar:', error);
-      alert('Failed to upload image. Please try again.');
+      toast.error('Failed to upload image. Please try again.');
     } finally {
       setUploading(false);
       setUploadProgress(0);

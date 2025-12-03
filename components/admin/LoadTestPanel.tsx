@@ -5,6 +5,9 @@
  */
 
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
+import { useDeleteConfirm } from '../../hooks';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { 
     createTestData, 
     cleanupTestData, 
@@ -24,6 +27,9 @@ export function LoadTestPanel({ workspaceId, userId }: LoadTestPanelProps) {
     const [isRunning, setIsRunning] = useState(false);
     const [results, setResults] = useState<any>(null);
     const [testType, setTestType] = useState<'create' | 'pagination' | 'search' | 'concurrent'>('create');
+    
+    // Cleanup confirmation
+    const cleanupConfirm = useDeleteConfirm<void>('test data');
 
     const runCreateTest = async () => {
         setIsRunning(true);
@@ -92,17 +98,18 @@ export function LoadTestPanel({ workspaceId, userId }: LoadTestPanelProps) {
     };
 
     const handleCleanup = async () => {
-        if (!confirm('This will delete all test data. Continue?')) return;
-        
-        setIsRunning(true);
-        try {
-            const count = await cleanupTestData(workspaceId);
-            alert(`Deleted ${count} test records`);
-        } catch (error) {
-            console.error('Cleanup failed:', error);
-        } finally {
-            setIsRunning(false);
-        }
+        cleanupConfirm.requestConfirm(undefined, async () => {
+            setIsRunning(true);
+            try {
+                const count = await cleanupTestData(workspaceId);
+                toast.success(`Deleted ${count} test records`);
+            } catch (error) {
+                console.error('Cleanup failed:', error);
+                toast.error('Cleanup failed');
+            } finally {
+                setIsRunning(false);
+            }
+        });
     };
 
     const downloadReport = () => {
@@ -219,6 +226,19 @@ export function LoadTestPanel({ workspaceId, userId }: LoadTestPanelProps) {
                 <strong>⚠️ Warning:</strong> Load testing can impact database performance. 
                 Run during off-peak hours or in development environment only.
             </div>
+
+            {/* Cleanup Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={cleanupConfirm.isOpen}
+                onClose={cleanupConfirm.cancel}
+                onConfirm={cleanupConfirm.confirm}
+                title={cleanupConfirm.title}
+                message="This will delete all test data. This action cannot be undone."
+                confirmLabel={cleanupConfirm.confirmLabel}
+                cancelLabel={cleanupConfirm.cancelLabel}
+                variant={cleanupConfirm.variant}
+                isLoading={cleanupConfirm.isProcessing}
+            />
         </div>
     );
 }

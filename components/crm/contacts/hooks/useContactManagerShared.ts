@@ -14,6 +14,7 @@
  */
 
 import { useState, useCallback, useMemo } from 'react';
+import toast from 'react-hot-toast';
 import { Contact, AnyCrmItem, AppActions, CrmCollectionName } from '../../../../types';
 import { useContactFilters } from '../../../../hooks/useCrmFilters';
 import { useCrmSelection } from '../../../../hooks/useCrmSelection';
@@ -364,11 +365,11 @@ export function useContactManagerShared(options: UseContactManagerSharedOptions)
         setEditingNoteTimestamp(null);
         setNoteDraft('');
       } else {
-        alert('Failed to update note: ' + res.message);
+        toast.error('Failed to update note: ' + res.message);
       }
     } catch (err) {
       console.error('Error updating note:', err);
-      alert('Failed to update note');
+      toast.error('Failed to update note');
     }
   }, [notesModal.data, editingNoteTimestamp, noteDraft, filters.getLinkedAccount, actions]);
 
@@ -382,11 +383,11 @@ export function useContactManagerShared(options: UseContactManagerSharedOptions)
       const res = await actions.deleteNote('contacts', selectedContact.id, noteTimestamp, linkedAccount?.id);
       
       if (!res.success) {
-        alert('Failed to delete note: ' + res.message);
+        toast.error('Failed to delete note: ' + res.message);
       }
     } catch (err) {
       console.error('Error deleting note:', err);
-      alert('Failed to delete note');
+      toast.error('Failed to delete note');
     }
   }, [notesModal.data, filters.getLinkedAccount, actions]);
 

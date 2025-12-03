@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import { DatabaseService } from '../../lib/services/database';
 
 interface InviteTeamMemberModalProps {
@@ -55,19 +56,14 @@ export const InviteTeamMemberModal: React.FC<InviteTeamMemberModalProps> = ({
             
             // Show success message based on whether email was sent
             if (data.emailSent) {
-                alert(
-                    `✅ Invitation sent successfully!\n\n` +
-                    `An email has been sent to ${email} with an invitation link.\n\n` +
-                    `You can also share this link directly:\n${inviteLink}\n\n` +
-                    `This link will expire in 7 days.`
+                toast.success(
+                    `Invitation sent to ${email}! Link expires in 7 days.`,
+                    { duration: 5000 }
                 );
             } else {
-                alert(
-                    `✅ Invitation created!\n\n` +
-                    `⚠️ Email service is not configured yet.\n\n` +
-                    `Please share this link with ${email}:\n${inviteLink}\n\n` +
-                    `This link will expire in 7 days.\n\n` +
-                    `To enable automatic emails, follow the setup guide in EMAIL_SETUP.md`
+                toast(
+                    `Invitation created! Email service not configured - share this link: ${inviteLink}`,
+                    { duration: 8000, icon: '⚠️' }
                 );
             }
 

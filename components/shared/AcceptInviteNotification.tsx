@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { DatabaseService } from '../../lib/services/database';
 import { 
     getInvitationToken, 
@@ -70,16 +71,15 @@ export const AcceptInviteNotification: React.FC<AcceptInviteNotificationProps> =
                 }
                 
                 // Check if it's the "different email" error - user might not be logged in yet
-                if (error.message?.includes('different email address')) {
+if (error.message?.includes('different email address')) {
                     // Store the token in sessionStorage (expires after 5 minutes)
                     setInvitationToken(token);
-                    alert(
-                        `⚠️ Please sign up or log in with the email address that received this invitation.\n\n` +
-                        `After you log in, the invitation will be automatically accepted.\n\n` +
-                        `Note: This link will expire in 5 minutes for security.`
+                    toast.error(
+                        `Please sign up or log in with the email address that received this invitation. After you log in, the invitation will be automatically accepted.`,
+                        { duration: 8000 }
                     );
                 } else {
-                    alert(`Failed to accept invitation: ${error.message || 'Unknown error'}`);
+                    toast.error(`Failed to accept invitation: ${error.message || 'Unknown error'}`);
                 }
                 // Clean up URL
                 window.history.replaceState({}, document.title, window.location.pathname);
@@ -88,18 +88,18 @@ export const AcceptInviteNotification: React.FC<AcceptInviteNotificationProps> =
 
             if (data?.success) {
                 console.log('[AcceptInvite] Successfully accepted invitation!');
-                alert(`✅ Successfully joined ${data.workspace_name || 'workspace'}!`);
+                toast.success(`Successfully joined ${data.workspace_name || 'workspace'}!`);
                 // Clean up URL and stored token
                 window.history.replaceState({}, document.title, window.location.pathname);
                 clearInvitationToken();
                 onAccepted();
             } else {
                 console.error('[AcceptInvite] Unexpected response:', data);
-                alert(`Failed to accept invitation: ${data?.error || 'Unknown error'}`);
+                toast.error(`Failed to accept invitation: ${data?.error || 'Unknown error'}`);
             }
         } catch (error: any) {
             console.error('[AcceptInvite] Exception:', error);
-            alert(`Failed to accept invitation: ${error.message || 'Unknown error'}`);
+            toast.error(`Failed to accept invitation: ${error.message || 'Unknown error'}`);
             // Clean up URL
             window.history.replaceState({}, document.title, window.location.pathname);
         }
@@ -119,14 +119,14 @@ export const AcceptInviteNotification: React.FC<AcceptInviteNotificationProps> =
             }
 
             if (data?.success) {
-                alert(`✅ Successfully joined ${data.workspace_name || 'workspace'}!`);
+                toast.success(`Successfully joined ${data.workspace_name || 'workspace'}!`);
                 setPendingInvites(prev => prev.filter(inv => inv.id !== invitation.id));
                 
                 onAccepted();
             }
         } catch (error: any) {
             console.error('Error accepting invitation:', error);
-            alert(`Failed to accept invitation: ${error.message || 'Unknown error'}`);
+            toast.error(`Failed to accept invitation: ${error.message || 'Unknown error'}`);
         } finally {
             setAcceptingInviteId(null);
         }

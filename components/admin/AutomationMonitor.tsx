@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { supabase } from '../../lib/supabase';
 import { logger } from '../../lib/logger';
 import { featureFlags } from '../../lib/featureFlags';
@@ -128,7 +129,7 @@ export function AutomationMonitor({ workspaceId }: AutomationMonitorProps) {
 
         if (error) {
             logger.error('Failed to toggle rule:', error);
-            alert('Failed to toggle automation rule');
+            toast.error('Failed to toggle automation rule');
         } else {
             await loadRules();
         }
@@ -151,14 +152,14 @@ export function AutomationMonitor({ workspaceId }: AutomationMonitorProps) {
             );
 
             if (result.success) {
-                alert('Automation retried successfully');
+                toast.success('Automation retried successfully');
                 await loadLogs();
             } else {
-                alert(`Retry failed: ${result.errors.join(', ')}`);
+                toast.error(`Retry failed: ${result.errors.join(', ')}`);
             }
         } catch (error) {
             logger.error('Failed to retry automation:', error);
-            alert('Failed to retry automation');
+            toast.error('Failed to retry automation');
         }
     };
 

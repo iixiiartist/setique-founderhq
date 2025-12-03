@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import { useDebouncedValue } from '../hooks';
 import { useWorkspace } from '../contexts/WorkspaceContext';
@@ -95,12 +96,12 @@ function AdminTab() {
             const result = data as { success: boolean; message: string };
             
             if (!result.success) {
-                alert(`Error: ${result.message}`);
+                toast.error(`Error: ${result.message}`);
                 return;
             }
 
             const seatsMsg = selectedPlan === 'team-pro' ? ` with ${selectedSeats} seats` : '';
-            alert(`Plan updated successfully to ${selectedPlan}${seatsMsg}!`);
+            toast.success(`Plan updated successfully to ${selectedPlan}${seatsMsg}!`);
             setEditingPlanFor(null);
             
             await loadUserData();
@@ -111,7 +112,7 @@ function AdminTab() {
             }
         } catch (error) {
             console.error('Error updating user plan:', error);
-            alert('Failed to update plan. Check console for details.');
+            toast.error('Failed to update plan. Check console for details.');
         } finally {
             setIsUpdatingPlan(false);
         }
@@ -138,22 +139,22 @@ function AdminTab() {
             const result = data as { success: boolean; message: string };
             
             if (!result.success) {
-                alert(`Error preparing deletion: ${result.message}`);
+                toast.error(`Error preparing deletion: ${result.message}`);
                 return;
             }
 
             const { error: deleteError } = await supabase.auth.admin.deleteUser(userId);
 
             if (deleteError) {
-                alert(`User data cleaned up, but auth deletion failed: ${deleteError.message}\n\nYou may need to delete this user manually from Supabase Auth dashboard.`);
+                toast.error(`User data cleaned up, but auth deletion failed: ${deleteError.message}. You may need to delete this user manually from Supabase Auth dashboard.`);
                 return;
             }
 
-            alert('User deleted successfully!');
+            toast.success('User deleted successfully!');
             await loadUserData();
         } catch (error) {
             console.error('Error deleting user:', error);
-            alert('Failed to delete user. Check console for details.');
+            toast.error('Failed to delete user. Check console for details.');
         } finally {
             setIsUpdatingPlan(false);
         }

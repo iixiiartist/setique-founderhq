@@ -2385,7 +2385,7 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                                     await refreshWorkspace();
                                 } catch (error) {
                                     logger.error('Failed to create workspace:', error);
-                                    alert('Failed to create workspace. Please refresh and try again.');
+                                    toast.error('Failed to create workspace. Please refresh and try again.');
                                 }
                             }}
                             className="w-full bg-black text-white py-3 px-6 rounded-lg font-semibold hover:bg-gray-800 transition-colors"

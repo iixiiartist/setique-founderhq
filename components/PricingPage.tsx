@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import { 
     PLAN_PRICES, 
     SEAT_PRICES, 
@@ -24,7 +25,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', 
 
     const handleSubscribe = async (planType: PlanType) => {
         if (!workspaceId) {
-            alert('No workspace found. Please refresh and try again.');
+            toast.error('No workspace found. Please refresh and try again.');
             return;
         }
         
@@ -41,7 +42,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ currentPlan = 'free', 
             window.location.href = url;
         } catch (error) {
             console.error('Failed to create checkout session:', error);
-            alert('Failed to start checkout. Please try again.');
+            toast.error('Failed to start checkout. Please try again.');
         } finally {
             setIsLoading(false);
         }

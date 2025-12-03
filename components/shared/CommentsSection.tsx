@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useDeleteConfirm } from '../../hooks';
 import { formatRelativeTime } from '../../lib/utils/dateUtils';
 import { MentionInput } from './MentionInput';
@@ -67,7 +68,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
 
     if (result.error) {
       console.error(`[CommentsSection] Failed to create comment on ${entityType}:`, result.error);
-      alert('Failed to add comment. Please try again.');
+      toast.error('Failed to add comment. Please try again.');
     } else {
       setNewComment('');
       if (onRefresh) {
@@ -86,7 +87,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
 
     if (result.error) {
       console.error(`[CommentsSection] Failed to update comment:`, result.error);
-      alert('Failed to update comment. Please try again.');
+      toast.error('Failed to update comment. Please try again.');
     } else {
       setEditingCommentId(null);
       setEditingContent('');
@@ -105,7 +106,7 @@ export const CommentsSection: React.FC<CommentsSectionProps> = ({
 
       if (result.error) {
         console.error(`[CommentsSection] Failed to delete comment:`, result.error);
-        alert('Failed to delete comment. Please try again.');
+        toast.error('Failed to delete comment. Please try again.');
       } else {
         if (onRefresh) {
           await onRefresh();

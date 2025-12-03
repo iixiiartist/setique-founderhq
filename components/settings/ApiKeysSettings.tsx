@@ -2,6 +2,7 @@
 // Settings component for managing Premium API keys
 
 import React, { useState, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { useCopyToClipboard } from '../../hooks';
 import { useApiKeys, type CreateApiKeyInput } from '../../hooks/useApiKeys';
 import { useAuth } from '../../contexts/AuthContext';
@@ -66,13 +67,13 @@ const CreateKeyModal: React.FC<CreateKeyModalProps> = ({ onClose, onCreate, isCr
     );
   };
 
-  const handleCreate = async () => {
+const handleCreate = async () => {
     if (!name.trim()) {
-      alert('Please enter a name for the API key');
+      toast.error('Please enter a name for the API key');
       return;
     }
     if (scopes.length === 0) {
-      alert('Please select at least one scope');
+      toast.error('Please select at least one scope');
       return;
     }
 

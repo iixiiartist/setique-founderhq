@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import toast from 'react-hot-toast';
 import { Task, AppActions, Priority, TaskCollectionName, NoteableCollectionName, Subtask } from '../../types';
 import Modal from './Modal';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -48,7 +49,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, actions, onEdit, taskCollecti
                                     await actions.updateTask(task.id, { status: e.target.checked ? 'Done' : 'Todo' });
                                 } catch (error) {
                                     console.error('[TaskItem] Failed to update task:', error);
-                                    alert('Failed to update task. Check console for details.');
+                                    toast.error('Failed to update task. Check console for details.');
                                 }
                             }}
                             disabled={!canComplete}
@@ -80,7 +81,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, actions, onEdit, taskCollecti
                         <button 
                             onClick={() => {
                                 if (!canEdit) {
-                                    alert('You do not have permission to edit this task');
+                                    toast.error('You do not have permission to edit this task');
                                     return;
                                 }
                                 onEdit(task);
@@ -92,7 +93,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, actions, onEdit, taskCollecti
                         <button 
                             onClick={() => {
                                 if (!canEdit) {
-                                    alert('You do not have permission to delete this task');
+                                    toast.error('You do not have permission to delete this task');
                                     return;
                                 }
                                 deleteConfirm.requestConfirm(task, async (t) => {

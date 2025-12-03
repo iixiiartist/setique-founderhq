@@ -2,6 +2,7 @@
 // Settings component for managing outbound webhooks
 
 import React, { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -448,7 +449,7 @@ export const WebhooksSettings: React.FC<WebhooksSettingsProps> = ({ workspaceId 
       ));
     } catch (err) {
       console.error('[WebhooksSettings] Toggle error:', err);
-      alert('Failed to update webhook');
+      toast.error('Failed to update webhook');
     }
   };
 
@@ -464,7 +465,7 @@ export const WebhooksSettings: React.FC<WebhooksSettingsProps> = ({ workspaceId 
       setWebhooks(prev => prev.filter(w => w.id !== id));
     } catch (err) {
       console.error('[WebhooksSettings] Delete error:', err);
-      alert('Failed to delete webhook');
+      toast.error('Failed to delete webhook');
     }
   };
 

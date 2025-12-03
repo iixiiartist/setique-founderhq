@@ -7,6 +7,7 @@
  */
 
 import { useState, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import {
   parseCSV,
   toCSV,
@@ -209,7 +210,7 @@ export function useCsvImportExport<T extends { id: string }>(
     }
 
     if (items.length === 0) {
-      alert('No items to export');
+      toast.error('No items to export');
       return;
     }
 
@@ -249,7 +250,7 @@ export function useCsvImportExport<T extends { id: string }>(
     const selectedItems = items.filter(item => selectedIds.has(item.id));
     
     if (selectedItems.length === 0) {
-      alert('No items selected for export');
+      toast.error('No items selected for export');
       return;
     }
 

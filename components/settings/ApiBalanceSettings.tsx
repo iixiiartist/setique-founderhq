@@ -2,6 +2,7 @@
 // Settings component for managing API credit balance
 
 import React, { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { supabase } from '../../lib/supabase';
 import { createBalanceTopup, manageAutoReload } from '../../lib/services/apiClient';
 
