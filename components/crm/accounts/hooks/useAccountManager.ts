@@ -1,6 +1,8 @@
 import { useState, useMemo, useCallback } from 'react';
 import { AnyCrmItem, AppActions, CrmCollectionName, Investor, Customer, Partner, Priority } from '../../../../types';
 import { AccountFormData } from '../AccountForm';
+import toast from 'react-hot-toast';
+import { useDeleteConfirm } from '../../../../hooks';
 
 interface UseAccountManagerProps {
     crmItems: AnyCrmItem[];
@@ -15,6 +17,10 @@ export function useAccountManager({
     crmCollection,
     crmType
 }: UseAccountManagerProps) {
+    // Delete confirmation hook
+    const deleteAccountConfirm = useDeleteConfirm<AnyCrmItem>('account');
+    const bulkDeleteConfirm = useDeleteConfirm<Set<string>>('accounts');
+    
     // Modal states
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
@@ -211,7 +217,12 @@ export function useAccountManager({
         nextActionTime: '',
         website: '',
         industry: '',
-        description: ''
+        description: '',
+        location: '',
+        companySize: '',
+        foundedYear: '',
+        linkedin: '',
+        twitter: '',
     }), []);
 
     // Form handlers
@@ -219,7 +230,21 @@ export function useAccountManager({
         e.preventDefault();
         
         if (!formData.company.trim()) {
-            alert('Company name is required');
+            toast.error('Company name is required');
+            return;
+        }
+
+        // Determine the effective type and collection
+        let effectiveType = crmType;
+        let effectiveCollection = crmCollection;
+        
+        // When creating from "All Accounts" view, use the selected account type
+        if (crmType === 'accounts' && formData.accountType) {
+            effectiveType = formData.accountType === 'investor' ? 'investors' : 
+                           formData.accountType === 'customer' ? 'customers' : 'partners';
+            effectiveCollection = effectiveType as any;
+        } else if (crmType === 'accounts' && !formData.accountType) {
+            toast.error('Please select an account type');
             return;
         }
 
@@ -234,28 +259,35 @@ export function useAccountManager({
                 website: formData.website || undefined,
                 industry: formData.industry || undefined,
                 description: formData.description || undefined,
+                // Enrichment fields
+                location: formData.location || undefined,
+                companySize: formData.companySize || undefined,
+                foundedYear: formData.foundedYear || undefined,
+                linkedin: formData.linkedin || undefined,
+                twitter: formData.twitter || undefined,
             };
 
-            // Add type-specific fields
-            if (crmType === 'investors') {
+            // Add type-specific fields based on effective type
+            if (effectiveType === 'investors') {
                 if (formData.checkSize) itemData.checkSize = formData.checkSize;
                 if (formData.stage) itemData.stage = formData.stage;
-            } else if (crmType === 'customers') {
+            } else if (effectiveType === 'customers') {
                 if (formData.dealValue) itemData.dealValue = formData.dealValue;
                 if (formData.dealStage) itemData.dealStage = formData.dealStage;
-            } else if (crmType === 'partners') {
+            } else if (effectiveType === 'partners') {
                 if (formData.opportunity) itemData.opportunity = formData.opportunity;
                 if (formData.partnerType) itemData.partnerType = formData.partnerType;
             }
 
-            console.log('[AccountManager] Creating account with data:', itemData);
-            await actions.createCrmItem(crmCollection, itemData);
+            console.log('[AccountManager] Creating account with data:', itemData, 'in collection:', effectiveCollection);
+            await actions.createCrmItem(effectiveCollection, itemData);
             
             setFormData(resetFormData());
             setShowAddModal(false);
+            toast.success('Account created successfully');
         } catch (error) {
             console.error('Error creating account:', error);
-            alert('Failed to create account. Please try again.');
+            toast.error('Failed to create account. Please try again.');
         }
     }, [formData, crmType, crmCollection, actions, resetFormData]);
 
@@ -275,6 +307,12 @@ export function useAccountManager({
                 website: formData.website || undefined,
                 industry: formData.industry || undefined,
                 description: formData.description || undefined,
+                // Enrichment fields
+                location: formData.location || undefined,
+                companySize: formData.companySize || undefined,
+                foundedYear: formData.foundedYear || undefined,
+                linkedin: formData.linkedin || undefined,
+                twitter: formData.twitter || undefined,
             };
 
             // Add type-specific fields
@@ -295,22 +333,24 @@ export function useAccountManager({
             setShowEditModal(false);
             setSelectedItem(null);
             setFormData(resetFormData());
+            toast.success('Account updated successfully');
         } catch (error) {
             console.error('Error updating account:', error);
-            alert('Failed to update account. Please try again.');
+            toast.error('Failed to update account. Please try again.');
         }
     }, [selectedItem, formData, crmType, crmCollection, actions, resetFormData]);
 
-    const handleDeleteAccount = useCallback(async (item: AnyCrmItem) => {
-        if (!confirm(`Delete ${item.company}? This will also delete all contacts, tasks, meetings, and notes.`)) return;
-
-        try {
-            await actions.deleteItem(crmCollection, item.id);
-        } catch (error) {
-            console.error('Error deleting account:', error);
-            alert('Failed to delete account. Please try again.');
-        }
-    }, [crmCollection, actions]);
+    const handleDeleteAccount = useCallback((item: AnyCrmItem) => {
+        deleteAccountConfirm.requestConfirm(item, async (accountToDelete) => {
+            try {
+                await actions.deleteItem(crmCollection, accountToDelete.id);
+                toast.success(`${accountToDelete.company} deleted successfully`);
+            } catch (error) {
+                console.error('Error deleting account:', error);
+                toast.error('Failed to delete account. Please try again.');
+            }
+        });
+    }, [crmCollection, actions, deleteAccountConfirm]);
 
     const openEditModal = useCallback((item: AnyCrmItem) => {
         setSelectedItem(item);
@@ -323,7 +363,13 @@ export function useAccountManager({
             nextActionTime: item.nextActionTime || '',
             website: (item as any).website || '',
             industry: (item as any).industry || '',
-            description: (item as any).description || ''
+            description: (item as any).description || '',
+            // Enrichment fields
+            location: (item as any).location || '',
+            companySize: (item as any).companySize || '',
+            foundedYear: (item as any).foundedYear || '',
+            linkedin: (item as any).linkedin || '',
+            twitter: (item as any).twitter || '',
         };
 
         // Add type-specific fields
@@ -358,7 +404,7 @@ export function useAccountManager({
     // Export function
     const exportAccountsToCSV = useCallback(() => {
         if (filteredItems.length === 0) {
-            alert('No accounts to export');
+            toast.error('No accounts to export');
             return;
         }
 
@@ -461,7 +507,7 @@ export function useAccountManager({
 
     const handleBulkAction = useCallback((action: 'tag' | 'delete' | 'export') => {
         if (selectedItemIds.size === 0) {
-            alert('Please select at least one account');
+            toast.error('Please select at least one account');
             return;
         }
         setBulkAction(action);
@@ -469,35 +515,33 @@ export function useAccountManager({
     }, [selectedItemIds.size]);
 
     const executeBulkDelete = useCallback(async () => {
-        if (!confirm(`Are you sure you want to delete ${selectedItemIds.size} account(s)? This cannot be undone.`)) {
-            return;
-        }
+        bulkDeleteConfirm.requestConfirm(selectedItemIds, async (idsToDelete) => {
+            try {
+                const selectedItems = crmItems.filter(i => idsToDelete.has(i.id));
+                let successCount = 0;
 
-        try {
-            const selectedItems = crmItems.filter(i => selectedItemIds.has(i.id));
-            let successCount = 0;
+                for (const item of selectedItems) {
+                    await actions.deleteItem(crmCollection, item.id);
+                    successCount++;
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
 
-            for (const item of selectedItems) {
-                await actions.deleteItem(crmCollection, item.id);
-                successCount++;
-                await new Promise(resolve => setTimeout(resolve, 50));
+                toast.success(`Successfully deleted ${successCount} account(s)`);
+                setShowBulkActionsModal(false);
+                setBulkSelectMode(false);
+                setSelectedItemIds(new Set());
+            } catch (error) {
+                console.error('Error bulk deleting:', error);
+                toast.error('Failed to delete some accounts');
             }
-
-            alert(`Successfully deleted ${successCount} account(s)`);
-            setShowBulkActionsModal(false);
-            setBulkSelectMode(false);
-            setSelectedItemIds(new Set());
-        } catch (error) {
-            console.error('Error bulk deleting:', error);
-            alert('Failed to delete some accounts');
-        }
-    }, [selectedItemIds, crmItems, crmCollection, actions]);
+        });
+    }, [selectedItemIds, crmItems, crmCollection, actions, bulkDeleteConfirm]);
 
     const executeBulkExport = useCallback(() => {
         const selectedItems = crmItems.filter(i => selectedItemIds.has(i.id));
         
         if (selectedItems.length === 0) {
-            alert('No accounts selected for export');
+            toast.error('No accounts selected for export');
             return;
         }
 
@@ -529,7 +573,7 @@ export function useAccountManager({
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
 
-        alert(`Successfully exported ${selectedItems.length} account(s)`);
+        toast.success(`Successfully exported ${selectedItems.length} account(s)`);
         setShowBulkActionsModal(false);
         setBulkSelectMode(false);
         setSelectedItemIds(new Set());
@@ -624,6 +668,10 @@ export function useAccountManager({
         handleBulkAction,
         executeBulkDelete,
         executeBulkExport,
+        
+        // Delete confirmation hooks
+        deleteAccountConfirm,
+        bulkDeleteConfirm,
     };
 }
 

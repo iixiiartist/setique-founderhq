@@ -1,5 +1,7 @@
 import React from 'react';
 import { Priority } from '../../../types';
+import { CompanyEnrichmentButton } from './CompanyEnrichmentButton';
+import { showSuccess } from '../../../lib/utils/toast';
 
 export interface AccountFormData {
     company: string;
@@ -11,6 +13,14 @@ export interface AccountFormData {
     website?: string;
     industry?: string;
     description?: string;
+    // Enrichment fields
+    location?: string;
+    companySize?: string;
+    foundedYear?: string;
+    linkedin?: string;
+    twitter?: string;
+    // Type selection (used when creating from "all accounts" view)
+    accountType?: 'investor' | 'customer' | 'partner';
     // Type-specific fields
     checkSize?: number;
     stage?: string; // For investors: Seed, Series A, B, C, etc.
@@ -41,6 +51,51 @@ export function AccountForm({
 }: AccountFormProps) {
     const idPrefix = mode === 'add' ? 'add' : 'edit';
 
+    // Handle enrichment data application
+    const handleEnrichmentComplete = (data: {
+        description?: string;
+        industry?: string;
+        location?: string;
+        companySize?: string;
+        foundedYear?: string;
+        linkedin?: string;
+        twitter?: string;
+    }) => {
+        const updates: Partial<AccountFormData> = {};
+        
+        if (data.description && !formData.description) {
+            updates.description = data.description;
+        }
+        if (data.industry && !formData.industry) {
+            updates.industry = data.industry;
+        }
+        if (data.location && !formData.location) {
+            updates.location = data.location;
+        }
+        if (data.companySize && !formData.companySize) {
+            updates.companySize = data.companySize;
+        }
+        if (data.foundedYear && !formData.foundedYear) {
+            updates.foundedYear = data.foundedYear;
+        }
+        if (data.linkedin && !formData.linkedin) {
+            updates.linkedin = data.linkedin;
+        }
+        if (data.twitter && !formData.twitter) {
+            updates.twitter = data.twitter;
+        }
+        
+        if (Object.keys(updates).length > 0) {
+            onFormDataChange({
+                ...formData,
+                ...updates,
+            });
+        }
+    };
+
+    // Determine effective type for showing type-specific fields
+    const effectiveType = crmType === 'accounts' ? formData.accountType : crmType;
+
     return (
         <form onSubmit={onSubmit} className="space-y-4">
             <div>
@@ -58,6 +113,28 @@ export function AccountForm({
                     className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
             </div>
+
+            {/* Account Type Selector - Only shown when creating from "All Accounts" view */}
+            {crmType === 'accounts' && mode === 'add' && (
+                <div>
+                    <label htmlFor={`${idPrefix}-account-type`} className="block font-mono text-sm font-semibold text-black mb-1">
+                        Account Type *
+                    </label>
+                    <select
+                        id={`${idPrefix}-account-type`}
+                        name={`${idPrefix}-account-type`}
+                        value={formData.accountType || ''}
+                        onChange={(e) => onFormDataChange({ ...formData, accountType: e.target.value as 'investor' | 'customer' | 'partner' })}
+                        required
+                        className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                        <option value="">Select account type...</option>
+                        <option value="investor">Investor</option>
+                        <option value="customer">Customer</option>
+                        <option value="partner">Partner</option>
+                    </select>
+                </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -80,24 +157,37 @@ export function AccountForm({
                     <label htmlFor={`${idPrefix}-status`} className="block font-mono text-sm font-semibold text-black mb-1">
                         Status
                     </label>
-                    <input
+                    <select
                         id={`${idPrefix}-status`}
                         name={`${idPrefix}-status`}
-                        type="text"
                         value={formData.status}
                         onChange={(e) => onFormDataChange({ ...formData, status: e.target.value })}
-                        placeholder="e.g., Active, Prospect"
                         className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
+                    >
+                        <option value="Prospecting">Prospecting</option>
+                        <option value="Active">Active</option>
+                        <option value="Engaged">Engaged</option>
+                        <option value="Negotiating">Negotiating</option>
+                        <option value="On Hold">On Hold</option>
+                        <option value="Closed">Closed</option>
+                        <option value="Churned">Churned</option>
+                    </select>
                 </div>
             </div>
 
             {/* Additional Details */}
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label htmlFor={`${idPrefix}-website`} className="block font-mono text-sm font-semibold text-black mb-1">
-                        Website
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                        <label htmlFor={`${idPrefix}-website`} className="block font-mono text-sm font-semibold text-black">
+                            Website
+                        </label>
+                        <CompanyEnrichmentButton
+                            websiteUrl={formData.website || ''}
+                            onEnrichmentComplete={handleEnrichmentComplete}
+                            size="sm"
+                        />
+                    </div>
                     <input
                         id={`${idPrefix}-website`}
                         name={`${idPrefix}-website`}
@@ -139,8 +229,86 @@ export function AccountForm({
                 />
             </div>
 
+            {/* Company Details */}
+            <div className="grid grid-cols-3 gap-4">
+                <div>
+                    <label htmlFor={`${idPrefix}-location`} className="block font-mono text-sm font-semibold text-black mb-1">
+                        Location
+                    </label>
+                    <input
+                        id={`${idPrefix}-location`}
+                        name={`${idPrefix}-location`}
+                        type="text"
+                        value={formData.location || ''}
+                        onChange={(e) => onFormDataChange({ ...formData, location: e.target.value })}
+                        placeholder="e.g., San Francisco, CA"
+                        className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                </div>
+                <div>
+                    <label htmlFor={`${idPrefix}-company-size`} className="block font-mono text-sm font-semibold text-black mb-1">
+                        Company Size
+                    </label>
+                    <input
+                        id={`${idPrefix}-company-size`}
+                        name={`${idPrefix}-company-size`}
+                        type="text"
+                        value={formData.companySize || ''}
+                        onChange={(e) => onFormDataChange({ ...formData, companySize: e.target.value })}
+                        placeholder="e.g., 50-200 employees"
+                        className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                </div>
+                <div>
+                    <label htmlFor={`${idPrefix}-founded-year`} className="block font-mono text-sm font-semibold text-black mb-1">
+                        Founded
+                    </label>
+                    <input
+                        id={`${idPrefix}-founded-year`}
+                        name={`${idPrefix}-founded-year`}
+                        type="text"
+                        value={formData.foundedYear || ''}
+                        onChange={(e) => onFormDataChange({ ...formData, foundedYear: e.target.value })}
+                        placeholder="e.g., 2020"
+                        className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                </div>
+            </div>
+
+            {/* Social Links */}
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label htmlFor={`${idPrefix}-linkedin`} className="block font-mono text-sm font-semibold text-black mb-1">
+                        LinkedIn
+                    </label>
+                    <input
+                        id={`${idPrefix}-linkedin`}
+                        name={`${idPrefix}-linkedin`}
+                        type="url"
+                        value={formData.linkedin || ''}
+                        onChange={(e) => onFormDataChange({ ...formData, linkedin: e.target.value })}
+                        placeholder="https://linkedin.com/company/..."
+                        className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                </div>
+                <div>
+                    <label htmlFor={`${idPrefix}-twitter`} className="block font-mono text-sm font-semibold text-black mb-1">
+                        Twitter / X
+                    </label>
+                    <input
+                        id={`${idPrefix}-twitter`}
+                        name={`${idPrefix}-twitter`}
+                        type="url"
+                        value={formData.twitter || ''}
+                        onChange={(e) => onFormDataChange({ ...formData, twitter: e.target.value })}
+                        placeholder="https://twitter.com/..."
+                        className="w-full bg-white border border-gray-200 text-slate-900 p-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                </div>
+            </div>
+
             {/* Type-specific fields - Investors */}
-            {crmType === 'investors' && (
+            {(effectiveType === 'investors' || effectiveType === 'investor') && (
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label htmlFor={`${idPrefix}-check-size`} className="block font-mono text-sm font-semibold text-black mb-1">
@@ -180,7 +348,7 @@ export function AccountForm({
             )}
 
             {/* Type-specific fields - Customers */}
-            {crmType === 'customers' && (
+            {(effectiveType === 'customers' || effectiveType === 'customer') && (
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label htmlFor={`${idPrefix}-deal-value`} className="block font-mono text-sm font-semibold text-black mb-1">
@@ -220,7 +388,7 @@ export function AccountForm({
             )}
 
             {/* Type-specific fields - Partners */}
-            {crmType === 'partners' && (
+            {(effectiveType === 'partners' || effectiveType === 'partner') && (
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label htmlFor={`${idPrefix}-opportunity`} className="block font-mono text-sm font-semibold text-black mb-1">

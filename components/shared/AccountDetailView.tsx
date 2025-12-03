@@ -12,10 +12,9 @@ import { TASK_TAG_BG_COLORS } from '../../constants';
 import { AssignmentDropdown } from './AssignmentDropdown';
 import { SubtaskManager } from './SubtaskManager';
 import { useDeleteConfirm } from '../../hooks';
-import { searchWeb } from '../../src/lib/services/youSearchService';
-import { getAiResponse } from '../../services/groqService';
-import { ModerationError, formatModerationErrorMessage } from '../../lib/services/moderationService';
+import { enrichCompanyFromUrl } from '../../services/companyEnrichmentService';
 import { TaskEditModal } from '../tasks/TaskEditModal';
+import toast from 'react-hot-toast';
 
 interface AccountDetailViewProps {
     item: AnyCrmItem;
@@ -140,67 +139,75 @@ function AccountDetailView({
     const deleteAccountConfirm = useDeleteConfirm<AnyCrmItem>('account');
 
     const handleEnrich = async () => {
+        if (!item.website) {
+            toast.error('Please add a website URL first to enrich this account.');
+            return;
+        }
+
         setIsEnriching(true);
+        const toastId = toast.loading('Enriching company data...');
+        
         try {
-            const query = `Overview of company ${item.company} ${item.website || ''}`;
-            const searchResults = await searchWeb(query, 'search');
+            const response = await enrichCompanyFromUrl(item.website);
             
-            if (!searchResults.hits || searchResults.hits.length === 0) {
-                alert('No information found.');
-                setIsEnriching(false);
+            console.log('[AccountDetailView] Enrichment response:', response);
+            
+            if (!response.success || !response.enrichment) {
+                toast.error(response.error || 'Failed to fetch company information', { id: toastId });
                 return;
             }
 
-            const context = searchResults.hits.map((h: any) => `${h.title}: ${h.description}`).join('\n');
-            const prompt = `
-            Based on the following search results for "${item.company}", extract the following information in JSON format:
-            - description: A brief 1-2 sentence summary of what the company does.
-            - website: The official website URL (if found).
-            - linkedin: The LinkedIn company page URL (if found).
-            - twitter: The Twitter/X handle or URL (if found).
-            - industry: The primary industry.
-            - location: Headquarters location.
-
-            Search Results:
-            ${context}
-
-            Return ONLY valid JSON.
-            `;
-
-            const history: any[] = [{
-                role: 'user',
-                parts: [{ text: prompt }]
-            }];
+            const enrichment = response.enrichment;
             
-            const systemPrompt = "You are a helpful assistant that extracts structured data from text.";
+            console.log('[AccountDetailView] Enrichment data:', {
+                description: enrichment.description?.substring(0, 50),
+                industry: enrichment.industry,
+                location: enrichment.location,
+                companySize: enrichment.companySize,
+                foundedYear: enrichment.foundedYear,
+                linkedin: enrichment.socialLinks?.linkedin,
+                twitter: enrichment.socialLinks?.twitter,
+            });
             
-            const aiResponse = await getAiResponse(history, systemPrompt, false);
-            const text = aiResponse.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            // Build updates object with all enriched fields
+            // Note: Using camelCase - the DataPersistenceAdapter will transform to snake_case for DB
+            const updates: Record<string, any> = {};
             
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                const data = JSON.parse(jsonMatch[0]);
-                
-                await actions.updateCrmItem(crmCollection, item.id, {
-                    description: data.description || item.description,
-                    website: data.website || item.website,
-                    linkedin: data.linkedin || item.linkedin,
-                    twitter: data.twitter || item.twitter,
-                    industry: data.industry || item.industry,
-                    location: data.location || item.location,
-                });
-                alert('Enrichment complete!');
-            } else {
-                throw new Error('Failed to parse AI response');
+            if (enrichment.description) {
+                updates.description = enrichment.description;
             }
+            if (enrichment.industry) {
+                updates.industry = enrichment.industry;
+            }
+            if (enrichment.location) {
+                updates.location = enrichment.location;
+            }
+            if (enrichment.companySize) {
+                updates.companySize = enrichment.companySize;
+            }
+            if (enrichment.foundedYear) {
+                updates.foundedYear = enrichment.foundedYear;
+            }
+            if (enrichment.socialLinks?.linkedin) {
+                updates.linkedin = enrichment.socialLinks.linkedin;
+            }
+            if (enrichment.socialLinks?.twitter) {
+                updates.twitter = enrichment.socialLinks.twitter;
+            }
+            
+            console.log('[AccountDetailView] Saving updates:', updates);
+            
+            if (Object.keys(updates).length === 0) {
+                toast.error('No information found for this company', { id: toastId });
+                return;
+            }
+            
+            await actions.updateCrmItem(crmCollection, item.id, updates);
+            toast.success('Enrichment complete!', { id: toastId });
 
         } catch (error) {
-            if (error instanceof ModerationError) {
-                alert(formatModerationErrorMessage(error));
-            } else {
-                console.error('Enrichment failed:', error);
-                alert('Enrichment failed. See console for details.');
-            }
+            console.error('Enrichment failed:', error);
+            toast.error('Enrichment failed. Please try again.', { id: toastId });
         } finally {
             setIsEnriching(false);
         }
@@ -408,7 +415,8 @@ function AccountDetailView({
                             </div>
 
                             {/* Additional Info Section */}
-                            {((item as any).website || (item as any).industry || (item as any).description) && (
+                            {/* Note: Data comes from dbToCrmItem which maps snake_case to camelCase */}
+                            {((item as any).website || (item as any).industry || (item as any).description || (item as any).location || (item as any).companySize || (item as any).foundedYear || (item as any).linkedin || (item as any).twitter) && (
                                 <div className="pt-3 border-t border-gray-100 space-y-3">
                                     {(item as any).website && (
                                         <div>
@@ -428,6 +436,54 @@ function AccountDetailView({
                                         <div>
                                             <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Industry</p>
                                             <p className="text-sm text-gray-900">{(item as any).industry}</p>
+                                        </div>
+                                    )}
+                                    {(item as any).location && (
+                                        <div>
+                                            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Location</p>
+                                            <p className="text-sm text-gray-900">{(item as any).location}</p>
+                                        </div>
+                                    )}
+                                    {((item as any).companySize || (item as any).foundedYear) && (
+                                        <div className="flex gap-6">
+                                            {(item as any).companySize && (
+                                                <div>
+                                                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Company Size</p>
+                                                    <p className="text-sm text-gray-900">{(item as any).companySize}</p>
+                                                </div>
+                                            )}
+                                            {(item as any).foundedYear && (
+                                                <div>
+                                                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Founded</p>
+                                                    <p className="text-sm text-gray-900">{(item as any).foundedYear}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                    {((item as any).linkedin || (item as any).twitter) && (
+                                        <div className="flex gap-3">
+                                            {(item as any).linkedin && (
+                                                <a 
+                                                    href={(item as any).linkedin} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                                >
+                                                    LinkedIn
+                                                    <ExternalLink className="w-3 h-3" />
+                                                </a>
+                                            )}
+                                            {(item as any).twitter && (
+                                                <a 
+                                                    href={(item as any).twitter} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                                >
+                                                    Twitter
+                                                    <ExternalLink className="w-3 h-3" />
+                                                </a>
+                                            )}
                                         </div>
                                     )}
                                     {(item as any).description && (
@@ -630,13 +686,20 @@ function AccountDetailView({
                         </div>
                         <div>
                             <label htmlFor="edit-status" className="block text-sm font-medium text-slate-700 mb-1">Status</label>
-                            <input 
+                            <select 
                                 id="edit-status" 
-                                value={editForm.status || ''} 
+                                value={editForm.status || 'Active'} 
                                 onChange={(e) => handleFormChange('status', e.target.value)} 
-                                placeholder="e.g., Active, Prospect"
-                                className="w-full bg-white border border-gray-200 text-slate-900 p-2.5 rounded-xl focus:outline-none focus:border-gray-400" 
-                            />
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-2.5 rounded-xl focus:outline-none focus:border-gray-400"
+                            >
+                                <option value="Prospecting">Prospecting</option>
+                                <option value="Active">Active</option>
+                                <option value="Engaged">Engaged</option>
+                                <option value="Negotiating">Negotiating</option>
+                                <option value="On Hold">On Hold</option>
+                                <option value="Closed">Closed</option>
+                                <option value="Churned">Churned</option>
+                            </select>
                         </div>
                     </div>
 
@@ -674,6 +737,66 @@ function AccountDetailView({
                             rows={3}
                             className="w-full bg-white border border-gray-200 text-slate-900 p-2.5 rounded-xl focus:outline-none focus:border-gray-400 resize-none" 
                         />
+                    </div>
+
+                    {/* Company Details */}
+                    <div className="grid grid-cols-3 gap-4">
+                        <div>
+                            <label htmlFor="edit-location" className="block text-sm font-medium text-slate-700 mb-1">Location</label>
+                            <input 
+                                id="edit-location" 
+                                value={(editForm as any).location || ''} 
+                                onChange={(e) => handleFormChange('location', e.target.value)} 
+                                placeholder="e.g., San Francisco, CA"
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-2.5 rounded-xl focus:outline-none focus:border-gray-400" 
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="edit-company-size" className="block text-sm font-medium text-slate-700 mb-1">Company Size</label>
+                            <input 
+                                id="edit-company-size" 
+                                value={(editForm as any).companySize || ''} 
+                                onChange={(e) => handleFormChange('companySize', e.target.value)} 
+                                placeholder="e.g., 50-200"
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-2.5 rounded-xl focus:outline-none focus:border-gray-400" 
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="edit-founded-year" className="block text-sm font-medium text-slate-700 mb-1">Founded</label>
+                            <input 
+                                id="edit-founded-year" 
+                                value={(editForm as any).foundedYear || ''} 
+                                onChange={(e) => handleFormChange('foundedYear', e.target.value)} 
+                                placeholder="e.g., 2020"
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-2.5 rounded-xl focus:outline-none focus:border-gray-400" 
+                            />
+                        </div>
+                    </div>
+
+                    {/* Social Links */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="edit-linkedin" className="block text-sm font-medium text-slate-700 mb-1">LinkedIn</label>
+                            <input 
+                                id="edit-linkedin" 
+                                type="url"
+                                value={(editForm as any).linkedin || ''} 
+                                onChange={(e) => handleFormChange('linkedin', e.target.value)} 
+                                placeholder="https://linkedin.com/company/..."
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-2.5 rounded-xl focus:outline-none focus:border-gray-400" 
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="edit-twitter" className="block text-sm font-medium text-slate-700 mb-1">Twitter / X</label>
+                            <input 
+                                id="edit-twitter" 
+                                type="url"
+                                value={(editForm as any).twitter || ''} 
+                                onChange={(e) => handleFormChange('twitter', e.target.value)} 
+                                placeholder="https://twitter.com/..."
+                                className="w-full bg-white border border-gray-200 text-slate-900 p-2.5 rounded-xl focus:outline-none focus:border-gray-400" 
+                            />
+                        </div>
                     </div>
 
                     {/* Type-specific fields */}

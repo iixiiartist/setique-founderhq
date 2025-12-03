@@ -298,6 +298,13 @@ export function dbToCrmItem(dbItem: DbCrmItem): AnyCrmItem {
   if (dbItem.industry) base.industry = dbItem.industry;
   if (dbItem.description) base.description = dbItem.description;
   
+  // Add enrichment fields (snake_case DB -> camelCase app)
+  if ((dbItem as any).location) base.location = (dbItem as any).location;
+  if ((dbItem as any).company_size) base.companySize = (dbItem as any).company_size;
+  if ((dbItem as any).founded_year) base.foundedYear = (dbItem as any).founded_year;
+  if ((dbItem as any).linkedin) base.linkedin = (dbItem as any).linkedin;
+  if ((dbItem as any).twitter) base.twitter = (dbItem as any).twitter;
+  
   // Type-specific fields
   if (dbItem.type === 'investor') {
     if (dbItem.check_size) base.checkSize = dbItem.check_size;
@@ -497,6 +504,16 @@ export function crmItemToDb(item: Partial<BaseCrmItem>): Record<string, any> {
   if (item.notes !== undefined) dbObject.notes = item.notes;
   if (item.assignedTo !== undefined) dbObject.assigned_to = item.assignedTo || null;
   if (item.assignedToName !== undefined) dbObject.assigned_to_name = item.assignedToName || null;
+  
+  // Enrichment fields (camelCase app -> snake_case DB)
+  if (item.description !== undefined) dbObject.description = item.description || null;
+  if (item.website !== undefined) dbObject.website = item.website || null;
+  if (item.industry !== undefined) dbObject.industry = item.industry || null;
+  if (item.location !== undefined) dbObject.location = item.location || null;
+  if ((item as any).companySize !== undefined) dbObject.company_size = (item as any).companySize || null;
+  if ((item as any).foundedYear !== undefined) dbObject.founded_year = (item as any).foundedYear || null;
+  if (item.linkedin !== undefined) dbObject.linkedin = item.linkedin || null;
+  if (item.twitter !== undefined) dbObject.twitter = item.twitter || null;
 
   return dbObject;
 }

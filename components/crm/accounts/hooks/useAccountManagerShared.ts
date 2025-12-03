@@ -31,6 +31,14 @@ export interface AccountFormData {
   website?: string;
   industry?: string;
   description?: string;
+  // Enrichment fields
+  location?: string;
+  companySize?: string;
+  foundedYear?: string;
+  linkedin?: string;
+  twitter?: string;
+  // Type selection (used when creating from "all accounts" view)
+  accountType?: 'investor' | 'customer' | 'partner';
   // Type-specific fields
   checkSize?: number;
   stage?: string;
@@ -50,6 +58,11 @@ const INITIAL_FORM_DATA: AccountFormData = {
   website: '',
   industry: '',
   description: '',
+  location: '',
+  companySize: '',
+  foundedYear: '',
+  linkedin: '',
+  twitter: '',
 };
 
 export interface UseAccountManagerSharedOptions {

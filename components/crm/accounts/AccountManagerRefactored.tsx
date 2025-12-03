@@ -1,6 +1,7 @@
 import React from 'react';
 import { AnyCrmItem, AppActions, CrmCollectionName } from '../../../types';
 import Modal from '../../shared/Modal';
+import { ConfirmDialog } from '../../shared/ConfirmDialog';
 import { useAccountManager } from './hooks/useAccountManager';
 import { AccountHeader, BulkActionsBar, AccountAnalytics, ViewControls } from './AccountHeader';
 import { AccountFilters } from './AccountFilters';
@@ -168,6 +169,32 @@ export function AccountManagerRefactored({
                     manager.setDuplicateGroups([]);
                 }}
                 duplicateGroups={manager.duplicateGroups}
+            />
+
+            {/* Delete Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={manager.deleteAccountConfirm.isOpen}
+                onClose={manager.deleteAccountConfirm.cancel}
+                onConfirm={manager.deleteAccountConfirm.confirm}
+                title={manager.deleteAccountConfirm.title}
+                message={`${manager.deleteAccountConfirm.message} This will also delete all contacts, tasks, meetings, and notes.`}
+                confirmLabel={manager.deleteAccountConfirm.confirmLabel}
+                cancelLabel={manager.deleteAccountConfirm.cancelLabel}
+                variant={manager.deleteAccountConfirm.variant}
+                isLoading={manager.deleteAccountConfirm.isProcessing}
+            />
+
+            {/* Bulk Delete Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={manager.bulkDeleteConfirm.isOpen}
+                onClose={manager.bulkDeleteConfirm.cancel}
+                onConfirm={manager.bulkDeleteConfirm.confirm}
+                title="Delete Selected Accounts"
+                message={`Are you sure you want to delete ${manager.selectedItemIds.size} account(s)? This will also delete all associated contacts, tasks, meetings, and notes. This cannot be undone.`}
+                confirmLabel="Delete All"
+                cancelLabel="Cancel"
+                variant="danger"
+                isLoading={manager.bulkDeleteConfirm.isProcessing}
             />
         </div>
     );

@@ -91,6 +91,8 @@ export interface BaseCrmItem {
     twitter?: string;
     industry?: string;
     location?: string;
+    companySize?: string;
+    foundedYear?: string;
 }
 
 // CRM Type discriminator
