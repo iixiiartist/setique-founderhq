@@ -12,6 +12,127 @@ const RATE_LIMIT = 20 // requests per minute per user
 const RATE_WINDOW_MS = 60_000
 const rateLimits = new Map<string, { count: number; resetAt: number }>()
 
+// ============================================================================
+// Input Validation & Sanitization
+// ============================================================================
+
+/** Maximum query length to prevent token flooding */
+const MAX_QUERY_LENGTH = 500
+
+/** PII patterns to redact from queries before sending to external providers */
+const PII_PATTERNS = [
+  /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, // emails
+  /\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g, // phone numbers
+  /\b\d{3}[-]?\d{2}[-]?\d{4}\b/g, // SSN-like patterns
+  /\b\d{16}\b/g, // credit card-like numbers (16 digits)
+  /\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b/g, // credit cards with separators
+]
+
+/** Jailbreak/injection patterns to block */
+const BLOCKED_PATTERNS = [
+  /ignore\s+(all\s+)?(previous|prior|above)\s+(instructions?|prompts?|rules?)/i,
+  /disregard\s+(previous|prior|above)\s+(instructions?|prompts?|rules?)/i,
+  /\[?\s*system\s*\]?:/i,
+  /<\|system\|>/i,
+  /(developer|admin|root|debug|god)\s+mode/i,
+]
+
+/**
+ * Sanitizes and validates user query before sending to external providers
+ */
+function sanitizeQuery(query: string): { sanitized: string; blocked: boolean; redactions: string[] } {
+  const redactions: string[] = []
+  let sanitized = query.trim()
+  
+  // Check for blocked patterns
+  for (const pattern of BLOCKED_PATTERNS) {
+    if (pattern.test(sanitized)) {
+      console.warn('[ai-search] Blocked injection attempt:', sanitized.substring(0, 100))
+      return { sanitized: '', blocked: true, redactions: ['injection_attempt'] }
+    }
+  }
+  
+  // Truncate to max length
+  if (sanitized.length > MAX_QUERY_LENGTH) {
+    sanitized = sanitized.substring(0, MAX_QUERY_LENGTH)
+    redactions.push('truncated')
+  }
+  
+  // Redact PII
+  for (const pattern of PII_PATTERNS) {
+    if (pattern.test(sanitized)) {
+      sanitized = sanitized.replace(pattern, '[REDACTED]')
+      redactions.push('pii_redacted')
+    }
+  }
+  
+  // Remove control characters
+  sanitized = sanitized.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '')
+  
+  return { sanitized, blocked: false, redactions }
+}
+
+// ============================================================================
+// Output Moderation (Lightweight heuristic - fallback when no moderation edge function)
+// ============================================================================
+
+/** Patterns indicating unsafe model output */
+const UNSAFE_OUTPUT_PATTERNS = [
+  /as\s+an?\s+(unfiltered|unrestricted|uncensored)\s+(AI|assistant|model)/i,
+  /I\s+will\s+(not|no\s+longer)\s+(follow|obey)\s+(the|my)\s+(rules?|instructions?)/i,
+  /developer\s+mode\s+(enabled|activated)/i,
+  /DAN\s+mode/i,
+]
+
+/** Content categories that should be flagged */
+const CONTENT_FLAGS = [
+  { pattern: /<script[\s>]/i, category: 'script_injection' },
+  { pattern: /javascript:/i, category: 'script_injection' },
+  { pattern: /on(click|load|error|mouseover)=/i, category: 'event_handler' },
+]
+
+interface ModerationResult {
+  safe: boolean
+  categories: string[]
+  redactedContent?: string
+}
+
+/**
+ * Lightweight output moderation for AI responses
+ * Checks for jailbreak indicators and potentially harmful content
+ */
+function moderateOutput(content: string): ModerationResult {
+  const categories: string[] = []
+  
+  // Check for jailbreak indicators
+  for (const pattern of UNSAFE_OUTPUT_PATTERNS) {
+    if (pattern.test(content)) {
+      categories.push('jailbreak_indicator')
+      break
+    }
+  }
+  
+  // Check for script injection / XSS
+  for (const { pattern, category } of CONTENT_FLAGS) {
+    if (pattern.test(content)) {
+      if (!categories.includes(category)) {
+        categories.push(category)
+      }
+    }
+  }
+  
+  // If unsafe content found, redact it
+  if (categories.length > 0) {
+    let redacted = content
+    for (const { pattern } of CONTENT_FLAGS) {
+      redacted = redacted.replace(pattern, '[BLOCKED]')
+    }
+    return { safe: false, categories, redactedContent: redacted }
+  }
+  
+  return { safe: true, categories: [] }
+}
+
 // Groq Compound API endpoint
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
@@ -421,6 +542,18 @@ serve(async (req: Request) => {
       return errorResponse(400, 'INVALID_REQUEST', req)
     }
 
+    // Sanitize and validate query before processing
+    const { sanitized: sanitizedQuery, blocked, redactions } = sanitizeQuery(query)
+    
+    if (blocked) {
+      console.warn('[ai-search] Query blocked by input validation')
+      return errorResponse(400, 'INVALID_REQUEST', req)
+    }
+    
+    if (redactions.length > 0) {
+      console.log('[ai-search] Query sanitized:', redactions.join(', '))
+    }
+
     const mode: ResearchMode = isResearchMode(rawMode) ? rawMode : 'search'
     const count = sanitizeCount(rawCount, DEFAULT_COUNTS[mode])
     
@@ -433,13 +566,13 @@ serve(async (req: Request) => {
     const useProvider: AIProvider = requestedProvider 
       || (preferGroq ? 'groq' : 'youcom')
     
-    console.log(`[ai-search] Using provider: ${useProvider}, mode: ${mode}, query: ${query.substring(0, 50)}...`)
+    console.log(`[ai-search] Using provider: ${useProvider}, mode: ${mode}, query: ${sanitizedQuery.substring(0, 50)}...`)
 
     // Use Groq Compound for search/rag if available and requested/preferred
     if (useProvider === 'groq' && groqApiKey && (mode === 'search' || mode === 'rag')) {
       try {
         console.log('[ai-search] Attempting Groq Compound search...');
-        const groqResult = await searchWithGroqCompound(query, groqApiKey, { 
+        const groqResult = await searchWithGroqCompound(sanitizedQuery, groqApiKey, { 
           fast: Boolean(fast),
           count 
         })
@@ -450,6 +583,16 @@ serve(async (req: Request) => {
           sourcesCount: groqResult.sources?.length,
         });
         
+        // Moderate the output before returning
+        const moderation = moderateOutput(groqResult.answer || '')
+        let finalAnswer = groqResult.answer || 'No response from AI'
+        
+        if (!moderation.safe) {
+          console.warn('[ai-search] Output moderation flagged content:', moderation.categories)
+          // Use redacted content if available, otherwise return generic message
+          finalAnswer = moderation.redactedContent || 'Response contained unsafe content and was blocked.'
+        }
+        
         const resultBody = {
           hits: groqResult.sources.length ? groqResult.sources.map((s, i) => ({
             title: s.title,
@@ -457,15 +600,16 @@ serve(async (req: Request) => {
             url: s.url,
             source: 'groq-compound',
           })) : undefined,
-          qa: { answer: groqResult.answer || 'No response from AI' },
+          qa: { answer: finalAnswer },
           metadata: {
             provider: 'groq',
             model: fast ? 'groq/compound-mini' : 'groq/compound',
             mode,
-            query,
+            query: sanitizedQuery,
             count,
             fetchedAt: new Date().toISOString(),
             durationMs: Math.round(performance.now() - startedAt),
+            moderated: !moderation.safe,
             ...groqResult.metadata,
           },
         }
@@ -495,15 +639,15 @@ serve(async (req: Request) => {
 
     const params = new URLSearchParams()
     if (mode === 'news') {
-      params.set('query', query)
-      params.set('q', query)
+      params.set('query', sanitizedQuery)
+      params.set('q', sanitizedQuery)
       params.set('section', 'news')
       params.set('count', String(count))
     } else if (mode === 'images') {
-      params.set('query', query)
+      params.set('query', sanitizedQuery)
       params.set('count', String(count))
     } else {
-      params.set('query', query)
+      params.set('query', sanitizedQuery)
       params.set('num_web_results', String(count))
       params.set('count', String(count))
     }
@@ -566,7 +710,7 @@ serve(async (req: Request) => {
       metadata: {
         provider: 'youcom',
         mode,
-        query,
+        query: sanitizedQuery,
         count,
         fetchedAt: new Date().toISOString(),
         durationMs: Math.round(performance.now() - startedAt),

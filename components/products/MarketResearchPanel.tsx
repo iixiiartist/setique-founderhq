@@ -9,12 +9,39 @@ interface MarketResearchPanelProps {
   onClose: () => void;
 }
 
-// Convert markdown to styled HTML
+/**
+ * Escapes HTML special characters to prevent XSS in exported files
+ */
+const escapeHtml = (text: string): string => {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
+/**
+ * Sanitizes URLs to only allow safe protocols
+ */
+const sanitizeUrl = (url: string): string => {
+  if (!url) return '';
+  const trimmed = url.trim();
+  // Only allow http, https, and mailto protocols
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('mailto:')) {
+    return escapeHtml(trimmed);
+  }
+  // Block javascript:, data:, and other potentially dangerous protocols
+  return '#';
+};
+
+// Convert markdown to styled HTML (with security-safe escaping)
 const markdownToHtml = (markdown: string): string => {
   let html = markdown;
   
-  // Escape HTML first (but preserve our generated tags later)
-  html = html.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // Escape HTML first using our secure escapeHtml function
+  html = escapeHtml(html);
   
   // Process code blocks first (before other transformations)
   html = html.replace(/```[\s\S]*?```/g, (match) => {
@@ -39,9 +66,15 @@ const markdownToHtml = (markdown: string): string => {
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
   
-  // Links - convert &lt;url&gt; back to proper links
-  html = html.replace(/&lt;(https?:\/\/[^&]+)&gt;/g, '<a href="$1" class="md-link" target="_blank">$1</a>');
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="md-link" target="_blank">$1</a>');
+  // Links - convert &lt;url&gt; back to proper links (with URL sanitization)
+  html = html.replace(/&lt;(https?:\/\/[^&]+)&gt;/g, (_, url) => {
+    const safeUrl = sanitizeUrl(url.replace(/&amp;/g, '&'));
+    return `<a href="${safeUrl}" class="md-link" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a>`;
+  });
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, url) => {
+    const safeUrl = sanitizeUrl(url);
+    return `<a href="${safeUrl}" class="md-link" target="_blank" rel="noopener noreferrer">${text}</a>`;
+  });
   
   // Tables - complex parsing
   const tableRegex = /(\|.+\|[\r\n]+\|[-:\s|]+\|[\r\n]+(?:\|.+\|[\r\n]*)+)/g;
@@ -102,7 +135,7 @@ const markdownToHtml = (markdown: string): string => {
   return html;
 };
 
-// Generate beautiful HTML report
+// Generate beautiful HTML report (with proper escaping for security)
 const generateHtmlReport = (
   query: string,
   keyFacts: { label: string; value: string }[],
@@ -117,12 +150,25 @@ const generateHtmlReport = (
     day: 'numeric' 
   });
   
+  // Escape all user-controlled content to prevent XSS
+  const safeQuery = escapeHtml(query);
+  const safeHeroLine = escapeHtml(heroLine);
+  const safeKeyFacts = keyFacts.map(f => ({
+    label: escapeHtml(f.label),
+    value: escapeHtml(f.value)
+  }));
+  const safePricingHighlights = pricingHighlights.map(p => escapeHtml(p));
+  const safeInsightSections = insightSections.map(s => ({
+    title: escapeHtml(s.title),
+    bullets: s.bullets.map(b => escapeHtml(b))
+  }));
+  
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Market Research Brief: ${query}</title>
+  <title>Market Research Brief: ${safeQuery}</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
     
@@ -567,10 +613,10 @@ const generateHtmlReport = (
     <header class="header">
       <div class="header-content">
         <p class="label">Market Research Brief</p>
-        <h1 class="title">${query}</h1>
+        <h1 class="title">${safeQuery}</h1>
         <p class="subtitle">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-          ${heroLine}
+          ${safeHeroLine}
         </p>
         <div class="meta">
           <span>📅 Generated: ${date}</span>
@@ -581,11 +627,11 @@ const generateHtmlReport = (
     </header>
     
     <div class="content">
-      ${keyFacts.length > 0 ? `
+      ${safeKeyFacts.length > 0 ? `
       <section class="section">
         <h2 class="section-title">Key Facts</h2>
         <div class="facts-grid">
-          ${keyFacts.map(fact => `
+          ${safeKeyFacts.map(fact => `
           <div class="fact-card">
             <p class="fact-label">${fact.label}</p>
             <p class="fact-value">${fact.value}</p>
@@ -595,12 +641,12 @@ const generateHtmlReport = (
       </section>
       ` : ''}
       
-      ${pricingHighlights.length > 0 ? `
+      ${safePricingHighlights.length > 0 ? `
       <section class="section">
         <div class="pricing-box">
           <h2 class="pricing-title">💰 Pricing Signals</h2>
           <ul class="pricing-list">
-            ${pricingHighlights.map(line => `
+            ${safePricingHighlights.map(line => `
             <li class="pricing-item">
               <span class="pricing-dot"></span>
               <span class="pricing-text">${line}</span>
@@ -611,11 +657,11 @@ const generateHtmlReport = (
       </section>
       ` : ''}
       
-      ${insightSections.length > 0 ? `
+      ${safeInsightSections.length > 0 ? `
       <section class="section">
         <h2 class="section-title">Insights & Analysis</h2>
         <div class="insights-grid">
-          ${insightSections.map(section => `
+          ${safeInsightSections.map(section => `
           <div class="insight-card">
             <h3 class="insight-title">${section.title}</h3>
             <ul class="insight-list">
