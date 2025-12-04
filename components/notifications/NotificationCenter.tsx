@@ -18,6 +18,7 @@ import {
   AlertTriangle,
   ChevronRight,
   RefreshCw,
+  Bot,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
@@ -102,6 +103,12 @@ const CATEGORIES: Array<{
     icon: <Trophy className="w-4 h-4" />,
     types: ['achievement_unlocked'],
   },
+  {
+    id: 'agents',
+    label: 'AI Agents',
+    icon: <Bot className="w-4 h-4" />,
+    types: ['agent_job_completed', 'agent_job_failed', 'market_brief_ready', 'sync_completed', 'sync_failed'],
+  },
 ];
 
 // ============================================
@@ -131,6 +138,12 @@ const getNotificationIcon = (type: NotificationType): { icon: string; color: str
     workspace_role_changed: { icon: '🔑', color: 'bg-yellow-100' },
     crm_contact_added: { icon: '👤', color: 'bg-cyan-100' },
     achievement_unlocked: { icon: '🏆', color: 'bg-amber-100' },
+    // Agent/background job icons
+    agent_job_completed: { icon: '🤖', color: 'bg-cyan-100' },
+    agent_job_failed: { icon: '❌', color: 'bg-red-100' },
+    market_brief_ready: { icon: '📊', color: 'bg-emerald-100' },
+    sync_completed: { icon: '🔄', color: 'bg-green-100' },
+    sync_failed: { icon: '⚠️', color: 'bg-red-100' },
   };
   return iconMap[type] || { icon: '🔔', color: 'bg-gray-100' };
 };

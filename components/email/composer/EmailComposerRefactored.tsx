@@ -31,7 +31,8 @@ import {
     GTMTemplateModal,
     ResearchResultsPanel,
     AttachmentsBar,
-    AccountErrorBanner
+    AccountErrorBanner,
+    AILimitBanner
 } from './ComposerParts';
 import { GTM_TEMPLATES } from '../../../lib/templates/gtmTemplates';
 
@@ -213,7 +214,6 @@ ${replyTo.body?.html || replyTo.body?.text || replyTo.snippet || ''}
                     hook.setAccountError('No email account connected. Go to Settings → Integrations to connect Gmail.');
                 }
             } catch (err: any) {
-                console.error('[EmailComposer] Account fetch error:', err);
                 hook.setAccountError(`Failed to load email account: ${err.message}`);
             }
         })();
@@ -388,6 +388,12 @@ ${replyTo.body?.html || replyTo.body?.text || replyTo.snippet || ''}
             
             {/* Account Error Warning */}
             <AccountErrorBanner error={hook.accountError} />
+            
+            {/* AI Limit Warning Banner */}
+            <AILimitBanner 
+                error={hook.aiLimitError} 
+                onDismiss={() => hook.setAiLimitError(null)} 
+            />
             
             {/* Form Fields */}
             <ComposerFields

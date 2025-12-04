@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { ProductService, ProductPriceHistory, Task, AppActions, ProductServiceCategory, ProductServiceType, ProductServiceStatus, RevenueTransaction, Deal } from '../../types';
 import KpiCard from '../shared/KpiCard';
 import { ProductServiceCard } from './ProductServiceCard';
@@ -11,6 +11,8 @@ import { getAiResponse, AILimitError } from '../../services/groqService';
 import { ModerationError, formatModerationErrorMessage, runModeration } from '../../lib/services/moderationService';
 import { searchWeb } from '../../src/lib/services/youSearchService';
 import { MarketResearchPanel } from './MarketResearchPanel';
+import { SavedBriefsSection } from './SavedBriefsSection';
+import { type SavedMarketBrief } from '../../lib/services/reportSharingService';
 import { showSuccess, showError } from '../../lib/utils/toast';
 import { useFeatureFlags } from '../../contexts/FeatureFlagContext';
 import { telemetry } from '../../lib/services/telemetry';
@@ -79,12 +81,12 @@ export function ProductsServicesTab({
     const [statusFilter, setStatusFilter] = useState<ProductServiceStatus | 'all'>('all');
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-    const [isSmartSearch, setIsSmartSearch] = useState(false);
     const [smartSearchResults, setSmartSearchResults] = useState<string[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [marketResearchResult, setMarketResearchResult] = useState<string | null>(null);
     const [showMarketResearch, setShowMarketResearch] = useState(false);
     const [aiUnavailableReason, setAiUnavailableReason] = useState<string | null>(null);
+    const [viewingBrief, setViewingBrief] = useState<SavedMarketBrief | null>(null);
     
     // Feature flag check
     const { isFeatureEnabled } = useFeatureFlags();
@@ -317,8 +319,8 @@ export function ProductsServicesTab({
     // Filter products based on search and filters
     const filteredProducts = useMemo(() => {
         return productsServices.filter(product => {
-            // Smart Search Override
-            if (isSmartSearch && smartSearchResults.length > 0) {
+            // Smart Search Override - if we have AI search results, use them
+            if (smartSearchResults.length > 0) {
                 return smartSearchResults.includes(product.id);
             }
 
@@ -339,7 +341,7 @@ export function ProductsServicesTab({
             
             return matchesSearch && matchesCategory && matchesType && matchesStatus;
         });
-    }, [productsServices, searchTerm, categoryFilter, typeFilter, statusFilter]);
+    }, [productsServices, searchTerm, categoryFilter, typeFilter, statusFilter, smartSearchResults]);
 
     // Calculate KPIs
     const kpis = useMemo(() => {
@@ -423,13 +425,35 @@ export function ProductsServicesTab({
                 />
             )}
             
+            {/* Saved Market Briefs Section with AI Search - Always visible */}
+            <SavedBriefsSection
+                workspaceId={workspaceId}
+                onViewBrief={(brief) => {
+                    setViewingBrief(brief);
+                    setMarketResearchResult(brief.raw_report);
+                    setSearchTerm(brief.query);
+                    setShowMarketResearch(true);
+                }}
+                searchTerm={searchTerm}
+                onSearchTermChange={setSearchTerm}
+                onSmartSearch={handleSmartSearch}
+                onMarketResearch={handleMarketResearch}
+                isSearching={isSearching}
+                isAIEnabled={isAIEnabled}
+                aiUnavailableReason={aiUnavailableReason}
+            />
+            
             {/* Market Research Results */}
             {showMarketResearch && (
                 <MarketResearchPanel
-                    query={searchTerm || 'Market Research'}
+                    query={viewingBrief?.query || searchTerm || 'Market Research'}
                     rawReport={marketResearchResult}
                     isLoading={isSearching && !marketResearchResult}
-                    onClose={() => setShowMarketResearch(false)}
+                    onClose={() => {
+                        setShowMarketResearch(false);
+                        setViewingBrief(null);
+                    }}
+                    workspaceId={workspaceId}
                 />
             )}
 
@@ -468,72 +492,15 @@ export function ProductsServicesTab({
 
             {/* Filters and Search */}
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                     {/* Search */}
-                    <div className="md:col-span-2 flex flex-col gap-2">
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                placeholder={isSmartSearch ? "Describe what you're looking for..." : "Search products/services..."}
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && isSmartSearch) {
-                                        handleSmartSearch();
-                                    }
-                                }}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
-                            />
-                            <button
-                                onClick={() => {
-                                    setIsSmartSearch(!isSmartSearch);
-                                    if (!isSmartSearch) {
-                                        setSmartSearchResults([]);
-                                        setShowMarketResearch(false);
-                                    }
-                                }}
-                                className={`px-2 py-1 border border-gray-300 rounded-md font-mono text-xs ${isSmartSearch ? 'bg-purple-600 text-white' : 'bg-gray-100'}`}
-                                title="Toggle AI Features"
-                            >
-                                {isSmartSearch ? '✨ AI' : 'AI'}
-                            </button>
-                        </div>
-                        
-                        {isSmartSearch && (
-                            <div className="flex flex-col gap-2 animate-fadeIn">
-                                {/* AI Unavailable Banner */}
-                                {aiUnavailableReason && (
-                                    <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-md text-amber-800 text-xs">
-                                        <span>⚠️</span>
-                                        <span>{aiUnavailableReason}</span>
-                                    </div>
-                                )}
-                                {/* AI Feature Disabled Banner */}
-                                {!isAIEnabled && (
-                                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 border border-gray-200 rounded-md text-gray-600 text-xs">
-                                        <span>🔒</span>
-                                        <span>AI features are disabled for this workspace. Contact your admin to enable.</span>
-                                    </div>
-                                )}
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={handleSmartSearch}
-                                        disabled={isSearching || !isAIEnabled}
-                                        className="flex-1 px-2 py-1 border border-gray-300 rounded-md bg-black text-white font-mono text-xs hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        {isSearching ? 'Searching...' : '🔍 Filter My Products'}
-                                    </button>
-                                    <button
-                                        onClick={handleMarketResearch}
-                                        disabled={isSearching || !isAIEnabled}
-                                        className="flex-1 px-2 py-1 border border-blue-700 rounded-md bg-blue-600 text-white font-mono text-xs hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        {isSearching ? 'Researching...' : '🌐 Research Online'}
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                    <input
+                        type="text"
+                        placeholder="Search products/services..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
+                    />
 
                     {/* Category Filter */}
                     <select

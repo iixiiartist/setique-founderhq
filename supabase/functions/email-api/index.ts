@@ -2,6 +2,74 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders } from '../_shared/apiAuth.ts';
 
+/**
+ * Validate user session and extract user ID
+ * Returns the authenticated user or throws an error
+ */
+async function validateUserSession(req: Request, supabaseAdmin: any): Promise<{ userId: string; userEmail: string }> {
+  const authHeader = req.headers.get('Authorization');
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    throw new Error('Missing or invalid Authorization header');
+  }
+  
+  const token = authHeader.substring(7);
+  
+  // Validate the JWT and get user info
+  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+  
+  if (error || !user) {
+    throw new Error('Invalid or expired session. Please sign in again.');
+  }
+  
+  return { userId: user.id, userEmail: user.email || '' };
+}
+
+/**
+ * Validate that a message belongs to the authenticated user's workspace
+ */
+async function validateMessageOwnership(messageId: string, userId: string, supabaseAdmin: any): Promise<any> {
+  const { data: message, error } = await supabaseAdmin
+    .from('email_messages')
+    .select(`
+      *,
+      integrated_accounts!inner (
+        id, workspace_id, user_id, provider, access_token, refresh_token, token_expires_at
+      )
+    `)
+    .eq('id', messageId)
+    .single();
+
+  if (error || !message) {
+    throw new Error('Message not found');
+  }
+
+  // Verify the message belongs to this user
+  if (message.integrated_accounts.user_id !== userId) {
+    throw new Error('Access denied: You do not have permission to access this message');
+  }
+
+  return message;
+}
+
+/**
+ * Validate that an account belongs to the authenticated user
+ */
+async function validateAccountOwnership(accountId: string, userId: string, supabaseAdmin: any): Promise<any> {
+  const { data: account, error } = await supabaseAdmin
+    .from('integrated_accounts')
+    .select('*')
+    .eq('id', accountId)
+    .eq('user_id', userId)
+    .single();
+
+  if (error || !account) {
+    throw new Error('Access denied: You do not have permission to use this email account');
+  }
+
+  return account;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -20,47 +88,43 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Validate user session for ALL actions
+    const { userId } = await validateUserSession(req, supabaseAdmin);
+
     if (action === 'get_message') {
       const messageId = url.searchParams.get('id');
       if (!messageId) throw new Error('Missing message id');
-      return await handleGetMessage(messageId, supabaseAdmin);
+      return await handleGetMessage(messageId, userId, supabaseAdmin);
     }
 
     if (action === 'get_attachment') {
       const messageId = url.searchParams.get('messageId');
       const attachmentId = url.searchParams.get('attachmentId');
       if (!messageId || !attachmentId) throw new Error('Missing messageId or attachmentId');
-      return await handleGetAttachment(messageId, attachmentId, supabaseAdmin);
+      return await handleGetAttachment(messageId, attachmentId, userId, supabaseAdmin);
     }
 
     if (action === 'send_email' && req.method === 'POST') {
       const body = await req.json();
-      return await handleSendEmail(body, supabaseAdmin);
+      return await handleSendEmail(body, userId, supabaseAdmin);
     }
 
     throw new Error(`Unknown action: ${action}`);
 
   } catch (error) {
+    const status = error.message.includes('Access denied') ? 403 : 
+                   error.message.includes('sign in') || error.message.includes('Authorization') ? 401 : 400;
     return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
+      status,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });
 
-async function handleGetMessage(messageId: string, supabase: any) {
-  // 1. Get message metadata + account info
-  const { data: message, error } = await supabase
-    .from('email_messages')
-    .select(`
-      *,
-      integrated_accounts (*)
-    `)
-    .eq('id', messageId)
-    .single();
-
-  if (error || !message) throw new Error('Message not found');
-
+async function handleGetMessage(messageId: string, userId: string, supabase: any) {
+  // Validate ownership - this will throw if user doesn't own the message
+  const message = await validateMessageOwnership(messageId, userId, supabase);
+  
   const account = message.integrated_accounts;
   
   // 2. Get fresh token
@@ -111,18 +175,9 @@ async function handleGetMessage(messageId: string, supabase: any) {
   });
 }
 
-async function handleGetAttachment(messageId: string, attachmentId: string, supabase: any) {
-  // 1. Get message metadata + account info
-  const { data: message, error } = await supabase
-    .from('email_messages')
-    .select(`
-      *,
-      integrated_accounts (*)
-    `)
-    .eq('id', messageId)
-    .single();
-
-  if (error || !message) throw new Error('Message not found');
+async function handleGetAttachment(messageId: string, attachmentId: string, userId: string, supabase: any) {
+  // Validate ownership - this will throw if user doesn't own the message
+  const message = await validateMessageOwnership(messageId, userId, supabase);
 
   const account = message.integrated_accounts;
   
@@ -169,7 +224,7 @@ async function handleGetAttachment(messageId: string, attachmentId: string, supa
   });
 }
 
-async function handleSendEmail(payload: any, supabase: any) {
+async function handleSendEmail(payload: any, userId: string, supabase: any) {
   const { accountId, to, cc, subject, htmlBody, attachments = [], replyToMessageId } = payload;
   const toArray = (Array.isArray(to) ? to : [to]).filter((value) => Boolean(value));
   const ccArray = (Array.isArray(cc) ? cc : (cc ? [cc] : [])).filter((value) => Boolean(value));
@@ -177,14 +232,8 @@ async function handleSendEmail(payload: any, supabase: any) {
   const normalizedAttachments = await normalizeAttachments(attachments);
   const textBody = stripHtml(htmlBody || '');
   
-  // 1. Get account info
-  const { data: account, error } = await supabase
-    .from('integrated_accounts')
-    .select('*')
-    .eq('id', accountId)
-    .single();
-
-  if (error || !account) throw new Error('Account not found');
+  // Validate account ownership - this will throw if user doesn't own the account
+  const account = await validateAccountOwnership(accountId, userId, supabase);
 
   // 2. Get fresh token
   const accessToken = await refreshAccessToken(account, supabase);

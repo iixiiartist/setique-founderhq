@@ -92,7 +92,7 @@ export const SaveEmailModal: React.FC<SaveEmailModalProps> = ({
           }
         }
       } catch (err) {
-        console.error('[SaveEmailModal] Error loading data:', err);
+        // Failed to load CRM data - modal will show empty lists
       } finally {
         setLoading(false);
       }
@@ -206,7 +206,6 @@ export const SaveEmailModal: React.FC<SaveEmailModalProps> = ({
       onSaved?.();
       onClose();
     } catch (err: any) {
-      console.error('[SaveEmailModal] Save error:', err);
       showError(`Failed to save email: ${err.message}`);
     } finally {
       setSaving(false);

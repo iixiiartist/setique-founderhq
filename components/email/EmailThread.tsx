@@ -79,7 +79,11 @@ export const EmailThread: React.FC<EmailThreadProps> = ({ messageId, onClose }) 
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) throw new Error('No session');
 
-        const workspaceId = data.integrated_accounts.workspace_id;
+        const workspaceId = data.integrated_accounts?.workspace_id;
+        if (!workspaceId) {
+            showError('Unable to determine workspace. Please refresh the page.');
+            return;
+        }
 
         // Enhanced prompt to extract dates/times for calendar visibility
         const systemPrompt = `You are an intelligent assistant. Extract task details from the email and call the 'createTask' tool. 
@@ -89,10 +93,12 @@ If the date is relative (like 'tomorrow', 'next week', 'Friday'), calculate the 
 Tasks with dates will automatically appear on the calendar.`;
         
         const cleanedBody = cleanEmailContent(data.body?.text || data.snippet);
+        // Truncate long emails to avoid token limits
+        const truncatedBody = truncateToTokenLimit(cleanedBody, 1000);
         const userPrompt = `
         Sender: ${data.from_address}
         Subject: ${data.subject}
-        Body: ${cleanedBody}
+        Body: ${truncatedBody}
         
         Create a task from this email. Extract any dates/deadlines mentioned so the task appears on the calendar.`;
 
@@ -125,7 +131,6 @@ Tasks with dates will automatically appear on the calendar.`;
             showError('AI could not extract a task.');
         }
     } catch (e: any) {
-        console.error(e);
         if (e instanceof AILimitError) {
             setAiLimitError(e);
             showError(`AI limit reached: ${e.usage}/${e.limit} requests used. Upgrade for unlimited AI.`);
@@ -144,17 +149,14 @@ Tasks with dates will automatically appear on the calendar.`;
     const cacheKey = `email-summary-${messageId}`;
     const cachedSummary = getCachedSummary(cacheKey);
     if (cachedSummary) {
-        console.log('[EmailThread] Using cached summary');
         setSummary(cachedSummary);
         showSuccess('Summary loaded from cache!');
         return;
     }
     
     setProcessingAi(true);
-    console.log('[EmailThread] Starting summarization...');
     try {
         const workspaceId = data.integrated_accounts?.workspace_id;
-        console.log('[EmailThread] workspaceId:', workspaceId);
         
         if (!workspaceId) {
             showError('Unable to determine workspace. Please refresh the page.');
@@ -167,7 +169,6 @@ Tasks with dates will automatically appear on the calendar.`;
         
         // Truncate long emails to save tokens (max ~1000 tokens for content)
         const truncatedBody = truncateToTokenLimit(cleanedBody, 1000);
-        console.log('[EmailThread] Email body length:', cleanedBody.length, '-> truncated to:', truncatedBody.length);
         
         // Simplified user prompt to reduce tokens
         const userPrompt = `From: ${data.from_address}
@@ -176,14 +177,11 @@ Content: ${truncatedBody}`;
 
         const history: Content[] = [{ role: 'user', parts: [{ text: userPrompt }] }];
         
-        console.log('[EmailThread] Calling getAiResponse...');
         // We don't need tools for summarization, just text generation
         const response = await getAiResponse(history, systemPrompt, false, workspaceId, 'email');
-        console.log('[EmailThread] AI Response received:', JSON.stringify(response, null, 2));
 
         if (response.candidates && response.candidates.length > 0) {
             const summaryText = response.candidates[0]?.content?.parts?.[0]?.text;
-            console.log('[EmailThread] Summary text:', summaryText);
             
             if (summaryText && summaryText.trim()) {
                 setSummary(summaryText);
@@ -191,17 +189,14 @@ Content: ${truncatedBody}`;
                 setCachedSummary(cacheKey, summaryText);
                 showSuccess('Summary generated!');
             } else {
-                console.error('[EmailThread] Empty summary text received');
                 setSummary('Unable to generate summary. The email content may be too short or the AI service returned an empty response.');
                 showError('Summary was empty. Please try again.');
             }
         } else {
-            console.error('[EmailThread] No candidates in response:', response);
             setSummary('No summary could be generated. Please try again.');
             showError('No summary was generated. Please try again.');
         }
     } catch (e: any) {
-        console.error('[EmailThread] Summarization error:', e);
         if (e instanceof AILimitError) {
             setAiLimitError(e);
             showError(`AI limit reached: ${e.usage}/${e.limit} requests used. Upgrade for unlimited AI.`);
@@ -285,7 +280,7 @@ Return the JSON array of contacts found.`;
             contacts = JSON.parse(jsonMatch[0]);
           }
         } catch (parseErr) {
-          console.error('[EmailThread] Failed to parse contacts JSON:', parseErr);
+          // Failed to parse contacts JSON - AI may have returned invalid format
         }
 
         if (contacts.length > 0) {
@@ -299,7 +294,6 @@ Return the JSON array of contacts found.`;
         showError('Failed to analyze email for contacts');
       }
     } catch (e: any) {
-      console.error('[EmailThread] Contact extraction error:', e);
       if (e instanceof AILimitError) {
         setAiLimitError(e);
         showError(`AI limit reached: ${e.usage}/${e.limit} requests used.`);
@@ -336,7 +330,6 @@ Return the JSON array of contacts found.`;
         showSuccess(`Added "${contact.name}" to CRM`);
       }
     } catch (err: any) {
-      console.error('[EmailThread] Add contact error:', err);
       showError(`Failed to add contact: ${err.message}`);
     } finally {
       setSavingContact(null);
@@ -346,11 +339,18 @@ Return the JSON array of contacts found.`;
   // Download attachment to user's device
   const handleDownloadAttachment = async (attachment: EmailAttachment) => {
     try {
+      // Get user session for authenticated request
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        showError('Please sign in to download attachments');
+        return;
+      }
+      
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/email-api?action=get_attachment&messageId=${messageId}&attachmentId=${attachment.id}`,
         {
           headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+            'Authorization': `Bearer ${session.access_token}`
           }
         }
       );
@@ -380,7 +380,6 @@ Return the JSON array of contacts found.`;
       
       showSuccess(`Downloaded ${attachment.filename}`);
     } catch (err: any) {
-      console.error('[EmailThread] Download error:', err);
       showError(`Failed to download: ${err.message}`);
     }
   };
@@ -394,12 +393,19 @@ Return the JSON array of contacts found.`;
     
     setSavingAttachment(attachment.id);
     try {
+      // Get user session for authenticated request
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        showError('Please sign in to save attachments');
+        return;
+      }
+      
       // Fetch the attachment data
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/email-api?action=get_attachment&messageId=${messageId}&attachmentId=${attachment.id}`,
         {
           headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+            'Authorization': `Bearer ${session.access_token}`
           }
         }
       );
@@ -424,7 +430,6 @@ Return the JSON array of contacts found.`;
         throw new Error('Failed to create document');
       }
     } catch (err: any) {
-      console.error('[EmailThread] Save to library error:', err);
       showError(`Failed to save: ${err.message}`);
     } finally {
       setSavingAttachment(null);
@@ -449,9 +454,16 @@ Return the JSON array of contacts found.`;
   const fetchMessageDetails = async () => {
     try {
       setLoading(true);
+      
+      // Get user session for authenticated request
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Please sign in to view emails');
+      }
+      
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/email-api?action=get_message&id=${messageId}`, {
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+          'Authorization': `Bearer ${session.access_token}`
         }
       });
       
@@ -712,7 +724,7 @@ Return the JSON array of contacts found.`;
                 <iframe 
                     srcDoc={fixHtmlEncoding(data.body.html)}
                     className="w-full h-full min-h-[400px]"
-                    sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                    sandbox="allow-popups"
                     title="Email Content"
                     style={{ border: 'none', width: '100%', height: '100%' }}
                 />
@@ -807,6 +819,7 @@ Return the JSON array of contacts found.`;
                     replyTo={data} 
                     onClose={() => setIsComposerOpen(false)}
                     isInline={true}
+                    workspaceId={workspace?.id}
                 />
             </div>
         )}

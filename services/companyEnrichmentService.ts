@@ -1,8 +1,11 @@
 /**
  * Company Enrichment Service
  * 
- * Client-side service for enriching company profiles using You.com's Content API.
- * Fetches website content and extracts structured company information.
+ * Client-side service for enriching company profiles using Groq Compound (primary)
+ * or You.com Search API (fallback).
+ * 
+ * SECURITY: Always requires authentication and workspace ID.
+ * Data includes provenance metadata (confidence, source, AI-generated flag).
  */
 
 import { supabase } from '../lib/supabase';
@@ -22,41 +25,35 @@ export interface EnrichmentResult {
     twitter?: string;
     github?: string;
   };
-  rawContent?: Array<{
-    url: string;
-    content?: string;
-    title?: string;
-    error?: string;
-  }>;
+  // Provenance metadata
+  confidence?: number;
+  source?: 'groq-compound' | 'youcom' | 'cache' | 'fallback';
+  aiGenerated?: boolean;
+  citationUrls?: string[];
 }
 
 export interface CompanyEnrichmentResponse {
   success: boolean;
-  results: Array<{
-    url: string;
-    content?: string;
-    title?: string;
-    error?: string;
-  }>;
   enrichment: EnrichmentResult;
-  cached: number;
-  fetched: number;
+  provider: 'groq-compound' | 'youcom' | 'cache' | 'fallback';
+  cached: boolean;
+  durationMs: number;
+  confidence: number | null;
+  isFallback: boolean;
+  requestId: string;
   error?: string;
+  warnings?: string[];
 }
 
 /**
  * Generate URLs to fetch for a company website
- * Only sends the main URL - Edge Function handles expansion to about/company pages
+ * Only sends the main URL - Edge Function handles expansion
  */
 function getUrlsToFetch(websiteUrl: string): string[] {
   try {
-    // Normalize the URL
     const url = websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`;
     const parsed = new URL(url);
-    const baseUrl = `${parsed.protocol}//${parsed.host}`;
-
-    // Only send the main URL - Edge Function expands to about/company pages
-    return [baseUrl];
+    return [`${parsed.protocol}//${parsed.host}`];
   } catch {
     console.warn('[CompanyEnrichment] Invalid URL:', websiteUrl);
     return [];
@@ -64,57 +61,79 @@ function getUrlsToFetch(websiteUrl: string): string[] {
 }
 
 /**
- * Fetch and enrich company data from a website URL
+ * Fetch and enrich company data from a website URL.
+ * REQUIRES workspaceId - will fail without it.
  */
 export async function enrichCompanyFromUrl(
   websiteUrl: string,
-  workspaceId?: string,
+  workspaceId: string,
   options?: {
     useCache?: boolean;
-    customUrls?: string[];
+    forceRefresh?: boolean;
   }
 ): Promise<CompanyEnrichmentResponse> {
   if (!websiteUrl) {
     return {
       success: false,
-      results: [],
       enrichment: {},
-      cached: 0,
-      fetched: 0,
+      provider: 'fallback',
+      cached: false,
+      durationMs: 0,
+      confidence: null,
+      isFallback: true,
+      requestId: '',
       error: 'Website URL is required',
     };
   }
 
-  // Get URLs to fetch
-  const urls = options?.customUrls || getUrlsToFetch(websiteUrl);
+  // SECURITY: Require workspaceId
+  if (!workspaceId) {
+    return {
+      success: false,
+      enrichment: {},
+      provider: 'fallback',
+      cached: false,
+      durationMs: 0,
+      confidence: null,
+      isFallback: true,
+      requestId: '',
+      error: 'Workspace ID is required for enrichment',
+    };
+  }
+
+  const urls = getUrlsToFetch(websiteUrl);
   
   if (urls.length === 0) {
     return {
       success: false,
-      results: [],
       enrichment: {},
-      cached: 0,
-      fetched: 0,
+      provider: 'fallback',
+      cached: false,
+      durationMs: 0,
+      confidence: null,
+      isFallback: true,
+      requestId: '',
       error: 'Could not parse website URL',
     };
   }
 
   try {
-    // Get auth session
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
       return {
         success: false,
-        results: [],
         enrichment: {},
-        cached: 0,
-        fetched: 0,
+        provider: 'fallback',
+        cached: false,
+        durationMs: 0,
+        confidence: null,
+        isFallback: true,
+        requestId: '',
         error: 'Authentication required',
       };
     }
 
-    // Call the Edge Function
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-company-content`,
       {
@@ -122,75 +141,89 @@ export async function enrichCompanyFromUrl(
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
-          'x-workspace-id': workspaceId || '',
+          'x-workspace-id': workspaceId,
         },
         body: JSON.stringify({
           urls,
-          format: 'markdown',
           workspaceId,
           useCache: options?.useCache !== false,
+          forceRefresh: options?.forceRefresh === true,
         }),
       }
     );
 
+    const data = await response.json();
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('[CompanyEnrichment] API error:', response.status, errorData);
+      console.error('[CompanyEnrichment] API error:', response.status, data);
       
+      // Handle specific error cases
       if (response.status === 429) {
         return {
           success: false,
-          results: [],
           enrichment: {},
-          cached: 0,
-          fetched: 0,
-          error: 'Rate limit exceeded. Please wait a moment before trying again.',
+          provider: 'fallback',
+          cached: false,
+          durationMs: 0,
+          confidence: null,
+          isFallback: true,
+          requestId: data.requestId || '',
+          error: data.error || 'Rate limit exceeded. Please wait a moment before trying again.',
+        };
+      }
+
+      if (response.status === 402) {
+        return {
+          success: false,
+          enrichment: {},
+          provider: 'fallback',
+          cached: false,
+          durationMs: 0,
+          confidence: null,
+          isFallback: true,
+          requestId: data.requestId || '',
+          error: data.error || 'Insufficient API balance. Please top up your account.',
         };
       }
 
       return {
         success: false,
-        results: [],
         enrichment: {},
-        cached: 0,
-        fetched: 0,
-        error: errorData.error || 'Failed to fetch company information',
+        provider: 'fallback',
+        cached: false,
+        durationMs: 0,
+        confidence: null,
+        isFallback: true,
+        requestId: data.requestId || '',
+        error: data.error || 'Failed to fetch company information',
       };
     }
 
-    const data: CompanyEnrichmentResponse = await response.json();
-    
     // Debug logging
-    console.log('[CompanyEnrichment] Raw API response:', {
+    console.log('[CompanyEnrichment] API response:', {
       success: data.success,
-      resultsCount: data.results?.length,
-      resultsWithContent: data.results?.filter(r => r.content && r.content.length > 0).length,
-      enrichment: {
-        hasDescription: !!data.enrichment?.description,
-        hasIndustry: !!data.enrichment?.industry,
-        fields: Object.keys(data.enrichment || {}).filter(k => k !== 'rawContent'),
-      },
+      provider: data.provider,
       cached: data.cached,
-      fetched: data.fetched,
+      confidence: data.confidence,
+      isFallback: data.isFallback,
+      durationMs: data.durationMs,
+      hasDescription: !!data.enrichment?.description,
+      requestId: data.requestId,
     });
     
-    // Log first result content length for debugging
-    if (data.results && data.results.length > 0) {
-      data.results.forEach((r, i) => {
-        console.log(`[CompanyEnrichment] Result ${i}: url=${r.url}, contentLength=${r.content?.length || 0}, title="${r.title || 'none'}", error=${r.error || 'none'}`);
-      });
-    }
-    
-    return data;
+    return data as CompanyEnrichmentResponse;
 
   } catch (error) {
     console.error('[CompanyEnrichment] Error:', error);
     return {
       success: false,
-      results: [],
       enrichment: {},
-      cached: 0,
-      fetched: 0,
+      provider: 'fallback',
+      cached: false,
+      durationMs: 0,
+      confidence: null,
+      isFallback: true,
+      requestId: '',
       error: error instanceof Error ? error.message : 'Unknown error occurred',
     };
   }
@@ -212,11 +245,17 @@ export function isValidEnrichmentUrl(url: string): boolean {
 }
 
 /**
- * Format enrichment data for display
+ * Format enrichment data for display with provenance info.
  */
 export function formatEnrichmentForDisplay(enrichment: EnrichmentResult): {
   summary: string;
   details: Array<{ label: string; value: string }>;
+  provenance: {
+    confidence: number | null;
+    source: string | null;
+    aiGenerated: boolean;
+    citationUrls?: string[];
+  };
 } {
   const details: Array<{ label: string; value: string }> = [];
 
@@ -263,6 +302,12 @@ export function formatEnrichmentForDisplay(enrichment: EnrichmentResult): {
   return {
     summary: enrichment.description || enrichment.productSummary || '',
     details,
+    provenance: {
+      confidence: enrichment.confidence ?? null,
+      source: enrichment.source ?? null,
+      aiGenerated: enrichment.aiGenerated ?? true,
+      citationUrls: enrichment.citationUrls,
+    },
   };
 }
 

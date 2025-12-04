@@ -20,6 +20,11 @@ export interface AgentReport {
   metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
+  // Sharing fields
+  is_public?: boolean;
+  share_token?: string | null;
+  share_expires_at?: string | null;
+  share_view_count?: number;
 }
 
 export interface CreateReportParams {

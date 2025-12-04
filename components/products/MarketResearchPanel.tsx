@@ -1,12 +1,17 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { useCopyToClipboard } from '../../hooks';
-import { Globe, Copy, Download, Sparkles, Check, FileText, ChevronDown } from 'lucide-react';
+import { Globe, Copy, Download, Sparkles, Check, FileText, ChevronDown, Save, Share2, Loader2 } from 'lucide-react';
+import { saveMarketBrief, type SavedMarketBrief } from '../../lib/services/reportSharingService';
+import { ShareReportDialog } from '../shared/ShareReportDialog';
+import { showSuccess, showError } from '../../lib/utils/toast';
 
 interface MarketResearchPanelProps {
   query: string;
   rawReport: string | null;
   isLoading?: boolean;
   onClose: () => void;
+  workspaceId?: string;
+  productId?: string;
 }
 
 /**
@@ -700,6 +705,15 @@ const sanitizeReport = (raw: string) =>
     .replace(/\u00a0/g, ' ')
     .replace(/\r/g, '')
     .replace(/\n{3,}/g, '\n\n')
+    // Remove Jina reader/summarizer disclaimers and notices
+    .replace(/r\.jina\.ai[^\n]*/gi, '')
+    .replace(/jina\.ai[^\n]*/gi, '')
+    .replace(/\[via jina[^\]]*\]/gi, '')
+    .replace(/\(via jina[^\)]*\)/gi, '')
+    .replace(/powered by jina[^\n]*/gi, '')
+    .replace(/source:\s*jina[^\n]*/gi, '')
+    .replace(/summarized by[^\n]*jina[^\n]*/gi, '')
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
 
 const stripMarkdownTokens = (value: string) =>
@@ -709,6 +723,9 @@ const stripMarkdownTokens = (value: string) =>
     .replace(/\[(.*?)\]\((.*?)\)/g, '$1')
     .replace(/\s+\|\s*$/g, '')
     .replace(/\s+/g, ' ')
+    // Remove any Jina references in stripped content
+    .replace(/r\.jina\.ai/gi, '')
+    .replace(/jina\.ai/gi, '')
     .trim();
 
 const extractKeyFacts = (normalized: string) => {
@@ -824,8 +841,13 @@ export const MarketResearchPanel: React.FC<MarketResearchPanelProps> = ({
   rawReport,
   isLoading,
   onClose,
+  workspaceId,
+  productId,
 }) => {
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedBrief, setSavedBrief] = useState<SavedMarketBrief | null>(null);
+  const [showShareDialog, setShowShareDialog] = useState(false);
   
   const normalized = useMemo(() => sanitizeReport(rawReport ?? ''), [rawReport]);
   const keyFacts = useMemo(() => extractKeyFacts(normalized), [normalized]);
@@ -907,6 +929,52 @@ export const MarketResearchPanel: React.FC<MarketResearchPanelProps> = ({
     setShowExportMenu(false);
   };
 
+  const handleSaveBrief = useCallback(async () => {
+    if (!rawReport || !workspaceId) {
+      showError('Cannot save: missing report or workspace');
+      return;
+    }
+    
+    setIsSaving(true);
+    try {
+      const result = await saveMarketBrief({
+        workspaceId,
+        productId,
+        query,
+        rawReport,
+        keyFacts,
+        pricingHighlights: pricingHighlights.map(h => ({ label: 'Pricing', value: h })),
+        insightSections,
+        heroLine,
+      });
+
+      if (result.success && result.brief) {
+        setSavedBrief(result.brief);
+        showSuccess('Market brief saved!');
+        setShowExportMenu(false);
+      } else {
+        showError(result.error || 'Failed to save brief');
+      }
+    } catch (err) {
+      showError('Failed to save brief');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [rawReport, workspaceId, productId, query, keyFacts, pricingHighlights, insightSections, heroLine]);
+
+  const handleShareBrief = useCallback(() => {
+    if (!savedBrief) {
+      // Need to save first
+      handleSaveBrief().then(() => {
+        // After saving, check if it was successful
+        // The savedBrief state will be updated
+      });
+      return;
+    }
+    setShowShareDialog(true);
+    setShowExportMenu(false);
+  }, [savedBrief, handleSaveBrief]);
+
   return (
     <div className="relative rounded-2xl border border-gray-200 shadow-lg bg-white overflow-hidden animate-fadeIn">
       <div className="bg-gradient-to-r from-slate-900 via-indigo-800 to-blue-600 text-white px-6 py-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -937,6 +1005,48 @@ export const MarketResearchPanel: React.FC<MarketResearchPanelProps> = ({
             
             {showExportMenu && (
               <div className="absolute right-0 mt-2 w-52 rounded-xl bg-white shadow-xl border border-slate-200 overflow-hidden z-50">
+                {/* Save Brief Button */}
+                {workspaceId && (
+                  <button
+                    onClick={handleSaveBrief}
+                    disabled={isSaving || !!savedBrief}
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-slate-700 hover:bg-green-50 hover:text-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    <div className="text-left">
+                      <div className="font-medium">{savedBrief ? 'Saved ✓' : 'Save Brief'}</div>
+                      <div className="text-xs text-slate-500">{savedBrief ? 'Brief is saved' : 'Save to workspace'}</div>
+                    </div>
+                  </button>
+                )}
+                
+                {/* Share Brief Button */}
+                {workspaceId && (
+                  <button
+                    onClick={() => {
+                      if (!savedBrief) {
+                        // Save first, then open share
+                        handleSaveBrief().then(() => {
+                          setTimeout(() => setShowShareDialog(true), 100);
+                        });
+                      } else {
+                        setShowShareDialog(true);
+                        setShowExportMenu(false);
+                      }
+                    }}
+                    disabled={isSaving}
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-slate-700 hover:bg-purple-50 hover:text-purple-700 transition-colors border-t border-slate-100 disabled:opacity-50"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    <div className="text-left">
+                      <div className="font-medium">Share Brief</div>
+                      <div className="text-xs text-slate-500">{savedBrief ? 'Create share link' : 'Save & share'}</div>
+                    </div>
+                  </button>
+                )}
+                
+                {workspaceId && <div className="border-t border-slate-200 my-1" />}
+                
                 <button
                   onClick={handleDownloadHtml}
                   className="flex items-center gap-3 w-full px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
@@ -1068,6 +1178,18 @@ export const MarketResearchPanel: React.FC<MarketResearchPanelProps> = ({
           </>
         )}
       </div>
+      
+      {/* Share Dialog */}
+      {savedBrief && (
+        <ShareReportDialog
+          isOpen={showShareDialog}
+          onClose={() => setShowShareDialog(false)}
+          reportId={savedBrief.id}
+          reportType="brief"
+          reportTitle={query}
+          existingToken={savedBrief.share_token}
+        />
+      )}
     </div>
   );
 };

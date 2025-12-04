@@ -8,6 +8,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { logger } from '../lib/logger';
 import { shouldNotifyUser } from '../lib/services/notificationPreferencesService';
+import { desktopNotificationService } from '../lib/services/desktopNotificationService';
 import type { Notification, NotificationType, NotificationEntityType } from '../lib/services/notificationService';
 import * as Sentry from '@sentry/react';
 
@@ -40,7 +41,7 @@ export interface NotificationFilters {
   priority?: NotificationPriority;
 }
 
-export type NotificationCategory = 'all' | 'mentions' | 'tasks' | 'deals' | 'documents' | 'team' | 'achievements';
+export type NotificationCategory = 'all' | 'mentions' | 'tasks' | 'deals' | 'documents' | 'team' | 'achievements' | 'agents';
 
 export interface PaginationState {
   hasMore: boolean;
@@ -105,6 +106,7 @@ export const CATEGORY_TYPES: Record<NotificationCategory, NotificationType[]> = 
   documents: ['document_shared', 'document_comment'],
   team: ['team_invitation', 'workspace_role_changed', 'crm_contact_added'],
   achievements: ['achievement_unlocked'],
+  agents: ['agent_job_completed', 'agent_job_failed', 'market_brief_ready', 'sync_completed', 'sync_failed'],
 };
 
 // Map notification type to preference check type
@@ -130,6 +132,12 @@ const TYPE_TO_PREFERENCE_TYPE: Record<NotificationType, string> = {
   workspace_role_changed: 'team_update',
   crm_contact_added: 'team_update',
   achievement_unlocked: 'achievement',
+  // Agent/background job mappings
+  agent_job_completed: 'agent_updates',
+  agent_job_failed: 'agent_updates',
+  market_brief_ready: 'agent_updates',
+  sync_completed: 'agent_updates',
+  sync_failed: 'agent_updates',
 };
 
 // ============================================
@@ -183,6 +191,57 @@ function transformRow(row: NotificationRow): ExtendedNotification {
     seenAt: row.seen_at,
     acknowledgedAt: row.acknowledged_at,
   };
+}
+
+/**
+ * Show a desktop notification for new incoming notifications
+ */
+function showDesktopNotification(notification: ExtendedNotification): void {
+  // Check if desktop notifications are available
+  if (!desktopNotificationService.isAvailable()) {
+    return;
+  }
+  
+  // Handle specific notification types
+  switch (notification.type) {
+    case 'agent_job_completed':
+      desktopNotificationService.showAgentJobComplete(
+        (notification as any).metadata?.target || 'Research',
+        (notification as any).metadata?.reportId
+      );
+      break;
+    case 'agent_job_failed':
+      desktopNotificationService.showAgentJobFailed(
+        (notification as any).metadata?.target || 'Research',
+        notification.id
+      );
+      break;
+    case 'market_brief_ready':
+      desktopNotificationService.showMarketBriefReady(
+        notification.title,
+        notification.entityId || notification.id
+      );
+      break;
+    case 'sync_completed':
+      desktopNotificationService.showSyncComplete(
+        (notification as any).metadata?.syncType || 'Data',
+        (notification as any).metadata?.count || 0
+      );
+      break;
+    case 'sync_failed':
+      desktopNotificationService.showSyncFailed(
+        (notification as any).metadata?.syncType || 'Data',
+        (notification as any).metadata?.error || 'Unknown error'
+      );
+      break;
+    default:
+      // Generic notification for other types
+      desktopNotificationService.showGeneric(
+        notification.title,
+        notification.message,
+        (notification as any).actionUrl
+      );
+  }
 }
 
 // ============================================
@@ -442,6 +501,11 @@ export function useNotifications(options: UseNotificationsOptions): UseNotificat
               setNotifications(prev => [newNotification, ...prev]);
               if (!newNotification.read) {
                 setUnreadCount(prev => prev + 1);
+              }
+              
+              // Show desktop notification for new notifications
+              if (!document.hasFocus() || newNotification.priority === 'high' || newNotification.priority === 'urgent') {
+                showDesktopNotification(newNotification);
               }
             } else if (payload.eventType === 'UPDATE') {
               setNotifications(prev =>

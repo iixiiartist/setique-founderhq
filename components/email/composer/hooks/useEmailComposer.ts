@@ -215,7 +215,6 @@ export function useEmailComposer({
             
             showSuccess('Attachment uploaded');
         } catch (err: any) {
-            console.error('[EmailComposer] Attachment upload error:', err);
             showError(`Failed to upload: ${err.message}`);
         } finally {
             setUploadingAttachment(false);
@@ -310,7 +309,6 @@ export function useEmailComposer({
                 showError('No research results found. Try a different topic.');
             }
         } catch (e: any) {
-            console.error('[EmailComposer] Research error:', e);
             showError(`Research failed: ${e.message}`);
         } finally {
             setAiProcessing(false);
@@ -324,7 +322,8 @@ export function useEmailComposer({
         setShowAiMenu(false);
         
         try {
-            const currentContent = getEditorText();
+            // Sanitize current content to prevent prompt injection
+            const currentContent = cleanContent(getEditorText());
             const emailContext = replyTo ? `
 Original Email:
 From: ${replyTo.from_address || 'Unknown'}
@@ -402,7 +401,6 @@ Format as a bulleted list. Consider: goals, objections to address, questions to 
                 showError('AI could not generate a response. Please try again.');
             }
         } catch (e: any) {
-            console.error('[EmailComposer] AI action error:', e);
             if (e instanceof AILimitError) {
                 setAiLimitError(e);
                 showError(`AI limit reached: ${e.usage}/${e.limit} requests used on ${e.planType} plan. Upgrade for unlimited AI.`);
@@ -442,10 +440,16 @@ Format as a bulleted list. Consider: goals, objections to address, questions to 
         try {
             const { data: { session } } = await supabase.auth.getSession();
             
+            // Require authenticated session - never fall back to anon key for sending emails
+            if (!session?.access_token) {
+                showError('Please sign in to send emails');
+                return;
+            }
+            
             const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/email-api?action=send_email`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                    'Authorization': `Bearer ${session.access_token}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
@@ -475,7 +479,6 @@ Format as a bulleted list. Consider: goals, objections to address, questions to 
             onClose();
             showSuccess('Email sent successfully!');
         } catch (err: any) {
-            console.error(err);
             showError(`Failed to send email: ${err.message}`);
         } finally {
             setSending(false);
@@ -529,7 +532,6 @@ Format as a bulleted list. Consider: goals, objections to address, questions to 
             setCurrentDraftId(draftId);
             showSuccess('Draft saved!');
         } catch (err: any) {
-            console.error('[EmailComposer] Save draft error:', err);
             showError(`Failed to save draft: ${err.message}`);
         } finally {
             setSavingDraft(false);

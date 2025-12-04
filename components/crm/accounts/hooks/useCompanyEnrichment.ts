@@ -2,7 +2,9 @@
  * useCompanyEnrichment Hook
  * 
  * React hook for enriching company profiles from website URLs.
- * Provides loading state, error handling, and automatic field mapping.
+ * Provides loading state, error handling, provenance metadata, and automatic field mapping.
+ * 
+ * SECURITY: Requires workspace context for enrichment calls.
  */
 
 import { useState, useCallback } from 'react';
@@ -15,7 +17,7 @@ import {
 } from '../../../../services/companyEnrichmentService';
 
 export interface UseCompanyEnrichmentOptions {
-  onSuccess?: (enrichment: EnrichmentResult) => void;
+  onSuccess?: (enrichment: EnrichmentResult, provenance: { confidence: number | null; source: string | null; isFallback: boolean }) => void;
   onError?: (error: string) => void;
   autoApply?: boolean;
 }
@@ -25,6 +27,11 @@ export interface CompanyEnrichmentState {
   error: string | null;
   enrichment: EnrichmentResult | null;
   lastEnrichedUrl: string | null;
+  // Provenance metadata
+  confidence: number | null;
+  source: string | null;
+  isFallback: boolean;
+  cached: boolean;
 }
 
 export interface UseCompanyEnrichmentReturn extends CompanyEnrichmentState {
@@ -44,11 +51,23 @@ export function useCompanyEnrichment(
     error: null,
     enrichment: null,
     lastEnrichedUrl: null,
+    confidence: null,
+    source: null,
+    isFallback: false,
+    cached: false,
   });
 
   const enrichFromUrl = useCallback(async (url: string): Promise<EnrichmentResult | null> => {
     if (!url || !isValidEnrichmentUrl(url)) {
       const error = 'Please enter a valid website URL';
+      setState(prev => ({ ...prev, error }));
+      options?.onError?.(error);
+      return null;
+    }
+
+    // SECURITY: Require workspace ID
+    if (!workspace?.id) {
+      const error = 'Workspace context is required for enrichment';
       setState(prev => ({ ...prev, error }));
       options?.onError?.(error);
       return null;
@@ -61,7 +80,7 @@ export function useCompanyEnrichment(
     }));
 
     try {
-      const response = await enrichCompanyFromUrl(url, workspace?.id);
+      const response = await enrichCompanyFromUrl(url, workspace.id);
 
       if (!response.success) {
         const error = response.error || 'Failed to enrich company data';
@@ -69,6 +88,7 @@ export function useCompanyEnrichment(
           ...prev,
           isLoading: false,
           error,
+          isFallback: response.isFallback,
         }));
         options?.onError?.(error);
         return null;
@@ -81,9 +101,18 @@ export function useCompanyEnrichment(
         error: null,
         enrichment,
         lastEnrichedUrl: url,
+        confidence: response.confidence,
+        source: response.provider,
+        isFallback: response.isFallback,
+        cached: response.cached,
       });
 
-      options?.onSuccess?.(enrichment);
+      options?.onSuccess?.(enrichment, {
+        confidence: response.confidence,
+        source: response.provider,
+        isFallback: response.isFallback,
+      });
+      
       return enrichment;
 
     } catch (error) {
@@ -99,8 +128,8 @@ export function useCompanyEnrichment(
   }, [workspace?.id, options]);
 
   const canEnrich = useCallback((url: string): boolean => {
-    return isValidEnrichmentUrl(url);
-  }, []);
+    return isValidEnrichmentUrl(url) && !!workspace?.id;
+  }, [workspace?.id]);
 
   const clearEnrichment = useCallback(() => {
     setState({
@@ -108,6 +137,10 @@ export function useCompanyEnrichment(
       error: null,
       enrichment: null,
       lastEnrichedUrl: null,
+      confidence: null,
+      source: null,
+      isFallback: false,
+      cached: false,
     });
   }, []);
 

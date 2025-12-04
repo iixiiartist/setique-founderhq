@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
     ArrowLeft, Trash2, Sparkles, Pencil, Plus, User, Mail, Phone, Briefcase,
-    ExternalLink, Building, FileText, Calendar, Clock, ChevronRight, CheckSquare
+    ExternalLink, Building, FileText, Calendar, Clock, ChevronRight, CheckSquare, AlertTriangle
 } from 'lucide-react';
 import { AnyCrmItem, Task, AppActions, CrmCollectionName, TaskCollectionName, Investor, Customer, Partner, Priority, Note, Contact, WorkspaceMember, Subtask } from '../../types';
 import Modal from './Modal';
@@ -12,7 +12,8 @@ import { TASK_TAG_BG_COLORS } from '../../constants';
 import { AssignmentDropdown } from './AssignmentDropdown';
 import { SubtaskManager } from './SubtaskManager';
 import { useDeleteConfirm } from '../../hooks';
-import { enrichCompanyFromUrl } from '../../services/companyEnrichmentService';
+import { useCompanyEnrichment, mapEnrichmentToAccountFields } from '../crm/accounts/hooks/useCompanyEnrichment';
+import { EnrichmentResult } from '../../services/companyEnrichmentService';
 import { TaskEditModal } from '../tasks/TaskEditModal';
 import toast from 'react-hot-toast';
 
@@ -133,7 +134,30 @@ function AccountDetailView({
     
     const editCrmModalTriggerRef = useRef<HTMLButtonElement | null>(null);
 
-    const [isEnriching, setIsEnriching] = useState(false);
+    // Enrichment preview modal state
+    const [showEnrichmentPreview, setShowEnrichmentPreview] = useState(false);
+    const [pendingEnrichment, setPendingEnrichment] = useState<EnrichmentResult | null>(null);
+    
+    // Use the company enrichment hook with workspace context
+    const {
+        isLoading: isEnriching,
+        enrichFromUrl,
+        canEnrich,
+        formattedEnrichment,
+        confidence,
+        source,
+        isFallback,
+        cached,
+    } = useCompanyEnrichment({
+        onSuccess: (enrichment) => {
+            // Show preview modal instead of auto-applying
+            setPendingEnrichment(enrichment);
+            setShowEnrichmentPreview(true);
+        },
+        onError: (error) => {
+            toast.error(error);
+        },
+    });
     
     // Confirmation hook for account deletion
     const deleteAccountConfirm = useDeleteConfirm<AnyCrmItem>('account');
@@ -144,73 +168,69 @@ function AccountDetailView({
             return;
         }
 
-        setIsEnriching(true);
+        if (!canEnrich(item.website)) {
+            toast.error('Unable to enrich. Please ensure you have a valid workspace selected.');
+            return;
+        }
+
         const toastId = toast.loading('Enriching company data...');
         
         try {
-            const response = await enrichCompanyFromUrl(item.website);
-            
-            console.log('[AccountDetailView] Enrichment response:', response);
-            
-            if (!response.success || !response.enrichment) {
-                toast.error(response.error || 'Failed to fetch company information', { id: toastId });
-                return;
+            const result = await enrichFromUrl(item.website);
+            if (result) {
+                toast.success('Company data retrieved! Review before applying.', { id: toastId });
+            } else {
+                toast.error('Could not retrieve company data', { id: toastId });
             }
-
-            const enrichment = response.enrichment;
-            
-            console.log('[AccountDetailView] Enrichment data:', {
-                description: enrichment.description?.substring(0, 50),
-                industry: enrichment.industry,
-                location: enrichment.location,
-                companySize: enrichment.companySize,
-                foundedYear: enrichment.foundedYear,
-                linkedin: enrichment.socialLinks?.linkedin,
-                twitter: enrichment.socialLinks?.twitter,
-            });
-            
-            // Build updates object with all enriched fields
-            // Note: Using camelCase - the DataPersistenceAdapter will transform to snake_case for DB
-            const updates: Record<string, any> = {};
-            
-            if (enrichment.description) {
-                updates.description = enrichment.description;
-            }
-            if (enrichment.industry) {
-                updates.industry = enrichment.industry;
-            }
-            if (enrichment.location) {
-                updates.location = enrichment.location;
-            }
-            if (enrichment.companySize) {
-                updates.companySize = enrichment.companySize;
-            }
-            if (enrichment.foundedYear) {
-                updates.foundedYear = enrichment.foundedYear;
-            }
-            if (enrichment.socialLinks?.linkedin) {
-                updates.linkedin = enrichment.socialLinks.linkedin;
-            }
-            if (enrichment.socialLinks?.twitter) {
-                updates.twitter = enrichment.socialLinks.twitter;
-            }
-            
-            console.log('[AccountDetailView] Saving updates:', updates);
-            
-            if (Object.keys(updates).length === 0) {
-                toast.error('No information found for this company', { id: toastId });
-                return;
-            }
-            
-            await actions.updateCrmItem(crmCollection, item.id, updates);
-            toast.success('Enrichment complete!', { id: toastId });
-
-        } catch (error) {
-            console.error('Enrichment failed:', error);
+        } catch {
             toast.error('Enrichment failed. Please try again.', { id: toastId });
-        } finally {
-            setIsEnriching(false);
         }
+    };
+
+    // Apply reviewed enrichment to the account
+    const handleApplyEnrichment = async () => {
+        if (!pendingEnrichment) return;
+
+        const mapped = mapEnrichmentToAccountFields(pendingEnrichment);
+        
+        // Build updates object with all enriched fields
+        const updates: Record<string, any> = {};
+        
+        if (mapped.description) updates.description = mapped.description;
+        if (mapped.industry) updates.industry = mapped.industry;
+        if (mapped.location) updates.location = mapped.location;
+        if (mapped.companySize) updates.companySize = mapped.companySize;
+        if (mapped.foundedYear) updates.foundedYear = mapped.foundedYear;
+        if (mapped.linkedin) updates.linkedin = mapped.linkedin;
+        if (mapped.twitter) updates.twitter = mapped.twitter;
+        
+        // Add provenance metadata
+        updates.enrichmentMetadata = {
+            enrichedAt: new Date().toISOString(),
+            source: source || 'unknown',
+            isFallback: isFallback,
+            confidence: confidence,
+            cached: cached,
+        };
+        
+        if (Object.keys(updates).length === 0) {
+            toast.error('No information to apply');
+            return;
+        }
+        
+        try {
+            await actions.updateCrmItem(crmCollection, item.id, updates);
+            toast.success('Enrichment applied successfully!');
+            setShowEnrichmentPreview(false);
+            setPendingEnrichment(null);
+        } catch (error) {
+            toast.error('Failed to apply enrichment');
+        }
+    };
+
+    const handleDismissEnrichment = () => {
+        setShowEnrichmentPreview(false);
+        setPendingEnrichment(null);
     };
 
     // Transform workspace members to match AssignmentDropdown's expected format
@@ -971,6 +991,123 @@ function AccountDetailView({
                 variant={deleteAccountConfirm.variant}
                 isLoading={deleteAccountConfirm.isProcessing}
             />
+
+            {/* Enrichment Preview Modal */}
+            {showEnrichmentPreview && pendingEnrichment && formattedEnrichment && (
+                <div 
+                    className="fixed inset-0 z-[100] flex justify-center items-center p-4 bg-black/40 backdrop-blur-sm"
+                    onClick={(e) => e.target === e.currentTarget && handleDismissEnrichment()}
+                >
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[80vh] flex flex-col border border-gray-200">
+                        {/* Header */}
+                        <div className="p-5 flex items-center justify-between shrink-0">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-gray-900 flex items-center justify-center">
+                                    <Sparkles className="h-5 w-5 text-white" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-900">Review Enrichment</h3>
+                                    <p className="text-sm text-gray-500">
+                                        {isFallback && (
+                                            <span className="inline-flex items-center gap-1 text-amber-600">
+                                                <AlertTriangle className="w-3.5 h-3.5" />
+                                                Fallback source used
+                                            </span>
+                                        )}
+                                        {cached && !isFallback && <span className="text-gray-400">Cached result</span>}
+                                        {!cached && !isFallback && <span>Fresh data from {source || 'AI'}</span>}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={handleDismissEnrichment}
+                                className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                                aria-label="Close modal"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* AI-generated warning banner */}
+                        <div className="mx-5 mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                            <div className="flex items-start gap-2">
+                                <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                                <div className="text-sm text-amber-800">
+                                    <p className="font-medium">AI-Generated Content</p>
+                                    <p className="text-xs text-amber-600 mt-0.5">
+                                        This data was extracted by AI and may contain errors. Review carefully before applying.
+                                        {confidence !== null && ` Confidence: ${Math.round(confidence * 100)}%`}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="px-5 pb-5 overflow-y-auto flex-1">
+                            {/* Description */}
+                            {formattedEnrichment.summary && (
+                                <div className="mb-4">
+                                    <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                                        Description
+                                    </label>
+                                    <div className="text-sm text-gray-700 bg-gray-50 rounded-xl p-4 border border-gray-200">
+                                        {formattedEnrichment.summary}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Details Grid */}
+                            {formattedEnrichment.details.length > 0 && (
+                                <div className="grid grid-cols-2 gap-3">
+                                    {formattedEnrichment.details.map((detail, index) => (
+                                        <div 
+                                            key={index} 
+                                            className="bg-gray-50 rounded-xl p-3 border border-gray-200"
+                                        >
+                                            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
+                                                {detail.label}
+                                            </label>
+                                            <span className="text-sm font-medium text-gray-900">{detail.value}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* No data message */}
+                            {!formattedEnrichment.summary && formattedEnrichment.details.length === 0 && (
+                                <div className="text-center py-8">
+                                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                                        <AlertTriangle className="h-8 w-8 text-gray-400" />
+                                    </div>
+                                    <p className="text-sm font-medium text-gray-700">No data could be extracted</p>
+                                    <p className="text-xs text-gray-500 mt-1 max-w-xs mx-auto">
+                                        This website may block automated access. Try editing the record manually.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-5 border-t border-gray-100 flex gap-3 shrink-0">
+                            <button
+                                onClick={handleDismissEnrichment}
+                                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleApplyEnrichment}
+                                disabled={!formattedEnrichment.summary && formattedEnrichment.details.length === 0}
+                                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-gray-900 rounded-lg border border-gray-900 hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:border-gray-300"
+                            >
+                                Apply Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

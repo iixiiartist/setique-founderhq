@@ -344,7 +344,7 @@ export class BackgroundAgentJobService {
       await createNotification({
         userId: job.user_id,
         workspaceId: job.workspace_id,
-        type: 'task_completed', // Use existing type for now, can add specific type later
+        type: 'agent_job_completed',
         title: '✅ Research Report Ready',
         message: `Your "${job.target}" research is complete. Click to view the report.`,
         entityType: 'document',
@@ -380,7 +380,7 @@ export class BackgroundAgentJobService {
       await createNotification({
         userId: job.user_id,
         workspaceId: job.workspace_id,
-        type: 'task_updated', // Use existing type for now
+        type: 'agent_job_failed',
         title: '❌ Research Failed',
         message: `The "${job.target}" research encountered an error. You can try again.`,
         entityType: 'document',

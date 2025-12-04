@@ -33,6 +33,11 @@ export interface NotificationPreferences {
   notifyTeamUpdates: boolean;
   notifyAchievements: boolean;
   
+  // Agent/background job notifications
+  notifyAgentUpdates: boolean;
+  notifyMarketBriefs: boolean;
+  notifySyncUpdates: boolean;
+  
   // Quiet hours
   quietHoursEnabled: boolean;
   quietHoursStart: string;
@@ -63,6 +68,9 @@ interface NotificationPreferencesRow {
   notify_document_shares: boolean;
   notify_team_updates: boolean;
   notify_achievements: boolean;
+  notify_agent_updates?: boolean;
+  notify_market_briefs?: boolean;
+  notify_sync_updates?: boolean;
   quiet_hours_enabled: boolean;
   quiet_hours_start: string;
   quiet_hours_end: string;
@@ -89,6 +97,9 @@ export const DEFAULT_PREFERENCES: Omit<NotificationPreferences, 'id' | 'userId' 
   notifyDocumentShares: true,
   notifyTeamUpdates: true,
   notifyAchievements: true,
+  notifyAgentUpdates: true,
+  notifyMarketBriefs: true,
+  notifySyncUpdates: false, // Off by default - can be noisy
   quietHoursEnabled: false,
   quietHoursStart: '22:00:00',
   quietHoursEnd: '08:00:00',
@@ -120,6 +131,9 @@ function transformRow(row: NotificationPreferencesRow): NotificationPreferences 
     notifyDocumentShares: row.notify_document_shares,
     notifyTeamUpdates: row.notify_team_updates,
     notifyAchievements: row.notify_achievements,
+    notifyAgentUpdates: row.notify_agent_updates ?? true,
+    notifyMarketBriefs: row.notify_market_briefs ?? true,
+    notifySyncUpdates: row.notify_sync_updates ?? false,
     quietHoursEnabled: row.quiet_hours_enabled,
     quietHoursStart: row.quiet_hours_start,
     quietHoursEnd: row.quiet_hours_end,
@@ -253,6 +267,9 @@ export async function updateNotificationPreferences(
     if (updates.notifyDocumentShares !== undefined) updateData.notify_document_shares = updates.notifyDocumentShares;
     if (updates.notifyTeamUpdates !== undefined) updateData.notify_team_updates = updates.notifyTeamUpdates;
     if (updates.notifyAchievements !== undefined) updateData.notify_achievements = updates.notifyAchievements;
+    if (updates.notifyAgentUpdates !== undefined) updateData.notify_agent_updates = updates.notifyAgentUpdates;
+    if (updates.notifyMarketBriefs !== undefined) updateData.notify_market_briefs = updates.notifyMarketBriefs;
+    if (updates.notifySyncUpdates !== undefined) updateData.notify_sync_updates = updates.notifySyncUpdates;
     if (updates.quietHoursEnabled !== undefined) updateData.quiet_hours_enabled = updates.quietHoursEnabled;
     if (updates.quietHoursStart !== undefined) updateData.quiet_hours_start = updates.quietHoursStart;
     if (updates.quietHoursEnd !== undefined) updateData.quiet_hours_end = updates.quietHoursEnd;

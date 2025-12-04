@@ -12,6 +12,8 @@ import {
   Clock,
   Save,
   X,
+  Monitor,
+  Bot,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
@@ -20,6 +22,7 @@ import {
   updateNotificationPreferences,
   type NotificationPreferences,
 } from '../../lib/services/notificationPreferencesService';
+import { desktopNotificationService } from '../../lib/services/desktopNotificationService';
 import { showSuccess, showError } from '../../lib/utils/toast';
 
 // ============================================
@@ -88,13 +91,20 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
+  
+  // Desktop notification state
+  const [desktopEnabled, setDesktopEnabled] = useState(false);
+  const [desktopPermission, setDesktopPermission] = useState<'granted' | 'denied' | 'default'>('default');
+  const [requestingPermission, setRequestingPermission] = useState(false);
 
-  // Load preferences
+  // Load preferences and desktop notification state
   useEffect(() => {
     const loadPreferences = async () => {
       if (!user || !isOpen) return;
 
       setLoading(true);
+      
+      // Load notification preferences
       const { preferences: prefs, error } = await getNotificationPreferences(
         user.id,
         workspace?.id
@@ -105,11 +115,41 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
       } else {
         setPreferences(prefs);
       }
+      
+      // Load desktop notification state
+      if (workspace?.id) {
+        await desktopNotificationService.initialize(user.id, workspace.id);
+        setDesktopEnabled(desktopNotificationService.isEnabled());
+        setDesktopPermission(desktopNotificationService.getPermission());
+      }
+      
       setLoading(false);
     };
 
     loadPreferences();
   }, [user, workspace, isOpen]);
+
+  // Handle desktop notification toggle
+  const handleDesktopToggle = async (enabled: boolean) => {
+    if (enabled && desktopPermission !== 'granted') {
+      setRequestingPermission(true);
+      const permission = await desktopNotificationService.requestPermission();
+      setDesktopPermission(permission);
+      setRequestingPermission(false);
+      
+      if (permission !== 'granted') {
+        showError('Desktop notifications were denied. You can enable them in your browser settings.');
+        return;
+      }
+    }
+    
+    const success = await desktopNotificationService.setEnabled(enabled);
+    if (success) {
+      setDesktopEnabled(enabled);
+    } else {
+      showError('Failed to update desktop notification settings');
+    }
+  };
 
   // Save preferences
   const handleSave = async () => {
@@ -136,6 +176,9 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
         notifyDocumentShares: preferences.notifyDocumentShares,
         notifyTeamUpdates: preferences.notifyTeamUpdates,
         notifyAchievements: preferences.notifyAchievements,
+        notifyAgentUpdates: (preferences as any).notifyAgentUpdates ?? true,
+        notifyMarketBriefs: (preferences as any).notifyMarketBriefs ?? true,
+        notifySyncUpdates: (preferences as any).notifySyncUpdates ?? false,
         quietHoursEnabled: preferences.quietHoursEnabled,
         quietHoursStart: preferences.quietHoursStart,
         quietHoursEnd: preferences.quietHoursEnd,
@@ -214,6 +257,44 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
                     checked={preferences.inAppEnabled}
                     onChange={(v) => updatePreference('inAppEnabled', v)}
                   />
+                  
+                  {/* Desktop Notifications */}
+                  <div className="flex items-center justify-between py-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <label className="font-medium text-sm">Desktop Notifications</label>
+                        {desktopPermission === 'denied' && (
+                          <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded">Blocked</span>
+                        )}
+                        {desktopPermission === 'default' && (
+                          <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded">Not Set</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Get browser notifications even when the app isn't focused
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDesktopToggle(!desktopEnabled)}
+                      disabled={requestingPermission || desktopPermission === 'denied'}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        requestingPermission || desktopPermission === 'denied' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                      } ${desktopEnabled && desktopPermission === 'granted' ? 'bg-black' : 'bg-gray-300'}`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          desktopEnabled && desktopPermission === 'granted' ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  {desktopPermission === 'denied' && (
+                    <p className="text-xs text-red-600 pl-0 mt-1">
+                      Desktop notifications are blocked. Enable them in your browser settings.
+                    </p>
+                  )}
+                  
                   <SettingToggle
                     label="Email Notifications"
                     description="Receive notifications via email"
@@ -431,7 +512,7 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
                 </div>
 
                 {/* Achievements */}
-                <div className="rounded-xl border border-gray-200 p-4">
+                <div className="rounded-xl border border-gray-200 p-4 mb-3">
                   <h4 className="font-semibold text-sm flex items-center gap-2 mb-2 text-amber-600">
                     <Trophy className="w-4 h-4" />
                     Achievements
@@ -442,6 +523,34 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
                       description="New badges and milestones"
                       checked={preferences.notifyAchievements}
                       onChange={(v) => updatePreference('notifyAchievements', v)}
+                    />
+                  </div>
+                </div>
+
+                {/* AI Agents & Background Jobs */}
+                <div className="rounded-xl border border-gray-200 p-4">
+                  <h4 className="font-semibold text-sm flex items-center gap-2 mb-2 text-cyan-600">
+                    <Bot className="w-4 h-4" />
+                    AI Agents & Sync
+                  </h4>
+                  <div className="space-y-1">
+                    <SettingToggle
+                      label="Research Agent Reports"
+                      description="When AI research jobs complete or fail"
+                      checked={(preferences as any).notifyAgentUpdates ?? true}
+                      onChange={(v) => updatePreference('notifyAgentUpdates' as any, v)}
+                    />
+                    <SettingToggle
+                      label="Market Briefs"
+                      description="When new market briefs are generated"
+                      checked={(preferences as any).notifyMarketBriefs ?? true}
+                      onChange={(v) => updatePreference('notifyMarketBriefs' as any, v)}
+                    />
+                    <SettingToggle
+                      label="Sync Notifications"
+                      description="Background sync status updates"
+                      checked={(preferences as any).notifySyncUpdates ?? false}
+                      onChange={(v) => updatePreference('notifySyncUpdates' as any, v)}
                     />
                   </div>
                 </div>

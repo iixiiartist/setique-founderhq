@@ -9,6 +9,7 @@ import type { RunAgentResponse, AgentSource } from '../../lib/services/youAgentC
 interface AgentResponsePresenterProps {
   response: RunAgentResponse;
   onInsertToDoc?: (content: string) => void;
+  showInsertButton?: boolean;
 }
 
 const SECTION_ICONS: Record<string, React.ReactNode> = {
@@ -46,6 +47,7 @@ const getIconForHeading = (heading: string): React.ReactNode => {
 export const AgentResponsePresenter: React.FC<AgentResponsePresenterProps> = ({
   response,
   onInsertToDoc,
+  showInsertButton = true,
 }) => {
   const { isCopied: copied, copy } = useCopyToClipboard();
 
@@ -88,7 +90,7 @@ export const AgentResponsePresenter: React.FC<AgentResponsePresenterProps> = ({
           {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
           {copied ? 'Copied!' : 'Copy'}
         </button>
-        {onInsertToDoc && (
+        {showInsertButton && onInsertToDoc && (
           <button
             onClick={() => onInsertToDoc(response.output || '')}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-slate-900 text-white font-medium rounded-lg shadow-sm hover:shadow-md hover:bg-slate-800 transition-all"

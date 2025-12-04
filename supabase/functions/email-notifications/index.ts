@@ -466,7 +466,7 @@ function generateEmailHtml(params: {
     <p>
       You're receiving this because you have email notifications enabled.
       <br>
-      <a href="${Deno.env.get('SITE_URL') || 'https://app.founderhq.com'}/settings/notifications" style="color: #000;">
+      <a href="${Deno.env.get('SITE_URL') || 'https://founderhq.setique.com'}/settings/notifications" style="color: #000;">
         Manage notification preferences
       </a>
     </p>
@@ -537,7 +537,7 @@ function generateDigestEmailHtml(params: {
     </table>
     
     <p style="text-align: center; margin: 30px 0;">
-      <a href="${Deno.env.get('SITE_URL') || 'https://app.founderhq.com'}" style="display: inline-block; background: #000; color: #fff; padding: 12px 30px; text-decoration: none; font-weight: bold;">
+      <a href="${Deno.env.get('SITE_URL') || 'https://founderhq.setique.com'}" style="display: inline-block; background: #000; color: #fff; padding: 12px 30px; text-decoration: none; font-weight: bold;">
         Open FounderHQ →
       </a>
     </p>
@@ -545,7 +545,7 @@ function generateDigestEmailHtml(params: {
   
   <div style="padding: 20px; text-align: center; color: #666; font-size: 12px;">
     <p>
-      <a href="${Deno.env.get('SITE_URL') || 'https://app.founderhq.com'}/settings/notifications" style="color: #000;">
+      <a href="${Deno.env.get('SITE_URL') || 'https://founderhq.setique.com'}/settings/notifications" style="color: #000;">
         Manage notification preferences
       </a>
     </p>
@@ -574,7 +574,7 @@ Here's a summary of your ${params.notifications.length} unread notification${par
 ${notificationItems}
 
 ---
-Open FounderHQ: ${Deno.env.get('SITE_URL') || 'https://app.founderhq.com'}
-Manage preferences: ${Deno.env.get('SITE_URL') || 'https://app.founderhq.com'}/settings/notifications
+Open FounderHQ: ${Deno.env.get('SITE_URL') || 'https://founderhq.setique.com'}
+Manage preferences: ${Deno.env.get('SITE_URL') || 'https://founderhq.setique.com'}/settings/notifications
 `
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tab, TabType } from '../../constants';
+import { Tab, TabType, PAID_PLANS } from '../../constants';
 import { AppActions, DashboardData } from '../../types';
 import { useAssistantState } from '../../hooks/useAssistantState';
 import { FloatingButton } from './FloatingButton';

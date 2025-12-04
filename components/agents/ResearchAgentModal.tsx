@@ -2,7 +2,7 @@
 // Modal for running the Research & Briefing agent
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { X, Globe, FileText, AlertCircle, Sparkles, Save, Check, Download, FolderPlus, ChevronDown, PlayCircle } from 'lucide-react';
+import { X, Globe, FileText, AlertCircle, Sparkles, Save, Check, Download, FolderPlus, ChevronDown, PlayCircle, Link, Share2 } from 'lucide-react';
 import { useYouAgent } from '../../hooks/useYouAgent';
 import { useAgentReports } from '../../hooks/useAgentReports';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
@@ -17,6 +17,7 @@ import {
   parseAndValidateUrls,
   getRemainingChars 
 } from '../../lib/utils/agentValidation';
+import { ShareReportDialog } from '../shared/ShareReportDialog';
 import type { AgentReport } from '../../lib/services/agentReportService';
 import type { RunAgentResponse } from '../../lib/services/youAgentClient';
 
@@ -72,6 +73,7 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
   const [savingToLibrary, setSavingToLibrary] = useState(false);
   const [savedToLibrary, setSavedToLibrary] = useState(false);
   const [startingBackground, setStartingBackground] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
 
   // Validation state
   const targetValidation = useMemo(() => validateTarget(target), [target]);
@@ -568,6 +570,19 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
                           </button>
                           <div className="border-t border-gray-100 my-1" />
                           <button
+                            onClick={() => {
+                              setShowExportMenu(false);
+                              setShowShareDialog(true);
+                            }}
+                            disabled={!reportSaved && !savedReport}
+                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={!reportSaved && !savedReport ? 'Save report first to share' : 'Share this report'}
+                          >
+                            <Share2 size={14} />
+                            Share Report
+                          </button>
+                          <div className="border-t border-gray-100 my-1" />
+                          <button
                             onClick={handleSaveToLibrary}
                             disabled={savingToLibrary || savedToLibrary}
                             className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 text-left disabled:opacity-50"
@@ -642,6 +657,16 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
           )}
         </div>
       </div>
+
+      {/* Share Dialog */}
+      <ShareReportDialog
+        isOpen={showShareDialog}
+        onClose={() => setShowShareDialog(false)}
+        reportId={currentReportId || savedReport?.id || ''}
+        reportType="report"
+        reportTitle={target}
+        existingToken={(savedReport as any)?.share_token}
+      />
     </div>
   );
 };

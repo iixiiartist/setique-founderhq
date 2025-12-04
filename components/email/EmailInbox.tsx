@@ -46,7 +46,7 @@ export const EmailInbox: React.FC = () => {
         setDefaultAccountId(data.id);
       }
     } catch (err) {
-      console.log('No default email account found');
+      // No default email account found - user needs to connect one
     }
   }, [workspace?.id, user?.id]);
 
@@ -78,7 +78,6 @@ export const EmailInbox: React.FC = () => {
       if (error) throw error;
       setMessages(data || []);
     } catch (err: any) {
-      console.error('Error fetching emails:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -278,6 +277,7 @@ export const EmailInbox: React.FC = () => {
         defaultAccountId={defaultAccountId || undefined}
         editDraft={editingDraft || undefined}
         onDraftDeleted={fetchMessages}
+        workspaceId={workspace?.id}
       />
 
       {/* Delete Draft Confirmation Dialog */}

@@ -1494,7 +1494,15 @@ export const PublicFormPage: React.FC = () => {
 
           {/* Powered by */}
           <p className="text-center text-sm mt-4 text-gray-500">
-            Powered by Setique Forms
+            Powered by{' '}
+            <a 
+              href="https://founderhq.setique.com" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline"
+            >
+              FounderHQ – A Setique Tool
+            </a>
           </p>
         </form>
       </div>

@@ -16,6 +16,8 @@ import { TermsOfServicePage } from './components/TermsOfServicePage'
 import { CheckoutSuccessPage } from './components/CheckoutSuccessPage'
 import { ApiDocsPage } from './pages/ApiDocsPage'
 import { PublicFormPage } from './pages/PublicFormPage'
+import { SharedReportPage } from './pages/SharedReportPage'
+import { SharedBriefPage } from './pages/SharedBriefPage'
 import DashboardApp from './DashboardApp'
 import { initializeSentry, ErrorBoundary, ErrorFallback } from './lib/sentry.tsx'
 import { analytics } from './lib/services/analytics'
@@ -71,6 +73,10 @@ const App: React.FC = () => {
           
           {/* Public Forms (no auth required) */}
           <Route path="/forms/:slug" element={<PublicFormPage />} />
+          
+          {/* Shared Reports and Briefs (public, no auth required) */}
+          <Route path="/share/report/:token" element={<SharedReportPage />} />
+          <Route path="/share/brief/:token" element={<SharedBriefPage />} />
           
           {/* Stripe checkout success */}
           <Route path="/success" element={<CheckoutSuccessPage />} />
