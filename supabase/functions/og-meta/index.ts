@@ -76,7 +76,7 @@ function generateDescription(content: string, maxLength = 160): string {
 }
 
 // Generate HTML with OG meta tags - works for both crawlers and browsers
-// Crawlers read the meta tags, browsers get redirected via meta refresh
+// Crawlers read the meta tags, browsers get redirected via JavaScript
 function generateOgHtml(meta: {
   title: string;
   description: string;
@@ -96,11 +96,12 @@ function generateOgHtml(meta: {
     isCrawler = false,
   } = meta;
 
-  // For crawlers: no redirect so they can read the meta tags
-  // For browsers: use meta refresh to redirect to the SPA
-  const metaRefresh = isCrawler
+  // For browsers: use JavaScript redirect (works around CSP and Netlify loops)
+  // Crawlers don't execute JS so they just read the meta tags
+  const jsRedirect = isCrawler
     ? '' 
-    : `<meta http-equiv="refresh" content="0;url=${escapeHtml(url)}">`;
+    : `<script>window.location.replace("${url}");</script>
+     <noscript><meta http-equiv="refresh" content="0;url=${escapeHtml(url)}"></noscript>`;
 
   return `<!DOCTYPE html>
 <html lang="en" prefix="og: https://ogp.me/ns#">
@@ -128,7 +129,7 @@ function generateOgHtml(meta: {
   <meta name="twitter:description" content="${escapeHtml(description)}">
   <meta name="twitter:image" content="${escapeHtml(image)}">
   
-  ${metaRefresh}
+  ${jsRedirect}
 </head>
 <body>
   <p>Loading <a href="${escapeHtml(url)}">${escapeHtml(title)}</a>...</p>
@@ -262,16 +263,6 @@ Deno.serve(async (req: Request) => {
   
   console.log('[og-meta] Request path:', path, 'UA:', userAgent.substring(0, 50), 'isCrawler:', isCrawlerRequest);
 
-  // For regular browsers, just do a 302 redirect to the SPA
-  // Only serve OG HTML to crawlers
-  if (!isCrawlerRequest) {
-    const redirectUrl = `${SITE_URL}${path}`;
-    return new Response(null, {
-      status: 302,
-      headers: { 'Location': redirectUrl },
-    });
-  }
-
   // Parse the path to determine content type
   // /share/brief/:token
   // /share/report/:token  
@@ -295,13 +286,13 @@ Deno.serve(async (req: Request) => {
     return response;
   }
 
-  // Fallback for crawlers - serve generic OG tags
+  // Fallback - serve generic OG tags with redirect for browsers
   const redirectUrl = `${SITE_URL}${path}`;
   return new Response(generateOgHtml({ 
     title: 'FounderHQ', 
     description: 'The all-in-one GTM hub for founders', 
     url: redirectUrl,
-    isCrawler: true 
+    isCrawler: isCrawlerRequest 
   }), {
     headers: HTML_HEADERS,
   });
