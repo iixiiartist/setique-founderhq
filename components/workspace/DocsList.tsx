@@ -224,7 +224,7 @@ export const DocsList: React.FC<DocsListProps> = ({
     const showPagination = !debouncedSearch && totalPages > 1;
 
     return (
-        <div className="h-full flex flex-col">
+        <div className="h-full flex flex-col" data-testid="gtm-docs-list">
             {/* Header */}
             <div className="p-3 lg:p-4 border-b border-gray-200 bg-slate-900 rounded-t-xl">
                 <div className="flex items-center justify-between mb-2 lg:mb-3">
@@ -318,7 +318,7 @@ export const DocsList: React.FC<DocsListProps> = ({
                         <span className="text-sm text-black font-mono">Loading documents...</span>
                     </div>
                 ) : docs.length === 0 ? (
-                    <div className="p-4 text-center text-gray-500">
+                    <div className="p-4 text-center text-gray-500" data-testid="gtm-docs-empty">
                         {debouncedSearch ? (
                             <p className="mb-2">No documents match "{debouncedSearch}"</p>
                         ) : (
@@ -347,6 +347,7 @@ export const DocsList: React.FC<DocsListProps> = ({
                         {docs.map((doc) => (
                             <div
                                 key={doc.id}
+                                data-testid={`gtm-doc-item-${doc.id}`}
                                 className={`w-full p-3 lg:p-3 min-h-[60px] relative group ${
                                     selectedDocId === doc.id ? 'bg-gray-100' : 'bg-white hover:bg-gray-50'
                                 }`}

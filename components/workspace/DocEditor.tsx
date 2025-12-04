@@ -1789,6 +1789,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
 
     return (
         <div
+            data-testid="doc-editor"
             className={`h-full flex flex-col ${isFocusMode ? 'fixed inset-0 z-50 bg-white' : ''}`}
             style={workspaceBackdrop}
         >
