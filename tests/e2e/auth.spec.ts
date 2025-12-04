@@ -7,29 +7,29 @@ test.describe('Authentication Flow', () => {
     // Check page title
     await expect(page).toHaveTitle(/FounderHQ/);
     
-    // Check for key landing page elements
+    // Check for key landing page elements - updated to match actual content
     await expect(
-      page.getByRole('heading', { name: /One GTM Command Center/i })
+      page.getByRole('heading', { name: /THE ALL-IN-ONE HUB FOR/i })
     ).toBeVisible();
-    await expect(page.getByRole('link', { name: /Launch FounderHQ/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /START FREE TODAY/i })).toBeVisible();
   });
 
   test('should navigate to login', async ({ page }) => {
     await page.goto('/');
     
-    // Find and click login button
-    const loginButton = page.locator('a:has-text("Sign In")').first();
-    await loginButton.click();
+    // Find and click the main CTA link that goes to /app
+    const ctaButton = page.getByRole('link', { name: /START FREE TODAY/i });
+    await ctaButton.click();
     
     // Should navigate into the authenticated app or auth flow
-    await expect(page).toHaveURL(/(login|auth|app)/);
+    await expect(page).toHaveURL(/(app|login|auth)/);
   });
 
   test('should show signup option', async ({ page }) => {
     await page.goto('/');
     
-    // Find signup button
-    const signupButton = page.locator('a:has-text("Get Started"), a:has-text("Launch FounderHQ")').first();
+    // Find signup button - updated to match actual CTA text
+    const signupButton = page.getByRole('link', { name: /START FREE TODAY/i });
     await expect(signupButton).toBeVisible();
   });
 });

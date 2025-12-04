@@ -2,7 +2,15 @@ import { test, expect } from '@playwright/test';
 import { loginAs } from './utils/auth';
 import { navigateToTab } from './utils/navigation';
 
+// Check if test credentials are available
+const hasTestCredentials = !!(
+  process.env.SUPABASE_TEST_OWNER_EMAIL && 
+  process.env.SUPABASE_TEST_OWNER_PASSWORD
+);
+
 test.describe('Team Collaboration', () => {
+  test.skip(!hasTestCredentials, 'Skipping: SUPABASE_TEST_OWNER_EMAIL and SUPABASE_TEST_OWNER_PASSWORD not set');
+
   test.beforeEach(async ({ page }) => {
     await loginAs(page, 'owner');
     await navigateToTab(page, 'settings');
