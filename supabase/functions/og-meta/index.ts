@@ -136,23 +136,34 @@ function generateOgHtml(meta: {
 
 // Handler for different share types
 async function handleBriefShare(token: string, isCrawlerRequest: boolean): Promise<Response | null> {
-  // Query the market brief by share token
-  const { data: brief, error } = await supabase
-    .from('market_briefs')
-    .select('query, hero_line, raw_report, share_expires_at, is_public, share_token')
-    .eq('share_token', token)
-    .single();
+  // Use the RPC function which is granted to anon and handles all the logic
+  const { data, error } = await supabase.rpc('get_shared_market_brief', {
+    p_token: token,
+    p_password: null,
+  });
 
-  if (error || !brief) {
-    console.log('[og-meta] Brief not found for token:', token);
+  if (error) {
+    console.log('[og-meta] RPC error for brief:', error.message);
     return null;
   }
 
-  // Check if expired
-  if (brief.share_expires_at && new Date(brief.share_expires_at) < new Date()) {
+  const result = data as { success: boolean; brief?: { query: string; hero_line: string; raw_report: string }; error?: string };
+  
+  if (!result.success || !result.brief) {
+    console.log('[og-meta] Brief not found or error:', result.error);
+    // If password required, still show a generic preview
+    if (result.error === 'password_required') {
+      const title = 'Protected Market Brief';
+      const description = 'This market brief is password protected. Click to view.';
+      const url = `${SITE_URL}/share/brief/${token}`;
+      return new Response(generateOgHtml({ title, description, url, isCrawler: isCrawlerRequest }), {
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      });
+    }
     return null;
   }
 
+  const brief = result.brief;
   const title = `Market Brief: ${brief.query}`;
   const description = brief.hero_line || generateDescription(brief.raw_report || '');
   const url = `${SITE_URL}/share/brief/${token}`;
@@ -163,36 +174,34 @@ async function handleBriefShare(token: string, isCrawlerRequest: boolean): Promi
 }
 
 async function handleReportShare(token: string, isCrawlerRequest: boolean): Promise<Response | null> {
-  // Query the shared report link and join with agent_reports
-  const { data: link, error } = await supabase
-    .from('shared_report_links')
-    .select(`
-      token,
-      expires_at,
-      is_active,
-      title_override,
-      report:agent_reports (
-        target,
-        goal,
-        output
-      )
-    `)
-    .eq('token', token)
-    .single();
+  // Use the RPC function which is granted to anon
+  const { data, error } = await supabase.rpc('get_shared_report', {
+    p_token: token,
+    p_password: null,
+  });
 
-  if (error || !link || !link.is_active) {
-    console.log('[og-meta] Report link not found or inactive:', token);
+  if (error) {
+    console.log('[og-meta] RPC error for report:', error.message);
     return null;
   }
 
-  // Check expiration
-  if (link.expires_at && new Date(link.expires_at) < new Date()) {
+  const result = data as { success: boolean; report?: { target: string; goal: string; output: string; title_override?: string }; error?: string };
+  
+  if (!result.success || !result.report) {
+    console.log('[og-meta] Report not found or error:', result.error);
+    // If password required, still show a generic preview
+    if (result.error === 'password_required') {
+      const title = 'Protected Research Report';
+      const description = 'This research report is password protected. Click to view.';
+      const url = `${SITE_URL}/share/report/${token}`;
+      return new Response(generateOgHtml({ title, description, url, isCrawler: isCrawlerRequest }), {
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      });
+    }
     return null;
   }
 
-  const report = link.report as { target: string; goal: string; output: string } | null;
-  if (!report) return null;
-
+  const report = result.report;
   const goalLabels: Record<string, string> = {
     icp: 'ICP & Pain Points Analysis',
     competitive: 'Competitive Landscape',
@@ -200,7 +209,7 @@ async function handleReportShare(token: string, isCrawlerRequest: boolean): Prom
     market: 'Market Trends Brief',
   };
 
-  const title = link.title_override || `${goalLabels[report.goal] || 'Research Report'} | ${report.target}`;
+  const title = report.title_override || `${goalLabels[report.goal] || 'Research Report'} | ${report.target}`;
   const description = generateDescription(report.output || '');
   const url = `${SITE_URL}/share/report/${token}`;
 
