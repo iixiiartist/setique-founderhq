@@ -4,6 +4,7 @@ import { DashboardData, Task, AnyCrmItem, Contact, Meeting, MarketingItem, Finan
 import { PLAN_LIMITS } from '../subscriptionConstants'
 import { dbToTasks, dbToMarketingItems, dbToFinancialLogs, dbToCrmItem, dbToContacts, dbToDocument, dbToDocumentActivity } from '../utils/fieldTransformers'
 import { logger } from '../logger'
+import { withMetrics } from '../utils/observability'
 
 type Tables = Database['public']['Tables']
 
@@ -83,6 +84,26 @@ export class DatabaseService {
     } catch (error) {
       logger.error('Error updating user profile:', error)
       return { data: null, error }
+    }
+  }
+
+  /**
+   * Get only the settings from a user profile - lightweight query for loadCoreData
+   * Avoids the heavy getAllDashboardData call when only settings are needed
+   */
+  static async getUserSettings(userId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('settings')
+        .eq('id', userId)
+        .single()
+
+      if (error) throw error
+      return { data: data?.settings as SettingsData || { desktopNotifications: false }, error: null }
+    } catch (error) {
+      logger.error('Error fetching user settings:', error)
+      return { data: { desktopNotifications: false } as SettingsData, error }
     }
   }
 
@@ -407,19 +428,33 @@ export class DatabaseService {
   }
 
   // Contacts operations
-  static async getContacts(workspaceId: string) {
+  static async getContacts(workspaceId: string, options?: {
+    limit?: number;
+    offset?: number;
+    crmItemId?: string;
+  }) {
     try {
-      const { data, error } = await supabase
+      const limit = options?.limit ?? 100;
+      const offset = options?.offset ?? 0;
+      
+      let query = supabase
         .from('contacts')
-        .select('*')
+        .select('id, name, email, linkedin, phone, title, crm_item_id, assigned_to, assigned_to_name, created_by_name, notes, created_at, workspace_id', { count: 'exact' })
         .eq('workspace_id', workspaceId)
-        .order('created_at', { ascending: false})
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+      
+      if (options?.crmItemId) {
+        query = query.eq('crm_item_id', options.crmItemId);
+      }
+
+      const { data, error, count } = await query;
 
       if (error) throw error
-      return { data, error: null }
+      return { data, error: null, count, hasMore: (count ?? 0) > offset + limit }
     } catch (error) {
       logger.error('Error fetching contacts:', error)
-      return { data: [], error }
+      return { data: [], error, count: 0, hasMore: false }
     }
   }
 
@@ -491,19 +526,37 @@ export class DatabaseService {
   }
 
   // Marketing Items operations
-  static async getMarketingItems(workspaceId: string) {
+  static async getMarketingItems(workspaceId: string, options?: {
+    limit?: number;
+    offset?: number;
+    status?: string;
+    type?: string;
+  }) {
     try {
-      const { data, error } = await supabase
+      const limit = options?.limit ?? 100;
+      const offset = options?.offset ?? 0;
+      
+      let query = supabase
         .from('marketing_items')
-        .select('*')
+        .select('id, title, type, status, due_date, due_time, assigned_to, assigned_to_name, notes, created_at, workspace_id, campaign_id, channel, budget, actual_spend, reach, engagement, conversions', { count: 'exact' })
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+      
+      if (options?.status) {
+        query = query.eq('status', options.status);
+      }
+      if (options?.type) {
+        query = query.eq('type', options.type);
+      }
+
+      const { data, error, count } = await query;
 
       if (error) throw error
-      return { data, error: null }
+      return { data, error: null, count, hasMore: (count ?? 0) > offset + limit }
     } catch (error) {
       logger.error('Error fetching marketing items:', error)
-      return { data: [], error }
+      return { data: [], error, count: 0, hasMore: false }
     }
   }
 
@@ -578,19 +631,37 @@ export class DatabaseService {
   }
 
   // Financial Logs operations
-  static async getFinancialLogs(workspaceId: string) {
+  static async getFinancialLogs(workspaceId: string, options?: {
+    limit?: number;
+    offset?: number;
+    startDate?: string;
+    endDate?: string;
+  }) {
     try {
-      const { data, error } = await supabase
+      const limit = options?.limit ?? 100;
+      const offset = options?.offset ?? 0;
+      
+      let query = supabase
         .from('financial_logs')
-        .select('*')
+        .select('id, date, mrr, gmv, signups, burn_rate, runway_months, notes, created_at, workspace_id', { count: 'exact' })
         .eq('workspace_id', workspaceId)
         .order('date', { ascending: false })
+        .range(offset, offset + limit - 1);
+      
+      if (options?.startDate) {
+        query = query.gte('date', options.startDate);
+      }
+      if (options?.endDate) {
+        query = query.lte('date', options.endDate);
+      }
+
+      const { data, error, count } = await query;
 
       if (error) throw error
-      return { data, error: null }
+      return { data, error: null, count, hasMore: (count ?? 0) > offset + limit }
     } catch (error) {
       logger.error('Error fetching financial logs:', error)
-      return { data: [], error }
+      return { data: [], error, count: 0, hasMore: false }
     }
   }
 
@@ -643,21 +714,48 @@ export class DatabaseService {
   }
 
   // Documents operations
-  static async getDocuments(workspaceId: string) {
+  static async getDocuments(workspaceId: string, options?: {
+    limit?: number;
+    offset?: number;
+    module?: string;
+    includeContent?: boolean;
+  }) {
     try {
-      const { data, error } = await supabase
+      const limit = options?.limit ?? 50;
+      const offset = options?.offset ?? 0;
+      const includeContent = options?.includeContent ?? false;
+      
+      // PERFORMANCE: Only include content when explicitly requested
+      // List views should use metadata only; content is loaded via getDocumentById
+      let query = supabase
         .from('documents')
-        .select('*') // Select all columns including content and uploaded_by info
+        .select('*', { count: 'exact' })
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false })
-        .limit(100) // Limit to 100 most recent documents
+        .range(offset, offset + limit - 1);
+      
+      if (options?.module) {
+        query = query.eq('module', options.module);
+      }
+
+      const { data, error, count } = await query;
 
       if (error) throw error
-      const documents = (data || []).map(dbToDocument)
-      return { data: documents, error: null }
+      
+      // Strip content for list views to reduce payload size
+      const documents = (data || []).map((doc: any) => {
+        const document = dbToDocument(doc);
+        if (!includeContent) {
+          // Return document metadata without heavy content field
+          return { ...document, content: undefined };
+        }
+        return document;
+      });
+      
+      return { data: documents, error: null, count, hasMore: (count ?? 0) > offset + limit }
     } catch (error) {
       logger.error('Error fetching documents:', error)
-      return { data: [], error }
+      return { data: [], error, count: 0, hasMore: false }
     }
   }
 
@@ -785,19 +883,41 @@ export class DatabaseService {
   }
 
   // Expense operations
-  static async getExpenses(workspaceId: string) {
+  static async getExpenses(workspaceId: string, options?: {
+    limit?: number;
+    offset?: number;
+    category?: string;
+    startDate?: string;
+    endDate?: string;
+  }) {
     try {
-      const { data, error } = await supabase
+      const limit = options?.limit ?? 100;
+      const offset = options?.offset ?? 0;
+      
+      let query = supabase
         .from('expenses')
-        .select('*')
+        .select('id, date, category, amount, description, vendor, payment_method, receipt_document_id, notes, created_at, workspace_id', { count: 'exact' })
         .eq('workspace_id', workspaceId)
         .order('date', { ascending: false })
+        .range(offset, offset + limit - 1);
+      
+      if (options?.category) {
+        query = query.eq('category', options.category);
+      }
+      if (options?.startDate) {
+        query = query.gte('date', options.startDate);
+      }
+      if (options?.endDate) {
+        query = query.lte('date', options.endDate);
+      }
+
+      const { data, error, count } = await query;
 
       if (error) throw error
-      return { data, error: null }
+      return { data, error: null, count, hasMore: (count ?? 0) > offset + limit }
     } catch (error) {
       logger.error('Error fetching expenses:', error)
-      return { data: [], error }
+      return { data: [], error, count: 0, hasMore: false }
     }
   }
 
@@ -2024,19 +2144,37 @@ export class DatabaseService {
   }
 
   // Meeting operations
-  static async getMeetings(workspaceId: string) {
+  static async getMeetings(workspaceId: string, options?: {
+    limit?: number;
+    offset?: number;
+    contactId?: string;
+    upcoming?: boolean;
+  }) {
     try {
-      const { data, error } = await supabase
+      const limit = options?.limit ?? 100;
+      const offset = options?.offset ?? 0;
+      
+      let query = supabase
         .from('meetings')
-        .select('*')
+        .select('id, title, timestamp, attendees, summary, contact_id, created_at, workspace_id', { count: 'exact' })
         .eq('workspace_id', workspaceId)
         .order('timestamp', { ascending: false })
+        .range(offset, offset + limit - 1);
+      
+      if (options?.contactId) {
+        query = query.eq('contact_id', options.contactId);
+      }
+      if (options?.upcoming) {
+        query = query.gte('timestamp', new Date().toISOString());
+      }
+
+      const { data, error, count } = await query;
 
       if (error) throw error
-      return { data, error: null }
+      return { data, error: null, count, hasMore: (count ?? 0) > offset + limit }
     } catch (error) {
       logger.error('Error fetching meetings:', error)
-      return { data: [], error }
+      return { data: [], error, count: 0, hasMore: false }
     }
   }
 
@@ -2090,6 +2228,7 @@ export class DatabaseService {
 
   // Utility function to fetch all dashboard data
   static async getAllDashboardData(userId: string, workspaceId?: string): Promise<{ data: Partial<DashboardData> | null, error: any }> {
+    return withMetrics('getAllDashboardData', async () => {
     try {
       // If no workspaceId provided, we can't fetch workspace-scoped data
       if (!workspaceId) {
@@ -2271,6 +2410,7 @@ export class DatabaseService {
       logger.error('Error fetching dashboard data:', error)
       return { data: null, error }
     }
+    });
   }
 
   // ============================================================================
