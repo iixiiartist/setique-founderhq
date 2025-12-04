@@ -8,27 +8,21 @@
 
 # ============================================
 # Open Graph Meta Tags for Social Crawlers
-# Routes share/form links to Supabase function for rich previews
-# The function detects crawlers and serves OG tags, or redirects regular users
+# Edge function (netlify/edge-functions/og-meta.ts) handles these routes
+# It detects crawlers and serves OG tags, regular browsers get the SPA
 # ============================================
 
-[[redirects]]
-  from = "/share/brief/*"
-  to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/og-meta?path=/share/brief/:splat"
-  status = 200
-  force = true
+[[edge_functions]]
+  function = "og-meta"
+  path = "/share/brief/*"
 
-[[redirects]]
-  from = "/share/report/*"
-  to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/og-meta?path=/share/report/:splat"
-  status = 200
-  force = true
+[[edge_functions]]
+  function = "og-meta"
+  path = "/share/report/*"
 
-[[redirects]]
-  from = "/forms/*"
-  to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/og-meta?path=/forms/:splat"
-  status = 200
-  force = true
+[[edge_functions]]
+  function = "og-meta"
+  path = "/forms/*"
 
 # ============================================
 # API Proxy Redirects (must be before SPA fallback)

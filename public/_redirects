@@ -1,9 +1,7 @@
 # Netlify redirects
 
-# OG meta tags for social crawlers - proxy to Supabase function
-/share/brief/*  https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/og-meta?path=/share/brief/:splat  200!
-/share/report/*  https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/og-meta?path=/share/report/:splat  200!
-/forms/*  https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/og-meta?path=/forms/:splat  200!
+# NOTE: Edge function og-meta.ts handles /share/brief/*, /share/report/*, /forms/*
+# for social crawlers. Regular browsers fall through to the SPA.
 
 # SPA fallback - all other routes go to index.html
 /*    /index.html   200

@@ -107,7 +107,6 @@ function generateOgHtml(meta: {
   <meta name="description" content="${escapeHtml(description)}">
   
   <meta property="og:type" content="${type}">
-  <meta property="og:url" content="${escapeHtml(url)}">
   <meta property="og:title" content="${escapeHtml(title)}">
   <meta property="og:description" content="${escapeHtml(description)}">
   <meta property="og:image" content="${escapeHtml(image)}">
@@ -116,7 +115,6 @@ function generateOgHtml(meta: {
   <meta property="og:site_name" content="FounderHQ">
   
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:url" content="${escapeHtml(url)}">
   <meta name="twitter:title" content="${escapeHtml(title)}">
   <meta name="twitter:description" content="${escapeHtml(description)}">
   <meta name="twitter:image" content="${escapeHtml(image)}">
@@ -133,22 +131,35 @@ function generateOgHtml(meta: {
 
 async function fetchBrief(token: string): Promise<{ title: string; description: string } | null> {
   try {
+    // Use RPC function that's granted to anon
     const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/market_briefs?share_token=eq.${token}&select=query,hero_line,raw_report`,
+      `${SUPABASE_URL}/rest/v1/rpc/get_shared_market_brief`,
       {
+        method: 'POST',
         headers: {
           'apikey': SUPABASE_ANON_KEY,
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ p_token: token, p_password: null }),
       }
     );
     
     if (!response.ok) return null;
     
-    const data = await response.json();
-    if (!data || data.length === 0) return null;
+    const result = await response.json();
+    if (!result.success || !result.brief) {
+      // Handle password-protected briefs
+      if (result.error === 'password_required') {
+        return {
+          title: 'Protected Market Brief',
+          description: 'This market brief is password protected. Click to view.',
+        };
+      }
+      return null;
+    }
     
-    const brief = data[0];
+    const brief = result.brief;
     return {
       title: `Market Brief: ${brief.query}`,
       description: brief.hero_line || generateDescription(brief.raw_report || 'Market research brief'),
@@ -161,41 +172,26 @@ async function fetchBrief(token: string): Promise<{ title: string; description: 
 
 async function fetchReport(token: string): Promise<{ title: string; description: string } | null> {
   try {
-    // First get the link
-    const linkResponse = await fetch(
-      `${SUPABASE_URL}/rest/v1/shared_report_links?token=eq.${token}&select=report_id,title_override,is_active`,
+    // Use RPC function that's granted to anon
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/rpc/get_shared_report`,
       {
+        method: 'POST',
         headers: {
           'apikey': SUPABASE_ANON_KEY,
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ p_token: token }),
       }
     );
     
-    if (!linkResponse.ok) return null;
+    if (!response.ok) return null;
     
-    const links = await linkResponse.json();
-    if (!links || links.length === 0 || !links[0].is_active) return null;
+    const result = await response.json();
+    if (!result.success || !result.report) return null;
     
-    const link = links[0];
-    
-    // Then get the report
-    const reportResponse = await fetch(
-      `${SUPABASE_URL}/rest/v1/agent_reports?id=eq.${link.report_id}&select=target,goal,output`,
-      {
-        headers: {
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        },
-      }
-    );
-    
-    if (!reportResponse.ok) return null;
-    
-    const reports = await reportResponse.json();
-    if (!reports || reports.length === 0) return null;
-    
-    const report = reports[0];
+    const report = result.report;
     const goalLabels: Record<string, string> = {
       icp: 'ICP & Pain Points',
       competitive: 'Competitive Analysis',
@@ -204,7 +200,7 @@ async function fetchReport(token: string): Promise<{ title: string; description:
     };
     
     return {
-      title: link.title_override || `${goalLabels[report.goal] || 'Research'}: ${report.target}`,
+      title: result.title_override || `${goalLabels[report.goal] || 'Research'}: ${report.target}`,
       description: generateDescription(report.output || 'Research report'),
     };
   } catch (e) {
@@ -215,25 +211,29 @@ async function fetchReport(token: string): Promise<{ title: string; description:
 
 async function fetchForm(slug: string): Promise<{ title: string; description: string } | null> {
   try {
+    // Use RPC function that's granted to anon
     const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/forms?slug=eq.${slug}&status=eq.published&select=name,description`,
+      `${SUPABASE_URL}/rest/v1/rpc/get_public_form`,
       {
+        method: 'POST',
         headers: {
           'apikey': SUPABASE_ANON_KEY,
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ p_slug: slug }),
       }
     );
     
     if (!response.ok) return null;
     
-    const data = await response.json();
-    if (!data || data.length === 0) return null;
+    const result = await response.json();
+    if (!result.success || !result.form) return null;
     
-    const form = data[0];
+    const form = result.form;
     return {
-      title: form.name,
-      description: form.description ? generateDescription(form.description) : `Submit your response to ${form.name}`,
+      title: form.name || form.title,
+      description: form.description ? generateDescription(form.description) : `Submit your response to ${form.name || form.title}`,
     };
   } catch (e) {
     console.error('[og-meta] Error fetching form:', e);
