@@ -8,16 +8,15 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const SITE_URL = "https://founderhq.setique.com";
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`;
 
-// Detect social media crawlers - be VERY specific to avoid catching mobile browsers
-function isCrawler(userAgent: string): boolean {
+// Detect social media crawlers/bots by User-Agent
+function isCrawlerUA(userAgent: string): boolean {
   const ua = userAgent.toLowerCase();
   
-  // Only match actual bot/crawler user agents, NOT regular browsers
+  // Only match actual bot/crawler user agents
   const crawlers = [
     'facebookexternalhit',
     'facebot',
     'twitterbot',
-    'whatsapp/',          // WhatsApp bot has / after it
     'linkedinbot',
     'slackbot',
     'slackbot-linkexpanding',
@@ -37,24 +36,62 @@ function isCrawler(userAgent: string): boolean {
     'w3c_validator',
     'baiduspider',
     'yandexbot',
+    'whatsapp',  // WhatsApp preview bot
   ];
   
   return crawlers.some(bot => ua.includes(bot));
 }
 
-// Check if this is likely an iOS/iMessage link preview fetch (not a regular browser)
+// Check if this is a preview-specific request (not a user navigation)
+function isPreviewRequest(request: Request): boolean {
+  // Check for explicit preview headers (Facebook, etc.)
+  const xPurpose = request.headers.get('x-purpose') || '';
+  const xFbPurpose = request.headers.get('x-fb-purpose') || '';
+  if (xPurpose === 'preview' || xFbPurpose === 'preview') {
+    return true;
+  }
+  
+  // HEAD/OPTIONS requests are typically preview fetches
+  if (request.method === 'HEAD' || request.method === 'OPTIONS') {
+    return true;
+  }
+  
+  return false;
+}
+
+// Check if this looks like a real user navigation (browser tap/click)
+function isUserNavigation(request: Request): boolean {
+  const accept = request.headers.get('accept') || '';
+  const secFetchMode = request.headers.get('sec-fetch-mode') || '';
+  const secFetchDest = request.headers.get('sec-fetch-dest') || '';
+  const secFetchUser = request.headers.get('sec-fetch-user') || '';
+  
+  // User navigation signals:
+  // - Accept header includes text/html (browser wants a web page)
+  // - Sec-Fetch-Mode is 'navigate' (user-initiated navigation)
+  // - Sec-Fetch-Dest is 'document' (loading a document)
+  // - Sec-Fetch-User is '?1' (user-activated request)
+  
+  const wantsHtml = accept.includes('text/html');
+  const isNavigate = secFetchMode === 'navigate';
+  const isDocument = secFetchDest === 'document';
+  const isUserActivated = secFetchUser === '?1';
+  
+  // If any of these navigation signals are present, treat as real browser
+  return wantsHtml || isNavigate || isDocument || isUserActivated;
+}
+
+// Check if this is likely an iOS/iMessage link preview fetch
 function isIOSPreview(request: Request): boolean {
   const ua = (request.headers.get('user-agent') || '').toLowerCase();
   const accept = request.headers.get('accept') || '';
   
-  // Regular browsers always include text/html in accept header
-  // Link preview fetches typically don't, or have very minimal accept headers
+  // If they want HTML, it's a real browser
   if (accept.includes('text/html')) {
-    return false; // This is a real browser, not a preview fetch
+    return false;
   }
   
   // iOS preview fetches come from CFNetwork WITHOUT Safari in the UA
-  // Real Safari browsers have both CFNetwork AND Safari
   if (ua.includes('cfnetwork') && !ua.includes('safari')) {
     return true;
   }
@@ -95,6 +132,9 @@ function generateOgHtml(meta: {
 }): string {
   const { title, description, url, image = DEFAULT_IMAGE, type = 'article' } = meta;
 
+  // Include JS redirect fallback for any misclassified browsers
+  // Crawlers don't execute JS, so they just read the meta tags
+  // Real browsers will be redirected to the SPA
   return `<!DOCTYPE html>
 <html lang="en" prefix="og: https://ogp.me/ns#">
 <head>
@@ -119,11 +159,15 @@ function generateOgHtml(meta: {
   <meta name="twitter:image" content="${escapeHtml(image)}">
   
   <link rel="canonical" href="${escapeHtml(url)}">
+  
+  <!-- JS redirect for any misclassified browsers (crawlers don't execute JS) -->
+  <script>window.location.replace("${escapeHtml(url)}");</script>
+  <noscript><meta http-equiv="refresh" content="0;url=${escapeHtml(url)}"></noscript>
 </head>
 <body>
   <h1>${escapeHtml(title)}</h1>
   <p>${escapeHtml(description)}</p>
-  <p><a href="${escapeHtml(url)}">View on FounderHQ</a></p>
+  <p>Loading... <a href="${escapeHtml(url)}">Click here if not redirected</a></p>
 </body>
 </html>`;
 }
@@ -242,16 +286,36 @@ async function fetchForm(slug: string): Promise<{ title: string; description: st
 
 export default async function handler(request: Request, context: Context) {
   try {
+    // Only handle GET requests for crawler detection
+    // HEAD/OPTIONS are handled separately as preview requests
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+      return context.next();
+    }
+    
     const url = new URL(request.url);
     const path = url.pathname;
     const userAgent = request.headers.get('user-agent') || '';
     
-    // Check if this is a crawler or iOS preview
-    const shouldServeOg = isCrawler(userAgent) || isIOSPreview(request);
+    // Check various signals
+    const hasCrawlerUA = isCrawlerUA(userAgent);
+    const isPreview = isPreviewRequest(request);
+    const isNav = isUserNavigation(request);
+    const iosPreview = isIOSPreview(request);
     
-    console.log(`[og-meta] Path: ${path}, UA: ${userAgent.substring(0, 80)}, Serve OG: ${shouldServeOg}`);
+    // Decision: serve OG HTML only if:
+    // 1. Has crawler UA AND is NOT a user navigation (in-app browser tap)
+    // 2. OR explicit preview request headers
+    // 3. OR iOS preview fetch
+    const shouldServeOg = (hasCrawlerUA && !isNav) || isPreview || iosPreview;
     
-    // If not a crawler, pass through to the SPA
+    // Log for debugging ambiguous cases
+    if (hasCrawlerUA && isNav) {
+      console.log(`[og-meta] AMBIGUOUS: Crawler UA but user navigation detected. UA: ${userAgent.substring(0, 100)}, Accept: ${request.headers.get('accept')?.substring(0, 50)}, Sec-Fetch-Mode: ${request.headers.get('sec-fetch-mode')}, Sec-Fetch-User: ${request.headers.get('sec-fetch-user')}`);
+    }
+    
+    console.log(`[og-meta] Path: ${path}, CrawlerUA: ${hasCrawlerUA}, IsNav: ${isNav}, IsPreview: ${isPreview}, ServeOG: ${shouldServeOg}`);
+    
+    // If not a crawler/preview, pass through to the SPA
     if (!shouldServeOg) {
       return context.next();
     }
@@ -281,7 +345,7 @@ export default async function handler(request: Request, context: Context) {
       };
     }
     
-    // Return the OG HTML
+    // Return the OG HTML (includes JS redirect fallback for misclassified browsers)
     return new Response(generateOgHtml({ ...meta, url: pageUrl }), {
       headers: {
         'Content-Type': 'text/html; charset=utf-8',

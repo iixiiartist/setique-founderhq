@@ -10,8 +10,9 @@ This document describes the implementation of dynamic Open Graph (OG) meta tags 
 |----------|--------|-------|
 | LinkedIn | ✅ Working | Rich previews with title & description |
 | Desktop Browsers | ✅ Working | Full SPA loads correctly |
-| Slack/Discord | ✅ Should work | Uses same crawler detection |
-| Mobile Browsers | ⚠️ Partial | Some mobile browsers may show OG HTML instead of SPA |
+| Slack/Discord | ✅ Working | In-app browser taps redirect to SPA |
+| Mobile Browsers | ✅ Working | JS redirect fallback catches misclassified browsers |
+| WhatsApp/iMessage | ✅ Working | Preview shows OG tags, tap opens SPA |
 
 ## Architecture
 
@@ -22,16 +23,19 @@ This document describes the implementation of dynamic Open Graph (OG) meta tags 
    - `/share/report/*` - Shared agent reports
    - `/forms/*` - Public forms
 
-2. **Crawler Detection**: The edge function checks the User-Agent header:
-   - If it's a known crawler (LinkedInBot, facebookexternalhit, etc.) → Serve OG HTML
-   - If it's a regular browser → Pass through to SPA (`context.next()`)
+2. **Crawler Detection**: The edge function uses multiple signals:
+   - User-Agent matching for known bots (LinkedInBot, facebookexternalhit, etc.)
+   - **Navigation signals** (Sec-Fetch-Mode, Sec-Fetch-Dest, Sec-Fetch-User, Accept header)
+   - Preview headers (X-Purpose, X-FB-Purpose)
+   - If crawler UA is detected BUT navigation signals are present → treat as real browser
+   - If crawler UA is detected AND no navigation signals → serve OG HTML
 
 3. **Data Fetching**: For crawlers, the function calls Supabase RPC functions:
    - `get_shared_market_brief` - Fetches brief data
    - `get_shared_report` - Fetches report data
    - `get_public_form` - Fetches form data
 
-4. **OG HTML Response**: Returns minimal HTML with meta tags that crawlers can parse.
+4. **OG HTML Response**: Returns HTML with meta tags that crawlers can parse, plus a **JS redirect fallback** that immediately loads the SPA for any misclassified browsers (crawlers don't execute JavaScript).
 
 ### Files Involved
 
@@ -122,17 +126,20 @@ SELECT get_public_form(p_slug);
 
 ## Known Issues & Limitations
 
-### Mobile Browser Issue
+### In-App Browser Detection
 
-Some mobile browsers may receive the OG HTML instead of the SPA. This happens because:
+Apps like WhatsApp, Slack, and Discord include their name in the User-Agent when their in-app browser opens a link. The edge function now uses **navigation signals** to distinguish between:
+- **Preview fetch**: Bot fetching link for preview card (no navigation signals)
+- **User tap**: User tapped the link in the app (has navigation signals like `Sec-Fetch-Mode: navigate`)
 
-1. iOS link preview fetches use CFNetwork without Safari in the UA
-2. Some mobile browsers don't include `text/html` in the Accept header
-3. The edge function may incorrectly classify them as crawlers
-
-**Current workaround**: The OG HTML includes a link to the page, so users can still access content.
+**Solution implemented**:
+- Check `Sec-Fetch-Mode`, `Sec-Fetch-Dest`, `Sec-Fetch-User` headers
+- Check `Accept` header for `text/html`
+- If navigation signals present, treat as real browser even if UA matches crawler
+- JS redirect fallback in OG HTML catches any remaining edge cases
 
 **Attempted fixes**:
+
 - Removed `'iphone'`, `'cfnetwork'`, `'darwin'` from crawler list
 - Added Accept header check (real browsers include `text/html`)
 - Checked for Safari in UA for iOS detection
