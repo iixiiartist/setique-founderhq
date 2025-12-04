@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Sparkles } from 'lucide-react';
+import { X } from 'lucide-react';
 import { DocumentTemplate } from '../../../lib/templates/gtmTemplates';
 
 interface ComposerHeaderProps {
@@ -20,23 +20,19 @@ export function ComposerHeader({
     if (isInline) return null;
     
     return (
-        <div className={`flex items-center justify-between p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white ${isFullscreen ? '' : 'rounded-t-xl'}`}>
-            <h3 className="font-semibold text-gray-900 text-lg flex items-center gap-2">
-                {replyTo ? 'Reply' : 'New Message'}
-                <span className="text-xs font-normal text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <Sparkles size={10} />
-                    AI-Powered
-                </span>
+        <div className={`flex items-center justify-between p-4 border-b border-gray-200 bg-white ${isFullscreen ? '' : 'rounded-t-xl'}`}>
+            <h3 className="font-semibold text-gray-900 text-lg">
+                {replyTo ? 'Reply' : 'New Email'}
             </h3>
             <div className="flex items-center gap-1">
                 <button
                     onClick={onToggleFullscreen}
-                    className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                     title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
                 >
                     {isFullscreen ? '⊙' : '⊛'}
                 </button>
-                <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                <button onClick={onClose} className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
                     <X size={20} />
                 </button>
             </div>
@@ -66,11 +62,11 @@ export function ComposerFields({
     setSubject
 }: ComposerFieldsProps) {
     return (
-        <div className="p-4 space-y-3 border-b border-gray-100 bg-white flex-shrink-0">
-            <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-gray-500 w-16">To</label>
+        <div className="px-4 py-3 space-y-2 border-b border-gray-200 bg-white flex-shrink-0">
+            <div className="flex items-center gap-3">
+                <label className="text-sm font-medium text-gray-600 w-14">To</label>
                 <input
-                    className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400/20 focus:border-gray-400 transition-all"
+                    className="flex-1 border-0 border-b border-gray-200 px-1 py-1.5 text-sm text-gray-900 focus:outline-none focus:border-gray-900 transition-colors bg-transparent placeholder:text-gray-400"
                     value={to}
                     onChange={e => setTo(e.target.value)}
                     placeholder="recipient@example.com"
@@ -79,7 +75,7 @@ export function ComposerFields({
                     <button
                         type="button"
                         onClick={() => setShowCc(true)}
-                        className="text-xs text-gray-600 hover:text-gray-900 font-medium"
+                        className="text-xs text-gray-500 hover:text-gray-900 font-medium transition-colors"
                     >
                         +Cc
                     </button>
@@ -87,10 +83,10 @@ export function ComposerFields({
             </div>
 
             {showCc && (
-                <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium text-gray-500 w-16">Cc</label>
+                <div className="flex items-center gap-3">
+                    <label className="text-sm font-medium text-gray-600 w-14">Cc</label>
                     <input
-                        className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400/20 focus:border-gray-400 transition-all"
+                        className="flex-1 border-0 border-b border-gray-200 px-1 py-1.5 text-sm text-gray-900 focus:outline-none focus:border-gray-900 transition-colors bg-transparent placeholder:text-gray-400"
                         value={cc}
                         onChange={e => setCc(e.target.value)}
                         placeholder="cc@example.com"
@@ -98,10 +94,10 @@ export function ComposerFields({
                 </div>
             )}
 
-            <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-gray-500 w-16">Subject</label>
+            <div className="flex items-center gap-3">
+                <label className="text-sm font-medium text-gray-600 w-14">Subject</label>
                 <input
-                    className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400/20 focus:border-gray-400 transition-all font-medium"
+                    className="flex-1 border-0 border-b border-gray-200 px-1 py-1.5 text-sm text-gray-900 font-medium focus:outline-none focus:border-gray-900 transition-colors bg-transparent placeholder:text-gray-400"
                     value={subject}
                     onChange={e => setSubject(e.target.value)}
                     placeholder="Subject line"
@@ -168,11 +164,11 @@ export function GTMTemplateModal({ isOpen, onClose, templates, onApplyTemplate }
     if (!isOpen) return null;
     
     return (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-[100]">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[100]">
             <div className="bg-white rounded-xl shadow-2xl border border-gray-200 w-full max-w-2xl max-h-[80vh] overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white">
                     <h3 className="font-semibold text-gray-900">GTM Document Templates</h3>
-                    <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded">
+                    <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-700 transition-colors">
                         <X size={20} />
                     </button>
                 </div>
@@ -211,27 +207,27 @@ export function ResearchResultsPanel({ results, onInsert, onDismiss }: ResearchR
     if (!results) return null;
     
     return (
-        <div className="border-t border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 p-4 max-h-48 overflow-y-auto">
+        <div className="border-t border-gray-200 bg-gray-50 p-4 max-h-48 overflow-y-auto flex-shrink-0">
             <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-800 flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-900 flex items-center gap-2">
                     🌐 Research & Suggestions
                 </span>
                 <div className="flex gap-2">
                     <button
                         onClick={onInsert}
-                        className="text-xs px-3 py-1.5 bg-gray-900 text-white rounded-lg hover:bg-black font-medium shadow-sm"
+                        className="text-xs px-3 py-1.5 bg-gray-900 text-white rounded-lg hover:bg-black font-medium transition-colors"
                     >
                         Insert into Email
                     </button>
                     <button
                         onClick={onDismiss}
-                        className="text-xs px-3 py-1.5 text-gray-600 hover:bg-white/50 rounded-lg"
+                        className="text-xs px-3 py-1.5 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
                     >
                         Dismiss
                     </button>
                 </div>
             </div>
-            <div className="text-sm text-gray-700 whitespace-pre-wrap bg-white/50 rounded-lg p-3">
+            <div className="text-sm text-gray-700 whitespace-pre-wrap bg-white rounded-lg p-3 border border-gray-200">
                 {results}
             </div>
         </div>
@@ -247,19 +243,19 @@ export function AttachmentsBar({ attachments, onRemove }: AttachmentsBarProps) {
     if (attachments.length === 0) return null;
     
     return (
-        <div className="border-t border-gray-200 bg-gray-50 px-4 py-2">
+        <div className="border-t border-gray-200 bg-gray-50 px-4 py-2 flex-shrink-0">
             <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-gray-500">Attachments:</span>
+                <span className="text-xs text-gray-500 font-medium">Attachments:</span>
                 {attachments.map((file, i) => (
                     <div
                         key={i}
-                        className="flex items-center gap-1 bg-white border border-gray-200 rounded-full px-2 py-1 text-xs"
+                        className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-full px-2.5 py-1 text-xs text-gray-700"
                     >
                         📎
-                        <span className="max-w-[100px] truncate">{file.name}</span>
+                        <span className="max-w-[120px] truncate">{file.name}</span>
                         <button
                             onClick={() => onRemove(i)}
-                            className="text-gray-400 hover:text-red-500 ml-1"
+                            className="text-gray-400 hover:text-gray-700 transition-colors"
                         >
                             <X size={12} />
                         </button>
@@ -296,7 +292,7 @@ export function ComposerFooter({
     onSend
 }: ComposerFooterProps) {
     return (
-        <div className={`p-4 border-t border-gray-100 bg-gray-50/80 flex justify-between items-center flex-shrink-0 ${!isInline ? 'rounded-b-xl' : ''}`}>
+        <div className={`px-4 py-3 border-t border-gray-200 bg-gray-50 flex justify-between items-center flex-shrink-0 ${!isInline ? 'rounded-b-xl' : ''}`}>
             <div className="flex items-center gap-3 text-xs text-gray-500">
                 <span>{characterCount} characters</span>
                 {attachmentCount > 0 && (
@@ -308,24 +304,23 @@ export function ComposerFooter({
             <div className="flex gap-2">
                 <button
                     onClick={onCancel}
-                    className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                     Cancel
                 </button>
                 <button
                     onClick={onSaveDraft}
                     disabled={savingDraft || sending || !accountReady}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 flex items-center gap-2 transition-all"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all"
                 >
-                    {savingDraft ? '⟳' : '💾'}
+                    💾
                     {savingDraft ? 'Saving...' : 'Save Draft'}
                 </button>
                 <button
                     onClick={onSend}
                     disabled={sending || savingDraft || toEmpty || !accountReady}
-                    className="px-5 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-black disabled:opacity-50 flex items-center gap-2 shadow-sm hover:shadow transition-all"
+                    className="px-5 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all"
                 >
-                    ✉️
                     {sending ? 'Sending...' : 'Send'}
                 </button>
             </div>

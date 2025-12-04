@@ -11,6 +11,8 @@ type FunctionsErrorLike = {
   };
 };
 
+type AIProvider = 'youcom' | 'groq';
+
 const normalizeFlag = (value: string | undefined) => value?.toLowerCase().trim();
 const mockFlag = normalizeFlag(import.meta.env.VITE_USE_MOCK_AI_SEARCH);
 const forceMock = mockFlag === 'true';
@@ -73,6 +75,13 @@ const getStatusCode = (error: unknown): number | null => {
 
 export interface YouSearchOptions {
   count?: number;
+  /** 
+   * AI provider to use: 'groq' for Groq Compound (faster), 'youcom' for You.com 
+   * Defaults to 'groq' for search/rag modes if GROQ_API_KEY is configured
+   */
+  provider?: AIProvider;
+  /** Use faster but less comprehensive model (groq/compound-mini) */
+  fast?: boolean;
 }
 
 const shouldFallbackToMock = (): boolean => forceMock;
@@ -106,13 +115,38 @@ export const searchWeb = async (
     requestBody.count = options.count;
   }
 
+  // Pass provider preference to edge function
+  if (options.provider) {
+    requestBody.provider = options.provider;
+  }
+
+  // Pass fast mode flag
+  if (options.fast) {
+    requestBody.fast = true;
+  }
+
+  console.log('[youSearchService] Calling ai-search with:', { query: trimmedQuery, mode, options });
+  
   const { data, error } = await supabase.functions.invoke('ai-search', {
     body: requestBody,
   });
 
   if (error) {
-    console.error('Error calling ai-search function:', error);
+    console.error('[youSearchService] Error calling ai-search function:', error);
     const friendlyMessage = extractFunctionsErrorMessage(error);
+    const statusCode = getStatusCode(error);
+    
+    // Provide more specific error messages
+    if (statusCode === 401) {
+      throw new Error('Authentication required. Please sign in to use web search.');
+    }
+    if (statusCode === 429) {
+      throw new Error('Too many requests. Please wait a moment before searching again.');
+    }
+    if (statusCode === 500 || statusCode === 502) {
+      throw new Error('Web search service is temporarily unavailable. Please check that GROQ_API_KEY or YOUCOM_API_KEY is configured in Supabase secrets.');
+    }
+    
     if (shouldFallbackToMock()) {
       return returnMockResponse(trimmedQuery, mode);
     }
@@ -120,11 +154,47 @@ export const searchWeb = async (
   }
 
   if (!data) {
+    console.warn('[youSearchService] No data returned from ai-search');
     if (shouldFallbackToMock()) {
       return returnMockResponse(trimmedQuery, mode);
     }
     throw new Error('No data returned from ai-search');
   }
 
+  console.log('[youSearchService] Received response:', { 
+    hasHits: !!data.hits?.length, 
+    hasQa: !!data.qa?.answer,
+    provider: data.metadata?.provider 
+  });
+  
   return data as YouSearchResponse;
+};
+
+/**
+ * Fast web search using Groq Compound (preferred for quick lookups)
+ * Falls back to You.com if Groq is unavailable
+ */
+export const searchWebFast = async (
+  query: string,
+  options: Omit<YouSearchOptions, 'provider' | 'fast'> = {},
+): Promise<YouSearchResponse> => {
+  return searchWeb(query, 'search', { 
+    ...options, 
+    provider: 'groq', 
+    fast: true 
+  });
+};
+
+/**
+ * Deep research using Groq Compound RAG mode
+ * Good for synthesized answers with sources
+ */
+export const researchDeep = async (
+  query: string,
+  options: Omit<YouSearchOptions, 'provider'> = {},
+): Promise<YouSearchResponse> => {
+  return searchWeb(query, 'rag', { 
+    ...options, 
+    provider: 'groq' 
+  });
 };

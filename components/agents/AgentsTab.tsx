@@ -2,14 +2,16 @@
 // Main Agents tab - grid of AI agents available in FounderHQ
 
 import React, { useState, useCallback } from 'react';
-import { Bot, Sparkles, FileText } from 'lucide-react';
+import { Bot, Sparkles, FileText, PlayCircle, Loader2 } from 'lucide-react';
 import { YOU_AGENTS, getEnabledAgents, type YouAgentSlug } from '../../lib/config/youAgents';
 import { AgentCard } from './AgentCard';
 import { ResearchAgentModal } from './ResearchAgentModal';
 import { WhyNowAgentModal } from './WhyNowAgentModal';
 import { DealStrategistModal } from './DealStrategistModal';
 import { SavedReportsList } from './SavedReportsList';
+import { BackgroundJobsPanel } from './BackgroundJobsPanel';
 import { useAgentReports } from '../../hooks/useAgentReports';
+import { useBackgroundAgentJobs } from '../../hooks/useBackgroundAgentJobs';
 import { useDeleteConfirm } from '../../hooks';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
@@ -26,6 +28,17 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({ actions, onInsertToDoc }) 
   const { workspace } = useWorkspace();
   const { user } = useAuth();
   const { reports, isLoading: reportsLoading, deleteReport, refreshReports } = useAgentReports(workspace?.id, user?.id);
+  const { 
+    jobs, 
+    activeJobs, 
+    isLoading: jobsLoading, 
+    startBackgroundJob, 
+    cancelJob, 
+    deleteJob, 
+    refreshJobs,
+    runningJobId,
+    runningProgress,
+  } = useBackgroundAgentJobs({ userId: user?.id, workspaceId: workspace?.id });
   
   const [activeModal, setActiveModal] = useState<YouAgentSlug | null>(null);
   const [viewingReport, setViewingReport] = useState<AgentReport | null>(null);
@@ -133,6 +146,37 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({ actions, onInsertToDoc }) 
           </div>
         </div>
 
+        {/* Background Jobs Section */}
+        {(jobs.length > 0 || activeJobs.length > 0) && (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <PlayCircle size={16} className="sm:w-[18px] sm:h-[18px] text-gray-500" />
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900">Background Jobs</h2>
+                {activeJobs.length > 0 && (
+                  <span className="flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    {activeJobs.length} running
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="p-3 sm:p-4">
+              <BackgroundJobsPanel
+                jobs={jobs}
+                activeJobs={activeJobs}
+                isLoading={jobsLoading}
+                runningJobId={runningJobId}
+                runningProgress={runningProgress}
+                onCancelJob={cancelJob}
+                onDeleteJob={deleteJob}
+                onViewReport={handleViewReport}
+                onRefresh={refreshJobs}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Coming Soon Section */}
         <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 sm:p-6 border border-gray-200">
           <h3 className="font-semibold text-gray-900 mb-2">🚀 More Agents Coming Soon</h3>
@@ -150,6 +194,7 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({ actions, onInsertToDoc }) 
           onClose={handleCloseModal}
           onInsertToDoc={onInsertToDoc}
           savedReport={viewingReport}
+          onStartBackgroundJob={startBackgroundJob}
         />
       )}
 
@@ -159,6 +204,7 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({ actions, onInsertToDoc }) 
           onClose={handleCloseModal}
           onInsertToDoc={onInsertToDoc}
           savedReport={viewingReport}
+          onStartBackgroundJob={startBackgroundJob}
         />
       )}
 
@@ -168,6 +214,7 @@ export const AgentsTab: React.FC<AgentsTabProps> = ({ actions, onInsertToDoc }) 
           onClose={handleCloseModal}
           onInsertToDoc={onInsertToDoc}
           savedReport={viewingReport}
+          onStartBackgroundJob={startBackgroundJob}
         />
       )}
 

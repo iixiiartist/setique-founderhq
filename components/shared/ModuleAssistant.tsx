@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+﻿import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { formatRelativeTime } from '../../lib/utils/dateUtils';
 import { AppActions, TaskCollectionName, NoteableCollectionName, CrmCollectionName, DeletableCollectionName, TabType, GTMDocMetadata, AnyCrmItem } from '../../types';
@@ -19,6 +19,7 @@ import { DatabaseService } from '../../lib/services/database';
 import { supabase } from '../../lib/supabase';
 import { searchWeb } from '@/src/lib/services/youSearchService';
 import type { YouSearchImageResult, YouSearchMetadata } from '@/src/lib/services/youSearch.types';
+import debug from '../../lib/utils/debugLogger';
 
 interface Part {
     text?: string;
@@ -130,7 +131,7 @@ const convertChartBlocksToMarkdown = (input: string): string => {
             const table = convertChartConfigToMarkdown(parsed);
             return table ? `\n${table}\n` : '';
         } catch (error) {
-            console.warn('[ModuleAssistant] failed to parse chart payload', error);
+            debug.warn('ModuleAssistant', 'failed to parse chart payload', { error });
             return '';
         }
     });
@@ -169,22 +170,92 @@ const toSafeAssistantHtml = (content: string): string => {
             return rendered;
         }
     } catch (error) {
-        console.warn('[ModuleAssistant] Failed to parse assistant content', error);
+        debug.warn('ModuleAssistant', 'Failed to parse assistant content', { error });
     }
     return escapeHtml(content).replace(/\n/g, '<br />');
 };
 
+/**
+ * Sanitize external content (from web search) before injecting into AI prompts.
+ * Prevents prompt injection by:
+ * 1. Removing control characters and null bytes
+ * 2. Escaping potential instruction delimiters
+ * 3. Stripping HTML/script tags
+ * 4. Limiting length to prevent context overflow
+ */
+const sanitizeExternalContent = (content: string, maxLength = 500): string => {
+    if (!content) return '';
+    
+    let sanitized = content
+        // Remove null bytes and control characters (except newlines/tabs)
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+        // Strip HTML/script tags
+        .replace(/<[^>]*>/g, '')
+        // Escape common prompt injection delimiters
+        .replace(/```/g, "'''")
+        .replace(/---/g, '- - -')
+        // Normalize whitespace
+        .replace(/\s+/g, ' ')
+        .trim();
+    
+    // Truncate to max length with ellipsis
+    if (sanitized.length > maxLength) {
+        sanitized = sanitized.substring(0, maxLength - 3) + '...';
+    }
+    
+    return sanitized;
+};
+
+/**
+ * Sanitize URLs from external sources to prevent injection attacks
+ * - Only allows http/https protocols
+ * - Removes data: URLs and javascript: URLs
+ * - Strips control characters
+ * - Limits length to prevent context overflow
+ */
+const sanitizeUrl = (url: string): string => {
+    if (!url) return '';
+    
+    // Strip whitespace and control characters
+    let sanitized = url.trim().replace(/[\x00-\x1F\x7F]/g, '');
+    
+    // Only allow http/https URLs
+    if (!/^https?:\/\//i.test(sanitized)) {
+        return '[invalid-url]';
+    }
+    
+    // Block javascript: and data: in case of URL encoding tricks
+    if (/^(javascript|data|vbscript):/i.test(sanitized)) {
+        return '[blocked-url]';
+    }
+    
+    // Remove any potential prompt injection patterns in URL params
+    sanitized = sanitized
+        .replace(/```/g, '')
+        .replace(/\n/g, '')
+        .replace(/<[^>]*>/g, '');
+    
+    // Limit URL length
+    if (sanitized.length > 500) {
+        sanitized = sanitized.substring(0, 500);
+    }
+    
+    return sanitized;
+};
+
 const HUMAN_OUTPUT_RULES = `STRICT OUTPUT RULES:
 1. Write in plain sentences, bullet lists, or Markdown tables.
-2. Never return JSON, code fences, or visualization configs.
+2. Never return JSON, code fences, or visualization configs unless specifically asked.
 3. Describe comparisons or metrics using narrative text instead of code.`;
 
 const STYLIZED_OUTPUT_BLUEPRINT = `STYLE GUIDE:
-- Open with ⚡ **Quick Pulse:** one bold sentence that frames the overall answer.
-- Follow with 📊 **Snapshot** using 2-3 tight bullets calling out metrics or context.
-- Add ✅ **Strategic Moves** as a numbered list focused on recommendations.
-- Close with 🧭 **Next 48 Hours** containing 1-2 actionable steps tailored to the workspace.
-- Use bold labels, tasteful emoji, and short sentences so everything feels skimmable.`;
+- Respond conversationally like a smart business advisor, NOT like a robotic assistant.
+- Start with a direct answer to what was asked, then add context.
+- Use natural paragraphs - save bullets for actual lists of items.
+- Connect insights to the user's specific business context and goals.
+- Be concise but insightful - every sentence should add value.
+- Do NOT use rigid template formats like "⚡ Quick Pulse:", "📊 Snapshot", "✅ Strategic Moves", or "🧭 Next 48 Hours".
+- Write like you're giving advice in a conversation, not filling out a form.`;
 
 const PROSPECT_KEYWORDS = ['prospect', 'lead', 'customer', 'client', 'account', 'pipeline', 'buyer', 'target'];
 const ACTION_KEYWORDS = ['suggest', 'recommend', 'find', 'list', 'identify', 'source', 'share', 'give', 'show'];
@@ -258,7 +329,7 @@ const formatMetadataForClipboard = (metadata?: YouSearchMetadata | null) => {
         }
     }
 
-    const summary = chips.length > 0 ? `Sources: ${chips.join(' • ')}` : '';
+    const summary = chips.length > 0 ? `Sources: ${chips.join(' | ')}` : '';
     const queryLine = metadata.query ? `Query: "${metadata.query}"` : '';
     return [summary, queryLine].filter(Boolean).join('\n');
 };
@@ -282,8 +353,9 @@ function ModuleAssistant({
     planType
 }: ModuleAssistantProps) {
     const { user } = useAuth();
-    const normalizedPlanType = (planType || 'free').toLowerCase();
-    const assistantUnlocked = true; // All plans get AI access; limits enforced elsewhere
+    const normalizedPlanType = (planType || 'free').toLowerCase() as string;
+    // Plan gating: All paid tiers get full AI access (PAID_PLANS from constants.ts)
+    const assistantUnlocked = (PAID_PLANS as readonly string[]).includes(normalizedPlanType);
     const planLabel = formatPlanLabel(normalizedPlanType);
     const enforcedSystemPrompt = useMemo(() => {
         const base = (systemPrompt || '').trim();
@@ -407,7 +479,7 @@ function ModuleAssistant({
                 }
                 return { visuals, metadata };
             } catch (err: any) {
-                console.error('[ModuleAssistant] image search failed', err);
+                debug.error('ModuleAssistant', 'image search failed', err);
                 if (!silent) {
                     setImageSearchError(err?.message ?? 'Image search failed.');
                 }
@@ -820,7 +892,16 @@ function ModuleAssistant({
     };
 
     const sendMessage = async (prompt: string) => {
-        if ((!prompt.trim() && !file) || isLoading) return;
+        debug.log('ModuleAssistant', 'sendMessage called', {
+            promptLength: prompt?.length,
+            hasFile: !!file,
+            isLoading,
+            workspaceId,
+        });
+        if ((!prompt.trim() && !file) || isLoading) {
+            debug.log('ModuleAssistant', 'Early return', { emptyPrompt: !prompt.trim(), noFile: !file, isLoading });
+            return;
+        }
         assistantWebMetadataRef.current = null;
 
         if (!assistantUnlocked) {
@@ -860,7 +941,12 @@ function ModuleAssistant({
         setRateLimitError(null); // Clear any previous rate limit errors
 
         const buildWebSearchContext = (searchResults: any, fallbackQuery: string) => {
-            if (!searchResults?.hits || searchResults.hits.length === 0) {
+            // Check for both hits (traditional search) and qa.answer (Groq Compound)
+            const hasHits = searchResults?.hits && searchResults.hits.length > 0;
+            const hasQAAnswer = searchResults?.qa?.answer;
+            
+            if (!hasHits && !hasQAAnswer) {
+                debug.log('ModuleAssistant', 'buildWebSearchContext: No hits or QA answer found');
                 return '';
             }
 
@@ -869,7 +955,7 @@ function ModuleAssistant({
                 query: searchResults.metadata?.query || fallbackQuery,
                 fetchedAt: searchResults.metadata?.fetchedAt || new Date().toISOString(),
                 provider: searchResults.metadata?.provider || 'You.com',
-                count: searchResults.metadata?.count ?? searchResults.hits.length,
+                count: searchResults.metadata?.count ?? (searchResults.hits?.length || 0),
                 durationMs: searchResults.metadata?.durationMs,
             };
             assistantWebMetadataRef.current = normalizedMetadata;
@@ -879,28 +965,46 @@ function ModuleAssistant({
                 ? ` (fetched ${formatRelativeTime(normalizedMetadata.fetchedAt)})`
                 : '';
 
-            const listings = searchResults.hits
-                .map(
-                    (hit: any, index: number) =>
-                        `[${index + 1}] ${hit.title || hit.url}: ${hit.description || hit.summary || ''} (${hit.url})`
-                )
-                .join('\n');
-
-            const snippetLines = searchResults.hits
-                .map((hit: any, index: number) =>
-                    hit.snippets && hit.snippets.length
-                        ? `[${index + 1}] Snippets: ${hit.snippets.join(' ')}`
-                        : ''
-                )
-                .filter(Boolean)
-                .join('\n');
-
-            let context = `\n\nWEB SEARCH RESULTS (Query: "${normalizedMetadata.query}")${providerLabel}${fetchedLabel}:\n${listings}`;
-            if (snippetLines) {
-                context += `\n\nSnippets:\n${snippetLines}`;
+            let context = `\n\nWEB SEARCH RESULTS (Query: "${sanitizeExternalContent(normalizedMetadata.query, 200)}")${providerLabel}${fetchedLabel}:\n`;
+            
+            // Add QA answer if available (from Groq Compound)
+            // SECURITY: Sanitize external content to prevent prompt injection
+            if (hasQAAnswer) {
+                context += `\nDirect Answer: ${sanitizeExternalContent(searchResults.qa.answer, 1000)}\n`;
             }
 
-            context += `\n\nCITATION INSTRUCTIONS:\n1. Cite the numbered sources inline using [1], [2], etc.\n2. End your response with a Sources section formatted as an HTML list (<ul><li><a href="url">Title</a></li></ul>).\n3. Only cite sources that are relevant to the specific insight.`;
+            // Add source listings if available
+            if (hasHits) {
+                const listings = searchResults.hits
+                    .map(
+                        (hit: any, index: number) => {
+                            const title = sanitizeExternalContent(hit.title || '', 100);
+                            const desc = sanitizeExternalContent(hit.description || hit.summary || '', 200);
+                            // SECURITY: Sanitize URLs to prevent injection via malicious URLs
+                            const url = sanitizeUrl(hit.url || '');
+                            return `[${index + 1}] ${title || url}: ${desc} (${url})`;
+                        }
+                    )
+                    .join('\n');
+                context += `\nSources:\n${listings}`;
+
+                const snippetLines = searchResults.hits
+                    .map((hit: any, index: number) => {
+                        if (!hit.snippets || !hit.snippets.length) return '';
+                        const sanitizedSnippets = hit.snippets
+                            .map((s: string) => sanitizeExternalContent(s, 150))
+                            .join(' ');
+                        return `[${index + 1}] Snippets: ${sanitizedSnippets}`;
+                    })
+                    .filter(Boolean)
+                    .join('\n');
+                    
+                if (snippetLines) {
+                    context += `\n\nSnippets:\n${snippetLines}`;
+                }
+            }
+
+            context += `\n\nCITATION INSTRUCTIONS:\n1. Use the Direct Answer and Sources above to respond.\n2. Cite sources inline using [1], [2], etc. if applicable.\n3. Do NOT say you don't have access to real-time data - you have the search results above.`;
 
             return context;
         };
@@ -918,40 +1022,12 @@ function ModuleAssistant({
             textPartForAI = `${contextParts.join('\n\n')}\n\n${prompt}`;
         }
 
-        const hasCrmRecords = Array.isArray(crmItems) && crmItems.length > 0;
-        const industryFromContext = extractContextField(businessContext, 'Industry');
-        const idealCustomerProfile = extractContextField(businessContext, 'Ideal Customer');
-        const resolvedCompanyName = companyName || extractCompanyFromContext(businessContext);
-        const shouldBootstrapProspects =
-            currentTab === Tab.Accounts &&
-            !hasCrmRecords &&
-            !isWebSearchEnabled &&
-            detectProspectIntent(prompt);
+        // SECURITY FIX: Removed auto web search that sent queries to third parties without consent
+        // Web search now ONLY runs when user explicitly enables the toggle
+        // This prevents: 1) Sending prompts to external APIs without consent
+        //                2) Injecting untrusted web content into AI context (prompt injection risk)
 
-        if (shouldBootstrapProspects) {
-            try {
-                const prospectQuery = buildProspectQuery(prompt, {
-                    companyName: resolvedCompanyName || undefined,
-                    businessContext,
-                }) || prompt;
-                const searchResults = await searchWeb(prospectQuery, 'search');
-                const webContext = buildWebSearchContext(searchResults, prospectQuery);
-                if (webContext) {
-                    textPartForAI += `\n\nCRM DATA GAP NOTICE:\n- There are currently zero CRM accounts on record.\n- The user explicitly asked for prospect recommendations.\n- Use the live research results below to ground your answer.`;
-                    textPartForAI += webContext;
-                    const focusLine = idealCustomerProfile
-                        ? `Focus on the "${idealCustomerProfile}" buyer profile`
-                        : industryFromContext
-                        ? `Focus on high-fit companies inside the ${industryFromContext} space`
-                        : 'Focus on high-fit organizations for the current ICP';
-                    textPartForAI += `\n\nAUTO_PROSPECT_DIRECTIVE:\n- Provide at least 5 named organizations for ${resolvedCompanyName || 'the business'} even though the CRM is empty.\n- ${focusLine}.\n- For each company include: (a) HQ or region if available, (b) why it fits, (c) the recommended first outreach action with channel + suggested nextActionDate.\n- After the list, add a numbered plan outlining how to capture these prospects in the CRM (createAccount → link documents → create outreach task).\n- Reference the numbered sources next to each company using [n] notation and include the Sources list at the end.`;
-                }
-            } catch (error) {
-                console.error('[ModuleAssistant] Auto prospect research failed', error);
-            }
-        }
-
-        // Handle Web Search
+        // Handle Web Search (manual toggle ONLY - requires explicit user opt-in)
         if (isWebSearchEnabled) {
             if (webSearchMode === 'text') {
                 try {
@@ -961,7 +1037,7 @@ function ModuleAssistant({
                         textPartForAI += webContext;
                     }
                 } catch (e) {
-                    console.error('Web search failed', e);
+                    debug.error('ModuleAssistant', 'Web search failed', e);
                 }
             } else if (webSearchMode === 'images') {
                 try {
@@ -983,13 +1059,13 @@ function ModuleAssistant({
                             .join('\n');
 
                         const providerLabel = metadataForContext?.provider ? `Provided by ${metadataForContext.provider}` : 'Image references';
-                        const fetchedLabel = metadataForContext?.fetchedAt ? ` · ${formatRelativeTime(metadataForContext.fetchedAt)}` : '';
+                        const fetchedLabel = metadataForContext?.fetchedAt ? ` - ${formatRelativeTime(metadataForContext.fetchedAt)}` : '';
                         textPartForAI += `\n\nIMAGE REFERENCES AVAILABLE:\n${visualContext}\n${providerLabel}${fetchedLabel}\nCall out where each reference should appear and cite the source number in your response.`;
                     } else {
                         textPartForAI += '\n\nNOTE: Image mode is enabled but no visuals are available. Recommend the imagery we should source to support this request.';
                     }
                 } catch (e) {
-                    console.error('Image search failed', e);
+                    debug.error('ModuleAssistant', 'Image search failed', e);
                 }
             }
         }
@@ -1043,9 +1119,9 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                     undefined  // contactId
                 );
                 fileSaved = true;
-                console.log(`✅ Auto-saved to library: ${fileName} (${fileSizeMB.toFixed(2)}MB)`);
+                debug.log('ModuleAssistant', `Auto-saved to library: ${fileName}`, { sizeMB: fileSizeMB.toFixed(2) });
             } catch (error) {
-                console.warn('⚠️ Auto-save failed:', error);
+                debug.warn('ModuleAssistant', 'Auto-save failed', { error });
                 // Continue - still send file to AI even if save fails
             }
             
@@ -1063,7 +1139,12 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
         userMessageParts.unshift({ text: textPartForAI });
 
         // Add user message to history (with display text, not AI text)
+        // This uses flushSync to ensure immediate render
         addMessage({ role: 'user', parts: [{ text: textPart }, ...userMessageParts.slice(1)] });
+        
+        // Yield to allow React to render the user message before continuing
+        // This ensures the user sees their message immediately
+        await new Promise(resolve => setTimeout(resolve, 0));
         
         // Send to AI with context included
         let currentHistory: Content[] = [...history, { role: 'user', parts: userMessageParts }];
@@ -1146,7 +1227,7 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                     });
                 }
             } else {
-                console.warn('[ModuleAssistant] Received empty response from AI, not adding to conversation history');
+                debug.warn('ModuleAssistant', 'Received empty response from AI, not adding to conversation history');
             }
 
         } catch (error) {
@@ -1188,6 +1269,7 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
 
     const handleChatSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        debug.log('ModuleAssistant', 'handleChatSubmit called', { inputLength: userInput?.length });
         sendMessage(userInput);
     };
 
@@ -1239,7 +1321,7 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                 setIsCopied(true);
                 setTimeout(() => setIsCopied(false), 2000);
             }).catch(err => {
-                console.error('Failed to copy text: ', err);
+                debug.error('ModuleAssistant', 'Failed to copy text', err);
             });
         }
     };
@@ -1393,8 +1475,8 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                                         </button>
                                         {webSearchMeta && (
                                             <div className="mt-3 flex flex-wrap gap-2 text-[10px] text-gray-600">
-                                                <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 border border-gray-200">
-                                                    {webSearchMeta.provider || 'You.com'}
+                                                <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 border border-gray-200">
+                                                    🔍 Web search
                                                 </span>
                                                 {webSearchMeta.count !== undefined && (
                                                     <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 border border-gray-200">
@@ -1404,11 +1486,6 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                                                 {webSearchMeta.fetchedAt && (
                                                     <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 border border-gray-200">
                                                         {formatRelativeTime(webSearchMeta.fetchedAt)}
-                                                    </span>
-                                                )}
-                                                {webSearchMeta.query && (
-                                                    <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 border border-gray-200 max-w-[200px] truncate">
-                                                        “{webSearchMeta.query}”
                                                     </span>
                                                 )}
                                             </div>
@@ -1631,7 +1708,7 @@ ${attachedDoc.isTemplate ? 'Template: Yes\n' : ''}${attachedDoc.tags.length > 0 
                             <div className="truncate">
                                 <div className="font-medium text-gray-900 truncate">{attachedDoc.title}</div>
                                 <div className="text-xs text-purple-600">
-                                    {attachedDoc.docType} • {attachedDoc.visibility}
+                                    {attachedDoc.docType} | {attachedDoc.visibility}
                                 </div>
                             </div>
                         </div>

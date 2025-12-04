@@ -1,17 +1,21 @@
 /// <reference path="../types/deno_http_server.d.ts" />
 // supabase/functions/fetch-company-content/index.ts
-// Edge Function: Fetch and enrich company data using You.com Search API + Groq AI
+// Edge Function: Fetch and enrich company data using Groq Compound (primary) or You.com Search API (fallback)
 // Used for auto-filling company profiles in CRM when a website URL is provided
+// Optimized for Groq Dev Tier - uses Compound for ~5x faster web search
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0'
 import { corsHeaders as sharedCorsHeaders } from '../_shared/apiAuth.ts';
 
-// You.com Search API endpoint
+// Groq API endpoints
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+
+// You.com Search API endpoint (fallback)
 const YOUCOM_SEARCH_URL = "https://api.ydc-index.io/search";
 
-// Groq API endpoint
-const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+// Search provider preference
+type SearchProvider = 'groq-compound' | 'youcom';
 
 // Rate limiting configuration
 const RATE_LIMIT = 20; // requests per minute per user
@@ -49,6 +53,7 @@ interface FetchContentRequest {
   urls: string[];
   workspaceId?: string;
   useCache?: boolean;
+  provider?: SearchProvider; // Allow client to specify provider
 }
 
 interface SearchHit {
@@ -56,6 +61,13 @@ interface SearchHit {
   description?: string;
   url?: string;
   snippets?: string[];
+}
+
+interface GroqCompoundResult {
+  success: boolean;
+  content?: string;
+  citations?: Array<{ url: string; title?: string }>;
+  error?: string;
 }
 
 interface EnrichmentResult {
@@ -134,23 +146,25 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Get API key - try both naming conventions
-    let apiKey = Deno.env.get('YOUCOM_API_KEY') || Deno.env.get('YOU_COM_API_KEY');
+    // Get API keys - Groq is primary, You.com is optional fallback
+    const groqApiKey = Deno.env.get('GROQ_API_KEY');
+    let youcomApiKey = Deno.env.get('YOUCOM_API_KEY') || Deno.env.get('YOU_COM_API_KEY');
     
     // Trim any whitespace that might have been accidentally added
-    if (apiKey) {
-      apiKey = apiKey.trim();
+    if (youcomApiKey) {
+      youcomApiKey = youcomApiKey.trim();
     }
     
-    if (!apiKey) {
-      console.error('[fetch-company-content] YOUCOM_API_KEY not configured');
+    // At least one API key is required
+    if (!groqApiKey && !youcomApiKey) {
+      console.error('[fetch-company-content] No API keys configured (need GROQ_API_KEY or YOUCOM_API_KEY)');
       return new Response(
-        JSON.stringify({ error: 'You.com API key not configured. Contact support.' }),
+        JSON.stringify({ error: 'Search API not configured. Contact support.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    console.log(`[fetch-company-content] API Key check - length: ${apiKey.length}, starts with: "${apiKey.substring(0, 8)}"`);
+    console.log(`[fetch-company-content] API Keys available - Groq: ${!!groqApiKey}, You.com: ${!!youcomApiKey}`);
 
     // Parse request body
     const body = await req.json() as FetchContentRequest;
@@ -181,90 +195,100 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     console.log(`[fetch-company-content] Searching for company: ${companyName} (${companyDomain})`);
-
-    // Use Search API to find company information - run two searches for better coverage
-    const searchQuery1 = `${companyName} company about "${companyDomain}"`;
-    const searchQuery2 = `${companyName} headquarters location employees founded`;
     
-    const params1 = new URLSearchParams({
-      query: searchQuery1,
-      num_web_results: '8',
-    });
-    
-    const params2 = new URLSearchParams({
-      query: searchQuery2,
-      num_web_results: '8',
-    });
-
-    console.log(`[fetch-company-content] Search queries: "${searchQuery1}" and "${searchQuery2}"`);
-
-    // Run both searches in parallel
-    const [searchResponse1, searchResponse2] = await Promise.all([
-      fetch(`${YOUCOM_SEARCH_URL}?${params1.toString()}`, {
-        method: 'GET',
-        headers: { 'X-API-Key': apiKey },
-      }),
-      fetch(`${YOUCOM_SEARCH_URL}?${params2.toString()}`, {
-        method: 'GET',
-        headers: { 'X-API-Key': apiKey },
-      }),
-    ]);
-
-    console.log(`[fetch-company-content] Search API responses: ${searchResponse1.status}, ${searchResponse2.status}`);
-
-    if (!searchResponse1.ok) {
-      const errorText = await searchResponse1.text();
-      console.error(`[fetch-company-content] Search API error:`, errorText);
-      return new Response(
-        JSON.stringify({ error: 'Failed to search for company information', details: errorText }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const [searchData1, searchData2] = await Promise.all([
-      searchResponse1.json(),
-      searchResponse2.ok ? searchResponse2.json() : { hits: [] },
-    ]);
-    
-    // Combine hits from both searches, removing duplicates by URL
-    const allHits = [...(searchData1.hits || [])];
-    const seenUrls = new Set(allHits.map((h: { url?: string }) => h.url));
-    for (const hit of (searchData2.hits || [])) {
-      if (!seenUrls.has(hit.url)) {
-        allHits.push(hit);
-        seenUrls.add(hit.url);
-      }
-    }
-    
-    const combinedSearchData = { hits: allHits };
-    console.log(`[fetch-company-content] Combined search results: ${allHits.length} hits`);
-
-    // Get Groq API key for intelligent parsing
-    const groqApiKey = Deno.env.get('GROQ_API_KEY');
-    
+    // Determine search provider: prefer Groq Compound, fallback to You.com only if available
+    const preferredProvider: SearchProvider = body.provider || 'groq-compound';
     let enrichment: EnrichmentResult;
-    
-    if (groqApiKey) {
-      console.log('[fetch-company-content] Using Groq AI for intelligent parsing');
-      enrichment = await extractEnrichmentWithGroq(combinedSearchData, companyDomain, companyName, groqApiKey);
+    let providerUsed: SearchProvider = preferredProvider;
+    const startTime = Date.now();
+
+    if (preferredProvider === 'groq-compound' && groqApiKey) {
+      console.log('[fetch-company-content] Using Groq Compound for web search (primary)');
+      
+      // Try Groq Compound first - ~5x faster than You.com
+      const compoundResult = await searchWithGroqCompound(companyName, companyDomain, groqApiKey);
+      
+      if (compoundResult.success && compoundResult.content) {
+        console.log(`[fetch-company-content] Groq Compound search completed in ${Date.now() - startTime}ms`);
+        
+        // Parse the compound result with GPT-OSS for superior reasoning
+        enrichment = await parseCompoundResultWithGroq(
+          compoundResult.content,
+          compoundResult.citations || [],
+          companyDomain,
+          companyName,
+          groqApiKey
+        );
+        providerUsed = 'groq-compound';
+      } else if (youcomApiKey) {
+        // Fallback to You.com only if key is available
+        console.log('[fetch-company-content] Groq Compound failed, falling back to You.com');
+        const youcomResult = await searchWithYoucom(companyName, companyDomain, youcomApiKey);
+        enrichment = await extractEnrichmentWithGroq(youcomResult, companyDomain, companyName, groqApiKey);
+        providerUsed = 'youcom';
+      } else {
+        // No fallback available, return partial result
+        console.log('[fetch-company-content] Groq Compound failed, no You.com fallback available');
+        enrichment = {
+          description: `${companyName} - Visit ${companyDomain} for more information.`,
+        };
+        providerUsed = 'groq-compound';
+      }
+    } else if (groqApiKey && youcomApiKey) {
+      // You.com search with Groq parsing
+      console.log('[fetch-company-content] Using You.com Search with Groq parsing');
+      const youcomResult = await searchWithYoucom(companyName, companyDomain, youcomApiKey);
+      enrichment = await extractEnrichmentWithGroq(youcomResult, companyDomain, companyName, groqApiKey);
+      providerUsed = 'youcom';
+    } else if (groqApiKey) {
+      // Groq only - use Compound
+      console.log('[fetch-company-content] Using Groq Compound (You.com not configured)');
+      const compoundResult = await searchWithGroqCompound(companyName, companyDomain, groqApiKey);
+      if (compoundResult.success && compoundResult.content) {
+        enrichment = await parseCompoundResultWithGroq(
+          compoundResult.content,
+          compoundResult.citations || [],
+          companyDomain,
+          companyName,
+          groqApiKey
+        );
+      } else {
+        enrichment = {
+          description: `${companyName} - Visit ${companyDomain} for more information.`,
+        };
+      }
+      providerUsed = 'groq-compound';
+    } else if (youcomApiKey) {
+      // You.com search with regex fallback (no Groq)
+      console.log('[fetch-company-content] Using You.com with regex fallback (Groq not configured)');
+      const youcomResult = await searchWithYoucom(companyName, companyDomain, youcomApiKey);
+      enrichment = extractEnrichmentFromSearch(youcomResult, companyDomain, companyName);
+      providerUsed = 'youcom';
     } else {
-      console.log('[fetch-company-content] Groq API key not found, using regex fallback');
-      enrichment = extractEnrichmentFromSearch(combinedSearchData, companyDomain, companyName);
+      // This shouldn't happen due to earlier check, but handle it
+      enrichment = {
+        description: `${companyName} - Visit ${companyDomain} for more information.`,
+      };
+      providerUsed = 'groq-compound';
     }
 
+    const duration = Date.now() - startTime;
+    console.log(`[fetch-company-content] Enrichment completed in ${duration}ms using ${providerUsed}`);
     console.log(`[fetch-company-content] Enrichment result:`, JSON.stringify({
       hasDescription: !!enrichment.description,
       hasIndustry: !!enrichment.industry,
       hasLocation: !!enrichment.location,
       hasCompanySize: !!enrichment.companySize,
-      resultsCount: combinedSearchData.hits?.length || 0,
+      provider: providerUsed,
+      durationMs: duration,
     }));
 
     return new Response(
       JSON.stringify({
         success: true,
         enrichment,
-        resultsCount: combinedSearchData.hits?.length || 0,
+        provider: providerUsed,
+        durationMs: duration,
       }),
       {
         status: 200,
@@ -285,6 +309,234 @@ serve(async (req: Request): Promise<Response> => {
     );
   }
 });
+
+/**
+ * Search using Groq Compound - ~5x faster than You.com
+ * Uses web_search tool capability for real-time search
+ */
+async function searchWithGroqCompound(
+  companyName: string,
+  companyDomain: string,
+  groqApiKey: string
+): Promise<GroqCompoundResult> {
+  try {
+    const searchPrompt = `Search for comprehensive information about ${companyName} (${companyDomain}). 
+Find: company description, industry, headquarters location, founding year, employee count, key executives, and main products/services.
+Focus on their official website and reliable business sources like LinkedIn, Crunchbase, Bloomberg, or TechCrunch.`;
+
+    const response = await fetch(GROQ_API_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${groqApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'compound-beta', // Groq Compound with web search
+        messages: [
+          {
+            role: 'user',
+            content: searchPrompt,
+          },
+        ],
+        temperature: 0.1,
+        max_tokens: 2000,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[fetch-company-content] Groq Compound error:', errorText);
+      return { success: false, error: errorText };
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    
+    // Extract citations from the response if available
+    const citations: Array<{ url: string; title?: string }> = [];
+    const urlMatches = content?.match(/https?:\/\/[^\s\)\]]+/g) || [];
+    for (const url of urlMatches.slice(0, 10)) {
+      citations.push({ url: url.replace(/[.,;:]+$/, '') });
+    }
+
+    return {
+      success: true,
+      content: content || '',
+      citations,
+    };
+  } catch (error) {
+    console.error('[fetch-company-content] Groq Compound exception:', error);
+    return { success: false, error: String(error) };
+  }
+}
+
+/**
+ * Search using You.com Search API (fallback)
+ */
+async function searchWithYoucom(
+  companyName: string,
+  companyDomain: string,
+  apiKey: string
+): Promise<{ hits: SearchHit[] }> {
+  const searchQuery1 = `${companyName} company about "${companyDomain}"`;
+  const searchQuery2 = `${companyName} headquarters location employees founded`;
+  
+  const params1 = new URLSearchParams({
+    query: searchQuery1,
+    num_web_results: '8',
+  });
+  
+  const params2 = new URLSearchParams({
+    query: searchQuery2,
+    num_web_results: '8',
+  });
+
+  console.log(`[fetch-company-content] You.com search queries: "${searchQuery1}" and "${searchQuery2}"`);
+
+  const [searchResponse1, searchResponse2] = await Promise.all([
+    fetch(`${YOUCOM_SEARCH_URL}?${params1.toString()}`, {
+      method: 'GET',
+      headers: { 'X-API-Key': apiKey },
+    }),
+    fetch(`${YOUCOM_SEARCH_URL}?${params2.toString()}`, {
+      method: 'GET',
+      headers: { 'X-API-Key': apiKey },
+    }),
+  ]);
+
+  console.log(`[fetch-company-content] You.com responses: ${searchResponse1.status}, ${searchResponse2.status}`);
+
+  if (!searchResponse1.ok) {
+    console.error('[fetch-company-content] You.com search failed');
+    return { hits: [] };
+  }
+
+  const [searchData1, searchData2] = await Promise.all([
+    searchResponse1.json(),
+    searchResponse2.ok ? searchResponse2.json() : { hits: [] },
+  ]);
+  
+  // Combine hits from both searches, removing duplicates by URL
+  const allHits = [...(searchData1.hits || [])];
+  const seenUrls = new Set(allHits.map((h: { url?: string }) => h.url));
+  for (const hit of (searchData2.hits || [])) {
+    if (!seenUrls.has(hit.url)) {
+      allHits.push(hit);
+      seenUrls.add(hit.url);
+    }
+  }
+  
+  return { hits: allHits };
+}
+
+/**
+ * Parse Groq Compound result with GPT-OSS for superior reasoning
+ */
+async function parseCompoundResultWithGroq(
+  content: string,
+  citations: Array<{ url: string; title?: string }>,
+  companyDomain: string,
+  companyName: string,
+  groqApiKey: string
+): Promise<EnrichmentResult> {
+  const enrichment: EnrichmentResult = {
+    searchResults: citations.slice(0, 5).map(c => ({
+      title: c.title,
+      url: c.url,
+    })),
+  };
+
+  const systemPrompt = `You are a company research assistant. Extract structured information from the provided research content.
+Return ONLY valid JSON with no markdown formatting, no code blocks, just the raw JSON object.
+If information is not found or unclear, omit that field entirely.
+Be accurate - only include information you're confident about.`;
+
+  const userPrompt = `Extract company information for "${companyName}" (${companyDomain}) from this research:
+
+${content.slice(0, 6000)}
+
+Return a JSON object with these fields (omit any fields where info is not found):
+{
+  "description": "A clear 1-2 sentence description of what the company does",
+  "industry": "Primary industry (e.g., Fintech, SaaS, Healthcare, E-commerce, AI/ML)",
+  "location": "Company PRIMARY headquarters only - city and state/country",
+  "foundedYear": "Year the company was founded (4-digit year)",
+  "companySize": "Employee count range (e.g., '1,000-5,000 employees')",
+  "keyPeople": ["Array of key executives - format: 'Name (Title)'"],
+  "productSummary": "Brief summary of main products/services"
+}
+
+IMPORTANT: Return ONLY the JSON object, no markdown, no code blocks.`;
+
+  try {
+    const response = await fetch(GROQ_API_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${groqApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'openai/gpt-oss-120b', // Superior reasoning for parsing
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.1,
+        max_tokens: 1000,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('[fetch-company-content] GPT-OSS parsing error');
+      return enrichment;
+    }
+
+    const data = await response.json();
+    const responseContent = data.choices?.[0]?.message?.content;
+    
+    if (!responseContent) {
+      return enrichment;
+    }
+
+    // Parse JSON response
+    let cleanContent = responseContent.trim();
+    if (cleanContent.startsWith('```json')) {
+      cleanContent = cleanContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (cleanContent.startsWith('```')) {
+      cleanContent = cleanContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+    
+    const parsed = JSON.parse(cleanContent);
+    
+    if (parsed.description) enrichment.description = parsed.description;
+    if (parsed.industry) enrichment.industry = parsed.industry;
+    if (parsed.location) enrichment.location = parsed.location;
+    if (parsed.foundedYear) enrichment.foundedYear = String(parsed.foundedYear);
+    if (parsed.companySize) enrichment.companySize = parsed.companySize;
+    if (Array.isArray(parsed.keyPeople)) enrichment.keyPeople = parsed.keyPeople.slice(0, 5);
+    if (parsed.productSummary) enrichment.productSummary = parsed.productSummary;
+
+    // Extract social links from citations
+    const socialLinks: { linkedin?: string; twitter?: string; github?: string } = {};
+    for (const citation of citations) {
+      if (citation.url.includes('linkedin.com/company/')) {
+        socialLinks.linkedin = citation.url;
+      } else if (citation.url.includes('twitter.com/') || citation.url.includes('x.com/')) {
+        socialLinks.twitter = citation.url;
+      } else if (citation.url.includes('github.com/')) {
+        socialLinks.github = citation.url;
+      }
+    }
+    if (Object.keys(socialLinks).length > 0) {
+      enrichment.socialLinks = socialLinks;
+    }
+
+    return enrichment;
+  } catch (error) {
+    console.error('[fetch-company-content] Parse error:', error);
+    return enrichment;
+  }
+}
 
 /**
  * Extract structured company information from search results
@@ -576,7 +828,7 @@ Remember: Return ONLY the JSON object, no markdown, no code blocks.`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'openai/gpt-oss-120b', // GPT-OSS for superior reasoning
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },

@@ -3,11 +3,14 @@ import { useDropzone } from 'react-dropzone';
 import ReactCrop, { Crop, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { uploadToSupabase, validateImageFile } from '../../lib/services/imageUploadService';
+import { extractTextFromImage, generateImageCaption } from '../../services/visionService';
+import { FileText, Sparkles } from 'lucide-react';
 
 interface ImageUploadModalProps {
   workspaceId: string;
   docId?: string;
   onInsert: (url: string, alt?: string) => void;
+  onInsertText?: (text: string) => void; // New prop for inserting OCR text
   onClose: () => void;
 }
 
@@ -17,6 +20,7 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
   workspaceId,
   docId,
   onInsert,
+  onInsertText,
   onClose,
 }) => {
   const [mode, setMode] = useState<UploadMode>('file');
@@ -27,6 +31,11 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  
+  // OCR state
+  const [extractingText, setExtractingText] = useState(false);
+  const [extractedText, setExtractedText] = useState<string | null>(null);
+  const [generatingAlt, setGeneratingAlt] = useState(false);
   
   // Crop state
   const [crop, setCrop] = useState<Crop>({
@@ -171,6 +180,57 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
     }
   };
 
+  // Extract text from image using AI OCR
+  const handleExtractText = async () => {
+    if (!previewUrl) return;
+    
+    setExtractingText(true);
+    setError(null);
+    setExtractedText(null);
+    
+    try {
+      const result = await extractTextFromImage(previewUrl, { documentType: 'general' });
+      if (result.text.trim()) {
+        setExtractedText(result.text);
+      } else {
+        setError('No text could be extracted from this image');
+      }
+    } catch (err: any) {
+      console.error('OCR error:', err);
+      setError(err.message || 'Failed to extract text');
+    } finally {
+      setExtractingText(false);
+    }
+  };
+
+  // Generate alt text using AI
+  const handleGenerateAltText = async () => {
+    if (!previewUrl) return;
+    
+    setGeneratingAlt(true);
+    setError(null);
+    
+    try {
+      const caption = await generateImageCaption(previewUrl, { detailed: false });
+      if (caption) {
+        setAltText(caption);
+      }
+    } catch (err: any) {
+      console.error('Caption error:', err);
+      setError(err.message || 'Failed to generate alt text');
+    } finally {
+      setGeneratingAlt(false);
+    }
+  };
+
+  // Insert extracted text into document
+  const handleInsertExtractedText = () => {
+    if (extractedText && onInsertText) {
+      onInsertText(extractedText);
+      onClose();
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-[2px] flex items-center justify-center z-[10000] p-4">
       <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
@@ -292,14 +352,61 @@ export const ImageUploadModal: React.FC<ImageUploadModalProps> = ({
                     <label className="block text-sm font-medium text-slate-700 mb-2">
                       Alt Text (optional but recommended)
                     </label>
-                    <input
-                      type="text"
-                      value={altText}
-                      onChange={(e) => setAltText(e.target.value)}
-                      placeholder="Describe the image..."
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={altText}
+                        onChange={(e) => setAltText(e.target.value)}
+                        placeholder="Describe the image..."
+                        className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-colors"
+                      />
+                      <button
+                        onClick={handleGenerateAltText}
+                        disabled={generatingAlt}
+                        className="px-3 py-2 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+                        title="Generate alt text with AI"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        {generatingAlt ? '...' : 'AI'}
+                      </button>
+                    </div>
                   </div>
+
+                  {/* AI OCR Features */}
+                  <div className="pt-2 border-t border-gray-100">
+                    <p className="text-xs text-gray-500 mb-2 flex items-center gap-1.5">
+                      <Sparkles className="w-3 h-3" /> AI Features
+                    </p>
+                    <button
+                      onClick={handleExtractText}
+                      disabled={extractingText}
+                      className="w-full py-2.5 font-semibold rounded-xl border transition-all flex items-center justify-center gap-2 bg-white text-slate-700 border-gray-200 hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    >
+                      <FileText className="w-4 h-4" />
+                      {extractingText ? 'Extracting Text...' : 'Extract Text from Image (OCR)'}
+                    </button>
+                  </div>
+
+                  {/* Extracted Text */}
+                  {extractedText && (
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-slate-700">
+                        Extracted Text
+                      </label>
+                      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 max-h-40 overflow-y-auto">
+                        <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans">{extractedText}</pre>
+                      </div>
+                      {onInsertText && (
+                        <button
+                          onClick={handleInsertExtractedText}
+                          className="w-full py-2.5 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <FileText className="w-4 h-4" />
+                          Insert Text into Document
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

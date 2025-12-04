@@ -1,9 +1,50 @@
 // supabase/functions/huddle-send/index.ts
-// Handles message sending with validation, moderation, and realtime broadcast
+// Handles message sending with validation, moderation, rate limiting, and realtime broadcast
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/apiAuth.ts';
+
+// Rate limiting configuration
+const RATE_LIMITS = {
+  messages_per_minute: 20,
+  messages_per_hour: 200,
+  max_message_length: 10000,
+  max_attachments: 10,
+  max_attachment_size: 10 * 1024 * 1024, // 10MB
+};
+
+// Allowed MIME types for attachments
+const ALLOWED_MIME_TYPES = [
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+  'application/pdf',
+  'text/plain', 'text/csv', 'text/markdown',
+  'application/json',
+  'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+];
+
+// High-severity moderation categories that should block
+const HIGH_SEVERITY_CATEGORIES = ['S1', 'S3', 'S4', 'S9', 'S11'];
+
+// Structured logging
+function log(level: 'info' | 'warn' | 'error', requestId: string, message: string, data?: Record<string, any>) {
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    level,
+    requestId,
+    service: 'huddle-send',
+    message,
+    ...data,
+  };
+  if (level === 'error') {
+    console.error(JSON.stringify(logEntry));
+  } else if (level === 'warn') {
+    console.warn(JSON.stringify(logEntry));
+  } else {
+    console.log(JSON.stringify(logEntry));
+  }
+}
 
 interface SendMessageRequest {
   room_id: string;
@@ -69,12 +110,63 @@ serve(async (req) => {
     const body: SendMessageRequest = await req.json();
     const { room_id, body: messageBody, body_format, thread_root_id, attachments, linked_entities, mentions } = body;
 
+    // Generate request ID for logging
+    const requestId = crypto.randomUUID();
+
     // Validate required fields
     if (!room_id || !messageBody?.trim()) {
       return new Response(
         JSON.stringify({ error: 'room_id and body are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Validate message length
+    if (messageBody.length > RATE_LIMITS.max_message_length) {
+      log('warn', requestId, 'Message too long', { length: messageBody.length, max: RATE_LIMITS.max_message_length });
+      return new Response(
+        JSON.stringify({ error: `Message too long. Maximum ${RATE_LIMITS.max_message_length} characters allowed.` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate attachments
+    // SECURITY TODO: Add virus scanning integration (VirusTotal API, ClamAV, etc.)
+    // Current validation only checks MIME type and size - does NOT detect malware
+    if (attachments && attachments.length > 0) {
+      if (attachments.length > RATE_LIMITS.max_attachments) {
+        return new Response(
+          JSON.stringify({ error: `Too many attachments. Maximum ${RATE_LIMITS.max_attachments} allowed.` }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      for (const attachment of attachments) {
+        // Check MIME type
+        // WARNING: MIME types can be spoofed - this is not malware detection
+        if (attachment.mime && !ALLOWED_MIME_TYPES.includes(attachment.mime)) {
+          log('warn', requestId, 'Blocked attachment type', { mime: attachment.mime, name: attachment.name });
+          return new Response(
+            JSON.stringify({ error: `File type not allowed: ${attachment.mime}` }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        // Check file size
+        if (attachment.size && attachment.size > RATE_LIMITS.max_attachment_size) {
+          return new Response(
+            JSON.stringify({ error: `File too large: ${attachment.name}. Maximum ${RATE_LIMITS.max_attachment_size / 1024 / 1024}MB allowed.` }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        // Log attachment for potential audit (no AV scan currently)
+        log('info', requestId, 'Attachment validated (no AV scan)', { 
+          name: attachment.name, 
+          mime: attachment.mime,
+          size: attachment.size,
+        });
+      }
     }
 
     // Check room access (RLS will also enforce, but we want better error messages)
@@ -91,9 +183,62 @@ serve(async (req) => {
       );
     }
 
-    // Content moderation check
-    const moderationResult = await checkModeration(messageBody);
+    // RATE LIMITING: Check per-user message rate
+    const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    
+    const { count: messagesLastMinute } = await supabaseAdmin
+      .from('huddle_messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('workspace_id', room.workspace_id)
+      .gte('created_at', oneMinuteAgo);
+    
+    if ((messagesLastMinute || 0) >= RATE_LIMITS.messages_per_minute) {
+      log('warn', requestId, 'Rate limit exceeded (per minute)', { 
+        userId: user.id, 
+        count: messagesLastMinute,
+        limit: RATE_LIMITS.messages_per_minute,
+      });
+      return new Response(
+        JSON.stringify({ 
+          error: 'You are sending messages too quickly. Please wait a moment.',
+          retry_after: 60,
+        }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' } }
+      );
+    }
+    
+    const { count: messagesLastHour } = await supabaseAdmin
+      .from('huddle_messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('workspace_id', room.workspace_id)
+      .gte('created_at', oneHourAgo);
+    
+    if ((messagesLastHour || 0) >= RATE_LIMITS.messages_per_hour) {
+      log('warn', requestId, 'Rate limit exceeded (per hour)', { 
+        userId: user.id, 
+        count: messagesLastHour,
+        limit: RATE_LIMITS.messages_per_hour,
+      });
+      return new Response(
+        JSON.stringify({ 
+          error: 'Hourly message limit reached. Please try again later.',
+          retry_after: 3600,
+        }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '3600' } }
+      );
+    }
+
+    // Content moderation check (FAIL CLOSED for high severity)
+    const moderationResult = await checkModeration(messageBody, requestId);
     if (moderationResult.flagged) {
+      log('warn', requestId, 'Message blocked by moderation', { 
+        userId: user.id,
+        reason: moderationResult.reason,
+        categories: moderationResult.categories,
+      });
       return new Response(
         JSON.stringify({ 
           error: 'Message flagged by moderation',
@@ -175,12 +320,16 @@ serve(async (req) => {
   }
 });
 
-// Simple moderation check (extend with your moderationService)
-async function checkModeration(content: string): Promise<{ flagged: boolean; reason?: string }> {
-  // Basic checks - extend with AI moderation if needed
+// Simple moderation check using Llama Guard 4 - FAIL CLOSED on high-severity errors
+async function checkModeration(content: string, requestId?: string): Promise<{ flagged: boolean; reason?: string; categories?: string[] }> {
+  // Skip short/empty content
+  if (!content || content.length < 3) {
+    return { flagged: false };
+  }
+
+  // Basic heuristic checks first (fast path)
   const blockedPatterns = [
     /\b(spam|scam)\b/i,
-    // Add more patterns as needed
   ];
 
   for (const pattern of blockedPatterns) {
@@ -189,9 +338,123 @@ async function checkModeration(content: string): Promise<{ flagged: boolean; rea
     }
   }
 
-  // TODO: Integrate with lib/services/moderationService for AI moderation
-  
-  return { flagged: false };
+  // Try Llama Guard for AI-powered moderation
+  const groqApiKey = Deno.env.get('GROQ_API_KEY');
+  if (!groqApiKey) {
+    // No API key, fall back to heuristics only
+    if (requestId) {
+      log('warn', requestId, 'Moderation skipped - no GROQ_API_KEY configured', {});
+    }
+    return { flagged: false };
+  }
+
+  try {
+    const llamaGuardPrompt = `<|begin_of_text|><|start_header_id|>user<|end_header_id|>
+
+Task: Check if there is unsafe content in 'User' messages in conversations according to our safety policy with the below categories.
+
+<BEGIN UNSAFE CONTENT CATEGORIES>
+S1: Violent Crimes
+S2: Non-Violent Crimes
+S3: Sex-Related Crimes
+S4: Child Sexual Exploitation
+S5: Defamation
+S6: Specialized Advice
+S7: Privacy
+S8: Intellectual Property
+S9: Indiscriminate Weapons
+S10: Hate
+S11: Suicide & Self-Harm
+S12: Sexual Content
+S13: Elections
+S14: Code Interpreter Abuse
+<END UNSAFE CONTENT CATEGORIES>
+
+<BEGIN CONVERSATION>
+
+User: ${content.slice(0, 2000)}
+
+<END CONVERSATION>
+
+Provide your safety assessment for ONLY THE LAST User message in the above conversation:
+- First line must read 'safe' or 'unsafe'.
+- If unsafe, a second line must include a comma-separated list of violated categories.<|eot_id|><|start_header_id|>assistant<|end_header_id|>`;
+
+    // Add timeout to moderation request
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${groqApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'meta-llama/llama-guard-4-12b',
+        messages: [{ role: 'user', content: llamaGuardPrompt }],
+        temperature: 0,
+        max_tokens: 50,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      // FAIL CLOSED on API error - block the message to be safe
+      if (requestId) {
+        log('error', requestId, 'Moderation API error - failing closed', { status: response.status });
+      }
+      return { 
+        flagged: true, 
+        reason: 'Unable to verify message safety. Please try again.',
+        categories: ['API_ERROR'],
+      };
+    }
+
+    const data = await response.json();
+    const result = (data.choices?.[0]?.message?.content || '').trim().toLowerCase();
+    const lines = result.split('\n').filter((l: string) => l.trim());
+    
+    const isSafe = lines[0]?.includes('safe') && !lines[0]?.includes('unsafe');
+    
+    if (!isSafe) {
+      // Parse categories from second line
+      const categories: string[] = [];
+      if (lines[1]) {
+        const categoryMatches = lines[1].match(/s\d+/gi) || [];
+        categories.push(...categoryMatches.map((c: string) => c.toUpperCase()));
+      }
+      
+      // Map category codes to human-readable names
+      const categoryNames: Record<string, string> = {
+        'S1': 'Violent Crimes',
+        'S4': 'Child Safety',
+        'S10': 'Hate Speech',
+        'S11': 'Self-Harm',
+        'S12': 'Inappropriate Content',
+      };
+      
+      const reason = categories.length > 0 
+        ? `Flagged: ${categories.map(c => categoryNames[c] || c).join(', ')}`
+        : 'Content policy violation';
+        
+      return { flagged: true, reason, categories };
+    }
+    
+    return { flagged: false };
+  } catch (error) {
+    // FAIL CLOSED on errors - block the message
+    if (requestId) {
+      log('error', requestId, 'Moderation check failed - failing closed', { error: error.message });
+    }
+    return { 
+      flagged: true, 
+      reason: 'Unable to verify message safety. Please try again.',
+      categories: ['CHECK_ERROR'],
+    };
+  }
 }
 
 // Create notifications for @mentions

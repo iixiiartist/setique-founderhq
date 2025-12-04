@@ -24,6 +24,7 @@ interface AIInvokeSheetProps {
 // Available context sources
 const CONTEXT_SOURCES = [
   { id: 'tasks', label: 'Tasks', icon: CheckSquare, description: 'Include recent tasks' },
+  { id: 'accounts', label: 'Accounts', icon: Users, description: 'Include CRM accounts' },
   { id: 'contacts', label: 'Contacts', icon: Users, description: 'Include CRM contacts' },
   { id: 'deals', label: 'Deals', icon: DollarSign, description: 'Include deal pipeline' },
   { id: 'documents', label: 'Documents', icon: FileText, description: 'Include GTM docs' },
@@ -177,11 +178,13 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
           {/* Prompt input */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="ai-prompt-input" className="block text-sm font-medium text-gray-700 mb-2">
               What would you like to know?
             </label>
             <textarea
               ref={textareaRef}
+              id="ai-prompt-input"
+              name="ai-prompt-input"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -244,8 +247,10 @@ export const AIInvokeSheet: React.FC<AIInvokeSheetProps> = ({
                 </div>
               </div>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
+            <label htmlFor="ai-web-search-toggle" className="relative inline-flex items-center cursor-pointer">
               <input
+                id="ai-web-search-toggle"
+                name="ai-web-search-toggle"
                 type="checkbox"
                 checked={useWebSearch}
                 onChange={(e) => setUseWebSearch(e.target.checked)}

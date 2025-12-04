@@ -1,5 +1,10 @@
 import type { DashboardData } from './types';
 
+// Plan tiers that unlock premium features (AI assistant, etc.)
+// IMPORTANT: Keep in sync with backend checks in Edge Functions
+export const PAID_PLANS = ['pro', 'team-pro', 'enterprise', 'business', 'premium'] as const;
+export type PaidPlanType = typeof PAID_PLANS[number];
+
 export const Tab = {
     Dashboard: 'dashboard',
     Calendar: 'calendar',

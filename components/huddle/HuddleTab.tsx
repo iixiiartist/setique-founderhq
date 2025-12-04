@@ -117,19 +117,35 @@ export const HuddleTab: React.FC<HuddleTabProps> = ({ isMainMenuOpen = false }) 
         }
     }, [rooms, activeRoomId]);
 
-    // Mark room as read
+    // Mark room as read when entering a room with unread messages
+    // Use a ref to track last marked room to prevent loops
+    const lastMarkedRoomRef = useRef<string | null>(null);
     useEffect(() => {
-        if (activeRoomId && (typedUnreadCounts[activeRoomId] ?? 0) > 0) {
+        const unreadCount = typedUnreadCounts[activeRoomId ?? ''] ?? 0;
+        // Only mark as read if:
+        // 1. We have an active room
+        // 2. There are unread messages
+        // 3. We haven't already marked this room as read in this session
+        if (activeRoomId && unreadCount > 0 && lastMarkedRoomRef.current !== activeRoomId) {
+            lastMarkedRoomRef.current = activeRoomId;
             markRead.mutate(activeRoomId);
         }
-    }, [activeRoomId, typedUnreadCounts, markRead, messages.length]);
+    }, [activeRoomId]); // Only depend on activeRoomId - mark read once on room entry
+    
+    // Reset the marked room ref when switching rooms
+    useEffect(() => {
+        if (activeRoomId !== lastMarkedRoomRef.current) {
+            lastMarkedRoomRef.current = null;
+        }
+    }, [activeRoomId]);
 
     // Helper: Get DM display name
     const getDMName = useCallback((room: HuddleRoom): string => {
         if (room.name) return room.name;
         const members = room.members || [];
         const otherMembers = members.filter(m => m.user_id !== user?.id);
-        if (otherMembers.length === 0) return 'Direct Message';
+        // Self-DM: only the current user is a member
+        if (otherMembers.length === 0) return 'Personal Space';
         if (otherMembers.length === 1) return otherMembers[0].user?.full_name || 'Unknown';
         return otherMembers.slice(0, 2).map(m => m.user?.full_name || 'Unknown').join(', ') +
             (otherMembers.length > 2 ? ` +${otherMembers.length - 2}` : '');
@@ -274,6 +290,72 @@ export const HuddleTab: React.FC<HuddleTabProps> = ({ isMainMenuOpen = false }) 
         });
     }, [activeRoomId, invokeAI]);
 
+    // Quick inline AI invoke for thread (when user types @ai in thread composer)
+    const handleInlineAIInvoke = useCallback(async (prompt: string, threadRootId: string) => {
+        if (!activeRoomId) return;
+
+        await invokeAI({
+            room_id: activeRoomId,
+            thread_root_id: threadRootId,
+            prompt,
+            user_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            context_options: {
+                include_recent_messages: true,
+                include_thread: true, // Always include thread context for follow-ups
+                include_workspace_data: true,
+                workspace_data_types: ['tasks', 'contacts', 'deals', 'documents', 'accounts'],
+                include_web_research: true, // AI can search web when needed
+            },
+            tool_options: {
+                allow_task_creation: true,
+                allow_contact_creation: true,
+                allow_account_creation: true,
+                allow_deal_creation: true,
+                allow_expense_creation: true,
+                allow_revenue_creation: true,
+                allow_note_creation: true,
+                allow_calendar_event_creation: true,
+                allow_marketing_campaign_creation: true,
+                allow_web_search: true, // AI can use web_search tool
+            },
+        });
+    }, [activeRoomId, invokeAI]);
+
+    // Quick inline AI invoke for main chat (when user types @ai in main composer)
+    const handleMainChatInlineAI = useCallback(async (prompt: string) => {
+        console.log('[HuddleTab] handleMainChatInlineAI called', { prompt, activeRoomId });
+        if (!activeRoomId) {
+            console.warn('[HuddleTab] No activeRoomId, aborting AI invoke');
+            return;
+        }
+
+        console.log('[HuddleTab] Invoking AI...');
+        await invokeAI({
+            room_id: activeRoomId,
+            prompt,
+            user_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            context_options: {
+                include_recent_messages: true,
+                include_thread: false,
+                include_workspace_data: true,
+                workspace_data_types: ['tasks', 'contacts', 'deals', 'documents', 'accounts'],
+                include_web_research: true, // AI can search web when needed
+            },
+            tool_options: {
+                allow_task_creation: true,
+                allow_contact_creation: true,
+                allow_account_creation: true,
+                allow_deal_creation: true,
+                allow_expense_creation: true,
+                allow_revenue_creation: true,
+                allow_note_creation: true,
+                allow_calendar_event_creation: true,
+                allow_marketing_campaign_creation: true,
+                allow_web_search: true, // AI can use web_search tool
+            },
+        });
+    }, [activeRoomId, invokeAI]);
+
     const handleCreateChannel = useCallback(async (data: CreateRoomData) => {
         if (!workspaceId) return;
         try {
@@ -296,9 +378,13 @@ export const HuddleTab: React.FC<HuddleTabProps> = ({ isMainMenuOpen = false }) 
     }, [workspaceId, createRoom]);
 
     const handleCreateDM = useCallback(async (data: CreateRoomData) => {
-        if (!workspaceId || !data.memberIds?.length) return;
+        if (!workspaceId || !user?.id) return;
         try {
-            const result = await getOrCreateDM.mutateAsync({ workspaceId, userIds: data.memberIds });
+            // Include current user in the DM participants
+            // If no members selected, it's a self-DM (personal workspace)
+            const selectedMembers = data.memberIds || [];
+            const allUserIds = [...new Set([user.id, ...selectedMembers])];
+            const result = await getOrCreateDM.mutateAsync({ workspaceId, userIds: allUserIds });
             if (result) {
                 setActiveRoomId(result.room_id);
                 setShowCreateDM(false);
@@ -306,7 +392,7 @@ export const HuddleTab: React.FC<HuddleTabProps> = ({ isMainMenuOpen = false }) 
         } catch (error) {
             console.error('Failed to create DM:', error);
         }
-    }, [workspaceId, getOrCreateDM]);
+    }, [workspaceId, getOrCreateDM, user?.id]);
 
     const handleReaction = useCallback(async (messageId: string, emoji: string) => {
         try {
@@ -445,12 +531,12 @@ export const HuddleTab: React.FC<HuddleTabProps> = ({ isMainMenuOpen = false }) 
 
             {/* Left sidebar - Room list */}
             <div className={`
-                w-64 border-r-2 border-black flex flex-col bg-gray-50
+                w-64 border-r border-gray-200 flex flex-col bg-gray-50
                 fixed sm:relative inset-y-0 left-0 ${huddleOverlayZIndex}
                 transform transition-transform duration-300 ease-out
                 ${showMobileRoomList ? 'translate-x-0' : '-translate-x-full sm:translate-x-0'}
             `}>
-                <div className="p-3 sm:p-4 border-b-2 border-black bg-white">
+                <div className="p-3 sm:p-4 border-b border-gray-200 bg-white">
                     <div className="flex items-center justify-between mb-2 sm:mb-3">
                         <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">
                             <MessageSquare size={18} className="text-gray-700 sm:w-5 sm:h-5" />
@@ -465,7 +551,7 @@ export const HuddleTab: React.FC<HuddleTabProps> = ({ isMainMenuOpen = false }) 
                         + New Channel
                     </button>
                 </div>
-                <RoomList rooms={rooms} activeRoomId={activeRoomId} unreadCounts={unreadCounts} onSelectRoom={handleSelectRoom} onNewDM={() => setShowCreateDM(true)} isLoading={roomsLoading} />
+                <RoomList rooms={rooms} activeRoomId={activeRoomId} unreadCounts={unreadCounts} onSelectRoom={handleSelectRoom} onNewDM={() => setShowCreateDM(true)} isLoading={roomsLoading} currentUserId={user?.id} />
             </div>
 
             {/* Main chat area */}
@@ -492,6 +578,8 @@ export const HuddleTab: React.FC<HuddleTabProps> = ({ isMainMenuOpen = false }) 
                         <MessageComposer
                             onSend={handleSendMessage}
                             onAIInvoke={() => { setAiThreadRootId(null); setShowAISheet(true); }}
+                            onInlineAIInvoke={handleMainChatInlineAI}
+                            isAILoading={isAILoading}
                             onTyping={() => setTyping(true)}
                             placeholder={`Message ${activeRoom.type === 'dm' ? getDMName(activeRoom) : '#' + activeRoom.name}...`}
                             aiEnabled={activeRoom.settings?.ai_allowed !== false}
@@ -517,6 +605,8 @@ export const HuddleTab: React.FC<HuddleTabProps> = ({ isMainMenuOpen = false }) 
                     onTyping={() => setTyping(true)}
                     onOpenAI={() => { setAiThreadRootId(threadMessage.id); setShowAISheet(true); }}
                     onLinkedEntityClick={handleLinkedEntityClick}
+                    onAIInvoke={handleInlineAIInvoke}
+                    isAILoading={isAILoading}
                 />
             )}
 

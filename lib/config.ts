@@ -19,8 +19,20 @@ export const APP_CONFIG = {
     groq: {
       // Groq API key remains server-side only (Supabase secret)
       edgeFunction: 'groq-chat',
-      // openai/gpt-oss-120b provides excellent OpenAI-compatible function-calling support
+      // Model selection: 
+      // - openai/gpt-oss-120b: Best for function calling + reasoning
+      // - groq/compound: Best for web search + agentic tasks (built-in tools)
+      // - llama-3.3-70b-versatile: Fast general chat
+      // - llama-3.1-8b-instant: Fastest for simple queries
       defaultModel: import.meta.env.VITE_GROQ_MODEL || 'openai/gpt-oss-120b',
+      // Alternative models for specific use cases
+      models: {
+        default: 'openai/gpt-oss-120b',
+        fast: 'llama-3.1-8b-instant',
+        agentic: 'groq/compound',
+        reasoning: 'openai/gpt-oss-120b',
+        moderation: 'meta-llama/llama-guard-4-12b',
+      },
     },
   },
 

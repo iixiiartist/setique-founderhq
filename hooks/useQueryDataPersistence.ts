@@ -42,7 +42,7 @@ export const useQueryDataPersistence = () => {
   } = useWorkspaceCrm(workspaceId);
 
   /**
-   * Load core data (settings)
+   * Load core data (settings) - uses targeted query to avoid duplicate heavy loads
    */
   const loadCoreData = useCallback(async () => {
     if (!userId || !workspaceId) {
@@ -50,9 +50,10 @@ export const useQueryDataPersistence = () => {
     }
 
     try {
-      const { data: dashboardData } = await DatabaseService.getAllDashboardData(userId, workspaceId);
+      // Use targeted settings query instead of getAllDashboardData
+      const { data: settings } = await DatabaseService.getUserSettings(userId);
       return {
-        settings: dashboardData?.settings || EMPTY_DASHBOARD_DATA.settings
+        settings: settings || EMPTY_DASHBOARD_DATA.settings
       };
     } catch (err) {
       console.error('Error loading core data:', err);

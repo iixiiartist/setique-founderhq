@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { TabType } from '../constants';
 import type { YouSearchMetadata } from '../src/lib/services/youSearch.types';
 import { htmlToPlainText, parseAIResponse } from '../utils/aiContentParser';
+import debug, { logError } from '../lib/utils/debugLogger';
 
 // Conversation history structure matching ModuleAssistant's Content format
 interface Part {
@@ -60,10 +62,32 @@ export const useConversationHistory = (context: TabType, workspaceId?: string, u
   const [history, setHistory] = useState<Content[]>(() => {
     return loadHistory(storageKey);
   });
-
-  // Save history to localStorage whenever it changes
+  
+  // Use ref to always have the latest history for synchronous access
+  const historyRef = useRef<Content[]>(history);
   useEffect(() => {
-    saveHistory(storageKey, history);
+    historyRef.current = history;
+  }, [history]);
+  
+  // Track the previous storage key to detect changes
+  const prevStorageKeyRef = useRef(storageKey);
+
+  // Reload history when storage key changes (context, workspace, or user changed)
+  useEffect(() => {
+    if (prevStorageKeyRef.current !== storageKey) {
+      debug.log('useConversationHistory', 'Storage key changed, reloading history');
+      prevStorageKeyRef.current = storageKey;
+      const newHistory = loadHistory(storageKey);
+      setHistory(newHistory);
+    }
+  }, [storageKey]);
+
+  // Save history to localStorage whenever it changes (but not on key change initial load)
+  useEffect(() => {
+    // Only save if this isn't the initial load after a key change
+    if (prevStorageKeyRef.current === storageKey) {
+      saveHistory(storageKey, history);
+    }
   }, [history, storageKey]);
 
   // Load history from localStorage
@@ -84,7 +108,7 @@ export const useConversationHistory = (context: TabType, workspaceId?: string, u
 
       return storedHistory || [];
     } catch (error) {
-      console.error(`[useConversationHistory] Failed to load history for ${key}:`, error);
+      logError('useConversationHistory', `Failed to load history for ${key}`, error);
       return [];
     }
   }
@@ -133,13 +157,13 @@ export const useConversationHistory = (context: TabType, workspaceId?: string, u
     } catch (error) {
       // Handle quota exceeded error
       if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-        console.warn('[useConversationHistory] Storage quota exceeded, clearing old conversations');
+        debug.warn('useConversationHistory', 'Storage quota exceeded, clearing old conversations');
         clearOldConversations();
         // Try again with reduced history
         const reducedHistory = historyToSave.slice(-20);
         saveHistory(key, reducedHistory);
       } else {
-        console.error(`[useConversationHistory] Failed to save history for ${key}:`, error);
+        logError('useConversationHistory', `Failed to save history`, error);
       }
     }
   }
@@ -168,30 +192,51 @@ export const useConversationHistory = (context: TabType, workspaceId?: string, u
         }
       });
     } catch (error) {
-      console.error('[useConversationHistory] Failed to cleanup old conversations:', error);
+      logError('useConversationHistory', 'Failed to cleanup old conversations', error);
     }
   }
 
-  // Add message to history
+  // Add message to history - uses flushSync to ensure synchronous updates
+  // This prevents issues with rapid consecutive calls (user message + model message)
   const addMessage = useCallback((message: Content) => {
-    setHistory(prev => {
-      const newHistory = [...prev, message];
-      // Enforce max messages limit
-      if (newHistory.length > MAX_MESSAGES_PER_CONTEXT) {
-        return newHistory.slice(-MAX_MESSAGES_PER_CONTEXT);
-      }
-      return newHistory;
+    debug.log('useConversationHistory', 'Adding message', {
+      role: message.role,
+      hasText: !!message.parts.find(p => 'text' in p)?.text,
+      historyLength: historyRef.current.length
+    });
+    
+    // Use flushSync to ensure the state update happens synchronously
+    // This fixes issues where React 18's automatic batching can cause
+    // rapid consecutive updates (user msg + model msg) to not apply correctly
+    flushSync(() => {
+      setHistory(prev => {
+        const newHistory = [...prev, message];
+        // Update ref immediately for synchronous access
+        historyRef.current = newHistory;
+        // Enforce max messages limit
+        if (newHistory.length > MAX_MESSAGES_PER_CONTEXT) {
+          const trimmed = newHistory.slice(-MAX_MESSAGES_PER_CONTEXT);
+          historyRef.current = trimmed;
+          return trimmed;
+        }
+        return newHistory;
+      });
     });
   }, []);
 
   // Add multiple messages (batch)
   const addMessages = useCallback((messages: Content[]) => {
-    setHistory(prev => {
-      const newHistory = [...prev, ...messages];
-      if (newHistory.length > MAX_MESSAGES_PER_CONTEXT) {
-        return newHistory.slice(-MAX_MESSAGES_PER_CONTEXT);
-      }
-      return newHistory;
+    flushSync(() => {
+      setHistory(prev => {
+        const newHistory = [...prev, ...messages];
+        historyRef.current = newHistory;
+        if (newHistory.length > MAX_MESSAGES_PER_CONTEXT) {
+          const trimmed = newHistory.slice(-MAX_MESSAGES_PER_CONTEXT);
+          historyRef.current = trimmed;
+          return trimmed;
+        }
+        return newHistory;
+      });
     });
   }, []);
 
@@ -206,7 +251,7 @@ export const useConversationHistory = (context: TabType, workspaceId?: string, u
     try {
       localStorage.removeItem(storageKey);
     } catch (error) {
-      console.error('[useConversationHistory] Failed to clear history:', error);
+      logError('useConversationHistory', 'Failed to clear history', error);
     }
   }, [storageKey]);
 
@@ -259,7 +304,7 @@ export const useConversationHistory = (context: TabType, workspaceId?: string, u
         const plain = htmlToPlainText(html);
         return plain || value;
       } catch (error) {
-        console.warn('[useConversationHistory] Failed to parse markdown for export', error);
+        debug.warn('useConversationHistory', 'Failed to parse markdown for export', { error });
         return value;
       }
     };

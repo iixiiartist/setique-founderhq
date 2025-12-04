@@ -2,7 +2,7 @@
 // Modal for running the Research & Briefing agent
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { X, Globe, FileText, AlertCircle, Sparkles, Save, Check, Download, FolderPlus, ChevronDown } from 'lucide-react';
+import { X, Globe, FileText, AlertCircle, Sparkles, Save, Check, Download, FolderPlus, ChevronDown, PlayCircle } from 'lucide-react';
 import { useYouAgent } from '../../hooks/useYouAgent';
 import { useAgentReports } from '../../hooks/useAgentReports';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
@@ -26,6 +26,15 @@ interface ResearchAgentModalProps {
   onInsertToDoc?: (content: string) => void;
   initialTarget?: string;
   savedReport?: AgentReport | null;
+  onStartBackgroundJob?: (params: {
+    agentSlug: string;
+    target: string;
+    goal: string;
+    notes?: string;
+    urls?: string[];
+    inputPrompt: string;
+    context?: Record<string, unknown>;
+  }) => Promise<unknown>;
 }
 
 type GoalType = 'icp' | 'competitive' | 'angles' | 'market';
@@ -43,6 +52,7 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
   onInsertToDoc,
   initialTarget = '',
   savedReport = null,
+  onStartBackgroundJob,
 }) => {
   const agentConfig = YOU_AGENTS.research_briefing;
   const { run, loading, error, errorCode, lastResponse, resetIn, reset, streamingOutput, isStreaming } = useYouAgent('research_briefing');
@@ -61,6 +71,7 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
   const [exportingPdf, setExportingPdf] = useState(false);
   const [savingToLibrary, setSavingToLibrary] = useState(false);
   const [savedToLibrary, setSavedToLibrary] = useState(false);
+  const [startingBackground, setStartingBackground] = useState(false);
 
   // Validation state
   const targetValidation = useMemo(() => validateTarget(target), [target]);
@@ -198,34 +209,31 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
     }
   }, [getReportForExport, user, workspace]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Validate and build prompt for both foreground and background runs
+  const validateAndBuildPrompt = useCallback(() => {
     setValidationError(null);
 
-    // Validate all inputs
     if (!targetValidation.isValid) {
       setValidationError(targetValidation.error || 'Invalid target');
-      return;
+      return null;
     }
     
     if (!notesValidation.isValid) {
       setValidationError(notesValidation.error || 'Invalid notes');
-      return;
+      return null;
     }
     
     if (urlsValidation.error) {
       setValidationError(urlsValidation.error);
-      return;
+      return null;
     }
 
-    // Build the prompt with sanitized values
     const input = buildPrompt({ 
       target: targetValidation.sanitized, 
       goal, 
       notes: notesValidation.sanitized 
     });
     
-    // Build context with validated URLs
     const context = {
       urls: urlsValidation.validUrls,
       founderhq_context: {
@@ -234,8 +242,46 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
       },
     };
 
+    return { input, context };
+  }, [targetValidation, notesValidation, urlsValidation, goal]);
+
+  // Run in background - closes modal and continues working
+  const handleRunInBackground = useCallback(async () => {
+    if (!onStartBackgroundJob) return;
+    
+    const validated = validateAndBuildPrompt();
+    if (!validated) return;
+
+    setStartingBackground(true);
     try {
-      await run(input, context);
+      await onStartBackgroundJob({
+        agentSlug: 'research_briefing',
+        target: targetValidation.sanitized,
+        goal,
+        notes: notesValidation.sanitized || undefined,
+        urls: urlsValidation.validUrls,
+        inputPrompt: validated.input,
+        context: validated.context,
+      });
+      
+      // Close modal after starting background job
+      handleClose();
+    } catch (err) {
+      console.error('[ResearchAgentModal] Background job failed:', err);
+      setValidationError('Failed to start background job');
+    } finally {
+      setStartingBackground(false);
+    }
+  }, [onStartBackgroundJob, validateAndBuildPrompt, targetValidation, notesValidation, urlsValidation, goal, handleClose]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const validated = validateAndBuildPrompt();
+    if (!validated) return;
+
+    try {
+      await run(validated.input, validated.context);
     } catch (err) {
       // Error is already handled by the hook
       console.error('[ResearchAgentModal] Run failed:', err);
@@ -400,29 +446,57 @@ export const ResearchAgentModal: React.FC<ResearchAgentModalProps> = ({
                 </div>
               )}
 
-              {/* Submit Button */}
-              <div className="flex items-center justify-between pt-2">
-                <p className="text-xs text-gray-500 flex items-center gap-1">
+              {/* Submit Buttons */}
+              <div className="flex items-center justify-between pt-2 gap-3">
+                <p className="text-xs text-gray-500 flex items-center gap-1 flex-shrink-0">
                   <Sparkles size={12} />
-                  {isStreaming ? 'Streaming response...' : 'Results typically take 30-90 seconds for comprehensive research'}
+                  {isStreaming ? 'Streaming response...' : 'Results typically take 30-90 seconds'}
                 </p>
-                <button
-                  type="submit"
-                  disabled={loading || !targetValidation.isValid || !notesValidation.isValid || !!urlsValidation.error}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 hover:bg-black disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
-                >
-                  {loading ? (
-                    <>
-                      <span className="relative w-4.5 h-4.5 inline-block"><span className="absolute inset-0 border-2 border-current animate-spin" style={{ animationDuration: '1.2s' }} /><span className="absolute inset-0.5 border border-current/40 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} /></span>
-                      {isStreaming ? 'Receiving data...' : 'Researching...'}
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles size={18} />
-                      Run Briefing
-                    </>
+                <div className="flex items-center gap-2">
+                  {/* Run in Background button */}
+                  {onStartBackgroundJob && (
+                    <button
+                      type="button"
+                      onClick={handleRunInBackground}
+                      disabled={loading || startingBackground || !targetValidation.isValid || !notesValidation.isValid || !!urlsValidation.error}
+                      className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 hover:border-gray-400 disabled:border-gray-200 disabled:cursor-not-allowed text-gray-700 disabled:text-gray-400 font-medium rounded-lg transition-colors bg-white"
+                      title="Start in background and continue working"
+                    >
+                      {startingBackground ? (
+                        <>
+                          <span className="relative w-4 h-4 inline-block"><span className="absolute inset-0 border-2 border-current animate-spin" style={{ animationDuration: '1.2s' }} /></span>
+                          Starting...
+                        </>
+                      ) : (
+                        <>
+                          <PlayCircle size={16} />
+                          <span className="hidden sm:inline">Run in Background</span>
+                          <span className="sm:hidden">Background</span>
+                        </>
+                      )}
+                    </button>
                   )}
-                </button>
+                  
+                  {/* Run Now button */}
+                  <button
+                    type="submit"
+                    disabled={loading || startingBackground || !targetValidation.isValid || !notesValidation.isValid || !!urlsValidation.error}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 hover:bg-black disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors"
+                  >
+                    {loading ? (
+                      <>
+                        <span className="relative w-4.5 h-4.5 inline-block"><span className="absolute inset-0 border-2 border-current animate-spin" style={{ animationDuration: '1.2s' }} /><span className="absolute inset-0.5 border border-current/40 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} /></span>
+                        {isStreaming ? 'Receiving...' : 'Researching...'}
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={18} />
+                        <span className="hidden sm:inline">Run Briefing</span>
+                        <span className="sm:hidden">Run</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Streaming Preview */}

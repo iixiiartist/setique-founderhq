@@ -31,6 +31,9 @@ export function useHuddleRooms(workspaceId: string | undefined) {
     },
     enabled: !!workspaceId,
     staleTime: 30000,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -44,6 +47,8 @@ export function useHuddleRoom(roomId: string | undefined) {
       return data;
     },
     enabled: !!roomId,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 }
 
@@ -145,13 +150,18 @@ export function useHuddleMessages(roomId: string | undefined, threadRootId?: str
   return useQuery({
     queryKey: ['huddle', 'messages', roomId, threadRootId || 'main'],
     queryFn: async () => {
+      console.log('[useHuddleMessages] Fetching messages for room:', roomId, 'thread:', threadRootId || 'main');
       if (!roomId) return [];
       const { data, error } = await huddleService.getRoomMessages(roomId, { threadRootId });
       if (error) throw error;
+      console.log('[useHuddleMessages] Received', data?.length || 0, 'messages');
       return data || [];
     },
     enabled: !!roomId,
     staleTime: 10000,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -266,6 +276,9 @@ export function useUnreadCounts(workspaceId: string | undefined) {
     enabled: !!workspaceId,
     staleTime: 15000,
     refetchInterval: 30000, // Refresh every 30s
+    retry: 2, // Only retry twice on failure
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+    refetchOnWindowFocus: false, // Don't refetch on window focus to reduce load
   });
 }
 
@@ -293,7 +306,11 @@ export function useInvokeAI() {
   const [toolCalls, setToolCalls] = useState<any[]>([]);
   const [webSources, setWebSources] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [moderationStatus, setModerationStatus] = useState<{ blocked?: boolean; reason?: string } | null>(null);
   const queryClient = useQueryClient();
+  
+  // Abort controller for cancellation
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Invalidate caches based on what tool was used
   const invalidateToolCaches = useCallback((toolName: string) => {
@@ -335,71 +352,118 @@ export function useInvokeAI() {
   }, [queryClient]);
 
   const invoke = useCallback(async (request: AIRunRequest) => {
+    // Cancel any existing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Create new abort controller
+    abortControllerRef.current = new AbortController();
+    
     setIsStreaming(true);
     setStreamContent('');
     setToolCalls([]);
     setWebSources([]);
     setError(null);
+    setModerationStatus(null);
 
-    const { error } = await huddleService.invokeAI(request, (event: AIStreamEvent) => {
-      switch (event.type) {
-        case 'content':
-          setStreamContent(prev => prev + (event.content || ''));
-          break;
-        case 'tool_result':
-          setToolCalls(prev => [...prev, { name: event.tool, result: event.result }]);
-          // Invalidate relevant caches when tool completes successfully
-          if (event.result?.success && event.tool) {
-            invalidateToolCaches(event.tool);
-          }
-          break;
-        case 'complete':
-          setIsStreaming(false);
-          if (event.tool_calls) {
-            setToolCalls(event.tool_calls);
-            // Invalidate caches for all completed tools
-            event.tool_calls.forEach((tc: any) => {
-              if (tc.result?.success) {
-                invalidateToolCaches(tc.name);
-              }
-            });
-          }
-          if (event.web_sources) setWebSources(event.web_sources);
-          // Refresh messages - invalidate both main timeline and thread (if applicable)
-          queryClient.invalidateQueries({ queryKey: ['huddle', 'messages', request.room_id, 'main'] });
-          if (request.thread_root_id) {
-            queryClient.invalidateQueries({ queryKey: ['huddle', 'messages', request.room_id, request.thread_root_id] });
-          }
-          break;
-        case 'error':
-          setError(event.error || 'Unknown error');
-          setIsStreaming(false);
-          break;
-      }
-    });
+    const { error } = await huddleService.invokeAI(
+      request, 
+      (event: AIStreamEvent) => {
+        switch (event.type) {
+          case 'content':
+            setStreamContent(prev => prev + (event.content || ''));
+            break;
+          case 'tool_result':
+            setToolCalls(prev => [...prev, { name: event.tool, result: event.result, error: event.error, cached: event.cached }]);
+            // Invalidate relevant caches when tool completes successfully
+            if (event.result?.success && event.tool) {
+              invalidateToolCaches(event.tool);
+            }
+            break;
+          case 'moderation_blocked':
+            setModerationStatus({ blocked: true, reason: event.reason });
+            break;
+          case 'complete':
+            console.log('[useInvokeAI] Complete event received, invalidating queries for room:', request.room_id);
+            setIsStreaming(false);
+            if (event.tool_calls) {
+              setToolCalls(event.tool_calls);
+              // Invalidate caches for all completed tools
+              event.tool_calls.forEach((tc: any) => {
+                if (tc.result?.success) {
+                  invalidateToolCaches(tc.name);
+                }
+              });
+            }
+            if (event.web_sources) setWebSources(event.web_sources);
+            // Refresh messages - invalidate both main timeline and thread (if applicable)
+            console.log('[useInvokeAI] Invalidating query key:', ['huddle', 'messages', request.room_id, 'main']);
+            queryClient.invalidateQueries({ queryKey: ['huddle', 'messages', request.room_id, 'main'] });
+            if (request.thread_root_id) {
+              queryClient.invalidateQueries({ queryKey: ['huddle', 'messages', request.room_id, request.thread_root_id] });
+            }
+            break;
+          case 'error':
+            setError(event.error || 'Unknown error');
+            setIsStreaming(false);
+            break;
+          case 'cancelled':
+            setIsStreaming(false);
+            break;
+        }
+      },
+      abortControllerRef.current.signal
+    );
+
+    // Always invalidate queries after the stream ends (safety net in case 'complete' event was missed)
+    queryClient.invalidateQueries({ queryKey: ['huddle', 'messages', request.room_id, 'main'] });
+    if (request.thread_root_id) {
+      queryClient.invalidateQueries({ queryKey: ['huddle', 'messages', request.room_id, request.thread_root_id] });
+    }
+    setIsStreaming(false);
 
     if (error) {
       setError(error.message);
-      setIsStreaming(false);
     }
   }, [queryClient, invalidateToolCaches]);
 
-  const reset = useCallback(() => {
+  const cancel = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
     setIsStreaming(false);
+  }, []);
+
+  const reset = useCallback(() => {
+    cancel();
     setStreamContent('');
     setToolCalls([]);
     setWebSources([]);
     setError(null);
+    setModerationStatus(null);
+  }, [cancel]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, []);
 
   return {
     invoke,
+    cancel,
     reset,
     isStreaming,
     streamContent,
     toolCalls,
     webSources,
     error,
+    moderationStatus,
   };
 }
 
@@ -459,39 +523,120 @@ export function useRealtimeMessages(
   enabled: boolean = true
 ) {
   const queryClient = useQueryClient();
+  // Track last invalidation time to debounce rapid updates
+  const lastInvalidationRef = useRef<number>(0);
+  const DEBOUNCE_MS = 2000; // Minimum 2 seconds between invalidations
+  
+  // Backoff state for error handling
+  const backoffRef = useRef({
+    attempts: 0,
+    nextRetry: 0,
+    maxAttempts: 5,
+    baseDelay: 1000,
+    maxDelay: 30000,
+  });
 
   useEffect(() => {
     if (!roomId || !enabled) return;
 
-    const subscription = huddleService.subscribeToRoomMessages(
-      roomId,
-      (message) => {
-        // Add new message to cache
-        queryClient.setQueryData<HuddleMessage[]>(
-          ['huddle', 'messages', roomId, message.thread_root_id || 'main'],
-          (old) => {
-            if (!old) return [message];
-            // Check if message already exists (avoid duplicates)
-            if (old.some(m => m.id === message.id)) return old;
-            return [...old, message];
-          }
-        );
-        // Invalidate unread counts
-        queryClient.invalidateQueries({ queryKey: ['huddle', 'unread'] });
-        // Invalidate rooms for last_message_at
-        queryClient.invalidateQueries({ queryKey: ['huddle', 'rooms'] });
-      },
-      (messageId) => {
-        // Remove deleted message from cache
-        queryClient.setQueryData<HuddleMessage[]>(
-          ['huddle', 'messages', roomId, 'main'],
-          (old) => old?.filter(m => m.id !== messageId) || []
-        );
+    let subscription: any = null;
+    let retryTimeoutId: NodeJS.Timeout | null = null;
+    
+    const subscribe = () => {
+      // Check if we should wait before retrying
+      const now = Date.now();
+      if (now < backoffRef.current.nextRetry) {
+        const waitTime = backoffRef.current.nextRetry - now;
+        console.log(`[Huddle Realtime] Backing off for ${waitTime}ms before retry`);
+        retryTimeoutId = setTimeout(subscribe, waitTime);
+        return;
       }
-    );
+      
+      subscription = huddleService.subscribeToRoomMessages(
+        roomId,
+        (message) => {
+          // Reset backoff on successful message
+          backoffRef.current.attempts = 0;
+          backoffRef.current.nextRetry = 0;
+          
+          // Add new message to cache
+          queryClient.setQueryData<HuddleMessage[]>(
+            ['huddle', 'messages', roomId, message.thread_root_id || 'main'],
+            (old) => {
+              if (!old) return [message];
+              // Check if message already exists (avoid duplicates)
+              if (old.some(m => m.id === message.id)) return old;
+              return [...old, message];
+            }
+          );
+          
+          // Debounce invalidations to prevent excessive API calls
+          const currentTime = Date.now();
+          if (currentTime - lastInvalidationRef.current > DEBOUNCE_MS) {
+            lastInvalidationRef.current = currentTime;
+            // Invalidate unread counts
+            queryClient.invalidateQueries({ queryKey: ['huddle', 'unread'] });
+            // Invalidate rooms for last_message_at
+            queryClient.invalidateQueries({ queryKey: ['huddle', 'rooms'] });
+          }
+        },
+        (messageId) => {
+          // Remove deleted message from cache
+          queryClient.setQueryData<HuddleMessage[]>(
+            ['huddle', 'messages', roomId, 'main'],
+            (old) => old?.filter(m => m.id !== messageId) || []
+          );
+        }
+      );
+      
+      // Handle subscription errors with exponential backoff
+      subscription.on('error', (error: any) => {
+        console.error('[Huddle Realtime] Subscription error:', error);
+        
+        backoffRef.current.attempts++;
+        
+        if (backoffRef.current.attempts >= backoffRef.current.maxAttempts) {
+          console.error('[Huddle Realtime] Max retry attempts reached, giving up');
+          return;
+        }
+        
+        // Calculate exponential backoff delay
+        const delay = Math.min(
+          backoffRef.current.baseDelay * Math.pow(2, backoffRef.current.attempts - 1),
+          backoffRef.current.maxDelay
+        );
+        backoffRef.current.nextRetry = Date.now() + delay;
+        
+        console.log(`[Huddle Realtime] Will retry in ${delay}ms (attempt ${backoffRef.current.attempts})`);
+        
+        // Unsubscribe and retry
+        subscription?.unsubscribe();
+        retryTimeoutId = setTimeout(subscribe, delay);
+      });
+      
+      // Handle channel closure
+      subscription.on('close', () => {
+        console.log('[Huddle Realtime] Channel closed');
+        // Only retry if we haven't exceeded max attempts
+        if (backoffRef.current.attempts < backoffRef.current.maxAttempts) {
+          backoffRef.current.attempts++;
+          const delay = Math.min(
+            backoffRef.current.baseDelay * Math.pow(2, backoffRef.current.attempts - 1),
+            backoffRef.current.maxDelay
+          );
+          retryTimeoutId = setTimeout(subscribe, delay);
+        }
+      });
+    };
+    
+    subscribe();
 
     return () => {
-      subscription.unsubscribe();
+      if (retryTimeoutId) clearTimeout(retryTimeoutId);
+      subscription?.unsubscribe();
+      // Reset backoff on cleanup
+      backoffRef.current.attempts = 0;
+      backoffRef.current.nextRetry = 0;
     };
   }, [roomId, enabled, queryClient]);
 }

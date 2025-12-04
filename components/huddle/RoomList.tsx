@@ -12,6 +12,7 @@ interface RoomListProps {
   onSelectRoom: (room: HuddleRoom) => void;
   onNewDM: () => void;
   isLoading: boolean;
+  currentUserId?: string;
 }
 
 export const RoomList: React.FC<RoomListProps> = ({
@@ -21,6 +22,7 @@ export const RoomList: React.FC<RoomListProps> = ({
   onSelectRoom,
   onNewDM,
   isLoading,
+  currentUserId,
 }) => {
   const [expandedSections, setExpandedSections] = useState({
     channels: true,
@@ -110,6 +112,7 @@ export const RoomList: React.FC<RoomListProps> = ({
                 isActive={room.id === activeRoomId}
                 unreadCount={unreadCounts[room.id] || 0}
                 onClick={() => onSelectRoom(room)}
+                currentUserId={currentUserId}
               />
             ))}
           </div>
@@ -125,25 +128,31 @@ interface RoomItemProps {
   isActive: boolean;
   unreadCount: number;
   onClick: () => void;
+  currentUserId?: string;
 }
 
-const RoomItem: React.FC<RoomItemProps> = ({ room, isActive, unreadCount, onClick }) => {
+const RoomItem: React.FC<RoomItemProps> = ({ room, isActive, unreadCount, onClick, currentUserId }) => {
   const isChannel = room.type === 'channel';
   
   // Get display name for DMs
   const getDisplayName = () => {
     if (room.name) return room.name;
     
-    // For DMs, show other member names
+    // For DMs, show other member names (excluding current user)
     const members = room.members || [];
-    if (members.length === 0) return 'Direct Message';
+    const otherMembers = currentUserId 
+      ? members.filter(m => m.user_id !== currentUserId)
+      : members;
+    
+    // Self-DM: only the current user is a member
+    if (otherMembers.length === 0) return 'Personal Space';
     
     // Get first other member's name
-    const displayMembers = members.slice(0, 2);
+    const displayMembers = otherMembers.slice(0, 2);
     const names = displayMembers.map(m => m.user?.full_name || 'Unknown');
     
-    if (members.length > 2) {
-      return `${names.join(', ')} +${members.length - 2}`;
+    if (otherMembers.length > 2) {
+      return `${names.join(', ')} +${otherMembers.length - 2}`;
     }
     return names.join(', ');
   };
@@ -153,7 +162,20 @@ const RoomItem: React.FC<RoomItemProps> = ({ room, isActive, unreadCount, onClic
     if (isChannel) return null;
     
     const members = room.members || [];
-    const firstMember = members.find(m => m.user_id !== undefined);
+    const otherMembers = currentUserId 
+      ? members.filter(m => m.user_id !== currentUserId)
+      : members;
+    
+    // Self-DM: show brain emoji
+    if (otherMembers.length === 0) {
+      return (
+        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-slate-600 to-slate-800 flex items-center justify-center text-xs">
+          🧠
+        </div>
+      );
+    }
+    
+    const firstMember = otherMembers[0];
     if (firstMember?.user?.avatar_url) {
       return (
         <img

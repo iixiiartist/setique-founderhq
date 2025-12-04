@@ -14,6 +14,8 @@ export function SubscriptionSection({
     onUpgradeClick,
     onManageSubscription 
 }: SubscriptionSectionProps) {
+    const isPaidPlan = planType === 'team-pro';
+    
     const subscriptionDescription = (() => {
         switch (planType) {
             case 'team-pro':
@@ -28,32 +30,84 @@ export function SubscriptionSection({
     ).join(' ');
 
     return (
-        <div className="space-y-4">
-            <div>
-                <h3 className="font-bold text-black mb-2">
-                    Current Plan: {formattedPlanName}
-                </h3>
+        <div className="space-y-6">
+            {/* Current Plan Card */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-5">
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-black">
+                            Current Plan: {formattedPlanName}
+                        </h3>
+                        {isPaidPlan && (
+                            <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                                Active
+                            </span>
+                        )}
+                    </div>
+                </div>
                 <p className="text-sm text-gray-600 mb-4">
                     {subscriptionDescription}
                 </p>
+                
                 <div className="flex flex-wrap gap-3">
-                    {planType !== 'team-pro' && (
+                    {!isPaidPlan && (
                         <button
                             onClick={onUpgradeClick}
-                            className="font-mono bg-blue-600 border border-gray-300 text-white cursor-pointer py-2 px-6 rounded-md font-semibold transition-colors hover:bg-blue-700"
+                            className="font-mono bg-blue-600 border border-blue-700 text-white cursor-pointer py-2 px-6 rounded-md font-semibold transition-colors hover:bg-blue-700"
                         >
-                            Upgrade Plan
+                            Upgrade to Team Pro
                         </button>
                     )}
-                    {stripeCustomerId && (
+                    
+                    {isPaidPlan && (
                         <button
-                            onClick={onManageSubscription}
-                            className="font-mono bg-gray-800 border border-gray-300 text-white cursor-pointer py-2 px-6 rounded-md font-semibold transition-colors hover:bg-gray-900"
+                            onClick={onUpgradeClick}
+                            className="font-mono bg-white border border-gray-300 text-gray-700 cursor-pointer py-2 px-6 rounded-md font-semibold transition-colors hover:bg-gray-50"
                         >
-                            Manage Subscription
+                            View Other Plans
                         </button>
                     )}
                 </div>
+            </div>
+
+            {/* Billing Management Card - Show for paid plans */}
+            {isPaidPlan && (
+                <div className="bg-white border border-gray-200 rounded-lg p-5">
+                    <h4 className="font-bold text-black mb-2">Billing & Payment</h4>
+                    <p className="text-sm text-gray-600 mb-4">
+                        {stripeCustomerId 
+                            ? 'Manage your payment method, view invoices, update billing details, or cancel your subscription.'
+                            : 'Your plan was activated manually. Contact support to manage billing or make changes to your subscription.'}
+                    </p>
+                    {stripeCustomerId ? (
+                        <button
+                            onClick={onManageSubscription}
+                            className="font-mono bg-gray-800 border border-gray-900 text-white cursor-pointer py-2 px-6 rounded-md font-semibold transition-colors hover:bg-gray-900"
+                        >
+                            Manage Billing
+                        </button>
+                    ) : (
+                        <a
+                            href="mailto:support@setique.com?subject=Billing%20Inquiry"
+                            className="inline-block font-mono bg-gray-800 border border-gray-900 text-white py-2 px-6 rounded-md font-semibold transition-colors hover:bg-gray-900"
+                        >
+                            Contact Support
+                        </a>
+                    )}
+                </div>
+            )}
+
+            {/* Help Section */}
+            <div className="text-sm text-gray-500">
+                <p>
+                    Need help with your subscription?{' '}
+                    <a 
+                        href="mailto:support@setique.com" 
+                        className="text-blue-600 hover:underline"
+                    >
+                        Contact support
+                    </a>
+                </p>
             </div>
         </div>
     );

@@ -50,7 +50,6 @@ interface Contact {
   id: string;
   name: string;
   email?: string;
-  type: string;
 }
 
 interface Campaign {
@@ -429,7 +428,7 @@ export const FormBuilder: React.FC<FormBuilderProps> = ({
       // Load contacts
       const { data: contactsData } = await supabase
         .from('contacts')
-        .select('id, name, email, type')
+        .select('id, name, email')
         .eq('workspace_id', workspaceId)
         .order('name')
         .limit(100);

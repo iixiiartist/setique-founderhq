@@ -17,7 +17,11 @@ import {
     CheckCircle2,
     Receipt,
     TrendingUp,
-    Globe
+    Globe,
+    Mic,
+    ScanText,
+    Shield,
+    Zap
 } from 'lucide-react';
 
 export const FEATURES = [
@@ -94,12 +98,12 @@ export const FEATURES = [
 ];
 
 export const AI_CAPABILITIES = [
-    { icon: Sparkles, label: 'Content Creation', description: 'Generate emails, proposals, and copy' },
-    { icon: TrendingUp, label: 'Strategic Insights', description: 'AI-powered forecasts and analysis' },
-    { icon: UserPlus, label: 'Smart Data Entry', description: 'Auto-create contacts and log data' },
-    { icon: Globe, label: 'Market Research', description: 'Research prospects and competitors' },
-    { icon: CheckCircle2, label: 'Task Automation', description: 'Auto-assign and track workflows' },
-    { icon: Building2, label: 'Deal Intelligence', description: 'AI scoring and next-step suggestions' },
+    { icon: Sparkles, label: 'Content Generation', description: 'AI writes emails, proposals, and marketing copy' },
+    { icon: Mic, label: 'Voice Transcription', description: 'Record voice notes, transcribe calls instantly' },
+    { icon: ScanText, label: 'Document OCR', description: 'Extract text from scanned PDFs and images' },
+    { icon: Globe, label: 'Smart Enrichment', description: 'Auto-research companies and contacts in seconds' },
+    { icon: Shield, label: 'Content Safety', description: 'Built-in moderation keeps your workspace safe' },
+    { icon: Zap, label: 'Ultra-Fast AI', description: 'Enterprise-grade speed—750+ tokens per second' },
 ];
 
 export const FAQS = [
@@ -109,7 +113,7 @@ export const FAQS = [
     },
     {
         question: "How is AI integrated throughout FounderHQ?",
-        answer: "AI isn't just a chatbot—it's woven into every workflow. Generate marketing content, get strategic insights on deals, automate data entry, research prospects, draft emails, and get AI-powered analytics. The more you use it, the smarter it gets about your business."
+        answer: "AI is woven into every workflow—not just a chatbot. Generate marketing content, transcribe voice notes and calls, extract text from scanned documents with vision AI, auto-enrich company data in seconds, and get AI-powered analytics. Our infrastructure delivers 750+ tokens per second with built-in content safety."
     },
     {
         question: "What GTM tools does FounderHQ replace?",

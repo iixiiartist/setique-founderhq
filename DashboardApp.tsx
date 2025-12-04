@@ -2058,9 +2058,10 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 })),
         ];
 
-        logger.info('[DashboardApp] All tasks for calendar:', allTasks.map(t => ({ id: t.id, text: t.text, dueDate: t.dueDate, dueTime: t.dueTime })));
-        logger.info('[DashboardApp] Marketing items:', { count: data.marketing.length });
-        logger.info('[DashboardApp] Marketing with dates:', data.marketing.filter(m => m.dueDate).map(m => ({ id: m.id, title: m.title, dueDate: m.dueDate, dueTime: m.dueTime })));
+        // Debug logging - only in development and once per meaningful change
+        if (process.env.NODE_ENV === 'development' && allTasks.length > 0) {
+            logger.debug('[DashboardApp] Calendar data:', { taskCount: allTasks.length, marketingCount: data.marketing.length });
+        }
         
         const marketingEvents = data.marketing
             .filter(m => m.dueDate)
@@ -2071,11 +2072,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
                 contentType: marketingCategory,
             }));
         
-        logger.info('[DashboardApp] Marketing events for calendar:', {
-            count: marketingEvents.length,
-            events: marketingEvents,
-        });
-        
         const calendarEvents: CalendarEvent[] = [
             ...allTasks
                 .filter(t => t.dueDate)
@@ -2084,9 +2080,6 @@ const DashboardApp: React.FC<{ subscribePlan?: string | null }> = ({ subscribePl
             ...allMeetings,
             ...crmNextActions,
         ];
-        
-        logger.info('[DashboardApp] Calendar events after filter:', { count: calendarEvents.length });
-        logger.info('[DashboardApp] Calendar event types:', calendarEvents.map(e => ({ type: e.type, title: e.title || (e.type === 'task' ? (e as any).text : 'Untitled') })));
 
         switch (activeTab) {
             case Tab.Dashboard:

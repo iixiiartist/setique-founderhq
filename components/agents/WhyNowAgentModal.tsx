@@ -2,7 +2,7 @@
 // Modal for running the Why Now timing intelligence agent
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { X, Globe, FileText, AlertCircle, Sparkles, Save, Check, Download, FolderPlus, ChevronDown, Zap, Clock } from 'lucide-react';
+import { X, Globe, FileText, AlertCircle, Sparkles, Save, Check, Download, FolderPlus, ChevronDown, Zap, Clock, PlayCircle } from 'lucide-react';
 import { useYouAgent } from '../../hooks/useYouAgent';
 import { useAgentReports } from '../../hooks/useAgentReports';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
@@ -25,6 +25,15 @@ interface WhyNowAgentModalProps {
   onInsertToDoc?: (content: string) => void;
   initialTarget?: string;
   savedReport?: AgentReport | null;
+  onStartBackgroundJob?: (params: {
+    agentSlug: string;
+    target: string;
+    goal: string;
+    notes?: string;
+    urls?: string[];
+    inputPrompt: string;
+    context?: Record<string, unknown>;
+  }) => Promise<unknown>;
 }
 
 type GoalType = 'timing' | 'signals' | 'outreach' | 'full';
@@ -42,6 +51,7 @@ export const WhyNowAgentModal: React.FC<WhyNowAgentModalProps> = ({
   onInsertToDoc,
   initialTarget = '',
   savedReport = null,
+  onStartBackgroundJob,
 }) => {
   const agentConfig = YOU_AGENTS.why_now;
   const { run, loading, error, errorCode, lastResponse, resetIn, reset, streamingOutput, isStreaming } = useYouAgent('why_now');
@@ -59,6 +69,7 @@ export const WhyNowAgentModal: React.FC<WhyNowAgentModalProps> = ({
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [savingToLibrary, setSavingToLibrary] = useState(false);
+  const [startingBackground, setStartingBackground] = useState(false);
   const [savedToLibrary, setSavedToLibrary] = useState(false);
 
   // Validation state

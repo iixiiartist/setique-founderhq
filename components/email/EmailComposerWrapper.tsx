@@ -150,14 +150,14 @@ export function EmailComposerWrapper({
 
     // Modal mode - render in portal with backdrop
     return createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             {/* Backdrop */}
             <div 
-                className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                className="absolute inset-0 bg-black/30 backdrop-blur-sm"
                 onClick={onClose}
             />
             {/* Modal container */}
-            <div className="relative z-10 w-full max-w-4xl max-h-[90vh] m-4 overflow-hidden rounded-xl shadow-2xl">
+            <div className="relative z-10 w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-xl shadow-2xl bg-white">
                 {composerElement}
             </div>
         </div>,

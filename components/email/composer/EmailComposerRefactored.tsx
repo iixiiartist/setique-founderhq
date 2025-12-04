@@ -33,7 +33,6 @@ import {
     AttachmentsBar,
     AccountErrorBanner
 } from './ComposerParts';
-import { AIActionMenu } from './AIActionMenu';
 import { GTM_TEMPLATES } from '../../../lib/templates/gtmTemplates';
 
 import { X, Maximize2, Minimize2 } from 'lucide-react';
@@ -289,27 +288,98 @@ ${replyTo.body?.html || replyTo.body?.text || replyTo.snippet || ''}
     }
     
     const containerClasses = hook.isFullscreen
-        ? 'fixed inset-0 z-50 bg-white dark:bg-gray-900'
-        : `bg-white dark:bg-gray-900 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 ${className}`;
+        ? 'fixed inset-0 z-50 bg-white flex flex-col'
+        : `bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col max-h-[90vh] ${className}`;
+    
+    // AI action icons mapping
+    const aiIconMap: Record<string, React.ReactNode> = {
+        draft: <span>✏️</span>,
+        improve: <span>✨</span>,
+        shorten: <span>📝</span>,
+        expand: <span>📄</span>,
+        formal: <span>👔</span>,
+        friendly: <span>😊</span>,
+        research: <span>🔍</span>,
+        suggest: <span>💡</span>,
+    };
+    
+    const AI_ACTIONS = [
+        { action: 'draft', label: 'Draft Reply' },
+        { action: 'improve', label: 'Improve Writing' },
+        { action: 'shorten', label: 'Make Shorter' },
+        { action: 'expand', label: 'Expand' },
+        { action: 'formal', label: 'More Formal' },
+        { action: 'friendly', label: 'More Friendly' },
+        { action: 'research', label: 'Research Topic' },
+        { action: 'suggest', label: 'Suggest Points' },
+    ];
     
     return (
         <div ref={containerRef} className={containerClasses}>
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-                <h3 className="font-semibold text-gray-900 dark:text-white">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white flex-shrink-0">
+                <h3 className="font-semibold text-gray-900">
                     {replyTo ? 'Reply' : draftData ? 'Edit Draft' : 'New Email'}
                 </h3>
                 <div className="flex items-center gap-2">
+                    {/* AI Assist Button - in header for consistent positioning */}
+                    <div className="relative" ref={hook.aiButtonRef}>
+                        <button
+                            type="button"
+                            onClick={hook.toggleAiMenu}
+                            disabled={hook.aiProcessing}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white rounded-lg hover:bg-black transition-all text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {hook.aiProcessing ? (
+                                <>
+                                    <span className="animate-spin">⟳</span>
+                                    <span>{hook.aiActionLabel}</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span>✨</span>
+                                    <span>AI Assist</span>
+                                    <span className="text-gray-400">▼</span>
+                                </>
+                            )}
+                        </button>
+                        
+                        {/* AI Menu Dropdown */}
+                        {hook.showAiMenu && (
+                            <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl w-48 py-1 overflow-hidden z-[100]">
+                                <div className="py-0.5 max-h-64 overflow-y-auto">
+                                    {AI_ACTIONS.map((action) => (
+                                        <button
+                                            key={action.action}
+                                            onClick={() => {
+                                                hook.handleAiAction(action.action);
+                                                hook.setShowAiMenu(false);
+                                            }}
+                                            className="w-full px-3 py-2 text-left flex items-center gap-2 hover:bg-gray-50 transition-colors"
+                                        >
+                                            <span className="text-gray-500 flex-shrink-0">
+                                                {aiIconMap[action.action]}
+                                            </span>
+                                            <span className="text-sm text-gray-900">
+                                                {action.label}
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    
                     <button
                         onClick={() => hook.setIsFullscreen(!hook.isFullscreen)}
-                        className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500"
+                        className="p-1.5 rounded hover:bg-gray-100 text-gray-500 transition-colors"
                         title={hook.isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
                     >
                         {hook.isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
                     </button>
                     <button
                         onClick={onClose}
-                        className="p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500"
+                        className="p-1.5 rounded hover:bg-gray-100 text-gray-500 transition-colors"
                     >
                         <X className="w-4 h-4" />
                     </button>
@@ -368,17 +438,13 @@ ${replyTo.body?.html || replyTo.body?.text || replyTo.snippet || ''}
                 applyTemplate={hook.applyTemplate}
                 emailTemplates={[]}
                 setShowGTMTemplateMenu={hook.setShowGTMTemplateMenu}
-                aiProcessing={hook.aiProcessing}
-                aiActionLabel={hook.aiActionLabel}
-                aiButtonRef={hook.aiButtonRef}
-                toggleAiMenu={hook.toggleAiMenu}
             />
             
             {/* Editor */}
-            <div className={`overflow-auto ${hook.isFullscreen ? 'h-[calc(100vh-320px)]' : 'h-64'}`}>
+            <div className={`overflow-auto flex-1 ${hook.isFullscreen ? 'min-h-[300px]' : 'min-h-[200px]'}`}>
                 <EditorContent
                     editor={editor}
-                    className="prose dark:prose-invert max-w-none p-4 min-h-full focus:outline-none [&_.ProseMirror]:min-h-full [&_.ProseMirror]:outline-none"
+                    className="prose max-w-none p-4 min-h-full focus:outline-none [&_.ProseMirror]:min-h-full [&_.ProseMirror]:outline-none [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-gray-400 [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)]"
                 />
             </div>
             
@@ -412,16 +478,6 @@ ${replyTo.body?.html || replyTo.body?.text || replyTo.snippet || ''}
                 onSaveDraft={hook.handleSaveDraft}
                 onSend={hook.handleSend}
             />
-            
-            {/* AI Action Menu */}
-            {hook.showAiMenu && hook.aiMenuPosition && (
-                <AIActionMenu
-                    ref={hook.aiMenuRef}
-                    position={hook.aiMenuPosition}
-                    onAction={hook.handleAiAction}
-                    onClose={() => hook.setShowAiMenu(false)}
-                />
-            )}
             
             {/* GTM Template Modal */}
             {hook.showGTMTemplateMenu && (

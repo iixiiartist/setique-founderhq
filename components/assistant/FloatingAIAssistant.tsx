@@ -5,6 +5,7 @@ import { useAssistantState } from '../../hooks/useAssistantState';
 import { FloatingButton } from './FloatingButton';
 import { AssistantModal } from './AssistantModal';
 import type { AssistantMessagePayload } from '../../hooks/useConversationHistory';
+import debug from '../../lib/utils/debugLogger';
 
 const formatRelativeTime = (iso?: string) => {
   if (!iso) return '';
@@ -42,9 +43,9 @@ const formatNotificationMetadata = (metadata?: AssistantMessagePayload['metadata
     }
   }
   if (webMeta.query) {
-    parts.push(`“${webMeta.query}”`);
+    parts.push(`"${webMeta.query}"`);
   }
-  return parts.join(' • ');
+  return parts.join(' | ');
 };
 
 interface FloatingAIAssistantProps {
@@ -78,8 +79,9 @@ export const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({
   autoOpenOnMobile = false, // Disabled - was causing glitchy behavior on mobile
   onDataLoadNeeded,
 }) => {
-  const normalizedPlanType = planType || 'free';
-  const assistantUnlocked = true;
+  const normalizedPlanType = (planType || 'free').toLowerCase() as string;
+  // Plan gating: All paid tiers get full AI access (PAID_PLANS from constants.ts)
+  const assistantUnlocked = (PAID_PLANS as readonly string[]).includes(normalizedPlanType);
   const {
     isOpen,
     selectedContext,
@@ -98,7 +100,7 @@ export const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({
     if (onUpgradeNeeded) {
       onUpgradeNeeded();
     } else {
-      console.info('[FloatingAIAssistant] Upgrade required to use AI assistant');
+      debug.info('FloatingAIAssistant', 'Upgrade required to use AI assistant');
     }
   }, [onUpgradeNeeded]);
   
@@ -129,7 +131,7 @@ export const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({
         tag: `ai-assistant-${Date.now()}`,
       });
     } catch (error) {
-      console.error('[FloatingAIAssistant] Failed to show assistant notification:', error);
+      debug.error('FloatingAIAssistant', 'Failed to show assistant notification', error);
     }
   }, [markUnread, isOpen, desktopNotificationsEnabled]);
   
@@ -173,13 +175,13 @@ export const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({
       }
       
       if (needsData) {
-        console.log(`[FloatingAIAssistant] Data needed for ${currentTab}, loading...`);
+        debug.log('FloatingAIAssistant', `Data needed for ${currentTab}, loading...`);
         setIsLoadingData(true);
         try {
           await onDataLoadNeeded(currentTab);
-          console.log(`[FloatingAIAssistant] Data loaded for ${currentTab}`);
+          debug.log('FloatingAIAssistant', `Data loaded for ${currentTab}`);
         } catch (error) {
-          console.error('[FloatingAIAssistant] Failed to load data:', error);
+          debug.error('FloatingAIAssistant', 'Failed to load data', error);
         } finally {
           setIsLoadingData(false);
         }
@@ -223,47 +225,32 @@ export const FloatingAIAssistant: React.FC<FloatingAIAssistantProps> = ({
   //   return null;
   // }
   
-    // Debug logging
+    // Debug logging - only in development
   React.useEffect(() => {
-    console.log('[FloatingAIAssistant] Rendering:', {
+    debug.log('FloatingAIAssistant', 'Rendering', {
       isOpen,
       hasUnread,
       currentTab,
-      workspaceId,
-      companyName,
       plan: normalizedPlanType,
-      willShowButton: !isOpen,
       assistantUnlocked,
     });
-  }, [assistantUnlocked, companyName, currentTab, hasUnread, isOpen, normalizedPlanType, workspaceId]);
+  }, [assistantUnlocked, currentTab, hasUnread, isOpen, normalizedPlanType]);
 
   // Log when component mounts
   React.useEffect(() => {
-    console.log('[FloatingAIAssistant] MOUNTED - Button should be visible at bottom-right');
+    debug.log('FloatingAIAssistant', 'MOUNTED - Button should be visible at bottom-right');
   }, []);
   
-  // DEBUG: Log data being passed
+  // DEBUG: Log data being passed - only counts, no sensitive data
   React.useEffect(() => {
-    console.log('[FloatingAIAssistant] DATA CHECK:', {
+    debug.log('FloatingAIAssistant', 'DATA CHECK', {
       investors: data.investors?.length || 0,
       customers: data.customers?.length || 0,
       partners: data.partners?.length || 0,
       marketing: data.marketing?.length || 0,
       productsServicesTasks: data.productsServicesTasks?.length || 0,
-      investorTasks: data.investorTasks?.length || 0,
-      customerTasks: data.customerTasks?.length || 0,
       financials: data.financials?.length || 0,
-      expenses: data.expenses?.length || 0,
       documents: data.documents?.length || 0,
-      // Show first item to verify data structure
-      sampleInvestor: data.investors?.[0] ? { 
-        company: data.investors[0].company, 
-        status: data.investors[0].status 
-      } : 'none',
-      sampleMarketing: data.marketing?.[0] ? {
-        title: data.marketing[0].title,
-        status: data.marketing[0].status
-      } : 'none'
     });
   }, [data]);
   

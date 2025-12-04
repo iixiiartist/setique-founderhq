@@ -119,7 +119,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
     e.preventDefault();
     
     if (mode === 'channel' && !name.trim()) return;
-    if (mode === 'dm' && selectedMembers.length === 0) return;
+    // DM mode: empty memberIds means self-DM (personal workspace)
 
     onCreate({
       name: mode === 'channel' ? name.trim() : undefined,
@@ -154,7 +154,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
             <p className="text-sm text-gray-500 mt-1">
               {mode === 'channel'
                 ? 'Channels are where your team communicates'
-                : 'Start a direct message with team members'}
+                : 'Start a conversation with yourself or team members'}
             </p>
           </div>
 
@@ -165,7 +165,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
               {mode === 'channel' && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="channel-name-input" className="block text-sm font-medium text-gray-700 mb-1">
                       Channel name *
                     </label>
                     <div className="relative">
@@ -173,6 +173,8 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
                         #
                       </span>
                       <input
+                        id="channel-name-input"
+                        name="channel-name"
                         type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
@@ -187,10 +189,12 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="channel-description-input" className="block text-sm font-medium text-gray-700 mb-1">
                       Description (optional)
                     </label>
                     <textarea
+                      id="channel-description-input"
+                      name="channel-description"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       placeholder="What's this channel about?"
@@ -215,8 +219,10 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
                         </div>
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
+                    <label htmlFor="channel-privacy-toggle" className="relative inline-flex items-center cursor-pointer">
                       <input
+                        id="channel-privacy-toggle"
+                        name="channel-privacy"
                         type="checkbox"
                         checked={isPrivate}
                         onChange={(e) => setIsPrivate(e.target.checked)}
@@ -231,12 +237,14 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
               {/* Member selection */}
               {(mode === 'dm' || isPrivate) && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="member-search-input" className="block text-sm font-medium text-gray-700 mb-1">
                     {mode === 'dm' ? 'To:' : 'Invite members:'}
                   </label>
                   
                   {/* Search */}
                   <input
+                    id="member-search-input"
+                    name="member-search"
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -271,13 +279,38 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
 
                   {/* Member list */}
                   <div className="border border-gray-200 rounded-xl max-h-[200px] overflow-y-auto">
+                    {/* Just Me option for self-DM / personal workspace */}
+                    {mode === 'dm' && !searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSelectedMembers([])}
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors border-b border-gray-100 ${
+                          selectedMembers.length === 0 ? 'bg-slate-50' : ''
+                        }`}
+                      >
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-600 to-slate-800 flex items-center justify-center text-white text-sm">
+                          🧠
+                        </div>
+                        <div className="flex-1 text-left">
+                          <div className="text-sm font-medium text-gray-900">
+                            Just Me (Personal Space)
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Private workspace for notes & AI brainstorming
+                          </div>
+                        </div>
+                        {selectedMembers.length === 0 && (
+                          <span className="text-slate-700">✓</span>
+                        )}
+                      </button>
+                    )}
                     {loadingMembers ? (
                       <div className="p-4 text-center text-gray-400">
                         Loading members...
                       </div>
                     ) : filteredMembers.length === 0 ? (
                       <div className="p-4 text-center text-gray-400">
-                        No members found
+                        {searchQuery ? 'No members found' : 'No other members in workspace'}
                       </div>
                     ) : (
                       filteredMembers.map(member => (
@@ -331,8 +364,10 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
                     </div>
                   </div>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                <label htmlFor="ai-enabled-toggle" className="relative inline-flex items-center cursor-pointer">
                   <input
+                    id="ai-enabled-toggle"
+                    name="ai-enabled"
                     type="checkbox"
                     checked={aiAllowed}
                     onChange={(e) => setAiAllowed(e.target.checked)}
@@ -356,8 +391,7 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
                 type="submit"
                 disabled={
                   isLoading ||
-                  (mode === 'channel' && !name.trim()) ||
-                  (mode === 'dm' && selectedMembers.length === 0)
+                  (mode === 'channel' && !name.trim())
                 }
                 className="flex-1 px-4 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
               >

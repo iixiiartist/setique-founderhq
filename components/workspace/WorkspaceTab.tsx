@@ -123,24 +123,24 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId,
         <div className="h-full flex flex-col relative">
             {/* View Toggle - Only show when not in an editor */}
             {!isDocsEditorOpen && !isFormsEditorOpen && (
-                <div className="flex-shrink-0 border-b-2 border-black bg-white">
-                    <div className="flex">
+                <div className="flex-shrink-0 border-b border-gray-200 bg-white">
+                    <div className="flex gap-1 p-1">
                         <button
                             onClick={() => setView('docs')}
-                            className={`flex-1 px-4 py-3 font-bold text-sm transition-colors ${
+                            className={`flex-1 px-4 py-2.5 font-semibold text-sm rounded-lg transition-all ${
                                 view === 'docs'
-                                    ? 'bg-black text-white border-r border-gray-300'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-r border-gray-300'
+                                    ? 'bg-slate-900 text-white shadow-sm'
+                                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                             }`}
                         >
                             📄 Documents
                         </button>
                         <button
                             onClick={() => setView('forms')}
-                            className={`flex-1 px-4 py-3 font-bold text-sm transition-colors ${
+                            className={`flex-1 px-4 py-2.5 font-semibold text-sm rounded-lg transition-all ${
                                 view === 'forms'
-                                    ? 'bg-black text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    ? 'bg-slate-900 text-white shadow-sm'
+                                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                             }`}
                         >
                             📝 Forms

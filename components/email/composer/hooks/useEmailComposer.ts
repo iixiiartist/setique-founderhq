@@ -82,7 +82,7 @@ export function useEmailComposer({
     
     // Refs
     const aiMenuRef = useRef<HTMLDivElement>(null);
-    const aiButtonRef = useRef<HTMLButtonElement>(null);
+    const aiButtonRef = useRef<HTMLDivElement>(null);
     const fontSizeRef = useRef<HTMLDivElement>(null);
     const colorRef = useRef<HTMLDivElement>(null);
     const highlightRef = useRef<HTMLDivElement>(null);
@@ -252,9 +252,25 @@ export function useEmailComposer({
     const toggleAiMenu = useCallback(() => {
         if (!showAiMenu && aiButtonRef.current) {
             const rect = aiButtonRef.current.getBoundingClientRect();
+            const menuWidth = 256;
+            
+            // Calculate left position - prefer aligning to button's left edge
+            // but ensure menu stays within viewport
+            let left = rect.left;
+            
+            // If menu would overflow right side of screen, align to right edge of button
+            if (left + menuWidth > window.innerWidth - 16) {
+                left = rect.right - menuWidth;
+            }
+            
+            // Ensure menu doesn't go off left edge
+            if (left < 16) {
+                left = 16;
+            }
+            
             setAiMenuPosition({
-                top: rect.top - 8,
-                left: rect.right - 256,
+                top: rect.bottom + 8,
+                left: left,
             });
         }
         setShowAiMenu(!showAiMenu);

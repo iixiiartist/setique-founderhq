@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Sparkles, Lock, MessageCircle, GripVertical } from 'lucide-react';
+import debug from '../../lib/utils/debugLogger';
 import './animations.css';
 
 interface FloatingButtonProps {
@@ -51,7 +52,7 @@ export const FloatingButton: React.FC<FloatingButtonProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
-    console.log('[FloatingButton] MOUNTED and VISIBLE - Check bottom-right corner');
+    debug.log('FloatingButton', 'MOUNTED and VISIBLE');
     // Only animate on first render
     const timer = setTimeout(() => setIsFirstRender(false), 600);
     return () => clearTimeout(timer);

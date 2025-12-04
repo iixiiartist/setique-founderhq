@@ -110,9 +110,32 @@ export function ProductsServicesTab({
         setMarketResearchResult(null);
         
         try {
-            const searchResults = await searchWeb(searchTerm, 'search');
+            // Build a market-focused search query
+            const marketQuery = `${searchTerm} current price cost market value pricing wholesale retail 2024 2025`;
+            console.log('[MarketResearch] Starting search for:', marketQuery);
+            const searchResults = await searchWeb(marketQuery, 'search');
+            console.log('[MarketResearch] Full search results:', JSON.stringify(searchResults, null, 2));
             
-            if (searchResults.hits && searchResults.hits.length > 0) {
+            // Check for QA response from Groq Compound (preferred path)
+            if (searchResults.qa?.answer) {
+                console.log('[MarketResearch] Using QA answer from Groq Compound, length:', searchResults.qa.answer.length);
+                // Groq Compound returns a synthesized answer with sources
+                let response = searchResults.qa.answer;
+                
+                // Add sources if available
+                if (searchResults.hits && searchResults.hits.length > 0) {
+                    console.log('[MarketResearch] Adding sources:', searchResults.hits.length);
+                    response += '\n\n## Sources\n';
+                    searchResults.hits.forEach((hit: any, idx: number) => {
+                        if (hit.url && hit.title) {
+                            response += `${idx + 1}. [${hit.title}](${hit.url})\n`;
+                        }
+                    });
+                }
+                
+                setMarketResearchResult(response);
+            } else if (searchResults.hits && searchResults.hits.length > 0) {
+                console.log('[MarketResearch] Using hits with AI summarization, count:', searchResults.hits.length);
                 const context = searchResults.hits.map((h: any) => `[${h.title}](${h.url}): ${h.description}`).join('\n\n');
                 
                 const prompt = `
@@ -122,26 +145,30 @@ export function ProductsServicesTab({
                 ${context}
                 
                 Please provide a concise summary of the market information, pricing, and key competitors found.
-                Format as markdown.
+                Format as markdown with clear sections.
                 `;
                 
                 const aiResponse = await getAiResponse(
                     [{ role: 'user', parts: [{ text: prompt }] }],
-                    "You are a market research assistant.",
+                    "You are a market research assistant. Provide concise, actionable market insights.",
                     false,
                     workspaceId
                 );
                 
                 setMarketResearchResult(aiResponse.candidates?.[0]?.content?.parts?.[0]?.text || "No analysis generated.");
             } else {
-                setMarketResearchResult("No online results found.");
+                console.warn('[MarketResearch] No results returned from search. Full response:', JSON.stringify(searchResults, null, 2));
+                const errorDetails = searchResults.metadata?.error || searchResults.error || 'Unknown reason';
+                setMarketResearchResult(`No online results found. ${typeof errorDetails === 'string' ? errorDetails : 'Please try again later.'}`);
             }
         } catch (error) {
+            console.error("[MarketResearch] Error:", error);
             if (error instanceof ModerationError) {
                 setMarketResearchResult(formatModerationErrorMessage(error));
             } else {
-                console.error("Market research failed", error);
-                setMarketResearchResult("Failed to perform market research.");
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                console.error("Market research failed:", errorMessage);
+                setMarketResearchResult(`Failed to perform market research: ${errorMessage}`);
             }
         } finally {
             setIsSearching(false);

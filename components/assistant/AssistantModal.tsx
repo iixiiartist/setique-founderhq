@@ -6,6 +6,7 @@ import { AppActions, DashboardData } from '../../types';
 import { getAssistantConfig } from './assistantConfig';
 import ModuleAssistant from '../shared/ModuleAssistant';
 import type { AssistantMessagePayload } from '../../hooks/useConversationHistory';
+import debug from '../../lib/utils/debugLogger';
 import './animations.css';
 
 interface AssistantModalProps {
@@ -75,10 +76,7 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
   // Debug: Check if modal ref is set
   useEffect(() => {
     if (isOpen && modalRef.current) {
-      console.log('[AssistantModal] Modal DOM element created:', {
-        element: modalRef.current,
-        position: modalRef.current.getBoundingClientRect(),
-        styles: window.getComputedStyle(modalRef.current),
+      debug.log('AssistantModal', 'Modal DOM element created', {
         visible: modalRef.current.offsetHeight > 0
       });
     }
@@ -87,12 +85,12 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
   // Trigger animation state
   useEffect(() => {
     if (isOpen) {
-      console.log('[AssistantModal] Opening modal for tab:', currentTab);
+      debug.log('AssistantModal', 'Opening modal', { currentTab });
       setIsAnimating(true);
       const timer = setTimeout(() => setIsAnimating(false), 400);
       return () => clearTimeout(timer);
     } else {
-      console.log('[AssistantModal] Modal closed');
+      debug.log('AssistantModal', 'Modal closed');
     }
   }, [isOpen, currentTab]);
 
@@ -116,21 +114,9 @@ export const AssistantModal: React.FC<AssistantModalProps> = ({
   
   // DEBUG: Log when data changes to verify system prompt regeneration
   useEffect(() => {
-    console.log('[AssistantModal] Data changed, system prompt will regenerate:', {
+    debug.log('AssistantModal', 'Data changed, system prompt will regenerate', {
       currentTab,
-      dataCheck: {
-        investors: data.investors?.length || 0,
-        customers: data.customers?.length || 0,
-        partners: data.partners?.length || 0,
-        marketing: data.marketing?.length || 0,
-        productsServicesTasks: data.productsServicesTasks?.length || 0,
-        investorTasks: data.investorTasks?.length || 0,
-        customerTasks: data.customerTasks?.length || 0,
-        marketingTasks: data.marketingTasks?.length || 0,
-        financials: data.financials?.length || 0,
-        expenses: data.expenses?.length || 0,
-        documents: data.documents?.length || 0
-      }
+      totalItems: (data.investors?.length || 0) + (data.customers?.length || 0) + (data.partners?.length || 0)
     });
   }, [data, currentTab]);
   

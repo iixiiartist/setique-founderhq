@@ -226,12 +226,12 @@ export const DocsList: React.FC<DocsListProps> = ({
     return (
         <div className="h-full flex flex-col">
             {/* Header */}
-            <div className="p-3 lg:p-4 border-b border-gray-200 bg-slate-900">
+            <div className="p-3 lg:p-4 border-b border-gray-200 bg-slate-900 rounded-t-xl">
                 <div className="flex items-center justify-between mb-2 lg:mb-3">
                     <h2 className="text-base lg:text-lg font-semibold text-white">GTM Docs</h2>
                     <button
                         onClick={onCreateNew}
-                        className="px-2 lg:px-3 py-1 min-h-[44px] lg:min-h-0 text-sm lg:text-base bg-white text-slate-900 font-medium rounded-xl shadow-sm hover:shadow-md transition-all"
+                        className="px-3 lg:px-4 py-1.5 min-h-[44px] lg:min-h-0 text-sm lg:text-base bg-white text-slate-900 font-medium rounded-lg shadow-sm hover:shadow-md hover:bg-gray-50 transition-all"
                         aria-label="Create new document"
                     >
                         + New
@@ -246,7 +246,7 @@ export const DocsList: React.FC<DocsListProps> = ({
                         placeholder="Search docs..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-9 pr-8 py-2 rounded-xl border border-gray-600 bg-slate-800 text-white text-sm placeholder:text-gray-400"
+                        className="w-full pl-9 pr-8 py-2 rounded-lg border border-slate-600 bg-slate-800 text-white text-sm placeholder:text-gray-400 focus:ring-2 focus:ring-white/20 focus:border-slate-500 transition-all"
                         aria-label="Search documents"
                     />
                     {isSearching && (
@@ -267,10 +267,10 @@ export const DocsList: React.FC<DocsListProps> = ({
                         <button
                             key={f}
                             onClick={() => setFilter(f)}
-                            className={`px-2 py-1 min-h-[44px] lg:min-h-0 text-xs font-medium rounded-xl transition-all whitespace-nowrap ${
+                            className={`px-3 py-1.5 min-h-[44px] lg:min-h-0 text-xs font-medium rounded-lg transition-all whitespace-nowrap ${
                                 filter === f
-                                    ? 'bg-slate-900 text-white'
-                                    : 'bg-white border border-gray-200 hover:bg-gray-100'
+                                    ? 'bg-slate-900 text-white shadow-sm'
+                                    : 'bg-white border border-gray-200 hover:bg-gray-100 hover:border-gray-300'
                             }`}
                         >
                             {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -282,7 +282,7 @@ export const DocsList: React.FC<DocsListProps> = ({
                 <select
                     value={docTypeFilter}
                     onChange={(e) => setDocTypeFilter(e.target.value as DocType | 'all')}
-                    className="w-full px-2 py-2 text-xs rounded-xl border border-gray-200"
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-gray-200 bg-white focus:ring-2 focus:ring-slate-200 focus:border-slate-300 transition-all"
                     aria-label="Filter by document type"
                 >
                     <option value="all">All Types</option>
@@ -296,11 +296,11 @@ export const DocsList: React.FC<DocsListProps> = ({
 
             {/* Error Banner */}
             {error && (
-                <div className="px-3 py-2 bg-red-50 border-b border-red-200 text-red-700 text-sm flex items-center justify-between rounded-b-lg">
+                <div className="mx-2 mt-2 px-3 py-2 bg-red-50 border border-red-200 text-red-700 text-sm flex items-center justify-between rounded-lg shadow-sm">
                     <span>{error}</span>
                     <button 
                         onClick={() => setError(null)} 
-                        className="text-red-500 hover:text-red-700 font-bold"
+                        className="text-red-400 hover:text-red-600 hover:bg-red-100 rounded-full w-6 h-6 flex items-center justify-center transition-colors"
                     >
                         ×
                     </button>
@@ -328,7 +328,7 @@ export const DocsList: React.FC<DocsListProps> = ({
                                     <button
                                         onClick={handleSeedTemplates}
                                         disabled={isSeeding}
-                                        className="w-full mb-3 px-3 py-2 bg-gray-100 rounded-xl border border-gray-300 text-gray-900 font-medium hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="w-full mb-3 px-3 py-2.5 bg-gray-100 rounded-lg border border-gray-200 text-gray-900 font-medium hover:bg-gray-200 hover:border-gray-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                                     >
                                         {isSeeding ? 'Creating Templates...' : '📋 Create GTM Templates'}
                                     </button>
@@ -337,7 +337,7 @@ export const DocsList: React.FC<DocsListProps> = ({
                         )}
                         <button
                             onClick={onCreateNew}
-                            className="text-sm text-gray-600 hover:text-black hover:underline"
+                            className="text-sm text-slate-600 hover:text-slate-900 hover:underline transition-colors"
                         >
                             Create a new document
                         </button>
@@ -405,22 +405,22 @@ export const DocsList: React.FC<DocsListProps> = ({
 
             {/* Pagination */}
             {showPagination && (
-                <div className="p-2 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+                <div className="p-2 border-t border-gray-200 bg-gray-50 flex items-center justify-between rounded-b-xl">
                     <button
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
-                        className="p-2 rounded-lg border border-gray-200 bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                        className="p-2 rounded-lg border border-gray-200 bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 hover:border-gray-300 transition-all shadow-sm"
                         aria-label="Previous page"
                     >
                         <ChevronLeft size={16} />
                     </button>
-                    <span className="text-xs text-gray-600">
+                    <span className="text-xs text-gray-500 font-medium">
                         Page {currentPage} of {totalPages}
                     </span>
                     <button
                         onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                         disabled={currentPage >= totalPages}
-                        className="p-2 rounded-lg border border-gray-200 bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                        className="p-2 rounded-lg border border-gray-200 bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 hover:border-gray-300 transition-all shadow-sm"
                         aria-label="Next page"
                     >
                         <ChevronRight size={16} />

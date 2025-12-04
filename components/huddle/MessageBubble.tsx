@@ -1,8 +1,8 @@
 // components/huddle/MessageBubble.tsx
-// Individual message display with reactions, thread replies, and actions
+// Individual message display with reactions, thread replies, actions, moderation status, and TTS
 
 import React, { useMemo, useState } from 'react';
-import { ExternalLink, FileText, CheckSquare, User, DollarSign, FileIcon, Link2 } from 'lucide-react';
+import { ExternalLink, FileText, CheckSquare, User, DollarSign, FileIcon, Link2, AlertTriangle, ShieldAlert, ShieldCheck, XCircle } from 'lucide-react';
 import type { HuddleMessage } from '../../types/huddle';
 
 interface WebSource {
@@ -22,6 +22,13 @@ interface ToolCall {
     name?: string;
     [key: string]: any;
   };
+  error?: string;
+  cached?: boolean;
+}
+
+interface ModerationResult {
+  safe: boolean;
+  categories?: string[];
 }
 
 interface MessageBubbleProps {
@@ -35,7 +42,7 @@ interface MessageBubbleProps {
   onLinkedEntityClick?: (entityType: string, entityId: string) => void;
 }
 
-const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🎉'];
+const QUICK_REACTIONS = ['\uD83D\uDC4D', '\u2764\uFE0F', '\uD83D\uDE02', '\uD83D\uDE2E', '\uD83D\uDE22', '\uD83C\uDF89'];
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
@@ -49,6 +56,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 }) => {
   const [showActions, setShowActions] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const [isHoveringReactionPicker, setIsHoveringReactionPicker] = useState(false);
   
   const isOwnMessage = message.user_id === currentUserId;
   const isAIMessage = message.is_ai;
@@ -63,10 +71,55 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   const toolCalls: ToolCall[] = message.metadata?.tool_calls || [];
   const hasWebSources = webSources.length > 0;
   const hasToolCalls = toolCalls.some(tc => tc.result?.success);
+  const hasToolErrors = toolCalls.some(tc => tc.error || tc.result?.error);
+  
+  // Extract moderation metadata
+  const moderationData = message.metadata?.moderation as { pre?: ModerationResult; post?: ModerationResult } | undefined;
+  const wasModerationFlagged = moderationData?.pre?.safe === false || moderationData?.post?.safe === false;
+  const moderationCategories = [
+    ...(moderationData?.pre?.categories || []),
+    ...(moderationData?.post?.categories || []),
+  ].filter((v, i, a) => a.indexOf(v) === i); // unique
 
   const formatTime = (date: string) => {
     const d = new Date(date);
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    // Less than 1 minute ago
+    if (diffMins < 1) {
+      return 'just now';
+    }
+    
+    // Less than 60 minutes ago
+    if (diffMins < 60) {
+      return `${diffMins} min ago`;
+    }
+    
+    // Less than 24 hours ago - show hours
+    if (diffHours < 24) {
+      return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
+    }
+    
+    // Yesterday
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (d.toDateString() === yesterday.toDateString()) {
+      return `yesterday at ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    }
+    
+    // Within last 7 days - show day name
+    if (diffDays < 7) {
+      const dayName = d.toLocaleDateString([], { weekday: 'short' });
+      return `${dayName} at ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    }
+    
+    // Older - show date
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + 
+           ` at ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   };
 
   const groupedReactions = useMemo(() => {
@@ -138,13 +191,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   // Render tool call results as professional cards
   const renderToolResults = () => {
-    if (!hasToolCalls) return null;
+    if (toolCalls.length === 0) return null;
     
     const successfulCalls = toolCalls.filter(tc => tc.result?.success);
-    if (successfulCalls.length === 0) return null;
+    const failedCalls = toolCalls.filter(tc => tc.error || tc.result?.error);
 
     return (
       <div className="mt-3 space-y-2">
+        {/* Successful tool calls */}
         {successfulCalls.map((tc, idx) => {
           const result = tc.result!;
           let icon = <FileIcon size={14} />;
@@ -155,19 +209,19 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
           if (tc.name === 'create_task') {
             icon = <CheckSquare size={14} className="text-green-600" />;
-            label = 'Task Created';
+            label = tc.cached ? 'Task (cached)' : 'Task Created';
             title = result.title || '';
             entityType = 'task';
             entityId = result.task_id || '';
           } else if (tc.name === 'create_contact') {
             icon = <User size={14} className="text-blue-600" />;
-            label = 'Contact Created';
+            label = tc.cached ? 'Contact (cached)' : 'Contact Created';
             title = result.name || '';
             entityType = 'contact';
             entityId = result.contact_id || '';
           } else if (tc.name === 'create_deal') {
             icon = <DollarSign size={14} className="text-emerald-600" />;
-            label = 'Deal Created';
+            label = tc.cached ? 'Deal (cached)' : 'Deal Created';
             title = result.name || '';
             entityType = 'deal';
             entityId = result.deal_id || '';
@@ -192,6 +246,26 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             </button>
           );
         })}
+        
+        {/* Failed tool calls */}
+        {failedCalls.map((tc, idx) => (
+          <div
+            key={`error-${idx}`}
+            className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg"
+          >
+            <div className="p-1.5 bg-white rounded-md shadow-sm">
+              <XCircle size={14} className="text-red-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-red-700 font-medium uppercase tracking-wide">
+                {tc.name.replace(/_/g, ' ')} Failed
+              </p>
+              <p className="text-sm text-red-600 truncate">
+                {tc.error || tc.result?.error || 'Unknown error'}
+              </p>
+            </div>
+          </div>
+        ))}
       </div>
     );
   };
@@ -241,24 +315,26 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   const getEntityIcon = (type: string) => {
     switch (type) {
-      case 'task': return '✅';
-      case 'contact': return '👤';
-      case 'deal': return '💰';
-      case 'document': return '📄';
-      case 'form': return '📝';
-      default: return '📁';
+      case 'task': return '\u2705';
+      case 'contact': return '\uD83D\uDC64';
+      case 'deal': return '\uD83D\uDCB0';
+      case 'document': return '\uD83D\uDCC4';
+      case 'form': return '\uD83D\uDCDD';
+      default: return '\uD83D\uDCC1';
     }
   };
 
   return (
     <div
       className={`group relative px-3 sm:px-4 py-2 sm:py-3 hover:bg-gray-50/50 transition-colors ${
-        isAIMessage ? 'bg-gradient-to-r from-gray-100/80 to-gray-50/50 border-l-2 border-gray-400' : ''
+        isAIMessage ? 'bg-gradient-to-r from-gray-100/80 to-gray-50/50 border-l-2 border-gray-300' : ''
       }`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => {
-        setShowActions(false);
-        setShowReactionPicker(false);
+        if (!isHoveringReactionPicker) {
+          setShowActions(false);
+          setShowReactionPicker(false);
+        }
       }}
     >
       <div className="flex gap-2 sm:gap-3">
@@ -286,7 +362,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         {/* Content */}
         <div className="flex-1 min-w-0">
           {/* Header */}
-          <div className="flex items-baseline gap-1.5 sm:gap-2 mb-1 sm:mb-1.5 flex-wrap">
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-1.5 flex-wrap">
             <span className={`font-semibold text-xs sm:text-sm ${isAIMessage ? 'text-gray-800' : 'text-gray-900'}`}>
               {isAIMessage ? 'FounderHQ AI' : message.user?.full_name || 'Unknown'}
             </span>
@@ -295,11 +371,104 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 Assistant
               </span>
             )}
+            {/* Moderation status indicator for AI messages */}
+            {isAIMessage && wasModerationFlagged && (
+              <span 
+                className="text-[9px] sm:text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-medium uppercase tracking-wide flex items-center gap-0.5"
+                title={`Flagged categories: ${moderationCategories.join(', ')}`}
+              >
+                <ShieldAlert size={10} />
+                Reviewed
+              </span>
+            )}
+            {isAIMessage && !wasModerationFlagged && moderationData && (
+              <span 
+                className="text-[9px] sm:text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full font-medium uppercase tracking-wide flex items-center gap-0.5"
+                title="Content passed safety review"
+              >
+                <ShieldCheck size={10} />
+              </span>
+            )}
             <span className="text-[10px] sm:text-xs text-gray-400">
               {formatTime(message.created_at)}
             </span>
             {isEdited && (
               <span className="text-[10px] sm:text-xs text-gray-400">(edited)</span>
+            )}
+            
+            {/* Inline hover actions - appear after timestamp */}
+            {showActions && (
+              <div 
+                className="flex items-center gap-0.5 ml-1"
+                onMouseEnter={() => setIsHoveringReactionPicker(true)}
+                onMouseLeave={() => {
+                  setIsHoveringReactionPicker(false);
+                  setShowReactionPicker(false);
+                }}
+              >
+                {/* Reaction picker toggle */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowReactionPicker(!showReactionPicker)}
+                    className="p-0.5 sm:p-1 hover:bg-gray-100 rounded transition-colors text-sm opacity-60 hover:opacity-100"
+                    title="Add reaction"
+                  >
+                    😊
+                  </button>
+                  
+                  {/* Quick reaction picker */}
+                  {showReactionPicker && (
+                    <div className="absolute top-full left-0 mt-1 flex gap-0.5 sm:gap-1 bg-white border border-gray-100 rounded-lg shadow-lg p-1 sm:p-1.5 z-10">
+                      {QUICK_REACTIONS.map(emoji => (
+                        <button
+                          key={emoji}
+                          onClick={() => {
+                            onReact(emoji);
+                            setShowReactionPicker(false);
+                            setIsHoveringReactionPicker(false);
+                          }}
+                          className="p-1 sm:p-1.5 hover:bg-gray-100 rounded transition-colors text-base sm:text-lg"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Reply in thread */}
+                {!isThreadView && (
+                  <button
+                    onClick={onReply}
+                    className="p-0.5 sm:p-1 hover:bg-gray-100 rounded transition-colors text-sm opacity-60 hover:opacity-100"
+                    title="Reply in thread"
+                  >
+                    💬
+                  </button>
+                )}
+                
+                {/* Edit (own messages only) */}
+                {isOwnMessage && !isAIMessage && onEdit && (
+                  <button
+                    onClick={onEdit}
+                    className="p-0.5 sm:p-1 hover:bg-gray-100 rounded transition-colors text-sm opacity-60 hover:opacity-100"
+                    title="Edit"
+                  >
+                    ✏️
+                  </button>
+                )}
+                
+                {/* Delete (own messages only) */}
+                {isOwnMessage && !isAIMessage && onDelete && (
+                  <button
+                    onClick={onDelete}
+                    className="p-0.5 sm:p-1 hover:bg-red-100 rounded transition-colors text-red-500 text-sm opacity-60 hover:opacity-100"
+                    title="Delete"
+                  >
+                    🗑️
+                  </button>
+                )}
+              </div>
             )}
           </div>
 
@@ -401,73 +570,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           )}
         </div>
       </div>
-
-      {/* Hover actions - hidden on mobile, shown on touch via tap */}
-      {showActions && (
-        <div className="absolute right-2 sm:right-4 top-0 -translate-y-1/2 flex items-center gap-0.5 sm:gap-1 bg-white border border-gray-200 rounded-lg shadow-sm px-0.5 sm:px-1 py-0.5">
-          {/* Reaction picker toggle */}
-          <div className="relative">
-            <button
-              onClick={() => setShowReactionPicker(!showReactionPicker)}
-              className="p-1 sm:p-1.5 hover:bg-gray-100 rounded transition-colors text-sm sm:text-base"
-              title="Add reaction"
-            >
-              😊
-            </button>
-            
-            {/* Quick reaction picker */}
-            {showReactionPicker && (
-              <div className="absolute bottom-full right-0 mb-1 flex gap-0.5 sm:gap-1 bg-white border border-gray-200 rounded-lg shadow-lg p-0.5 sm:p-1">
-                {QUICK_REACTIONS.map(emoji => (
-                  <button
-                    key={emoji}
-                    onClick={() => {
-                      onReact(emoji);
-                      setShowReactionPicker(false);
-                    }}
-                    className="p-1 hover:bg-gray-100 rounded transition-colors text-base sm:text-lg"
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          
-          {/* Reply in thread */}
-          {!isThreadView && (
-            <button
-              onClick={onReply}
-              className="p-1 sm:p-1.5 hover:bg-gray-100 rounded transition-colors text-sm sm:text-base"
-              title="Reply in thread"
-            >
-              💬
-            </button>
-          )}
-          
-          {/* Edit (own messages only) */}
-          {isOwnMessage && !isAIMessage && onEdit && (
-            <button
-              onClick={onEdit}
-              className="p-1 sm:p-1.5 hover:bg-gray-100 rounded transition-colors text-sm sm:text-base"
-              title="Edit"
-            >
-              ✏️
-            </button>
-          )}
-          
-          {/* Delete (own messages only) */}
-          {isOwnMessage && !isAIMessage && onDelete && (
-            <button
-              onClick={onDelete}
-              className="p-1 sm:p-1.5 hover:bg-red-100 rounded transition-colors text-red-500 text-sm sm:text-base"
-              title="Delete"
-            >
-              🗑️
-            </button>
-          )}
-        </div>
-      )}
     </div>
   );
 };

@@ -2,7 +2,7 @@
 // Modal for running the Deal & Account Strategist agent
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { X, FileText, AlertCircle, Sparkles, Save, Check, Download, FolderPlus, ChevronDown, Target, AlertTriangle, Users } from 'lucide-react';
+import { X, FileText, AlertCircle, Sparkles, Save, Check, Download, FolderPlus, ChevronDown, Target, AlertTriangle, Users, PlayCircle } from 'lucide-react';
 import { useYouAgent } from '../../hooks/useYouAgent';
 import { useAgentReports } from '../../hooks/useAgentReports';
 import { useWorkspace } from '../../contexts/WorkspaceContext';
@@ -34,6 +34,15 @@ interface DealStrategistModalProps {
     contacts?: string;
     notes?: string;
   };
+  onStartBackgroundJob?: (params: {
+    agentSlug: string;
+    target: string;
+    goal: string;
+    notes?: string;
+    urls?: string[];
+    inputPrompt: string;
+    context?: Record<string, unknown>;
+  }) => Promise<unknown>;
 }
 
 type GoalType = 'strategy' | 'risks' | 'outreach' | 'next_steps';
@@ -52,12 +61,14 @@ export const DealStrategistModal: React.FC<DealStrategistModalProps> = ({
   initialTarget = '',
   savedReport = null,
   accountData,
+  onStartBackgroundJob,
 }) => {
   const agentConfig = YOU_AGENTS.deal_strategist;
   const { run, loading, error, errorCode, lastResponse, resetIn, reset, streamingOutput, isStreaming } = useYouAgent('deal_strategist');
   const { workspace } = useWorkspace();
   const { user } = useAuth();
   const { saveReport, isSaving } = useAgentReports(workspace?.id, user?.id);
+  const [startingBackground, setStartingBackground] = useState(false);
 
   const [target, setTarget] = useState(initialTarget || accountData?.name || '');
   const [goal, setGoal] = useState<GoalType>('strategy');

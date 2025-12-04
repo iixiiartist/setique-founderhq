@@ -8,6 +8,7 @@ import { healthCheck } from './lib/config'
 import { monitorWebVitals, perfMonitor } from './lib/performance'
 import { disableProductionLogs } from './lib/logger'
 import { validateEnvironment } from './lib/config/env'
+import { metricsCollector } from './lib/utils/observability'
 import './index.css'
 
 // Force cache invalidation - build 1762568900
@@ -57,6 +58,23 @@ let supabaseInitError: Error | null = null;
 
 // Disable verbose console logs in production
 disableProductionLogs()
+
+// Start metrics collection for observability
+metricsCollector.start({
+  onReport: (summary) => {
+    // In production, you could send this to an analytics service
+    if (summary.totalRateLimited > 0 || summary.slowQueries.length > 0) {
+      console.warn('[Metrics] Performance issues detected:', {
+        rateLimited: summary.totalRateLimited,
+        slowQueries: summary.slowQueries.length,
+        avgDuration: summary.avgDuration,
+      });
+    }
+  },
+  onRateLimitAlert: (events) => {
+    console.error('[Metrics] 🚨 Rate limit alert!', events.length, 'hits');
+  },
+});
 
 // Initialize health check and performance monitoring
 healthCheck()

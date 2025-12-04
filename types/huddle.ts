@@ -202,7 +202,7 @@ export interface AIRunRequest {
     message_count?: number;
     include_thread?: boolean;
     include_workspace_data?: boolean;
-    workspace_data_types?: ('tasks' | 'contacts' | 'deals' | 'documents' | 'forms' | 'pipeline')[];
+    workspace_data_types?: ('tasks' | 'contacts' | 'deals' | 'documents' | 'forms' | 'pipeline' | 'accounts')[];
     include_web_research?: boolean;
     web_research_query?: string;
     selected_files?: string[];

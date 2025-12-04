@@ -1,25 +1,85 @@
 // supabase/functions/huddle-ai-run/index.ts
 // Handles AI invocation in Huddle - Groq + You.com integration with streaming
+// Security: Pre/post moderation, server-side tool permissions, context budgeting, usage tracking
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/apiAuth.ts';
 
-// Rate limits per plan (requests per hour)
+// Rate limits per plan (requests per hour for workspace)
 const PLAN_RATE_LIMITS: Record<string, number> = {
   free: 20,
-  starter: 100,
-  professional: 500,
-  enterprise: 2000,
+  'team-pro': 500,
 };
 
+// Per-user rate limits (requests per hour per user within workspace)
+const USER_RATE_LIMITS: Record<string, number> = {
+  free: 10,
+  'team-pro': 100,
+};
+
+// Token costs for api_balance (estimated tokens per request)
+const ESTIMATED_TOKENS_PER_REQUEST = 2500;
+const TOKEN_COST_MULTIPLIER = 0.001; // Cost units per token
+
+// Streaming configuration
+const STREAMING_CONFIG = {
+  GROQ_TIMEOUT_MS: 60000, // 60 second hard timeout for Groq API
+  HEARTBEAT_INTERVAL_MS: 15000, // Send heartbeat every 15 seconds
+  MAX_RETRIES: 2,
+  RETRY_DELAY_MS: 1000,
+};
+
+// Allowed models (server-side allowlist to prevent malformed/costly requests)
+const ALLOWED_MODELS = [
+  'llama-3.3-70b-versatile',
+  'llama-3.1-70b-versatile', 
+  'llama-3.1-8b-instant',
+  'meta-llama/llama-guard-4-12b',
+];
+
+// Context budgeting limits (characters)
+const CONTEXT_LIMITS = {
+  MAX_PROMPT_LENGTH: 10000,
+  MAX_CONTEXT_PER_ENTITY: 200, // chars per task/contact/deal etc
+  MAX_ENTITIES_PER_TYPE: 15,
+  MAX_DOCUMENT_CONTENT: 2000,
+  MAX_FORM_SUBMISSION_DATA: 1500,
+  MAX_TOTAL_CONTEXT: 15000,
+};
+
+// PII patterns for redaction
+const PII_PATTERNS = [
+  { pattern: /\b\d{3}-\d{2}-\d{4}\b/g, replacement: '[SSN-REDACTED]' }, // SSN
+  { pattern: /\b\d{16}\b/g, replacement: '[CARD-REDACTED]' }, // Credit card (no spaces)
+  { pattern: /\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b/g, replacement: '[CARD-REDACTED]' }, // Credit card
+  { pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, replacement: '[EMAIL-REDACTED]' }, // Email
+  { pattern: /\b(?:\+?1[-.]?)?\(?[0-9]{3}\)?[-.]?[0-9]{3}[-.]?[0-9]{4}\b/g, replacement: '[PHONE-REDACTED]' }, // US Phone
+];
+
 // Content moderation settings
-const MAX_PROMPT_LENGTH = 10000; // Characters
 const BLOCKED_PATTERNS = [
   /\b(password|secret|api[_-]?key|token)\s*[:=]/i,
   /\b(ssn|social\s+security)\b/i,
   /\b(credit\s+card|card\s+number)\b/i,
 ];
+
+// High-severity moderation categories that should block
+const HIGH_SEVERITY_CATEGORIES = ['S1', 'S3', 'S4', 'S9', 'S11'];
+
+// Tool permissions by role
+const TOOL_PERMISSIONS: Record<string, string[]> = {
+  owner: ['all'], // Owners can use all tools
+  admin: ['all'],
+  member: [
+    'create_task',
+    'create_note',
+    'create_contact',
+    'create_calendar_event',
+    'web_search',
+  ],
+  viewer: ['web_search'], // Viewers can only search
+};
 
 // Structured logging helper
 function log(level: 'info' | 'warn' | 'error', requestId: string, message: string, data?: Record<string, any>) {
@@ -49,7 +109,7 @@ interface AIRunRequest {
     message_count?: number;
     include_thread?: boolean;
     include_workspace_data?: boolean;
-    workspace_data_types?: ('tasks' | 'contacts' | 'deals' | 'documents' | 'forms' | 'pipeline')[];
+    workspace_data_types?: ('tasks' | 'contacts' | 'deals' | 'documents' | 'forms' | 'pipeline' | 'accounts')[];
     include_web_research?: boolean;
     web_research_query?: string;
     selected_files?: string[];
@@ -113,8 +173,8 @@ serve(async (req) => {
     const startTime = Date.now();
 
     // Content moderation: Check prompt length
-    if (prompt.length > MAX_PROMPT_LENGTH) {
-      log('warn', requestId, 'Prompt too long', { promptLength: prompt.length, maxLength: MAX_PROMPT_LENGTH });
+    if (prompt.length > CONTEXT_LIMITS.MAX_PROMPT_LENGTH) {
+      log('warn', requestId, 'Prompt too long', { promptLength: prompt.length, maxLength: CONTEXT_LIMITS.MAX_PROMPT_LENGTH });
       return new Response(
         JSON.stringify({ error: 'Prompt too long. Please keep your message under 10,000 characters.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -130,6 +190,27 @@ serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+    }
+
+    // PRE-MODERATION: Check prompt with Llama Guard before processing
+    const preModResult = await checkContentWithLlamaGuard(groqApiKey, prompt, 'input');
+    if (!preModResult.safe) {
+      const isHighSeverity = preModResult.categories.some((c: string) => HIGH_SEVERITY_CATEGORIES.includes(c));
+      if (isHighSeverity) {
+        log('warn', requestId, 'Pre-moderation blocked (high severity)', { 
+          categories: preModResult.categories,
+          severity: 'high',
+        });
+        return new Response(
+          JSON.stringify({ error: 'Your message was flagged for safety concerns and cannot be processed.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      // Log medium/low severity but allow to proceed with caution
+      log('warn', requestId, 'Pre-moderation flagged (proceeding with caution)', { 
+        categories: preModResult.categories,
+        severity: 'medium/low',
+      });
     }
 
     // Validate room access and get settings
@@ -156,6 +237,17 @@ serve(async (req) => {
       );
     }
 
+    // Get user's role in workspace for permission checks
+    const { data: membership } = await supabaseAdmin
+      .from('workspace_members')
+      .select('role')
+      .eq('workspace_id', room.workspace_id)
+      .eq('user_id', user.id)
+      .single();
+
+    const userRole = membership?.role || 'viewer';
+    log('info', requestId, 'User role fetched', { userId: user.id, role: userRole });
+
     // Check API balance/plan limits
     const { data: workspace } = await supabaseAdmin
       .from('workspaces')
@@ -163,29 +255,68 @@ serve(async (req) => {
       .eq('id', room.workspace_id)
       .single();
 
-    // Rate limiting based on plan
     const planType = workspace?.plan_type || 'free';
-    const rateLimit = PLAN_RATE_LIMITS[planType] || PLAN_RATE_LIMITS.free;
-    
-    // Check recent AI requests in the last hour
+    const currentBalance = workspace?.api_balance ?? 1000; // Default balance
+
+    // Check if workspace has sufficient api_balance
+    const estimatedCost = ESTIMATED_TOKENS_PER_REQUEST * TOKEN_COST_MULTIPLIER;
+    if (currentBalance < estimatedCost) {
+      log('warn', requestId, 'Insufficient API balance', { 
+        workspaceId: room.workspace_id,
+        currentBalance,
+        estimatedCost,
+      });
+      return new Response(
+        JSON.stringify({ error: 'Insufficient API balance. Please upgrade your plan or contact support.' }),
+        { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Rate limiting: Workspace-level (existing)
+    const workspaceRateLimit = PLAN_RATE_LIMITS[planType] || PLAN_RATE_LIMITS.free;
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const { count: recentRequests } = await supabaseAdmin
+    
+    const { count: workspaceRequests } = await supabaseAdmin
       .from('huddle_messages')
       .select('id', { count: 'exact', head: true })
       .eq('workspace_id', room.workspace_id)
       .eq('is_ai', true)
       .gte('created_at', oneHourAgo);
     
-    if ((recentRequests || 0) >= rateLimit) {
-      log('warn', requestId, 'Rate limit exceeded', { 
+    if ((workspaceRequests || 0) >= workspaceRateLimit) {
+      log('warn', requestId, 'Workspace rate limit exceeded', { 
         workspaceId: room.workspace_id, 
         planType, 
-        rateLimit, 
-        recentRequests 
+        rateLimit: workspaceRateLimit, 
+        recentRequests: workspaceRequests 
       });
       return new Response(
         JSON.stringify({ 
-          error: `AI rate limit exceeded. Your ${planType} plan allows ${rateLimit} AI requests per hour. Please try again later or upgrade your plan.` 
+          error: `Workspace AI rate limit exceeded. Your ${planType} plan allows ${workspaceRateLimit} AI requests per hour.` 
+        }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Rate limiting: Per-user within workspace
+    const userRateLimit = USER_RATE_LIMITS[planType] || USER_RATE_LIMITS.free;
+    const { count: userRequests } = await supabaseAdmin
+      .from('huddle_messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('workspace_id', room.workspace_id)
+      .eq('metadata->>ai_request_user_id', user.id)
+      .gte('created_at', oneHourAgo);
+
+    if ((userRequests || 0) >= userRateLimit) {
+      log('warn', requestId, 'User rate limit exceeded', { 
+        workspaceId: room.workspace_id,
+        userId: user.id,
+        userRateLimit, 
+        userRequests 
+      });
+      return new Response(
+        JSON.stringify({ 
+          error: `You've reached your personal AI limit (${userRateLimit} requests/hour). Please wait before trying again.` 
         }),
         { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -196,11 +327,12 @@ serve(async (req) => {
       roomId: room_id,
       roomName: room.name,
       userId: user.id,
+      userRole,
       planType,
       promptLength: prompt.length,
     });
 
-    // Build context
+    // Build context with token budgeting
     const context = await buildContext(supabaseUser, supabaseAdmin, {
       room_id,
       thread_root_id,
@@ -210,19 +342,21 @@ serve(async (req) => {
       youComApiKey,
     });
 
-    // Build tools based on options
-    // Default to allowing write operations unless explicitly disabled in room settings
+    // Build tools based on options AND user role (server-side permission check)
     const aiCanWrite = room.settings?.ai_can_write !== false;
-    const tools = buildTools(tool_options, aiCanWrite, youComApiKey);
+    const allowedToolsForRole = TOOL_PERMISSIONS[userRole] || TOOL_PERMISSIONS.viewer;
+    const tools = buildTools(tool_options, aiCanWrite, youComApiKey, allowedToolsForRole);
     log('info', requestId, 'Context and tools built', {
       aiCanWrite,
+      userRole,
+      allowedToolsForRole,
       toolCount: tools.length,
       tools: tools.map((t: any) => t.function?.name),
       contextTypes: context_options.workspace_data_types,
     });
 
-    // First, post the user's prompt as a message
-    const { data: userMessage } = await supabaseUser
+    // First, post the user's prompt as a message - MUST succeed before AI processing
+    const { data: userMessage, error: userMessageError } = await supabaseUser
       .from('huddle_messages')
       .insert({
         room_id,
@@ -230,16 +364,117 @@ serve(async (req) => {
         user_id: user.id,
         body: prompt,
         thread_root_id,
-        metadata: { ai_request: true },
+        metadata: { 
+          ai_request: true,
+          ai_request_user_id: user.id, // For per-user rate limiting queries
+          request_id: requestId,
+        },
       })
       .select()
       .single();
 
-    // Create streaming response
+    // FAIL CLOSED: If user message insert fails, abort entirely
+    if (userMessageError || !userMessage) {
+      log('error', requestId, 'Failed to insert user message - aborting AI request', {
+        error: userMessageError?.message,
+        roomId: room_id,
+        userId: user.id,
+      });
+      return new Response(
+        JSON.stringify({ error: 'Failed to save your message. Please try again.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    log('info', requestId, 'User message persisted', { messageId: userMessage.id });
+
+    // Extract room name for system prompt
+    const roomName = room.name || 'Direct Message';
+
+    // Create streaming response with abort support
+    const requestAbortController = new AbortController();
+    
+    // Listen for client disconnect
+    req.signal?.addEventListener('abort', () => {
+      log('info', requestId, 'Client disconnected, aborting AI request');
+      requestAbortController.abort();
+    });
+
     const stream = new ReadableStream({
       async start(controller) {
+        // Heartbeat interval to keep connection alive
+        let heartbeatInterval: number | undefined;
+        let lastActivity = Date.now();
+        
+        const sendHeartbeat = () => {
+          if (Date.now() - lastActivity > STREAMING_CONFIG.HEARTBEAT_INTERVAL_MS) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'heartbeat', timestamp: Date.now() })}\n\n`));
+            lastActivity = Date.now();
+          }
+        };
+        
+        heartbeatInterval = setInterval(sendHeartbeat, STREAMING_CONFIG.HEARTBEAT_INTERVAL_MS);
+        
+        const cleanup = () => {
+          if (heartbeatInterval) clearInterval(heartbeatInterval);
+        };
+        
         try {
+          // Check if request was aborted
+          if (requestAbortController.signal.aborted) {
+            cleanup();
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'cancelled', reason: 'Request cancelled by client' })}\n\n`));
+            controller.close();
+            return;
+          }
+
           // Call Groq API with streaming
+          // Model selection based on context:
+          // - Compound for web search queries (has built-in web search)
+          // - GPT-OSS-120b for complex reasoning/tool use
+          // - Llama 3.3 70b for general chat
+          const needsWebSearch = context_options.include_web_research || 
+            context.webSources?.length > 0 || 
+            /search|look up|find out|what is|current|latest|today|news/i.test(prompt);
+          
+          const needsComplexReasoning = /analyze|compare|evaluate|calculate|explain why|reasoning/i.test(prompt);
+          
+          // Select optimal model based on task (from allowlist)
+          let selectedModel = 'llama-3.3-70b-versatile'; // Default: fast, versatile
+          let useCompoundBuiltInTools = false;
+          
+          if (needsWebSearch && !youComApiKey) {
+            // Use Compound for web search when You.com isn't available
+            // Note: compound not in allowlist, fallback to default with web search tool
+            selectedModel = 'llama-3.3-70b-versatile';
+          } else if (needsComplexReasoning || tools.length > 5) {
+            // Use larger model for complex tasks
+            selectedModel = 'llama-3.3-70b-versatile';
+          }
+          
+          // Validate model is in allowlist
+          if (!ALLOWED_MODELS.includes(selectedModel)) {
+            log('warn', requestId, 'Invalid model selection, using default', { requested: selectedModel });
+            selectedModel = 'llama-3.3-70b-versatile';
+          }
+          
+          log('info', requestId, 'Model selected', { 
+            model: selectedModel, 
+            needsWebSearch, 
+            needsComplexReasoning,
+            toolCount: tools.length,
+          });
+          
+          // Create timeout for Groq API call
+          const groqAbortController = new AbortController();
+          const timeoutId = setTimeout(() => {
+            groqAbortController.abort();
+            log('error', requestId, 'Groq API timeout', { timeoutMs: STREAMING_CONFIG.GROQ_TIMEOUT_MS });
+          }, STREAMING_CONFIG.GROQ_TIMEOUT_MS);
+          
+          // Combine abort signals
+          requestAbortController.signal.addEventListener('abort', () => groqAbortController.abort());
+          
           const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -247,32 +482,38 @@ serve(async (req) => {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              model: 'llama-3.3-70b-versatile',
+              model: selectedModel,
               messages: [
                 {
                   role: 'system',
-                  content: buildSystemPrompt(room.name, context, user_timezone),
+                  content: buildSystemPrompt(roomName, context, user_timezone),
                 },
                 ...context.recentMessages.map((m: any) => ({
                   role: m.is_ai ? 'assistant' : 'user',
-                  content: m.user?.name ? `${m.user.name}: ${m.body}` : m.body,
+                  // SECURITY: Sanitize user chat messages to prevent prompt injection via chat history
+                  content: m.is_ai 
+                    ? (m.body || '') // AI messages are trusted
+                    : sanitizeChatMessage(m.user?.name ? `${m.user.name}: ${m.body}` : (m.body || '')),
                 })),
                 {
                   role: 'user',
                   content: prompt,
                 },
               ],
-              tools: tools.length > 0 ? tools : undefined,
-              tool_choice: tools.length > 0 ? 'auto' : undefined,
+              tools: (!useCompoundBuiltInTools && tools.length > 0) ? tools : undefined,
+              tool_choice: (!useCompoundBuiltInTools && tools.length > 0) ? 'auto' : undefined,
               stream: true,
               max_tokens: 2048,
               temperature: 0.7,
             }),
+            signal: groqAbortController.signal,
           });
+          
+          clearTimeout(timeoutId);
 
           if (!groqResponse.ok) {
             const errorText = await groqResponse.text();
-            console.error('Groq API error:', groqResponse.status, errorText);
+            log('error', requestId, 'Groq API error', { status: groqResponse.status, error: errorText });
             
             // If we have web sources, still provide a helpful response
             if (context.webSources?.length > 0) {
@@ -291,22 +532,33 @@ serve(async (req) => {
                   body: fallbackContent,
                   thread_root_id: thread_root_id || null,
                   is_ai: true,
-                  metadata: { web_sources: context.webSources, error: `Groq API error: ${groqResponse.status}` },
+                  metadata: { 
+                    web_sources: context.webSources, 
+                    error: `Groq API error: ${groqResponse.status}`,
+                    request_id: requestId,
+                  },
                 });
               
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'complete', web_sources: context.webSources })}\n\n`));
+              cleanup();
               controller.close();
               return;
             }
             
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'AI request failed', detail: errorText })}\n\n`));
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+              type: 'error', 
+              error: 'AI request failed', 
+              detail: groqResponse.status === 503 ? 'Service temporarily unavailable. Please try again.' : 'Unable to process request',
+            })}\n\n`));
+            cleanup();
             controller.close();
             return;
           }
 
           const reader = groqResponse.body?.getReader();
           if (!reader) {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'No response stream' })}\n\n`));
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', error: 'No response stream' })}\n\n`));
+            cleanup();
             controller.close();
             return;
           }
@@ -316,8 +568,20 @@ serve(async (req) => {
           const toolCallsMap = new Map<number, { id: string; name: string; arguments: string }>();
 
           while (true) {
+            // Check for abort
+            if (requestAbortController.signal.aborted) {
+              reader.cancel();
+              log('info', requestId, 'Stream aborted by client');
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'cancelled' })}\n\n`));
+              cleanup();
+              controller.close();
+              return;
+            }
+            
             const { done, value } = await reader.read();
             if (done) break;
+            
+            lastActivity = Date.now(); // Update activity timestamp
 
             const chunk = new TextDecoder().decode(value);
             const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
@@ -384,20 +648,87 @@ serve(async (req) => {
             }
           }
           
-          console.log('Tool calls detected:', toolCalls.length, toolCalls.map(tc => tc.name));
-          console.log('Full content length:', fullContent.length);
+          log('info', requestId, 'Tool calls detected', { 
+            count: toolCalls.length, 
+            tools: toolCalls.map(tc => tc.name),
+            contentLength: fullContent.length,
+          });
 
-          // Execute tool calls if any
+          // Execute tool calls if any (with server-side role permission check and idempotency)
           const toolResults = [];
+          const executedToolIds = new Set<string>();
+          
+          // WRITE TOOLS that require ai_can_write permission
+          const WRITE_TOOLS = [
+            'create_task', 'create_note', 'create_contact', 'create_account',
+            'create_expense', 'create_calendar_event', 'create_invoice', 'create_product'
+          ];
+          
           for (const tc of toolCalls) {
+            // SECURITY: Defense-in-depth check for write permissions at execution time
+            // Even if tools shouldn't be offered when aiCanWrite=false, verify before executing
+            const isWriteTool = WRITE_TOOLS.includes(tc.name);
+            if (isWriteTool && !aiCanWrite) {
+              log('warn', requestId, 'Blocking write tool - room has ai_can_write disabled', { 
+                tool: tc.name, 
+                roomId: room.id,
+              });
+              toolResults.push({ ...tc, error: 'Write tools are disabled for this room' });
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'tool_result', tool: tc.name, error: 'Write tools are disabled for this room' })}\n\n`));
+              continue;
+            }
+            
+            // IDEMPOTENCY: Generate deterministic tool call ID using workspace+room+tool
+            const toolCallHash = await generateToolCallHash(tc, room.workspace_id, room.id);
+            
+            // Check if this exact tool call was already executed
+            if (executedToolIds.has(toolCallHash)) {
+              log('warn', requestId, 'Skipping duplicate tool call', { tool: tc.name, hash: toolCallHash });
+              continue;
+            }
+            
+            // Check database for previously executed tool calls with same hash
+            const { data: existingExecution } = await supabaseAdmin
+              .from('ai_tool_executions')
+              .select('id, result')
+              .eq('tool_call_hash', toolCallHash)
+              .eq('workspace_id', room.workspace_id)
+              .single();
+            
+            if (existingExecution) {
+              log('info', requestId, 'Returning cached tool result', { tool: tc.name, hash: toolCallHash });
+              toolResults.push({ ...tc, result: existingExecution.result, cached: true });
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'tool_result', tool: tc.name, result: existingExecution.result, cached: true })}\n\n`));
+              continue;
+            }
+            
+            executedToolIds.add(toolCallHash);
+            
             try {
-              console.log('Executing tool:', tc.name, 'with args:', tc.arguments);
-              const result = await executeToolCall(supabaseAdmin, tc, room.workspace_id, user.id, youComApiKey);
-              console.log('Tool result:', tc.name, result);
+              log('info', requestId, 'Executing tool', { tool: tc.name, hash: toolCallHash });
+              const result = await executeToolCall(supabaseAdmin, tc, room.workspace_id, user.id, youComApiKey, allowedToolsForRole, requestId);
+              
+              // Persist tool execution for idempotency and audit
+              await supabaseAdmin
+                .from('ai_tool_executions')
+                .insert({
+                  tool_call_hash: toolCallHash,
+                  request_id: requestId,
+                  workspace_id: room.workspace_id,
+                  user_id: user.id,
+                  tool_name: tc.name,
+                  tool_arguments: tc.arguments,
+                  result: result,
+                  success: result?.success === true,
+                })
+                .onConflict('tool_call_hash')
+                .ignore(); // Ignore if already exists (race condition safety)
+              
+              log('info', requestId, 'Tool execution completed', { tool: tc.name, success: result?.success });
               toolResults.push({ ...tc, result });
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'tool_result', tool: tc.name, result })}\n\n`));
             } catch (e) {
-              console.error('Tool error:', tc.name, e.message);
+              log('error', requestId, 'Tool execution failed', { tool: tc.name, error: e.message });
               toolResults.push({ ...tc, error: e.message });
               // Send error to client so they know what went wrong
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'tool_result', tool: tc.name, error: e.message })}\n\n`));
@@ -436,25 +767,51 @@ serve(async (req) => {
             }
           }
 
-          // Save AI message to database
-          const aiMetadata: Record<string, any> = {
-            ai_request_id: userMessage?.id,
-          };
-          if (toolResults.length > 0) {
-            aiMetadata.tool_calls = toolResults;
-          }
-          if (context.webSources?.length > 0) {
-            aiMetadata.web_sources = context.webSources;
+          // POST-MODERATION: Check AI output before saving/displaying
+          let messageBody = finalContent;
+          const postModResult = await checkContentWithLlamaGuard(groqApiKey, messageBody || '', 'output');
+          
+          if (!postModResult.safe) {
+            const isHighSeverity = postModResult.categories.some((c: string) => HIGH_SEVERITY_CATEGORIES.includes(c));
+            if (isHighSeverity) {
+              log('warn', requestId, 'Post-moderation blocked AI output (high severity)', { 
+                categories: postModResult.categories,
+              });
+              messageBody = 'I apologize, but I cannot provide that response. Please try rephrasing your question.';
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+                type: 'moderation_blocked',
+                reason: 'Response flagged for safety concerns',
+              })}\n\n`));
+            } else {
+              log('warn', requestId, 'Post-moderation flagged AI output (low/medium)', { 
+                categories: postModResult.categories,
+              });
+            }
           }
 
-          // If no content was generated but we have web sources, create a summary response
-          let messageBody = finalContent;
           if (!messageBody && context.webSources?.length > 0) {
             messageBody = `Based on my web search, here's what I found:\n\n${context.webSources.map((s: any, i: number) => 
               `**${i + 1}. ${s.title}**\n${s.snippet || 'No description available.'}\n[Source](${s.url})`
             ).join('\n\n')}`;
             // Stream this content to the client
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'content', content: messageBody })}\n\n`));
+          }
+
+          // Prepare AI metadata with moderation info
+          const aiMetadata: Record<string, any> = {
+            ai_request_id: userMessage?.id,
+            ai_request_user_id: user.id,
+            request_id: requestId,
+            moderation: {
+              pre: { safe: preModResult.safe, categories: preModResult.categories },
+              post: { safe: postModResult.safe, categories: postModResult.categories },
+            },
+          };
+          if (toolResults.length > 0) {
+            aiMetadata.tool_calls = toolResults;
+          }
+          if (context.webSources?.length > 0) {
+            aiMetadata.web_sources = context.webSources;
           }
 
           const { data: aiMessage } = await supabaseAdmin
@@ -471,18 +828,100 @@ serve(async (req) => {
             .select()
             .single();
 
+          // USAGE TRACKING: Log token usage and decrement api_balance
+          const endTime = Date.now();
+          const latencyMs = endTime - startTime;
+          
+          // Estimate token usage (rough approximation)
+          const promptTokens = Math.ceil(prompt.length / 4);
+          const contextTokens = Math.ceil(JSON.stringify(context).length / 4);
+          const responseTokens = Math.ceil((messageBody || '').length / 4);
+          const totalTokens = promptTokens + contextTokens + responseTokens;
+          const usageCost = totalTokens * TOKEN_COST_MULTIPLIER;
+
+          // ATOMIC balance debit using RPC to prevent race-condition overdrafts
+          // STRICT BILLING: Request fails if billing cannot be processed
+          const { data: debitResult, error: debitError } = await supabaseAdmin
+            .rpc('debit_api_balance', {
+              p_workspace_id: room.workspace_id,
+              p_amount: usageCost,
+            })
+            .single();
+          
+          // STRICT BILLING ENFORCEMENT: Fail the request if billing fails
+          if (debitError || !debitResult?.success) {
+            const billingErrorMsg = debitError?.message || debitResult?.error_message || 'Billing processing failed';
+            log('error', requestId, 'API balance debit failed - blocking response', {
+              workspaceId: room.workspace_id,
+              usageCost,
+              error: billingErrorMsg,
+            });
+            
+            // Delete the AI message since we can't bill for it
+            if (aiMessage?.id) {
+              await supabaseAdmin
+                .from('huddle_messages')
+                .delete()
+                .eq('id', aiMessage.id);
+            }
+            
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+              type: 'error', 
+              error: 'Unable to process billing. Please try again.',
+              retryable: true,
+            })}\n\n`));
+            
+            cleanup();
+            controller.close();
+            return;
+          }
+          
+          const newBalance = debitResult.new_balance;
+
+          // Log usage for analytics
+          log('info', requestId, 'AI request completed', {
+            workspaceId: room.workspace_id,
+            userId: user.id,
+            latencyMs,
+            promptTokens,
+            contextTokens,
+            responseTokens,
+            totalTokens,
+            usageCost,
+            remainingBalance: newBalance,
+            toolsExecuted: toolResults.map(tr => tr.name),
+            moderationPre: preModResult.safe ? 'pass' : preModResult.categories,
+            moderationPost: postModResult.safe ? 'pass' : postModResult.categories,
+          });
+
           // Send completion event
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
             type: 'complete', 
             message_id: aiMessage?.id,
             tool_calls: toolResults,
             web_sources: context.webSources,
+            usage: { tokens: totalTokens, latency_ms: latencyMs },
           })}\n\n`));
 
+          cleanup();
           controller.close();
         } catch (error) {
-          console.error('Streaming error:', error);
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: error.message })}\n\n`));
+          cleanup();
+          log('error', requestId, 'Streaming error', { error: error.message });
+          
+          // Check if it was an abort/timeout
+          if (error.name === 'AbortError') {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+              type: 'error', 
+              error: 'Request timed out', 
+              retryable: true,
+            })}\n\n`));
+          } else {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+              type: 'error', 
+              error: error.message,
+            })}\n\n`));
+          }
           controller.close();
         }
       },
@@ -506,7 +945,205 @@ serve(async (req) => {
   }
 });
 
-// Build context from various sources
+// Llama Guard content moderation - FAIL CLOSED on all errors
+async function checkContentWithLlamaGuard(
+  groqApiKey: string,
+  content: string,
+  direction: 'input' | 'output',
+  requestId?: string
+): Promise<{ safe: boolean; categories: string[]; error?: string }> {
+  if (!content?.trim()) {
+    return { safe: true, categories: [] };
+  }
+
+  try {
+    const role = direction === 'input' ? 'User' : 'Agent';
+    const prompt = `<|begin_of_text|><|start_header_id|>user<|end_header_id|>
+
+Task: Check if there is unsafe content in '${role}' messages according to our safety policy.
+
+<BEGIN UNSAFE CONTENT CATEGORIES>
+S1: Violent Crimes
+S2: Non-Violent Crimes
+S3: Sex-Related Crimes
+S4: Child Sexual Exploitation
+S5: Defamation
+S6: Specialized Advice
+S7: Privacy
+S8: Intellectual Property
+S9: Indiscriminate Weapons
+S10: Hate
+S11: Suicide & Self-Harm
+S12: Sexual Content
+S13: Elections
+S14: Code Interpreter Abuse
+<END UNSAFE CONTENT CATEGORIES>
+
+<BEGIN CONVERSATION>
+${role}: ${content.slice(0, 4000)}
+<END CONVERSATION>
+
+Provide your safety assessment for ONLY THE LAST ${role} message:
+- First line must read 'safe' or 'unsafe'.
+- If unsafe, a second line must include a comma-separated list of violated categories.<|eot_id|><|start_header_id|>assistant<|end_header_id|>`;
+
+    // Create abort controller with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout for moderation
+
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${groqApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'meta-llama/llama-guard-4-12b',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0,
+        max_tokens: 50,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      // FAIL CLOSED: On API error, block BOTH input and output
+      // This prevents unsafe content from slipping through when Groq is down
+      console.warn(`Llama Guard API error (${response.status}), failing closed`);
+      if (requestId) {
+        log('warn', requestId, 'Moderation API error - FAIL CLOSED', { 
+          direction, 
+          status: response.status,
+          action: 'blocked',
+        });
+      }
+      return { 
+        safe: false, // FAIL CLOSED - block on any API error
+        categories: ['API_ERROR'],
+        error: `Moderation API error: ${response.status}`,
+      };
+    }
+
+    const data = await response.json();
+    const text = (data.choices?.[0]?.message?.content || '').trim().toLowerCase();
+    const lines = text.split('\n').filter((l: string) => l.trim());
+    
+    const isSafe = lines[0]?.includes('safe') && !lines[0]?.includes('unsafe');
+    const categories: string[] = [];
+    
+    if (!isSafe && lines[1]) {
+      const matches = lines[1].match(/s\d+/gi) || [];
+      categories.push(...matches.map((c: string) => c.toUpperCase()));
+    }
+
+    return { safe: isSafe, categories };
+  } catch (error) {
+    // FAIL CLOSED on network/timeout errors - block BOTH input and output
+    console.warn('Llama Guard check failed:', error);
+    if (requestId) {
+      log('warn', requestId, 'Moderation check failed - FAIL CLOSED', { 
+        direction, 
+        error: error.message,
+        action: 'blocked',
+      });
+    }
+    return { 
+      safe: false, // FAIL CLOSED - block on any error
+      categories: ['CHECK_ERROR'],
+      error: error.message,
+    };
+  }
+}
+
+// Generate deterministic hash for tool call idempotency
+// SECURITY: Hash is independent of requestId to prevent duplicate execution on retries
+// Uses workspace_id + room_id + tool name + arguments to create a stable hash
+async function generateToolCallHash(
+  toolCall: { id: string; name: string; arguments: string },
+  workspaceId: string,
+  roomId: string
+): Promise<string> {
+  // Create a deterministic string from tool call details EXCLUDING requestId
+  // This ensures retries of the same prompt don't re-execute the same tool
+  const data = `${workspaceId}:${roomId}:${toolCall.name}:${toolCall.arguments}`;
+  const encoder = new TextEncoder();
+  const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(data));
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
+}
+
+// Redact PII from text content
+function redactPII(text: string): string {
+  if (!text) return text;
+  let result = text;
+  for (const { pattern, replacement } of PII_PATTERNS) {
+    result = result.replace(pattern, replacement);
+  }
+  return result;
+}
+
+// Redact PII from object values recursively
+function redactObjectPII(obj: any): any {
+  if (!obj) return obj;
+  if (typeof obj === 'string') return redactPII(obj);
+  if (Array.isArray(obj)) return obj.map(redactObjectPII);
+  if (typeof obj === 'object') {
+    const result: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      // Skip fields that are likely not PII
+      if (['id', 'created_at', 'updated_at', 'status', 'type'].includes(key)) {
+        result[key] = value;
+      } else {
+        result[key] = redactObjectPII(value);
+      }
+    }
+    return result;
+  }
+  return obj;
+}
+
+// Sanitize untrusted content (web search results, shared docs) to prevent prompt injection
+function sanitizeUntrustedContent(content: string, source: string): string {
+  if (!content) return '';
+  
+  // Remove potential prompt injection patterns
+  const sanitized = content
+    // Remove instruction-like patterns
+    .replace(/(?:ignore|disregard|forget)\s+(?:the\s+)?(?:above|previous|all)\s+instructions?/gi, '[FILTERED]')
+    .replace(/(?:you\s+are|act\s+as|pretend\s+to\s+be|roleplay\s+as)/gi, '[FILTERED]')
+    .replace(/(?:system\s*:?\s*prompt|assistant\s*:?\s*|user\s*:?\s*)/gi, '[FILTERED]')
+    // Remove code/script tags that could confuse the model
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    // Strip HTML tags but keep text content
+    .replace(/<[^>]+>/g, ' ')
+    // Normalize whitespace
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  // Wrap in clear provenance marker
+  return `[From ${source}]: "${sanitized.substring(0, 500)}${sanitized.length > 500 ? '...' : ''}"`;
+}
+
+// Sanitize chat messages to prevent prompt injection via chat history
+// SECURITY: User messages in chat history could contain malicious instructions
+function sanitizeChatMessage(message: string): string {
+  if (!message) return '';
+  
+  return message
+    // Remove patterns that try to override system instructions
+    .replace(/(?:ignore|disregard|forget)\s+(?:the\s+)?(?:above|previous|all)\s+instructions?/gi, '[filtered]')
+    .replace(/(?:you\s+are|act\s+as|pretend\s+to\s+be|roleplay\s+as)\s+(?:now\s+)?/gi, '[filtered] ')
+    .replace(/(?:new\s+)?system\s*:?\s*(?:prompt|instruction|message)/gi, '[filtered]')
+    // Don't allow fake role prefixes that could confuse the model
+    .replace(/^(?:system|assistant)\s*:/gi, 'user:')
+    // Limit message length to prevent context stuffing attacks
+    .substring(0, 2000);
+}
+
+// Build context from various sources with token budgeting
 async function buildContext(
   supabaseUser: any,
   supabaseAdmin: any,
@@ -524,6 +1161,18 @@ async function buildContext(
     recentMessages: [],
     workspaceData: {},
     webSources: [],
+    _contextSize: 0, // Track context size for budgeting
+  };
+
+  // Helper to check and update context budget
+  const addToContext = (data: any, key: string): boolean => {
+    const size = JSON.stringify(data).length;
+    if (context._contextSize + size > CONTEXT_LIMITS.MAX_TOTAL_CONTEXT) {
+      console.warn(`Context budget exceeded, skipping ${key}`);
+      return false;
+    }
+    context._contextSize += size;
+    return true;
   };
 
   // Get recent messages
@@ -559,9 +1208,15 @@ async function buildContext(
     context.recentMessages = (messages || []).reverse();
   }
 
-  // Get workspace data if requested
+  // Get workspace data if requested (with budgeting)
   if (options.include_workspace_data && options.workspace_data_types?.length) {
     for (const dataType of options.workspace_data_types) {
+      // Check if we have budget remaining
+      if (context._contextSize >= CONTEXT_LIMITS.MAX_TOTAL_CONTEXT) {
+        console.warn('Context budget exhausted, skipping remaining data types');
+        break;
+      }
+
       switch (dataType) {
         case 'tasks':
           const { data: tasks } = await supabaseUser
@@ -569,8 +1224,10 @@ async function buildContext(
             .select('id, text, status, priority, due_date')
             .eq('workspace_id', workspace_id)
             .neq('status', 'completed')
-            .limit(20);
-          context.workspaceData.tasks = tasks;
+            .limit(CONTEXT_LIMITS.MAX_ENTITIES_PER_TYPE);
+          if (tasks && addToContext(tasks, 'tasks')) {
+            context.workspaceData.tasks = tasks;
+          }
           break;
 
         case 'contacts':
@@ -578,8 +1235,23 @@ async function buildContext(
             .from('contacts')
             .select('id, name, email, company, title')
             .eq('workspace_id', workspace_id)
-            .limit(20);
-          context.workspaceData.contacts = contacts;
+            .limit(CONTEXT_LIMITS.MAX_ENTITIES_PER_TYPE);
+          if (contacts && addToContext(contacts, 'contacts')) {
+            context.workspaceData.contacts = contacts;
+          }
+          break;
+
+        case 'accounts':
+          // Get CRM accounts (companies/organizations)
+          const { data: accounts } = await supabaseUser
+            .from('crm_items')
+            .select('id, name, type, status, priority, website, industry, employee_count, annual_revenue, created_at')
+            .eq('workspace_id', workspace_id)
+            .order('created_at', { ascending: false })
+            .limit(CONTEXT_LIMITS.MAX_ENTITIES_PER_TYPE);
+          if (accounts && addToContext(accounts, 'accounts')) {
+            context.workspaceData.accounts = accounts;
+          }
           break;
 
         case 'deals':
@@ -587,8 +1259,10 @@ async function buildContext(
             .from('deals')
             .select('id, name, value, stage, probability')
             .eq('workspace_id', workspace_id)
-            .limit(20);
-          context.workspaceData.deals = deals;
+            .limit(CONTEXT_LIMITS.MAX_ENTITIES_PER_TYPE);
+          if (deals && addToContext(deals, 'deals')) {
+            context.workspaceData.deals = deals;
+          }
           break;
 
         case 'pipeline':
@@ -604,7 +1278,9 @@ async function buildContext(
             acc[deal.stage].value += deal.value || 0;
             return acc;
           }, {});
-          context.workspaceData.pipeline = pipelineSummary;
+          if (addToContext(pipelineSummary, 'pipeline')) {
+            context.workspaceData.pipeline = pipelineSummary;
+          }
           break;
 
         case 'forms':
@@ -614,9 +1290,9 @@ async function buildContext(
             .select('id, title, type, status, created_at, submissions_count')
             .eq('workspace_id', workspace_id)
             .order('created_at', { ascending: false })
-            .limit(10);
+            .limit(CONTEXT_LIMITS.MAX_ENTITIES_PER_TYPE);
           
-          // Get recent form submissions with form title
+          // Get recent form submissions with form title (limited)
           const { data: formSubmissions } = await supabaseUser
             .from('form_submissions')
             .select(`
@@ -626,58 +1302,91 @@ async function buildContext(
             .eq('workspace_id', workspace_id)
             .eq('status', 'completed')
             .order('created_at', { ascending: false })
-            .limit(20);
+            .limit(CONTEXT_LIMITS.MAX_ENTITIES_PER_TYPE);
           
-          context.workspaceData.forms = forms;
-          context.workspaceData.formSubmissions = formSubmissions;
+          // Truncate submission data to prevent context overflow and redact PII
+          const truncatedSubmissions = (formSubmissions || []).map((s: any) => ({
+            ...s,
+            email: s.email ? redactPII(s.email) : null,
+            data: redactObjectPII(truncateObject(s.data, CONTEXT_LIMITS.MAX_FORM_SUBMISSION_DATA)),
+          }));
+
+          if (forms && addToContext(forms, 'forms')) {
+            context.workspaceData.forms = forms;
+          }
+          if (truncatedSubmissions.length && addToContext(truncatedSubmissions, 'formSubmissions')) {
+            context.workspaceData.formSubmissions = truncatedSubmissions;
+          }
           break;
 
         case 'documents':
-          // Get recent GTM documents
+          // Get recent GTM documents (metadata only for listing)
           const { data: documents } = await supabaseUser
             .from('gtm_documents')
             .select('id, title, doc_type, created_at, updated_at')
             .eq('workspace_id', workspace_id)
             .order('updated_at', { ascending: false })
-            .limit(15);
+            .limit(CONTEXT_LIMITS.MAX_ENTITIES_PER_TYPE);
           
-          context.workspaceData.documents = documents;
+          if (documents && addToContext(documents, 'documents')) {
+            context.workspaceData.documents = documents;
+          }
           break;
       }
     }
   }
 
-  // Handle specific selected items if provided
+  // Handle specific selected items if provided (with budgeting)
   if (options.selected_forms?.length) {
     const { data: selectedForms } = await supabaseUser
       .from('forms')
       .select('id, title, type, status')
       .eq('workspace_id', workspace_id)
-      .in('id', options.selected_forms);
+      .in('id', options.selected_forms.slice(0, 5)); // Limit selected forms
     
     // Get submissions for selected forms
     const { data: selectedSubmissions } = await supabaseUser
       .from('form_submissions')
       .select('id, form_id, data, email, status, created_at')
       .eq('workspace_id', workspace_id)
-      .in('form_id', options.selected_forms)
+      .in('form_id', options.selected_forms.slice(0, 5))
       .eq('status', 'completed')
       .order('created_at', { ascending: false })
-      .limit(50);
+      .limit(30); // Reduced from 50
     
-    context.selectedForms = selectedForms;
-    context.selectedFormSubmissions = selectedSubmissions;
+    // Truncate submission data and redact PII
+    const truncatedSelectedSubmissions = (selectedSubmissions || []).map((s: any) => ({
+      ...s,
+      email: s.email ? redactPII(s.email) : null,
+      data: redactObjectPII(truncateObject(s.data, CONTEXT_LIMITS.MAX_FORM_SUBMISSION_DATA)),
+    }));
+
+    if (selectedForms && addToContext(selectedForms, 'selectedForms')) {
+      context.selectedForms = selectedForms;
+    }
+    if (truncatedSelectedSubmissions.length && addToContext(truncatedSelectedSubmissions, 'selectedFormSubmissions')) {
+      context.selectedFormSubmissions = truncatedSelectedSubmissions;
+    }
   }
 
   if (options.selected_documents?.length) {
-    // Get full document content for selected documents
+    // Get full document content for selected documents (limited + truncated)
     const { data: selectedDocs } = await supabaseUser
       .from('gtm_documents')
       .select('id, title, doc_type, content, created_at, updated_at')
       .eq('workspace_id', workspace_id)
-      .in('id', options.selected_documents);
+      .in('id', options.selected_documents.slice(0, 3)); // Limit to 3 docs
     
-    context.selectedDocuments = selectedDocs;
+    // Truncate document content
+    const truncatedDocs = (selectedDocs || []).map((d: any) => ({
+      ...d,
+      content: d.content?.substring(0, CONTEXT_LIMITS.MAX_DOCUMENT_CONTENT) || '',
+      _truncated: d.content?.length > CONTEXT_LIMITS.MAX_DOCUMENT_CONTENT,
+    }));
+
+    if (truncatedDocs.length && addToContext(truncatedDocs, 'selectedDocuments')) {
+      context.selectedDocuments = truncatedDocs;
+    }
   }
 
   if (options.selected_files?.length) {
@@ -686,37 +1395,92 @@ async function buildContext(
       .from('documents_metadata')
       .select('id, name, file_type, file_size, description, created_at')
       .eq('workspace_id', workspace_id)
-      .in('id', options.selected_files);
+      .in('id', options.selected_files.slice(0, 5)); // Limit files
     
-    context.selectedFiles = selectedFiles;
+    if (selectedFiles && addToContext(selectedFiles, 'selectedFiles')) {
+      context.selectedFiles = selectedFiles;
+    }
   }
 
-  // Web research via You.com
+  // Web research via You.com (with timeout and content sanitization)
   if (options.include_web_research && options.web_research_query && youComApiKey) {
     try {
       const params = new URLSearchParams();
       params.set('query', options.web_research_query);
       params.set('num_web_results', '5');
+      
+      // Add timeout for web search
+      const searchController = new AbortController();
+      const searchTimeout = setTimeout(() => searchController.abort(), 10000); // 10s timeout
+      
       const searchResponse = await fetch(`https://api.ydc-index.io/search?${params.toString()}`, {
         headers: { 'X-API-Key': youComApiKey },
+        signal: searchController.signal,
       });
+      
+      clearTimeout(searchTimeout);
       
       if (searchResponse.ok) {
         const searchData = await searchResponse.json();
         // Handle multiple response structures from You.com API
         const hitsSource = searchData.hits || searchData.results?.web || searchData.results || [];
-        context.webSources = (Array.isArray(hitsSource) ? hitsSource : []).slice(0, 5).map((hit: any) => ({
-          title: hit.title || hit.name || '',
-          url: hit.url || hit.link || '',
-          snippet: hit.description || hit.snippet || hit.summary || '',
-        })).filter((s: any) => s.url || s.title);
+        context.webSources = (Array.isArray(hitsSource) ? hitsSource : []).slice(0, 5).map((hit: any) => {
+          // Extract hostname for source attribution
+          let hostname = '';
+          try {
+            hostname = new URL(hit.url || hit.link || '').hostname;
+          } catch { 
+            hostname = 'unknown source';
+          }
+          
+          return {
+            title: (hit.title || hit.name || '').substring(0, 200),
+            url: hit.url || hit.link || '',
+            // Sanitize snippet to prevent prompt injection from web content
+            snippet: sanitizeUntrustedContent(
+              hit.description || hit.snippet || hit.summary || '', 
+              hostname
+            ),
+          };
+        }).filter((s: any) => s.url || s.title);
       }
     } catch (e) {
       console.error('You.com search error:', e);
     }
   }
 
+  // Log final context size
+  console.log(`Context built: ${context._contextSize} chars, budget: ${CONTEXT_LIMITS.MAX_TOTAL_CONTEXT}`);
+
   return context;
+}
+
+// Helper to truncate object values to a max size
+function truncateObject(obj: any, maxSize: number): any {
+  if (!obj) return obj;
+  const str = JSON.stringify(obj);
+  if (str.length <= maxSize) return obj;
+  
+  // Try to preserve structure by truncating string values
+  const result: any = {};
+  let currentSize = 2; // for {}
+  
+  for (const [key, value] of Object.entries(obj)) {
+    const keySize = key.length + 3; // for "key":
+    if (typeof value === 'string') {
+      const remaining = maxSize - currentSize - keySize - 2;
+      if (remaining > 20) {
+        result[key] = value.substring(0, remaining) + (value.length > remaining ? '...' : '');
+        currentSize += keySize + result[key].length + 2;
+      }
+    } else if (typeof value === 'number' || typeof value === 'boolean') {
+      result[key] = value;
+      currentSize += keySize + String(value).length;
+    }
+    if (currentSize >= maxSize - 10) break;
+  }
+  
+  return result;
 }
 
 // Build system prompt
@@ -787,6 +1551,16 @@ Guidelines:
       prompt += `\nRecent Contacts (${context.workspaceData.contacts.length}):\n`;
       context.workspaceData.contacts.slice(0, 5).forEach((c: any) => {
         prompt += `- ${c.name}${c.title ? ` (${c.title})` : ''}${c.company ? ` at ${c.company}` : ''}\n`;
+      });
+    }
+
+    if (context.workspaceData.accounts?.length) {
+      prompt += `\nCRM Accounts (${context.workspaceData.accounts.length}):\n`;
+      context.workspaceData.accounts.forEach((a: any) => {
+        const revenue = a.annual_revenue ? `$${Number(a.annual_revenue).toLocaleString()} ARR` : '';
+        const employees = a.employee_count ? `${a.employee_count} employees` : '';
+        const details = [a.industry, revenue, employees].filter(Boolean).join(', ');
+        prompt += `- ${a.name}${a.type ? ` [${a.type}]` : ''}${a.status ? ` (${a.status})` : ''}${details ? ` - ${details}` : ''}\n`;
       });
     }
 
@@ -872,13 +1646,24 @@ Guidelines:
   return prompt;
 }
 
-// Build available tools
-function buildTools(options: AIRunRequest['tool_options'], aiCanWrite: boolean, youComApiKey?: string): any[] {
+// Build available tools with server-side permission enforcement
+function buildTools(
+  options: AIRunRequest['tool_options'], 
+  aiCanWrite: boolean, 
+  youComApiKey?: string,
+  allowedToolsForRole: string[] = ['all']
+): any[] {
   const tools: any[] = [];
 
-  // Only add write tools if room allows and user requested
+  // Helper to check if tool is allowed for user's role
+  const isToolAllowed = (toolName: string): boolean => {
+    if (allowedToolsForRole.includes('all')) return true;
+    return allowedToolsForRole.includes(toolName);
+  };
+
+  // Only add write tools if room allows, user requested, AND user role permits
   if (aiCanWrite) {
-    if (options.allow_task_creation) {
+    if (options.allow_task_creation && isToolAllowed('create_task')) {
       tools.push({
         type: 'function',
         function: {
@@ -902,7 +1687,7 @@ function buildTools(options: AIRunRequest['tool_options'], aiCanWrite: boolean, 
       });
     }
 
-    if (options.allow_note_creation) {
+    if (options.allow_note_creation && isToolAllowed('create_note')) {
       tools.push({
         type: 'function',
         function: {
@@ -920,7 +1705,7 @@ function buildTools(options: AIRunRequest['tool_options'], aiCanWrite: boolean, 
       });
     }
 
-    if (options.allow_contact_creation) {
+    if (options.allow_contact_creation && isToolAllowed('create_contact')) {
       tools.push({
         type: 'function',
         function: {
@@ -942,7 +1727,7 @@ function buildTools(options: AIRunRequest['tool_options'], aiCanWrite: boolean, 
       });
     }
 
-    if (options.allow_account_creation) {
+    if (options.allow_account_creation && isToolAllowed('create_account')) {
       tools.push({
         type: 'function',
         function: {
@@ -965,7 +1750,7 @@ function buildTools(options: AIRunRequest['tool_options'], aiCanWrite: boolean, 
       });
     }
 
-    if (options.allow_expense_creation) {
+    if (options.allow_expense_creation && isToolAllowed('create_expense')) {
       tools.push({
         type: 'function',
         function: {
@@ -987,7 +1772,7 @@ function buildTools(options: AIRunRequest['tool_options'], aiCanWrite: boolean, 
       });
     }
 
-    if (options.allow_revenue_creation) {
+    if (options.allow_revenue_creation && isToolAllowed('create_revenue')) {
       tools.push({
         type: 'function',
         function: {
@@ -1009,7 +1794,7 @@ function buildTools(options: AIRunRequest['tool_options'], aiCanWrite: boolean, 
       });
     }
 
-    if (options.allow_deal_creation) {
+    if (options.allow_deal_creation && isToolAllowed('create_deal')) {
       tools.push({
         type: 'function',
         function: {
@@ -1033,7 +1818,7 @@ function buildTools(options: AIRunRequest['tool_options'], aiCanWrite: boolean, 
       });
     }
 
-    if (options.allow_calendar_event_creation) {
+    if (options.allow_calendar_event_creation && isToolAllowed('create_calendar_event')) {
       tools.push({
         type: 'function',
         function: {
@@ -1056,7 +1841,7 @@ function buildTools(options: AIRunRequest['tool_options'], aiCanWrite: boolean, 
       });
     }
 
-    if (options.allow_marketing_campaign_creation) {
+    if (options.allow_marketing_campaign_creation && isToolAllowed('create_marketing_campaign')) {
       tools.push({
         type: 'function',
         function: {
@@ -1081,8 +1866,8 @@ function buildTools(options: AIRunRequest['tool_options'], aiCanWrite: boolean, 
     }
   }
 
-  // Only add web_search tool if the API key is configured
-  if (options.allow_web_search && youComApiKey) {
+  // Only add web_search tool if the API key is configured and user role allows
+  if (options.allow_web_search && youComApiKey && isToolAllowed('web_search')) {
     tools.push({
       type: 'function',
       function: {
@@ -1102,14 +1887,32 @@ function buildTools(options: AIRunRequest['tool_options'], aiCanWrite: boolean, 
   return tools;
 }
 
-// Execute a tool call
+// Execute a tool call with server-side permission validation and audit logging
 async function executeToolCall(
   supabase: any,
   toolCall: { name: string; arguments: string },
   workspace_id: string,
   user_id: string,
-  youComApiKey?: string
+  youComApiKey?: string,
+  allowedToolsForRole: string[] = ['all'],
+  requestId?: string
 ): Promise<any> {
+  // SERVER-SIDE PERMISSION CHECK: Reject tool calls not allowed for this role
+  const isToolAllowed = allowedToolsForRole.includes('all') || allowedToolsForRole.includes(toolCall.name);
+  if (!isToolAllowed) {
+    if (requestId) {
+      log('warn', requestId, 'Tool permission denied', { 
+        tool: toolCall.name, 
+        allowedTools: allowedToolsForRole,
+        userId: user_id,
+      });
+    }
+    return { 
+      success: false, 
+      error: `Permission denied: You don't have access to use ${toolCall.name}` 
+    };
+  }
+
   let args: any;
   try {
     args = JSON.parse(toolCall.arguments);

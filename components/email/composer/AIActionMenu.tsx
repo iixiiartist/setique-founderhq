@@ -34,16 +34,15 @@ export const AIActionMenu = forwardRef<HTMLDivElement, AIActionMenuProps>(
         return (
             <div
                 ref={ref}
-                className="fixed z-[9999] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl w-64 py-1 overflow-hidden"
+                className="fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl w-64 py-1 overflow-hidden"
                 style={{
                     top: `${position.top}px`,
                     left: `${position.left}px`,
-                    transform: 'translateY(-100%)',
                 }}
             >
-                <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <Sparkles className="w-4 h-4 text-purple-500" />
+                <div className="px-3 py-2 border-b border-gray-200">
+                    <div className="flex items-center gap-2 text-sm font-medium text-gray-900">
+                        <Sparkles className="w-4 h-4 text-gray-600" />
                         AI Email Assistant
                     </div>
                 </div>
@@ -55,16 +54,16 @@ export const AIActionMenu = forwardRef<HTMLDivElement, AIActionMenuProps>(
                                 onAction(action.action);
                                 onClose();
                             }}
-                            className="w-full px-3 py-2 text-left flex items-center gap-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                            className="w-full px-3 py-2 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors"
                         >
-                            <span className="text-purple-500">
+                            <span className="text-gray-600">
                                 {iconMap[action.action]}
                             </span>
                             <div>
-                                <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                <div className="text-sm font-medium text-gray-900">
                                     {action.label}
                                 </div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                <div className="text-xs text-gray-500">
                                     {action.description}
                                 </div>
                             </div>

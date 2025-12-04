@@ -9,10 +9,13 @@ import { useWorkspace } from '../contexts/WorkspaceContext';
 import { DatabaseService } from '../lib/services/database';
 import { EmailComposer, EmailAttachment } from './email/EmailComposerWrapper';
 import { supabase } from '../lib/supabase';
-import { showError } from '../lib/utils/toast';
+import { showError, showInfo } from '../lib/utils/toast';
 import mammoth from 'mammoth';
 import { Upload } from 'lucide-react';
 import { useConfirmAction } from '../hooks';
+import { APP_CONFIG } from '../lib/config';
+import { extractTextFromImage, ocrPdfPages } from '../services/visionService';
+import { transcribe } from '../services/audioService';
 
 // Import extracted components
 import {
@@ -44,8 +47,28 @@ async function initPdfJs() {
 
 const MAX_ACTIVITY_ITEMS = 80;
 
-// Extract text from PDF using pdfjs-dist
-async function extractTextFromPDF(base64Content: string): Promise<string> {
+// Render a PDF page to a base64 image for OCR
+async function renderPdfPageToImage(page: any, scale: number = 2): Promise<string> {
+    const viewport = page.getViewport({ scale });
+    const canvas = window.document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Could not get canvas context');
+    
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+    
+    await page.render({
+        canvasContext: context,
+        viewport: viewport,
+    }).promise;
+    
+    return canvas.toDataURL('image/png');
+}
+
+// Extract text from PDF using pdfjs-dist, with OCR fallback for scanned documents
+async function extractTextFromPDF(base64Content: string, options?: { useOcr?: boolean; onProgress?: (status: string) => void }): Promise<string> {
+    const { useOcr = true, onProgress } = options || {};
+    
     try {
         const pdfjs = await initPdfJs();
         if (!pdfjs) throw new Error('Failed to load PDF.js library');
@@ -60,6 +83,8 @@ async function extractTextFromPDF(base64Content: string): Promise<string> {
         const pdf = await loadingTask.promise;
         const textParts: string[] = [];
         
+        onProgress?.('Extracting text from PDF...');
+        
         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
             const page = await pdf.getPage(pageNum);
             const textContent = await page.getTextContent();
@@ -68,6 +93,34 @@ async function extractTextFromPDF(base64Content: string): Promise<string> {
         }
         
         const result = textParts.join('\n\n').trim();
+        
+        // Check if we got meaningful text
+        const avgCharsPerPage = result.length / pdf.numPages;
+        const isLikelyScanned = !result || avgCharsPerPage < 100;
+        
+        if (isLikelyScanned && useOcr) {
+            console.log('[FileLibraryTab] PDF appears to be scanned, attempting OCR...');
+            onProgress?.('PDF appears scanned, using AI OCR...');
+            
+            // Render pages to images and use OCR (limit to first 10 pages)
+            const pagesToProcess = Math.min(pdf.numPages, 10);
+            const pageImages: string[] = [];
+            
+            for (let pageNum = 1; pageNum <= pagesToProcess; pageNum++) {
+                onProgress?.(`Rendering page ${pageNum} of ${pagesToProcess} for OCR...`);
+                const page = await pdf.getPage(pageNum);
+                const imageData = await renderPdfPageToImage(page);
+                pageImages.push(imageData);
+            }
+            
+            onProgress?.('Running AI OCR on pages...');
+            const ocrResult = await ocrPdfPages(pageImages, { documentType: 'general' });
+            
+            if (ocrResult.text && ocrResult.text.trim().length > result.length) {
+                console.log(`[FileLibraryTab] OCR extracted ${ocrResult.text.length} chars (vs ${result.length} from text extraction)`);
+                return ocrResult.text;
+            }
+        }
         
         if (!result) {
             console.warn('[FileLibraryTab] PDF extraction returned empty text - PDF may be scanned/image-based');
@@ -102,6 +155,72 @@ async function extractTextFromDOCX(base64Content: string): Promise<{ text: strin
     }
 }
 
+// Helper to check if file is an audio file
+function isAudioFile(mimeType: string, fileName: string): boolean {
+    const audioMimes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/webm', 'audio/ogg', 'audio/m4a', 'audio/x-m4a', 'audio/mp4'];
+    const audioExtensions = ['.mp3', '.wav', '.webm', '.ogg', '.m4a', '.mp4', '.flac'];
+    return audioMimes.includes(mimeType) || audioExtensions.some(ext => fileName.toLowerCase().endsWith(ext));
+}
+
+// Helper to check if file is an image file
+function isImageFile(mimeType: string, fileName: string): boolean {
+    const imageMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    return imageMimes.includes(mimeType) || imageExtensions.some(ext => fileName.toLowerCase().endsWith(ext));
+}
+
+// Transcribe audio file to text using Whisper
+async function transcribeAudioFile(base64Content: string, fileName: string): Promise<string> {
+    try {
+        console.log('[FileLibraryTab] Transcribing audio file:', fileName);
+        
+        // Convert base64 to Blob
+        const binaryString = atob(base64Content);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        
+        // Determine MIME type from extension
+        const ext = fileName.toLowerCase().split('.').pop() || 'mp3';
+        const mimeMap: Record<string, string> = {
+            'mp3': 'audio/mpeg',
+            'wav': 'audio/wav',
+            'webm': 'audio/webm',
+            'm4a': 'audio/mp4',
+            'ogg': 'audio/ogg',
+            'flac': 'audio/flac',
+        };
+        const mimeType = mimeMap[ext] || 'audio/mpeg';
+        
+        const blob = new Blob([bytes], { type: mimeType });
+        const result = await transcribe(blob);
+        
+        console.log(`[FileLibraryTab] Transcription complete: ${result.text.length} chars in ${result.latencyMs}ms`);
+        return result.text;
+    } catch (error) {
+        console.error('[FileLibraryTab] Audio transcription error:', error);
+        throw new Error(`Failed to transcribe audio: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+}
+
+// Extract text from image using OCR
+async function extractTextFromImageFile(base64Content: string, mimeType: string): Promise<string> {
+    try {
+        console.log('[FileLibraryTab] Extracting text from image...');
+        
+        // Build data URL
+        const dataUrl = `data:${mimeType || 'image/jpeg'};base64,${base64Content}`;
+        const result = await extractTextFromImage(dataUrl, { documentType: 'general' });
+        
+        console.log(`[FileLibraryTab] Image OCR complete: ${result.text.length} chars in ${result.latencyMs}ms`);
+        return result.text;
+    } catch (error) {
+        console.error('[FileLibraryTab] Image OCR error:', error);
+        throw new Error(`Failed to extract text from image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+}
+
 // Use Groq AI to intelligently structure and format extracted document content
 async function formatDocumentWithAI(rawText: string, fileName: string): Promise<{ contentJson: any; contentPlain: string }> {
     try {
@@ -132,7 +251,7 @@ RULES:
                 ],
                 temperature: 0.2,
                 max_tokens: 8000,
-                model: 'llama-3.3-70b-versatile'
+                model: APP_CONFIG.api.groq.models.default // Use centralized config
             }
         });
 
@@ -399,8 +518,21 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
             const fileName = doc.name || '';
             
             // Extract text based on file type
-            if (mimeType === 'application/pdf' || mimeType.includes('pdf')) {
-                textContent = await extractTextFromPDF(doc.content);
+            if (isAudioFile(mimeType, fileName)) {
+                // Audio files: Transcribe using Whisper
+                showInfo('Transcribing audio file with AI...');
+                textContent = await transcribeAudioFile(doc.content, fileName);
+                textContent = `# Audio Transcription: ${doc.name}\n\n${textContent}`;
+            } else if (isImageFile(mimeType, fileName)) {
+                // Image files: Extract text using OCR
+                showInfo('Extracting text from image with AI OCR...');
+                textContent = await extractTextFromImageFile(doc.content, mimeType);
+                textContent = `# Text from Image: ${doc.name}\n\n${textContent}`;
+            } else if (mimeType === 'application/pdf' || mimeType.includes('pdf')) {
+                textContent = await extractTextFromPDF(doc.content, {
+                    useOcr: true,
+                    onProgress: (status) => showInfo(status),
+                });
             } else if (mimeType.includes('wordprocessingml') || fileName.endsWith('.docx')) {
                 const result = await extractTextFromDOCX(doc.content);
                 textContent = result.text;
@@ -440,7 +572,9 @@ export default function FileLibraryTab({ documents, actions, companies, contacts
             }
             
             const isTeamPro = workspace?.planType === 'team-pro';
-            const needsAiFormatting = mimeType.includes('pdf') || mimeType.includes('wordprocessingml') || fileName.endsWith('.docx') || fileName.endsWith('.doc');
+            const needsAiFormatting = mimeType.includes('pdf') || mimeType.includes('wordprocessingml') || 
+                fileName.endsWith('.docx') || fileName.endsWith('.doc') ||
+                isAudioFile(mimeType, fileName) || isImageFile(mimeType, fileName);
             
             let finalContentJson: any;
             

@@ -20,7 +20,7 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
     const aiAllowed = room.settings?.ai_allowed !== false;
 
     return (
-        <div className="h-12 sm:h-14 px-2 sm:px-4 border-b-2 border-black flex items-center justify-between shrink-0 bg-white">
+        <div className="h-12 sm:h-14 px-2 sm:px-4 border-b border-gray-200 flex items-center justify-between shrink-0 bg-white">
             <div className="flex items-center gap-2 min-w-0">
                 {/* Mobile menu button */}
                 <button

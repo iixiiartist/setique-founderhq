@@ -1,30 +1,56 @@
 // components/huddle/MessageComposer.tsx
-// Rich message composer with attachments, formatting, and AI invoke
+// Rich message composer with attachments, formatting, AI invoke, and voice notes
 
 import React, { useState, useRef, useCallback, KeyboardEvent } from 'react';
 import { Paperclip, Send, Sparkles, Type, X, FileText } from 'lucide-react';
 import type { LinkedEntity } from '../../types/huddle';
+import { VoiceNoteRecorder } from './VoiceNoteRecorder';
 
 interface MessageComposerProps {
   onSend: (content: string, attachments?: File[], linkedEntities?: LinkedEntity[]) => void;
   onAIInvoke?: () => void;
+  onInlineAIInvoke?: (prompt: string) => void; // For @ai prefix detection
+  isAILoading?: boolean; // Show AI loading state
   onTyping?: () => void;
   placeholder?: string;
   disabled?: boolean;
   replyingTo?: { id: string; preview: string } | null;
   onCancelReply?: () => void;
   aiEnabled?: boolean;
+  voiceEnabled?: boolean; // Enable voice note recording
 }
+
+// Detect if message is an AI request (e.g., @ai, /ai, ai:, @assistant)
+const isAIRequest = (text: string): boolean => {
+  const trimmed = text.trim().toLowerCase();
+  return trimmed.startsWith('@ai ') || 
+         trimmed.startsWith('/ai ') || 
+         trimmed.startsWith('ai: ') ||
+         trimmed.startsWith('@assistant ');
+};
+
+// Extract the actual prompt from an AI request
+const extractAIPrompt = (text: string): string => {
+  const trimmed = text.trim();
+  if (trimmed.toLowerCase().startsWith('@ai ')) return trimmed.slice(4).trim();
+  if (trimmed.toLowerCase().startsWith('/ai ')) return trimmed.slice(4).trim();
+  if (trimmed.toLowerCase().startsWith('ai: ')) return trimmed.slice(4).trim();
+  if (trimmed.toLowerCase().startsWith('@assistant ')) return trimmed.slice(11).trim();
+  return trimmed;
+};
 
 export const MessageComposer: React.FC<MessageComposerProps> = ({
   onSend,
   onAIInvoke,
+  onInlineAIInvoke,
+  isAILoading = false,
   onTyping,
   placeholder = 'Type a message...',
   disabled = false,
   replyingTo,
   onCancelReply,
   aiEnabled = true,
+  voiceEnabled = true,
 }) => {
   const [content, setContent] = useState('');
   const [attachments, setAttachments] = useState<File[]>([]);
@@ -49,6 +75,22 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
   const handleSend = () => {
     const trimmed = content.trim();
     if (!trimmed && attachments.length === 0) return;
+    
+    // Check if this is an inline AI request
+    if (aiEnabled && onInlineAIInvoke && isAIRequest(trimmed) && attachments.length === 0) {
+      const prompt = extractAIPrompt(trimmed);
+      console.log('[MessageComposer] AI request detected', { trimmed, prompt, aiEnabled, hasOnInlineAIInvoke: !!onInlineAIInvoke });
+      if (prompt) {
+        console.log('[MessageComposer] Calling onInlineAIInvoke with prompt:', prompt);
+        onInlineAIInvoke(prompt);
+        // Reset state after AI invoke
+        setContent('');
+        if (textareaRef.current) {
+          textareaRef.current.style.height = 'auto';
+        }
+        return;
+      }
+    }
     
     onSend(trimmed, attachments.length > 0 ? attachments : undefined, linkedEntities.length > 0 ? linkedEntities : undefined);
     
@@ -142,17 +184,17 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
 
   const getEntityIcon = (type: string) => {
     switch (type) {
-      case 'task': return 'task';
-      case 'contact': return 'contact';
-      case 'deal': return 'deal';
-      case 'document': return 'doc';
-      case 'form': return 'form';
-      default: return 'file';
+      case 'task': return '\u2705';
+      case 'contact': return '\uD83D\uDC64';
+      case 'deal': return '\uD83D\uDCB0';
+      case 'document': return '\uD83D\uDCC4';
+      case 'form': return '\uD83D\uDCDD';
+      default: return '\uD83D\uDCC1';
     }
   };
 
   return (
-    <div className="border-t-2 border-gray-200 bg-white safe-area-bottom">
+    <div className="border-t border-gray-200 bg-white safe-area-bottom">
       {/* Reply indicator */}
       {replyingTo && (
         <div className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-100 border-b border-gray-200 flex items-center justify-between">
@@ -192,9 +234,9 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
                 )}
                 <button
                   onClick={() => removeAttachment(index)}
-                  className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-red-500 text-white rounded-full text-[10px] sm:text-xs flex items-center justify-center"
+                  className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-red-500 text-white rounded-full flex items-center justify-center"
                 >
-                  ✕
+                  <X size={10} className="sm:w-3 sm:h-3" />
                 </button>
               </div>
             );
@@ -216,7 +258,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
                 onClick={() => removeLinkedEntity(index)}
                 className="text-gray-400 hover:text-red-500 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
               >
-                ✕
+                <X size={12} />
               </button>
             </div>
           ))}
@@ -230,11 +272,14 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
           <div className="flex-shrink-0">
             <input
               ref={fileInputRef}
+              id="huddle-file-attachment"
+              name="huddle-file-attachment"
               type="file"
               multiple
               className="hidden"
               onChange={handleFileSelect}
               accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
+              aria-label="Attach files to message"
             />
             <button
               onClick={() => fileInputRef.current?.click()}
@@ -250,6 +295,8 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
           <div className="flex-1 relative">
             <textarea
               ref={textareaRef}
+              id="huddle-message-input"
+              name="huddle-message-input"
               value={content}
               onChange={(e) => {
                 setContent(e.target.value);
@@ -259,7 +306,8 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
               placeholder={placeholder}
               disabled={disabled}
               rows={1}
-              className="w-full resize-none border-2 border-gray-200 rounded-xl px-3 py-1.5 sm:px-4 sm:py-2 pr-8 sm:pr-10 text-sm sm:text-base focus:border-gray-400 focus:outline-none disabled:bg-gray-50 disabled:text-gray-400"
+              aria-label="Message input"
+              className="w-full resize-none border border-gray-200 rounded-xl px-3 py-1.5 sm:px-4 sm:py-2 pr-8 sm:pr-10 text-sm sm:text-base focus:border-gray-300 focus:outline-none disabled:bg-gray-50 disabled:text-gray-400"
               style={{ maxHeight: '150px' }}
             />
           </div>
@@ -279,6 +327,16 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
               <Type size={20} />
             </button>
 
+            {/* Voice note recorder */}
+            {voiceEnabled && (
+              <VoiceNoteRecorder
+                onTranscription={(text) => {
+                  setContent(prev => prev ? `${prev} ${text}` : text);
+                }}
+                disabled={disabled}
+              />
+            )}
+
             {/* AI invoke button */}
             {aiEnabled && onAIInvoke && (
               <button
@@ -293,11 +351,23 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
             {/* Send button */}
             <button
               onClick={handleSend}
-              disabled={disabled || (!content.trim() && attachments.length === 0)}
-              className="p-1.5 sm:p-2 bg-black text-white rounded-lg hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-              title="Send (Enter)"
+              disabled={disabled || isAILoading || (!content.trim() && attachments.length === 0)}
+              className={`p-1.5 sm:p-2 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center ${
+                isAILoading 
+                  ? 'bg-purple-500 text-white animate-pulse cursor-wait'
+                  : isAIRequest(content) 
+                    ? 'bg-purple-600 text-white hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed'
+                    : 'bg-black text-white hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed'
+              }`}
+              title={isAIRequest(content) ? 'Ask AI (Enter)' : 'Send (Enter)'}
             >
-              <Send size={18} className="sm:w-5 sm:h-5" />
+              {isAILoading ? (
+                <Sparkles size={18} className="sm:w-5 sm:h-5 animate-spin" />
+              ) : isAIRequest(content) ? (
+                <Sparkles size={18} className="sm:w-5 sm:h-5" />
+              ) : (
+                <Send size={18} className="sm:w-5 sm:h-5" />
+              )}
             </button>
           </div>
         </div>

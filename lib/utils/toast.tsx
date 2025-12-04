@@ -7,25 +7,40 @@
 
 import toast, { Toaster } from 'react-hot-toast';
 
-// Toast configuration
+// Toast configuration - Modern soft design
 export const toastConfig = {
   duration: 4000,
   position: 'bottom-right' as const,
   style: {
-    border: '3px solid black',
-    boxShadow: '4px 4px 0px 0px rgba(0, 0, 0, 1)',
+    borderRadius: '12px',
+    border: '1px solid rgba(0, 0, 0, 0.08)',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.05)',
     fontFamily: 'inherit',
+    padding: '12px 16px',
+    background: 'white',
   },
   success: {
     iconTheme: {
       primary: '#10b981',
       secondary: 'white',
     },
+    style: {
+      borderRadius: '12px',
+      border: '1px solid rgba(16, 185, 129, 0.2)',
+      boxShadow: '0 4px 12px rgba(16, 185, 129, 0.15), 0 2px 4px rgba(0, 0, 0, 0.05)',
+      background: 'linear-gradient(to right, rgba(16, 185, 129, 0.05), white)',
+    },
   },
   error: {
     iconTheme: {
       primary: '#ef4444',
       secondary: 'white',
+    },
+    style: {
+      borderRadius: '12px',
+      border: '1px solid rgba(239, 68, 68, 0.2)',
+      boxShadow: '0 4px 12px rgba(239, 68, 68, 0.15), 0 2px 4px rgba(0, 0, 0, 0.05)',
+      background: 'linear-gradient(to right, rgba(239, 68, 68, 0.05), white)',
     },
   },
 };
@@ -42,6 +57,16 @@ export function showSuccess(message: string) {
  */
 export function showError(message: string) {
   toast.error(message, toastConfig);
+}
+
+/**
+ * Show info toast
+ */
+export function showInfo(message: string) {
+  toast(message, {
+    ...toastConfig,
+    icon: '\u2139\uFE0F',
+  });
 }
 
 /**

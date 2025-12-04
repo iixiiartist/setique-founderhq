@@ -14,6 +14,7 @@ export { HuddleEmptyState } from './HuddleEmptyState';
 export { RoomHeader } from './RoomHeader';
 export { ThreadDrawer } from './ThreadDrawer';
 export { MessageTimeline } from './MessageTimeline';
+export { VoiceNoteRecorder } from './VoiceNoteRecorder';
 
 // Constants
 export * from './constants';

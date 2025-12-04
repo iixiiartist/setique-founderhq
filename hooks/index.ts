@@ -98,3 +98,7 @@ export type { UseCsvImportExportOptions, UseCsvImportExportReturn } from './useC
 // Document editor (extracted from DocEditor)
 export { useDocEditor, getDefaultExtensions } from './useDocEditor';
 export type { UseDocEditorOptions, UseDocEditorReturn, EditorCommands } from './useDocEditor';
+
+// Background agent jobs
+export { useBackgroundAgentJobs } from './useBackgroundAgentJobs';
+export type { UseBackgroundAgentJobsOptions, UseBackgroundAgentJobsReturn } from './useBackgroundAgentJobs';

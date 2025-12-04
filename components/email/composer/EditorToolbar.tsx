@@ -56,11 +56,6 @@ interface EditorToolbarProps {
     applyTemplate: (template: any) => void;
     emailTemplates: any[];
     setShowGTMTemplateMenu: (show: boolean) => void;
-    // AI
-    aiProcessing: boolean;
-    aiActionLabel: string;
-    aiButtonRef: React.RefObject<HTMLButtonElement>;
-    toggleAiMenu: () => void;
 }
 
 export function EditorToolbar({
@@ -98,14 +93,10 @@ export function EditorToolbar({
     templateRef,
     applyTemplate,
     emailTemplates,
-    setShowGTMTemplateMenu,
-    aiProcessing,
-    aiActionLabel,
-    aiButtonRef,
-    toggleAiMenu
+    setShowGTMTemplateMenu
 }: EditorToolbarProps) {
     return (
-        <div className="border-b border-gray-200 bg-gray-50/80 relative z-40 overflow-visible">
+        <div className="border-b border-gray-200 bg-white relative z-40 overflow-visible">
             {/* Main Toolbar Row */}
             <div className="flex items-center gap-0.5 px-2 py-1.5 flex-wrap overflow-visible">
                 {/* Undo/Redo/Print */}
@@ -681,46 +672,19 @@ export function EditorToolbar({
                         </div>
                     )}
                 </div>
-
-                {/* Spacer */}
-                <div className="flex-1" />
-
-                {/* AI Actions Button */}
-                <div className="relative">
-                    <button
-                        ref={aiButtonRef}
-                        type="button"
-                        onClick={toggleAiMenu}
-                        disabled={aiProcessing}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all text-sm font-medium disabled:opacity-50 shadow-sm"
-                    >
-                        {aiProcessing ? (
-                            <>
-                                <span className="animate-spin">⟳</span>
-                                <span>{aiActionLabel}</span>
-                            </>
-                        ) : (
-                            <>
-                                <span>✨</span>
-                                <span>AI Assist</span>
-                                <span>▼</span>
-                            </>
-                        )}
-                    </button>
-                </div>
             </div>
 
             {/* Status Bar */}
-            <div className="flex items-center justify-between px-3 py-1 text-xs text-gray-500 border-t border-gray-100 bg-gray-50/50">
-                <div className="flex items-center gap-3">
-                    {editor?.isActive('bold') && <span className="px-1.5 py-0.5 bg-gray-200 rounded">Bold</span>}
-                    {editor?.isActive('italic') && <span className="px-1.5 py-0.5 bg-gray-200 rounded">Italic</span>}
-                    {editor?.isActive('underline') && <span className="px-1.5 py-0.5 bg-gray-200 rounded">Underline</span>}
-                    {editor?.isActive('link') && <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">Link</span>}
-                    {editor?.isActive('bulletList') && <span className="px-1.5 py-0.5 bg-gray-200 rounded">Bullet List</span>}
-                    {editor?.isActive('orderedList') && <span className="px-1.5 py-0.5 bg-gray-200 rounded">Numbered List</span>}
+            <div className="flex items-center justify-between px-3 py-1 text-xs text-gray-500 border-t border-gray-100 bg-gray-50">
+                <div className="flex items-center gap-2">
+                    {editor?.isActive('bold') && <span className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-700">Bold</span>}
+                    {editor?.isActive('italic') && <span className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-700">Italic</span>}
+                    {editor?.isActive('underline') && <span className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-700">Underline</span>}
+                    {editor?.isActive('link') && <span className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-700">Link</span>}
+                    {editor?.isActive('bulletList') && <span className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-700">Bullet List</span>}
+                    {editor?.isActive('orderedList') && <span className="px-1.5 py-0.5 bg-gray-200 rounded text-gray-700">Numbered List</span>}
                 </div>
-                <div>
+                <div className="text-gray-400">
                     {editor?.storage.characterCount?.characters()} characters
                 </div>
             </div>

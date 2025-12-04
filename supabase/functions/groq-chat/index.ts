@@ -1,11 +1,27 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from '../_shared/apiAuth.ts';
 
-// Valid Groq models as of late 2024
+// Valid Groq models as of December 2024 (Dev Tier)
 const VALID_MODELS = [
+  // Production Models
   'llama-3.3-70b-versatile',
-  'llama-3.1-70b-versatile', 
   'llama-3.1-8b-instant',
+  'openai/gpt-oss-120b',
+  'openai/gpt-oss-20b',
+  'meta-llama/llama-guard-4-12b',
+  'whisper-large-v3',
+  'whisper-large-v3-turbo',
+  // Preview Models
+  'meta-llama/llama-4-maverick-17b-128e-instruct',
+  'meta-llama/llama-4-scout-17b-16e-instruct',
+  'moonshotai/kimi-k2-instruct-0905',
+  'qwen/qwen3-32b',
+  'openai/gpt-oss-safeguard-20b',
+  // Compound Systems (Agentic AI)
+  'groq/compound',
+  'groq/compound-mini',
+  // Legacy (deprecated but still functional)
+  'llama-3.1-70b-versatile',
   'llama3-70b-8192',
   'llama3-8b-8192',
   'mixtral-8x7b-32768',
@@ -93,9 +109,30 @@ serve(async (req) => {
       temperature: temperature ?? 0.7,
       max_tokens: max_tokens ?? 4096,
     };
+
+    // Add service tier if specified (flex, performance, etc.)
+    if (body.service_tier) {
+      requestBody.service_tier = body.service_tier;
+    }
+
+    // Add reasoning parameters for GPT-OSS and Qwen models
+    if (requestedModel.startsWith('openai/gpt-oss') || requestedModel.startsWith('qwen/')) {
+      if (body.reasoning_effort) {
+        requestBody.reasoning_effort = body.reasoning_effort; // 'low', 'medium', 'high' for GPT-OSS; 'none', 'default' for Qwen
+      }
+      if (body.reasoning_format) {
+        requestBody.reasoning_format = body.reasoning_format; // 'parsed', 'raw', 'hidden'
+      }
+      if (body.include_reasoning !== undefined) {
+        requestBody.include_reasoning = body.include_reasoning;
+      }
+    }
+
+    // Compound models don't use custom tools - they have built-in tools
+    const isCompoundModel = requestedModel.startsWith('groq/compound');
     
-    // Only add tools if provided
-    if (tools && tools.length > 0) {
+    // Only add tools if provided AND not using Compound
+    if (tools && tools.length > 0 && !isCompoundModel) {
       requestBody.tools = tools;
       if (tool_choice) {
         requestBody.tool_choice = tool_choice;

@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0'
 
 type ResearchMode = 'search' | 'news' | 'images' | 'rag'
+type AIProvider = 'youcom' | 'groq'
 
 const ALLOWED_MODES: ResearchMode[] = ['search', 'news', 'images', 'rag']
 
@@ -10,6 +11,149 @@ const ALLOWED_MODES: ResearchMode[] = ['search', 'news', 'images', 'rag']
 const RATE_LIMIT = 20 // requests per minute per user
 const RATE_WINDOW_MS = 60_000
 const rateLimits = new Map<string, { count: number; resetAt: number }>()
+
+// Groq Compound API endpoint
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+
+// Groq Compound models for web search
+const GROQ_COMPOUND_MODELS = {
+  default: 'groq/compound',        // Full compound model
+  fast: 'groq/compound-mini',      // Faster, lighter version
+}
+
+/**
+ * Execute search using Groq Compound model with built-in web search
+ * This is faster than You.com for simple web searches
+ */
+async function searchWithGroqCompound(
+  query: string, 
+  apiKey: string,
+  options: { fast?: boolean; count?: number } = {}
+): Promise<{
+  answer: string;
+  sources: Array<{ title?: string; url: string; snippet?: string }>;
+  metadata: Record<string, unknown>;
+}> {
+  const model = options.fast ? GROQ_COMPOUND_MODELS.fast : GROQ_COMPOUND_MODELS.default;
+  
+  const systemPrompt = `You are a market research analyst specializing in pricing, market trends, and competitive intelligence.
+When answering:
+1. PRIORITIZE current pricing data, costs, and market values
+2. Include specific dollar amounts, price ranges, and units (per lb, per kg, per unit, etc.)
+3. Mention wholesale vs retail pricing when available
+4. Include market size, trends, and key players/competitors
+5. Cite your sources with links
+6. Focus on the most recent data (2024-2025 preferred)`;
+
+  const userPrompt = `Search the web for market research on: ${query}
+
+Provide:
+1. **Current Pricing**: Specific prices (retail, wholesale, per unit costs)
+2. **Market Overview**: Market size, growth trends, key statistics
+3. **Competitors/Brands**: Major players and their positioning
+4. **Recent News**: Any recent market developments
+
+Be specific with numbers and cite sources.`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+  try {
+    const response = await fetch(GROQ_API_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.3,
+        max_tokens: 2048,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[ai-search] Groq Compound error:', response.status, errorText);
+      throw new Error(`Groq API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const message = data.choices?.[0]?.message;
+    const content = message?.content || '';
+    
+    console.log('[ai-search] Groq raw response keys:', Object.keys(data));
+    console.log('[ai-search] Groq response structure:', {
+      hasChoices: !!data.choices,
+      choicesLength: data.choices?.length,
+      hasMessage: !!message,
+      hasContent: !!content,
+      contentLength: content?.length,
+      contentPreview: content?.substring(0, 200),
+      hasExecutedTools: !!message?.executed_tools,
+      executedToolsCount: message?.executed_tools?.length || 0,
+      topLevelExecutedTools: !!data.executed_tools,
+    });
+    
+    // Extract sources from executed_tools if available
+    // executed_tools is on the message object, not top-level
+    const sources: Array<{ title?: string; url: string; snippet?: string }> = [];
+    
+    // Check for tool execution results (Compound provides these on message.executed_tools)
+    const executedTools = message?.executed_tools || data.executed_tools;
+    if (executedTools && Array.isArray(executedTools)) {
+      console.log('[ai-search] Processing executed_tools:', executedTools.length);
+      for (const tool of executedTools) {
+        console.log('[ai-search] Tool:', JSON.stringify(tool).substring(0, 500));
+        if ((tool.name === 'web_search' || tool.type === 'web_search') && Array.isArray(tool.results)) {
+          for (const result of tool.results) {
+            if (result.url) {
+              sources.push({
+                title: result.title,
+                url: result.url,
+                snippet: result.snippet || result.description || result.text,
+              });
+            }
+          }
+        }
+        // Also check for search_results in output
+        if (tool.output?.search_results && Array.isArray(tool.output.search_results)) {
+          for (const result of tool.output.search_results) {
+            if (result.url) {
+              sources.push({
+                title: result.title,
+                url: result.url,
+                snippet: result.snippet || result.description || result.text,
+              });
+            }
+          }
+        }
+      }
+    }
+    
+    console.log('[ai-search] Extracted sources:', sources.length);
+
+    return {
+      answer: content,
+      sources,
+      metadata: {
+        provider: 'groq',
+        model,
+        usage: data.usage,
+      },
+    };
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
+}
 
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = [
@@ -269,20 +413,84 @@ serve(async (req: Request) => {
   const startedAt = performance.now()
 
   try {
-    const { query, mode: rawMode, count: rawCount } = await resolveBody(req)
-    const apiKey = Deno.env.get('YOUCOM_API_KEY')
-
-    if (!apiKey) {
-      console.error('[ai-search] YOUCOM_API_KEY not configured')
-      return errorResponse(500, 'SERVICE_ERROR', req)
-    }
+    const { query, mode: rawMode, count: rawCount, provider: rawProvider, fast } = await resolveBody(req)
+    const youApiKey = Deno.env.get('YOUCOM_API_KEY')
+    const groqApiKey = Deno.env.get('GROQ_API_KEY')
 
     if (typeof query !== 'string' || !query.trim()) {
       return errorResponse(400, 'INVALID_REQUEST', req)
     }
 
-  const mode: ResearchMode = isResearchMode(rawMode) ? rawMode : 'search'
+    const mode: ResearchMode = isResearchMode(rawMode) ? rawMode : 'search'
     const count = sanitizeCount(rawCount, DEFAULT_COUNTS[mode])
+    
+    // Determine which provider to use
+    // - For 'rag' mode with Groq key available, prefer Groq Compound (faster)
+    // - For 'search' mode, Groq Compound is also faster
+    // - For 'news' and 'images', You.com has specialized endpoints
+    const preferGroq = groqApiKey && (mode === 'search' || mode === 'rag')
+    const requestedProvider = rawProvider as AIProvider | undefined
+    const useProvider: AIProvider = requestedProvider 
+      || (preferGroq ? 'groq' : 'youcom')
+    
+    console.log(`[ai-search] Using provider: ${useProvider}, mode: ${mode}, query: ${query.substring(0, 50)}...`)
+
+    // Use Groq Compound for search/rag if available and requested/preferred
+    if (useProvider === 'groq' && groqApiKey && (mode === 'search' || mode === 'rag')) {
+      try {
+        console.log('[ai-search] Attempting Groq Compound search...');
+        const groqResult = await searchWithGroqCompound(query, groqApiKey, { 
+          fast: Boolean(fast),
+          count 
+        })
+        
+        console.log('[ai-search] Groq Compound succeeded:', {
+          hasAnswer: !!groqResult.answer,
+          answerLength: groqResult.answer?.length,
+          sourcesCount: groqResult.sources?.length,
+        });
+        
+        const resultBody = {
+          hits: groqResult.sources.length ? groqResult.sources.map((s, i) => ({
+            title: s.title,
+            description: s.snippet,
+            url: s.url,
+            source: 'groq-compound',
+          })) : undefined,
+          qa: { answer: groqResult.answer || 'No response from AI' },
+          metadata: {
+            provider: 'groq',
+            model: fast ? 'groq/compound-mini' : 'groq/compound',
+            mode,
+            query,
+            count,
+            fetchedAt: new Date().toISOString(),
+            durationMs: Math.round(performance.now() - startedAt),
+            ...groqResult.metadata,
+          },
+        }
+        
+        console.log('[ai-search] Returning Groq result:', {
+          hasHits: !!resultBody.hits?.length,
+          hasQa: !!resultBody.qa?.answer,
+          qaLength: resultBody.qa?.answer?.length,
+        });
+        
+        return jsonResponse(resultBody, req)
+      } catch (groqError) {
+        console.error('[ai-search] Groq Compound failed:', groqError instanceof Error ? groqError.message : groqError);
+        console.error('[ai-search] Groq error details:', JSON.stringify(groqError, null, 2));
+        console.log('[ai-search] Falling back to You.com...');
+        // Fall through to You.com
+      }
+    }
+
+    // Fall back to You.com or use it directly for news/images
+    if (!youApiKey) {
+      console.error('[ai-search] YOUCOM_API_KEY not configured')
+      return errorResponse(500, 'SERVICE_ERROR', req)
+    }
+
     const endpoint = MODE_ENDPOINT[mode]
 
     const params = new URLSearchParams()
@@ -307,7 +515,7 @@ serve(async (req: Request) => {
     try {
       response = await fetch(`${endpoint}?${params.toString()}`, {
         method: 'GET',
-        headers: { 'X-API-Key': apiKey },
+        headers: { 'X-API-Key': youApiKey },
         signal: controller.signal,
       })
     } finally {

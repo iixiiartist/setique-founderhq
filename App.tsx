@@ -5,6 +5,7 @@ import { WorkspaceProvider } from './contexts/WorkspaceContext'
 import { FeatureFlagProvider } from './contexts/FeatureFlagContext'
 import { QueryProvider } from './lib/providers/QueryProvider'
 import { Toaster } from './lib/utils/toast'
+import { RateLimitAlert } from './components/shared/RateLimitAlert'
 import { LoginForm } from './components/auth/LoginForm'
 import { ResetPassword } from './components/auth/ResetPassword'
 import { FullPageLoading } from './components/shared/Loading'
@@ -54,6 +55,7 @@ const App: React.FC = () => {
         <Router>
           <AnalyticsIntegration />
           <Toaster />
+          <RateLimitAlert />
           <ConsentBanner />
           <Routes>
           {/* Public landing page (also handles invite tokens) */}
