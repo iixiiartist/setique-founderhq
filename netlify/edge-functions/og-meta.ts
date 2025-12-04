@@ -242,49 +242,57 @@ async function fetchForm(slug: string): Promise<{ title: string; description: st
 }
 
 export default async function handler(request: Request, context: Context) {
-  const url = new URL(request.url);
-  const path = url.pathname;
-  const userAgent = request.headers.get('user-agent') || '';
-  
-  // Check if this is a crawler or iOS preview
-  const shouldServeOg = isCrawler(userAgent) || isIOSPreview(request);
-  
-  console.log(`[og-meta] Path: ${path}, UA: ${userAgent.substring(0, 80)}, Serve OG: ${shouldServeOg}`);
-  
-  // If not a crawler, pass through to the SPA
-  if (!shouldServeOg) {
+  try {
+    const url = new URL(request.url);
+    const path = url.pathname;
+    const userAgent = request.headers.get('user-agent') || '';
+    
+    // Check if this is a crawler or iOS preview
+    const shouldServeOg = isCrawler(userAgent) || isIOSPreview(request);
+    
+    console.log(`[og-meta] Path: ${path}, UA: ${userAgent.substring(0, 80)}, Serve OG: ${shouldServeOg}`);
+    
+    // If not a crawler, pass through to the SPA
+    if (!shouldServeOg) {
+      return context.next();
+    }
+    
+    // Parse the path
+    const briefMatch = path.match(/^\/share\/brief\/([^/]+)$/);
+    const reportMatch = path.match(/^\/share\/report\/([^/]+)$/);
+    const formMatch = path.match(/^\/forms\/([^/]+)$/);
+    
+    let meta: { title: string; description: string } | null = null;
+    let pageUrl = `${SITE_URL}${path}`;
+    
+    if (briefMatch) {
+      meta = await fetchBrief(briefMatch[1]);
+    } else if (reportMatch) {
+      meta = await fetchReport(reportMatch[1]);
+    } else if (formMatch) {
+      meta = await fetchForm(formMatch[1]);
+    }
+    
+    // If we couldn't fetch metadata, still serve generic OG tags for crawlers
+    if (!meta) {
+      console.log('[og-meta] No metadata found, serving generic OG tags');
+      meta = {
+        title: 'FounderHQ',
+        description: 'The all-in-one GTM hub for founders, consultants, and small businesses.',
+      };
+    }
+    
+    // Return the OG HTML
+    return new Response(generateOgHtml({ ...meta, url: pageUrl }), {
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'public, max-age=300', // Cache for 5 minutes
+      },
+    });
+  } catch (error) {
+    console.error('[og-meta] Error:', error);
     return context.next();
   }
-  
-  // Parse the path
-  const briefMatch = path.match(/^\/share\/brief\/([^/]+)$/);
-  const reportMatch = path.match(/^\/share\/report\/([^/]+)$/);
-  const formMatch = path.match(/^\/forms\/([^/]+)$/);
-  
-  let meta: { title: string; description: string } | null = null;
-  let pageUrl = `${SITE_URL}${path}`;
-  
-  if (briefMatch) {
-    meta = await fetchBrief(briefMatch[1]);
-  } else if (reportMatch) {
-    meta = await fetchReport(reportMatch[1]);
-  } else if (formMatch) {
-    meta = await fetchForm(formMatch[1]);
-  }
-  
-  // If we couldn't fetch metadata, pass through
-  if (!meta) {
-    console.log('[og-meta] No metadata found, passing through');
-    return context.next();
-  }
-  
-  // Return the OG HTML
-  return new Response(generateOgHtml({ ...meta, url: pageUrl }), {
-    headers: {
-      'Content-Type': 'text/html; charset=utf-8',
-      'Cache-Control': 'public, max-age=300', // Cache for 5 minutes
-    },
-  });
 }
 
 export const config = {
