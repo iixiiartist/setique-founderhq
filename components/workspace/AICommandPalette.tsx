@@ -998,7 +998,15 @@ ${TIPTAP_TOOLKIT_HINT}`;
 	return (
 		<div className="fixed inset-0 z-[120] pointer-events-none">
 			<div
-				ref={paletteRef}
+				ref={(node) => {
+					// Wire both refs to the same element
+					(paletteRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+					if (typeof clickOutsideRef === 'function') {
+						clickOutsideRef(node);
+					} else if (clickOutsideRef) {
+						(clickOutsideRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+					}
+				}}
 				className="pointer-events-auto absolute w-[min(480px,calc(100vw-32px))] rounded-2xl border border-slate-200 bg-white shadow-2xl"
 				style={{ top: effectivePosition.top, left: effectivePosition.left }}
 			>
@@ -1128,19 +1136,45 @@ ${TIPTAP_TOOLKIT_HINT}`;
 						</button>
 					</div>
 
+					{/* Research Status */}
+					{isWebSearchEnabled && webSearchMode === 'text' && isFetchingResearch && (
+						<div className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 rounded-lg px-3 py-2">
+							<RefreshCw size={14} className="animate-spin" />
+							Fetching research...
+						</div>
+					)}
+					{isWebSearchEnabled && webSearchMode === 'text' && researchError && (
+						<div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
+							<AlertTriangle size={14} />
+							Research: {researchError}
+						</div>
+					)}
+					{isWebSearchEnabled && webSearchMode === 'images' && imageSearchLoading && (
+						<div className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 rounded-lg px-3 py-2">
+							<RefreshCw size={14} className="animate-spin" />
+							Searching for images...
+						</div>
+					)}
+					{isWebSearchEnabled && webSearchMode === 'images' && imageSearchError && (
+						<div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
+							<AlertTriangle size={14} />
+							Images: {imageSearchError}
+						</div>
+					)}
+
 					{/* Generate Button */}
 					<button
 						type="button"
 						onClick={handleGenerate}
-						disabled={loading || !prompt.trim()}
+						disabled={loading || !prompt.trim() || isFetchingResearch || imageSearchLoading}
 						className={`w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition ${
-							loading || !prompt.trim()
+							loading || !prompt.trim() || isFetchingResearch || imageSearchLoading
 								? 'bg-slate-100 text-slate-400 cursor-not-allowed'
 								: 'bg-purple-600 text-white hover:bg-purple-700'
 						}`}
 					>
 						{loading ? <span className="relative w-4 h-4"><span className="absolute inset-0 border-2 border-current animate-spin" style={{ animationDuration: '1.2s' }} /><span className="absolute inset-0.5 border border-current/40 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} /></span> : <Wand2 size={16} />}
-						{loading ? 'Generating...' : 'Generate'}
+						{loading ? 'Generating...' : isFetchingResearch ? 'Researching...' : 'Generate'}
 					</button>
 
 					{/* Status Messages */}

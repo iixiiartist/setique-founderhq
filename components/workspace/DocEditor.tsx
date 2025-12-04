@@ -116,7 +116,7 @@ import {
     Scissors, Copy, Clipboard, FilePlus, Trash2, CornerUpLeft,
     Subscript as SubscriptIcon, Superscript as SuperscriptIcon, Youtube as YoutubeIcon,
     Search as SearchIcon,
-    Sparkles, Globe, AlertTriangle
+    Sparkles, Globe, AlertTriangle, RefreshCw
 } from 'lucide-react';
 
 export const DocEditor: React.FC<DocEditorProps> = ({
@@ -1343,7 +1343,8 @@ export const DocEditor: React.FC<DocEditorProps> = ({
 
     // Removed handleSendToAI - use AI Command Palette (Cmd+K) instead
     const handleOpenAIPalette = () => {
-        if (!editor || !aiPaletteEnabledRef.current) return;
+        // Gate on editor, feature flag, and context readiness
+        if (!editor || !aiPaletteEnabledRef.current || contextLoading || !workspaceContext) return;
         const { view } = editor;
         const coords = view.coordsAtPos(view.state.selection.from);
         setAIPalettePosition({ top: coords.top + window.scrollY + 30, left: coords.left + window.scrollX });
@@ -1913,9 +1914,22 @@ export const DocEditor: React.FC<DocEditorProps> = ({
                                 {isAIPaletteEnabled && (
                                     <button
                                         onClick={handleOpenAIPalette}
-                                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-full border border-gray-300 hover:bg-gray-100"
+                                        disabled={contextLoading || !workspaceContext}
+                                        title={contextError ? `Context load failed: ${contextError.message}` : contextLoading ? 'Loading context...' : undefined}
+                                        className={`inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-full border border-gray-300 ${
+                                            contextLoading || !workspaceContext
+                                                ? 'opacity-50 cursor-not-allowed'
+                                                : 'hover:bg-gray-100'
+                                        }`}
                                     >
-                                        <Sparkles size={14} /> AI Copilot
+                                        {contextLoading ? (
+                                            <RefreshCw size={14} className="animate-spin" />
+                                        ) : contextError ? (
+                                            <AlertTriangle size={14} className="text-amber-500" />
+                                        ) : (
+                                            <Sparkles size={14} />
+                                        )}
+                                        AI Copilot
                                     </button>
                                 )}
                                 <button

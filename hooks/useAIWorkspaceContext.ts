@@ -42,7 +42,9 @@ export function useAIWorkspaceContext(
       setError(null);
 
       // Fetch business profile - this is the key context for GTM writing
-      const { data: businessProfile } = await DatabaseService.getBusinessProfile(workspaceId);
+      // getBusinessProfile returns an array; pick the first profile if present
+      const { data: businessProfileData } = await DatabaseService.getBusinessProfile(workspaceId);
+      const businessProfile = Array.isArray(businessProfileData) ? businessProfileData[0] ?? null : businessProfileData;
 
       // Only fetch current doc and related docs if we have a docId
       let currentDocType: string | undefined = undefined;
