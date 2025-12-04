@@ -9,6 +9,7 @@
 # ============================================
 # Open Graph Meta Tags for Social Crawlers
 # Routes share/form links to Supabase function for rich previews
+# The function detects crawlers and serves OG tags, or redirects regular users
 # ============================================
 
 [[redirects]]
@@ -16,21 +17,18 @@
   to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/og-meta?path=/share/brief/:splat"
   status = 200
   force = true
-  conditions = {User-Agent = ["facebookexternalhit/*", "Facebot/*", "Twitterbot/*", "WhatsApp/*", "LinkedInBot/*", "Slackbot/*", "Discordbot/*", "TelegramBot/*", "Applebot/*", "iMessage/*"]}
 
 [[redirects]]
   from = "/share/report/*"
   to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/og-meta?path=/share/report/:splat"
   status = 200
   force = true
-  conditions = {User-Agent = ["facebookexternalhit/*", "Facebot/*", "Twitterbot/*", "WhatsApp/*", "LinkedInBot/*", "Slackbot/*", "Discordbot/*", "TelegramBot/*", "Applebot/*", "iMessage/*"]}
 
 [[redirects]]
   from = "/forms/*"
   to = "https://jffnzpdcmdalxqhkfymx.supabase.co/functions/v1/og-meta?path=/forms/:splat"
   status = 200
   force = true
-  conditions = {User-Agent = ["facebookexternalhit/*", "Facebot/*", "Twitterbot/*", "WhatsApp/*", "LinkedInBot/*", "Slackbot/*", "Discordbot/*", "TelegramBot/*", "Applebot/*", "iMessage/*"]}
 
 # ============================================
 # API Proxy Redirects (must be before SPA fallback)

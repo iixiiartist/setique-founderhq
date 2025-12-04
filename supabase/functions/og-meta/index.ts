@@ -24,7 +24,6 @@ function isCrawler(userAgent: string): boolean {
     'TelegramBot',
     'Googlebot',
     'bingbot',
-    'iMessageLinkPreviews',
     'Applebot',
     'Pinterest',
     'Embedly',
@@ -34,6 +33,9 @@ function isCrawler(userAgent: string): boolean {
     'vkShare',
     'W3C_Validator',
     'redditbot',
+    // iOS link preview crawlers
+    'CFNetwork',
+    'Darwin',
   ];
   const ua = userAgent.toLowerCase();
   return crawlers.some(bot => ua.includes(bot.toLowerCase()));
@@ -66,7 +68,8 @@ function generateDescription(content: string, maxLength = 160): string {
   return clean.substring(0, maxLength - 3).trim() + '...';
 }
 
-// Generate HTML with OG meta tags
+// Generate HTML with OG meta tags - works for both crawlers and browsers
+// Crawlers read the meta tags, browsers get redirected via JavaScript
 function generateOgHtml(meta: {
   title: string;
   description: string;
@@ -74,6 +77,7 @@ function generateOgHtml(meta: {
   image?: string;
   type?: string;
   siteName?: string;
+  isCrawler?: boolean;
 }): string {
   const {
     title,
@@ -82,10 +86,21 @@ function generateOgHtml(meta: {
     image = DEFAULT_IMAGE,
     type = 'article',
     siteName = 'FounderHQ',
+    isCrawler = false,
   } = meta;
 
+  // For crawlers: include meta refresh as backup, but no JS redirect
+  // For browsers: use immediate JS redirect
+  const redirectScript = isCrawler 
+    ? '' 
+    : `<script>window.location.replace("${escapeHtml(url)}");</script>`;
+  
+  const metaRefresh = isCrawler
+    ? '' // Don't redirect crawlers
+    : `<meta http-equiv="refresh" content="0;url=${escapeHtml(url)}">`;
+
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" prefix="og: https://ogp.me/ns#">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -101,6 +116,8 @@ function generateOgHtml(meta: {
   <meta property="og:title" content="${escapeHtml(title)}">
   <meta property="og:description" content="${escapeHtml(description)}">
   <meta property="og:image" content="${escapeHtml(image)}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
   <meta property="og:site_name" content="${escapeHtml(siteName)}">
   
   <!-- Twitter -->
@@ -110,17 +127,18 @@ function generateOgHtml(meta: {
   <meta name="twitter:description" content="${escapeHtml(description)}">
   <meta name="twitter:image" content="${escapeHtml(image)}">
   
-  <!-- Redirect to actual page after meta is read -->
-  <meta http-equiv="refresh" content="0;url=${escapeHtml(url)}">
+  <link rel="canonical" href="${escapeHtml(url)}">
+  ${metaRefresh}
+  ${redirectScript}
 </head>
 <body>
-  <p>Redirecting to <a href="${escapeHtml(url)}">${escapeHtml(title)}</a>...</p>
+  <p>Loading <a href="${escapeHtml(url)}">${escapeHtml(title)}</a>...</p>
 </body>
 </html>`;
 }
 
 // Handler for different share types
-async function handleBriefShare(token: string): Promise<Response | null> {
+async function handleBriefShare(token: string, isCrawlerRequest: boolean): Promise<Response | null> {
   // Query the market brief by share token
   const { data: brief, error } = await supabase
     .from('market_briefs')
@@ -142,12 +160,12 @@ async function handleBriefShare(token: string): Promise<Response | null> {
   const description = brief.hero_line || generateDescription(brief.raw_report || '');
   const url = `${SITE_URL}/share/brief/${token}`;
 
-  return new Response(generateOgHtml({ title, description, url }), {
+  return new Response(generateOgHtml({ title, description, url, isCrawler: isCrawlerRequest }), {
     headers: { 'Content-Type': 'text/html; charset=utf-8' },
   });
 }
 
-async function handleReportShare(token: string): Promise<Response | null> {
+async function handleReportShare(token: string, isCrawlerRequest: boolean): Promise<Response | null> {
   // Query the shared report link and join with agent_reports
   const { data: link, error } = await supabase
     .from('shared_report_links')
@@ -189,12 +207,12 @@ async function handleReportShare(token: string): Promise<Response | null> {
   const description = generateDescription(report.output || '');
   const url = `${SITE_URL}/share/report/${token}`;
 
-  return new Response(generateOgHtml({ title, description, url }), {
+  return new Response(generateOgHtml({ title, description, url, isCrawler: isCrawlerRequest }), {
     headers: { 'Content-Type': 'text/html; charset=utf-8' },
   });
 }
 
-async function handleFormShare(slug: string): Promise<Response | null> {
+async function handleFormShare(slug: string, isCrawlerRequest: boolean): Promise<Response | null> {
   // Query the form by slug
   const { data: form, error } = await supabase
     .from('forms')
@@ -214,7 +232,7 @@ async function handleFormShare(slug: string): Promise<Response | null> {
     : `Submit your response to ${form.name}`;
   const url = `${SITE_URL}/forms/${slug}`;
 
-  return new Response(generateOgHtml({ title, description, url, type: 'website' }), {
+  return new Response(generateOgHtml({ title, description, url, type: 'website', isCrawler: isCrawlerRequest }), {
     headers: { 'Content-Type': 'text/html; charset=utf-8' },
   });
 }
@@ -225,15 +243,9 @@ Deno.serve(async (req: Request) => {
 
   // Parse the path from query param (set by Netlify redirect)
   const path = url.searchParams.get('path') || '';
+  const isCrawlerRequest = isCrawler(userAgent);
   
-  console.log('[og-meta] Request path:', path, 'UA:', userAgent.substring(0, 50));
-
-  // Only serve OG tags to crawlers - redirect regular users
-  if (!isCrawler(userAgent)) {
-    // Regular user - redirect to the actual page
-    const redirectUrl = `${SITE_URL}${path}`;
-    return Response.redirect(redirectUrl, 302);
-  }
+  console.log('[og-meta] Request path:', path, 'UA:', userAgent.substring(0, 50), 'isCrawler:', isCrawlerRequest);
 
   // Parse the path to determine content type
   // /share/brief/:token
@@ -247,17 +259,25 @@ Deno.serve(async (req: Request) => {
   const formMatch = path.match(/^\/forms\/([^/]+)$/);
 
   if (briefMatch) {
-    response = await handleBriefShare(briefMatch[1]);
+    response = await handleBriefShare(briefMatch[1], isCrawlerRequest);
   } else if (reportMatch) {
-    response = await handleReportShare(reportMatch[1]);
+    response = await handleReportShare(reportMatch[1], isCrawlerRequest);
   } else if (formMatch) {
-    response = await handleFormShare(formMatch[1]);
+    response = await handleFormShare(formMatch[1], isCrawlerRequest);
   }
 
   if (response) {
     return response;
   }
 
-  // Fallback - redirect to the page anyway
-  return Response.redirect(`${SITE_URL}${path}`, 302);
+  // Fallback - serve a redirect page
+  const redirectUrl = `${SITE_URL}${path}`;
+  return new Response(generateOgHtml({ 
+    title: 'FounderHQ', 
+    description: 'The all-in-one GTM hub for founders', 
+    url: redirectUrl,
+    isCrawler: isCrawlerRequest 
+  }), {
+    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+  });
 });
