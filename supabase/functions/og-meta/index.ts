@@ -219,23 +219,30 @@ async function handleReportShare(token: string, isCrawlerRequest: boolean): Prom
 }
 
 async function handleFormShare(slug: string, isCrawlerRequest: boolean): Promise<Response | null> {
-  // Query the form by slug
-  const { data: form, error } = await supabase
-    .from('forms')
-    .select('name, description, status')
-    .eq('slug', slug)
-    .eq('status', 'published')
-    .single();
+  // Use the RPC function which is granted to anon
+  const { data, error } = await supabase.rpc('get_public_form', {
+    p_slug: slug,
+    p_password: null,
+  });
 
-  if (error || !form) {
-    console.log('[og-meta] Form not found for slug:', slug);
+  if (error) {
+    console.log('[og-meta] RPC error for form:', error.message);
     return null;
   }
 
-  const title = form.name;
+  const result = data as { success: boolean; form?: { title: string; description?: string }; error?: string };
+  
+  // Even if password required, we can still get basic form info
+  const form = result.form;
+  if (!form) {
+    console.log('[og-meta] Form not found or error:', result.error);
+    return null;
+  }
+
+  const title = form.title;
   const description = form.description 
     ? generateDescription(form.description) 
-    : `Submit your response to ${form.name}`;
+    : `Submit your response to ${form.title}`;
   const url = `${SITE_URL}/forms/${slug}`;
 
   return new Response(generateOgHtml({ title, description, url, type: 'website', isCrawler: isCrawlerRequest }), {
