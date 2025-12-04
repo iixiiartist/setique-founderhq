@@ -112,7 +112,6 @@ function generateOgHtml(meta: {
   
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="${type}">
-  <meta property="og:url" content="${escapeHtml(url)}">
   <meta property="og:title" content="${escapeHtml(title)}">
   <meta property="og:description" content="${escapeHtml(description)}">
   <meta property="og:image" content="${escapeHtml(image)}">
@@ -122,12 +121,10 @@ function generateOgHtml(meta: {
   
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:url" content="${escapeHtml(url)}">
   <meta name="twitter:title" content="${escapeHtml(title)}">
   <meta name="twitter:description" content="${escapeHtml(description)}">
   <meta name="twitter:image" content="${escapeHtml(image)}">
   
-  <link rel="canonical" href="${escapeHtml(url)}">
   ${metaRefresh}
   ${redirectScript}
 </head>
