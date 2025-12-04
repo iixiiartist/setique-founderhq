@@ -69,7 +69,7 @@ function generateDescription(content: string, maxLength = 160): string {
 }
 
 // Generate HTML with OG meta tags - works for both crawlers and browsers
-// Crawlers read the meta tags, browsers get redirected via JavaScript
+// Crawlers read the meta tags, browsers get redirected via meta refresh
 function generateOgHtml(meta: {
   title: string;
   description: string;
@@ -89,14 +89,10 @@ function generateOgHtml(meta: {
     isCrawler = false,
   } = meta;
 
-  // For crawlers: include meta refresh as backup, but no JS redirect
-  // For browsers: use immediate JS redirect
-  const redirectScript = isCrawler 
-    ? '' 
-    : `<script>window.location.replace("${escapeHtml(url)}");</script>`;
-  
+  // For crawlers: no redirect so they can read the meta tags
+  // For browsers: use meta refresh to redirect to the SPA
   const metaRefresh = isCrawler
-    ? '' // Don't redirect crawlers
+    ? '' 
     : `<meta http-equiv="refresh" content="0;url=${escapeHtml(url)}">`;
 
   return `<!DOCTYPE html>
@@ -126,7 +122,6 @@ function generateOgHtml(meta: {
   <meta name="twitter:image" content="${escapeHtml(image)}">
   
   ${metaRefresh}
-  ${redirectScript}
 </head>
 <body>
   <p>Loading <a href="${escapeHtml(url)}">${escapeHtml(title)}</a>...</p>
