@@ -20,7 +20,7 @@ export const AgentCard: React.FC<AgentCardProps> = ({
 }) => {
   const isConfigured = Boolean(config.id);
   const canOpen = config.enabled && isConfigured;
-  const isPro = config.tier === 'pro';
+  const isPro = config.tier === 'team-pro';
 
   return (
     <div className={`

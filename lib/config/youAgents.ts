@@ -16,7 +16,7 @@ export interface YouAgentConfig {
   goals: { value: string; label: string }[];
   placeholder: string;
   enabled: boolean;
-  tier?: 'free' | 'pro'; // Plan tier requirement
+  tier?: 'free' | 'team-pro'; // Plan tier requirement
 }
 
 export const YOU_AGENTS: Record<YouAgentSlug, YouAgentConfig> = {
@@ -48,7 +48,7 @@ export const YOU_AGENTS: Record<YouAgentSlug, YouAgentConfig> = {
     ],
     placeholder: 'e.g. Stripe, Series B fintech companies, AI procurement tools',
     enabled: true,
-    tier: 'pro',
+    tier: 'team-pro',
   },
   deal_strategist: {
     id: '4b9e6999-b675-4ce6-b18f-0185b5a3bde1',
@@ -63,7 +63,7 @@ export const YOU_AGENTS: Record<YouAgentSlug, YouAgentConfig> = {
     ],
     placeholder: 'Paste account details, opportunity info, or deal notes',
     enabled: true,
-    tier: 'pro',
+    tier: 'team-pro',
   },
   competitive_intel: {
     id: '',
