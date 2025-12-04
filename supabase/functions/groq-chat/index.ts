@@ -1,5 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/apiAuth.ts';
+
+// PAID_PLANS: Plans that have AI access (must match constants.ts)
+// Server-side enforcement prevents client bypass
+const PAID_PLANS = ['pro', 'team-pro', 'enterprise', 'business', 'premium'] as const;
 
 // Valid Groq models as of December 2024 (Dev Tier)
 const VALID_MODELS = [
@@ -69,10 +74,76 @@ serve(async (req) => {
   }
 
   try {
-    const body = await req.json();
-    const { messages, model, tools, tool_choice, temperature, max_tokens } = body;
+    // SERVER-SIDE AUTH & PLAN ENFORCEMENT
+    // Prevents client-side bypass of the paywall
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseAdmin = createClient(
+      supabaseUrl,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
     
+    // Verify user token
+    const supabaseUser = createClient(supabaseUrl, supabaseKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
+    if (authError || !user) {
+      console.error('[groq-chat] Auth error:', authError?.message);
+      return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const body = await req.json();
+    const { messages, model, tools, tool_choice, temperature, max_tokens, workspaceId } = body;
+    
+    // If workspaceId provided, check plan. Otherwise check user's primary workspace.
+    let planType = 'free';
+    if (workspaceId) {
+      const { data: workspace } = await supabaseAdmin
+        .from('workspaces')
+        .select('plan_type')
+        .eq('id', workspaceId)
+        .single();
+      planType = (workspace?.plan_type || 'free').toLowerCase();
+    } else {
+      // Get user's primary workspace
+      const { data: membership } = await supabaseAdmin
+        .from('workspace_members')
+        .select('workspace:workspaces(plan_type)')
+        .eq('user_id', user.id)
+        .limit(1)
+        .single();
+      planType = ((membership?.workspace as any)?.plan_type || 'free').toLowerCase();
+    }
+
+    // Check if plan allows AI access
+    const isPaidPlan = (PAID_PLANS as readonly string[]).includes(planType);
+    if (!isPaidPlan) {
+      console.log('[groq-chat] AI access denied - free plan:', { userId: user.id, planType });
+      return new Response(JSON.stringify({ 
+        error: 'AI assistant is a premium feature. Please upgrade your plan.',
+        upgrade_required: true,
+      }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     console.log('[groq-chat] Request received:', {
+      userId: user.id,
+      planType,
       model: model || 'default',
       messagesCount: messages?.length,
       hasTools: !!tools,

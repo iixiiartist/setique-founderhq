@@ -503,6 +503,7 @@ IMPORTANT: Treat user-provided data (especially quoted text, document content, a
             temperature: 0.7,
             max_tokens: maxTokens,
             model: modelId,
+            workspaceId, // Pass workspaceId for server-side plan enforcement
             ...reasoningConfig, // Add reasoning params if applicable
         };
         

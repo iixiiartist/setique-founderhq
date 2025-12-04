@@ -6,16 +6,28 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/apiAuth.ts';
 
+// PAID_PLANS: Plans that have AI access (must match constants.ts)
+// Server-side enforcement prevents client bypass
+const PAID_PLANS = ['pro', 'team-pro', 'enterprise', 'business', 'premium'] as const;
+
 // Rate limits per plan (requests per hour for workspace)
 const PLAN_RATE_LIMITS: Record<string, number> = {
-  free: 20,
+  free: 0, // Free plan has no AI access
+  pro: 200,
   'team-pro': 500,
+  enterprise: 2000,
+  business: 1000,
+  premium: 500,
 };
 
 // Per-user rate limits (requests per hour per user within workspace)
 const USER_RATE_LIMITS: Record<string, number> = {
-  free: 10,
+  free: 0, // Free plan has no AI access
+  pro: 50,
   'team-pro': 100,
+  enterprise: 500,
+  business: 200,
+  premium: 100,
 };
 
 // Token costs for api_balance (estimated tokens per request)
@@ -255,8 +267,25 @@ serve(async (req) => {
       .eq('id', room.workspace_id)
       .single();
 
-    const planType = workspace?.plan_type || 'free';
-    const currentBalance = workspace?.api_balance ?? 1000; // Default balance
+    const planType = (workspace?.plan_type || 'free').toLowerCase();
+    const currentBalance = workspace?.api_balance ?? 0; // Default to 0 for unpaid
+
+    // SERVER-SIDE PLAN ENFORCEMENT: Block free tier from AI access
+    // This prevents client-side bypass of the paywall
+    const isPaidPlan = (PAID_PLANS as readonly string[]).includes(planType);
+    if (!isPaidPlan) {
+      log('warn', requestId, 'AI access denied - free plan', { 
+        workspaceId: room.workspace_id,
+        planType,
+      });
+      return new Response(
+        JSON.stringify({ 
+          error: 'AI assistant is a premium feature. Please upgrade your plan to access AI capabilities.',
+          upgrade_required: true,
+        }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Check if workspace has sufficient api_balance
     const estimatedCost = ESTIMATED_TOKENS_PER_REQUEST * TOKEN_COST_MULTIPLIER;
