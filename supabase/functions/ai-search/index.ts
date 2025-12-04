@@ -133,6 +133,129 @@ function moderateOutput(content: string): ModerationResult {
   return { safe: true, categories: [] }
 }
 
+// ============================================================================
+// Server-Side Moderation (calls moderation-check edge function)
+// ============================================================================
+
+interface ServerModerationResult {
+  flagged: boolean
+  severity: 'none' | 'low' | 'medium' | 'high'
+  categories: string[]
+  provider: 'openai' | 'heuristic'
+}
+
+/**
+ * Calls the moderation-check edge function for production-grade moderation
+ * Falls back to local heuristics if the call fails
+ */
+async function runServerModeration(
+  text: string,
+  direction: 'input' | 'output',
+  channel: string
+): Promise<ServerModerationResult> {
+  if (!text || text.trim().length === 0) {
+    return { flagged: false, severity: 'none', categories: [], provider: 'heuristic' }
+  }
+  
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.warn('[ai-search] Missing Supabase config for moderation, using local heuristics')
+      const local = moderateOutput(text)
+      return {
+        flagged: !local.safe,
+        severity: local.categories.length > 0 ? 'medium' : 'none',
+        categories: local.categories,
+        provider: 'heuristic'
+      }
+    }
+    
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
+    
+    const response = await fetch(`${supabaseUrl}/functions/v1/moderation-check`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+      },
+      body: JSON.stringify({
+        text: text.slice(0, 6000), // Match moderation-check limit
+        direction,
+        channel,
+      }),
+      signal: controller.signal,
+    })
+    
+    clearTimeout(timeoutId)
+    
+    if (!response.ok) {
+      console.error('[ai-search] Moderation check failed:', response.status)
+      const local = moderateOutput(text)
+      return {
+        flagged: !local.safe,
+        severity: local.categories.length > 0 ? 'medium' : 'none',
+        categories: local.categories,
+        provider: 'heuristic'
+      }
+    }
+    
+    const data = await response.json()
+    return {
+      flagged: Boolean(data.flagged),
+      severity: data.severity || 'none',
+      categories: data.categories || [],
+      provider: data.provider || 'heuristic'
+    }
+  } catch (error) {
+    console.error('[ai-search] Moderation check error:', error instanceof Error ? error.message : error)
+    // Fall back to local heuristics
+    const local = moderateOutput(text)
+    return {
+      flagged: !local.safe,
+      severity: local.categories.length > 0 ? 'medium' : 'none',
+      categories: local.categories,
+      provider: 'heuristic'
+    }
+  }
+}
+
+// ============================================================================
+// URL Sanitization
+// ============================================================================
+
+/** Allowed URL protocols for sources */
+const ALLOWED_PROTOCOLS = ['http:', 'https:', 'mailto:']
+
+/**
+ * Sanitizes a URL to ensure it uses only allowed protocols
+ * Returns empty string if URL is invalid or uses dangerous protocol
+ */
+function sanitizeUrl(url: string | undefined | null): string {
+  if (!url || typeof url !== 'string') return ''
+  
+  const trimmed = url.trim()
+  if (!trimmed) return ''
+  
+  try {
+    const parsed = new URL(trimmed)
+    if (ALLOWED_PROTOCOLS.includes(parsed.protocol)) {
+      return trimmed
+    }
+    // Block javascript:, data:, file:, etc.
+    console.warn('[ai-search] Blocked unsafe URL protocol:', parsed.protocol)
+    return ''
+  } catch {
+    // If URL is relative or malformed, only allow if it starts with / or looks like a path
+    if (trimmed.startsWith('/') || trimmed.match(/^[\w\-./]+$/)) {
+      return trimmed
+    }
+    return ''
+  }
+}
+
 // Groq Compound API endpoint
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
@@ -348,7 +471,8 @@ const normalizeHits = (raw: unknown): Array<Record<string, unknown>> => {
   return raw
     .map((item) => {
       if (!isObject(item)) return null
-      const url = pickString(item, ['url', 'link', 'source', 'source_url'])
+      const rawUrl = pickString(item, ['url', 'link', 'source', 'source_url'])
+      const url = sanitizeUrl(rawUrl) // Sanitize URL
       const title = pickString(item, ['title', 'name', 'heading'])
       const description = pickString(item, ['description', 'snippet', 'summary', 'text'])
       if (!url && !title && !description) {
@@ -357,9 +481,9 @@ const normalizeHits = (raw: unknown): Array<Record<string, unknown>> => {
       return {
         title,
         description,
-        url,
+        url: url || undefined, // Only include if valid
         snippets: pickStringArray(item.snippets ?? item.snips ?? item.highlights),
-        thumbnail: pickString(item, ['thumbnail', 'thumbnail_url', 'image_url', 'main_image']),
+        thumbnail: sanitizeUrl(pickString(item, ['thumbnail', 'thumbnail_url', 'image_url', 'main_image'])) || undefined,
         source: pickString(item, ['source', 'source_name', 'domain', 'publisher']),
         publishedAt: pickString(item, ['age', 'published_at', 'date', 'timestamp']),
       }
@@ -374,15 +498,16 @@ const normalizeNews = (raw: unknown): Array<Record<string, unknown>> => {
       if (!isObject(item)) return null
       const title = pickString(item, ['title', 'headline', 'name'])
       const description = pickString(item, ['description', 'summary', 'snippet'])
-      const url = pickString(item, ['url', 'link'])
+      const rawUrl = pickString(item, ['url', 'link'])
+      const url = sanitizeUrl(rawUrl) // Sanitize URL
       if (!title && !description && !url) {
         return null
       }
       return {
         title,
         description,
-        url,
-        thumbnail: pickString(item, ['thumbnail', 'thumbnail_url', 'image_url']),
+        url: url || undefined,
+        thumbnail: sanitizeUrl(pickString(item, ['thumbnail', 'thumbnail_url', 'image_url'])) || undefined,
         age: pickString(item, ['age', 'published_at', 'date']),
         source: pickString(item, ['source', 'source_name', 'publisher']),
       }
@@ -395,13 +520,14 @@ const normalizeImages = (raw: unknown): Array<Record<string, unknown>> => {
   return raw
     .map((item) => {
       if (!isObject(item)) return null
-      const imageUrl = pickString(item, ['image_url', 'image', 'thumbnail_url'])
+      const rawImageUrl = pickString(item, ['image_url', 'image', 'thumbnail_url'])
+      const imageUrl = sanitizeUrl(rawImageUrl)
       if (!imageUrl) return null
       return {
         title: pickString(item, ['title', 'alt', 'caption', 'name']),
-        url: pickString(item, ['url', 'page_url', 'link', 'sourceUrl']),
+        url: sanitizeUrl(pickString(item, ['url', 'page_url', 'link', 'sourceUrl'])) || undefined,
         imageUrl,
-        thumbnail: pickString(item, ['thumbnail', 'thumbnail_url']),
+        thumbnail: sanitizeUrl(pickString(item, ['thumbnail', 'thumbnail_url'])) || undefined,
         source: pickString(item, ['source', 'display_url', 'domain']),
       }
     })
@@ -413,8 +539,10 @@ const normalizeQa = (raw: unknown): { answer: string; sources?: string[] } | und
   const container = isObject(raw) ? raw : undefined
   const answer = asString(container?.answer ?? container?.text)
   if (!answer) return undefined
-  const sources = pickStringArray(container?.sources ?? container?.citations)
-  return { answer, sources }
+  const rawSources = pickStringArray(container?.sources ?? container?.citations)
+  // Sanitize all source URLs
+  const sources = rawSources?.map(s => sanitizeUrl(s)).filter((s): s is string => !!s)
+  return { answer, sources: sources?.length ? sources : undefined }
 }
 
 const parseJson = async (response: Response) => {
@@ -583,23 +711,50 @@ serve(async (req: Request) => {
           sourcesCount: groqResult.sources?.length,
         });
         
-        // Moderate the output before returning
-        const moderation = moderateOutput(groqResult.answer || '')
-        let finalAnswer = groqResult.answer || 'No response from AI'
+        // Run production moderation on the QA answer (uses OpenAI moderation API)
+        const serverModeration = await runServerModeration(
+          groqResult.answer || '',
+          'output',
+          'ai-search-groq'
+        )
         
-        if (!moderation.safe) {
-          console.warn('[ai-search] Output moderation flagged content:', moderation.categories)
-          // Use redacted content if available, otherwise return generic message
-          finalAnswer = moderation.redactedContent || 'Response contained unsafe content and was blocked.'
+        let finalAnswer = groqResult.answer || 'No response from AI'
+        let wasModerated = false
+        
+        if (serverModeration.flagged && (serverModeration.severity === 'high' || serverModeration.severity === 'medium')) {
+          console.warn('[ai-search] Server moderation blocked content:', {
+            severity: serverModeration.severity,
+            categories: serverModeration.categories,
+            provider: serverModeration.provider
+          })
+          finalAnswer = 'The response was blocked by our safety filters. Please try a different search term.'
+          wasModerated = true
+        } else {
+          // Also run lightweight heuristic check for XSS/script injection
+          const localModeration = moderateOutput(groqResult.answer || '')
+          if (!localModeration.safe) {
+            console.warn('[ai-search] Local moderation flagged content:', localModeration.categories)
+            finalAnswer = localModeration.redactedContent || 'Response contained unsafe content and was blocked.'
+            wasModerated = true
+          }
         }
         
+        // Sanitize source URLs before returning
+        const sanitizedSources = groqResult.sources
+          .map((s) => {
+            const safeUrl = sanitizeUrl(s.url)
+            if (!safeUrl) return null // Skip sources with unsafe URLs
+            return {
+              title: s.title,
+              description: s.snippet,
+              url: safeUrl,
+              source: 'groq-compound',
+            }
+          })
+          .filter(Boolean) as Array<{ title?: string; description?: string; url: string; source: string }>
+        
         const resultBody = {
-          hits: groqResult.sources.length ? groqResult.sources.map((s, i) => ({
-            title: s.title,
-            description: s.snippet,
-            url: s.url,
-            source: 'groq-compound',
-          })) : undefined,
+          hits: sanitizedSources.length ? sanitizedSources : undefined,
           qa: { answer: finalAnswer },
           metadata: {
             provider: 'groq',
@@ -609,7 +764,8 @@ serve(async (req: Request) => {
             count,
             fetchedAt: new Date().toISOString(),
             durationMs: Math.round(performance.now() - startedAt),
-            moderated: !moderation.safe,
+            moderated: wasModerated,
+            moderationProvider: serverModeration.provider,
             ...groqResult.metadata,
           },
         }
@@ -618,6 +774,7 @@ serve(async (req: Request) => {
           hasHits: !!resultBody.hits?.length,
           hasQa: !!resultBody.qa?.answer,
           qaLength: resultBody.qa?.answer?.length,
+          wasModerated,
         });
         
         return jsonResponse(resultBody, req)

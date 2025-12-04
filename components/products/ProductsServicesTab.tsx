@@ -206,16 +206,36 @@ export function ProductsServicesTab({
             // Check for QA response from Groq Compound (preferred path)
             if (searchResults.qa?.answer) {
                 console.log('[MarketResearch] Using QA answer from Groq Compound, length:', searchResults.qa.answer.length);
+                
+                // Run output moderation on the Groq QA answer before displaying
+                const qaModeration = await runModeration(searchResults.qa.answer, {
+                    workspaceId,
+                    direction: 'output',
+                    channel: 'market-research-qa'
+                });
+                
+                if (!qaModeration.allowed) {
+                    console.warn('[MarketResearch] QA moderation blocked response:', qaModeration.categories);
+                    telemetry.track('ai_market_research_blocked', {
+                        workspaceId,
+                        metadata: { reason: 'moderation', path: 'groq-qa', categories: qaModeration.categories }
+                    });
+                    setMarketResearchResult("The market research results were blocked by our safety filters. Please try a different search term.");
+                    return;
+                }
+                
                 // Groq Compound returns a synthesized answer with sources
                 let response = searchResults.qa.answer;
                 
-                // Add sources if available
+                // Add sources if available (URLs are already sanitized server-side)
                 if (searchResults.hits && searchResults.hits.length > 0) {
                     console.log('[MarketResearch] Adding sources:', searchResults.hits.length);
                     response += '\n\n## Sources\n';
                     searchResults.hits.forEach((hit: any, idx: number) => {
-                        if (hit.url && hit.title) {
-                            response += `${idx + 1}. [${hit.title}](${hit.url})\n`;
+                        // Only include http/https URLs (server sanitizes, but double-check client-side)
+                        const url = hit.url || '';
+                        if (url.startsWith('http://') || url.startsWith('https://')) {
+                            response += `${idx + 1}. [${hit.title || 'Source'}](${url})\n`;
                         }
                     });
                 }
