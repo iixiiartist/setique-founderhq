@@ -5,7 +5,7 @@ import { AppActions, TaskCollectionName, NoteableCollectionName, CrmCollectionNa
 import { getAiResponse, AILimitError } from '../../services/groqService';
 import { ModerationError, formatModerationErrorMessage } from '../../lib/services/moderationService';
 import { parseAIResponse, isSafeContent } from '../../utils/aiContentParser';
-import { Tab } from '../../constants';
+import { Tab, PAID_PLANS } from '../../constants';
 import { useConversationHistory } from '../../hooks/useConversationHistory';
 import { useConfirmAction } from '../../hooks/useConfirmAction';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -1031,7 +1031,9 @@ function ModuleAssistant({
         if (isWebSearchEnabled) {
             if (webSearchMode === 'text') {
                 try {
-                    const searchResults = await searchWeb(prompt, 'search');
+                    // SECURITY: Sanitize query before sending to external API
+                    const sanitizedQuery = sanitizeExternalContent(prompt, 200);
+                    const searchResults = await searchWeb(sanitizedQuery, 'search');
                     const webContext = buildWebSearchContext(searchResults, prompt);
                     if (webContext) {
                         textPartForAI += webContext;
@@ -1053,8 +1055,11 @@ function ModuleAssistant({
                         const visualContext = visualsForContext
                             .slice(0, 4)
                             .map((image, index) => {
-                                const host = formatHostname(image.url) || image.source || 'source';
-                                return `[Image ${index + 1}] ${image.title || host}${host ? ` (${host})` : ''}`;
+                                // SECURITY: Sanitize external image metadata
+                                const sanitizedUrl = sanitizeUrl(image.url || '');
+                                const host = formatHostname(sanitizedUrl) || sanitizeExternalContent(image.source || '', 50) || 'source';
+                                const title = sanitizeExternalContent(image.title || '', 100);
+                                return `[Image ${index + 1}] ${title || host}${host ? ` (${host})` : ''}`;
                             })
                             .join('\n');
 
