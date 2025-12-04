@@ -1,7 +1,5 @@
 # Netlify redirects
+# Most redirects are in netlify.toml
+# Edge function og-meta.ts handles /share/brief/*, /share/report/*, /forms/*
 
-# NOTE: Edge function og-meta.ts handles /share/brief/*, /share/report/*, /forms/*
-# for social crawlers. Regular browsers fall through to the SPA.
-
-# SPA fallback - all other routes go to index.html
-/*    /index.html   200
+# SPA fallback is in netlify.toml
