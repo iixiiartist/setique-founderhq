@@ -4,7 +4,7 @@ import { corsHeaders } from '../_shared/apiAuth.ts';
 
 // PAID_PLANS: Plans that have AI access (must match constants.ts)
 // Server-side enforcement prevents client bypass
-const PAID_PLANS = ['pro', 'team-pro', 'enterprise', 'business', 'premium'] as const;
+const PAID_PLANS = ['team-pro'] as const;
 
 // Valid Groq models as of December 2024 (Dev Tier)
 const VALID_MODELS = [

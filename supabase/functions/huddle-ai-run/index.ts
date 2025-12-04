@@ -8,26 +8,18 @@ import { corsHeaders } from '../_shared/apiAuth.ts';
 
 // PAID_PLANS: Plans that have AI access (must match constants.ts)
 // Server-side enforcement prevents client bypass
-const PAID_PLANS = ['pro', 'team-pro', 'enterprise', 'business', 'premium'] as const;
+const PAID_PLANS = ['team-pro'] as const;
 
 // Rate limits per plan (requests per hour for workspace)
 const PLAN_RATE_LIMITS: Record<string, number> = {
   free: 0, // Free plan has no AI access
-  pro: 200,
   'team-pro': 500,
-  enterprise: 2000,
-  business: 1000,
-  premium: 500,
 };
 
 // Per-user rate limits (requests per hour per user within workspace)
 const USER_RATE_LIMITS: Record<string, number> = {
   free: 0, // Free plan has no AI access
-  pro: 50,
   'team-pro': 100,
-  enterprise: 500,
-  business: 200,
-  premium: 100,
 };
 
 // Token costs for api_balance (estimated tokens per request)
