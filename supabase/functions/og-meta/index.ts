@@ -11,6 +11,13 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 const SITE_URL = 'https://founderhq.setique.com';
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`;
 
+// Response headers that allow meta refresh and basic styling
+const HTML_HEADERS = {
+  'Content-Type': 'text/html; charset=utf-8',
+  'Content-Security-Policy': "default-src 'self' 'unsafe-inline'; img-src * data:; connect-src *",
+  'X-Content-Type-Options': 'nosniff',
+};
+
 // Detect if request is from a social crawler/bot
 function isCrawler(userAgent: string): boolean {
   const crawlers = [
@@ -152,7 +159,7 @@ async function handleBriefShare(token: string, isCrawlerRequest: boolean): Promi
       const description = 'This market brief is password protected. Click to view.';
       const url = `${SITE_URL}/share/brief/${token}`;
       return new Response(generateOgHtml({ title, description, url, isCrawler: isCrawlerRequest }), {
-        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+        headers: HTML_HEADERS,
       });
     }
     return null;
@@ -164,7 +171,7 @@ async function handleBriefShare(token: string, isCrawlerRequest: boolean): Promi
   const url = `${SITE_URL}/share/brief/${token}`;
 
   return new Response(generateOgHtml({ title, description, url, isCrawler: isCrawlerRequest }), {
-    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    headers: HTML_HEADERS,
   });
 }
 
@@ -190,7 +197,7 @@ async function handleReportShare(token: string, isCrawlerRequest: boolean): Prom
       const description = 'This research report is password protected. Click to view.';
       const url = `${SITE_URL}/share/report/${token}`;
       return new Response(generateOgHtml({ title, description, url, isCrawler: isCrawlerRequest }), {
-        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+        headers: HTML_HEADERS,
       });
     }
     return null;
@@ -209,7 +216,7 @@ async function handleReportShare(token: string, isCrawlerRequest: boolean): Prom
   const url = `${SITE_URL}/share/report/${token}`;
 
   return new Response(generateOgHtml({ title, description, url, isCrawler: isCrawlerRequest }), {
-    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    headers: HTML_HEADERS,
   });
 }
 
@@ -241,7 +248,7 @@ async function handleFormShare(slug: string, isCrawlerRequest: boolean): Promise
   const url = `${SITE_URL}/forms/${slug}`;
 
   return new Response(generateOgHtml({ title, description, url, type: 'website', isCrawler: isCrawlerRequest }), {
-    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    headers: HTML_HEADERS,
   });
 }
 
@@ -286,6 +293,6 @@ Deno.serve(async (req: Request) => {
     url: redirectUrl,
     isCrawler: isCrawlerRequest 
   }), {
-    headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    headers: HTML_HEADERS,
   });
 });
