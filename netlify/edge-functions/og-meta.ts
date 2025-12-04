@@ -8,14 +8,16 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const SITE_URL = "https://founderhq.setique.com";
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`;
 
-// Detect social media crawlers
+// Detect social media crawlers - be VERY specific to avoid catching mobile browsers
 function isCrawler(userAgent: string): boolean {
   const ua = userAgent.toLowerCase();
+  
+  // Only match actual bot/crawler user agents, NOT regular browsers
   const crawlers = [
     'facebookexternalhit',
     'facebot',
     'twitterbot',
-    'whatsapp',
+    'whatsapp/',          // WhatsApp bot has / after it
     'linkedinbot',
     'slackbot',
     'slackbot-linkexpanding',
@@ -24,10 +26,10 @@ function isCrawler(userAgent: string): boolean {
     'applebot',
     'googlebot',
     'bingbot',
-    'pinterest',
+    'pinterestbot',
     'redditbot',
     'embedly',
-    'quora',
+    'quora link preview',
     'outbrain',
     'vkshare',
     'skypeuripreview',
@@ -35,28 +37,25 @@ function isCrawler(userAgent: string): boolean {
     'w3c_validator',
     'baiduspider',
     'yandexbot',
-    // iOS link preview specific
-    'iphone',
-    'cfnetwork',
-    'darwin',
   ];
   
-  // Check if it's a preview request (no accept header or looking for HTML specifically)
   return crawlers.some(bot => ua.includes(bot));
 }
 
-// Check if this is likely an iOS link preview fetch
+// Check if this is likely an iOS/iMessage link preview fetch (not a regular browser)
 function isIOSPreview(request: Request): boolean {
   const ua = (request.headers.get('user-agent') || '').toLowerCase();
   const accept = request.headers.get('accept') || '';
   
-  // iOS preview fetches often come from CFNetwork with specific patterns
-  if (ua.includes('cfnetwork') || ua.includes('darwin')) {
-    return true;
+  // Regular browsers always include text/html in accept header
+  // Link preview fetches typically don't, or have very minimal accept headers
+  if (accept.includes('text/html')) {
+    return false; // This is a real browser, not a preview fetch
   }
   
-  // Check for iPhone/iPad with minimal accept headers (preview behavior)
-  if ((ua.includes('iphone') || ua.includes('ipad')) && !accept.includes('text/html')) {
+  // iOS preview fetches come from CFNetwork WITHOUT Safari in the UA
+  // Real Safari browsers have both CFNetwork AND Safari
+  if (ua.includes('cfnetwork') && !ua.includes('safari')) {
     return true;
   }
   
