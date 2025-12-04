@@ -15,7 +15,15 @@ import { loginAs } from './utils/auth';
  * - GROQ_API_KEY or similar must be configured (or mock enabled)
  */
 
+// Check if test credentials are available
+const hasTestCredentials = !!(
+  process.env.SUPABASE_TEST_OWNER_EMAIL && 
+  process.env.SUPABASE_TEST_OWNER_PASSWORD
+);
+
 test.describe('AI Command Palette', () => {
+  test.skip(!hasTestCredentials, 'Skipping: SUPABASE_TEST_OWNER_EMAIL and SUPABASE_TEST_OWNER_PASSWORD not set');
+
   test.beforeEach(async ({ page }) => {
     await loginAs(page, 'owner');
   });

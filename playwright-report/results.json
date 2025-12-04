@@ -11,7 +11,7 @@
     "grepInvert": null,
     "maxFailures": 0,
     "metadata": {
-      "actualWorkers": 1
+      "actualWorkers": 7
     },
     "preserveOutput": "always",
     "reporter": [
@@ -44,7 +44,7 @@
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
-          "actualWorkers": 1
+          "actualWorkers": 7
         },
         "id": "chromium",
         "name": "chromium",
@@ -60,7 +60,7 @@
     "updateSnapshots": "missing",
     "updateSourceMethod": "patch",
     "version": "1.56.1",
-    "workers": 1,
+    "workers": 7,
     "webServer": {
       "command": "npm run dev",
       "url": "http://localhost:3001",
@@ -69,6 +69,502 @@
     }
   },
   "suites": [
+    {
+      "title": "aiCommandPalette.spec.ts",
+      "file": "aiCommandPalette.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "AI Command Palette",
+          "file": "aiCommandPalette.spec.ts",
+          "line": 18,
+          "column": 6,
+          "specs": [
+            {
+              "title": "opens GTM Docs, loads doc, opens Cmd+K, enters prompt",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 324,
+                      "error": {
+                        "message": "Error: Missing Playwright test credentials. Please set SUPABASE_TEST_OWNER_EMAIL and SUPABASE_TEST_OWNER_PASSWORD in your environment.",
+                        "stack": "Error: Missing Playwright test credentials. Please set SUPABASE_TEST_OWNER_EMAIL and SUPABASE_TEST_OWNER_PASSWORD in your environment.\n    at getCredentials (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:27:11)\n    at loginAs (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:36:31)\n    at C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\aiCommandPalette.spec.ts:20:11",
+                        "location": {
+                          "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts",
+                          "column": 11,
+                          "line": 27
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mutils\\auth.ts:27\n\n\u001b[0m \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m   \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39memail \u001b[33m||\u001b[39m \u001b[33m!\u001b[39mpassword) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 27 |\u001b[39m     \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\n \u001b[90m    |\u001b[39m           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 28 |\u001b[39m       \u001b[32m`Missing Playwright test credentials. Please set ${envKeys.emailKey} and ${envKeys.passwordKey} in your environment.`\u001b[39m\n \u001b[90m 29 |\u001b[39m     )\u001b[33m;\u001b[39m\n \u001b[90m 30 |\u001b[39m   }\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts",
+                            "column": 11,
+                            "line": 27
+                          },
+                          "message": "Error: Missing Playwright test credentials. Please set SUPABASE_TEST_OWNER_EMAIL and SUPABASE_TEST_OWNER_PASSWORD in your environment.\n\n\u001b[90m   at \u001b[39mutils\\auth.ts:27\n\n\u001b[0m \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m   \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39memail \u001b[33m||\u001b[39m \u001b[33m!\u001b[39mpassword) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 27 |\u001b[39m     \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\n \u001b[90m    |\u001b[39m           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 28 |\u001b[39m       \u001b[32m`Missing Playwright test credentials. Please set ${envKeys.emailKey} and ${envKeys.passwordKey} in your environment.`\u001b[39m\n \u001b[90m 29 |\u001b[39m     )\u001b[33m;\u001b[39m\n \u001b[90m 30 |\u001b[39m   }\u001b[0m\n\u001b[2m    at getCredentials (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:27:11)\u001b[22m\n\u001b[2m    at loginAs (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:36:31)\u001b[22m\n\u001b[2m    at C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\aiCommandPalette.spec.ts:20:11\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-04T05:01:33.555Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\test-results\\aiCommandPalette-AI-Comman-ffe34-c-opens-Cmd-K-enters-prompt-chromium\\test-failed-1.png"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts",
+                        "column": 11,
+                        "line": 27
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "55c353eaaf9638b1a66b-c28037e28b81953fadc6",
+              "file": "aiCommandPalette.spec.ts",
+              "line": 23,
+              "column": 3
+            },
+            {
+              "title": "Cmd+K keyboard shortcut opens palette",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "failed",
+                      "duration": 268,
+                      "error": {
+                        "message": "Error: Missing Playwright test credentials. Please set SUPABASE_TEST_OWNER_EMAIL and SUPABASE_TEST_OWNER_PASSWORD in your environment.",
+                        "stack": "Error: Missing Playwright test credentials. Please set SUPABASE_TEST_OWNER_EMAIL and SUPABASE_TEST_OWNER_PASSWORD in your environment.\n    at getCredentials (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:27:11)\n    at loginAs (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:36:31)\n    at C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\aiCommandPalette.spec.ts:20:11",
+                        "location": {
+                          "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts",
+                          "column": 11,
+                          "line": 27
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mutils\\auth.ts:27\n\n\u001b[0m \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m   \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39memail \u001b[33m||\u001b[39m \u001b[33m!\u001b[39mpassword) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 27 |\u001b[39m     \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\n \u001b[90m    |\u001b[39m           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 28 |\u001b[39m       \u001b[32m`Missing Playwright test credentials. Please set ${envKeys.emailKey} and ${envKeys.passwordKey} in your environment.`\u001b[39m\n \u001b[90m 29 |\u001b[39m     )\u001b[33m;\u001b[39m\n \u001b[90m 30 |\u001b[39m   }\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts",
+                            "column": 11,
+                            "line": 27
+                          },
+                          "message": "Error: Missing Playwright test credentials. Please set SUPABASE_TEST_OWNER_EMAIL and SUPABASE_TEST_OWNER_PASSWORD in your environment.\n\n\u001b[90m   at \u001b[39mutils\\auth.ts:27\n\n\u001b[0m \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m   \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39memail \u001b[33m||\u001b[39m \u001b[33m!\u001b[39mpassword) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 27 |\u001b[39m     \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\n \u001b[90m    |\u001b[39m           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 28 |\u001b[39m       \u001b[32m`Missing Playwright test credentials. Please set ${envKeys.emailKey} and ${envKeys.passwordKey} in your environment.`\u001b[39m\n \u001b[90m 29 |\u001b[39m     )\u001b[33m;\u001b[39m\n \u001b[90m 30 |\u001b[39m   }\u001b[0m\n\u001b[2m    at getCredentials (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:27:11)\u001b[22m\n\u001b[2m    at loginAs (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:36:31)\u001b[22m\n\u001b[2m    at C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\aiCommandPalette.spec.ts:20:11\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-04T05:01:33.662Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\test-results\\aiCommandPalette-AI-Comman-dd590-oard-shortcut-opens-palette-chromium\\test-failed-1.png"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts",
+                        "column": 11,
+                        "line": 27
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "55c353eaaf9638b1a66b-2722740e8ed21a393986",
+              "file": "aiCommandPalette.spec.ts",
+              "line": 86,
+              "column": 3
+            },
+            {
+              "title": "shows loading state when context is loading",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 2,
+                      "status": "failed",
+                      "duration": 456,
+                      "error": {
+                        "message": "Error: Missing Playwright test credentials. Please set SUPABASE_TEST_OWNER_EMAIL and SUPABASE_TEST_OWNER_PASSWORD in your environment.",
+                        "stack": "Error: Missing Playwright test credentials. Please set SUPABASE_TEST_OWNER_EMAIL and SUPABASE_TEST_OWNER_PASSWORD in your environment.\n    at getCredentials (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:27:11)\n    at loginAs (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:36:31)\n    at C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\aiCommandPalette.spec.ts:20:11",
+                        "location": {
+                          "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts",
+                          "column": 11,
+                          "line": 27
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mutils\\auth.ts:27\n\n\u001b[0m \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m   \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39memail \u001b[33m||\u001b[39m \u001b[33m!\u001b[39mpassword) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 27 |\u001b[39m     \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\n \u001b[90m    |\u001b[39m           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 28 |\u001b[39m       \u001b[32m`Missing Playwright test credentials. Please set ${envKeys.emailKey} and ${envKeys.passwordKey} in your environment.`\u001b[39m\n \u001b[90m 29 |\u001b[39m     )\u001b[33m;\u001b[39m\n \u001b[90m 30 |\u001b[39m   }\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts",
+                            "column": 11,
+                            "line": 27
+                          },
+                          "message": "Error: Missing Playwright test credentials. Please set SUPABASE_TEST_OWNER_EMAIL and SUPABASE_TEST_OWNER_PASSWORD in your environment.\n\n\u001b[90m   at \u001b[39mutils\\auth.ts:27\n\n\u001b[0m \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m   \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39memail \u001b[33m||\u001b[39m \u001b[33m!\u001b[39mpassword) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 27 |\u001b[39m     \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\n \u001b[90m    |\u001b[39m           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 28 |\u001b[39m       \u001b[32m`Missing Playwright test credentials. Please set ${envKeys.emailKey} and ${envKeys.passwordKey} in your environment.`\u001b[39m\n \u001b[90m 29 |\u001b[39m     )\u001b[33m;\u001b[39m\n \u001b[90m 30 |\u001b[39m   }\u001b[0m\n\u001b[2m    at getCredentials (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:27:11)\u001b[22m\n\u001b[2m    at loginAs (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:36:31)\u001b[22m\n\u001b[2m    at C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\aiCommandPalette.spec.ts:20:11\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-04T05:01:33.678Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\test-results\\aiCommandPalette-AI-Comman-477a8-ate-when-context-is-loading-chromium\\test-failed-1.png"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts",
+                        "column": 11,
+                        "line": 27
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "55c353eaaf9638b1a66b-d818290a006051dee5a5",
+              "file": "aiCommandPalette.spec.ts",
+              "line": 129,
+              "column": 3
+            },
+            {
+              "title": "research loading state disables Generate button",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 3,
+                      "status": "failed",
+                      "duration": 425,
+                      "error": {
+                        "message": "Error: Missing Playwright test credentials. Please set SUPABASE_TEST_OWNER_EMAIL and SUPABASE_TEST_OWNER_PASSWORD in your environment.",
+                        "stack": "Error: Missing Playwright test credentials. Please set SUPABASE_TEST_OWNER_EMAIL and SUPABASE_TEST_OWNER_PASSWORD in your environment.\n    at getCredentials (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:27:11)\n    at loginAs (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:36:31)\n    at C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\aiCommandPalette.spec.ts:20:11",
+                        "location": {
+                          "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts",
+                          "column": 11,
+                          "line": 27
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mutils\\auth.ts:27\n\n\u001b[0m \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m   \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39memail \u001b[33m||\u001b[39m \u001b[33m!\u001b[39mpassword) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 27 |\u001b[39m     \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\n \u001b[90m    |\u001b[39m           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 28 |\u001b[39m       \u001b[32m`Missing Playwright test credentials. Please set ${envKeys.emailKey} and ${envKeys.passwordKey} in your environment.`\u001b[39m\n \u001b[90m 29 |\u001b[39m     )\u001b[33m;\u001b[39m\n \u001b[90m 30 |\u001b[39m   }\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts",
+                            "column": 11,
+                            "line": 27
+                          },
+                          "message": "Error: Missing Playwright test credentials. Please set SUPABASE_TEST_OWNER_EMAIL and SUPABASE_TEST_OWNER_PASSWORD in your environment.\n\n\u001b[90m   at \u001b[39mutils\\auth.ts:27\n\n\u001b[0m \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m   \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39memail \u001b[33m||\u001b[39m \u001b[33m!\u001b[39mpassword) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 27 |\u001b[39m     \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\n \u001b[90m    |\u001b[39m           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 28 |\u001b[39m       \u001b[32m`Missing Playwright test credentials. Please set ${envKeys.emailKey} and ${envKeys.passwordKey} in your environment.`\u001b[39m\n \u001b[90m 29 |\u001b[39m     )\u001b[33m;\u001b[39m\n \u001b[90m 30 |\u001b[39m   }\u001b[0m\n\u001b[2m    at getCredentials (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:27:11)\u001b[22m\n\u001b[2m    at loginAs (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:36:31)\u001b[22m\n\u001b[2m    at C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\aiCommandPalette.spec.ts:20:11\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-04T05:01:33.663Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\test-results\\aiCommandPalette-AI-Comman-a1287-te-disables-Generate-button-chromium\\test-failed-1.png"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts",
+                        "column": 11,
+                        "line": 27
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "55c353eaaf9638b1a66b-a6a519d509c35c6aeb6a",
+              "file": "aiCommandPalette.spec.ts",
+              "line": 158,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "auth.spec.ts",
+      "file": "auth.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Authentication Flow",
+          "file": "auth.spec.ts",
+          "line": 3,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should load landing page",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 4,
+                      "status": "failed",
+                      "duration": 7352,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('heading', { name: /One GTM Command Center/i })\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('heading', { name: /One GTM Command Center/i })\u001b[22m\n",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('heading', { name: /One GTM Command Center/i })\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('heading', { name: /One GTM Command Center/i })\u001b[22m\n\n    at C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\auth.spec.ts:13:7",
+                        "location": {
+                          "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\auth.spec.ts",
+                          "column": 7,
+                          "line": 13
+                        },
+                        "snippet": "\u001b[0m \u001b[90m 11 |\u001b[39m     \u001b[36mawait\u001b[39m expect(\n \u001b[90m 12 |\u001b[39m       page\u001b[33m.\u001b[39mgetByRole(\u001b[32m'heading'\u001b[39m\u001b[33m,\u001b[39m { name\u001b[33m:\u001b[39m \u001b[35m/One GTM Command Center/i\u001b[39m })\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 13 |\u001b[39m     )\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m       \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 14 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mgetByRole(\u001b[32m'link'\u001b[39m\u001b[33m,\u001b[39m { name\u001b[33m:\u001b[39m \u001b[35m/Launch FounderHQ/i\u001b[39m }))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m 15 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 16 |\u001b[39m\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\auth.spec.ts",
+                            "column": 7,
+                            "line": 13
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('heading', { name: /One GTM Command Center/i })\nExpected: visible\nTimeout: 5000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('heading', { name: /One GTM Command Center/i })\u001b[22m\n\n\n\u001b[0m \u001b[90m 11 |\u001b[39m     \u001b[36mawait\u001b[39m expect(\n \u001b[90m 12 |\u001b[39m       page\u001b[33m.\u001b[39mgetByRole(\u001b[32m'heading'\u001b[39m\u001b[33m,\u001b[39m { name\u001b[33m:\u001b[39m \u001b[35m/One GTM Command Center/i\u001b[39m })\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 13 |\u001b[39m     )\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m       \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 14 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page\u001b[33m.\u001b[39mgetByRole(\u001b[32m'link'\u001b[39m\u001b[33m,\u001b[39m { name\u001b[33m:\u001b[39m \u001b[35m/Launch FounderHQ/i\u001b[39m }))\u001b[33m.\u001b[39mtoBeVisible()\u001b[33m;\u001b[39m\n \u001b[90m 15 |\u001b[39m   })\u001b[33m;\u001b[39m\n \u001b[90m 16 |\u001b[39m\u001b[0m\n\u001b[2m    at C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\auth.spec.ts:13:7\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-04T05:01:33.629Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\test-results\\auth-Authentication-Flow-should-load-landing-page-chromium\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\test-results\\auth-Authentication-Flow-should-load-landing-page-chromium\\error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\auth.spec.ts",
+                        "column": 7,
+                        "line": 13
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "d748ac400d08b85935ef-9c523d1c111856cf5472",
+              "file": "auth.spec.ts",
+              "line": 4,
+              "column": 3
+            },
+            {
+              "title": "should navigate to login",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 5,
+                      "status": "timedOut",
+                      "duration": 30221,
+                      "error": {
+                        "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                        "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                      },
+                      "errors": [
+                        {
+                          "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                        },
+                        {
+                          "location": {
+                            "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\auth.spec.ts",
+                            "column": 23,
+                            "line": 22
+                          },
+                          "message": "Error: locator.click: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('a:has-text(\"Sign In\")').first()\u001b[22m\n\n\n\u001b[0m \u001b[90m 20 |\u001b[39m     \u001b[90m// Find and click login button\u001b[39m\n \u001b[90m 21 |\u001b[39m     \u001b[36mconst\u001b[39m loginButton \u001b[33m=\u001b[39m page\u001b[33m.\u001b[39mlocator(\u001b[32m'a:has-text(\"Sign In\")'\u001b[39m)\u001b[33m.\u001b[39mfirst()\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 22 |\u001b[39m     \u001b[36mawait\u001b[39m loginButton\u001b[33m.\u001b[39mclick()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                       \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 23 |\u001b[39m     \n \u001b[90m 24 |\u001b[39m     \u001b[90m// Should navigate into the authenticated app or auth flow\u001b[39m\n \u001b[90m 25 |\u001b[39m     \u001b[36mawait\u001b[39m expect(page)\u001b[33m.\u001b[39mtoHaveURL(\u001b[35m/(login|auth|app)/\u001b[39m)\u001b[33m;\u001b[39m\u001b[0m\n\u001b[2m    at C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\auth.spec.ts:22:23\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-04T05:01:33.679Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\test-results\\auth-Authentication-Flow-should-navigate-to-login-chromium\\test-failed-1.png"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\test-results\\auth-Authentication-Flow-should-navigate-to-login-chromium\\error-context.md"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "d748ac400d08b85935ef-6a0886c9d50f60cbe7f8",
+              "file": "auth.spec.ts",
+              "line": 17,
+              "column": 3
+            },
+            {
+              "title": "should show signup option",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 6,
+                      "status": "passed",
+                      "duration": 2502,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-04T05:01:33.646Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d748ac400d08b85935ef-5ff4624f7e6633d4d01b",
+              "file": "auth.spec.ts",
+              "line": 28,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Dashboard Access",
+          "file": "auth.spec.ts",
+          "line": 37,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should redirect unauthenticated users from dashboard",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 3,
+                      "status": "passed",
+                      "duration": 1641,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-04T05:01:36.975Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d748ac400d08b85935ef-8d952df8ccc9ec48706c",
+              "file": "auth.spec.ts",
+              "line": 38,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
     {
       "title": "canvasLayout.spec.ts",
       "file": "canvasLayout.spec.ts",
@@ -95,15 +591,15 @@
                   "projectName": "chromium",
                   "results": [
                     {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
+                      "workerIndex": 8,
+                      "parallelIndex": 2,
                       "status": "passed",
-                      "duration": 12,
+                      "duration": 20,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-11-25T19:25:14.043Z",
+                      "startTime": "2025-12-04T05:01:37.075Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -129,15 +625,15 @@
                   "projectName": "chromium",
                   "results": [
                     {
-                      "workerIndex": 0,
+                      "workerIndex": 9,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 2,
+                      "duration": 20,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-11-25T19:25:14.090Z",
+                      "startTime": "2025-12-04T05:01:36.992Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -163,15 +659,15 @@
                   "projectName": "chromium",
                   "results": [
                     {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
+                      "workerIndex": 10,
+                      "parallelIndex": 1,
                       "status": "passed",
-                      "duration": 10,
+                      "duration": 39,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-11-25T19:25:14.104Z",
+                      "startTime": "2025-12-04T05:01:37.271Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -197,15 +693,15 @@
                   "projectName": "chromium",
                   "results": [
                     {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
+                      "workerIndex": 6,
+                      "parallelIndex": 6,
                       "status": "passed",
-                      "duration": 2,
+                      "duration": 4,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-11-25T19:25:14.130Z",
+                      "startTime": "2025-12-04T05:01:36.459Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -221,15 +717,749 @@
           ]
         }
       ]
+    },
+    {
+      "title": "collaboration.spec.ts",
+      "file": "collaboration.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Team Collaboration",
+          "file": "collaboration.spec.ts",
+          "line": 5,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should display workspace members list",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 6,
+                      "status": "failed",
+                      "duration": 218,
+                      "error": {
+                        "message": "Error: Missing Playwright test credentials. Please set SUPABASE_TEST_OWNER_EMAIL and SUPABASE_TEST_OWNER_PASSWORD in your environment.",
+                        "stack": "Error: Missing Playwright test credentials. Please set SUPABASE_TEST_OWNER_EMAIL and SUPABASE_TEST_OWNER_PASSWORD in your environment.\n    at getCredentials (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:27:11)\n    at loginAs (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:36:31)\n    at C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\collaboration.spec.ts:7:11",
+                        "location": {
+                          "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts",
+                          "column": 11,
+                          "line": 27
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mutils\\auth.ts:27\n\n\u001b[0m \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m   \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39memail \u001b[33m||\u001b[39m \u001b[33m!\u001b[39mpassword) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 27 |\u001b[39m     \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\n \u001b[90m    |\u001b[39m           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 28 |\u001b[39m       \u001b[32m`Missing Playwright test credentials. Please set ${envKeys.emailKey} and ${envKeys.passwordKey} in your environment.`\u001b[39m\n \u001b[90m 29 |\u001b[39m     )\u001b[33m;\u001b[39m\n \u001b[90m 30 |\u001b[39m   }\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts",
+                            "column": 11,
+                            "line": 27
+                          },
+                          "message": "Error: Missing Playwright test credentials. Please set SUPABASE_TEST_OWNER_EMAIL and SUPABASE_TEST_OWNER_PASSWORD in your environment.\n\n\u001b[90m   at \u001b[39mutils\\auth.ts:27\n\n\u001b[0m \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m   \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39memail \u001b[33m||\u001b[39m \u001b[33m!\u001b[39mpassword) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 27 |\u001b[39m     \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\n \u001b[90m    |\u001b[39m           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 28 |\u001b[39m       \u001b[32m`Missing Playwright test credentials. Please set ${envKeys.emailKey} and ${envKeys.passwordKey} in your environment.`\u001b[39m\n \u001b[90m 29 |\u001b[39m     )\u001b[33m;\u001b[39m\n \u001b[90m 30 |\u001b[39m   }\u001b[0m\n\u001b[2m    at getCredentials (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:27:11)\u001b[22m\n\u001b[2m    at loginAs (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:36:31)\u001b[22m\n\u001b[2m    at C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\collaboration.spec.ts:7:11\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-04T05:01:36.515Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\test-results\\collaboration-Team-Collabo-f8850-play-workspace-members-list-chromium\\test-failed-1.png"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts",
+                        "column": 11,
+                        "line": 27
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "960cd46fcfcce4c1b118-2ef4585d82070f3ab248",
+              "file": "collaboration.spec.ts",
+              "line": 12,
+              "column": 3
+            },
+            {
+              "title": "should open and close team invite modal",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 11,
+                      "parallelIndex": 6,
+                      "status": "failed",
+                      "duration": 252,
+                      "error": {
+                        "message": "Error: Missing Playwright test credentials. Please set SUPABASE_TEST_OWNER_EMAIL and SUPABASE_TEST_OWNER_PASSWORD in your environment.",
+                        "stack": "Error: Missing Playwright test credentials. Please set SUPABASE_TEST_OWNER_EMAIL and SUPABASE_TEST_OWNER_PASSWORD in your environment.\n    at getCredentials (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:27:11)\n    at loginAs (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:36:31)\n    at C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\collaboration.spec.ts:7:11",
+                        "location": {
+                          "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts",
+                          "column": 11,
+                          "line": 27
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mutils\\auth.ts:27\n\n\u001b[0m \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m   \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39memail \u001b[33m||\u001b[39m \u001b[33m!\u001b[39mpassword) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 27 |\u001b[39m     \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\n \u001b[90m    |\u001b[39m           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 28 |\u001b[39m       \u001b[32m`Missing Playwright test credentials. Please set ${envKeys.emailKey} and ${envKeys.passwordKey} in your environment.`\u001b[39m\n \u001b[90m 29 |\u001b[39m     )\u001b[33m;\u001b[39m\n \u001b[90m 30 |\u001b[39m   }\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts",
+                            "column": 11,
+                            "line": 27
+                          },
+                          "message": "Error: Missing Playwright test credentials. Please set SUPABASE_TEST_OWNER_EMAIL and SUPABASE_TEST_OWNER_PASSWORD in your environment.\n\n\u001b[90m   at \u001b[39mutils\\auth.ts:27\n\n\u001b[0m \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m   \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39memail \u001b[33m||\u001b[39m \u001b[33m!\u001b[39mpassword) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 27 |\u001b[39m     \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\n \u001b[90m    |\u001b[39m           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 28 |\u001b[39m       \u001b[32m`Missing Playwright test credentials. Please set ${envKeys.emailKey} and ${envKeys.passwordKey} in your environment.`\u001b[39m\n \u001b[90m 29 |\u001b[39m     )\u001b[33m;\u001b[39m\n \u001b[90m 30 |\u001b[39m   }\u001b[0m\n\u001b[2m    at getCredentials (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:27:11)\u001b[22m\n\u001b[2m    at loginAs (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:36:31)\u001b[22m\n\u001b[2m    at C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\collaboration.spec.ts:7:11\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-04T05:01:39.623Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\test-results\\collaboration-Team-Collabo-cd812-and-close-team-invite-modal-chromium\\test-failed-1.png"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts",
+                        "column": 11,
+                        "line": 27
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "960cd46fcfcce4c1b118-630bf020128134d42c66",
+              "file": "collaboration.spec.ts",
+              "line": 18,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "RLS Enforcement (E2E)",
+          "file": "collaboration.spec.ts",
+          "line": 31,
+          "column": 15,
+          "specs": [
+            {
+              "title": "members should only see workspace data",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\collaboration.spec.ts",
+                        "line": 31,
+                        "column": 15
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-04T05:01:37.102Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "960cd46fcfcce4c1b118-d00ab3254591c7841104",
+              "file": "collaboration.spec.ts",
+              "line": 36,
+              "column": 3
+            },
+            {
+              "title": "non-members should not access workspace",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\collaboration.spec.ts",
+                        "line": 31,
+                        "column": 15
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-04T05:01:37.111Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "960cd46fcfcce4c1b118-1f8b39cd2879854a18a4",
+              "file": "collaboration.spec.ts",
+              "line": 47,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "crm-marketing.spec.ts",
+      "file": "crm-marketing.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "CRM Management",
+          "file": "crm-marketing.spec.ts",
+          "line": 3,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should switch to CRM tab",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "Auth setup required",
+                      "location": {
+                        "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\crm-marketing.spec.ts",
+                        "line": 5,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 9,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 388,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-04T05:01:37.134Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Auth setup required",
+                          "location": {
+                            "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\crm-marketing.spec.ts",
+                            "line": 5,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "821a626f782f3a27d248-821075e1c3580ab27a3b",
+              "file": "crm-marketing.spec.ts",
+              "line": 8,
+              "column": 3
+            },
+            {
+              "title": "should create new CRM item",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "Auth setup required",
+                      "location": {
+                        "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\crm-marketing.spec.ts",
+                        "line": 5,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 2,
+                      "status": "skipped",
+                      "duration": 284,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-04T05:01:37.182Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Auth setup required",
+                          "location": {
+                            "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\crm-marketing.spec.ts",
+                            "line": 5,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "821a626f782f3a27d248-041c943488e6c65df876",
+              "file": "crm-marketing.spec.ts",
+              "line": 20,
+              "column": 3
+            },
+            {
+              "title": "should filter CRM items by type",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "Auth setup required",
+                      "location": {
+                        "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\crm-marketing.spec.ts",
+                        "line": 5,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 10,
+                      "parallelIndex": 1,
+                      "status": "skipped",
+                      "duration": 355,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-04T05:01:37.435Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Auth setup required",
+                          "location": {
+                            "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\crm-marketing.spec.ts",
+                            "line": 5,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "821a626f782f3a27d248-fb83932271639c6924bf",
+              "file": "crm-marketing.spec.ts",
+              "line": 39,
+              "column": 3
+            }
+          ]
+        },
+        {
+          "title": "Marketing Tab",
+          "file": "crm-marketing.spec.ts",
+          "line": 52,
+          "column": 6,
+          "specs": [
+            {
+              "title": "should load marketing planner",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "Auth setup required",
+                      "location": {
+                        "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\crm-marketing.spec.ts",
+                        "line": 54,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 9,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 213,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-04T05:01:37.824Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Auth setup required",
+                          "location": {
+                            "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\crm-marketing.spec.ts",
+                            "line": 54,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "821a626f782f3a27d248-fa47becf44488bfc52a8",
+              "file": "crm-marketing.spec.ts",
+              "line": 57,
+              "column": 3
+            },
+            {
+              "title": "should create marketing item",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "Auth setup required",
+                      "location": {
+                        "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\crm-marketing.spec.ts",
+                        "line": 54,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 2,
+                      "status": "skipped",
+                      "duration": 259,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-04T05:01:37.843Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Auth setup required",
+                          "location": {
+                            "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\crm-marketing.spec.ts",
+                            "line": 54,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "821a626f782f3a27d248-38ba6e0a3f0325e7f44f",
+              "file": "crm-marketing.spec.ts",
+              "line": 67,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "docPersistence.spec.ts",
+      "file": "docPersistence.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Doc persistence (Playwright)",
+          "file": "docPersistence.spec.ts",
+          "line": 29,
+          "column": 6,
+          "specs": [
+            {
+              "title": "persists manual saves across reloads",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 9,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 369,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-04T05:01:40.726Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "c8096da1e5ef425a587b-f8694c4c113f3154deb0",
+              "file": "docPersistence.spec.ts",
+              "line": 38,
+              "column": 3
+            },
+            {
+              "title": "prefers Yjs snapshot when database snapshot is stale",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 2,
+                      "status": "passed",
+                      "duration": 387,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-04T05:01:40.650Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "c8096da1e5ef425a587b-2cb80d7349876c6b4ef9",
+              "file": "docPersistence.spec.ts",
+              "line": 52,
+              "column": 3
+            },
+            {
+              "title": "blocks metadata stays tied to explicit database saves",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 10,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 297,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-04T05:01:40.655Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "c8096da1e5ef425a587b-026cdb5dda462756789c",
+              "file": "docPersistence.spec.ts",
+              "line": 71,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "tasks.spec.ts",
+      "file": "tasks.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Task Management",
+          "file": "tasks.spec.ts",
+          "line": 5,
+          "column": 6,
+          "specs": [
+            {
+              "title": "allows creating, searching, and deleting a task",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 3,
+                      "status": "failed",
+                      "duration": 216,
+                      "error": {
+                        "message": "Error: Missing Playwright test credentials. Please set SUPABASE_TEST_OWNER_EMAIL and SUPABASE_TEST_OWNER_PASSWORD in your environment.",
+                        "stack": "Error: Missing Playwright test credentials. Please set SUPABASE_TEST_OWNER_EMAIL and SUPABASE_TEST_OWNER_PASSWORD in your environment.\n    at getCredentials (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:27:11)\n    at loginAs (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:36:31)\n    at C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\tasks.spec.ts:7:11",
+                        "location": {
+                          "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts",
+                          "column": 11,
+                          "line": 27
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mutils\\auth.ts:27\n\n\u001b[0m \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m   \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39memail \u001b[33m||\u001b[39m \u001b[33m!\u001b[39mpassword) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 27 |\u001b[39m     \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\n \u001b[90m    |\u001b[39m           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 28 |\u001b[39m       \u001b[32m`Missing Playwright test credentials. Please set ${envKeys.emailKey} and ${envKeys.passwordKey} in your environment.`\u001b[39m\n \u001b[90m 29 |\u001b[39m     )\u001b[33m;\u001b[39m\n \u001b[90m 30 |\u001b[39m   }\u001b[0m"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts",
+                            "column": 11,
+                            "line": 27
+                          },
+                          "message": "Error: Missing Playwright test credentials. Please set SUPABASE_TEST_OWNER_EMAIL and SUPABASE_TEST_OWNER_PASSWORD in your environment.\n\n\u001b[90m   at \u001b[39mutils\\auth.ts:27\n\n\u001b[0m \u001b[90m 25 |\u001b[39m\n \u001b[90m 26 |\u001b[39m   \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39memail \u001b[33m||\u001b[39m \u001b[33m!\u001b[39mpassword) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 27 |\u001b[39m     \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\n \u001b[90m    |\u001b[39m           \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 28 |\u001b[39m       \u001b[32m`Missing Playwright test credentials. Please set ${envKeys.emailKey} and ${envKeys.passwordKey} in your environment.`\u001b[39m\n \u001b[90m 29 |\u001b[39m     )\u001b[33m;\u001b[39m\n \u001b[90m 30 |\u001b[39m   }\u001b[0m\n\u001b[2m    at getCredentials (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:27:11)\u001b[22m\n\u001b[2m    at loginAs (C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts:36:31)\u001b[22m\n\u001b[2m    at C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\tasks.spec.ts:7:11\u001b[22m"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2025-12-04T05:01:38.911Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\test-results\\tasks-Task-Management-allo-e0f27-arching-and-deleting-a-task-chromium\\test-failed-1.png"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "C:\\Users\\iixii\\OneDrive\\Desktop\\setique-founder-dashboard\\setique-founderhq\\tests\\e2e\\utils\\auth.ts",
+                        "column": 11,
+                        "line": 27
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "d2d3f88df070d751ab05-2e00cea94fdc356251ca",
+              "file": "tasks.spec.ts",
+              "line": 6,
+              "column": 3
+            }
+          ]
+        }
+      ]
     }
   ],
   "errors": [],
   "stats": {
-    "startTime": "2025-11-25T19:25:09.343Z",
-    "duration": 5128.567999999999,
-    "expected": 4,
-    "skipped": 0,
-    "unexpected": 0,
+    "startTime": "2025-12-04T05:01:30.444Z",
+    "duration": 33931.227000000006,
+    "expected": 9,
+    "skipped": 7,
+    "unexpected": 9,
     "flaky": 0
   }
 }

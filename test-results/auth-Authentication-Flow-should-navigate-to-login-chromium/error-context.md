@@ -1,0 +1,363 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - paragraph [ref=e6]: Cookie Notice
+      - paragraph [ref=e7]: We use cookies and telemetry to improve your experience and track errors. We respect your privacy and do not sell your data.
+    - generic [ref=e8]:
+      - button "Decline" [ref=e9] [cursor=pointer]
+      - button "Accept All" [ref=e10] [cursor=pointer]
+  - generic [ref=e11]:
+    - navigation [ref=e12]:
+      - generic [ref=e14]:
+        - link "FOUNDERHQ" [ref=e15] [cursor=pointer]:
+          - /url: /
+          - img [ref=e17]
+          - generic [ref=e19]: FOUNDERHQ
+        - generic [ref=e20]:
+          - link "Features" [ref=e21] [cursor=pointer]:
+            - /url: "#features"
+          - link "AI" [ref=e22] [cursor=pointer]:
+            - /url: "#ai"
+          - link "Pricing" [ref=e23] [cursor=pointer]:
+            - /url: "#pricing"
+          - link "FAQ" [ref=e24] [cursor=pointer]:
+            - /url: "#faq"
+        - generic [ref=e25]:
+          - link "Log in" [ref=e26] [cursor=pointer]:
+            - /url: /app
+          - link "Get Started Free" [ref=e27] [cursor=pointer]:
+            - /url: /app
+    - main [ref=e28]:
+      - generic [ref=e29]:
+        - generic:
+          - img
+        - generic [ref=e30]:
+          - generic [ref=e31]:
+            - generic [ref=e33]:
+              - img [ref=e34]
+              - text: AI-POWERED GTM WORKSPACE
+            - heading "THE ALL-IN-ONE HUB FOR GTM" [level=1] [ref=e36]:
+              - text: THE ALL-IN-ONE HUB FOR
+              - generic [ref=e37]: GTM
+            - paragraph [ref=e39]: CRM, pipeline, marketing, email, documents, calendar, financials, and team chat—all powered by AI. One focused workspace that scales with you.
+            - generic [ref=e40]:
+              - link "START FREE TODAY" [ref=e41] [cursor=pointer]:
+                - /url: /app
+                - text: START FREE TODAY
+                - img [ref=e42]
+              - link "SEE FEATURES" [ref=e44] [cursor=pointer]:
+                - /url: "#features"
+          - generic [ref=e46]:
+            - generic [ref=e50]:
+              - generic [ref=e51]:
+                - generic [ref=e54]: FOUNDERHQ
+                - generic [ref=e57]: Dashboard
+                - generic [ref=e60]: Pipeline
+                - generic [ref=e63]: Contacts
+                - generic [ref=e66]: Huddle
+                - generic [ref=e69]: Calendar
+              - generic [ref=e71]:
+                - generic [ref=e73]:
+                  - generic [ref=e76]: Just closed the Acme deal! 🎉
+                  - generic [ref=e77]:
+                    - img [ref=e79]
+                    - generic [ref=e82]: ✓ Logged as revenue. CRM updated.
+                - generic [ref=e83]:
+                  - generic [ref=e84]:
+                    - generic [ref=e85]: Revenue
+                    - generic [ref=e86]: $124,500
+                  - generic [ref=e87]:
+                    - generic [ref=e88]: Pipeline
+                    - generic [ref=e89]: $890,000
+                  - generic [ref=e90]:
+                    - generic [ref=e91]: Closed
+                    - generic [ref=e92]: 23 deals
+            - generic [ref=e95]:
+              - img [ref=e97]
+              - generic [ref=e100]:
+                - generic [ref=e101]: Search
+                - generic [ref=e102]: Find anything
+            - generic [ref=e105]:
+              - img [ref=e107]
+              - generic [ref=e112]:
+                - generic [ref=e113]: Analytics
+                - generic [ref=e114]: Track growth
+            - generic [ref=e117]:
+              - img [ref=e119]
+              - generic [ref=e125]:
+                - generic [ref=e126]: Documents
+                - generic [ref=e127]: Organized files
+            - generic [ref=e130]:
+              - img [ref=e132]
+              - generic [ref=e136]:
+                - generic [ref=e137]: Connect
+                - generic [ref=e138]: Integrations
+      - generic [ref=e139]:
+        - generic:
+          - img
+        - generic [ref=e140]:
+          - generic [ref=e141]:
+            - generic [ref=e142]:
+              - img [ref=e143]
+              - text: COMPLETE GTM TOOLKIT
+            - heading "EVERY TOOL YOU NEED, ONE WORKSPACE" [level=2] [ref=e146]
+            - paragraph [ref=e147]: From pipeline to payment, marketing to meetings—FounderHQ unifies your entire GTM stack with AI woven throughout.
+          - generic [ref=e148]:
+            - generic [ref=e149]:
+              - img [ref=e151]
+              - heading "CRM & Pipeline" [level=3] [ref=e156]
+              - paragraph [ref=e157]: Manage leads, contacts, and accounts with AI-powered insights. Track deals from first touch to close.
+            - generic [ref=e158]:
+              - img [ref=e160]
+              - heading "Huddle Team Chat" [level=3] [ref=e162]
+              - paragraph [ref=e163]: Real-time messaging with AI assistance. Collaborate, share files, and get instant answers from your data.
+            - generic [ref=e164]:
+              - img [ref=e166]
+              - heading "Marketing & Campaigns" [level=3] [ref=e169]
+              - paragraph [ref=e170]: Plan campaigns, generate content with AI, and track outreach—all connected to your pipeline.
+            - generic [ref=e171]:
+              - img [ref=e173]
+              - heading "Email & Outreach" [level=3] [ref=e176]
+              - paragraph [ref=e177]: Integrated email with AI-drafted responses, templates, and automatic CRM logging.
+            - generic [ref=e178]:
+              - img [ref=e180]
+              - heading "Documents & Files" [level=3] [ref=e183]
+              - paragraph [ref=e184]: Centralized document hub with smart search, version control, and AI summaries.
+            - generic [ref=e185]:
+              - img [ref=e187]
+              - heading "Calendar & Scheduling" [level=3] [ref=e189]
+              - paragraph [ref=e190]: Unified calendar for meetings, deadlines, and follow-ups. AI helps you stay on track.
+            - generic [ref=e191]:
+              - img [ref=e193]
+              - heading "Financial Tracking" [level=3] [ref=e195]
+              - paragraph [ref=e196]: Log expenses, track revenue, monitor cash flow. AI auto-categorizes and surfaces trends.
+            - generic [ref=e197]:
+              - img [ref=e199]
+              - heading "Analytics & Reports" [level=3] [ref=e201]
+              - paragraph [ref=e202]: AI-generated insights, customizable dashboards, and forecasts that guide your strategy.
+            - generic [ref=e203]:
+              - img [ref=e205]
+              - heading "AI Research Agents" [level=3] [ref=e208]
+              - paragraph [ref=e209]: Specialized agents for market research, competitive analysis, and deal strategy.
+            - generic [ref=e210]:
+              - img [ref=e212]
+              - heading "AI Content Creation" [level=3] [ref=e215]
+              - paragraph [ref=e216]: Generate emails, proposals, marketing copy, and more—all trained on your business context.
+      - generic [ref=e217]:
+        - generic [ref=e218]:
+          - img [ref=e222]
+          - img [ref=e224]
+        - generic [ref=e231]:
+          - generic [ref=e232]:
+            - generic [ref=e233]:
+              - img [ref=e234]
+              - text: AI THROUGHOUT
+            - heading "AI THAT WORKS ACROSS YOUR ENTIRE GTM" [level=2] [ref=e237]
+            - paragraph [ref=e238]: Not just an assistant—AI is embedded throughout FounderHQ. Generate content, automate data entry, get strategic insights, research prospects, and let your team collaborate smarter.
+            - generic [ref=e239]:
+              - generic [ref=e240]:
+                - img [ref=e242]
+                - generic [ref=e245]:
+                  - paragraph [ref=e246]: Content Generation
+                  - paragraph [ref=e247]: AI writes emails, proposals, and marketing copy
+              - generic [ref=e248]:
+                - img [ref=e250]
+                - generic [ref=e253]:
+                  - paragraph [ref=e254]: Voice Transcription
+                  - paragraph [ref=e255]: Record voice notes, transcribe calls instantly
+              - generic [ref=e256]:
+                - img [ref=e258]
+                - generic [ref=e263]:
+                  - paragraph [ref=e264]: Document OCR
+                  - paragraph [ref=e265]: Extract text from scanned PDFs and images
+              - generic [ref=e266]:
+                - img [ref=e268]
+                - generic [ref=e271]:
+                  - paragraph [ref=e272]: Smart Enrichment
+                  - paragraph [ref=e273]: Auto-research companies and contacts in seconds
+              - generic [ref=e274]:
+                - img [ref=e276]
+                - generic [ref=e278]:
+                  - paragraph [ref=e279]: Content Safety
+                  - paragraph [ref=e280]: Built-in moderation keeps your workspace safe
+              - generic [ref=e281]:
+                - img [ref=e283]
+                - generic [ref=e285]:
+                  - paragraph [ref=e286]: Ultra-Fast AI
+                  - paragraph [ref=e287]: Enterprise-grade speed—750+ tokens per second
+          - generic [ref=e290]:
+            - generic [ref=e291]:
+              - img [ref=e293]
+              - generic [ref=e296]:
+                - paragraph [ref=e297]: AI Assistant
+                - paragraph [ref=e298]: "Online in #general"
+            - generic [ref=e300]:
+              - paragraph [ref=e303]: "@AI log expense $250 for client dinner with Acme Corp"
+              - generic [ref=e304]:
+                - img [ref=e306]
+                - generic [ref=e309]:
+                  - paragraph [ref=e310]: "✓ Done! Expense logged:"
+                  - generic [ref=e311]:
+                    - paragraph [ref=e312]: "Amount: $250.00"
+                    - paragraph [ref=e313]: "Category: Client Entertainment"
+                    - paragraph [ref=e314]: "Account: Acme Corp"
+      - generic [ref=e316]:
+        - generic [ref=e317]:
+          - generic [ref=e318]:
+            - img [ref=e319]
+            - text: SIMPLE PRICING
+          - heading "START FREE, SCALE WHEN READY" [level=2] [ref=e321]
+          - paragraph [ref=e322]: No credit card required. Upgrade when you need more power.
+        - generic [ref=e323]:
+          - generic [ref=e324]:
+            - heading "FREE" [level=3] [ref=e325]
+            - paragraph [ref=e326]: Perfect for solo founders getting started
+            - generic [ref=e327]: $0/month
+            - list [ref=e328]:
+              - listitem [ref=e329]:
+                - generic [ref=e331]: ✓
+                - generic [ref=e332]: 25 AI requests per month
+              - listitem [ref=e333]:
+                - generic [ref=e335]: ✓
+                - generic [ref=e336]: Full CRM & pipeline
+              - listitem [ref=e337]:
+                - generic [ref=e339]: ✓
+                - generic [ref=e340]: Huddle team chat
+              - listitem [ref=e341]:
+                - generic [ref=e343]: ✓
+                - generic [ref=e344]: Document library (1GB)
+              - listitem [ref=e345]:
+                - generic [ref=e347]: ✓
+                - generic [ref=e348]: Built-in calendar
+              - listitem [ref=e349]:
+                - generic [ref=e351]: ✓
+                - generic [ref=e352]: Basic email integration
+              - listitem [ref=e353]:
+                - generic [ref=e355]: ✓
+                - generic [ref=e356]: Email support
+            - link "START FREE" [ref=e357] [cursor=pointer]:
+              - /url: /app
+          - generic [ref=e358]:
+            - generic [ref=e359]: BEST VALUE
+            - heading "TEAM PRO" [level=3] [ref=e360]
+            - paragraph [ref=e361]: + $25/month per additional user
+            - generic [ref=e362]: $49/month base
+            - list [ref=e363]:
+              - listitem [ref=e364]:
+                - generic [ref=e366]: ✓
+                - generic [ref=e367]: "Everything in Free, plus:"
+              - listitem [ref=e368]:
+                - generic [ref=e370]: ✓
+                - generic [ref=e371]: Unlimited AI across all features
+              - listitem [ref=e372]:
+                - generic [ref=e374]: ✓
+                - generic [ref=e375]: AI content generation & insights
+              - listitem [ref=e376]:
+                - generic [ref=e378]: ✓
+                - generic [ref=e379]: Advanced analytics & reports
+              - listitem [ref=e380]:
+                - generic [ref=e382]: ✓
+                - generic [ref=e383]: Full financial tracking
+              - listitem [ref=e384]:
+                - generic [ref=e386]: ✓
+                - generic [ref=e387]: Marketing campaign tools
+              - listitem [ref=e388]:
+                - generic [ref=e390]: ✓
+                - generic [ref=e391]: AI research agents
+              - listitem [ref=e392]:
+                - generic [ref=e394]: ✓
+                - generic [ref=e395]: API access & priority support
+            - link "GET STARTED" [ref=e396] [cursor=pointer]:
+              - /url: /app
+      - generic [ref=e398]:
+        - generic [ref=e399]:
+          - generic [ref=e400]:
+            - img [ref=e401]
+            - text: FAQ
+          - heading "FREQUENTLY ASKED QUESTIONS" [level=2] [ref=e403]
+        - generic [ref=e405]:
+          - generic [ref=e406]:
+            - button "What is FounderHQ and who is it for?" [ref=e407] [cursor=pointer]:
+              - generic [ref=e408]: What is FounderHQ and who is it for?
+              - img [ref=e410]
+            - paragraph [ref=e412]: FounderHQ is a complete GTM workspace that brings together CRM, pipeline, marketing, email, documents, calendar, financials, and team chat—all powered by AI. It's built for founders, sales teams, and GTM consultants who want one unified platform instead of juggling 10+ tools.
+          - generic [ref=e413]:
+            - button "How is AI integrated throughout FounderHQ?" [ref=e414] [cursor=pointer]:
+              - generic [ref=e415]: How is AI integrated throughout FounderHQ?
+              - img [ref=e417]
+            - paragraph [ref=e419]: AI is woven into every workflow—not just a chatbot. Generate marketing content, transcribe voice notes and calls, extract text from scanned documents with vision AI, auto-enrich company data in seconds, and get AI-powered analytics. Our infrastructure delivers 750+ tokens per second with built-in content safety.
+          - generic [ref=e420]:
+            - button "What GTM tools does FounderHQ replace?" [ref=e421] [cursor=pointer]:
+              - generic [ref=e422]: What GTM tools does FounderHQ replace?
+              - img [ref=e424]
+            - paragraph [ref=e426]: FounderHQ can replace your CRM (like HubSpot or Pipedrive), team chat (Slack, Microsoft Teams), task management (Asana, Monday.com), documents and wikis (Notion, Google Docs), email client, calendar app, expense tracker, and various AI tools. Everything lives in one workspace.
+          - generic [ref=e427]:
+            - button "Can I import my existing data?" [ref=e428] [cursor=pointer]:
+              - generic [ref=e429]: Can I import my existing data?
+              - img [ref=e431]
+            - paragraph [ref=e433]: Yes! FounderHQ supports importing contacts, accounts, deals, and historical data from popular CRMs and spreadsheets. Our AI helps map and clean your data during import.
+          - generic [ref=e434]:
+            - button "Is my data secure?" [ref=e435] [cursor=pointer]:
+              - generic [ref=e436]: Is my data secure?
+              - img [ref=e438]
+            - paragraph [ref=e440]: Absolutely. We use enterprise-grade security with end-to-end encryption and row-level security policies. Your data is stored in isolated environments and never used to train AI models.
+          - generic [ref=e441]:
+            - button "Can my team collaborate in FounderHQ?" [ref=e442] [cursor=pointer]:
+              - generic [ref=e443]: Can my team collaborate in FounderHQ?
+              - img [ref=e445]
+            - paragraph [ref=e447]: Yes! FounderHQ is built for teams. Collaborate in real-time via Huddle chat, share documents, assign tasks, and get AI assistance together. The Team Pro plan includes advanced collaboration features.
+      - generic [ref=e448]:
+        - generic [ref=e449]:
+          - img [ref=e453]
+          - img [ref=e455]
+        - generic [ref=e461]:
+          - generic [ref=e462]:
+            - img [ref=e463]
+            - text: READY TO START?
+          - heading "YOUR ENTIRE GTM. ONE AI-POWERED WORKSPACE." [level=2] [ref=e466]:
+            - text: YOUR ENTIRE GTM.
+            - text: ONE AI-POWERED WORKSPACE.
+          - paragraph [ref=e467]: Join founders and teams who've unified their GTM stack. CRM, marketing, documents, calendar, chat, and more—all with AI built in.
+          - generic [ref=e468]:
+            - link "GET STARTED FREE" [ref=e469] [cursor=pointer]:
+              - /url: /app
+              - text: GET STARTED FREE
+              - img [ref=e470]
+            - link "VIEW PRICING" [ref=e472] [cursor=pointer]:
+              - /url: /pricing
+    - contentinfo [ref=e473]:
+      - img [ref=e475]
+      - generic [ref=e477]:
+        - generic [ref=e478]:
+          - generic [ref=e479]:
+            - link "FOUNDERHQ" [ref=e480] [cursor=pointer]:
+              - /url: /
+              - img [ref=e482]
+              - generic [ref=e484]: FOUNDERHQ
+            - paragraph [ref=e485]: The AI-powered GTM workspace. CRM, marketing, email, documents, calendar, and chat—unified for teams that scale.
+          - generic [ref=e486]:
+            - heading "PRODUCT" [level=4] [ref=e487]
+            - list [ref=e488]:
+              - listitem [ref=e489]:
+                - link "Features" [ref=e490] [cursor=pointer]:
+                  - /url: "#features"
+              - listitem [ref=e491]:
+                - link "Pricing" [ref=e492] [cursor=pointer]:
+                  - /url: "#pricing"
+              - listitem [ref=e493]:
+                - link "API Docs" [ref=e494] [cursor=pointer]:
+                  - /url: /api-docs
+          - generic [ref=e495]:
+            - heading "LEGAL" [level=4] [ref=e496]
+            - list [ref=e497]:
+              - listitem [ref=e498]:
+                - link "Privacy" [ref=e499] [cursor=pointer]:
+                  - /url: /privacy
+              - listitem [ref=e500]:
+                - link "Terms" [ref=e501] [cursor=pointer]:
+                  - /url: /terms
+        - paragraph [ref=e503]: © 2025 FOUNDERHQ. All rights reserved.
+```
