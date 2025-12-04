@@ -1,5 +1,6 @@
 // pages/SharedBriefPage.tsx
 // Public page for viewing shared market briefs
+// Includes SEO optimization for rich link previews
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
@@ -10,6 +11,7 @@ import {
 } from 'lucide-react';
 import { getSharedMarketBrief, type SharedMarketBrief } from '../lib/services/reportSharingService';
 import { useCopyToClipboard } from '../hooks';
+import { useSEO, generateDescription } from '../hooks/useSEO';
 
 // Section icons mapping for professional look
 const SECTION_ICONS: Record<string, React.ReactNode> = {
@@ -401,13 +403,22 @@ export const SharedBriefPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Debug logging for mobile issues
+  useEffect(() => {
+    console.log('[SharedBriefPage] Mounted with token:', token);
+    console.log('[SharedBriefPage] Current URL:', window.location.href);
+    console.log('[SharedBriefPage] Pathname:', window.location.pathname);
+  }, [token]);
+
   const fetchBrief = async (pwd?: string) => {
     if (!token) {
-      setError('Invalid share link');
+      console.error('[SharedBriefPage] No token provided');
+      setError('Invalid share link - no token found');
       setLoading(false);
       return;
     }
 
+    console.log('[SharedBriefPage] Fetching brief with token:', token);
     setLoading(true);
     setError(null);
 
@@ -420,19 +431,42 @@ export const SharedBriefPage: React.FC = () => {
     }
 
     if (!result.success) {
+      console.error('[SharedBriefPage] Failed to load brief:', result.error);
       setError(result.error || 'Failed to load brief');
       setLoading(false);
       return;
     }
 
+    console.log('[SharedBriefPage] Brief loaded successfully');
     setBrief(result.brief || null);
     setPasswordRequired(false);
     setLoading(false);
   };
 
   useEffect(() => {
-    fetchBrief();
+    // Only fetch if we have a token
+    if (token) {
+      fetchBrief();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  // SEO meta tags for rich link previews
+  const seoDescription = useMemo(() => {
+    if (!brief) return 'Market research brief shared via FounderHQ';
+    if (brief.hero_line) return brief.hero_line;
+    if (brief.raw_report) return generateDescription(brief.raw_report);
+    return `Market research: ${brief.query}`;
+  }, [brief]);
+
+  useSEO({
+    title: brief ? `Market Brief: ${brief.query}` : 'Market Research Brief',
+    description: seoDescription,
+    url: `/share/brief/${token}`,
+    type: 'article',
+    author: brief?.workspace_name || 'FounderHQ',
+    publishedTime: brief?.created_at,
+  });
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

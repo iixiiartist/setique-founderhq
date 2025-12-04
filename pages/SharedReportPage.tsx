@@ -1,11 +1,13 @@
 // pages/SharedReportPage.tsx
 // Public page for viewing shared research reports
+// Includes SEO optimization for rich link previews
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { FileText, Lock, AlertCircle, ExternalLink, Clock, Building2, Eye } from 'lucide-react';
 import { getSharedReport, type SharedReport } from '../lib/services/reportSharingService';
 import { AgentResponsePresenter } from '../components/agents/AgentResponsePresenter';
+import { useSEO, generateDescription } from '../hooks/useSEO';
 
 // Goal labels for display
 const GOAL_LABELS: Record<string, string> = {
@@ -24,13 +26,21 @@ export const SharedReportPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Debug logging for mobile issues
+  useEffect(() => {
+    console.log('[SharedReportPage] Mounted with token:', token);
+    console.log('[SharedReportPage] Current URL:', window.location.href);
+  }, [token]);
+
   const fetchReport = async (pwd?: string) => {
     if (!token) {
-      setError('Invalid share link');
+      console.error('[SharedReportPage] No token provided');
+      setError('Invalid share link - no token found');
       setLoading(false);
       return;
     }
 
+    console.log('[SharedReportPage] Fetching report with token:', token);
     setLoading(true);
     setError(null);
 
@@ -43,19 +53,46 @@ export const SharedReportPage: React.FC = () => {
     }
 
     if (!result.success) {
+      console.error('[SharedReportPage] Failed to load report:', result.error);
       setError(result.error || 'Failed to load report');
       setLoading(false);
       return;
     }
 
+    console.log('[SharedReportPage] Report loaded successfully');
     setReport(result.report || null);
     setPasswordRequired(false);
     setLoading(false);
   };
 
   useEffect(() => {
-    fetchReport();
+    // Only fetch if we have a token
+    if (token) {
+      fetchReport();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  // SEO meta tags for rich link previews
+  const seoDescription = useMemo(() => {
+    if (!report) return 'Research report shared via FounderHQ';
+    const goalLabel = GOAL_LABELS[report.goal] || report.goal;
+    if (report.output) {
+      return generateDescription(report.output, 160);
+    }
+    return `${goalLabel} - Research report for ${report.target}`;
+  }, [report]);
+
+  useSEO({
+    title: report 
+      ? `${GOAL_LABELS[report.goal] || 'Research Report'} | ${report.target || 'FounderHQ'}`
+      : 'Research Report',
+    description: seoDescription,
+    url: `/share/report/${token}`,
+    type: 'article',
+    author: report?.workspace_name || 'FounderHQ',
+    publishedTime: report?.created_at,
+  });
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

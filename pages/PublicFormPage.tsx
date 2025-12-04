@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -7,6 +7,7 @@ import { Card, CardContent } from '../components/ui/Card';
 import { Checkbox } from '../components/ui/Checkbox';
 import { Form, FormField, FormTheme, FormSettings } from '../types/forms';
 import { getFormBySlug, secureSubmitForm, trackFormEvent, uploadFormFile } from '../src/services/formService';
+import { useSEO, generateDescription } from '../hooks/useSEO';
 
 // Signature Canvas Component with proper scaling
 const SignatureCanvas: React.FC<{
@@ -151,6 +152,20 @@ export const PublicFormPage: React.FC = () => {
       loadForm();
     }
   }, [slug]);
+
+  // SEO meta tags for rich link previews
+  const seoDescription = useMemo(() => {
+    if (!form) return 'Submit your response via FounderHQ';
+    if (form.description) return generateDescription(form.description, 160);
+    return `${form.name} - Submit your response`;
+  }, [form]);
+
+  useSEO({
+    title: form ? form.name : 'Form',
+    description: seoDescription,
+    url: `/forms/${slug}`,
+    type: 'website',
+  });
 
   // Load captcha script when captcha is enabled
   useEffect(() => {
