@@ -262,6 +262,16 @@ Deno.serve(async (req: Request) => {
   
   console.log('[og-meta] Request path:', path, 'UA:', userAgent.substring(0, 50), 'isCrawler:', isCrawlerRequest);
 
+  // For regular browsers, just do a 302 redirect to the SPA
+  // Only serve OG HTML to crawlers
+  if (!isCrawlerRequest) {
+    const redirectUrl = `${SITE_URL}${path}`;
+    return new Response(null, {
+      status: 302,
+      headers: { 'Location': redirectUrl },
+    });
+  }
+
   // Parse the path to determine content type
   // /share/brief/:token
   // /share/report/:token  
@@ -285,13 +295,13 @@ Deno.serve(async (req: Request) => {
     return response;
   }
 
-  // Fallback - serve a redirect page
+  // Fallback for crawlers - serve generic OG tags
   const redirectUrl = `${SITE_URL}${path}`;
   return new Response(generateOgHtml({ 
     title: 'FounderHQ', 
     description: 'The all-in-one GTM hub for founders', 
     url: redirectUrl,
-    isCrawler: isCrawlerRequest 
+    isCrawler: true 
   }), {
     headers: HTML_HEADERS,
   });
