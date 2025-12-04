@@ -4,7 +4,7 @@
 import type { Context } from "https://edge.netlify.com";
 
 const SUPABASE_URL = "https://jffnzpdcmdalxqhkfymx.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmZm56cGRjbWRhbHhxaGtmeW14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzI0NzY3NjksImV4cCI6MjA0ODA1Mjc2OX0.a2AGSH7vi8bVJJF4xCv5jVoDhNpvvXDrR_jGbyXPIvA";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpmZm56cGRjbWRhbHhxaGtmeW14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE3OTE3NTIsImV4cCI6MjA3NzM2Nzc1Mn0.cvjpoEFsD-_2PWucGXNP_2Pq9QTj3-lXpQ2lWrF16R8";
 const SITE_URL = "https://founderhq.setique.com";
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`;
 
