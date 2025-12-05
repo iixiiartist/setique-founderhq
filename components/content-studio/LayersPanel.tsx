@@ -34,7 +34,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../ui/DropdownMenu';
-import { fabric } from 'fabric';
+import * as fabric from 'fabric';
 
 interface LayersPanelProps {
   className?: string;
@@ -189,7 +189,7 @@ export function LayersPanel({ className = '' }: LayersPanelProps) {
     orderedIds.forEach((id, index) => {
       const obj = canvas.getObjects().find((o) => (o as any).id === id);
       if (obj) {
-        canvas.moveTo(obj, index);
+        canvas.moveObjectTo(obj, index);
       }
     });
     
@@ -200,11 +200,16 @@ export function LayersPanel({ className = '' }: LayersPanelProps) {
 
   return (
     <motion.div
-      initial={{ width: 0, opacity: 0 }}
-      animate={{ width: 280, opacity: 1 }}
-      exit={{ width: 0, opacity: 0 }}
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.2 }}
       className={`h-full bg-white border-r border-gray-200 flex flex-col overflow-hidden ${className}`}
+      style={{ 
+        width: 'clamp(192px, 20vw, 288px)', // min 192px (w-48), max 288px (w-72)
+        zIndex: 20,
+        maxWidth: '30vw' // Prevent panel from taking too much space
+      }}
     >
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
         <div className="flex items-center gap-2">

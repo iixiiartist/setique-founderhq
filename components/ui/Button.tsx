@@ -46,6 +46,7 @@ export function Button({
       type={type}
       disabled={isDisabled}
       className={`
+        inline-flex items-center justify-center
         font-semibold cursor-pointer
         transition-all duration-200 border rounded-xl
         shadow-sm hover:shadow-md

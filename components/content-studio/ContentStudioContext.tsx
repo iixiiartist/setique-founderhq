@@ -3,8 +3,8 @@
  * Global state management for the canvas-based content creation system
  */
 
-import React, { createContext, useContext, useReducer, useCallback, useRef, ReactNode } from 'react';
-import { fabric } from 'fabric';
+import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect, ReactNode } from 'react';
+import * as fabric from 'fabric';
 import {
   ContentDocument,
   ContentPage,
@@ -15,9 +15,42 @@ import {
   PAGE_SIZES,
 } from './types';
 import { v4 as uuidv4 } from 'uuid';
+import { useAuth } from '../../contexts/AuthContext';
+import { useWorkspace } from '../../contexts/WorkspaceContext';
+import {
+  saveDocument as saveToSupabase,
+  loadDocument as loadFromSupabase,
+  AutosaveManager,
+  validateDocument,
+  createDebouncedUndoHandler,
+} from '../../lib/services/contentStudioService';
+import { showSuccess, showError, showLoading, updateToast } from '../../lib/utils/toast';
 
 // Custom properties to preserve in undo/redo/persistence snapshots
 const CUSTOM_PROPS = ['id', 'name', 'elementType', 'locked', 'visible'];
+
+// Helper to serialize canvas with custom properties (fabric v6 compatible)
+function serializeCanvas(canvas: fabric.Canvas): string {
+  const json = canvas.toJSON();
+  // Manually add custom properties to each object
+  const objects = canvas.getObjects();
+  json.objects = json.objects?.map((objJson: any, index: number) => {
+    const obj = objects[index] as any;
+    return {
+      ...objJson,
+      id: obj.id,
+      name: obj.name,
+      elementType: obj.elementType,
+      locked: obj.locked,
+      visible: obj.visible,
+    };
+  });
+  return JSON.stringify(json);
+}
+
+// Autosave configuration
+const AUTOSAVE_INTERVAL_MS = 30000; // 30 seconds
+const UNDO_DEBOUNCE_MS = 300; // Debounce rapid changes
 
 // ============================================================================
 // Initial State
@@ -37,6 +70,8 @@ const initialState: ContentStudioState = {
   redoStack: [],
   isSaving: false,
   lastSaved: undefined,
+  isDirty: false,
+  saveError: undefined,
 };
 
 // ============================================================================
@@ -142,6 +177,7 @@ function contentStudioReducer(
       return {
         ...state,
         isSaving: true,
+        saveError: undefined,
       };
 
     case 'SAVE_COMPLETE':
@@ -149,6 +185,27 @@ function contentStudioReducer(
         ...state,
         isSaving: false,
         lastSaved: action.payload,
+        isDirty: false,
+        saveError: undefined,
+      };
+
+    case 'SAVE_ERROR':
+      return {
+        ...state,
+        isSaving: false,
+        saveError: action.payload,
+      };
+
+    case 'MARK_DIRTY':
+      return {
+        ...state,
+        isDirty: true,
+      };
+
+    case 'MARK_CLEAN':
+      return {
+        ...state,
+        isDirty: false,
       };
 
     default:
@@ -231,6 +288,31 @@ interface ContentStudioProviderProps {
 export function ContentStudioProvider({ children }: ContentStudioProviderProps) {
   const [state, dispatch] = useReducer(contentStudioReducer, initialState);
   const canvasRef = useRef<fabric.Canvas | null>(null);
+  const autosaveManagerRef = useRef<AutosaveManager | null>(null);
+  const debouncedUndoRef = useRef<ReturnType<typeof createDebouncedUndoHandler> | null>(null);
+  
+  // Get auth context for user ID
+  let userId: string | undefined;
+  try {
+    const authContext = useAuth();
+    userId = authContext.user?.id;
+  } catch {
+    // AuthContext not available - offline mode
+  }
+  
+  // Get workspace ID from WorkspaceContext
+  let workspaceId: string | undefined;
+  try {
+    const workspaceContext = useWorkspace();
+    workspaceId = workspaceContext.workspace?.id;
+  } catch {
+    // WorkspaceContext not available - offline mode
+  }
+  
+  // Get workspace ID - prefer context, fallback to document or 'offline'
+  const getWorkspaceId = useCallback((): string => {
+    return workspaceId || state.document?.workspaceId || 'offline';
+  }, [workspaceId, state.document?.workspaceId]);
 
   // -------------------------------------------------------------------------
   // Document Operations
@@ -253,6 +335,7 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
     const newDocument: ContentDocument = {
       id: uuidv4(),
       title,
+      workspaceId: workspaceId, // Set workspace ID from context
       pages: [newPage],
       metadata: {
         tags: [],
@@ -265,50 +348,90 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      createdBy: '', // Will be set from auth context
+      createdBy: userId || '', // Set creator from auth context
     };
 
     dispatch({ type: 'SET_DOCUMENT', payload: newDocument });
-  }, []);
+  }, [workspaceId, userId]);
 
   const loadDocument = useCallback((document: ContentDocument) => {
     dispatch({ type: 'SET_DOCUMENT', payload: document });
   }, []);
 
   const saveDocument = useCallback(async () => {
+    if (!state.document || !canvasRef.current) return;
+    
     dispatch({ type: 'SAVE_START' });
+    const toastId = showLoading('Saving document...');
     
     try {
       // Save canvas state to current page
-      if (canvasRef.current && state.document) {
-        const json = canvasRef.current.toJSON(CUSTOM_PROPS);
-        const updatedPages = [...state.document.pages];
-        updatedPages[state.currentPageIndex] = {
-          ...updatedPages[state.currentPageIndex],
-          canvas: {
-            ...updatedPages[state.currentPageIndex].canvas,
-            json: JSON.stringify(json),
-          },
-        };
+      const json = JSON.parse(serializeCanvas(canvasRef.current));
+      const updatedPages = [...state.document.pages];
+      updatedPages[state.currentPageIndex] = {
+        ...updatedPages[state.currentPageIndex],
+        canvas: {
+          ...updatedPages[state.currentPageIndex].canvas,
+          json: JSON.stringify(json),
+        },
+      };
+      
+      // Build updated document with workspace ID
+      const currentWorkspaceId = getWorkspaceId();
+      const updatedDocument: ContentDocument = {
+        ...state.document,
+        workspaceId: currentWorkspaceId !== 'offline' ? currentWorkspaceId : state.document.workspaceId,
+        createdBy: state.document.createdBy || userId || '',
+        pages: updatedPages,
+        updatedAt: new Date().toISOString(),
+      };
+      
+      // Validate document size
+      const validation = validateDocument(updatedDocument);
+      if (!validation.valid) {
+        throw new Error(validation.error);
+      }
+      
+      // Try to save to Supabase if user is authenticated AND we have a valid workspace
+      const hasValidWorkspace = currentWorkspaceId && currentWorkspaceId !== 'offline';
+      if (userId && hasValidWorkspace) {
+        const result = await saveToSupabase(
+          updatedDocument, 
+          userId, 
+          currentWorkspaceId
+        );
         
-        // Update state with new pages
-        const updatedDocument: ContentDocument = {
-          ...state.document,
-          pages: updatedPages,
-          updatedAt: new Date().toISOString(),
-        };
+        if (!result.success) {
+          if (result.conflict) {
+            updateToast(toastId, 'Document was modified by another user. Please refresh.', 'error');
+            dispatch({ type: 'SAVE_ERROR', payload: result.error || 'Conflict detected' });
+            return;
+          }
+          throw new Error(result.error);
+        }
+        
+        // Update local state with server-side version
+        if (result.document) {
+          dispatch({ type: 'UPDATE_DOCUMENT', payload: result.document });
+        }
+      } else {
+        // Offline mode or no valid workspace - just update local state
         dispatch({ type: 'UPDATE_DOCUMENT', payload: updatedDocument });
         
-        // TODO: Integrate with Supabase
-        console.log('Saving document...', updatedDocument);
+        // Warn user if authenticated but no workspace
+        if (userId && !hasValidWorkspace) {
+          console.warn('[ContentStudio] Document saved locally only - no workspace available');
+        }
       }
       
       dispatch({ type: 'SAVE_COMPLETE', payload: new Date().toISOString() });
-    } catch (error) {
+      updateToast(toastId, hasValidWorkspace ? 'Document saved' : 'Document saved locally', 'success');
+    } catch (error: any) {
       console.error('Failed to save document:', error);
-      dispatch({ type: 'SAVE_COMPLETE', payload: state.lastSaved || '' });
+      dispatch({ type: 'SAVE_ERROR', payload: error.message });
+      updateToast(toastId, `Save failed: ${error.message}`, 'error');
     }
-  }, [state.document, state.currentPageIndex, state.lastSaved]);
+  }, [state.document, state.currentPageIndex, userId, getWorkspaceId]);
 
   // -------------------------------------------------------------------------
   // Page Operations
@@ -400,7 +523,7 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
   const persistCurrentPage = useCallback(() => {
     if (!canvasRef.current || !state.document) return;
     
-    const json = JSON.stringify(canvasRef.current.toJSON(CUSTOM_PROPS));
+    const json = serializeCanvas(canvasRef.current);
     const updatedPages = [...state.document.pages];
     updatedPages[state.currentPageIndex] = {
       ...updatedPages[state.currentPageIndex],
@@ -502,7 +625,7 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
     if (!canvasRef.current) return;
     
     // Capture undo state BEFORE adding
-    const snapshot = JSON.stringify(canvasRef.current.toJSON(CUSTOM_PROPS));
+    const snapshot = serializeCanvas(canvasRef.current);
     dispatch({ type: 'PUSH_UNDO', payload: snapshot });
     
     // Assign unique ID
@@ -525,7 +648,7 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
     if (activeObjects.length === 0) return;
     
     // Capture undo state BEFORE deleting
-    const snapshot = JSON.stringify(canvasRef.current.toJSON(CUSTOM_PROPS));
+    const snapshot = serializeCanvas(canvasRef.current);
     dispatch({ type: 'PUSH_UNDO', payload: snapshot });
     
     activeObjects.forEach((obj) => canvasRef.current?.remove(obj));
@@ -545,21 +668,21 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
     if (activeObjects.length === 0) return;
     
     // Capture undo state BEFORE duplicating
-    const snapshot = JSON.stringify(canvasRef.current.toJSON(CUSTOM_PROPS));
+    const snapshot = serializeCanvas(canvasRef.current);
     dispatch({ type: 'PUSH_UNDO', payload: snapshot });
 
-    activeObjects.forEach((obj) => {
-      obj.clone((cloned: fabric.Object) => {
-        (cloned as any).id = uuidv4();
-        // Copy custom properties
-        (cloned as any).name = (obj as any).name;
-        (cloned as any).elementType = (obj as any).elementType;
-        cloned.set({
-          left: (obj.left || 0) + 20,
-          top: (obj.top || 0) + 20,
-        });
-        canvasRef.current?.add(cloned);
+    activeObjects.forEach(async (obj) => {
+      const cloned = await obj.clone();
+      (cloned as any).id = uuidv4();
+      // Copy custom properties
+      (cloned as any).name = (obj as any).name;
+      (cloned as any).elementType = (obj as any).elementType;
+      cloned.set({
+        left: (obj.left || 0) + 20,
+        top: (obj.top || 0) + 20,
       });
+      canvasRef.current?.add(cloned);
+      canvasRef.current?.renderAll();
     });
     
     canvasRef.current.renderAll();
@@ -574,7 +697,13 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
     const activeObject = canvasRef.current.getActiveObject();
     if (!activeObject || activeObject.type !== 'activeSelection') return;
 
-    (activeObject as fabric.ActiveSelection).toGroup();
+    const selection = activeObject as fabric.ActiveSelection;
+    const objects = selection.getObjects();
+    canvasRef.current.discardActiveObject();
+    const group = new fabric.Group(objects);
+    objects.forEach(obj => canvasRef.current?.remove(obj));
+    canvasRef.current.add(group);
+    canvasRef.current.setActiveObject(group);
     canvasRef.current.renderAll();
   }, []);
 
@@ -584,7 +713,18 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
     const activeObject = canvasRef.current.getActiveObject();
     if (!activeObject || activeObject.type !== 'group') return;
 
-    (activeObject as fabric.Group).toActiveSelection();
+    const group = activeObject as fabric.Group;
+    const objects = group.getObjects();
+    canvasRef.current.remove(group);
+    objects.forEach(obj => {
+      obj.set({
+        left: (obj.left || 0) + (group.left || 0),
+        top: (obj.top || 0) + (group.top || 0),
+      });
+      canvasRef.current?.add(obj);
+    });
+    const selection = new fabric.ActiveSelection(objects, { canvas: canvasRef.current });
+    canvasRef.current.setActiveObject(selection);
     canvasRef.current.renderAll();
   }, []);
 
@@ -593,7 +733,7 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
     
     const activeObject = canvasRef.current.getActiveObject();
     if (activeObject) {
-      canvasRef.current.bringToFront(activeObject);
+      canvasRef.current.bringObjectToFront(activeObject);
       canvasRef.current.renderAll();
     }
   }, []);
@@ -603,7 +743,7 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
     
     const activeObject = canvasRef.current.getActiveObject();
     if (activeObject) {
-      canvasRef.current.sendToBack(activeObject);
+      canvasRef.current.sendObjectToBack(activeObject);
       canvasRef.current.renderAll();
     }
   }, []);
@@ -613,8 +753,12 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
     
     const activeObject = canvasRef.current.getActiveObject();
     if (activeObject) {
-      canvasRef.current.bringForward(activeObject);
-      canvasRef.current.renderAll();
+      const objects = canvasRef.current.getObjects();
+      const index = objects.indexOf(activeObject);
+      if (index < objects.length - 1) {
+        canvasRef.current.moveObjectTo(activeObject, index + 1);
+        canvasRef.current.renderAll();
+      }
     }
   }, []);
 
@@ -623,8 +767,12 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
     
     const activeObject = canvasRef.current.getActiveObject();
     if (activeObject) {
-      canvasRef.current.sendBackwards(activeObject);
-      canvasRef.current.renderAll();
+      const objects = canvasRef.current.getObjects();
+      const index = objects.indexOf(activeObject);
+      if (index > 0) {
+        canvasRef.current.moveObjectTo(activeObject, index - 1);
+        canvasRef.current.renderAll();
+      }
     }
   }, []);
 
@@ -693,10 +841,29 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
   // History Operations
   // -------------------------------------------------------------------------
 
-  // Save canvas snapshot for undo
+  // Save canvas snapshot for undo (debounced to prevent excessive snapshots)
   const pushUndo = useCallback(() => {
     if (!canvasRef.current) return;
-    const snapshot = JSON.stringify(canvasRef.current.toJSON(CUSTOM_PROPS));
+    
+    // Use debounced handler if available
+    if (debouncedUndoRef.current) {
+      debouncedUndoRef.current.capture();
+    } else {
+      const snapshot = serializeCanvas(canvasRef.current);
+      dispatch({ type: 'PUSH_UNDO', payload: snapshot });
+    }
+    
+    // Mark document as dirty for autosave
+    dispatch({ type: 'MARK_DIRTY' });
+    if (autosaveManagerRef.current) {
+      autosaveManagerRef.current.markDirty();
+    }
+  }, []);
+  
+  // Internal push for immediate snapshot (used by debounced handler)
+  const pushUndoImmediate = useCallback(() => {
+    if (!canvasRef.current) return;
+    const snapshot = serializeCanvas(canvasRef.current);
     dispatch({ type: 'PUSH_UNDO', payload: snapshot });
   }, []);
 
@@ -704,13 +871,13 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
     if (state.undoStack.length === 0 || !canvasRef.current) return;
     
     // Get current state to push to redo
-    const currentSnapshot = JSON.stringify(canvasRef.current.toJSON(CUSTOM_PROPS));
+    const currentSnapshot = serializeCanvas(canvasRef.current);
     
     // Get the previous state
     const previousSnapshot = state.undoStack[state.undoStack.length - 1];
     
-    // Restore canvas from snapshot (skip event handlers during load)
-    canvasRef.current.loadFromJSON(JSON.parse(previousSnapshot), () => {
+    // Restore canvas from snapshot (fabric v6 Promise-based)
+    canvasRef.current.loadFromJSON(JSON.parse(previousSnapshot)).then(() => {
       canvasRef.current?.renderAll();
     });
     
@@ -721,13 +888,13 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
     if (state.redoStack.length === 0 || !canvasRef.current) return;
     
     // Get current state to push to undo
-    const currentSnapshot = JSON.stringify(canvasRef.current.toJSON(CUSTOM_PROPS));
+    const currentSnapshot = serializeCanvas(canvasRef.current);
     
     // Get the next state
     const nextSnapshot = state.redoStack[state.redoStack.length - 1];
     
-    // Restore canvas from snapshot
-    canvasRef.current.loadFromJSON(JSON.parse(nextSnapshot), () => {
+    // Restore canvas from snapshot (fabric v6 Promise-based)
+    canvasRef.current.loadFromJSON(JSON.parse(nextSnapshot)).then(() => {
       canvasRef.current?.renderAll();
     });
     
@@ -758,6 +925,98 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
     if (!state.document) return null;
     return state.document.pages[state.currentPageIndex] || null;
   }, [state.document, state.currentPageIndex]);
+
+  // -------------------------------------------------------------------------
+  // Autosave Setup
+  // -------------------------------------------------------------------------
+  
+  // Initialize debounced undo handler
+  useEffect(() => {
+    debouncedUndoRef.current = createDebouncedUndoHandler(pushUndoImmediate, UNDO_DEBOUNCE_MS);
+    
+    return () => {
+      if (debouncedUndoRef.current) {
+        debouncedUndoRef.current.flush();
+        debouncedUndoRef.current = null;
+      }
+    };
+  }, [pushUndoImmediate]);
+
+  // Initialize autosave manager
+  useEffect(() => {
+    if (!state.document || !userId) return;
+    
+    autosaveManagerRef.current = new AutosaveManager(
+      async () => {
+        // Save and return result
+        dispatch({ type: 'SAVE_START' });
+        try {
+          if (!state.document || !canvasRef.current) {
+            return { success: false, error: 'No document or canvas' };
+          }
+          
+          const json = JSON.parse(serializeCanvas(canvasRef.current));
+          const updatedPages = [...state.document.pages];
+          updatedPages[state.currentPageIndex] = {
+            ...updatedPages[state.currentPageIndex],
+            canvas: {
+              ...updatedPages[state.currentPageIndex].canvas,
+              json: JSON.stringify(json),
+            },
+          };
+          
+          const updatedDocument: ContentDocument = {
+            ...state.document,
+            pages: updatedPages,
+            updatedAt: new Date().toISOString(),
+          };
+          
+          const result = await saveToSupabase(updatedDocument, userId!, getWorkspaceId());
+          
+          if (result.success && result.document) {
+            dispatch({ type: 'UPDATE_DOCUMENT', payload: result.document });
+            dispatch({ type: 'SAVE_COMPLETE', payload: new Date().toISOString() });
+          } else {
+            dispatch({ type: 'SAVE_ERROR', payload: result.error || 'Unknown error' });
+          }
+          
+          return result;
+        } catch (error: any) {
+          dispatch({ type: 'SAVE_ERROR', payload: error.message });
+          return { success: false, error: error.message };
+        }
+      },
+      (error) => {
+        showError(`Autosave failed: ${error}`);
+      },
+      () => {
+        // Autosave success - silent
+        console.log('[Autosave] Document saved');
+      },
+      { intervalMs: AUTOSAVE_INTERVAL_MS }
+    );
+    
+    autosaveManagerRef.current.start();
+    
+    // Warn user before leaving with unsaved changes
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (state.isDirty) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        
+        // Try to save before leaving
+        autosaveManagerRef.current?.forceSave();
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      autosaveManagerRef.current?.stop();
+      autosaveManagerRef.current = null;
+    };
+  }, [state.document?.id, userId, getWorkspaceId]);
 
   // -------------------------------------------------------------------------
   // Context Value

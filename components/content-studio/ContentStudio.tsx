@@ -189,20 +189,29 @@ function ContentStudioInner({ documentId, onClose, onSave }: ContentStudioProps)
 
   return (
     <TooltipProvider>
-      <div className="h-screen flex flex-col bg-gray-100">
-        {/* Top Toolbar */}
-        <header className="h-14 bg-white border-b border-gray-200 flex items-center px-4 gap-4 z-50 relative">
+      {/* 
+        Z-Index Layering System:
+        - z-10: Canvas area (base layer)
+        - z-20: Side panels (Layers, Properties, AI Sidebar)
+        - z-30: Element Toolbar 
+        - z-40: Dropdowns and Popovers
+        - z-50: Top header/toolbar
+        - z-60: Modals and overlays
+      */}
+      <div className="h-screen flex flex-col bg-gray-100 overflow-hidden">
+        {/* Top Toolbar - Highest z-index for accessibility */}
+        <header className="h-16 min-h-[64px] bg-white border-b border-gray-200 flex items-center px-3 sm:px-4 gap-3 z-50 relative flex-shrink-0">
           {/* Left Section - Navigation & Title */}
-          <div className="flex items-center gap-3 flex-1">
+          <div className="flex items-center gap-3 min-w-0">
             {onClose && (
-              <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
-                <ChevronLeft className="w-4 h-4" />
+              <Button variant="ghost" size="sm" onClick={onClose} className="h-10 w-10 p-0 flex-shrink-0">
+                <ChevronLeft className="w-5 h-5" />
               </Button>
             )}
             
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                <FileText className="w-4 h-4 text-white" />
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                <FileText className="w-5 h-5 text-white" />
               </div>
               
               {isEditingTitle ? (
@@ -211,37 +220,22 @@ function ContentStudioInner({ documentId, onClose, onSave }: ContentStudioProps)
                   onChange={(e) => setTitleValue(e.target.value)}
                   onBlur={handleTitleSave}
                   onKeyDown={(e) => e.key === 'Enter' && handleTitleSave()}
-                  className="h-8 w-48 text-sm font-medium"
+                  className="h-9 w-40 sm:w-48 text-sm font-medium"
                   autoFocus
                 />
               ) : (
                 <button
                   onClick={handleTitleEdit}
-                  className="text-sm font-medium text-gray-900 hover:text-indigo-600 transition-colors"
+                  className="text-sm font-medium text-gray-900 hover:text-indigo-600 transition-colors truncate max-w-[120px] sm:max-w-[180px]"
                 >
                   {state.document.title}
                 </button>
               )}
             </div>
-
-            {/* Save Status */}
-            <div className="flex items-center gap-1.5 text-xs text-gray-500">
-              {state.isSaving ? (
-                <>
-                  <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                  Saving...
-                </>
-              ) : state.lastSaved ? (
-                <>
-                  <div className="w-2 h-2 rounded-full bg-green-500" />
-                  Saved
-                </>
-              ) : null}
-            </div>
           </div>
 
           {/* Center Section - Edit Actions */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-shrink-0">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -249,12 +243,12 @@ function ContentStudioInner({ documentId, onClose, onSave }: ContentStudioProps)
                   size="sm"
                   onClick={undo}
                   disabled={state.undoStack.length === 0}
-                  className="h-8 w-8 p-0"
+                  className="h-9 w-9 p-0"
                 >
-                  <Undo2 className="w-4 h-4" />
+                  <Undo2 className="w-[18px] h-[18px]" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Undo (Ctrl+Z)</TooltipContent>
+              <TooltipContent>Undo</TooltipContent>
             </Tooltip>
 
             <Tooltip>
@@ -264,75 +258,74 @@ function ContentStudioInner({ documentId, onClose, onSave }: ContentStudioProps)
                   size="sm"
                   onClick={redo}
                   disabled={state.redoStack.length === 0}
-                  className="h-8 w-8 p-0"
+                  className="h-9 w-9 p-0"
                 >
-                  <Redo2 className="w-4 h-4" />
+                  <Redo2 className="w-[18px] h-[18px]" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Redo (Ctrl+Shift+Z)</TooltipContent>
+              <TooltipContent>Redo</TooltipContent>
             </Tooltip>
 
-            <div className="w-px h-6 bg-gray-200 mx-2" />
+            <div className="w-px h-6 bg-gray-200 mx-1.5 hidden sm:block" />
 
             {/* Zoom Controls */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" onClick={zoomOut} className="h-8 w-8 p-0">
-                  <ZoomOut className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Zoom Out (-)</TooltipContent>
-            </Tooltip>
+            <div className="hidden sm:flex items-center gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" onClick={zoomOut} className="h-9 w-9 p-0">
+                    <ZoomOut className="w-[18px] h-[18px]" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Zoom Out</TooltipContent>
+              </Tooltip>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 px-2 min-w-[60px] text-xs font-medium">
-                  {Math.round(state.zoom * 100)}%
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                {[50, 75, 100, 125, 150, 200].map((z) => (
-                  <DropdownMenuItem key={z} onClick={() => setZoom(z / 100)}>
-                    {z}%
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-9 px-2 min-w-[50px] text-sm font-medium">
+                    {Math.round(state.zoom * 100)}%
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  {[50, 75, 100, 125, 150, 200].map((z) => (
+                    <DropdownMenuItem key={z} onClick={() => setZoom(z / 100)}>
+                      {z}%
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={fitToScreen}>
+                    Fit to Screen
                   </DropdownMenuItem>
-                ))}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={fitToScreen}>
-                  Fit to Screen
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" onClick={zoomIn} className="h-9 w-9 p-0">
+                    <ZoomIn className="w-[18px] h-[18px]" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Zoom In</TooltipContent>
+              </Tooltip>
+            </div>
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" onClick={zoomIn} className="h-8 w-8 p-0">
-                  <ZoomIn className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Zoom In (+)</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" onClick={fitToScreen} className="h-8 w-8 p-0">
-                  <Maximize className="w-4 h-4" />
+                <Button variant="ghost" size="sm" onClick={fitToScreen} className="h-9 w-9 p-0">
+                  <Maximize className="w-[18px] h-[18px]" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Fit to Screen</TooltipContent>
             </Tooltip>
 
-            <div className="w-px h-6 bg-gray-200 mx-2" />
-
-            {/* View Controls */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant={showGrid ? 'secondary' : 'ghost'}
                   size="sm"
                   onClick={toggleGrid}
-                  className="h-8 w-8 p-0"
+                  className="h-9 w-9 p-0"
                 >
-                  <Grid3X3 className="w-4 h-4" />
+                  <Grid3X3 className="w-[18px] h-[18px]" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Toggle Grid</TooltipContent>
@@ -340,19 +333,19 @@ function ContentStudioInner({ documentId, onClose, onSave }: ContentStudioProps)
           </div>
 
           {/* Right Section - Actions */}
-          <div className="flex items-center gap-2 flex-1 justify-end">
+          <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant={state.isLayersPanelOpen ? 'secondary' : 'ghost'}
                   size="sm"
                   onClick={toggleLayersPanel}
-                  className="h-8 w-8 p-0"
+                  className="h-10 w-10 p-0"
                 >
-                  <Layers className="w-4 h-4" />
+                  <Layers className="w-5 h-5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Layers Panel</TooltipContent>
+              <TooltipContent>Layers</TooltipContent>
             </Tooltip>
 
             <Tooltip>
@@ -361,48 +354,60 @@ function ContentStudioInner({ documentId, onClose, onSave }: ContentStudioProps)
                   variant={state.isPropertiesPanelOpen ? 'secondary' : 'ghost'}
                   size="sm"
                   onClick={togglePropertiesPanel}
-                  className="h-8 w-8 p-0"
+                  className="h-10 w-10 p-0"
                 >
-                  <Settings2 className="w-4 h-4" />
+                  <Settings2 className="w-5 h-5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Properties Panel</TooltipContent>
+              <TooltipContent>Properties</TooltipContent>
             </Tooltip>
 
-            <div className="w-px h-6 bg-gray-200 mx-2" />
+            <div className="w-px h-6 bg-gray-200 mx-1.5" />
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => saveDocument()}
-              className="h-8 px-3 text-xs whitespace-nowrap"
-            >
-              <Save className="w-3.5 h-3.5 mr-1.5" />
-              Save
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => saveDocument()}
+                  className="h-10 w-10 p-0"
+                >
+                  <Save className="w-5 h-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Save</TooltipContent>
+            </Tooltip>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsExportModalOpen(true)}
-              className="h-8 px-3 text-xs whitespace-nowrap"
-            >
-              <Download className="w-3.5 h-3.5 mr-1.5" />
-              Export
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsExportModalOpen(true)}
+                  className="h-10 w-10 p-0"
+                >
+                  <Download className="w-5 h-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Export</TooltipContent>
+            </Tooltip>
 
-            <Button
-              size="sm"
-              className="h-8 px-3 text-xs whitespace-nowrap bg-indigo-600 hover:bg-indigo-700 text-white"
-            >
-              <Share2 className="w-3.5 h-3.5 mr-1.5" />
-              Share
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  className="h-10 w-10 p-0 bg-indigo-600 hover:bg-indigo-700 text-white"
+                >
+                  <Share2 className="w-5 h-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Share</TooltipContent>
+            </Tooltip>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <MoreHorizontal className="w-4 h-4" />
+                <Button variant="ghost" size="sm" className="h-10 w-10 p-0">
+                  <MoreHorizontal className="w-5 h-5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -429,32 +434,34 @@ function ContentStudioInner({ documentId, onClose, onSave }: ContentStudioProps)
           </div>
         </header>
 
-        {/* Main Content Area */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Element Toolbar (Left) */}
-          <ElementToolbar className="flex-shrink-0" />
+        {/* Main Content Area - Use CSS Grid for predictable layout */}
+        <div className="flex-1 flex overflow-hidden relative">
+          {/* Element Toolbar (Left) - Fixed width, high z-index */}
+          <ElementToolbar className="flex-shrink-0 z-30" />
 
-          {/* Layers Panel */}
+          {/* Layers Panel - Collapsible left panel */}
           <AnimatePresence mode="wait">
             {state.isLayersPanelOpen && (
-              <LayersPanel className="flex-shrink-0" />
+              <LayersPanel className="flex-shrink-0 z-20" />
             )}
           </AnimatePresence>
 
-          {/* Canvas Area */}
-          <CanvasEngine className="flex-1" showGrid={showGrid} />
+          {/* Canvas Area - Takes remaining space, lowest z-index */}
+          <div className="flex-1 min-w-0 relative z-10">
+            <CanvasEngine className="absolute inset-0" showGrid={showGrid} />
+          </div>
 
-          {/* Properties Panel */}
+          {/* Properties Panel - Collapsible right panel */}
           <AnimatePresence mode="wait">
             {state.isPropertiesPanelOpen && (
-              <PropertiesPanel className="flex-shrink-0" />
+              <PropertiesPanel className="flex-shrink-0 z-20" />
             )}
           </AnimatePresence>
 
-          {/* AI Sidebar */}
+          {/* AI Sidebar - Collapsible right panel, overlays properties if both open */}
           <AnimatePresence mode="wait">
             {state.isAIPanelOpen && (
-              <AISidebar className="flex-shrink-0" />
+              <AISidebar className="flex-shrink-0 z-20" />
             )}
           </AnimatePresence>
         </div>

@@ -194,11 +194,16 @@ export function PropertiesPanel({ className = '' }: PropertiesPanelProps) {
 
   return (
     <motion.div
-      initial={{ width: 0, opacity: 0 }}
-      animate={{ width: 300, opacity: 1 }}
-      exit={{ width: 0, opacity: 0 }}
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 20 }}
       transition={{ duration: 0.2 }}
       className={`h-full bg-white border-l border-gray-200 flex flex-col overflow-hidden ${className}`}
+      style={{ 
+        width: 'clamp(224px, 22vw, 320px)', // min 224px (w-56), max 320px (w-80)
+        zIndex: 20,
+        maxWidth: '30vw' // Prevent panel from taking too much space
+      }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">

@@ -1,11 +1,11 @@
 /**
  * Export Modal Component
  * Export canvas content to various formats (PDF, PNG, SVG, HTML)
+ * Supports multi-page PDF export
  */
 
 import React, { useState, useCallback } from 'react';
 import {
-  X,
   Download,
   FileText,
   Image,
@@ -14,7 +14,9 @@ import {
   Loader2,
   Check,
   FileImage,
+  AlertCircle,
 } from 'lucide-react';
+import * as fabric from 'fabric';
 import { useContentStudio } from './ContentStudioContext';
 import { Button } from '../ui/Button';
 import { Label } from '../ui/Label';
@@ -27,7 +29,8 @@ import {
 } from '../ui/Dialog';
 import { Select } from '../ui/Select';
 import { RadioGroup, RadioGroupItem } from '../ui/RadioGroup';
-import { ExportFormat } from './types';
+import { ExportFormat, ContentPage } from './types';
+import { showError, showSuccess } from '../../lib/utils/toast';
 
 interface ExportModalProps {
   open: boolean;
@@ -100,7 +103,9 @@ export function ExportModal({ open, onClose }: ExportModalProps) {
   const [quality, setQuality] = useState<'draft' | 'standard' | 'high' | 'print'>('standard');
   const [isExporting, setIsExporting] = useState(false);
   const [exportComplete, setExportComplete] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [includeAllPages, setIncludeAllPages] = useState(true);
+  const [exportProgress, setExportProgress] = useState<string>('');
 
   const getQualityMultiplier = (q: string): number => {
     switch (q) {
@@ -112,76 +117,123 @@ export function ExportModal({ open, onClose }: ExportModalProps) {
     }
   };
 
-  const handleExport = useCallback(async () => {
-    const canvas = canvasRef.current;
-    if (!canvas || !state.document) return;
+  // Render a page to a temporary canvas and get data URL
+  const renderPageToDataUrl = useCallback(async (
+    page: ContentPage,
+    format: 'png' | 'jpeg',
+    multiplier: number
+  ): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      try {
+        // Create a temporary canvas element
+        const tempCanvasEl = document.createElement('canvas');
+        const tempCanvas = new fabric.Canvas(tempCanvasEl, {
+          width: page.canvas.width,
+          height: page.canvas.height,
+          backgroundColor: page.canvas.backgroundColor || '#ffffff',
+        });
 
-    setIsExporting(true);
-    setExportComplete(false);
+        const loadAndRender = () => {
+          if (page.canvas.json) {
+            tempCanvas.loadFromJSON(JSON.parse(page.canvas.json), () => {
+              tempCanvas.renderAll();
+              const dataUrl = tempCanvas.toDataURL({
+                format,
+                quality: 1,
+                multiplier,
+              });
+              tempCanvas.dispose();
+              resolve(dataUrl);
+            });
+          } else {
+            // Empty page - just export background
+            tempCanvas.renderAll();
+            const dataUrl = tempCanvas.toDataURL({
+              format,
+              quality: 1,
+              multiplier,
+            });
+            tempCanvas.dispose();
+            resolve(dataUrl);
+          }
+        };
 
-    try {
-      const multiplier = getQualityMultiplier(quality);
-      const fileName = state.document.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        // Small delay to ensure canvas is initialized
+        setTimeout(loadAndRender, 50);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }, []);
 
-      switch (selectedFormat) {
-        case 'png': {
-          const dataUrl = canvas.toDataURL({
-            format: 'png',
-            quality: 1,
-            multiplier,
-          });
-          downloadFile(dataUrl, `${fileName}.png`);
-          break;
-        }
+  // Export multi-page PDF
+  const exportMultiPagePDF = useCallback(async (
+    pages: ContentPage[],
+    fileName: string,
+    multiplier: number,
+    onProgress: (msg: string) => void
+  ) => {
+    const { default: jsPDF } = await import('jspdf');
+    
+    // Use first page dimensions for initial PDF setup
+    let pdf: InstanceType<typeof jsPDF> | null = null;
 
-        case 'jpg': {
-          const dataUrl = canvas.toDataURL({
-            format: 'jpeg',
-            quality: quality === 'print' ? 1 : 0.9,
-            multiplier,
-          });
-          downloadFile(dataUrl, `${fileName}.jpg`);
-          break;
-        }
+    for (let i = 0; i < pages.length; i++) {
+      const page = pages[i];
+      onProgress(`Rendering page ${i + 1} of ${pages.length}...`);
 
-        case 'svg': {
-          const svg = canvas.toSVG();
-          const blob = new Blob([svg], { type: 'image/svg+xml' });
-          const url = URL.createObjectURL(blob);
-          downloadFile(url, `${fileName}.svg`);
-          URL.revokeObjectURL(url);
-          break;
-        }
+      // Render page to data URL
+      const dataUrl = await renderPageToDataUrl(page, 'png', multiplier);
 
-        case 'html': {
-          const html = generateHTMLExport(canvas, state.document.title);
-          const blob = new Blob([html], { type: 'text/html' });
-          const url = URL.createObjectURL(blob);
-          downloadFile(url, `${fileName}.html`);
-          URL.revokeObjectURL(url);
-          break;
-        }
-
-        case 'pdf': {
-          await exportToPDF(canvas, fileName, multiplier);
-          break;
-        }
-
-        default:
-          console.warn('Format not yet supported:', selectedFormat);
+      if (i === 0) {
+        // Create PDF with first page dimensions
+        pdf = new jsPDF({
+          orientation: page.canvas.width > page.canvas.height ? 'landscape' : 'portrait',
+          unit: 'px',
+          format: [page.canvas.width, page.canvas.height],
+        });
+      } else if (pdf) {
+        // Add new page with correct dimensions
+        pdf.addPage([page.canvas.width, page.canvas.height], 
+          page.canvas.width > page.canvas.height ? 'landscape' : 'portrait'
+        );
       }
 
-      setExportComplete(true);
-      setTimeout(() => {
-        setExportComplete(false);
-        onClose();
-      }, 1500);
-    } catch (error) {
-      console.error('Export failed:', error);
-    } finally {
-      setIsExporting(false);
+      if (pdf) {
+        pdf.addImage(dataUrl, 'PNG', 0, 0, page.canvas.width, page.canvas.height);
+      }
     }
-  }, [canvasRef, state.document, selectedFormat, quality, onClose]);
+
+    if (pdf) {
+      onProgress('Saving PDF...');
+      pdf.save(`${fileName}.pdf`);
+    }
+  }, [renderPageToDataUrl]);
+
+  // Export single page PDF
+  const exportToPDF = useCallback(async (
+    canvas: fabric.Canvas,
+    fileName: string,
+    multiplier: number,
+    page: ContentPage
+  ) => {
+    const { default: jsPDF } = await import('jspdf');
+
+    const pdf = new jsPDF({
+      orientation: page.canvas.width > page.canvas.height ? 'landscape' : 'portrait',
+      unit: 'px',
+      format: [page.canvas.width, page.canvas.height],
+    });
+
+    const dataUrl = canvas.toDataURL({
+      format: 'png',
+      quality: 1,
+      multiplier,
+    });
+
+    pdf.addImage(dataUrl, 'PNG', 0, 0, page.canvas.width, page.canvas.height);
+    pdf.save(`${fileName}.pdf`);
+  }, []);
 
   const downloadFile = (url: string, filename: string) => {
     const link = document.createElement('a');
@@ -234,27 +286,100 @@ export function ExportModal({ open, onClose }: ExportModalProps) {
     `.trim();
   };
 
-  const exportToPDF = async (canvas: fabric.Canvas, fileName: string, multiplier: number) => {
-    const { default: jsPDF } = await import('jspdf');
-    
-    const page = state.document?.pages[state.currentPageIndex];
-    if (!page) return;
+  const handleExport = useCallback(async () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !state.document) return;
 
-    const pdf = new jsPDF({
-      orientation: page.canvas.width > page.canvas.height ? 'landscape' : 'portrait',
-      unit: 'px',
-      format: [page.canvas.width, page.canvas.height],
-    });
+    setIsExporting(true);
+    setExportComplete(false);
+    setExportError(null);
+    setExportProgress('');
 
-    const dataUrl = canvas.toDataURL({
-      format: 'png',
-      quality: 1,
-      multiplier,
-    });
+    try {
+      const multiplier = getQualityMultiplier(quality);
+      const fileName = state.document.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
 
-    pdf.addImage(dataUrl, 'PNG', 0, 0, page.canvas.width, page.canvas.height);
-    pdf.save(`${fileName}.pdf`);
-  };
+      switch (selectedFormat) {
+        case 'png': {
+          setExportProgress('Generating PNG...');
+          const dataUrl = canvas.toDataURL({
+            format: 'png',
+            quality: 1,
+            multiplier,
+          });
+          downloadFile(dataUrl, `${fileName}.png`);
+          break;
+        }
+
+        case 'jpg': {
+          setExportProgress('Generating JPG...');
+          const dataUrl = canvas.toDataURL({
+            format: 'jpeg',
+            quality: quality === 'print' ? 1 : 0.9,
+            multiplier,
+          });
+          downloadFile(dataUrl, `${fileName}.jpg`);
+          break;
+        }
+
+        case 'svg': {
+          setExportProgress('Generating SVG...');
+          const svg = canvas.toSVG();
+          const blob = new Blob([svg], { type: 'image/svg+xml' });
+          const url = URL.createObjectURL(blob);
+          downloadFile(url, `${fileName}.svg`);
+          URL.revokeObjectURL(url);
+          break;
+        }
+
+        case 'html': {
+          setExportProgress('Generating HTML...');
+          const html = generateHTMLExport(canvas, state.document.title);
+          const blob = new Blob([html], { type: 'text/html' });
+          const url = URL.createObjectURL(blob);
+          downloadFile(url, `${fileName}.html`);
+          URL.revokeObjectURL(url);
+          break;
+        }
+
+        case 'pdf': {
+          const currentPage = state.document.pages[state.currentPageIndex];
+          
+          if (includeAllPages && state.document.pages.length > 1) {
+            // Multi-page PDF export
+            await exportMultiPagePDF(
+              state.document.pages,
+              fileName,
+              multiplier,
+              setExportProgress
+            );
+          } else {
+            // Single page PDF export
+            setExportProgress('Generating PDF...');
+            await exportToPDF(canvas, fileName, multiplier, currentPage);
+          }
+          break;
+        }
+
+        default:
+          throw new Error(`Format not yet supported: ${selectedFormat}`);
+      }
+
+      setExportComplete(true);
+      showSuccess(`Exported ${fileName}.${selectedFormat}`);
+      setTimeout(() => {
+        setExportComplete(false);
+        setExportProgress('');
+        onClose();
+      }, 1500);
+    } catch (error: any) {
+      console.error('Export failed:', error);
+      setExportError(error.message || 'Export failed');
+      showError(`Export failed: ${error.message}`);
+    } finally {
+      setIsExporting(false);
+    }
+  }, [canvasRef, state.document, state.currentPageIndex, selectedFormat, quality, includeAllPages, onClose, exportMultiPagePDF, exportToPDF]);
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
@@ -349,6 +474,21 @@ export function ExportModal({ open, onClose }: ExportModalProps) {
                   </Label>
                 </div>
               </RadioGroup>
+            </div>
+          )}
+
+          {/* Export Error */}
+          {exportError && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>{exportError}</span>
+            </div>
+          )}
+
+          {/* Export Progress */}
+          {exportProgress && (
+            <div className="text-sm text-gray-600 text-center">
+              {exportProgress}
             </div>
           )}
         </div>

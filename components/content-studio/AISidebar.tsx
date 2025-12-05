@@ -28,7 +28,7 @@ import {
   Heading,
   Plus,
 } from 'lucide-react';
-import { fabric } from 'fabric';
+import * as fabric from 'fabric';
 import { useContentStudio } from './ContentStudioContext';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -259,11 +259,16 @@ export function AISidebar({ className = '' }: AISidebarProps) {
 
   return (
     <motion.div
-      initial={{ width: 0, opacity: 0 }}
-      animate={{ width: 380, opacity: 1 }}
-      exit={{ width: 0, opacity: 0 }}
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 20 }}
       transition={{ duration: 0.2 }}
       className={`h-full bg-white border-l border-gray-200 flex flex-col overflow-hidden ${className}`}
+      style={{ 
+        width: 'clamp(288px, 25vw, 384px)', // min 288px (w-72), max 384px (w-96)
+        zIndex: 20,
+        maxWidth: '35vw' // AI panel can be slightly wider
+      }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">

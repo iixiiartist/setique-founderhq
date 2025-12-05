@@ -65,25 +65,25 @@ export function DialogContent({ children, className = '' }: DialogContentProps) 
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop - z-[60] to be above all Content Studio elements */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={context.onClose}
-        className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+        className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm"
       />
       
-      {/* Dialog */}
+      {/* Dialog - z-[60] to be above all Content Studio elements */}
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
         transition={{ duration: 0.2 }}
         className={`
-          fixed left-1/2 top-1/2 z-50
+          fixed left-1/2 top-1/2 z-[60]
           -translate-x-1/2 -translate-y-1/2
-          w-full max-w-lg
+          w-full max-w-lg max-h-[90vh] overflow-y-auto
           bg-white
           border border-gray-200
           rounded-2xl shadow-xl

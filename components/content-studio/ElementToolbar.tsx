@@ -5,7 +5,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { fabric } from 'fabric';
+import * as fabric from 'fabric';
 import {
   MousePointer,
   Hand,
@@ -81,7 +81,7 @@ export function ElementToolbar({ className = '' }: ElementToolbarProps) {
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
   // Helper to create text objects
-  const createText = useCallback((text: string, options: Partial<fabric.ITextOptions>) => {
+  const createText = useCallback((text: string, options: Partial<fabric.ITextProps>) => {
     return new fabric.IText(text, {
       left: 100,
       top: 100,
@@ -541,16 +541,15 @@ export function ElementToolbar({ className = '' }: ElementToolbarProps) {
               const file = (e.target as HTMLInputElement).files?.[0];
               if (file) {
                 const reader = new FileReader();
-                reader.onload = (event) => {
-                  fabric.Image.fromURL(event.target?.result as string, (img) => {
-                    // Scale to reasonable size
-                    const maxSize = 400;
-                    const scale = Math.min(maxSize / (img.width || 1), maxSize / (img.height || 1), 1);
-                    img.scale(scale);
-                    img.set({ left: 100, top: 100 });
-                    (img as any).name = file.name;
-                    addObject(img);
-                  });
+                reader.onload = async (event) => {
+                  const img = await fabric.FabricImage.fromURL(event.target?.result as string);
+                  // Scale to reasonable size
+                  const maxSize = 400;
+                  const scale = Math.min(maxSize / (img.width || 1), maxSize / (img.height || 1), 1);
+                  img.scale(scale);
+                  img.set({ left: 100, top: 100 });
+                  (img as any).name = file.name;
+                  addObject(img);
                 };
                 reader.readAsDataURL(file);
               }
@@ -689,7 +688,9 @@ export function ElementToolbar({ className = '' }: ElementToolbarProps) {
 
   return (
     <TooltipProvider>
-      <div className={`flex flex-col w-14 bg-white border-r border-gray-200 py-2 ${className}`}>
+      <div className={`flex flex-col w-14 bg-white border-r border-gray-200 py-2 relative ${className}`}
+        style={{ zIndex: 30 }}
+      >
         {/* Selection Tools */}
         <div className="px-2 pb-2 border-b border-gray-200 flex flex-col items-center gap-1">
           <Tooltip>

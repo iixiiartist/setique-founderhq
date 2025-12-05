@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useRef, useCallback, useState } from 'react';
-import { fabric } from 'fabric';
+import * as fabric from 'fabric';
 import { useContentStudio } from './ContentStudioContext';
 import { motion } from 'framer-motion';
 
@@ -51,8 +51,9 @@ export function CanvasEngine({ className = '', showGrid = true }: CanvasEnginePr
       fireRightClick: true,
     });
 
-    // Configure controls
-    fabric.Object.prototype.set({
+    // Configure controls using fabric v6 InteractiveFabricObject
+    fabric.InteractiveFabricObject.ownDefaults = {
+      ...fabric.InteractiveFabricObject.ownDefaults,
       transparentCorners: false,
       cornerColor: '#6366f1',
       cornerStrokeColor: '#4f46e5',
@@ -60,8 +61,7 @@ export function CanvasEngine({ className = '', showGrid = true }: CanvasEnginePr
       cornerSize: 10,
       padding: 5,
       cornerStyle: 'circle',
-      borderDashArray: undefined,
-    });
+    };
 
     // Store reference
     (canvasRef as React.MutableRefObject<fabric.Canvas | null>).current = canvas;
@@ -87,15 +87,17 @@ export function CanvasEngine({ className = '', showGrid = true }: CanvasEnginePr
     canvas.clear();
     canvas.setWidth(page.canvas.width);
     canvas.setHeight(page.canvas.height);
-    canvas.setBackgroundColor(page.canvas.backgroundColor || '#ffffff', () => {
-      canvas.renderAll();
-    });
+    canvas.backgroundColor = page.canvas.backgroundColor || '#ffffff';
+    canvas.renderAll();
 
-    // Load saved state
+    // Load saved state (fabric v6 returns Promise)
     if (page.canvas.json) {
-      canvas.loadFromJSON(page.canvas.json, () => {
+      canvas.loadFromJSON(page.canvas.json).then(() => {
         canvas.renderAll();
         // Clear loading flag after load completes
+        isLoadingRef.current = false;
+      }).catch((err) => {
+        console.error('Failed to load canvas JSON:', err);
         isLoadingRef.current = false;
       });
     } else {
@@ -266,7 +268,7 @@ export function CanvasEngine({ className = '', showGrid = true }: CanvasEnginePr
   return (
     <div
       ref={containerRef}
-      className={`relative flex-1 overflow-hidden bg-gray-200 ${className}`}
+      className={`relative w-full h-full overflow-hidden bg-gray-200 ${className}`}
       onWheel={handleWheel}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
@@ -274,23 +276,26 @@ export function CanvasEngine({ className = '', showGrid = true }: CanvasEnginePr
       onMouseLeave={handleMouseUp}
       style={{
         cursor: state.activeTool === 'pan' || isPanning ? 'grab' : 'default',
+        zIndex: 10, // Base layer for canvas
       }}
     >
-      {/* Canvas Wrapper - Centered */}
-      <div className="absolute inset-0 flex items-center justify-center">
+      {/* Canvas Wrapper - Centered with proper containment */}
+      <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
         <motion.div
           className="relative shadow-2xl"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.2 }}
+          style={{ zIndex: 1 }}
         >
           {/* Page Shadow */}
           <div
-            className="absolute inset-0 bg-black/10 blur-xl -z-10"
+            className="absolute bg-black/10 blur-xl"
             style={{
               width: page?.canvas.width || 1920,
               height: page?.canvas.height || 1080,
               transform: 'translate(8px, 8px)',
+              zIndex: -1,
             }}
           />
           
@@ -303,22 +308,27 @@ export function CanvasEngine({ className = '', showGrid = true }: CanvasEnginePr
         </motion.div>
       </div>
 
-      {/* Grid Overlay (optional) */}
+      {/* Grid Overlay (optional) - Above canvas but below controls */}
       {showGrid && (
         <div
-          className="absolute inset-0 pointer-events-none opacity-30"
+          className="absolute inset-0 pointer-events-none"
           style={{
             backgroundImage: `
               linear-gradient(to right, ${state.document?.settings.grid.color || '#e5e7eb'} 1px, transparent 1px),
               linear-gradient(to bottom, ${state.document?.settings.grid.color || '#e5e7eb'} 1px, transparent 1px)
             `,
             backgroundSize: `${(state.document?.settings.grid.size || 20) * state.zoom}px ${(state.document?.settings.grid.size || 20) * state.zoom}px`,
+            opacity: 0.3,
+            zIndex: 2,
           }}
         />
       )}
 
-      {/* Zoom Indicator */}
-      <div className="absolute bottom-4 right-4 bg-white rounded-lg px-3 py-1.5 shadow-lg text-sm font-medium text-gray-700">
+      {/* Zoom Indicator - Positioned in corner, above grid */}
+      <div 
+        className="absolute bottom-4 right-4 bg-white rounded-lg px-3 py-1.5 shadow-lg text-sm font-medium text-gray-700 select-none"
+        style={{ zIndex: 5 }}
+      >
         {Math.round(state.zoom * 100)}%
       </div>
     </div>

@@ -3,7 +3,7 @@
  * Core type definitions for the canvas-based content creation system
  */
 
-import { fabric } from 'fabric';
+import * as fabric from 'fabric';
 
 // ============================================================================
 // Document & Page Types
@@ -13,6 +13,7 @@ export interface ContentDocument {
   id: string;
   title: string;
   description?: string;
+  workspaceId?: string; // Workspace this document belongs to
   pages: ContentPage[];
   metadata: DocumentMetadata;
   settings: DocumentSettings;
@@ -449,6 +450,8 @@ export interface ContentStudioState {
   redoStack: string[];  // Canvas JSON snapshots
   isSaving: boolean;
   lastSaved?: string;
+  isDirty: boolean;     // Has unsaved changes
+  saveError?: string;   // Last save error message
 }
 
 export type ContentStudioAction =
@@ -466,7 +469,10 @@ export type ContentStudioAction =
   | { type: 'UNDO'; payload: string }       // Current canvas JSON to push to redo
   | { type: 'REDO'; payload: string }       // Current canvas JSON to push to undo
   | { type: 'SAVE_START' }
-  | { type: 'SAVE_COMPLETE'; payload: string };
+  | { type: 'SAVE_COMPLETE'; payload: string }
+  | { type: 'SAVE_ERROR'; payload: string }
+  | { type: 'MARK_DIRTY' }
+  | { type: 'MARK_CLEAN' };
 
 // ============================================================================
 // Preset Configurations
