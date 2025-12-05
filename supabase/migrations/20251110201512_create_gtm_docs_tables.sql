@@ -251,13 +251,23 @@ CREATE POLICY "gtm_docs_select_policy" ON public.gtm_docs
         )
     );
 
--- INSERT: Users can only insert docs into workspaces they're members of
+-- INSERT: Users can insert docs into workspaces they're members of OR own
 DROP POLICY IF EXISTS "gtm_docs_insert_policy" ON public.gtm_docs;
 CREATE POLICY "gtm_docs_insert_policy" ON public.gtm_docs
     FOR INSERT
     WITH CHECK (
         owner_id = auth.uid()
-        AND is_workspace_member(workspace_id)
+        AND (
+            -- User is workspace member
+            is_workspace_member(workspace_id)
+            OR
+            -- OR user is the workspace owner (handles edge case where owner not yet in workspace_members)
+            EXISTS (
+                SELECT 1 FROM public.workspaces w
+                WHERE w.id = workspace_id
+                AND w.owner_id = auth.uid()
+            )
+        )
     );
 
 -- UPDATE: Users can only update their own docs in their workspace
@@ -302,7 +312,7 @@ CREATE POLICY "gtm_doc_links_select_policy" ON public.gtm_doc_links
         )
     );
 
--- INSERT: Can only create links for docs user owns
+-- INSERT: Can create links for own docs OR team-visible docs (if workspace member)
 DROP POLICY IF EXISTS "gtm_doc_links_insert_policy" ON public.gtm_doc_links;
 CREATE POLICY "gtm_doc_links_insert_policy" ON public.gtm_doc_links
     FOR INSERT
@@ -310,12 +320,18 @@ CREATE POLICY "gtm_doc_links_insert_policy" ON public.gtm_doc_links
         EXISTS (
             SELECT 1 FROM public.gtm_docs d
             WHERE d.id = doc_id
-            AND d.owner_id = auth.uid()
-            AND is_workspace_member(d.workspace_id)
+            AND d.is_deleted = false
+            AND (
+                -- Owner can always link their own docs
+                d.owner_id = auth.uid()
+                OR
+                -- Team members can link team-visible docs
+                (d.visibility = 'team' AND is_workspace_member(d.workspace_id))
+            )
         )
     );
 
--- DELETE: Can only delete links for docs user owns
+-- DELETE: Can delete links for own docs OR team-visible docs (if workspace member)
 DROP POLICY IF EXISTS "gtm_doc_links_delete_policy" ON public.gtm_doc_links;
 CREATE POLICY "gtm_doc_links_delete_policy" ON public.gtm_doc_links
     FOR DELETE
@@ -323,8 +339,14 @@ CREATE POLICY "gtm_doc_links_delete_policy" ON public.gtm_doc_links
         EXISTS (
             SELECT 1 FROM public.gtm_docs d
             WHERE d.id = doc_id
-            AND d.owner_id = auth.uid()
-            AND is_workspace_member(d.workspace_id)
+            AND d.is_deleted = false
+            AND (
+                -- Owner can always unlink their own docs
+                d.owner_id = auth.uid()
+                OR
+                -- Team members can unlink from team-visible docs
+                (d.visibility = 'team' AND is_workspace_member(d.workspace_id))
+            )
         )
     );
 
@@ -352,6 +374,13 @@ ALTER TABLE public.gtm_docs
     ADD CONSTRAINT gtm_docs_content_json_size
     CHECK (octet_length(content_json::text) < 10485760);
 
+-- Content size limit for Yjs state (2MB to prevent bloat)
+ALTER TABLE public.gtm_docs
+    DROP CONSTRAINT IF EXISTS gtm_docs_content_size;
+ALTER TABLE public.gtm_docs
+    ADD CONSTRAINT gtm_docs_content_size
+    CHECK (content IS NULL OR octet_length(content) < 2097152);
+
 -- ============================================================================
 -- 10. Grant permissions
 -- ============================================================================
@@ -363,10 +392,20 @@ GRANT SELECT ON public.gtm_doc_links TO anon;
 -- ============================================================================
 -- 11. Add comments for documentation
 -- ============================================================================
-COMMENT ON TABLE public.gtm_docs IS 'GTM Documents - Rich text documents for go-to-market workflows';
-COMMENT ON TABLE public.gtm_doc_links IS 'Links GTM docs to tasks, events, CRM items, contacts, and chat';
-COMMENT ON COLUMN public.gtm_docs.content_json IS 'Tiptap JSON content for rich text editing';
+COMMENT ON TABLE public.gtm_docs IS 'GTM Documents with RLS. Private docs visible only to owner. Team docs visible to workspace members.';
+COMMENT ON TABLE public.gtm_doc_links IS 'Doc-entity links. Team members can link/unlink team-visible docs. Private doc links restricted to owner.';
+COMMENT ON COLUMN public.gtm_docs.content_json IS 'Tiptap JSON content for rich text editing (10MB limit)';
 COMMENT ON COLUMN public.gtm_docs.content_plain IS 'Plain text extraction for search and AI context';
-COMMENT ON COLUMN public.gtm_docs.content IS 'Yjs collaboration state for real-time sync';
+COMMENT ON COLUMN public.gtm_docs.content IS 'Yjs collaboration state for real-time sync (2MB limit)';
 COMMENT ON COLUMN public.gtm_docs.search_vector IS 'Auto-populated tsvector for full-text search';
 COMMENT ON COLUMN public.gtm_docs.blocks_metadata IS 'Structured block layouts (textbox, signature, shapes)';
+
+-- ============================================================================
+-- 12. Backfill search vectors for existing rows
+-- ============================================================================
+
+-- Update existing rows to populate search_vector via the trigger
+-- Using a no-op update that triggers the BEFORE UPDATE trigger
+UPDATE public.gtm_docs 
+SET title = title 
+WHERE search_vector IS NULL;
