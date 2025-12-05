@@ -3,22 +3,34 @@ import type { Editor } from '@tiptap/react';
 import {
     AlertTriangle,
     BookmarkPlus,
+    Check,
+    Copy,
     ExternalLink,
+    FileText,
     Globe,
     History,
     Image as ImageIcon,
+    Lightbulb,
     Link as LinkIcon,
     Maximize2,
     Minimize2,
     Newspaper,
+    PenTool,
     RefreshCw,
+    Rocket,
     Send,
     Sparkles,
+    Target,
+    TrendingUp,
+    Users,
     X,
+    Zap,
 } from 'lucide-react';
 import { searchWeb } from '../../src/lib/services/youSearchService';
 import type { ResearchMode, YouSearchImageResult, YouSearchResponse } from '../../src/lib/services/youSearch.types';
 import { telemetry } from '../../lib/services/telemetry';
+import { useYouAgent } from '../../hooks/useYouAgent';
+import { useCopyToClipboard } from '../../hooks';
 
 interface ResearchCopilotProps {
     isOpen: boolean;
@@ -44,6 +56,53 @@ interface ResearchCacheEntry {
     response: YouSearchResponse;
     timestamp: number;
 }
+
+// Top-level tab: Research (web search) vs AI Writer (generate content)
+type CopilotTab = 'research' | 'writer';
+
+// AI Writer goal types for quick generation
+type AIWriterGoal = 'freeform' | 'section' | 'summary' | 'bullets' | 'analysis';
+
+const aiWriterGoals: Array<{ id: AIWriterGoal; label: string; icon: React.ReactNode; placeholder: string }> = [
+    { id: 'freeform', label: 'Write anything', icon: <PenTool size={14} />, placeholder: 'e.g. Write a product overview for our AI platform...' },
+    { id: 'section', label: 'Add section', icon: <FileText size={14} />, placeholder: 'e.g. Write a competitive analysis section...' },
+    { id: 'summary', label: 'Summarize', icon: <Sparkles size={14} />, placeholder: 'e.g. Summarize the key market trends for 2025...' },
+    { id: 'bullets', label: 'Key points', icon: <Target size={14} />, placeholder: 'e.g. List 5 key benefits of our solution...' },
+    { id: 'analysis', label: 'Deep analysis', icon: <Lightbulb size={14} />, placeholder: 'e.g. Analyze the competitive landscape for fintech...' },
+];
+
+// Section icons for AI-generated content (same pattern as AgentResponsePresenter)
+const SECTION_ICONS: Record<string, React.ReactNode> = {
+    'snapshot': <FileText size={16} className="text-slate-700" />,
+    'overview': <FileText size={16} className="text-slate-700" />,
+    'company': <FileText size={16} className="text-slate-700" />,
+    'icp': <Target size={16} className="text-slate-600" />,
+    'customer': <Users size={16} className="text-slate-600" />,
+    'pain': <Zap size={16} className="text-slate-600" />,
+    'problem': <Zap size={16} className="text-slate-600" />,
+    'trend': <TrendingUp size={16} className="text-slate-500" />,
+    'market': <TrendingUp size={16} className="text-slate-500" />,
+    'competitive': <Target size={16} className="text-slate-700" />,
+    'landscape': <Target size={16} className="text-slate-700" />,
+    'angle': <Lightbulb size={16} className="text-slate-500" />,
+    'outreach': <Lightbulb size={16} className="text-slate-500" />,
+    'gtm': <Rocket size={16} className="text-slate-600" />,
+    'recommendation': <Lightbulb size={16} className="text-slate-500" />,
+    'signal': <AlertTriangle size={16} className="text-slate-600" />,
+    'risk': <AlertTriangle size={16} className="text-slate-700" />,
+    'summary': <FileText size={16} className="text-slate-600" />,
+    'takeaway': <FileText size={16} className="text-slate-600" />,
+    'benefit': <Sparkles size={16} className="text-slate-600" />,
+    'feature': <Rocket size={16} className="text-slate-600" />,
+};
+
+const getIconForHeading = (heading: string): React.ReactNode => {
+    const lower = heading.toLowerCase();
+    for (const [key, icon] of Object.entries(SECTION_ICONS)) {
+        if (lower.includes(key)) return icon;
+    }
+    return <FileText size={16} className="text-gray-400" />;
+};
 
 const modeOptions: Array<{ id: ResearchMode; label: string; icon: React.ReactNode; helper: string }> = [
     { id: 'search', label: 'Web', icon: <Globe size={14} />, helper: 'Top web sources' },
@@ -206,6 +265,256 @@ const formatFetchedAgo = (iso?: string | null) => {
 const STORAGE_PREFIX = 'researchCopilot';
 const HISTORY_LIMIT = 5;
 
+/**
+ * Convert markdown to HTML for TipTap editor insertion
+ */
+function convertMarkdownToHtml(markdown: string): string {
+    let html = markdown;
+    
+    // Headers (process in order from h4 to h1 to avoid conflicts)
+    html = html.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+    html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+    
+    // Bold and italic
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    
+    // Links
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    
+    // Bullet lists - simple approach
+    const lines = html.split('\n');
+    let inList = false;
+    const processedLines: string[] = [];
+    
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+            if (!inList) {
+                processedLines.push('<ul>');
+                inList = true;
+            }
+            processedLines.push(`<li>${trimmed.slice(2)}</li>`);
+        } else if (trimmed.match(/^\d+\. /)) {
+            if (!inList) {
+                processedLines.push('<ol>');
+                inList = true;
+            }
+            processedLines.push(`<li>${trimmed.replace(/^\d+\. /, '')}</li>`);
+        } else {
+            if (inList) {
+                // Find the last list tag - compatible with ES2022
+                const lastListTag = [...processedLines].reverse().find(l => l === '<ul>' || l === '<ol>');
+                processedLines.push(lastListTag === '<ol>' ? '</ol>' : '</ul>');
+                inList = false;
+            }
+            if (trimmed && !trimmed.startsWith('<h') && !trimmed.startsWith('<ul') && !trimmed.startsWith('<ol') && !trimmed.startsWith('</')) {
+                processedLines.push(`<p>${trimmed}</p>`);
+            } else if (trimmed) {
+                processedLines.push(trimmed);
+            }
+        }
+    }
+    
+    if (inList) {
+        processedLines.push('</ul>');
+    }
+    
+    return processedLines.join('');
+}
+
+/**
+ * Render markdown to React elements for preview (similar to AgentResponsePresenter)
+ */
+function renderAIWriterMarkdown(text: string): React.ReactNode {
+    const lines = text.split('\n');
+    const elements: React.ReactNode[] = [];
+    let currentList: { type: 'ul' | 'ol', items: string[] } | null = null;
+    let key = 0;
+
+    const flushList = () => {
+        if (currentList) {
+            const ListTag = currentList.type === 'ol' ? 'ol' : 'ul';
+            const listClass = currentList.type === 'ol' 
+                ? 'list-decimal list-inside space-y-1.5 my-3 ml-4 text-gray-700'
+                : 'list-disc list-inside space-y-1.5 my-3 ml-4 text-gray-700';
+            
+            elements.push(
+                <ListTag key={key++} className={listClass}>
+                    {currentList.items.map((item, i) => (
+                        <li key={i} className="text-sm leading-relaxed">{formatAIWriterInline(item)}</li>
+                    ))}
+                </ListTag>
+            );
+            currentList = null;
+        }
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const trimmedLine = line.trim();
+
+        // Empty line
+        if (trimmedLine === '') {
+            flushList();
+            continue;
+        }
+
+        // Horizontal rule
+        if (/^(-{3,}|_{3,}|\*{3,})$/.test(trimmedLine)) {
+            flushList();
+            elements.push(<hr key={key++} className="my-4 border-gray-200" />);
+            continue;
+        }
+
+        // Headings
+        const headingMatch = trimmedLine.match(/^(#{1,4})\s+(.+)$/);
+        if (headingMatch) {
+            flushList();
+            const level = headingMatch[1].length;
+            const content = headingMatch[2].replace(/\*\*/g, '');
+            
+            const headingClasses: Record<number, string> = {
+                1: 'text-xl font-semibold text-slate-900 mt-6 mb-3 flex items-center gap-2',
+                2: 'text-lg font-semibold text-slate-900 mt-5 mb-2 flex items-center gap-2',
+                3: 'text-base font-semibold text-slate-800 mt-4 mb-2 flex items-center gap-2',
+                4: 'text-sm font-medium text-slate-700 mt-3 mb-2 flex items-center gap-2',
+            };
+
+            const headingClass = headingClasses[level] || headingClasses[4];
+            const icon = getIconForHeading(content);
+            
+            if (level === 1) {
+                elements.push(<h2 key={key++} className={headingClass}>{icon}<span>{content}</span></h2>);
+            } else if (level === 2) {
+                elements.push(<h3 key={key++} className={headingClass}>{icon}<span>{content}</span></h3>);
+            } else {
+                elements.push(<h4 key={key++} className={headingClass}>{icon}<span>{content}</span></h4>);
+            }
+            continue;
+        }
+
+        // Numbered list item
+        const orderedMatch = trimmedLine.match(/^(\d+)\.\s+(.+)$/);
+        if (orderedMatch) {
+            if (!currentList || currentList.type !== 'ol') {
+                flushList();
+                currentList = { type: 'ol', items: [] };
+            }
+            currentList.items.push(orderedMatch[2]);
+            continue;
+        }
+
+        // Bullet list item
+        const unorderedMatch = trimmedLine.match(/^[-*+]\s+(.+)$/);
+        if (unorderedMatch) {
+            if (!currentList || currentList.type !== 'ul') {
+                flushList();
+                currentList = { type: 'ul', items: [] };
+            }
+            currentList.items.push(unorderedMatch[1]);
+            continue;
+        }
+
+        // Blockquote
+        if (trimmedLine.startsWith('>')) {
+            flushList();
+            const quoteContent = trimmedLine.slice(1).trim();
+            elements.push(
+                <blockquote key={key++} className="border-l-4 border-slate-300 pl-4 py-2 my-3 bg-slate-50 rounded-r-lg text-slate-700 italic text-sm">
+                    {formatAIWriterInline(quoteContent)}
+                </blockquote>
+            );
+            continue;
+        }
+
+        // Regular paragraph
+        flushList();
+        elements.push(
+            <p key={key++} className="text-gray-700 text-sm leading-relaxed my-2">
+                {formatAIWriterInline(trimmedLine)}
+            </p>
+        );
+    }
+
+    flushList();
+    return <>{elements}</>;
+}
+
+/**
+ * Format inline markdown: bold, italic, links
+ */
+function formatAIWriterInline(text: string): React.ReactNode {
+    const parts: React.ReactNode[] = [];
+    let remaining = text;
+    let key = 0;
+
+    while (remaining.length > 0) {
+        // Links [text](url)
+        const linkMatch = remaining.match(/^\[([^\]]+)\]\(([^)]+)\)/);
+        if (linkMatch) {
+            parts.push(
+                <a 
+                    key={key++} 
+                    href={linkMatch[2]} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-slate-900 underline underline-offset-2 hover:text-slate-600 font-medium transition-colors"
+                >
+                    {linkMatch[1]}
+                </a>
+            );
+            remaining = remaining.slice(linkMatch[0].length);
+            continue;
+        }
+
+        // Bold **text**
+        const boldMatch = remaining.match(/^\*\*([^*]+)\*\*/);
+        if (boldMatch) {
+            parts.push(<strong key={key++} className="font-semibold text-gray-900">{boldMatch[1]}</strong>);
+            remaining = remaining.slice(boldMatch[0].length);
+            continue;
+        }
+
+        // Italic *text*
+        const italicMatch = remaining.match(/^\*([^*]+)\*/);
+        if (italicMatch && !remaining.startsWith('**')) {
+            parts.push(<em key={key++} className="italic">{italicMatch[1]}</em>);
+            remaining = remaining.slice(italicMatch[0].length);
+            continue;
+        }
+
+        // Inline code `code`
+        const codeMatch = remaining.match(/^`([^`]+)`/);
+        if (codeMatch) {
+            parts.push(
+                <code key={key++} className="px-1.5 py-0.5 bg-slate-100 text-slate-800 border border-slate-200 rounded text-xs font-mono">
+                    {codeMatch[1]}
+                </code>
+            );
+            remaining = remaining.slice(codeMatch[0].length);
+            continue;
+        }
+
+        // Find next special character
+        const nextSpecial = remaining.search(/[[*`]/);
+        if (nextSpecial === -1) {
+            parts.push(remaining);
+            break;
+        } else if (nextSpecial === 0) {
+            parts.push(remaining[0]);
+            remaining = remaining.slice(1);
+        } else {
+            parts.push(remaining.slice(0, nextSpecial));
+            remaining = remaining.slice(nextSpecial);
+        }
+    }
+
+    return parts.length === 1 ? parts[0] : <>{parts}</>;
+}
+
 export const ResearchCopilot: React.FC<ResearchCopilotProps> = ({
     isOpen,
     onClose,
@@ -218,6 +527,10 @@ export const ResearchCopilot: React.FC<ResearchCopilotProps> = ({
     docId,
     cacheTtlMs = 1000 * 60 * 3,
 }) => {
+    // Tab state: Research vs AI Writer
+    const [activeTab, setActiveTab] = useState<CopilotTab>('research');
+    
+    // Research mode state
     const [query, setQuery] = useState('');
     const [mode, setMode] = useState<ResearchMode>('search');
     const [results, setResults] = useState<YouSearchResponse | null>(null);
@@ -229,6 +542,24 @@ export const ResearchCopilot: React.FC<ResearchCopilotProps> = ({
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [cacheStatus, setCacheStatus] = useState<{ key: string; ageMs: number } | null>(null);
     const cacheRef = useRef<Map<string, ResearchCacheEntry>>(new Map());
+    
+    // AI Writer mode state
+    const [writerPrompt, setWriterPrompt] = useState('');
+    const [writerGoal, setWriterGoal] = useState<AIWriterGoal>('freeform');
+    const [writerOutput, setWriterOutput] = useState<string | null>(null);
+    
+    // AI Writer streaming via useYouAgent hook
+    const { 
+        run: runAgent, 
+        loading: agentLoading, 
+        error: agentError, 
+        streamingOutput, 
+        isStreaming,
+        reset: resetAgent 
+    } = useYouAgent('research_briefing');
+    
+    // Copy to clipboard hook
+    const { isCopied, copy } = useCopyToClipboard();
 
     const storageKey = `${STORAGE_PREFIX}.cache.${workspaceId}`;
     const historyKey = `${STORAGE_PREFIX}.history.${workspaceId}`;
@@ -432,6 +763,109 @@ export const ResearchCopilot: React.FC<ResearchCopilotProps> = ({
         ],
         [docTitle, workspaceName, tags],
     );
+    
+    // AI Writer quick prompts - contextual suggestions
+    const writerQuickPrompts = useMemo(
+        () => [
+            `Write a compelling overview for ${docTitle || 'this document'}`,
+            `Create a competitive analysis section for ${tags[0] || 'our market'}`,
+            `Draft key benefits and value propositions`,
+            `Summarize market trends and opportunities`,
+            `List 5 action items based on this research`,
+        ],
+        [docTitle, tags],
+    );
+    
+    // Build AI Writer input based on goal
+    const buildWriterPrompt = useCallback((goal: AIWriterGoal, prompt: string): string => {
+        const context = `Document: "${docTitle || 'Untitled'}" (${docTypeLabel})${workspaceName ? ` for ${workspaceName}` : ''}${tags.length ? `. Tags: ${tags.join(', ')}` : ''}`;
+        
+        switch (goal) {
+            case 'section':
+                return `Write a well-structured section for a GTM document. ${context}\n\nRequest: ${prompt}\n\nProvide clear headings, structured content with bullet points where appropriate, and actionable insights.`;
+            case 'summary':
+                return `Provide a concise, executive-level summary. ${context}\n\nRequest: ${prompt}\n\nFormat with key takeaways and clear structure.`;
+            case 'bullets':
+                return `Create a list of key points. ${context}\n\nRequest: ${prompt}\n\nFormat as clear, actionable bullet points. Be specific and quantify where possible.`;
+            case 'analysis':
+                return `Provide an in-depth analysis. ${context}\n\nRequest: ${prompt}\n\nInclude market insights, competitive considerations, and strategic recommendations with clear section headings.`;
+            case 'freeform':
+            default:
+                return `${context}\n\nRequest: ${prompt}\n\nProvide well-structured content with clear formatting using headings and bullet points.`;
+        }
+    }, [docTitle, docTypeLabel, workspaceName, tags]);
+    
+    // Handle AI Writer generation
+    const handleWriterGenerate = useCallback(async () => {
+        if (!writerPrompt.trim()) return;
+        
+        setWriterOutput(null);
+        
+        const input = buildWriterPrompt(writerGoal, writerPrompt.trim());
+        
+        telemetry.track('research_copilot_ai_writer', {
+            workspaceId,
+            docId,
+            metadata: {
+                goal: writerGoal,
+                promptLength: writerPrompt.length,
+            },
+        });
+        
+        try {
+            const response = await runAgent(input, {
+                founderhq_context: {
+                    goal: writerGoal,
+                    docTitle,
+                    docType: docTypeLabel,
+                    workspaceName,
+                    tags,
+                },
+            });
+            
+            if (response?.output) {
+                setWriterOutput(response.output);
+            }
+        } catch (err) {
+            console.error('[ResearchCopilot] AI Writer generation failed:', err);
+        }
+    }, [writerPrompt, writerGoal, buildWriterPrompt, runAgent, workspaceId, docId, docTitle, docTypeLabel, workspaceName, tags]);
+    
+    // Insert AI Writer output to editor
+    const handleInsertWriterOutput = useCallback(() => {
+        if (!editor) return;
+        
+        const contentToInsert = writerOutput || streamingOutput;
+        if (!contentToInsert) return;
+        
+        // Convert markdown to HTML for TipTap
+        const html = convertMarkdownToHtml(contentToInsert);
+        
+        editor.chain().focus().insertContent(html).run();
+        
+        telemetry.track('research_copilot_ai_writer_insert', {
+            workspaceId,
+            docId,
+            metadata: {
+                goal: writerGoal,
+                contentLength: contentToInsert.length,
+            },
+        });
+    }, [editor, writerOutput, streamingOutput, workspaceId, docId, writerGoal]);
+    
+    // Copy AI Writer output
+    const handleCopyWriterOutput = useCallback(async () => {
+        const contentToCopy = writerOutput || streamingOutput;
+        if (!contentToCopy) return;
+        await copy(contentToCopy);
+    }, [writerOutput, streamingOutput, copy]);
+    
+    // Reset AI Writer
+    const handleResetWriter = useCallback(() => {
+        setWriterPrompt('');
+        setWriterOutput(null);
+        resetAgent();
+    }, [resetAgent]);
 
     const primaryHits = useMemo(() => {
         if (!results) return [];
@@ -495,6 +929,16 @@ export const ResearchCopilot: React.FC<ResearchCopilotProps> = ({
 
     const toggleFullscreen = () => setIsFullscreen((prev) => !prev);
     const horizontalPadding = isFullscreen ? 'px-8' : 'px-5';
+    
+    // Determine if AI Writer has content to show
+    const hasWriterContent = Boolean(writerOutput || streamingOutput);
+    const displayWriterContent = writerOutput || streamingOutput || '';
+    
+    // Render markdown content for AI Writer (similar to AgentResponsePresenter)
+    const renderedWriterContent = useMemo(() => {
+        if (!displayWriterContent) return null;
+        return renderAIWriterMarkdown(displayWriterContent);
+    }, [displayWriterContent]);
 
     return (
         <div className={`fixed inset-0 z-40 ${isOpen ? '' : 'pointer-events-none'}`}>
@@ -505,43 +949,253 @@ export const ResearchCopilot: React.FC<ResearchCopilotProps> = ({
                         isFullscreen ? 'w-full max-w-6xl rounded-3xl border border-gray-200' : 'w-full max-w-3xl border-l border-gray-200'
                     } ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
                 >
-                    <div className={`flex items-start justify-between border-b border-gray-100 ${horizontalPadding} py-4`}>
-                        <div>
-                            <p className="text-[11px] uppercase tracking-[0.35em] text-gray-400">Research Copilot</p>
-                            <h3 className="text-lg font-semibold text-gray-900">{docTitle || 'Untitled Doc'}</h3>
-                            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                                <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-2 py-0.5">📄 {docTypeLabel}</span>
-                                {workspaceName && (
-                                    <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-2 py-0.5">🏢 {workspaceName}</span>
-                                )}
-                                {tags.slice(0, 2).map((tag) => (
-                                    <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5">#{tag}</span>
-                                ))}
+                    {/* Header with Tab Switcher */}
+                    <div className={`border-b border-gray-100 ${horizontalPadding} py-4`}>
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <div className="flex items-center gap-3 mb-2">
+                                    {/* Tab Switcher */}
+                                    <div className="flex items-center rounded-xl border border-gray-200 bg-gray-50 p-0.5">
+                                        <button
+                                            onClick={() => setActiveTab('research')}
+                                            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                                                activeTab === 'research' 
+                                                    ? 'bg-white text-gray-900 shadow-sm' 
+                                                    : 'text-gray-500 hover:text-gray-700'
+                                            }`}
+                                        >
+                                            <Globe size={14} />
+                                            Research
+                                        </button>
+                                        <button
+                                            onClick={() => setActiveTab('writer')}
+                                            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                                                activeTab === 'writer' 
+                                                    ? 'bg-white text-gray-900 shadow-sm' 
+                                                    : 'text-gray-500 hover:text-gray-700'
+                                            }`}
+                                        >
+                                            <Sparkles size={14} />
+                                            AI Writer
+                                        </button>
+                                    </div>
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900">{docTitle || 'Untitled Doc'}</h3>
+                                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-2 py-0.5">📄 {docTypeLabel}</span>
+                                    {workspaceName && (
+                                        <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 px-2 py-0.5">🏢 {workspaceName}</span>
+                                    )}
+                                    {tags.slice(0, 2).map((tag) => (
+                                        <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5">#{tag}</span>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={handleSendAllToEditor}
-                                disabled={!canSendToEditor}
-                                className={`inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold transition ${
-                                    canSendToEditor ? 'text-gray-700 hover:bg-gray-100' : 'text-gray-400 cursor-not-allowed'
-                                }`}
-                            >
-                                <Send size={14} /> Send to doc
-                            </button>
-                            <button
-                                onClick={toggleFullscreen}
-                                className="rounded-full p-1 text-gray-400 hover:bg-gray-100"
-                                aria-label={isFullscreen ? 'Exit fullscreen' : 'Expand research copilot'}
-                            >
-                                {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-                            </button>
-                            <button onClick={onClose} className="rounded-full p-1 text-gray-400 hover:bg-gray-100" aria-label="Close research sidebar">
-                                <X size={18} />
-                            </button>
+                            <div className="flex items-center gap-2">
+                                {activeTab === 'research' ? (
+                                    <button
+                                        onClick={handleSendAllToEditor}
+                                        disabled={!canSendToEditor}
+                                        className={`inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold transition ${
+                                            canSendToEditor ? 'text-gray-700 hover:bg-gray-100' : 'text-gray-400 cursor-not-allowed'
+                                        }`}
+                                    >
+                                        <Send size={14} /> Send to doc
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={handleInsertWriterOutput}
+                                        disabled={!hasWriterContent}
+                                        className={`inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold transition ${
+                                            hasWriterContent ? 'bg-gray-900 text-white hover:bg-black' : 'text-gray-400 cursor-not-allowed'
+                                        }`}
+                                    >
+                                        <Send size={14} /> Insert to doc
+                                    </button>
+                                )}
+                                <button
+                                    onClick={toggleFullscreen}
+                                    className="rounded-full p-1 text-gray-400 hover:bg-gray-100"
+                                    aria-label={isFullscreen ? 'Exit fullscreen' : 'Expand research copilot'}
+                                >
+                                    {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                                </button>
+                                <button onClick={onClose} className="rounded-full p-1 text-gray-400 hover:bg-gray-100" aria-label="Close research sidebar">
+                                    <X size={18} />
+                                </button>
+                            </div>
                         </div>
                     </div>
 
+                    {/* AI Writer Mode */}
+                    {activeTab === 'writer' && (
+                        <>
+                            <div className={`border-b border-gray-100 ${horizontalPadding} py-4 space-y-3`}>
+                                {/* Goal Selector */}
+                                <div className="flex flex-wrap items-center gap-2">
+                                    {aiWriterGoals.map((goalOption) => (
+                                        <button
+                                            key={goalOption.id}
+                                            onClick={() => setWriterGoal(goalOption.id)}
+                                            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                                                writerGoal === goalOption.id 
+                                                    ? 'bg-gray-900 text-white' 
+                                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                            }`}
+                                        >
+                                            {goalOption.icon}
+                                            {goalOption.label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Prompt Input */}
+                                <form
+                                    onSubmit={(event) => {
+                                        event.preventDefault();
+                                        handleWriterGenerate();
+                                    }}
+                                    className="rounded-2xl border border-gray-200 bg-white p-3 shadow-inner"
+                                >
+                                    <label className="text-[11px] font-semibold uppercase tracking-[0.35em] text-gray-400">
+                                        {aiWriterGoals.find(g => g.id === writerGoal)?.label || 'Write anything'}
+                                    </label>
+                                    <div className="mt-2">
+                                        <textarea
+                                            value={writerPrompt}
+                                            onChange={(e) => setWriterPrompt(e.target.value)}
+                                            placeholder={aiWriterGoals.find(g => g.id === writerGoal)?.placeholder || 'Describe what you want to write...'}
+                                            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none resize-none"
+                                            rows={3}
+                                        />
+                                    </div>
+                                    <div className="mt-2 flex items-center justify-between">
+                                        <span className="text-xs text-gray-400">
+                                            {writerPrompt.length > 0 ? `${writerPrompt.length} characters` : 'Type your prompt'}
+                                        </span>
+                                        <button
+                                            type="submit"
+                                            disabled={agentLoading || !writerPrompt.trim()}
+                                            className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                        >
+                                            {agentLoading ? (
+                                                <>
+                                                    <span className="relative w-4 h-4 inline-block">
+                                                        <span className="absolute inset-0 border-2 border-current animate-spin rounded-full" style={{ animationDuration: '1.2s' }} />
+                                                    </span>
+                                                    {isStreaming ? 'Writing...' : 'Starting...'}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Sparkles size={14} />
+                                                    Generate
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                </form>
+
+                                {/* Quick Prompts */}
+                                <div className="flex flex-wrap gap-2">
+                                    {writerQuickPrompts.map((prompt) => (
+                                        <button
+                                            key={prompt}
+                                            onClick={() => {
+                                                setWriterPrompt(prompt);
+                                            }}
+                                            className="rounded-full border border-dashed border-gray-300 px-3 py-1 text-[11px] text-gray-600 hover:border-gray-500 transition"
+                                        >
+                                            {prompt}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* AI Writer Results */}
+                            <div className={`flex-1 overflow-y-auto ${horizontalPadding} py-4 space-y-4`}>
+                                {/* Streaming/Loading State */}
+                                {isStreaming && (
+                                    <div className="rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-indigo-50 p-4">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className="relative w-5 h-5">
+                                                <span className="absolute inset-0 border-2 border-violet-500 animate-spin rounded-full" style={{ animationDuration: '1.2s' }} />
+                                            </div>
+                                            <span className="text-sm font-semibold text-violet-700">AI is writing...</span>
+                                        </div>
+                                        <div className="prose prose-sm max-w-none">
+                                            {renderedWriterContent}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Error State */}
+                                {agentError && !isStreaming && (
+                                    <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                                        <p className="font-semibold flex items-center gap-2">
+                                            <AlertTriangle size={16} />
+                                            Generation failed
+                                        </p>
+                                        <p className="mt-1">{agentError}</p>
+                                    </div>
+                                )}
+
+                                {/* Completed Output */}
+                                {hasWriterContent && !isStreaming && (
+                                    <div className="space-y-4">
+                                        {/* Action Bar */}
+                                        <div className="flex items-center justify-between pb-3 border-b border-gray-200">
+                                            <span className="text-xs text-gray-500">
+                                                {displayWriterContent.length.toLocaleString()} characters generated
+                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={handleCopyWriterOutput}
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-700 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors"
+                                                >
+                                                    {isCopied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+                                                    {isCopied ? 'Copied!' : 'Copy'}
+                                                </button>
+                                                <button
+                                                    onClick={handleResetWriter}
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-700 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors"
+                                                >
+                                                    <RefreshCw size={14} />
+                                                    New
+                                                </button>
+                                                <button
+                                                    onClick={handleInsertWriterOutput}
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-slate-900 text-white font-medium rounded-lg shadow-sm hover:shadow-md hover:bg-slate-800 transition-all"
+                                                >
+                                                    <Send size={14} />
+                                                    Insert to Doc
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Rendered Content */}
+                                        <div className="prose prose-sm max-w-none">
+                                            {renderedWriterContent}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Empty State */}
+                                {!hasWriterContent && !isStreaming && !agentError && (
+                                    <div className="rounded-2xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">
+                                        <div className="mb-3">
+                                            <Sparkles size={32} className="mx-auto text-gray-300" />
+                                        </div>
+                                        <p className="font-semibold text-gray-700 mb-1">AI Writer</p>
+                                        <p>Type your prompt above and let AI generate beautiful, structured content for your document.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    )}
+
+                    {/* Research Mode - Original UI */}
+                    {activeTab === 'research' && (
+                        <>
                     <div className={`border-b border-gray-100 ${horizontalPadding} py-4 space-y-3`}>
                         <div className="flex items-center gap-2 rounded-2xl border border-gray-200 bg-gray-50 p-1">
                             {modeOptions.map((option) => (
@@ -836,6 +1490,8 @@ export const ResearchCopilot: React.FC<ResearchCopilotProps> = ({
                                 ))}
                             </div>
                         </div>
+                    )}
+                        </>
                     )}
                 </aside>
             </div>
