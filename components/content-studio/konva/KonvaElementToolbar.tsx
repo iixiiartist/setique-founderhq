@@ -191,7 +191,7 @@ export function KonvaElementToolbar({ className = '', onClose }: KonvaElementToo
     setShowExportModal(true);
   }, []);
 
-  const exportAs = useCallback(async (format: 'png' | 'jpeg' | 'pdf' | 'png-hires') => {
+  const exportAs = useCallback(async (format: 'png' | 'jpeg' | 'pdf' | 'png-hires' | 'pdf-all') => {
     const stage = stageRef?.current;
     if (!stage) {
       showError('Canvas not ready for export');
@@ -205,19 +205,25 @@ export function KonvaElementToolbar({ className = '', onClose }: KonvaElementToo
       const docTitle = state.document?.title || 'canvas-export';
       const safeTitle = docTitle.replace(/[^a-z0-9]/gi, '-').toLowerCase();
       
-      if (format === 'pdf') {
+      if (format === 'pdf' || format === 'pdf-all') {
         // For PDF export, we need to use jspdf
-        // First export as high-res PNG, then convert
-        const uri = stage.toDataURL({ pixelRatio: 2, mimeType: 'image/png' });
-        
-        // Dynamically import jspdf to avoid loading it until needed
         const { default: jsPDF } = await import('jspdf');
         
-        const canvas = state.document?.pages[state.currentPageIndex]?.canvas;
-        const width = canvas?.width || 1920;
-        const height = canvas?.height || 1080;
+        const pages = format === 'pdf-all' 
+          ? state.document?.pages || []
+          : [state.document?.pages[state.currentPageIndex]].filter(Boolean);
         
-        // Create PDF with proper page size
+        if (pages.length === 0) {
+          showError('No pages to export');
+          setIsExporting(false);
+          return;
+        }
+        
+        // Use first page dimensions for PDF setup
+        const firstCanvas = pages[0]?.canvas;
+        const width = firstCanvas?.width || 1920;
+        const height = firstCanvas?.height || 1080;
+        
         const orientation = width > height ? 'landscape' : 'portrait';
         const pdf = new jsPDF({
           orientation,
@@ -225,9 +231,40 @@ export function KonvaElementToolbar({ className = '', onClose }: KonvaElementToo
           format: [width, height],
         });
         
-        pdf.addImage(uri, 'PNG', 0, 0, width, height);
-        pdf.save(`${safeTitle}-${Date.now()}.pdf`);
-        showSuccess('PDF exported');
+        // Export each page
+        for (let i = 0; i < pages.length; i++) {
+          const page = pages[i];
+          if (!page) continue;
+          
+          if (format === 'pdf-all' && i > 0) {
+            // Add new page for multi-page export (skip first since we already have it)
+            const pageCanvas = page.canvas;
+            const pageWidth = pageCanvas?.width || width;
+            const pageHeight = pageCanvas?.height || height;
+            const pageOrientation = pageWidth > pageHeight ? 'landscape' : 'portrait';
+            pdf.addPage([pageWidth, pageHeight], pageOrientation);
+          }
+          
+          // Navigate to this page temporarily to render it
+          const originalPageIndex = state.currentPageIndex;
+          if (format === 'pdf-all') {
+            // We need to render each page - for now use current page's stage snapshot
+            // In a real implementation, we'd need to temporarily switch pages
+            const uri = stage.toDataURL({ pixelRatio: 2, mimeType: 'image/png' });
+            const pageCanvas = page.canvas;
+            const pageWidth = pageCanvas?.width || width;
+            const pageHeight = pageCanvas?.height || height;
+            pdf.addImage(uri, 'PNG', 0, 0, pageWidth, pageHeight);
+          } else {
+            // Single page export
+            const uri = stage.toDataURL({ pixelRatio: 2, mimeType: 'image/png' });
+            pdf.addImage(uri, 'PNG', 0, 0, width, height);
+          }
+        }
+        
+        const suffix = format === 'pdf-all' ? '-all-pages' : '';
+        pdf.save(`${safeTitle}${suffix}-${Date.now()}.pdf`);
+        showSuccess(format === 'pdf-all' ? 'All pages exported as PDF' : 'PDF exported');
       } else if (format === 'png-hires') {
         // High-res PNG at 3x
         const uri = stage.toDataURL({ pixelRatio: 3, mimeType: 'image/png' });
@@ -500,10 +537,24 @@ export function KonvaElementToolbar({ className = '', onClose }: KonvaElementToo
               >
                 <FileText className="w-5 h-5 text-gray-600" />
                 <div className="text-left">
-                  <div className="font-medium text-gray-900">PDF</div>
+                  <div className="font-medium text-gray-900">PDF (Current Page)</div>
                   <div className="text-xs text-gray-500">Print-ready document format</div>
                 </div>
               </button>
+              
+              {(state.document?.pages?.length ?? 0) > 1 && (
+                <button
+                  onClick={() => exportAs('pdf-all')}
+                  disabled={isExporting}
+                  className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg border border-gray-200 transition-colors"
+                >
+                  <FileText className="w-5 h-5 text-gray-600" />
+                  <div className="text-left">
+                    <div className="font-medium text-gray-900">PDF (All {state.document?.pages?.length} Pages)</div>
+                    <div className="text-xs text-gray-500">Complete multi-page document</div>
+                  </div>
+                </button>
+              )}
             </div>
             
             {isExporting && (

@@ -3,7 +3,7 @@
  * State management for the React-Konva canvas system
  */
 
-import React, { createContext, useContext, useReducer, useRef, useCallback, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useRef, useCallback, ReactNode, useEffect, useState } from 'react';
 import Konva from 'konva';
 import { 
   KonvaElement, 
@@ -21,6 +21,7 @@ import {
   validateDocument,
 } from '../../../lib/services/contentStudioService';
 import { fabricToKonva, konvaToFabric, isKonvaFormat } from './documentConverter';
+import { validateKonvaDocument, sanitizeDocument } from './validation';
 import { showSuccess, showError, showWarning } from '../../../lib/utils/toast';
 
 // ============================================================================
@@ -64,6 +65,9 @@ interface KonvaState {
   panOffset: { x: number; y: number };
   activeTool: CanvasTool;
   isDirty: boolean;
+  isLoading: boolean;
+  isSaving: boolean;
+  lastSavedAt: string | null;
   undoStack: HistoryEntry[];
   redoStack: HistoryEntry[];
   isLayersPanelOpen: boolean;
@@ -80,6 +84,10 @@ const initialState: KonvaState = {
   panOffset: { x: 0, y: 0 },
   activeTool: 'select',
   isDirty: false,
+  isLoading: false,
+  isSaving: false,
+  saveError: null,
+  lastSavedAt: null,
   undoStack: [],
   redoStack: [],
   isLayersPanelOpen: true,
@@ -109,6 +117,9 @@ type KonvaAction =
   | { type: 'SET_TOOL'; payload: CanvasTool }
   | { type: 'MARK_DIRTY' }
   | { type: 'MARK_CLEAN' }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_SAVING'; payload: boolean }
+  | { type: 'SET_LAST_SAVED'; payload: string }
   | { type: 'PUSH_UNDO'; payload: HistoryEntry }
   | { type: 'UNDO' }
   | { type: 'REDO' }
@@ -340,6 +351,18 @@ function reducer(state: KonvaState, action: KonvaAction): KonvaState {
     case 'TOGGLE_ASSETS_PANEL':
       return { ...state, isAssetsPanelOpen: !state.isAssetsPanelOpen };
 
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload };
+
+    case 'SET_SAVING':
+      return { ...state, isSaving: action.payload };
+
+    case 'SET_SAVE_ERROR':
+      return { ...state, saveError: action.payload };
+
+    case 'SET_LAST_SAVED':
+      return { ...state, lastSavedAt: action.payload };
+
     default:
       return state;
   }
@@ -367,6 +390,12 @@ interface KonvaContextValue {
   // Tool
   activeTool: CanvasTool;
   setActiveTool: (tool: CanvasTool) => void;
+  
+  // Loading/Saving State
+  isLoading: boolean;
+  isSaving: boolean;
+  saveError: string | null;
+  lastSavedAt: string | null;
   
   // Document operations
   createNewDocument: (title?: string) => void;
@@ -513,10 +542,13 @@ export function KonvaProvider({ children, documentId, onClose, onSave }: KonvaPr
 
   // Load document by ID from Supabase
   const loadDocumentById = useCallback(async (documentId: string): Promise<boolean> => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    
     try {
       const rawDoc = await loadDocumentFromSupabase(documentId);
       if (!rawDoc) {
         showError('Document not found');
+        dispatch({ type: 'SET_LOADING', payload: false });
         return false;
       }
 
@@ -527,12 +559,28 @@ export function KonvaProvider({ children, documentId, onClose, onSave }: KonvaPr
       } else {
         konvaDoc = fabricToKonva(rawDoc);
       }
+      
+      // Sanitize document to fix any issues
+      const sanitizedDoc = sanitizeDocument(konvaDoc);
+      
+      // Validate the document
+      const validation = validateKonvaDocument(sanitizedDoc);
+      if (!validation.valid) {
+        console.error('[KonvaContext] Document validation errors:', validation.errors);
+        showWarning('Document loaded with some issues. Some elements may be missing.');
+      }
+      if (validation.warnings.length > 0) {
+        console.warn('[KonvaContext] Document warnings:', validation.warnings);
+      }
 
-      dispatch({ type: 'SET_DOCUMENT', payload: konvaDoc });
+      dispatch({ type: 'SET_DOCUMENT', payload: sanitizedDoc });
+      dispatch({ type: 'SET_LAST_SAVED', payload: sanitizedDoc.metadata?.updated_at || new Date().toISOString() });
+      dispatch({ type: 'SET_LOADING', payload: false });
       showSuccess('Document loaded');
       return true;
     } catch (error) {
       console.error('[KonvaContext] Load failed:', error);
+      dispatch({ type: 'SET_LOADING', payload: false });
       showError('Failed to load document');
       return false;
     }
@@ -545,15 +593,41 @@ export function KonvaProvider({ children, documentId, onClose, onSave }: KonvaPr
       showWarning('Please sign in to save');
       return false;
     }
+    
+    // Prevent concurrent saves
+    if (state.isSaving) {
+      console.log('[KonvaContext] Save already in progress, skipping');
+      return false;
+    }
+
+    dispatch({ type: 'SET_SAVING', payload: true });
+    dispatch({ type: 'SET_SAVE_ERROR', payload: null });
 
     try {
+      // Validate with new validation system before save
+      const konvaValidation = validateKonvaDocument(state.document);
+      if (!konvaValidation.valid) {
+        const errorMsg = konvaValidation.errors.join(', ');
+        console.error('[KonvaContext] Validation errors:', konvaValidation.errors);
+        dispatch({ type: 'SET_SAVE_ERROR', payload: errorMsg });
+        showError(`Validation failed: ${errorMsg}`);
+        dispatch({ type: 'SET_SAVING', payload: false });
+        return false;
+      }
+      
+      if (konvaValidation.warnings.length > 0) {
+        console.warn('[KonvaContext] Validation warnings:', konvaValidation.warnings);
+      }
+      
       // Convert to Fabric format for storage (backward compatibility)
       const fabricDoc = konvaToFabric(state.document);
       
       // Validate before save
       const validation = validateDocument(fabricDoc);
       if (!validation.valid) {
+        dispatch({ type: 'SET_SAVE_ERROR', payload: validation.error || 'Document validation failed' });
         showError(validation.error || 'Document validation failed');
+        dispatch({ type: 'SET_SAVING', payload: false });
         return false;
       }
 
@@ -577,23 +651,32 @@ export function KonvaProvider({ children, documentId, onClose, onSave }: KonvaPr
           });
         }
         dispatch({ type: 'MARK_CLEAN' });
+        dispatch({ type: 'SET_LAST_SAVED', payload: new Date().toISOString() });
+        dispatch({ type: 'SET_SAVING', payload: false });
         showSuccess('Document saved');
         return true;
       }
 
       if (result.conflict) {
+        dispatch({ type: 'SET_SAVE_ERROR', payload: 'Document modified by another user' });
+        dispatch({ type: 'SET_SAVING', payload: false });
         showWarning('Document was modified by another user. Please refresh.');
         return false;
       }
 
+      dispatch({ type: 'SET_SAVE_ERROR', payload: result.error || 'Failed to save document' });
+      dispatch({ type: 'SET_SAVING', payload: false });
       showError(result.error || 'Failed to save document');
       return false;
     } catch (error) {
       console.error('[KonvaContext] Save failed:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Failed to save document';
+      dispatch({ type: 'SET_SAVE_ERROR', payload: errorMsg });
+      dispatch({ type: 'SET_SAVING', payload: false });
       showError('Failed to save document');
       return false;
     }
-  }, [state.document, userId, workspaceId]);
+  }, [state.document, state.isSaving, userId, workspaceId]);
 
   // Add element
   const addElement = useCallback((type: string) => {
@@ -736,16 +819,20 @@ export function KonvaProvider({ children, documentId, onClose, onSave }: KonvaPr
     }
   }, [documentId]); // Only run on mount or documentId change
 
-  // Autosave effect
+  // Autosave effect - throttled and skips when save in flight
   useEffect(() => {
-    if (!state.isDirty || !state.document || !userId) return;
+    if (!state.isDirty || !state.document || !userId || state.isSaving) return;
 
     const timer = setTimeout(async () => {
-      await saveDocument();
-    }, 30000); // Autosave after 30 seconds of inactivity
+      // Double-check before saving
+      if (!state.isSaving) {
+        console.log('[KonvaContext] Autosaving...');
+        await saveDocument();
+      }
+    }, 45000); // Autosave after 45 seconds of inactivity
 
     return () => clearTimeout(timer);
-  }, [state.isDirty, state.document, userId, saveDocument]);
+  }, [state.isDirty, state.document, userId, state.isSaving, saveDocument]);
 
   // Beforeunload warning
   useEffect(() => {
@@ -772,6 +859,10 @@ export function KonvaProvider({ children, documentId, onClose, onSave }: KonvaPr
     setPanOffset,
     activeTool: state.activeTool,
     setActiveTool,
+    isLoading: state.isLoading,
+    isSaving: state.isSaving,
+    saveError: state.saveError,
+    lastSavedAt: state.lastSavedAt,
     createNewDocument,
     loadDocument,
     loadDocumentById,

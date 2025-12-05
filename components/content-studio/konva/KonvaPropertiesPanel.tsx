@@ -3,9 +3,12 @@
  * Property editor for selected elements
  */
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useRef, useEffect } from 'react';
 import { useKonvaContext } from './KonvaContext';
 import { KonvaElement } from './types';
+
+// Debounce delay for undo (ms) - prevents creating undo entry for every keystroke
+const UNDO_DEBOUNCE_DELAY = 500;
 
 // ============================================================================
 // Color Input
@@ -142,10 +145,38 @@ export function KonvaPropertiesPanel({ className = '' }: KonvaPropertiesPanelPro
   const selectedElements = getSelectedElements();
   const singleElement = selectedElements.length === 1 ? selectedElements[0] : null;
   
-  // Update with undo
+  // Debounced undo - refs to track if we've already pushed undo for current edit session
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasPushedUndoRef = useRef(false);
+  
+  // Clear undo tracking when selection changes
+  useEffect(() => {
+    hasPushedUndoRef.current = false;
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = null;
+    }
+  }, [selectedIds]);
+  
+  // Update with debounced undo - only pushes undo once per "edit session"
+  // An edit session ends after UNDO_DEBOUNCE_DELAY ms of inactivity
   const handleUpdate = useCallback((id: string, attrs: Partial<KonvaElement>) => {
-    pushUndo();
+    // Push undo only on first change in this edit session
+    if (!hasPushedUndoRef.current) {
+      pushUndo();
+      hasPushedUndoRef.current = true;
+    }
+    
     updateElement(id, attrs);
+    
+    // Reset the debounce timer - after delay, allow new undo entry
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current);
+    }
+    undoTimerRef.current = setTimeout(() => {
+      hasPushedUndoRef.current = false;
+      undoTimerRef.current = null;
+    }, UNDO_DEBOUNCE_DELAY);
   }, [pushUndo, updateElement]);
   
   // Update single element
