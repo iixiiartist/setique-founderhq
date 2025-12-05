@@ -538,7 +538,7 @@ export class DatabaseService {
       
       let query = supabase
         .from('marketing_items')
-        .select('id, title, type, status, due_date, due_time, assigned_to, assigned_to_name, notes, created_at, workspace_id, campaign_id, channel, budget, actual_spend, reach, engagement, conversions', { count: 'exact' })
+        .select('id, title, type, status, due_date, due_time, assigned_to, assigned_to_name, notes, created_at, workspace_id, parent_campaign_id, channels, campaign_budget, actual_spend', { count: 'exact' })
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
@@ -643,7 +643,7 @@ export class DatabaseService {
       
       let query = supabase
         .from('financial_logs')
-        .select('id, date, mrr, gmv, signups, burn_rate, runway_months, notes, created_at, workspace_id', { count: 'exact' })
+        .select('id, date, mrr, gmv, signups, burn_rate, runway_months, created_at, workspace_id', { count: 'exact' })
         .eq('workspace_id', workspaceId)
         .order('date', { ascending: false })
         .range(offset, offset + limit - 1);
@@ -2417,6 +2417,10 @@ export class DatabaseService {
   // GTM Docs Operations
   // ============================================================================
 
+  // Default pagination limits for performance at scale
+  private static readonly GTM_DOCS_DEFAULT_LIMIT = 50;
+  private static readonly GTM_DOCS_MAX_LIMIT = 200;
+
   static async loadGTMDocs(workspaceId: string, options?: {
     filter?: 'all' | 'mine' | 'team' | 'templates',
     docType?: string,
@@ -2425,10 +2429,18 @@ export class DatabaseService {
     offset?: number
   }) {
     try {
+      // Enforce pagination limits for performance
+      const limit = Math.min(
+        options?.limit || this.GTM_DOCS_DEFAULT_LIMIT,
+        this.GTM_DOCS_MAX_LIMIT
+      );
+      const offset = options?.offset || 0;
+
       let query = supabase
         .from('gtm_docs')
         .select('id, workspace_id, owner_id, created_at, updated_at, title, doc_type, visibility, is_template, template_category, tags, blocks_metadata')
         .eq('workspace_id', workspaceId)
+        .eq('is_deleted', false)
 
       // Apply filters
       if (options?.filter === 'mine' && options?.userId) {
@@ -2441,13 +2453,8 @@ export class DatabaseService {
         query = query.eq('doc_type', options.docType)
       }
 
-      // Apply pagination
-      if (options?.limit) {
-        query = query.limit(options.limit)
-      }
-      if (options?.offset) {
-        query = query.range(options.offset, options.offset + (options.limit || 20) - 1)
-      }
+      // Apply pagination (always enforce limit for performance)
+      query = query.range(offset, offset + limit - 1)
 
       const { data, error } = await query.order('updated_at', { ascending: false })
 
@@ -2483,6 +2490,7 @@ export class DatabaseService {
         .select('*')
         .eq('id', docId)
         .eq('workspace_id', workspaceId)
+        .eq('is_deleted', false)
         .single()
 
       if (error) throw error
@@ -2639,17 +2647,34 @@ export class DatabaseService {
     }
   }
 
-  static async deleteGTMDoc(docId: string, workspaceId: string) {
+  static async deleteGTMDoc(docId: string, workspaceId: string, hardDelete: boolean = false) {
     try {
-      const { error } = await supabase
-        .from('gtm_docs')
-        .delete()
-        .eq('id', docId)
-        .eq('workspace_id', workspaceId)
+      if (hardDelete) {
+        // Hard delete - permanently remove from database
+        const { error } = await supabase
+          .from('gtm_docs')
+          .delete()
+          .eq('id', docId)
+          .eq('workspace_id', workspaceId)
 
-      if (error) throw error
+        if (error) throw error
+        logger.info('[Database] Hard deleted GTM doc:', { docId })
+      } else {
+        // Soft delete - mark as deleted but keep data
+        const { error } = await supabase
+          .from('gtm_docs')
+          .update({
+            is_deleted: true,
+            deleted_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', docId)
+          .eq('workspace_id', workspaceId)
 
-      logger.info('[Database] Deleted GTM doc:', { docId })
+        if (error) throw error
+        logger.info('[Database] Soft deleted GTM doc:', { docId })
+      }
+
       return { data: true, error: null }
     } catch (error) {
       logger.error('Error deleting GTM doc:', error)
@@ -2658,14 +2683,18 @@ export class DatabaseService {
   }
 
   static async searchGTMDocs(workspaceId: string, searchQuery: string, options?: { limit?: number; offset?: number }) {
+    // Enforce pagination limits
+    const limit = Math.min(options?.limit || 50, this.GTM_DOCS_MAX_LIMIT);
+    const offset = options?.offset || 0;
+    
     try {
       // Use full-text search with ts_rank for relevance
       const { data, error } = await supabase
         .rpc('search_gtm_docs', {
           workspace_id_param: workspaceId,
           search_query: searchQuery,
-          result_limit: options?.limit || 50,
-          result_offset: options?.offset || 0
+          result_limit: limit,
+          result_offset: offset
         })
 
       if (error) throw error
@@ -2689,13 +2718,11 @@ export class DatabaseService {
       // Fallback to basic ILIKE search if RPC function doesn't exist yet
       logger.warn('Full-text search not available, falling back to ILIKE:', error)
       
-      const limit = options?.limit || 50
-      const offset = options?.offset || 0
-      
       const { data, error: fallbackError } = await supabase
         .from('gtm_docs')
         .select('id, workspace_id, owner_id, created_at, updated_at, title, doc_type, visibility, is_template, tags')
         .eq('workspace_id', workspaceId)
+        .eq('is_deleted', false)
         .or(`title.ilike.%${searchQuery}%,content_plain.ilike.%${searchQuery}%`)
         .order('updated_at', { ascending: false })
         .range(offset, offset + limit - 1)
@@ -2724,12 +2751,13 @@ export class DatabaseService {
       // Clean entity ID if it has a prefix (e.g. task-UUID -> UUID)
       const cleanEntityId = entityId.replace(/^(task|event|crm|contact|chat)-/, '');
 
-      // Verify doc belongs to workspace before linking
+      // Verify doc belongs to workspace and is not deleted before linking
       const { data: doc } = await supabase
         .from('gtm_docs')
         .select('workspace_id')
         .eq('id', docId)
         .eq('workspace_id', workspaceId)
+        .eq('is_deleted', false)
         .single()
       
       if (!doc) {
@@ -2784,7 +2812,7 @@ export class DatabaseService {
           id,
           doc_id,
           created_at,
-          gtm_docs (
+          gtm_docs!inner (
             id,
             workspace_id,
             owner_id,
@@ -2794,6 +2822,7 @@ export class DatabaseService {
             doc_type,
             visibility,
             is_template,
+            is_deleted,
             tags
           )
         `)
@@ -2802,21 +2831,23 @@ export class DatabaseService {
 
       if (error) throw error
 
-      // Transform to camelCase with LinkedDoc structure
-      const linkedDocs = data?.map((link: any) => ({
-        id: link.gtm_docs.id,
-        workspaceId: link.gtm_docs.workspace_id,
-        ownerId: link.gtm_docs.owner_id,
-        createdAt: link.gtm_docs.created_at,
-        updatedAt: link.gtm_docs.updated_at,
-        title: link.gtm_docs.title,
-        docType: link.gtm_docs.doc_type,
-        visibility: link.gtm_docs.visibility,
-        isTemplate: link.gtm_docs.is_template,
-        tags: link.gtm_docs.tags || [],
-        linkedAt: link.created_at,
-        linkId: link.id,
-      })) || []
+      // Transform to camelCase with LinkedDoc structure, filtering out deleted docs
+      const linkedDocs = (data || [])
+        .filter((link: any) => link.gtm_docs && !link.gtm_docs.is_deleted)
+        .map((link: any) => ({
+          id: link.gtm_docs.id,
+          workspaceId: link.gtm_docs.workspace_id,
+          ownerId: link.gtm_docs.owner_id,
+          createdAt: link.gtm_docs.created_at,
+          updatedAt: link.gtm_docs.updated_at,
+          title: link.gtm_docs.title,
+          docType: link.gtm_docs.doc_type,
+          visibility: link.gtm_docs.visibility,
+          isTemplate: link.gtm_docs.is_template,
+          tags: link.gtm_docs.tags || [],
+          linkedAt: link.created_at,
+          linkId: link.id,
+        }))
 
       return { data: linkedDocs, error: null }
     } catch (error) {
@@ -2869,7 +2900,8 @@ export class DatabaseService {
       const existingByTitle = new Map((existing || []).map(t => [t.title, t]))
 
       // Map template IDs to doc_types and categories
-      // Valid doc_types: 'brief', 'campaign', 'meeting_notes', 'battlecard', 'outbound_template', 'icp_sheet', 'persona', 'competitive_snapshot'
+      // ONLY use valid doc_types from schema constraint:
+      // 'brief', 'campaign', 'meeting_notes', 'battlecard', 'outbound_template', 'icp_sheet', 'persona', 'competitive_snapshot'
       const templateMetadata: Record<string, { doc_type: string; template_category: string }> = {
         'executive-summary': { doc_type: 'brief', template_category: 'strategy' },
         'product-brief': { doc_type: 'brief', template_category: 'product' },
@@ -2882,11 +2914,17 @@ export class DatabaseService {
         'quarterly-business-review': { doc_type: 'brief', template_category: 'strategy' },
       }
 
+      // Default doc_type for unmapped templates (must be in schema constraint)
+      const DEFAULT_DOC_TYPE = 'brief';
+
       // Transform GTM_TEMPLATES to database format
       const templates = GTM_TEMPLATES.map(template => {
-        const metadata = templateMetadata[template.id] || { doc_type: 'other', template_category: 'general' }
+        const metadata = templateMetadata[template.id] || { doc_type: DEFAULT_DOC_TYPE, template_category: 'general' }
         // Create unique tags array (deduplicated)
         const tags = [...new Set(['template', 'gtm', metadata.template_category, template.category || metadata.doc_type])]
+        
+        // Create valid Tiptap JSON structure (empty doc that editor can hydrate from HTML)
+        const contentJson = { type: 'doc', content: [] }
         
         return {
           id: template.id,
@@ -2895,12 +2933,13 @@ export class DatabaseService {
           template_category: metadata.template_category,
           tags,
           content_html: template.content,
+          content_json: contentJson,
         }
       })
 
       // Separate templates into create vs update
       const templatesToCreate: typeof templates = []
-      const templatesToUpdate: Array<{ id: string; content_html: string }> = []
+      const templatesToUpdate: Array<{ id: string; content_html: string; content_json: any }> = []
       
       for (const template of templates) {
         const existingTemplate = existingByTitle.get(template.title)
@@ -2913,31 +2952,43 @@ export class DatabaseService {
         ) {
           // Update if existing template has no/minimal content or lacks rich formatting
           // This ensures templates are updated when we add new styled content
-          templatesToUpdate.push({ id: existingTemplate.id, content_html: template.content_html })
+          templatesToUpdate.push({ 
+            id: existingTemplate.id, 
+            content_html: template.content_html,
+            content_json: template.content_json,
+          })
         }
       }
 
-      // Create new templates
-      const createResults = await Promise.all(
-        templatesToCreate.map(template =>
-          supabase
-            .from('gtm_docs')
-            .insert({
-              workspace_id: workspaceId,
-              owner_id: userId,
-              title: template.title,
-              doc_type: template.doc_type,
-              // Store HTML in content_plain - TipTap's setContent() can parse HTML strings
-              content_json: null,
-              content_plain: template.content_html,
-              visibility: 'team',
-              is_template: true,
-              template_category: template.template_category,
-              tags: template.tags,
-            })
-            .select()
-        )
-      );
+      // Batch create templates in chunks to avoid overwhelming the DB
+      const BATCH_SIZE = 5;
+      const createResults: any[] = [];
+      
+      for (let i = 0; i < templatesToCreate.length; i += BATCH_SIZE) {
+        const batch = templatesToCreate.slice(i, i + BATCH_SIZE);
+        const batchResults = await Promise.all(
+          batch.map(template =>
+            supabase
+              .from('gtm_docs')
+              .insert({
+                workspace_id: workspaceId,
+                owner_id: userId,
+                title: template.title,
+                doc_type: template.doc_type,
+                // Store valid Tiptap JSON (empty doc, will be hydrated from HTML on load)
+                content_json: template.content_json,
+                // Store HTML in content_plain - TipTap's setContent() can parse HTML strings
+                content_plain: template.content_html,
+                visibility: 'team',
+                is_template: true,
+                template_category: template.template_category,
+                tags: template.tags,
+              })
+              .select()
+          )
+        );
+        createResults.push(...batchResults);
+      }
 
       // Update existing empty templates with new content
       const updateResults = await Promise.all(
@@ -2945,7 +2996,7 @@ export class DatabaseService {
           supabase
             .from('gtm_docs')
             .update({
-              content_json: null,
+              content_json: template.content_json,
               content_plain: template.content_html,
               updated_at: new Date().toISOString(),
             })

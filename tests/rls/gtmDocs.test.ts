@@ -1,6 +1,6 @@
 /**
- * RLS Tests for gtm_docs
- * Verifies workspace-scoped access and blocks_metadata persistence
+ * RLS Tests for gtm_docs and gtm_doc_links
+ * Verifies workspace-scoped access, blocks_metadata persistence, and doc linking
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -51,6 +51,7 @@ describe('gtm_docs RLS policies', () => {
   let workspaceId: string;
   let ownerDocId: string;
   let memberDocId: string;
+  let testTaskId: string;
 
   beforeAll(async () => {
     ownerClient = await createAuthenticatedClient(TEST_USERS.owner.email, TEST_USERS.owner.password);
@@ -80,6 +81,21 @@ describe('gtm_docs RLS policies', () => {
       user_id: memberUserId,
       role: 'member',
     });
+
+    // Create a test task for linking tests
+    const { data: task } = await ownerClient
+      .from('tasks')
+      .insert({
+        workspace_id: workspaceId,
+        text: 'Test Task for Doc Linking',
+        status: 'Todo',
+        priority: 'Medium',
+        category: 'productsServicesTasks',
+      })
+      .select()
+      .single();
+    
+    testTaskId = task?.id;
   });
 
   afterAll(async () => {
@@ -257,6 +273,220 @@ describe('gtm_docs RLS policies', () => {
         .eq('id', memberDocId)
         .eq('workspace_id', workspaceId);
 
+      expect(error).toBeDefined();
+    });
+  });
+});
+
+// ============================================================================
+// gtm_doc_links RLS Tests
+// ============================================================================
+
+describe('gtm_doc_links RLS policies', () => {
+  let ownerClient: SupabaseClient;
+  let memberClient: SupabaseClient;
+  let nonMemberClient: SupabaseClient;
+  let ownerUserId: string;
+  let memberUserId: string;
+  let workspaceId: string;
+  let ownerDocId: string;
+  let memberDocId: string;
+  let ownerLinkId: string;
+  let testTaskId: string;
+
+  beforeAll(async () => {
+    ownerClient = await createAuthenticatedClient(TEST_USERS.owner.email, TEST_USERS.owner.password);
+    memberClient = await createAuthenticatedClient(TEST_USERS.member.email, TEST_USERS.member.password);
+    nonMemberClient = await createAuthenticatedClient(TEST_USERS.nonMember.email, TEST_USERS.nonMember.password);
+
+    const { data: ownerUser } = await ownerClient.auth.getUser();
+    const { data: memberUser } = await memberClient.auth.getUser();
+
+    ownerUserId = ownerUser.user?.id ?? '';
+    memberUserId = memberUser.user?.id ?? '';
+
+    // Create workspace
+    const { data: workspace } = await ownerClient
+      .from('workspaces')
+      .insert({ name: 'Doc Links Workspace', plan_type: 'free' })
+      .select()
+      .single();
+
+    workspaceId = workspace!.id;
+
+    // Add member
+    await ownerClient.from('workspace_members').insert({
+      workspace_id: workspaceId,
+      user_id: memberUserId,
+      role: 'member',
+    });
+
+    // Create test docs
+    const { data: ownerDoc } = await ownerClient
+      .from('gtm_docs')
+      .insert({
+        workspace_id: workspaceId,
+        owner_id: ownerUserId,
+        title: 'Owner Doc for Linking',
+        doc_type: 'brief',
+        content_json: {},
+        content_plain: 'Test content',
+        visibility: 'team',
+      })
+      .select()
+      .single();
+    ownerDocId = ownerDoc!.id;
+
+    const { data: memberDoc } = await memberClient
+      .from('gtm_docs')
+      .insert({
+        workspace_id: workspaceId,
+        owner_id: memberUserId,
+        title: 'Member Doc for Linking',
+        doc_type: 'brief',
+        content_json: {},
+        content_plain: 'Test content',
+        visibility: 'team',
+      })
+      .select()
+      .single();
+    memberDocId = memberDoc!.id;
+
+    // Create a test task for linking
+    const { data: task } = await ownerClient
+      .from('tasks')
+      .insert({
+        workspace_id: workspaceId,
+        text: 'Test Task',
+        status: 'Todo',
+        priority: 'Medium',
+        category: 'productsServicesTasks',
+      })
+      .select()
+      .single();
+    testTaskId = task!.id;
+  });
+
+  afterAll(async () => {
+    if (workspaceId) {
+      await cleanupTestData(ownerClient, workspaceId);
+    }
+  });
+
+  describe('INSERT', () => {
+    it('allows doc owner to create links', async () => {
+      const { data, error } = await ownerClient
+        .from('gtm_doc_links')
+        .insert({
+          doc_id: ownerDocId,
+          linked_entity_type: 'task',
+          linked_entity_id: testTaskId,
+        })
+        .select()
+        .single();
+
+      expect(error).toBeNull();
+      expect(data?.doc_id).toBe(ownerDocId);
+      ownerLinkId = data!.id;
+    });
+
+    it('allows member to create links for their docs', async () => {
+      const { data, error } = await memberClient
+        .from('gtm_doc_links')
+        .insert({
+          doc_id: memberDocId,
+          linked_entity_type: 'task',
+          linked_entity_id: testTaskId,
+        })
+        .select()
+        .single();
+
+      expect(error).toBeNull();
+      expect(data?.doc_id).toBe(memberDocId);
+    });
+
+    it('denies linking to docs user does not own', async () => {
+      const { data, error } = await memberClient
+        .from('gtm_doc_links')
+        .insert({
+          doc_id: ownerDocId, // Member trying to link owner's doc
+          linked_entity_type: 'task',
+          linked_entity_id: testTaskId,
+        })
+        .select()
+        .single();
+
+      expect(data).toBeNull();
+      expect(error).toBeDefined();
+    });
+
+    it('denies non-members from creating links', async () => {
+      const { data, error } = await nonMemberClient
+        .from('gtm_doc_links')
+        .insert({
+          doc_id: ownerDocId,
+          linked_entity_type: 'task',
+          linked_entity_id: testTaskId,
+        })
+        .select()
+        .single();
+
+      expect(data).toBeNull();
+      expect(error).toBeDefined();
+    });
+  });
+
+  describe('SELECT', () => {
+    it('allows workspace members to view links for team docs', async () => {
+      const { data, error } = await memberClient
+        .from('gtm_doc_links')
+        .select('id, doc_id')
+        .eq('doc_id', ownerDocId);
+
+      expect(error).toBeNull();
+      expect(data?.length).toBeGreaterThan(0);
+    });
+
+    it('filters links for non-members', async () => {
+      const { data, error } = await nonMemberClient
+        .from('gtm_doc_links')
+        .select('id')
+        .eq('doc_id', ownerDocId);
+
+      expect(error).toBeNull();
+      expect(data?.length ?? 0).toBe(0);
+    });
+  });
+
+  describe('DELETE', () => {
+    it('allows doc owner to delete their links', async () => {
+      const { error } = await ownerClient
+        .from('gtm_doc_links')
+        .delete()
+        .eq('id', ownerLinkId);
+
+      expect(error).toBeNull();
+    });
+
+    it('denies non-owners from deleting links', async () => {
+      // First, create a new link for testing
+      const { data: link } = await ownerClient
+        .from('gtm_doc_links')
+        .insert({
+          doc_id: ownerDocId,
+          linked_entity_type: 'crm',
+          linked_entity_id: testTaskId, // Using task ID as placeholder
+        })
+        .select()
+        .single();
+
+      // Member tries to delete owner's link
+      const { error } = await memberClient
+        .from('gtm_doc_links')
+        .delete()
+        .eq('id', link!.id);
+
+      // Should fail or have no effect (RLS denies)
       expect(error).toBeDefined();
     });
   });

@@ -1343,9 +1343,10 @@ async function buildContext(
         case 'documents':
           // Get recent GTM documents (metadata only for listing)
           const { data: documents } = await supabaseUser
-            .from('gtm_documents')
+            .from('gtm_docs')
             .select('id, title, doc_type, created_at, updated_at')
             .eq('workspace_id', workspace_id)
+            .eq('is_deleted', false)
             .order('updated_at', { ascending: false })
             .limit(CONTEXT_LIMITS.MAX_ENTITIES_PER_TYPE);
           
@@ -1392,17 +1393,23 @@ async function buildContext(
 
   if (options.selected_documents?.length) {
     // Get full document content for selected documents (limited + truncated)
+    // Use content_plain for AI context (plain text extraction from rich content)
     const { data: selectedDocs } = await supabaseUser
-      .from('gtm_documents')
-      .select('id, title, doc_type, content, created_at, updated_at')
+      .from('gtm_docs')
+      .select('id, title, doc_type, content_plain, created_at, updated_at')
       .eq('workspace_id', workspace_id)
+      .eq('is_deleted', false)
       .in('id', options.selected_documents.slice(0, 3)); // Limit to 3 docs
     
     // Truncate document content
     const truncatedDocs = (selectedDocs || []).map((d: any) => ({
-      ...d,
-      content: d.content?.substring(0, CONTEXT_LIMITS.MAX_DOCUMENT_CONTENT) || '',
-      _truncated: d.content?.length > CONTEXT_LIMITS.MAX_DOCUMENT_CONTENT,
+      id: d.id,
+      title: d.title,
+      doc_type: d.doc_type,
+      content: d.content_plain?.substring(0, CONTEXT_LIMITS.MAX_DOCUMENT_CONTENT) || '',
+      created_at: d.created_at,
+      updated_at: d.updated_at,
+      _truncated: (d.content_plain?.length || 0) > CONTEXT_LIMITS.MAX_DOCUMENT_CONTENT,
     }));
 
     if (truncatedDocs.length && addToContext(truncatedDocs, 'selectedDocuments')) {

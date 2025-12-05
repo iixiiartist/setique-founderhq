@@ -1,5 +1,6 @@
 -- Migration: Add pagination support to search_gtm_docs RPC function
 -- This creates or replaces the full-text search function for GTM docs with pagination
+-- Uses the stored search_vector column for performance (populated by trigger)
 
 -- Drop the existing function if it exists (to recreate with new signature)
 DROP FUNCTION IF EXISTS search_gtm_docs(uuid, text);
@@ -29,8 +30,13 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  search_tsquery tsquery;
 BEGIN
-  -- Return results using full-text search with ts_rank for relevance
+  -- Pre-compute the tsquery for reuse
+  search_tsquery := plainto_tsquery('english', search_query);
+  
+  -- Return results using stored search_vector for performance
   RETURN QUERY
   SELECT
     d.id,
@@ -43,20 +49,15 @@ BEGIN
     d.visibility,
     d.is_template,
     d.tags,
-    ts_rank(
-      setweight(to_tsvector('english', COALESCE(d.title, '')), 'A') ||
-      setweight(to_tsvector('english', COALESCE(d.content_plain, '')), 'B'),
-      plainto_tsquery('english', search_query)
-    ) AS rank
+    ts_rank(d.search_vector, search_tsquery) AS rank
   FROM gtm_docs d
   WHERE
     d.workspace_id = workspace_id_param
     AND d.is_deleted = false
     AND (
-      -- Full-text search on title and content
-      to_tsvector('english', COALESCE(d.title, '') || ' ' || COALESCE(d.content_plain, ''))
-      @@ plainto_tsquery('english', search_query)
-      -- Also match partial title matches for better UX
+      -- Full-text search using stored search_vector (indexed)
+      d.search_vector @@ search_tsquery
+      -- Also match partial title matches for better UX (uses trigram index)
       OR d.title ILIKE '%' || search_query || '%'
     )
   ORDER BY rank DESC, d.updated_at DESC
@@ -70,18 +71,4 @@ GRANT EXECUTE ON FUNCTION search_gtm_docs(UUID, TEXT, INTEGER, INTEGER) TO authe
 
 -- Add comment for documentation
 COMMENT ON FUNCTION search_gtm_docs(UUID, TEXT, INTEGER, INTEGER) IS 
-  'Full-text search for GTM documents with pagination. Uses ts_rank for relevance ranking.';
-
--- Create index to support full-text search if it doesn't exist
--- Note: This uses IF NOT EXISTS to avoid errors if index already exists
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_indexes 
-    WHERE indexname = 'gtm_docs_search_idx'
-  ) THEN
-    CREATE INDEX gtm_docs_search_idx ON gtm_docs 
-    USING GIN (to_tsvector('english', COALESCE(title, '') || ' ' || COALESCE(content_plain, '')));
-  END IF;
-END
-$$;
+  'Full-text search for GTM documents with pagination. Uses stored search_vector and ts_rank for relevance ranking. The search_vector is auto-populated by trigger on insert/update.';

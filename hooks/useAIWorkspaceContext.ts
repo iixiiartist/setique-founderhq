@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react';
 import { Task, AnyCrmItem, CalendarEvent, GTMDocMetadata, BusinessProfile } from '../types';
 import { DatabaseService } from '../lib/services/database';
 
+// Limits for AI context to avoid token bloat
+const MAX_RELATED_DOCS = 3;
+const DOCS_FETCH_LIMIT = 20;
+
 export interface AIWorkspaceContext {
   // Business context - this is what matters for GTM writing
   businessProfile: BusinessProfile | null;
@@ -57,9 +61,11 @@ export function useAIWorkspaceContext(
           currentDocType = currentDoc.docType;
           
           // Use scoped query to find related docs (same type, team visibility)
+          // Limit fetch to avoid unbounded queries
           const docsRes = await DatabaseService.loadGTMDocs(workspaceId, { 
             filter: 'team',
-            userId: userId 
+            userId: userId,
+            limit: DOCS_FETCH_LIMIT,
           });
           const allDocs = docsRes.data || [];
           
@@ -73,7 +79,7 @@ export function useAIWorkspaceContext(
                 d.tags.some(tag => currentDoc.tags?.includes(tag))
               )
             )
-            .slice(0, 3); // Limit to 3 most relevant for context
+            .slice(0, MAX_RELATED_DOCS); // Limit to avoid context overflow
         }
       }
 

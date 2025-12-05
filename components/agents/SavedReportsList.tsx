@@ -1,9 +1,10 @@
 // components/agents/SavedReportsList.tsx
 // Display list of saved Research Agent reports
 
-import React from 'react';
-import { FileText, Clock, Trash2, ChevronRight, Target, TrendingUp, Users, Lightbulb } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { FileText, Clock, Trash2, Target, TrendingUp, Users, Lightbulb, Eye, Share2, ExternalLink } from 'lucide-react';
 import type { AgentReport } from '../../lib/services/agentReportService';
+import { ShareReportDialog } from '../shared/ShareReportDialog';
 
 interface SavedReportsListProps {
   reports: AgentReport[];
@@ -25,6 +26,23 @@ export const SavedReportsList: React.FC<SavedReportsListProps> = ({
   onViewReport,
   onDeleteReport,
 }) => {
+  const [shareDialogReport, setShareDialogReport] = useState<AgentReport | null>(null);
+
+  const handleShare = useCallback((e: React.MouseEvent, report: AgentReport) => {
+    e.stopPropagation();
+    setShareDialogReport(report);
+  }, []);
+
+  const handleDelete = useCallback((e: React.MouseEvent, reportId: string) => {
+    e.stopPropagation();
+    onDeleteReport(reportId);
+  }, [onDeleteReport]);
+
+  const handleView = useCallback((e: React.MouseEvent, report: AgentReport) => {
+    e.stopPropagation();
+    onViewReport(report);
+  }, [onViewReport]);
+
   if (isLoading) {
     return (
       <div className="text-center py-8 text-gray-500">
@@ -74,25 +92,56 @@ export const SavedReportsList: React.FC<SavedReportsListProps> = ({
                   <Clock size={12} />
                   {timeAgo}
                 </span>
+                {report.share_token && (
+                  <span className="flex items-center gap-1 text-xs text-green-600">
+                    <ExternalLink size={12} />
+                    Shared
+                  </span>
+                )}
               </div>
             </div>
 
             <div className="flex items-center gap-1">
+              {/* View button */}
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteReport(report.id);
-                }}
+                onClick={(e) => handleView(e, report)}
+                className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                title="View report"
+              >
+                <Eye size={16} />
+              </button>
+              {/* Share button */}
+              <button
+                onClick={(e) => handleShare(e, report)}
+                className="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                title="Share report"
+              >
+                <Share2 size={16} />
+              </button>
+              {/* Delete button */}
+              <button
+                onClick={(e) => handleDelete(e, report.id)}
                 className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
                 title="Delete report"
               >
                 <Trash2 size={16} />
               </button>
-              <ChevronRight size={18} className="text-gray-400" />
             </div>
           </div>
         );
       })}
+
+      {/* Share Dialog */}
+      {shareDialogReport && (
+        <ShareReportDialog
+          isOpen={!!shareDialogReport}
+          onClose={() => setShareDialogReport(null)}
+          reportId={shareDialogReport.id}
+          reportType="report"
+          reportTitle={shareDialogReport.target}
+          existingToken={shareDialogReport.share_token}
+        />
+      )}
     </div>
   );
 };
