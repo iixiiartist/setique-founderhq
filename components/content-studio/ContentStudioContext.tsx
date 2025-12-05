@@ -16,6 +16,9 @@ import {
 } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
+// Custom properties to preserve in undo/redo/persistence snapshots
+const CUSTOM_PROPS = ['id', 'name', 'elementType', 'locked', 'visible'];
+
 // ============================================================================
 // Initial State
 // ============================================================================
@@ -498,6 +501,10 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
   const addObject = useCallback((object: fabric.Object) => {
     if (!canvasRef.current) return;
     
+    // Capture undo state BEFORE adding
+    const snapshot = JSON.stringify(canvasRef.current.toJSON(CUSTOM_PROPS));
+    dispatch({ type: 'PUSH_UNDO', payload: snapshot });
+    
     // Assign unique ID
     (object as any).id = uuidv4();
     
@@ -506,28 +513,47 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
     canvasRef.current.renderAll();
     
     dispatch({ type: 'SELECT_OBJECTS', payload: [(object as any).id] });
-  }, []);
+    
+    // Persist after add
+    persistCurrentPage();
+  }, [persistCurrentPage]);
 
   const deleteSelectedObjects = useCallback(() => {
     if (!canvasRef.current) return;
     
     const activeObjects = canvasRef.current.getActiveObjects();
+    if (activeObjects.length === 0) return;
+    
+    // Capture undo state BEFORE deleting
+    const snapshot = JSON.stringify(canvasRef.current.toJSON(CUSTOM_PROPS));
+    dispatch({ type: 'PUSH_UNDO', payload: snapshot });
+    
     activeObjects.forEach((obj) => canvasRef.current?.remove(obj));
     canvasRef.current.discardActiveObject();
     canvasRef.current.renderAll();
     
     dispatch({ type: 'SELECT_OBJECTS', payload: [] });
-  }, []);
+    
+    // Persist after delete
+    persistCurrentPage();
+  }, [persistCurrentPage]);
 
   const duplicateSelectedObjects = useCallback(() => {
     if (!canvasRef.current) return;
     
     const activeObjects = canvasRef.current.getActiveObjects();
     if (activeObjects.length === 0) return;
+    
+    // Capture undo state BEFORE duplicating
+    const snapshot = JSON.stringify(canvasRef.current.toJSON(CUSTOM_PROPS));
+    dispatch({ type: 'PUSH_UNDO', payload: snapshot });
 
     activeObjects.forEach((obj) => {
       obj.clone((cloned: fabric.Object) => {
         (cloned as any).id = uuidv4();
+        // Copy custom properties
+        (cloned as any).name = (obj as any).name;
+        (cloned as any).elementType = (obj as any).elementType;
         cloned.set({
           left: (obj.left || 0) + 20,
           top: (obj.top || 0) + 20,
@@ -537,7 +563,10 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
     });
     
     canvasRef.current.renderAll();
-  }, []);
+    
+    // Persist after duplicate
+    persistCurrentPage();
+  }, [persistCurrentPage]);
 
   const groupSelectedObjects = useCallback(() => {
     if (!canvasRef.current) return;
@@ -667,7 +696,7 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
   // Save canvas snapshot for undo
   const pushUndo = useCallback(() => {
     if (!canvasRef.current) return;
-    const snapshot = JSON.stringify(canvasRef.current.toJSON(['id', 'name']));
+    const snapshot = JSON.stringify(canvasRef.current.toJSON(CUSTOM_PROPS));
     dispatch({ type: 'PUSH_UNDO', payload: snapshot });
   }, []);
 
@@ -675,12 +704,12 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
     if (state.undoStack.length === 0 || !canvasRef.current) return;
     
     // Get current state to push to redo
-    const currentSnapshot = JSON.stringify(canvasRef.current.toJSON(['id', 'name']));
+    const currentSnapshot = JSON.stringify(canvasRef.current.toJSON(CUSTOM_PROPS));
     
     // Get the previous state
     const previousSnapshot = state.undoStack[state.undoStack.length - 1];
     
-    // Restore canvas from snapshot
+    // Restore canvas from snapshot (skip event handlers during load)
     canvasRef.current.loadFromJSON(JSON.parse(previousSnapshot), () => {
       canvasRef.current?.renderAll();
     });
@@ -692,7 +721,7 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
     if (state.redoStack.length === 0 || !canvasRef.current) return;
     
     // Get current state to push to undo
-    const currentSnapshot = JSON.stringify(canvasRef.current.toJSON(['id', 'name']));
+    const currentSnapshot = JSON.stringify(canvasRef.current.toJSON(CUSTOM_PROPS));
     
     // Get the next state
     const nextSnapshot = state.redoStack[state.redoStack.length - 1];

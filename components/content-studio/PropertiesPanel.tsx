@@ -60,7 +60,7 @@ const FONT_FAMILIES = [
 const FONT_SIZES = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 42, 48, 56, 64, 72, 96];
 
 export function PropertiesPanel({ className = '' }: PropertiesPanelProps) {
-  const { state, canvasRef } = useContentStudio();
+  const { state, canvasRef, pushUndo, persistCurrentPage } = useContentStudio();
   
   const [expandedSections, setExpandedSections] = useState({
     position: true,
@@ -134,22 +134,29 @@ export function PropertiesPanel({ className = '' }: PropertiesPanelProps) {
     };
   }, [canvasRef, state.selectedObjectIds, refreshTrigger]);
 
-  // Update property on canvas
-  const updateProperty = useCallback((property: string, value: any) => {
+  // Track whether we've captured undo for current drag operation
+  const undoCapturedRef = React.useRef(false);
+
+  // Update property on canvas with undo support
+  const updateProperty = useCallback((property: string, value: any, isIntermediate = false) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
     const activeObject = canvas.getActiveObject();
     if (!activeObject) return;
 
+    // Capture undo state on first change of a drag/slider operation
+    if (!undoCapturedRef.current) {
+      pushUndo();
+      undoCapturedRef.current = true;
+    }
+
     // Handle special cases
     switch (property) {
       case 'width':
-        const currentWidth = (activeObject.width || 1) * (activeObject.scaleX || 1);
         activeObject.scaleX = value / (activeObject.width || 1);
         break;
       case 'height':
-        const currentHeight = (activeObject.height || 1) * (activeObject.scaleY || 1);
         activeObject.scaleY = value / (activeObject.height || 1);
         break;
       case 'opacity':
@@ -160,7 +167,19 @@ export function PropertiesPanel({ className = '' }: PropertiesPanelProps) {
     }
 
     canvas.renderAll();
-  }, [canvasRef]);
+    
+    // Persist immediately on final value (not intermediate slider drags)
+    if (!isIntermediate) {
+      persistCurrentPage();
+      undoCapturedRef.current = false;
+    }
+  }, [canvasRef, pushUndo, persistCurrentPage]);
+
+  // Handler for slider commit (when user releases)
+  const handleSliderCommit = useCallback(() => {
+    persistCurrentPage();
+    undoCapturedRef.current = false;
+  }, [persistCurrentPage]);
 
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections(prev => ({
@@ -267,7 +286,8 @@ export function PropertiesPanel({ className = '' }: PropertiesPanelProps) {
                         min={0}
                         max={360}
                         step={1}
-                        onValueChange={([v]) => updateProperty('angle', v)}
+                        onValueChange={([v]) => updateProperty('angle', v, true)}
+                        onValueCommit={handleSliderCommit}
                         className="flex-1"
                       />
                       <span className="text-xs text-gray-500 w-10 text-right">{selectedObject.angle}°</span>
@@ -346,7 +366,8 @@ export function PropertiesPanel({ className = '' }: PropertiesPanelProps) {
                         min={0}
                         max={100}
                         step={1}
-                        onValueChange={([v]) => updateProperty('opacity', v)}
+                        onValueChange={([v]) => updateProperty('opacity', v, true)}
+                        onValueCommit={handleSliderCommit}
                         className="flex-1"
                       />
                       <span className="text-xs text-gray-500 w-10 text-right">{Math.round(selectedObject.opacity)}%</span>
@@ -459,7 +480,8 @@ export function PropertiesPanel({ className = '' }: PropertiesPanelProps) {
                           min={80}
                           max={300}
                           step={10}
-                          onValueChange={([v]) => updateProperty('lineHeight', v / 100)}
+                          onValueChange={([v]) => updateProperty('lineHeight', v / 100, true)}
+                          onValueCommit={handleSliderCommit}
                           className="flex-1"
                         />
                         <span className="text-xs text-gray-500 w-10 text-right">{selectedObject.lineHeight.toFixed(1)}</span>

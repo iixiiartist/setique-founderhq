@@ -29,6 +29,9 @@ export function CanvasEngine({ className = '', showGrid = true }: CanvasEnginePr
   const canvasElementRef = useRef<HTMLCanvasElement>(null);
   const [isPanning, setIsPanning] = useState(false);
   const [lastPanPoint, setLastPanPoint] = useState<{ x: number; y: number } | null>(null);
+  
+  // Flag to skip persistence during page load (prevents redundant saves and undo entries)
+  const isLoadingRef = useRef(false);
 
   // Initialize canvas
   useEffect(() => {
@@ -77,6 +80,9 @@ export function CanvasEngine({ className = '', showGrid = true }: CanvasEnginePr
     
     if (!canvas || !page) return;
 
+    // Set loading flag to skip persistence during load
+    isLoadingRef.current = true;
+
     // Clear and resize
     canvas.clear();
     canvas.setWidth(page.canvas.width);
@@ -89,7 +95,11 @@ export function CanvasEngine({ className = '', showGrid = true }: CanvasEnginePr
     if (page.canvas.json) {
       canvas.loadFromJSON(page.canvas.json, () => {
         canvas.renderAll();
+        // Clear loading flag after load completes
+        isLoadingRef.current = false;
       });
+    } else {
+      isLoadingRef.current = false;
     }
   }, [state.currentPageIndex, getCurrentPage, canvasRef]);
 
@@ -119,33 +129,38 @@ export function CanvasEngine({ className = '', showGrid = true }: CanvasEnginePr
     };
   }, [canvasRef, dispatch]);
 
-  // Capture undo snapshots on object modifications and persist changes
+  // Capture undo snapshots BEFORE transforms and persist AFTER all changes
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const handleBeforeTransform = () => {
+      // Skip during page load
+      if (isLoadingRef.current) return;
       // Capture state before modification for undo
       pushUndo();
     };
 
     const handleAfterModification = () => {
+      // Skip during page load
+      if (isLoadingRef.current) return;
       // Persist canvas changes to document state
       persistCurrentPage();
     };
 
-    canvas.on('object:added', handleBeforeTransform);
+    // Only capture undo before user transforms (drag, scale, rotate)
     canvas.on('before:transform', handleBeforeTransform);
-    canvas.on('object:removed', handleBeforeTransform);
     
-    // Persist after modifications complete
+    // Persist after all modifications (including add/remove)
     canvas.on('object:modified', handleAfterModification);
+    canvas.on('object:added', handleAfterModification);
+    canvas.on('object:removed', handleAfterModification);
 
     return () => {
-      canvas.off('object:added', handleBeforeTransform);
       canvas.off('before:transform', handleBeforeTransform);
-      canvas.off('object:removed', handleBeforeTransform);
       canvas.off('object:modified', handleAfterModification);
+      canvas.off('object:added', handleAfterModification);
+      canvas.off('object:removed', handleAfterModification);
     };
   }, [canvasRef, pushUndo, persistCurrentPage]);
 

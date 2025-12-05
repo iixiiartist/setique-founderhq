@@ -11,6 +11,7 @@ export interface SliderProps {
   max?: number;
   step?: number;
   onValueChange: (value: number[]) => void;
+  onValueCommit?: (value: number[]) => void; // Called when user releases slider
   className?: string;
   disabled?: boolean;
 }
@@ -21,11 +22,18 @@ export function Slider({
   max = 100,
   step = 1,
   onValueChange,
+  onValueCommit,
   className = '',
   disabled = false,
 }: SliderProps) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onValueChange([Number(e.target.value)]);
+  };
+
+  const handleCommit = () => {
+    if (onValueCommit) {
+      onValueCommit(value);
+    }
   };
 
   const percentage = ((value[0] - min) / (max - min)) * 100;
@@ -45,6 +53,8 @@ export function Slider({
         step={step}
         value={value[0]}
         onChange={handleChange}
+        onMouseUp={handleCommit}
+        onTouchEnd={handleCommit}
         disabled={disabled}
         className="absolute w-full h-2 opacity-0 cursor-pointer disabled:cursor-not-allowed"
       />

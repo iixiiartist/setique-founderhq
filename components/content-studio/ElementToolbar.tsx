@@ -689,9 +689,9 @@ export function ElementToolbar({ className = '' }: ElementToolbarProps) {
 
   return (
     <TooltipProvider>
-      <div className={`flex flex-col bg-white border-r border-gray-200 py-2 ${className}`}>
+      <div className={`flex flex-col w-14 bg-white border-r border-gray-200 py-2 ${className}`}>
         {/* Selection Tools */}
-        <div className="px-2 pb-2 border-b border-gray-200">
+        <div className="px-2 pb-2 border-b border-gray-200 flex flex-col items-center gap-1">`
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -726,7 +726,7 @@ export function ElementToolbar({ className = '' }: ElementToolbarProps) {
         </div>
 
         {/* Element Categories */}
-        <div className="flex-1 overflow-y-auto py-2 px-2 space-y-1">
+        <div className="flex-1 overflow-y-auto py-2 px-2 flex flex-col items-center gap-1">`
           {categories.map((category) => (
             <Popover
               key={category.id}
@@ -750,7 +750,7 @@ export function ElementToolbar({ className = '' }: ElementToolbarProps) {
                 </TooltipContent>
               </Tooltip>
 
-              <PopoverContent side="right" align="start" className="w-56 p-2">
+              <PopoverContent side="right" align="start" className="w-64 p-2">
                 <div className="space-y-1">
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-2 py-1">
                     {category.label}
@@ -764,11 +764,11 @@ export function ElementToolbar({ className = '' }: ElementToolbarProps) {
                       }}
                       className="w-full flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-gray-100 transition-colors text-left"
                     >
-                      <div className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg">
+                      <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center bg-gray-100 rounded-lg">
                         {item.icon}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <p className="text-sm font-medium text-gray-900 truncate">
                           {item.label}
                         </p>
                         {item.description && (
@@ -786,7 +786,7 @@ export function ElementToolbar({ className = '' }: ElementToolbarProps) {
         </div>
 
         {/* AI Assistant Toggle */}
-        <div className="px-2 pt-2 border-t border-gray-200">
+        <div className="px-2 pt-2 border-t border-gray-200 flex justify-center">`
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
