@@ -31,6 +31,7 @@ import {
   Home,
   PanelLeftClose,
   PanelRightClose,
+  FolderOpen,
 } from 'lucide-react';
 import { ContentStudioProvider, useContentStudio } from './ContentStudioContext';
 import { CanvasEngine } from './CanvasEngine';
@@ -39,6 +40,7 @@ import { PropertiesPanel } from './PropertiesPanel';
 import { ElementToolbar } from './ElementToolbar';
 import { AISidebar } from './AISidebar';
 import { ExportModal } from './ExportModal';
+import { DocumentPickerModal } from './DocumentPickerModal';
 import { loadDocument as loadFromSupabase } from '../../lib/services/contentStudioService';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -88,6 +90,7 @@ function ContentStudioInner({ documentId, onClose, onSave }: ContentStudioProps)
   } = useContentStudio();
 
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isDocumentPickerOpen, setIsDocumentPickerOpen] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState('');
   const [isLoading, setIsLoading] = useState(!!documentId);
@@ -428,6 +431,15 @@ function ContentStudioInner({ documentId, onClose, onSave }: ContentStudioProps)
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setIsDocumentPickerOpen(true)}>
+                  <FolderOpen className="w-4 h-4 mr-2" />
+                  Open Document
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => createNewDocument()}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Document
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={duplicateSelectedObjects}>
                   <Copy className="w-4 h-4 mr-2" />
                   Duplicate Selection
@@ -487,6 +499,13 @@ function ContentStudioInner({ documentId, onClose, onSave }: ContentStudioProps)
         <ExportModal
           open={isExportModalOpen}
           onClose={() => setIsExportModalOpen(false)}
+        />
+
+        {/* Document Picker Modal */}
+        <DocumentPickerModal
+          open={isDocumentPickerOpen}
+          onClose={() => setIsDocumentPickerOpen(false)}
+          workspaceId={state.document?.workspaceId || ''}
         />
       </div>
     </TooltipProvider>
