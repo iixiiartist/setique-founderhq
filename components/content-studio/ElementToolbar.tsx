@@ -43,6 +43,8 @@ import {
   FileText,
 } from 'lucide-react';
 import { useContentStudio } from './ContentStudioContext';
+import { validateImageSize } from '../../lib/services/contentStudioService';
+import { showError } from '../../lib/utils/toast';
 import { Button } from '../ui/Button';
 import {
   Popover,
@@ -540,9 +542,26 @@ export function ElementToolbar({ className = '' }: ElementToolbarProps) {
             input.onchange = (e) => {
               const file = (e.target as HTMLInputElement).files?.[0];
               if (file) {
+                // Validate file size before processing
+                const validation = validateImageSize(file);
+                if (!validation.valid) {
+                  showError(validation.error || 'Image too large');
+                  return;
+                }
+                
                 const reader = new FileReader();
                 reader.onload = async (event) => {
-                  const img = await fabric.FabricImage.fromURL(event.target?.result as string);
+                  // Also check base64 size (roughly 1.37x file size)
+                  const base64Data = event.target?.result as string;
+                  const base64Size = base64Data?.length || 0;
+                  const MAX_BASE64_SIZE = 2 * 1024 * 1024; // 2MB base64 limit for JSON storage
+                  
+                  if (base64Size > MAX_BASE64_SIZE) {
+                    showError(`Image too large for canvas storage (${(base64Size / 1024 / 1024).toFixed(1)}MB). Please use a smaller image or compress it.`);
+                    return;
+                  }
+                  
+                  const img = await fabric.FabricImage.fromURL(base64Data);
                   // Scale to reasonable size
                   const maxSize = 400;
                   const scale = Math.min(maxSize / (img.width || 1), maxSize / (img.height || 1), 1);

@@ -67,6 +67,8 @@ export function LayersPanel({ className = '' }: LayersPanelProps) {
     state,
     canvasRef,
     dispatch,
+    pushUndo,
+    persistCurrentPage,
     deleteSelectedObjects,
     duplicateSelectedObjects,
     bringToFront,
@@ -155,10 +157,12 @@ export function LayersPanel({ className = '' }: LayersPanelProps) {
     const targetObject = objects.find((obj) => (obj as any).id === layerId);
     
     if (targetObject) {
+      pushUndo(); // Capture state before change
       targetObject.visible = !targetObject.visible;
       canvas.renderAll();
+      persistCurrentPage(); // Persist changes
     }
-  }, [canvasRef]);
+  }, [canvasRef, pushUndo, persistCurrentPage]);
 
   const toggleLock = useCallback((layerId: string) => {
     const canvas = canvasRef.current;
@@ -168,6 +172,7 @@ export function LayersPanel({ className = '' }: LayersPanelProps) {
     const targetObject = objects.find((obj) => (obj as any).id === layerId);
     
     if (targetObject) {
+      pushUndo(); // Capture state before change
       const isLocked = targetObject.lockMovementX && targetObject.lockMovementY;
       targetObject.lockMovementX = !isLocked;
       targetObject.lockMovementY = !isLocked;
@@ -177,13 +182,15 @@ export function LayersPanel({ className = '' }: LayersPanelProps) {
       targetObject.selectable = isLocked;
       targetObject.evented = isLocked;
       canvas.renderAll();
+      persistCurrentPage(); // Persist changes
     }
-  }, [canvasRef]);
+  }, [canvasRef, pushUndo, persistCurrentPage]);
 
   const handleReorder = useCallback((newLayers: Layer[]) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    pushUndo(); // Capture state before reorder
     const orderedIds = [...newLayers].reverse().map((l) => l.id);
     
     orderedIds.forEach((id, index) => {
@@ -194,7 +201,8 @@ export function LayersPanel({ className = '' }: LayersPanelProps) {
     });
     
     canvas.renderAll();
-  }, [canvasRef]);
+    persistCurrentPage(); // Persist changes
+  }, [canvasRef, pushUndo, persistCurrentPage]);
 
   if (!state.isLayersPanelOpen) return null;
 

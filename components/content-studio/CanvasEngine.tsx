@@ -237,9 +237,13 @@ export function CanvasEngine({ className = '', showGrid = true }: CanvasEnginePr
         case 'Delete':
         case 'Backspace':
           const activeObjects = canvas.getActiveObjects();
-          activeObjects.forEach((obj) => canvas.remove(obj));
-          canvas.discardActiveObject();
-          canvas.renderAll();
+          if (activeObjects.length > 0) {
+            pushUndo(); // Capture state before deletion
+            activeObjects.forEach((obj) => canvas.remove(obj));
+            canvas.discardActiveObject();
+            canvas.renderAll();
+            persistCurrentPage(); // Persist changes
+          }
           break;
         case 'Escape':
           canvas.discardActiveObject();

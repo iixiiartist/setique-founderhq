@@ -477,6 +477,7 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
     if (state.currentPageIndex >= updatedPages.length) {
       dispatch({ type: 'SET_PAGE', payload: updatedPages.length - 1 });
     }
+    dispatch({ type: 'MARK_DIRTY' });
   }, [state.document, state.currentPageIndex]);
 
   const duplicatePage = useCallback((index: number) => {
@@ -500,6 +501,7 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
 
     dispatch({ type: 'SET_DOCUMENT', payload: updatedDocument });
     dispatch({ type: 'SET_PAGE', payload: updatedDocument.pages.length - 1 });
+    dispatch({ type: 'MARK_DIRTY' });
   }, [state.document]);
 
   const reorderPages = useCallback((fromIndex: number, toIndex: number) => {
@@ -517,6 +519,7 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
 
     dispatch({ type: 'SET_DOCUMENT', payload: updatedDocument });
     dispatch({ type: 'SET_PAGE', payload: toIndex });
+    dispatch({ type: 'MARK_DIRTY' });
   }, [state.document]);
 
   // Persist current canvas state to document
@@ -697,6 +700,10 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
     const activeObject = canvasRef.current.getActiveObject();
     if (!activeObject || activeObject.type !== 'activeSelection') return;
 
+    // Capture state before change
+    const snapshot = serializeCanvas(canvasRef.current);
+    dispatch({ type: 'PUSH_UNDO', payload: snapshot });
+
     const selection = activeObject as fabric.ActiveSelection;
     const objects = selection.getObjects();
     canvasRef.current.discardActiveObject();
@@ -705,13 +712,19 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
     canvasRef.current.add(group);
     canvasRef.current.setActiveObject(group);
     canvasRef.current.renderAll();
-  }, []);
+    
+    persistCurrentPage(); // Persist changes
+  }, [persistCurrentPage]);
 
   const ungroupSelectedObjects = useCallback(() => {
     if (!canvasRef.current) return;
     
     const activeObject = canvasRef.current.getActiveObject();
     if (!activeObject || activeObject.type !== 'group') return;
+
+    // Capture state before change
+    const snapshot = serializeCanvas(canvasRef.current);
+    dispatch({ type: 'PUSH_UNDO', payload: snapshot });
 
     const group = activeObject as fabric.Group;
     const objects = group.getObjects();
@@ -726,27 +739,39 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
     const selection = new fabric.ActiveSelection(objects, { canvas: canvasRef.current });
     canvasRef.current.setActiveObject(selection);
     canvasRef.current.renderAll();
-  }, []);
+    
+    persistCurrentPage(); // Persist changes
+  }, [persistCurrentPage]);
 
   const bringToFront = useCallback(() => {
     if (!canvasRef.current) return;
     
     const activeObject = canvasRef.current.getActiveObject();
     if (activeObject) {
+      // Capture state before change
+      const snapshot = serializeCanvas(canvasRef.current);
+      dispatch({ type: 'PUSH_UNDO', payload: snapshot });
+      
       canvasRef.current.bringObjectToFront(activeObject);
       canvasRef.current.renderAll();
+      persistCurrentPage(); // Persist changes
     }
-  }, []);
+  }, [persistCurrentPage]);
 
   const sendToBack = useCallback(() => {
     if (!canvasRef.current) return;
     
     const activeObject = canvasRef.current.getActiveObject();
     if (activeObject) {
+      // Capture state before change
+      const snapshot = serializeCanvas(canvasRef.current);
+      dispatch({ type: 'PUSH_UNDO', payload: snapshot });
+      
       canvasRef.current.sendObjectToBack(activeObject);
       canvasRef.current.renderAll();
+      persistCurrentPage(); // Persist changes
     }
-  }, []);
+  }, [persistCurrentPage]);
 
   const bringForward = useCallback(() => {
     if (!canvasRef.current) return;
@@ -756,11 +781,16 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
       const objects = canvasRef.current.getObjects();
       const index = objects.indexOf(activeObject);
       if (index < objects.length - 1) {
+        // Capture state before change
+        const snapshot = serializeCanvas(canvasRef.current);
+        dispatch({ type: 'PUSH_UNDO', payload: snapshot });
+        
         canvasRef.current.moveObjectTo(activeObject, index + 1);
         canvasRef.current.renderAll();
+        persistCurrentPage(); // Persist changes
       }
     }
-  }, []);
+  }, [persistCurrentPage]);
 
   const sendBackward = useCallback(() => {
     if (!canvasRef.current) return;
@@ -770,11 +800,16 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
       const objects = canvasRef.current.getObjects();
       const index = objects.indexOf(activeObject);
       if (index > 0) {
+        // Capture state before change
+        const snapshot = serializeCanvas(canvasRef.current);
+        dispatch({ type: 'PUSH_UNDO', payload: snapshot });
+        
         canvasRef.current.moveObjectTo(activeObject, index - 1);
         canvasRef.current.renderAll();
+        persistCurrentPage(); // Persist changes
       }
     }
-  }, []);
+  }, [persistCurrentPage]);
 
   // -------------------------------------------------------------------------
   // Document Update Operations
@@ -789,6 +824,7 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
       updatedAt: new Date().toISOString(),
     };
     dispatch({ type: 'UPDATE_DOCUMENT', payload: updatedDocument });
+    dispatch({ type: 'MARK_DIRTY' });
   }, [state.document]);
 
   const updateDocumentSettings = useCallback((settings: Partial<import('./types').DocumentSettings>) => {
@@ -807,6 +843,7 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
       updatedAt: new Date().toISOString(),
     };
     dispatch({ type: 'UPDATE_DOCUMENT', payload: updatedDocument });
+    dispatch({ type: 'MARK_DIRTY' });
   }, [state.document]);
 
   // -------------------------------------------------------------------------
@@ -1017,6 +1054,26 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
       autosaveManagerRef.current = null;
     };
   }, [state.document?.id, userId, getWorkspaceId]);
+
+  // Separate beforeunload handler for anonymous/offline users (autosave won't be active)
+  useEffect(() => {
+    // Skip if userId exists (autosave handles beforeunload)
+    if (userId) return;
+    if (!state.document) return;
+    
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (state.isDirty) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes that will be lost. Are you sure you want to leave?';
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [state.document, state.isDirty, userId]);
 
   // -------------------------------------------------------------------------
   // Context Value

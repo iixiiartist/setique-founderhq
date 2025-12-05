@@ -39,6 +39,7 @@ import { PropertiesPanel } from './PropertiesPanel';
 import { ElementToolbar } from './ElementToolbar';
 import { AISidebar } from './AISidebar';
 import { ExportModal } from './ExportModal';
+import { loadDocument as loadFromSupabase } from '../../lib/services/contentStudioService';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import {
@@ -66,6 +67,7 @@ function ContentStudioInner({ documentId, onClose, onSave }: ContentStudioProps)
   const {
     state,
     createNewDocument,
+    loadDocument,
     saveDocument,
     undo,
     redo,
@@ -88,6 +90,7 @@ function ContentStudioInner({ documentId, onClose, onSave }: ContentStudioProps)
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState('');
+  const [isLoading, setIsLoading] = useState(!!documentId);
 
   // Grid visibility from document settings
   const showGrid = state.document?.settings.grid.enabled ?? true;
@@ -97,10 +100,24 @@ function ContentStudioInner({ documentId, onClose, onSave }: ContentStudioProps)
 
   // Initialize with new document or load existing
   useEffect(() => {
-    if (!state.document) {
-      createNewDocument('Untitled Document', 'presentation');
-    }
-  }, []);
+    const initDocument = async () => {
+      if (documentId) {
+        setIsLoading(true);
+        // Load existing document from Supabase
+        const doc = await loadFromSupabase(documentId);
+        if (doc) {
+          loadDocument(doc);
+        } else {
+          // Document not found, create new
+          createNewDocument('Untitled Document', 'presentation');
+        }
+        setIsLoading(false);
+      } else if (!state.document) {
+        createNewDocument('Untitled Document', 'presentation');
+      }
+    };
+    initDocument();
+  }, [documentId]);
 
   // Keyboard shortcuts
   useEffect(() => {
