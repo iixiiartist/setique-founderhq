@@ -111,8 +111,8 @@ function LayerItem({
       className={`
         group flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-all
         ${isSelected
-          ? 'bg-indigo-100 dark:bg-indigo-900/30 border border-indigo-300 dark:border-indigo-600'
-          : 'hover:bg-gray-100 dark:hover:bg-gray-700 border border-transparent'
+          ? 'bg-gray-200 border border-gray-400'
+          : 'hover:bg-gray-100 border border-transparent'
         }
         ${!element.visible ? 'opacity-50' : ''}
       `}
@@ -121,12 +121,12 @@ function LayerItem({
       onMouseLeave={() => setShowActions(false)}
     >
       {/* Element Icon */}
-      <div className={`text-gray-500 dark:text-gray-400 ${element.locked ? 'text-orange-500' : ''}`}>
+      <div className={`text-gray-500 ${element.locked ? 'text-orange-500' : ''}`}>
         {getElementIcon(element.type)}
       </div>
       
       {/* Element Name */}
-      <span className="flex-1 text-sm truncate text-gray-700 dark:text-gray-300">
+      <span className="flex-1 text-sm truncate text-gray-700">
         {getElementLabel(element)}
       </span>
       
@@ -139,7 +139,7 @@ function LayerItem({
               onMoveUp(element.id);
             }}
             disabled={isFirst}
-            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded disabled:opacity-30"
+            className="p-1 hover:bg-gray-200 rounded disabled:opacity-30"
             title="Move up"
           >
             <ChevronUp className="w-3 h-3" />
@@ -150,7 +150,7 @@ function LayerItem({
               onMoveDown(element.id);
             }}
             disabled={isLast}
-            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded disabled:opacity-30"
+            className="p-1 hover:bg-gray-200 rounded disabled:opacity-30"
             title="Move down"
           >
             <ChevronDown className="w-3 h-3" />
@@ -160,7 +160,7 @@ function LayerItem({
               e.stopPropagation();
               onDuplicate(element.id);
             }}
-            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+            className="p-1 hover:bg-gray-200 rounded"
             title="Duplicate"
           >
             <Copy className="w-3 h-3" />
@@ -170,7 +170,7 @@ function LayerItem({
               e.stopPropagation();
               onDelete(element.id);
             }}
-            className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-red-500"
+            className="p-1 hover:bg-red-100 rounded text-red-500"
             title="Delete"
           >
             <Trash2 className="w-3 h-3" />
@@ -186,7 +186,7 @@ function LayerItem({
               e.stopPropagation();
               onToggleVisibility(element.id);
             }}
-            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+            className="p-1 hover:bg-gray-200 rounded"
             title={element.visible ? 'Hide' : 'Show'}
           >
             {element.visible ? (
@@ -200,7 +200,7 @@ function LayerItem({
               e.stopPropagation();
               onToggleLock(element.id);
             }}
-            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+            className="p-1 hover:bg-gray-200 rounded"
             title={element.locked ? 'Unlock' : 'Lock'}
           >
             {element.locked ? (
@@ -310,11 +310,11 @@ export function KonvaLayersPanel({ className = '' }: KonvaLayersPanelProps) {
   if (!state.isLayersPanelOpen) return null;
 
   return (
-    <div className={`w-60 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col ${className}`}>
+    <div className={`w-60 bg-white border-l border-gray-200 flex flex-col ${className}`}>
       {/* Header */}
-      <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Layers</h3>
-        <p className="text-xs text-gray-500 dark:text-gray-500">
+      <div className="px-3 py-2 border-b border-gray-200">
+        <h3 className="text-sm font-semibold text-gray-700">Layers</h3>
+        <p className="text-xs text-gray-500">
           {elements.length} element{elements.length !== 1 ? 's' : ''}
         </p>
       </div>
@@ -322,7 +322,7 @@ export function KonvaLayersPanel({ className = '' }: KonvaLayersPanelProps) {
       {/* Layers List */}
       <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
         {displayElements.length === 0 ? (
-          <div className="text-center py-8 text-gray-400 dark:text-gray-500 text-sm">
+          <div className="text-center py-8 text-gray-400 text-sm">
             No elements on this page
           </div>
         ) : (

@@ -20,20 +20,20 @@ interface ColorInputProps {
 function ColorInput({ label, value, onChange }: ColorInputProps) {
   return (
     <div className="flex items-center gap-2">
-      <label className="text-xs text-gray-500 dark:text-gray-400 w-16">{label}</label>
+      <label className="text-xs text-gray-500 w-16">{label}</label>
       <div className="flex items-center gap-1 flex-1">
         <input
           type="color"
           value={value || '#000000'}
           onChange={(e) => onChange(e.target.value)}
-          className="w-8 h-8 rounded border border-gray-200 dark:border-gray-600 cursor-pointer"
+          className="w-8 h-8 rounded border border-gray-200 cursor-pointer"
         />
         <input
           type="text"
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}
           placeholder="#000000"
-          className="flex-1 px-2 py-1 text-xs rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700"
+          className="flex-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white"
         />
       </div>
     </div>
@@ -57,7 +57,7 @@ interface NumberInputProps {
 function NumberInput({ label, value, onChange, min, max, step = 1, unit }: NumberInputProps) {
   return (
     <div className="flex items-center gap-2">
-      <label className="text-xs text-gray-500 dark:text-gray-400 w-16">{label}</label>
+      <label className="text-xs text-gray-500 w-16">{label}</label>
       <div className="flex items-center gap-1 flex-1">
         <input
           type="number"
@@ -66,7 +66,7 @@ function NumberInput({ label, value, onChange, min, max, step = 1, unit }: Numbe
           min={min}
           max={max}
           step={step}
-          className="flex-1 px-2 py-1 text-xs rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700"
+          className="flex-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white"
         />
         {unit && <span className="text-xs text-gray-400">{unit}</span>}
       </div>
@@ -88,11 +88,11 @@ interface SelectInputProps {
 function SelectInput({ label, value, onChange, options }: SelectInputProps) {
   return (
     <div className="flex items-center gap-2">
-      <label className="text-xs text-gray-500 dark:text-gray-400 w-16">{label}</label>
+      <label className="text-xs text-gray-500 w-16">{label}</label>
       <select
         value={value || options[0]?.value}
         onChange={(e) => onChange(e.target.value)}
-        className="flex-1 px-2 py-1 text-xs rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700"
+        className="flex-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white"
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -113,8 +113,8 @@ interface PropertySectionProps {
 
 function PropertySection({ title, children }: PropertySectionProps) {
   return (
-    <div className="border-b border-gray-200 dark:border-gray-700 pb-3">
-      <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wider">
+    <div className="border-b border-gray-200 pb-3">
+      <h4 className="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wider">
         {title}
       </h4>
       <div className="space-y-2">{children}</div>
@@ -160,11 +160,11 @@ export function KonvaPropertiesPanel({ className = '' }: KonvaPropertiesPanelPro
   // No selection
   if (selectedElements.length === 0) {
     return (
-      <div className={`w-64 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col ${className}`}>
-        <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Properties</h3>
+      <div className={`w-64 bg-white border-l border-gray-200 flex flex-col ${className}`}>
+        <div className="px-3 py-2 border-b border-gray-200">
+          <h3 className="text-sm font-semibold text-gray-700">Properties</h3>
         </div>
-        <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-500 text-sm p-4 text-center">
+        <div className="flex-1 flex items-center justify-center text-gray-400 text-sm p-4 text-center">
           Select an element to edit its properties
         </div>
       </div>
@@ -174,12 +174,12 @@ export function KonvaPropertiesPanel({ className = '' }: KonvaPropertiesPanelPro
   // Multiple selection
   if (selectedElements.length > 1) {
     return (
-      <div className={`w-64 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col ${className}`}>
-        <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Properties</h3>
+      <div className={`w-64 bg-white border-l border-gray-200 flex flex-col ${className}`}>
+        <div className="px-3 py-2 border-b border-gray-200">
+          <h3 className="text-sm font-semibold text-gray-700">Properties</h3>
           <p className="text-xs text-gray-500">{selectedElements.length} elements selected</p>
         </div>
-        <div className="flex-1 p-3 text-gray-400 dark:text-gray-500 text-sm">
+        <div className="flex-1 p-3 text-gray-400 text-sm">
           Multi-selection editing coming soon
         </div>
       </div>
@@ -194,10 +194,10 @@ export function KonvaPropertiesPanel({ className = '' }: KonvaPropertiesPanelPro
   const isLine = ['line', 'arrow'].includes(el.type);
 
   return (
-    <div className={`w-64 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col ${className}`}>
+    <div className={`w-64 bg-white border-l border-gray-200 flex flex-col ${className}`}>
       {/* Header */}
-      <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Properties</h3>
+      <div className="px-3 py-2 border-b border-gray-200">
+        <h3 className="text-sm font-semibold text-gray-700">Properties</h3>
         <p className="text-xs text-gray-500">{el.type}</p>
       </div>
       
@@ -307,7 +307,7 @@ export function KonvaPropertiesPanel({ className = '' }: KonvaPropertiesPanelPro
                   value={(el as any).text || ''}
                   onChange={(e) => update({ text: e.target.value } as any)}
                   rows={3}
-                  className="w-full px-2 py-1 text-xs rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 resize-none"
+                  className="w-full px-2 py-1 text-xs rounded border border-gray-200 bg-white resize-none"
                   placeholder="Enter text..."
                 />
               </div>

@@ -3,7 +3,7 @@
  * Toolbar for adding elements to the Konva canvas
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { 
   Square, 
   Circle, 
@@ -24,6 +24,9 @@ import {
   Layers,
   Settings2,
   Sparkles,
+  X,
+  FileImage,
+  FileText,
 } from 'lucide-react';
 import { useKonvaContext } from './KonvaContext';
 import { KonvaElement, createDefaultElement } from './types';
@@ -44,8 +47,8 @@ function ToolbarButton({ icon, label, onClick, isActive, disabled }: ToolbarButt
       className={`
         p-2 rounded-lg transition-all flex items-center justify-center
         ${isActive 
-          ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' 
-          : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+          ? 'bg-gray-200 text-gray-900' 
+          : 'text-gray-600 hover:bg-gray-100'
         }
         ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
       `}
@@ -57,7 +60,7 @@ function ToolbarButton({ icon, label, onClick, isActive, disabled }: ToolbarButt
 }
 
 function ToolbarDivider() {
-  return <div className="w-px h-6 bg-gray-200 dark:bg-gray-600 mx-1" />;
+  return <div className="w-px h-6 bg-gray-200 mx-1" />;
 }
 
 interface KonvaElementToolbarProps {
@@ -79,9 +82,12 @@ export function KonvaElementToolbar({ className = '' }: KonvaElementToolbarProps
     toggleAIPanel,
     dispatch,
     pushUndo,
+    stageRef,
   } = useKonvaContext();
   
   const [isExporting, setIsExporting] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Add element to canvas
   const addElement = useCallback((type: string) => {
@@ -93,6 +99,38 @@ export function KonvaElementToolbar({ className = '' }: KonvaElementToolbarProps
     // Reset to select tool after adding
     setActiveTool('select');
   }, [dispatch, pushUndo, setActiveTool]);
+
+  // Add image from file
+  const handleImageUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const src = e.target?.result as string;
+      if (src) {
+        pushUndo();
+        const element = createDefaultElement('image');
+        const updatedElement = {
+          ...element,
+          src,
+          name: file.name,
+        };
+        dispatch({ type: 'ADD_ELEMENT', payload: updatedElement as KonvaElement });
+        setActiveTool('select');
+      }
+    };
+    reader.readAsDataURL(file);
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, [dispatch, pushUndo, setActiveTool]);
+
+  const openImagePicker = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
 
   // Zoom controls
   const handleZoomIn = useCallback(() => {
@@ -112,20 +150,60 @@ export function KonvaElementToolbar({ className = '' }: KonvaElementToolbarProps
     await saveDocument();
   }, [saveDocument]);
 
-  // Export
+  // Export functions
   const handleExport = useCallback(() => {
-    setIsExporting(true);
-    // TODO: Implement export modal/flow
-    setTimeout(() => setIsExporting(false), 1000);
+    setShowExportModal(true);
   }, []);
+
+  const exportAs = useCallback((format: 'png' | 'jpeg' | 'svg') => {
+    const stage = stageRef?.current;
+    if (!stage) {
+      console.error('No stage reference available');
+      setShowExportModal(false);
+      return;
+    }
+
+    setIsExporting(true);
+    
+    try {
+      if (format === 'svg') {
+        // For SVG, we'll export as PNG since Konva doesn't support direct SVG export
+        // but we can still offer high-quality PNG
+        const uri = stage.toDataURL({ pixelRatio: 3, mimeType: 'image/png' });
+        downloadFile(uri, `canvas-export-${Date.now()}.png`);
+      } else {
+        const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
+        const uri = stage.toDataURL({ 
+          pixelRatio: 2, 
+          mimeType,
+          quality: format === 'jpeg' ? 0.92 : undefined 
+        });
+        downloadFile(uri, `canvas-export-${Date.now()}.${format}`);
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+    } finally {
+      setIsExporting(false);
+      setShowExportModal(false);
+    }
+  }, [stageRef]);
+
+  const downloadFile = (dataUrl: string, filename: string) => {
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = dataUrl;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const canUndo = state.undoStack.length > 0;
   const canRedo = state.redoStack.length > 0;
 
   return (
-    <div className={`flex items-center gap-1 p-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 ${className}`}>
+    <div className={`flex items-center gap-1 p-2 bg-white border-b border-gray-200 ${className}`}>
       {/* Tool Selection */}
-      <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+      <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-1">
         <ToolbarButton
           icon={<MousePointer className="w-4 h-4" />}
           label="Select (V)"
@@ -188,12 +266,18 @@ export function KonvaElementToolbar({ className = '' }: KonvaElementToolbarProps
         <ToolbarButton
           icon={<Image className="w-4 h-4" />}
           label="Image (I)"
-          onClick={() => {
-            // TODO: Open image picker
-            console.log('[Toolbar] Image picker requested');
-          }}
+          onClick={openImagePicker}
         />
       </div>
+
+      {/* Hidden file input for image upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleImageUpload}
+        className="hidden"
+      />
       
       <ToolbarDivider />
       
@@ -224,7 +308,7 @@ export function KonvaElementToolbar({ className = '' }: KonvaElementToolbarProps
         />
         <button
           onClick={handleZoomReset}
-          className="px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded min-w-[50px]"
+          className="px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded min-w-[50px]"
           title="Reset zoom"
         >
           {Math.round(zoom * 100)}%
@@ -274,6 +358,67 @@ export function KonvaElementToolbar({ className = '' }: KonvaElementToolbarProps
           disabled={isExporting}
         />
       </div>
+
+      {/* Export Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-80">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Export Canvas</h3>
+              <button
+                onClick={() => setShowExportModal(false)}
+                className="p-1 hover:bg-gray-100 rounded-lg text-gray-500"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-2">
+              <button
+                onClick={() => exportAs('png')}
+                disabled={isExporting}
+                className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg border border-gray-200 transition-colors"
+              >
+                <FileImage className="w-5 h-5 text-gray-600" />
+                <div className="text-left">
+                  <div className="font-medium text-gray-900">PNG</div>
+                  <div className="text-xs text-gray-500">High quality with transparency</div>
+                </div>
+              </button>
+              
+              <button
+                onClick={() => exportAs('jpeg')}
+                disabled={isExporting}
+                className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg border border-gray-200 transition-colors"
+              >
+                <FileImage className="w-5 h-5 text-gray-600" />
+                <div className="text-left">
+                  <div className="font-medium text-gray-900">JPEG</div>
+                  <div className="text-xs text-gray-500">Smaller file size, no transparency</div>
+                </div>
+              </button>
+              
+              <button
+                onClick={() => exportAs('svg')}
+                disabled={isExporting}
+                className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg border border-gray-200 transition-colors"
+              >
+                <FileText className="w-5 h-5 text-gray-600" />
+                <div className="text-left">
+                  <div className="font-medium text-gray-900">High-Res PNG</div>
+                  <div className="text-xs text-gray-500">3x resolution for print quality</div>
+                </div>
+              </button>
+            </div>
+            
+            {isExporting && (
+              <div className="mt-4 text-center text-sm text-gray-500">
+                Exporting...
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

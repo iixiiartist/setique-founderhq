@@ -728,7 +728,7 @@ function KonvaCanvasInternal() {
   }, [pushUndo]);
   
   return (
-    <div ref={containerRef} className="flex-1 bg-gray-100 dark:bg-gray-900 overflow-hidden relative">
+    <div ref={containerRef} className="flex-1 bg-gray-100 overflow-hidden relative">
       {/* Grid Pattern Background */}
       <div 
         className="absolute inset-0 pointer-events-none opacity-30"
@@ -792,7 +792,7 @@ function KonvaCanvasInternal() {
       </Stage>
       
       {/* Zoom indicator */}
-      <div className="absolute bottom-4 left-4 bg-white/90 dark:bg-gray-800/90 px-3 py-1.5 rounded-lg shadow text-xs text-gray-600 dark:text-gray-300">
+      <div className="absolute bottom-4 left-4 bg-white/90 px-3 py-1.5 rounded-lg shadow text-xs text-gray-600">
         {Math.round(zoom * 100)}%
       </div>
     </div>
@@ -810,7 +810,7 @@ interface ContentStudioKonvaProps {
 export function ContentStudioKonva({ className = '' }: ContentStudioKonvaProps) {
   return (
     <KonvaProvider>
-      <div className={`flex flex-col h-full bg-gray-50 dark:bg-gray-900 ${className}`}>
+      <div className={`flex flex-col h-full bg-gray-50 ${className}`}>
         {/* Toolbar */}
         <KonvaElementToolbar />
         
