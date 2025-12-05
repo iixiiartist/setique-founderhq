@@ -133,7 +133,6 @@
     "date-fns": "^4.1.0",
     "dompurify": "^3.3.0",
     "emoji-picker-react": "^4.15.0",
-    "fabric": "^6.9.0",
     "fast-json-patch": "^3.1.1",
     "framer-motion": "^12.23.25",
     "html-to-image": "^1.11.13",

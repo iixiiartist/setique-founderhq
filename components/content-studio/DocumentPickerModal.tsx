@@ -21,13 +21,12 @@ import {
   RefreshCw,
   AlertCircle,
 } from 'lucide-react';
-import { useContentStudio } from './ContentStudioContext';
+import { useKonvaContext, KonvaDocument } from './konva';
 import { 
   listDocuments, 
   loadDocument, 
   deleteDocument 
 } from '../../lib/services/contentStudioService';
-import { ContentDocument } from './types';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { ScrollArea } from '../ui/ScrollArea';
@@ -89,7 +88,17 @@ export function DocumentPickerModal({
   onClose, 
   workspaceId 
 }: DocumentPickerModalProps) {
-  const { loadDocument: setDocument, createNewDocument } = useContentStudio();
+  // Use Konva context - may not be available if not wrapped in provider
+  let loadDocumentFn: ((doc: any) => void) | null = null;
+  let createNewDocumentFn: ((title?: string) => void) | null = null;
+  
+  try {
+    const konvaContext = useKonvaContext();
+    loadDocumentFn = konvaContext.loadDocument;
+    createNewDocumentFn = konvaContext.createNewDocument;
+  } catch {
+    // Context not available - will use fallback behavior
+  }
   const [documents, setDocuments] = useState<DocumentListItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -150,7 +159,7 @@ export function DocumentPickerModal({
   }, [workspaceId, offset, searchQuery]);
 
   // Generate thumbnail preview (simplified - returns placeholder for now)
-  const generateThumbnail = (doc: ContentDocument): string | undefined => {
+  const generateThumbnail = (doc: any): string | undefined => {
     // In a production app, we'd generate actual thumbnails server-side
     // For now, return undefined to show placeholder
     return undefined;
@@ -186,7 +195,10 @@ export function DocumentPickerModal({
     try {
       const doc = await loadDocument(docId);
       if (doc) {
-        setDocument(doc);
+        if (loadDocumentFn) {
+          // Convert to Konva document format if needed
+          loadDocumentFn(doc as any);
+        }
         onClose();
         showSuccess('Document opened');
       } else {
@@ -224,7 +236,9 @@ export function DocumentPickerModal({
 
   // Create new document
   const handleCreateNew = () => {
-    createNewDocument();
+    if (createNewDocumentFn) {
+      createNewDocumentFn();
+    }
     onClose();
   };
 
