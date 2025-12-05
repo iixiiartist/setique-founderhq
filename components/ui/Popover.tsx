@@ -130,7 +130,7 @@ export function PopoverContent({
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ duration: 0.15 }}
           className={`
-            absolute z-50 min-w-[8rem]
+            absolute z-[100] min-w-[10rem]
             bg-white 
             border border-gray-200
             rounded-xl shadow-lg

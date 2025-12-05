@@ -108,7 +108,7 @@ export function DropdownMenuContent({
           exit={{ opacity: 0, y: -4 }}
           transition={{ duration: 0.15 }}
           className={`
-            absolute z-50 top-full mt-1 min-w-[8rem] py-1
+            absolute z-[100] top-full mt-1 min-w-[10rem] py-1
             bg-white 
             border border-gray-200
             rounded-xl shadow-lg
@@ -149,11 +149,11 @@ export function DropdownMenuItem({
       onClick={handleClick}
       disabled={disabled}
       className={`
-        w-full flex items-center px-3 py-2 text-sm text-left
+        w-full flex items-center px-3 py-2 text-xs text-left
         text-gray-700
         hover:bg-gray-100
         disabled:opacity-50 disabled:cursor-not-allowed
-        transition-colors
+        transition-colors whitespace-nowrap
         ${className}
       `}
     >

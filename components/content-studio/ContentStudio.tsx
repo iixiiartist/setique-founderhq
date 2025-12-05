@@ -189,9 +189,9 @@ function ContentStudioInner({ documentId, onClose, onSave }: ContentStudioProps)
 
   return (
     <TooltipProvider>
-      <div className="h-screen flex flex-col bg-gray-100 overflow-hidden">
+      <div className="h-screen flex flex-col bg-gray-100">
         {/* Top Toolbar */}
-        <header className="h-14 bg-white border-b border-gray-200 flex items-center px-4 gap-4 z-50">
+        <header className="h-14 bg-white border-b border-gray-200 flex items-center px-4 gap-4 z-50 relative">
           {/* Left Section - Navigation & Title */}
           <div className="flex items-center gap-3 flex-1">
             {onClose && (
@@ -375,9 +375,9 @@ function ContentStudioInner({ documentId, onClose, onSave }: ContentStudioProps)
               variant="outline"
               size="sm"
               onClick={() => saveDocument()}
-              className="h-8"
+              className="h-8 px-3 text-xs whitespace-nowrap"
             >
-              <Save className="w-4 h-4 mr-2" />
+              <Save className="w-3.5 h-3.5 mr-1.5" />
               Save
             </Button>
 
@@ -385,17 +385,17 @@ function ContentStudioInner({ documentId, onClose, onSave }: ContentStudioProps)
               variant="outline"
               size="sm"
               onClick={() => setIsExportModalOpen(true)}
-              className="h-8"
+              className="h-8 px-3 text-xs whitespace-nowrap"
             >
-              <Download className="w-4 h-4 mr-2" />
+              <Download className="w-3.5 h-3.5 mr-1.5" />
               Export
             </Button>
 
             <Button
               size="sm"
-              className="h-8 bg-indigo-600 hover:bg-indigo-700"
+              className="h-8 px-3 text-xs whitespace-nowrap bg-indigo-600 hover:bg-indigo-700 text-white"
             >
-              <Share2 className="w-4 h-4 mr-2" />
+              <Share2 className="w-3.5 h-3.5 mr-1.5" />
               Share
             </Button>
 
