@@ -12,7 +12,7 @@ export function PrivacyPolicyPage() {
               FHQ
             </div>
             <div>
-              <h1 className="text-xl font-bold">FounderHQ</h1>
+              <h1 className="text-xl font-bold">Setique: FounderHQ</h1>
               <p className="text-xs text-gray-600">A Setique Tool</p>
             </div>
           </Link>
@@ -36,10 +36,10 @@ export function PrivacyPolicyPage() {
         <div className="prose prose-lg max-w-none space-y-8">
           <Section title="1. Introduction">
             <p>
-              Welcome to FounderHQ ("we," "our," or "us"). This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our application and services operated by Setique.
+              Welcome to Setique: FounderHQ ("we," "our," or "us"). This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our application and services operated by Setique.
             </p>
             <p>
-              By using FounderHQ, you consent to the data practices described in this policy.
+              By using Setique: FounderHQ, you consent to the data practices described in this policy.
             </p>
           </Section>
 
@@ -167,7 +167,7 @@ export function PrivacyPolicyPage() {
 
           <Section title="9. Children's Privacy">
             <p>
-              FounderHQ is not intended for users under 18 years of age. We do not knowingly collect information from children under 18. If you become aware that a child has provided us with personal information, please contact us.
+              Setique: FounderHQ is not intended for users under 18 years of age. We do not knowingly collect information from children under 18. If you become aware that a child has provided us with personal information, please contact us.
             </p>
           </Section>
 
@@ -217,7 +217,7 @@ export function PrivacyPolicyPage() {
           </Section>
 
           <Section title="15. Beta Program & Fair Use">
-            <p>FounderHQ is currently offered as a live beta. Feature scope, AI credit allocations (including the 25 monthly Copilot requests on the Free plan), and pricing may change as we evolve the service.</p>
+            <p>Setique: FounderHQ is currently offered as a live beta. Feature scope, AI credit allocations (including the 25 monthly Copilot requests on the Free plan), and pricing may change as we evolve the service.</p>
             <ul className="list-disc pl-6 space-y-2">
               <li>All plans include unlimited document storage and file uploads. We reserve the right to investigate and limit abusive usage that threatens platform reliability.</li>
               <li>Free-tier AI credits automatically reset each calendar month. We may temporarily suspend AI access if we detect malicious or automated traffic.</li>
@@ -228,7 +228,7 @@ export function PrivacyPolicyPage() {
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mt-8">
             <p className="font-bold mb-2">Acknowledgment</p>
             <p>
-              By using FounderHQ, you acknowledge that you have read, understood, and agree to be bound by this Privacy Policy.
+              By using Setique: FounderHQ, you acknowledge that you have read, understood, and agree to be bound by this Privacy Policy.
             </p>
           </div>
         </div>

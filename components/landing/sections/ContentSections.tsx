@@ -68,7 +68,7 @@ export function FeaturesSection() {
                         EVERY TOOL YOU NEED, ONE WORKSPACE
                     </h2>
                     <p className="text-xl text-gray-600">
-                        From pipeline to payment, marketing to meetings—FounderHQ unifies your entire GTM stack with AI woven throughout.
+                        From pipeline to payment, marketing to meetings—Setique: FounderHQ unifies your entire GTM stack with AI woven throughout.
                     </p>
                 </div>
 
@@ -192,7 +192,7 @@ export function AISection() {
                             AI THAT WORKS ACROSS YOUR ENTIRE GTM
                         </h2>
                         <p className="text-xl text-gray-200 mb-8 leading-relaxed">
-                            Not just an assistant—AI is embedded throughout FounderHQ. Generate content, automate data entry, get strategic insights, research prospects, and let your team collaborate smarter.
+                            Not just an assistant—AI is embedded throughout Setique: FounderHQ. Generate content, automate data entry, get strategic insights, research prospects, and let your team collaborate smarter.
                         </p>
                         
                         <div className="grid sm:grid-cols-2 gap-4">

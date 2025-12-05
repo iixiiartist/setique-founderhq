@@ -12,7 +12,7 @@ export function TermsOfServicePage() {
               FHQ
             </div>
             <div>
-              <h1 className="text-xl font-bold">FounderHQ</h1>
+              <h1 className="text-xl font-bold">Setique: FounderHQ</h1>
               <p className="text-xs text-gray-600">A Setique Tool</p>
             </div>
           </Link>
@@ -36,12 +36,12 @@ export function TermsOfServicePage() {
         <div className="prose prose-lg max-w-none space-y-8">
           <Section title="1. Agreement to Terms">
             <p>
-              By accessing or using FounderHQ ("Service"), operated by Setique, you agree to be bound by these Terms of Service ("Terms"). If you disagree with any part of these terms, you may not access the Service.
+              By accessing or using Setique: FounderHQ ("Service"), operated by Setique, you agree to be bound by these Terms of Service ("Terms"). If you disagree with any part of these terms, you may not access the Service.
             </p>
           </Section>
 
           <Section title="2. Description of Service">
-            <p>FounderHQ is a SaaS platform providing founders with:</p>
+            <p>Setique: FounderHQ is a SaaS platform providing founders with:</p>
             <ul className="list-disc pl-6 space-y-2">
               <li>AI-powered business assistance</li>
               <li>Task and project management</li>
@@ -117,7 +117,7 @@ export function TermsOfServicePage() {
 
           <Section title="6. Intellectual Property">
             <h3 className="text-xl font-bold mt-4 mb-2">6.1 Our Rights</h3>
-            <p>FounderHQ and all associated trademarks are owned by Setique. All software, design, content, and materials are our property. You receive a limited license to use the Service, not ownership.</p>
+            <p>Setique: FounderHQ and all associated trademarks are owned by Setique. All software, design, content, and materials are our property. You receive a limited license to use the Service, not ownership.</p>
 
             <h3 className="text-xl font-bold mt-4 mb-2">6.2 Your Content</h3>
             <ul className="list-disc pl-6 space-y-2">
@@ -230,7 +230,7 @@ export function TermsOfServicePage() {
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mt-8">
             <p className="font-bold mb-2">Acknowledgment</p>
             <p>
-              By using FounderHQ, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.
+              By using Setique: FounderHQ, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.
             </p>
           </div>
         </div>

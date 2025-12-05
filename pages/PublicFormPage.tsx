@@ -155,7 +155,7 @@ export const PublicFormPage: React.FC = () => {
 
   // SEO meta tags for rich link previews
   const seoDescription = useMemo(() => {
-    if (!form) return 'Submit your response via FounderHQ';
+    if (!form) return 'Submit your response via Setique: FounderHQ';
     if (form.description) return generateDescription(form.description, 160);
     return `${form.name} - Submit your response`;
   }, [form]);
@@ -1516,7 +1516,7 @@ export const PublicFormPage: React.FC = () => {
               rel="noopener noreferrer"
               className="text-blue-600 hover:underline"
             >
-              FounderHQ – A Setique Tool
+              Setique: FounderHQ
             </a>
           </p>
         </form>

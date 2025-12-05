@@ -453,7 +453,7 @@ export const SharedBriefPage: React.FC = () => {
 
   // SEO meta tags for rich link previews
   const seoDescription = useMemo(() => {
-    if (!brief) return 'Market research brief shared via FounderHQ';
+    if (!brief) return 'Market research brief shared via Setique: FounderHQ';
     if (brief.hero_line) return brief.hero_line;
     if (brief.raw_report) return generateDescription(brief.raw_report);
     return `Market research: ${brief.query}`;
@@ -464,7 +464,7 @@ export const SharedBriefPage: React.FC = () => {
     description: seoDescription,
     url: `/share/brief/${token}`,
     type: 'article',
-    author: brief?.workspace_name || 'FounderHQ',
+    author: brief?.workspace_name || 'Setique: FounderHQ',
     publishedTime: brief?.created_at,
   });
 
@@ -574,7 +574,7 @@ export const SharedBriefPage: React.FC = () => {
             </div>
             <div>
               <h1 className="font-bold text-gray-900">Market Research Brief</h1>
-              <p className="text-xs text-gray-500">FounderHQ – A Setique Tool</p>
+              <p className="text-xs text-gray-500">Setique: FounderHQ</p>
             </div>
           </div>
           <a
@@ -583,7 +583,7 @@ export const SharedBriefPage: React.FC = () => {
             rel="noopener noreferrer"
             className="text-sm text-gray-500 hover:text-gray-900 flex items-center gap-1"
           >
-            Try FounderHQ
+            Try Setique: FounderHQ
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
         </div>
@@ -692,7 +692,7 @@ export const SharedBriefPage: React.FC = () => {
               rel="noopener noreferrer"
               className="text-blue-600 hover:underline"
             >
-              FounderHQ – A Setique Tool
+              Setique: FounderHQ
             </a>
           </p>
         </div>

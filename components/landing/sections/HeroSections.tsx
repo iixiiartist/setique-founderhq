@@ -39,7 +39,7 @@ export function Navigation({ mobileMenuOpen: propMobileMenuOpen, setMobileMenuOp
                         <div className="w-9 h-9 bg-black rounded-xl flex items-center justify-center">
                             <Command className="w-5 h-5 text-white" />
                         </div>
-                        <span className="font-bold text-xl text-black">FOUNDERHQ</span>
+                        <span className="font-bold text-xl text-black">SETIQUE: FOUNDERHQ</span>
                     </Link>
                     
                     {/* Desktop nav */}
@@ -191,7 +191,7 @@ function HeroPreview() {
                                 <div className="w-48 bg-gradient-to-b from-gray-900 to-black p-4 hidden sm:block">
                                     <div className="flex items-center gap-2 mb-8">
                                         <div className="w-8 h-8 bg-white rounded-lg" />
-                                        <span className="text-white font-bold text-sm">FOUNDERHQ</span>
+                                        <span className="text-white font-bold text-sm">SETIQUE: FOUNDERHQ</span>
                                     </div>
                                     {['Dashboard', 'Pipeline', 'Contacts', 'Huddle', 'Calendar'].map((item, i) => (
                                         <div key={i} className={`flex items-center gap-3 px-3 py-2.5 mb-1 rounded-xl ${i === 3 ? 'bg-white/15 text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'} transition-colors`}>
@@ -323,7 +323,7 @@ export function Footer() {
                             <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
                                 <Command className="w-5 h-5 text-black" />
                             </div>
-                            <span className="font-bold text-xl">FOUNDERHQ</span>
+                            <span className="font-bold text-xl">SETIQUE: FOUNDERHQ</span>
                         </Link>
                         <p className="text-gray-300 mb-4 max-w-xs leading-relaxed">
                             The AI-powered GTM workspace. CRM, marketing, email, documents, calendar, and chat—unified for teams that scale.
@@ -370,7 +370,7 @@ export function Footer() {
 
                 <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
                     <p className="text-gray-500 text-sm">
-                        © {new Date().getFullYear()} FOUNDERHQ. All rights reserved.
+                        © {new Date().getFullYear()} SETIQUE. All rights reserved.
                     </p>
                 </div>
             </div>

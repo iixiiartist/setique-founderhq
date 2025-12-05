@@ -172,7 +172,7 @@ export const SaveEmailModal: React.FC<SaveEmailModalProps> = ({
         ${selectedAccount ? `<span class="badge badge-account">🏢 ${selectedAccount.company}</span>` : ''}
         ${selectedContact ? `<span class="badge badge-contact">👤 ${selectedContact.name}</span>` : ''}
       </div>
-      <div>Saved from FounderHQ Communications on ${new Date().toLocaleString()}</div>
+      <div>Saved from Setique: FounderHQ Communications on ${new Date().toLocaleString()}</div>
     </div>
   </div>
 </body>

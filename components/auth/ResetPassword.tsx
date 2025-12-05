@@ -85,7 +85,7 @@ export const ResetPassword: React.FC<ResetPasswordProps> = ({ onSuccess }) => {
                 {/* Header */}
                 <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-t-2xl">
                     <h1 className="text-3xl font-bold text-white text-center">
-                        FounderHQ
+                        Setique: FounderHQ
                     </h1>
                     <p className="text-slate-300 text-center text-sm mt-2">
                         Reset Your Password

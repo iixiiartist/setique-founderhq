@@ -269,7 +269,7 @@ export function DocEditorExportModal({
                   value={exportSettings.footerNote}
                   onChange={(e) => onExportSettingChange('footerNote', e.target.value)}
                   className="mt-1 rounded-xl border-gray-200 shadow-sm focus:border-black focus:ring-black px-3 py-2 text-sm"
-                  placeholder="FounderHQ • setique.com"
+                  placeholder="Setique: FounderHQ • setique.com"
                 />
               </label>
             </div>

@@ -364,7 +364,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
           {/* Header */}
           <div className="flex items-center gap-1.5 sm:gap-2 mb-1 sm:mb-1.5 flex-wrap">
             <span className={`font-semibold text-xs sm:text-sm ${isAIMessage ? 'text-gray-800' : 'text-gray-900'}`}>
-              {isAIMessage ? 'FounderHQ AI' : message.user?.full_name || 'Unknown'}
+              {isAIMessage ? 'Setique: FounderHQ AI' : message.user?.full_name || 'Unknown'}
             </span>
             {isAIMessage && (
               <span className="text-[9px] sm:text-[10px] px-1.5 py-0.5 bg-gray-300 text-gray-700 rounded-full font-medium uppercase tracking-wide">

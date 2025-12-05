@@ -108,28 +108,28 @@ export const AI_CAPABILITIES = [
 
 export const FAQS = [
     {
-        question: "What is FounderHQ and who is it for?",
-        answer: "FounderHQ is a complete GTM workspace that brings together CRM, pipeline, marketing, email, documents, calendar, financials, and team chat—all powered by AI. It's built for founders, sales teams, and GTM consultants who want one unified platform instead of juggling 10+ tools."
+        question: "What is Setique: FounderHQ and who is it for?",
+        answer: "Setique: FounderHQ is a complete GTM workspace that brings together CRM, pipeline, marketing, email, documents, calendar, financials, and team chat—all powered by AI. It's built for founders, sales teams, and GTM consultants who want one unified platform instead of juggling 10+ tools."
     },
     {
-        question: "How is AI integrated throughout FounderHQ?",
+        question: "How is AI integrated throughout Setique: FounderHQ?",
         answer: "AI is woven into every workflow—not just a chatbot. Generate marketing content, transcribe voice notes and calls, extract text from scanned documents with vision AI, auto-enrich company data in seconds, and get AI-powered analytics. Our infrastructure delivers 750+ tokens per second with built-in content safety."
     },
     {
-        question: "What GTM tools does FounderHQ replace?",
-        answer: "FounderHQ can replace your CRM (like HubSpot or Pipedrive), team chat (Slack, Microsoft Teams), task management (Asana, Monday.com), documents and wikis (Notion, Google Docs), email client, calendar app, expense tracker, and various AI tools. Everything lives in one workspace."
+        question: "What GTM tools does Setique: FounderHQ replace?",
+        answer: "Setique: FounderHQ can replace your CRM (like HubSpot or Pipedrive), team chat (Slack, Microsoft Teams), task management (Asana, Monday.com), documents and wikis (Notion, Google Docs), email client, calendar app, expense tracker, and various AI tools. Everything lives in one workspace."
     },
     {
         question: "Can I import my existing data?",
-        answer: "Yes! FounderHQ supports importing contacts, accounts, deals, and historical data from popular CRMs and spreadsheets. Our AI helps map and clean your data during import."
+        answer: "Yes! Setique: FounderHQ supports importing contacts, accounts, deals, and historical data from popular CRMs and spreadsheets. Our AI helps map and clean your data during import."
     },
     {
         question: "Is my data secure?",
         answer: "Absolutely. We use enterprise-grade security with end-to-end encryption and row-level security policies. Your data is stored in isolated environments and never used to train AI models."
     },
     {
-        question: "Can my team collaborate in FounderHQ?",
-        answer: "Yes! FounderHQ is built for teams. Collaborate in real-time via Huddle chat, share documents, assign tasks, and get AI assistance together. The Team Pro plan includes advanced collaboration features."
+        question: "Can my team collaborate in Setique: FounderHQ?",
+        answer: "Yes! Setique: FounderHQ is built for teams. Collaborate in real-time via Huddle chat, share documents, assign tasks, and get AI assistance together. The Team Pro plan includes advanced collaboration features."
     }
 ];
 
