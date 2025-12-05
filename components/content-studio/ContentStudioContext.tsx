@@ -281,7 +281,7 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
     try {
       // Save canvas state to current page
       if (canvasRef.current && state.document) {
-        const json = canvasRef.current.toJSON(['id', 'name', 'elementType', 'locked', 'visible']); // Include all custom props
+        const json = canvasRef.current.toJSON(CUSTOM_PROPS);
         const updatedPages = [...state.document.pages];
         updatedPages[state.currentPageIndex] = {
           ...updatedPages[state.currentPageIndex],
@@ -400,7 +400,7 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
   const persistCurrentPage = useCallback(() => {
     if (!canvasRef.current || !state.document) return;
     
-    const json = JSON.stringify(canvasRef.current.toJSON(['id', 'name', 'elementType', 'locked', 'visible']));
+    const json = JSON.stringify(canvasRef.current.toJSON(CUSTOM_PROPS));
     const updatedPages = [...state.document.pages];
     updatedPages[state.currentPageIndex] = {
       ...updatedPages[state.currentPageIndex],

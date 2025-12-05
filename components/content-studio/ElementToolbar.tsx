@@ -691,7 +691,7 @@ export function ElementToolbar({ className = '' }: ElementToolbarProps) {
     <TooltipProvider>
       <div className={`flex flex-col w-14 bg-white border-r border-gray-200 py-2 ${className}`}>
         {/* Selection Tools */}
-        <div className="px-2 pb-2 border-b border-gray-200 flex flex-col items-center gap-1">`
+        <div className="px-2 pb-2 border-b border-gray-200 flex flex-col items-center gap-1">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -726,7 +726,7 @@ export function ElementToolbar({ className = '' }: ElementToolbarProps) {
         </div>
 
         {/* Element Categories */}
-        <div className="flex-1 overflow-y-auto py-2 px-2 flex flex-col items-center gap-1">`
+        <div className="flex-1 overflow-y-auto py-2 px-2 flex flex-col items-center gap-1">
           {categories.map((category) => (
             <Popover
               key={category.id}
@@ -786,7 +786,7 @@ export function ElementToolbar({ className = '' }: ElementToolbarProps) {
         </div>
 
         {/* AI Assistant Toggle */}
-        <div className="px-2 pt-2 border-t border-gray-200 flex justify-center">`
+        <div className="px-2 pt-2 border-t border-gray-200 flex justify-center">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
