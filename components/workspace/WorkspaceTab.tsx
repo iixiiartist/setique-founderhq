@@ -10,7 +10,10 @@ const FormBuilder = lazy(() => import('../forms/FormBuilder'));
 const FormsList = lazy(() => import('../forms/FormsList'));
 const FormAnalytics = lazy(() => import('../forms/FormAnalytics'));
 
-type WorkspaceView = 'docs' | 'forms';
+// Lazy load Content Studio (canvas-based designer)
+const ContentStudio = lazy(() => import('../content-studio/ContentStudio'));
+
+type WorkspaceView = 'docs' | 'forms' | 'studio';
 
 interface WorkspaceTabProps {
     workspaceId: string;
@@ -33,6 +36,9 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId,
     const [selectedForm, setSelectedForm] = useState<Form | null>(null);
     const [isCreatingForm, setIsCreatingForm] = useState(false);
     const [analyticsForm, setAnalyticsForm] = useState<Form | null>(null);
+    
+    // Content Studio state
+    const [isStudioOpen, setIsStudioOpen] = useState(false);
 
     // Handle opening a doc passed via initialDocId
     useEffect(() => {
@@ -118,11 +124,13 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId,
 
     const isDocsEditorOpen = !!(selectedDoc || isCreatingNew);
     const isFormsEditorOpen = !!(selectedForm || isCreatingForm);
+    const isStudioEditorOpen = isStudioOpen;
+    const isAnyEditorOpen = isDocsEditorOpen || isFormsEditorOpen || isStudioEditorOpen;
 
     return (
         <div className="h-full flex flex-col relative">
             {/* View Toggle - Only show when not in an editor */}
-            {!isDocsEditorOpen && !isFormsEditorOpen && (
+            {!isAnyEditorOpen && (
                 <div className="flex-shrink-0 border-b border-gray-200 bg-white">
                     <div className="flex gap-1 p-1">
                         <button
@@ -144,6 +152,16 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId,
                             }`}
                         >
                             📝 Forms
+                        </button>
+                        <button
+                            onClick={() => setView('studio')}
+                            className={`flex-1 px-4 py-2.5 font-semibold text-sm rounded-lg transition-all ${
+                                view === 'studio'
+                                    ? 'bg-slate-900 text-white shadow-sm'
+                                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                            }`}
+                        >
+                            🎨 Design Studio
                         </button>
                     </div>
                 </div>
@@ -265,6 +283,43 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId,
                                         onEditForm={handleEditForm}
                                         onViewAnalytics={handleViewAnalytics}
                                     />
+                            </div>
+                        )}
+                        </Suspense>
+                    </div>
+                )}
+
+                {/* CONTENT STUDIO VIEW */}
+                {view === 'studio' && (
+                    <div className="flex-1 overflow-hidden">
+                        <Suspense fallback={
+                            <div className="h-full flex flex-col items-center justify-center gap-4">
+                                <div className="relative w-8 h-8">
+                                    <div className="absolute inset-0 border-2 border-black animate-spin" style={{ animationDuration: '1.2s' }} />
+                                    <div className="absolute inset-1.5 border border-gray-400 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+                                </div>
+                                <p className="text-sm text-gray-500">Loading Design Studio...</p>
+                            </div>
+                        }>
+                            {isStudioOpen ? (
+                                <ContentStudio
+                                    onClose={() => setIsStudioOpen(false)}
+                                />
+                            ) : (
+                                <div className="h-full flex items-center justify-center p-4 lg:p-8 bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+                                    <div className="text-center max-w-md">
+                                        <div className="text-4xl lg:text-6xl mb-4">🎨</div>
+                                        <h2 className="text-xl lg:text-2xl font-bold mb-2">Design Studio</h2>
+                                        <p className="text-sm lg:text-base text-gray-600 mb-6">
+                                            Create beautiful presentations, social graphics, and marketing collateral with our canvas-based designer.
+                                        </p>
+                                        <button
+                                            onClick={() => setIsStudioOpen(true)}
+                                            className="px-4 lg:px-6 py-2 lg:py-3 text-sm lg:text-base bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-sm hover:from-indigo-700 hover:to-purple-700 transition-all"
+                                        >
+                                            Open Design Studio
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </Suspense>
