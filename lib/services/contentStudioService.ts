@@ -105,10 +105,9 @@ export async function saveDocument(
       .from('content_studio_documents')
       .select('id, version, updated_at')
       .eq('id', document.id)
-      .single();
+      .maybeSingle();
 
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      // PGRST116 = not found, which is fine for new docs
+    if (fetchError) {
       throw fetchError;
     }
 

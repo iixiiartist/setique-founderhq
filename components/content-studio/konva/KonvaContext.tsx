@@ -15,6 +15,13 @@ import {
 } from './types';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useWorkspace } from '../../../contexts/WorkspaceContext';
+import { 
+  saveDocument as saveDocumentToSupabase, 
+  loadDocument as loadDocumentFromSupabase,
+  validateDocument,
+} from '../../../lib/services/contentStudioService';
+import { fabricToKonva, konvaToFabric, isKonvaFormat } from './documentConverter';
+import { showSuccess, showError, showWarning } from '../../../lib/utils/toast';
 
 // ============================================================================
 // Document Types (aligned with existing ContentDocument)
@@ -62,6 +69,7 @@ interface KonvaState {
   isLayersPanelOpen: boolean;
   isPropertiesPanelOpen: boolean;
   isAIPanelOpen: boolean;
+  isAssetsPanelOpen: boolean;
 }
 
 const initialState: KonvaState = {
@@ -77,6 +85,7 @@ const initialState: KonvaState = {
   isLayersPanelOpen: true,
   isPropertiesPanelOpen: true,
   isAIPanelOpen: false,
+  isAssetsPanelOpen: false,
 };
 
 // ============================================================================
@@ -105,7 +114,8 @@ type KonvaAction =
   | { type: 'REDO' }
   | { type: 'TOGGLE_LAYERS_PANEL' }
   | { type: 'TOGGLE_PROPERTIES_PANEL' }
-  | { type: 'TOGGLE_AI_PANEL' };
+  | { type: 'TOGGLE_AI_PANEL' }
+  | { type: 'TOGGLE_ASSETS_PANEL' };
 
 function reducer(state: KonvaState, action: KonvaAction): KonvaState {
   switch (action.type) {
@@ -201,7 +211,7 @@ function reducer(state: KonvaState, action: KonvaAction): KonvaState {
           ...state.document,
           pages: state.document.pages.map((page, i) =>
             i === state.currentPageIndex
-              ? { ...page, canvas: { ...page.canvas, elements: [...page.canvas.elements, action.payload] } }
+              ? { ...page, canvas: { ...page.canvas, elements: [...page.canvas.elements, action.payload] as KonvaElement[] } }
               : page
           ),
           updatedAt: new Date().toISOString(),
@@ -224,7 +234,7 @@ function reducer(state: KonvaState, action: KonvaAction): KonvaState {
                     ...page.canvas,
                     elements: page.canvas.elements.map(el =>
                       el.id === action.payload.id ? { ...el, ...action.payload.attrs } : el
-                    ),
+                    ) as KonvaElement[],
                   },
                 }
               : page
@@ -246,7 +256,7 @@ function reducer(state: KonvaState, action: KonvaAction): KonvaState {
                   ...page,
                   canvas: {
                     ...page.canvas,
-                    elements: page.canvas.elements.filter(el => !action.payload.includes(el.id)),
+                    elements: page.canvas.elements.filter(el => !action.payload.includes(el.id)) as KonvaElement[],
                   },
                 }
               : page
@@ -327,6 +337,9 @@ function reducer(state: KonvaState, action: KonvaAction): KonvaState {
     case 'TOGGLE_AI_PANEL':
       return { ...state, isAIPanelOpen: !state.isAIPanelOpen };
 
+    case 'TOGGLE_ASSETS_PANEL':
+      return { ...state, isAssetsPanelOpen: !state.isAssetsPanelOpen };
+
     default:
       return state;
   }
@@ -358,10 +371,12 @@ interface KonvaContextValue {
   // Document operations
   createNewDocument: (title?: string) => void;
   loadDocument: (doc: KonvaDocument) => void;
+  loadDocumentById: (documentId: string) => Promise<boolean>;
   saveDocument: () => Promise<boolean>;
   
   // Element operations
   addElement: (type: string) => void;
+  addCustomElement: (element: KonvaElement) => void;
   updateElement: (id: string, attrs: Partial<KonvaElement>) => void;
   deleteSelectedElements: () => void;
   duplicateSelectedElements: () => void;
@@ -378,6 +393,7 @@ interface KonvaContextValue {
   toggleLayersPanel: () => void;
   togglePropertiesPanel: () => void;
   toggleAIPanel: () => void;
+  toggleAssetsPanel: () => void;
   
   // Page operations
   addPage: () => void;
@@ -397,9 +413,12 @@ const KonvaContext = createContext<KonvaContextValue | null>(null);
 
 interface KonvaProviderProps {
   children: ReactNode;
+  documentId?: string;
+  onClose?: () => void;
+  onSave?: () => void;
 }
 
-export function KonvaProvider({ children }: KonvaProviderProps) {
+export function KonvaProvider({ children, documentId, onClose, onSave }: KonvaProviderProps) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const stageRef = useRef<Konva.Stage>(null);
 
@@ -487,21 +506,94 @@ export function KonvaProvider({ children }: KonvaProviderProps) {
     dispatch({ type: 'SET_DOCUMENT', payload: newDoc });
   }, [workspaceId, userId]);
 
-  // Load document
+  // Load document from context
   const loadDocument = useCallback((doc: KonvaDocument) => {
     dispatch({ type: 'SET_DOCUMENT', payload: doc });
   }, []);
 
-  // Save document
+  // Load document by ID from Supabase
+  const loadDocumentById = useCallback(async (documentId: string): Promise<boolean> => {
+    try {
+      const rawDoc = await loadDocumentFromSupabase(documentId);
+      if (!rawDoc) {
+        showError('Document not found');
+        return false;
+      }
+
+      // Convert from Fabric format if needed
+      let konvaDoc: KonvaDocument;
+      if (isKonvaFormat(rawDoc)) {
+        konvaDoc = rawDoc as unknown as KonvaDocument;
+      } else {
+        konvaDoc = fabricToKonva(rawDoc);
+      }
+
+      dispatch({ type: 'SET_DOCUMENT', payload: konvaDoc });
+      showSuccess('Document loaded');
+      return true;
+    } catch (error) {
+      console.error('[KonvaContext] Load failed:', error);
+      showError('Failed to load document');
+      return false;
+    }
+  }, []);
+
+  // Save document to Supabase
   const saveDocument = useCallback(async (): Promise<boolean> => {
     if (!state.document) return false;
-    
-    // TODO: Implement Supabase save
-    console.log('[KonvaContext] Saving document:', state.document.id);
-    
-    dispatch({ type: 'MARK_CLEAN' });
-    return true;
-  }, [state.document]);
+    if (!userId) {
+      showWarning('Please sign in to save');
+      return false;
+    }
+
+    try {
+      // Convert to Fabric format for storage (backward compatibility)
+      const fabricDoc = konvaToFabric(state.document);
+      
+      // Validate before save
+      const validation = validateDocument(fabricDoc);
+      if (!validation.valid) {
+        showError(validation.error || 'Document validation failed');
+        return false;
+      }
+
+      const result = await saveDocumentToSupabase(
+        fabricDoc,
+        userId,
+        workspaceId || state.document.workspaceId || 'default'
+      );
+
+      if (result.success) {
+        // Update local version number
+        if (result.document) {
+          dispatch({ 
+            type: 'UPDATE_DOCUMENT', 
+            payload: { 
+              metadata: { 
+                ...state.document.metadata,
+                version: result.document.metadata.version 
+              } 
+            } as any
+          });
+        }
+        dispatch({ type: 'MARK_CLEAN' });
+        showSuccess('Document saved');
+        return true;
+      }
+
+      if (result.conflict) {
+        showWarning('Document was modified by another user. Please refresh.');
+        return false;
+      }
+
+      showError(result.error || 'Failed to save document');
+      return false;
+    } catch (error) {
+      console.error('[KonvaContext] Save failed:', error);
+      showError('Failed to save document');
+      return false;
+    }
+  }, [state.document, userId, workspaceId]);
 
   // Add element
   const addElement = useCallback((type: string) => {
@@ -510,6 +602,12 @@ export function KonvaProvider({ children }: KonvaProviderProps) {
       dispatch({ type: 'ADD_ELEMENT', payload: element as KonvaElement });
       dispatch({ type: 'MARK_DIRTY' });
     }
+  }, []);
+
+  // Add custom element (for AI-generated content)
+  const addCustomElement = useCallback((element: KonvaElement) => {
+    dispatch({ type: 'ADD_ELEMENT', payload: element });
+    dispatch({ type: 'MARK_DIRTY' });
   }, []);
 
   // Update element
@@ -584,6 +682,10 @@ export function KonvaProvider({ children }: KonvaProviderProps) {
     dispatch({ type: 'TOGGLE_AI_PANEL' });
   }, []);
 
+  const toggleAssetsPanel = useCallback(() => {
+    dispatch({ type: 'TOGGLE_ASSETS_PANEL' });
+  }, []);
+
   // Page operations
   const addPage = useCallback(() => {
     if (!state.document) return;
@@ -624,6 +726,27 @@ export function KonvaProvider({ children }: KonvaProviderProps) {
     return page.canvas.elements.filter(el => state.selectedIds.includes(el.id));
   }, [getCurrentPage, state.selectedIds]);
 
+  // Load document on mount if documentId is provided
+  useEffect(() => {
+    if (documentId) {
+      loadDocumentById(documentId);
+    } else if (!state.document) {
+      // Create a new document if none exists
+      createNewDocument();
+    }
+  }, [documentId]); // Only run on mount or documentId change
+
+  // Autosave effect
+  useEffect(() => {
+    if (!state.isDirty || !state.document || !userId) return;
+
+    const timer = setTimeout(async () => {
+      await saveDocument();
+    }, 30000); // Autosave after 30 seconds of inactivity
+
+    return () => clearTimeout(timer);
+  }, [state.isDirty, state.document, userId, saveDocument]);
+
   // Beforeunload warning
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -651,8 +774,10 @@ export function KonvaProvider({ children }: KonvaProviderProps) {
     setActiveTool,
     createNewDocument,
     loadDocument,
+    loadDocumentById,
     saveDocument,
     addElement,
+    addCustomElement,
     updateElement,
     deleteSelectedElements,
     duplicateSelectedElements,
@@ -663,6 +788,7 @@ export function KonvaProvider({ children }: KonvaProviderProps) {
     toggleLayersPanel,
     togglePropertiesPanel,
     toggleAIPanel,
+    toggleAssetsPanel,
     addPage,
     deletePage,
     goToPage,

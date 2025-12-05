@@ -130,87 +130,89 @@ function LayerItem({
         {getElementLabel(element)}
       </span>
       
-      {/* Quick Actions - show on hover */}
-      {showActions && (
-        <div className="flex items-center gap-0.5">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onMoveUp(element.id);
-            }}
-            disabled={isFirst}
-            className="p-1 hover:bg-gray-200 rounded disabled:opacity-30"
-            title="Move up"
-          >
-            <ChevronUp className="w-3 h-3" />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onMoveDown(element.id);
-            }}
-            disabled={isLast}
-            className="p-1 hover:bg-gray-200 rounded disabled:opacity-30"
-            title="Move down"
-          >
-            <ChevronDown className="w-3 h-3" />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDuplicate(element.id);
-            }}
-            className="p-1 hover:bg-gray-200 rounded"
-            title="Duplicate"
-          >
-            <Copy className="w-3 h-3" />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(element.id);
-            }}
-            className="p-1 hover:bg-red-100 rounded text-red-500"
-            title="Delete"
-          >
-            <Trash2 className="w-3 h-3" />
-          </button>
-        </div>
-      )}
-      
-      {/* Visibility & Lock - always visible */}
-      {!showActions && (
-        <div className="flex items-center gap-0.5">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleVisibility(element.id);
-            }}
-            className="p-1 hover:bg-gray-200 rounded"
-            title={element.visible ? 'Hide' : 'Show'}
-          >
-            {element.visible ? (
-              <Eye className="w-3 h-3 text-gray-400" />
-            ) : (
-              <EyeOff className="w-3 h-3 text-gray-400" />
-            )}
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleLock(element.id);
-            }}
-            className="p-1 hover:bg-gray-200 rounded"
-            title={element.locked ? 'Unlock' : 'Lock'}
-          >
-            {element.locked ? (
-              <Lock className="w-3 h-3 text-orange-500" />
-            ) : (
-              <Unlock className="w-3 h-3 text-gray-400" />
-            )}
-          </button>
-        </div>
-      )}
+      {/* Actions - always visible, more on hover */}
+      <div className="flex items-center gap-0.5">
+        {/* Visibility - always visible */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleVisibility(element.id);
+          }}
+          className="p-1 hover:bg-gray-200 rounded"
+          title={element.visible ? 'Hide' : 'Show'}
+        >
+          {element.visible ? (
+            <Eye className="w-3 h-3 text-gray-400" />
+          ) : (
+            <EyeOff className="w-3 h-3 text-gray-400" />
+          )}
+        </button>
+        
+        {/* Lock - always visible */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleLock(element.id);
+          }}
+          className="p-1 hover:bg-gray-200 rounded"
+          title={element.locked ? 'Unlock' : 'Lock'}
+        >
+          {element.locked ? (
+            <Lock className="w-3 h-3 text-orange-500" />
+          ) : (
+            <Unlock className="w-3 h-3 text-gray-400" />
+          )}
+        </button>
+        
+        {/* Additional actions - show on hover */}
+        {showActions && (
+          <>
+            <div className="w-px h-3 bg-gray-200 mx-0.5" />
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onMoveUp(element.id);
+              }}
+              disabled={isFirst}
+              className="p-1 hover:bg-gray-200 rounded disabled:opacity-30"
+              title="Move up"
+            >
+              <ChevronUp className="w-3 h-3" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onMoveDown(element.id);
+              }}
+              disabled={isLast}
+              className="p-1 hover:bg-gray-200 rounded disabled:opacity-30"
+              title="Move down"
+            >
+              <ChevronDown className="w-3 h-3" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDuplicate(element.id);
+              }}
+              className="p-1 hover:bg-gray-200 rounded"
+              title="Duplicate"
+            >
+              <Copy className="w-3 h-3" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(element.id);
+              }}
+              className="p-1 hover:bg-red-100 rounded text-red-500"
+              title="Delete"
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

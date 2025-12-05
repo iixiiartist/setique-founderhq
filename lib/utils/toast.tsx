@@ -70,6 +70,22 @@ export function showInfo(message: string) {
 }
 
 /**
+ * Show warning toast
+ */
+export function showWarning(message: string) {
+  toast(message, {
+    ...toastConfig,
+    icon: '⚠️',
+    style: {
+      ...toastConfig.style,
+      border: '1px solid rgba(245, 158, 11, 0.2)',
+      boxShadow: '0 4px 12px rgba(245, 158, 11, 0.15), 0 2px 4px rgba(0, 0, 0, 0.05)',
+      background: 'linear-gradient(to right, rgba(245, 158, 11, 0.05), white)',
+    },
+  });
+}
+
+/**
  * Show loading toast (returns toast ID for updating)
  */
 export function showLoading(message: string) {

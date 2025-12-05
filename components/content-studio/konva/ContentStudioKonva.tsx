@@ -11,7 +11,16 @@ import { KonvaProvider, useKonvaContext } from './KonvaContext';
 import { KonvaElementToolbar } from './KonvaElementToolbar';
 import { KonvaLayersPanel } from './KonvaLayersPanel';
 import { KonvaPropertiesPanel } from './KonvaPropertiesPanel';
+import { KonvaPageNavigation } from './KonvaPageNavigation';
+import { KonvaAIPanel } from './KonvaAIPanel';
+import { KonvaAssetPanel } from './KonvaAssetPanel';
+import { KonvaTextToolbar } from './KonvaTextToolbar';
+import { KonvaTextEditor } from './KonvaTextEditor';
 import { KonvaElement } from './types';
+import { ConfirmDialogProvider } from '../../ui/ConfirmDialog';
+import { showSuccess, showError } from '../../../lib/utils/toast';
+import { uploadImage } from '../../../lib/services/contentStudioStorage';
+import { useWorkspace } from '../../../contexts/WorkspaceContext';
 
 // ============================================================================
 // Element Renderers
@@ -24,10 +33,11 @@ interface ElementRendererProps {
   onChange: (id: string, attrs: Partial<KonvaElement>) => void;
   onDragStart?: () => void;
   onDragEnd?: () => void;
+  onDoubleClick?: (id: string) => void;
 }
 
 // Text Element
-function TextRenderer({ element, isSelected, onSelect, onChange, onDragStart, onDragEnd }: ElementRendererProps) {
+function TextRenderer({ element, isSelected, onSelect, onChange, onDragStart, onDragEnd, onDoubleClick }: ElementRendererProps) {
   const textRef = useRef<Konva.Text>(null);
   const trRef = useRef<Konva.Transformer>(null);
   const el = element as any;
@@ -43,6 +53,10 @@ function TextRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
     const evt = e.evt;
     onSelect(element.id, evt?.shiftKey || false);
   }, [element.id, onSelect]);
+
+  const handleDoubleClick = useCallback(() => {
+    onDoubleClick?.(element.id);
+  }, [element.id, onDoubleClick]);
   
   const handleDragEnd = useCallback((e: any) => {
     onChange(element.id, { x: e.target.x(), y: e.target.y() });
@@ -54,15 +68,21 @@ function TextRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
     if (!node) return;
     const scaleX = node.scaleX();
     const scaleY = node.scaleY();
+    
+    // Calculate new font size based on vertical scale
+    const currentFontSize = el.fontSize || 24;
+    const newFontSize = Math.max(8, Math.round(currentFontSize * scaleY));
+    
     node.scaleX(1);
     node.scaleY(1);
     onChange(element.id, {
       x: node.x(),
       y: node.y(),
-      width: Math.max(5, node.width() * scaleX),
+      width: Math.max(20, node.width() * scaleX),
+      fontSize: newFontSize,
       rotation: node.rotation(),
     } as any);
-  }, [element.id, onChange]);
+  }, [element.id, onChange, el.fontSize]);
   
   if (!element.visible) return null;
   
@@ -79,6 +99,7 @@ function TextRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
         fontSize={el.fontSize || 24}
         fontFamily={el.fontFamily || 'Inter'}
         fontStyle={el.fontStyle || 'normal'}
+        textDecoration={el.textDecoration || ''}
         fill={element.fill || '#1f2937'}
         align={el.align || 'left'}
         rotation={element.rotation || 0}
@@ -86,6 +107,8 @@ function TextRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
         draggable={!element.locked}
         onClick={handleClick}
         onTap={handleClick}
+        onDblClick={handleDoubleClick}
+        onDblTap={handleDoubleClick}
         onDragStart={onDragStart}
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
@@ -93,12 +116,18 @@ function TextRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
       {isSelected && (
         <Transformer
           ref={trRef}
-          enabledAnchors={['middle-left', 'middle-right']}
           rotateEnabled
           borderStroke="#6366f1"
           anchorStroke="#6366f1"
           anchorFill="#fff"
           anchorSize={8}
+          boundBoxFunc={(oldBox, newBox) => {
+            // Limit minimum size
+            if (newBox.width < 20 || newBox.height < 10) {
+              return oldBox;
+            }
+            return newBox;
+          }}
         />
       )}
     </>
@@ -580,11 +609,14 @@ function KonvaCanvasInternal() {
     createNewDocument,
     pushUndo,
     deleteSelectedElements,
+    addCustomElement,
   } = useKonvaContext();
+  const { workspace } = useWorkspace();
   
   const containerRef = useRef<HTMLDivElement>(null);
   const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
   const [isPanning, setIsPanning] = useState(false);
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
   
   // Get current page
   const currentPage = getCurrentPage();
@@ -592,6 +624,15 @@ function KonvaCanvasInternal() {
   const canvasWidth = currentPage?.canvas.width || 1920;
   const canvasHeight = currentPage?.canvas.height || 1080;
   const bgColor = currentPage?.canvas.backgroundColor || '#ffffff';
+  
+  // Get selected element for toolbar positioning
+  const selectedElement = selectedIds.length === 1 
+    ? elements.find(el => el.id === selectedIds[0]) 
+    : null;
+  const showTextToolbar = selectedElement?.type === 'text' && !editingTextId;
+  const editingElement = editingTextId 
+    ? elements.find(el => el.id === editingTextId) 
+    : null;
   
   // Create new document if none exists
   useEffect(() => {
@@ -616,9 +657,89 @@ function KonvaCanvasInternal() {
     return () => resizeObserver.disconnect();
   }, []);
   
+  // Clipboard storage for copied elements
+  const [clipboardElements, setClipboardElements] = useState<KonvaElement[]>([]);
+  
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // If editing text, only handle Escape
+      if (editingTextId) {
+        if (e.key === 'Escape') {
+          setEditingTextId(null);
+        }
+        return;
+      }
+      
+      // Skip if we're in an input field
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+      
+      // Copy (Ctrl+C)
+      if (e.key === 'c' && (e.ctrlKey || e.metaKey)) {
+        if (selectedIds.length > 0) {
+          e.preventDefault();
+          const elementsToCopy = elements.filter(el => selectedIds.includes(el.id));
+          setClipboardElements(elementsToCopy);
+          // Also try to write to system clipboard for text elements
+          const textElement = elementsToCopy.find(el => el.type === 'text');
+          if (textElement && 'text' in textElement) {
+            navigator.clipboard.writeText(textElement.text as string).catch(() => {});
+          }
+          showSuccess(`Copied ${elementsToCopy.length} element${elementsToCopy.length > 1 ? 's' : ''}`);
+        }
+      }
+      
+      // Paste (Ctrl+V) - for copied canvas elements
+      if (e.key === 'v' && (e.ctrlKey || e.metaKey)) {
+        if (clipboardElements.length > 0) {
+          e.preventDefault();
+          pushUndo();
+          const newIds: string[] = [];
+          clipboardElements.forEach((el, i) => {
+            const newElement: KonvaElement = {
+              ...JSON.parse(JSON.stringify(el)),
+              id: crypto.randomUUID(),
+              x: el.x + 20, // Offset so it's visible
+              y: el.y + 20,
+              name: `${el.name} (copy)`,
+            };
+            addCustomElement(newElement);
+            newIds.push(newElement.id);
+          });
+          setSelectedIds(newIds);
+          showSuccess(`Pasted ${clipboardElements.length} element${clipboardElements.length > 1 ? 's' : ''}`);
+          return; // Don't process system paste
+        }
+      }
+      
+      // Duplicate (Ctrl+D)
+      if (e.key === 'd' && (e.ctrlKey || e.metaKey)) {
+        if (selectedIds.length > 0) {
+          e.preventDefault();
+          pushUndo();
+          const newIds: string[] = [];
+          selectedIds.forEach(id => {
+            const el = elements.find(e => e.id === id);
+            if (el) {
+              const newElement: KonvaElement = {
+                ...JSON.parse(JSON.stringify(el)),
+                id: crypto.randomUUID(),
+                x: el.x + 20,
+                y: el.y + 20,
+                name: `${el.name} (copy)`,
+              };
+              addCustomElement(newElement);
+              newIds.push(newElement.id);
+            }
+          });
+          setSelectedIds(newIds);
+          showSuccess(`Duplicated ${newIds.length} element${newIds.length > 1 ? 's' : ''}`);
+        }
+      }
+      
       // Delete
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedIds.length > 0 && document.activeElement === document.body) {
@@ -638,7 +759,155 @@ function KonvaCanvasInternal() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIds, elements, deleteSelectedElements, setSelectedIds]);
+  }, [selectedIds, elements, deleteSelectedElements, setSelectedIds, editingTextId, clipboardElements, pushUndo, addCustomElement]);
+  
+  // Clipboard paste handler
+  useEffect(() => {
+    const handlePaste = async (e: ClipboardEvent) => {
+      // Skip if we're in an input field
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+      
+      // Skip if editing text
+      if (editingTextId) return;
+      
+      const clipboardData = e.clipboardData;
+      if (!clipboardData) return;
+      
+      // Check for image files first
+      const files = Array.from(clipboardData.files);
+      const imageFile = files.find(f => f.type.startsWith('image/'));
+      
+      if (imageFile) {
+        e.preventDefault();
+        
+        // Upload to Supabase storage if workspace available
+        if (workspace?.id) {
+          try {
+            const result = await uploadImage(imageFile, workspace.id, state.document?.id);
+            if (result) {
+              // Create image element at center of canvas
+              const img = new Image();
+              img.onload = () => {
+                // Scale down if too large
+                let width = img.width;
+                let height = img.height;
+                const maxSize = 500;
+                if (width > maxSize || height > maxSize) {
+                  const ratio = Math.min(maxSize / width, maxSize / height);
+                  width *= ratio;
+                  height *= ratio;
+                }
+                
+                const imageElement: KonvaElement = {
+                  id: crypto.randomUUID(),
+                  type: 'image',
+                  x: (canvasWidth - width) / 2,
+                  y: (canvasHeight - height) / 2,
+                  width,
+                  height,
+                  rotation: 0,
+                  opacity: 1,
+                  locked: false,
+                  visible: true,
+                  name: imageFile.name || 'Pasted Image',
+                  src: result.url,
+                } as KonvaElement;
+                
+                pushUndo();
+                addCustomElement(imageElement);
+                setSelectedIds([imageElement.id]);
+                showSuccess('Image pasted to canvas');
+              };
+              img.src = result.url;
+            }
+          } catch (error) {
+            console.error('[ContentStudio] Paste image error:', error);
+            showError('Failed to paste image');
+          }
+        } else {
+          // No workspace - use data URL directly
+          const reader = new FileReader();
+          reader.onload = () => {
+            const dataUrl = reader.result as string;
+            const img = new Image();
+            img.onload = () => {
+              let width = img.width;
+              let height = img.height;
+              const maxSize = 500;
+              if (width > maxSize || height > maxSize) {
+                const ratio = Math.min(maxSize / width, maxSize / height);
+                width *= ratio;
+                height *= ratio;
+              }
+              
+              const imageElement: KonvaElement = {
+                id: crypto.randomUUID(),
+                type: 'image',
+                x: (canvasWidth - width) / 2,
+                y: (canvasHeight - height) / 2,
+                width,
+                height,
+                rotation: 0,
+                opacity: 1,
+                locked: false,
+                visible: true,
+                name: imageFile.name || 'Pasted Image',
+                src: dataUrl,
+              } as KonvaElement;
+              
+              pushUndo();
+              addCustomElement(imageElement);
+              setSelectedIds([imageElement.id]);
+              showSuccess('Image pasted to canvas');
+            };
+            img.src = dataUrl;
+          };
+          reader.readAsDataURL(imageFile);
+        }
+        return;
+      }
+      
+      // Check for text content
+      const text = clipboardData.getData('text/plain');
+      if (text && text.trim()) {
+        e.preventDefault();
+        
+        // Create text element at center of canvas
+        const textElement: KonvaElement = {
+          id: crypto.randomUUID(),
+          type: 'text',
+          x: canvasWidth / 2 - 100,
+          y: canvasHeight / 2 - 20,
+          width: 300,
+          rotation: 0,
+          opacity: 1,
+          locked: false,
+          visible: true,
+          name: 'Pasted Text',
+          text: text.trim(),
+          fontSize: 24,
+          fontFamily: 'Inter',
+          fontStyle: 'normal',
+          fontWeight: 'normal',
+          fill: '#1f2937',
+          align: 'left',
+          verticalAlign: 'top',
+        } as KonvaElement;
+        
+        pushUndo();
+        addCustomElement(textElement);
+        setSelectedIds([textElement.id]);
+        showSuccess('Text pasted to canvas');
+        return;
+      }
+    };
+    
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [editingTextId, workspace?.id, state.document?.id, canvasWidth, canvasHeight, pushUndo, addCustomElement, setSelectedIds]);
   
   // Selection handlers
   const handleSelect = useCallback((id: string, additive: boolean) => {
@@ -654,6 +923,22 @@ function KonvaCanvasInternal() {
   const handleChange = useCallback((id: string, attrs: Partial<KonvaElement>) => {
     updateElement(id, attrs);
   }, [updateElement]);
+  
+  // Double-click to edit text
+  const handleTextDoubleClick = useCallback((id: string) => {
+    const element = elements.find(el => el.id === id);
+    if (element?.type === 'text') {
+      setEditingTextId(id);
+    }
+  }, [elements]);
+  
+  // Handle text edit completion
+  const handleTextEditComplete = useCallback((newText: string) => {
+    if (editingTextId) {
+      updateElement(editingTextId, { text: newText } as any);
+      setEditingTextId(null);
+    }
+  }, [editingTextId, updateElement]);
   
   // Stage click - deselect (use any to handle both mouse and touch)
   const handleStageClick = useCallback((e: any) => {
@@ -786,14 +1071,53 @@ function KonvaCanvasInternal() {
               onChange={handleChange}
               onDragStart={handleDragStart}
               onDragEnd={() => {}}
+              onDoubleClick={handleTextDoubleClick}
             />
           ))}
         </Layer>
       </Stage>
       
+      {/* Text Toolbar - shows when text is selected */}
+      {showTextToolbar && selectedElement && (
+        <KonvaTextToolbar
+          position={{
+            x: (selectedElement.x * zoom) + panOffset.x,
+            y: (selectedElement.y * zoom) + panOffset.y,
+          }}
+        />
+      )}
+      
+      {/* Text Editor - shows when double-clicking text */}
+      {editingElement && (() => {
+        const el = editingElement as any;
+        return (
+          <KonvaTextEditor
+            elementId={editingElement.id}
+            initialText={el.text || ''}
+            position={{ x: editingElement.x, y: editingElement.y }}
+            width={el.width || 200}
+            fontSize={el.fontSize || 24}
+            fontFamily={el.fontFamily || 'Inter'}
+            fontStyle={el.fontStyle || 'normal'}
+            fill={editingElement.fill || '#1f2937'}
+            align={el.align || 'left'}
+            rotation={editingElement.rotation || 0}
+            zoom={zoom}
+            panOffset={panOffset}
+            onClose={() => setEditingTextId(null)}
+            onSave={handleTextEditComplete}
+          />
+        );
+      })()}
+      
       {/* Zoom indicator */}
-      <div className="absolute bottom-4 left-4 bg-white/90 px-3 py-1.5 rounded-lg shadow text-xs text-gray-600">
-        {Math.round(zoom * 100)}%
+      <div className="absolute bottom-4 left-4 flex items-center gap-2">
+        <div className="bg-white/90 px-3 py-1.5 rounded-lg shadow text-xs text-gray-600">
+          {Math.round(zoom * 100)}%
+        </div>
+        <div className="bg-white/90 px-3 py-1.5 rounded-lg shadow text-xs text-gray-600">
+          {canvasWidth} × {canvasHeight}
+        </div>
       </div>
     </div>
   );
@@ -804,15 +1128,22 @@ function KonvaCanvasInternal() {
 // ============================================================================
 
 interface ContentStudioKonvaProps {
+  documentId?: string;
+  onClose?: () => void;
+  onSave?: () => void;
   className?: string;
 }
 
-export function ContentStudioKonva({ className = '' }: ContentStudioKonvaProps) {
+export function ContentStudioKonva({ documentId, onClose, onSave, className = '' }: ContentStudioKonvaProps) {
   return (
-    <KonvaProvider>
+    <KonvaProvider documentId={documentId} onClose={onClose} onSave={onSave}>
+    <ConfirmDialogProvider>
       <div className={`flex flex-col h-full bg-gray-50 ${className}`}>
         {/* Toolbar */}
-        <KonvaElementToolbar />
+        <KonvaElementToolbar onClose={onClose} />
+        
+        {/* Page Navigation */}
+        <KonvaPageNavigation />
         
         {/* Main content area */}
         <div className="flex flex-1 overflow-hidden">
@@ -822,8 +1153,11 @@ export function ContentStudioKonva({ className = '' }: ContentStudioKonvaProps) 
           {/* Right panels */}
           <KonvaLayersPanel />
           <KonvaPropertiesPanel />
+          <KonvaAIPanel />
+          <KonvaAssetPanel />
         </div>
       </div>
+    </ConfirmDialogProvider>
     </KonvaProvider>
   );
 }

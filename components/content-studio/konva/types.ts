@@ -106,8 +106,10 @@ export interface KonvaTextElement extends KonvaBaseElement {
   fontSize?: number;
   fontFamily?: string;
   fontStyle?: 'normal' | 'bold' | 'italic' | 'bold italic';
+  fontWeight?: 'normal' | 'bold' | number;
   textDecoration?: 'none' | 'underline' | 'line-through';
   align?: 'left' | 'center' | 'right';
+  textAlign?: 'left' | 'center' | 'right'; // Alias for align
   verticalAlign?: 'top' | 'middle' | 'bottom';
   lineHeight?: number;
   letterSpacing?: number;
@@ -345,6 +347,49 @@ export function createDefaultElement(type: KonvaElementType): Partial<KonvaEleme
         strokeWidth: 2,
         pointerLength: 10,
         pointerWidth: 10,
+      };
+    case 'regularPolygon':
+      return {
+        ...base,
+        type: 'regularPolygon',
+        category: 'shape',
+        sides: 6,
+        radius: 50,
+        fill: '#6366f1',
+        stroke: '#4f46e5',
+        strokeWidth: 0,
+      };
+    case 'star':
+      return {
+        ...base,
+        type: 'star',
+        category: 'shape',
+        numPoints: 5,
+        innerRadius: 25,
+        outerRadius: 50,
+        fill: '#6366f1',
+        stroke: '#4f46e5',
+        strokeWidth: 0,
+      };
+    case 'ellipse':
+      return {
+        ...base,
+        type: 'ellipse',
+        category: 'shape',
+        radiusX: 100,
+        radiusY: 60,
+        fill: '#6366f1',
+        stroke: '#4f46e5',
+        strokeWidth: 0,
+      };
+    case 'image':
+      return {
+        ...base,
+        type: 'image',
+        category: 'media',
+        width: 300,
+        height: 200,
+        src: '',
       };
     default:
       return base;

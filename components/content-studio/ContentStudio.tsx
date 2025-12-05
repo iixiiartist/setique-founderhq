@@ -31,11 +31,13 @@ interface ContentStudioProps {
  * - Export to PNG, JPEG, PDF
  */
 export function ContentStudio({ documentId, onClose, onSave, className = '' }: ContentStudioProps) {
-  // TODO: Handle documentId prop to load existing document
-  // TODO: Wire up onClose and onSave callbacks
-  
   return (
-    <ContentStudioKonva className={`h-full ${className}`} />
+    <ContentStudioKonva 
+      documentId={documentId}
+      onClose={onClose}
+      onSave={onSave}
+      className={`h-full ${className}`} 
+    />
   );
 }
 

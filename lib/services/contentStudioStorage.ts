@@ -7,9 +7,10 @@
 import { supabase } from '../supabase';
 import { v4 as uuidv4 } from 'uuid';
 
-const BUCKET_NAME = 'content-studio-assets';
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+// Use existing workspace-images bucket
+const BUCKET_NAME = 'workspace-images';
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB (matching existing bucket limit)
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 const SIGNED_URL_EXPIRY = 60 * 60 * 24 * 7; // 7 days
 
 export interface UploadResult {

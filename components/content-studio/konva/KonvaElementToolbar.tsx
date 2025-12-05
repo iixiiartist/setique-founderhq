@@ -27,9 +27,15 @@ import {
   X,
   FileImage,
   FileText,
+  Loader2,
+  FolderOpen,
+  Maximize,
 } from 'lucide-react';
 import { useKonvaContext } from './KonvaContext';
 import { KonvaElement, createDefaultElement } from './types';
+import { uploadImage, validateImage } from '../../../lib/services/contentStudioStorage';
+import { showError, showSuccess } from '../../../lib/utils/toast';
+import { KonvaCanvasSizePanel } from './KonvaCanvasSizePanel';
 
 interface ToolbarButtonProps {
   icon: React.ReactNode;
@@ -65,9 +71,10 @@ function ToolbarDivider() {
 
 interface KonvaElementToolbarProps {
   className?: string;
+  onClose?: () => void;
 }
 
-export function KonvaElementToolbar({ className = '' }: KonvaElementToolbarProps) {
+export function KonvaElementToolbar({ className = '', onClose }: KonvaElementToolbarProps) {
   const {
     state,
     activeTool,
@@ -80,6 +87,7 @@ export function KonvaElementToolbar({ className = '' }: KonvaElementToolbarProps
     toggleLayersPanel,
     togglePropertiesPanel,
     toggleAIPanel,
+    toggleAssetsPanel,
     dispatch,
     pushUndo,
     stageRef,
@@ -87,6 +95,7 @@ export function KonvaElementToolbar({ className = '' }: KonvaElementToolbarProps
   
   const [isExporting, setIsExporting] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showCanvasSizePanel, setShowCanvasSizePanel] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Add element to canvas
@@ -100,37 +109,64 @@ export function KonvaElementToolbar({ className = '' }: KonvaElementToolbarProps
     setActiveTool('select');
   }, [dispatch, pushUndo, setActiveTool]);
 
-  // Add image from file
-  const handleImageUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Add image from file - now uses Supabase Storage
+  const handleImageUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const src = e.target?.result as string;
-      if (src) {
-        pushUndo();
-        const element = createDefaultElement('image');
-        const updatedElement = {
-          ...element,
-          src,
-          name: file.name,
-        };
-        dispatch({ type: 'ADD_ELEMENT', payload: updatedElement as KonvaElement });
-        setActiveTool('select');
-      }
-    };
-    reader.readAsDataURL(file);
-    
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    // Validate first
+    const validation = validateImage(file);
+    if (!validation.valid) {
+      showError(validation.error || 'Invalid image');
+      return;
     }
-  }, [dispatch, pushUndo, setActiveTool]);
+
+    // Get workspace and document ID from state
+    const workspaceId = state.document?.workspaceId || 'default';
+    const documentId = state.document?.id;
+
+    setIsUploading(true);
+
+    try {
+      // Upload to Supabase Storage
+      const result = await uploadImage(file, workspaceId, documentId, true);
+
+      if (!result.success || !result.url) {
+        showError(result.error || 'Upload failed');
+        return;
+      }
+
+      // Create element with storage URL
+      pushUndo();
+      const element = createDefaultElement('image');
+      const updatedElement = {
+        ...element,
+        src: result.url,
+        name: file.name,
+        storagePath: result.path, // Store path for cleanup
+      };
+      dispatch({ type: 'ADD_ELEMENT', payload: updatedElement as KonvaElement });
+      setActiveTool('select');
+      showSuccess('Image added');
+    } catch (error) {
+      console.error('[Toolbar] Image upload failed:', error);
+      showError('Failed to upload image');
+    } finally {
+      setIsUploading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  }, [dispatch, pushUndo, setActiveTool, state.document]);
 
   const openImagePicker = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
+    if (!isUploading) {
+      fileInputRef.current?.click();
+    }
+  }, [isUploading]);
 
   // Zoom controls
   const handleZoomIn = useCallback(() => {
@@ -155,10 +191,10 @@ export function KonvaElementToolbar({ className = '' }: KonvaElementToolbarProps
     setShowExportModal(true);
   }, []);
 
-  const exportAs = useCallback((format: 'png' | 'jpeg' | 'svg') => {
+  const exportAs = useCallback(async (format: 'png' | 'jpeg' | 'pdf' | 'png-hires') => {
     const stage = stageRef?.current;
     if (!stage) {
-      console.error('No stage reference available');
+      showError('Canvas not ready for export');
       setShowExportModal(false);
       return;
     }
@@ -166,27 +202,56 @@ export function KonvaElementToolbar({ className = '' }: KonvaElementToolbarProps
     setIsExporting(true);
     
     try {
-      if (format === 'svg') {
-        // For SVG, we'll export as PNG since Konva doesn't support direct SVG export
-        // but we can still offer high-quality PNG
+      const docTitle = state.document?.title || 'canvas-export';
+      const safeTitle = docTitle.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+      
+      if (format === 'pdf') {
+        // For PDF export, we need to use jspdf
+        // First export as high-res PNG, then convert
+        const uri = stage.toDataURL({ pixelRatio: 2, mimeType: 'image/png' });
+        
+        // Dynamically import jspdf to avoid loading it until needed
+        const { default: jsPDF } = await import('jspdf');
+        
+        const canvas = state.document?.pages[state.currentPageIndex]?.canvas;
+        const width = canvas?.width || 1920;
+        const height = canvas?.height || 1080;
+        
+        // Create PDF with proper page size
+        const orientation = width > height ? 'landscape' : 'portrait';
+        const pdf = new jsPDF({
+          orientation,
+          unit: 'px',
+          format: [width, height],
+        });
+        
+        pdf.addImage(uri, 'PNG', 0, 0, width, height);
+        pdf.save(`${safeTitle}-${Date.now()}.pdf`);
+        showSuccess('PDF exported');
+      } else if (format === 'png-hires') {
+        // High-res PNG at 3x
         const uri = stage.toDataURL({ pixelRatio: 3, mimeType: 'image/png' });
-        downloadFile(uri, `canvas-export-${Date.now()}.png`);
+        downloadFile(uri, `${safeTitle}-hires-${Date.now()}.png`);
+        showSuccess('High-res PNG exported');
       } else {
+        // Standard PNG or JPEG
         const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
         const uri = stage.toDataURL({ 
           pixelRatio: 2, 
           mimeType,
           quality: format === 'jpeg' ? 0.92 : undefined 
         });
-        downloadFile(uri, `canvas-export-${Date.now()}.${format}`);
+        downloadFile(uri, `${safeTitle}-${Date.now()}.${format}`);
+        showSuccess(`${format.toUpperCase()} exported`);
       }
     } catch (error) {
       console.error('Export failed:', error);
+      showError('Export failed. Please try again.');
     } finally {
       setIsExporting(false);
       setShowExportModal(false);
     }
-  }, [stageRef]);
+  }, [stageRef, state.document, state.currentPageIndex]);
 
   const downloadFile = (dataUrl: string, filename: string) => {
     const link = document.createElement('a');
@@ -264,9 +329,10 @@ export function KonvaElementToolbar({ className = '' }: KonvaElementToolbarProps
           onClick={() => addElement('text')}
         />
         <ToolbarButton
-          icon={<Image className="w-4 h-4" />}
-          label="Image (I)"
+          icon={isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Image className="w-4 h-4" />}
+          label={isUploading ? "Uploading..." : "Image (I)"}
           onClick={openImagePicker}
+          disabled={isUploading}
         />
       </div>
 
@@ -274,7 +340,7 @@ export function KonvaElementToolbar({ className = '' }: KonvaElementToolbarProps
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
         onChange={handleImageUpload}
         className="hidden"
       />
@@ -320,10 +386,27 @@ export function KonvaElementToolbar({ className = '' }: KonvaElementToolbarProps
         />
       </div>
       
+      <ToolbarDivider />
+      
+      {/* Canvas Size */}
+      <div className="flex items-center">
+        <ToolbarButton
+          icon={<Maximize className="w-4 h-4" />}
+          label="Canvas Size"
+          onClick={() => setShowCanvasSizePanel(true)}
+        />
+      </div>
+      
       <div className="flex-1" />
       
       {/* Right side tools */}
       <div className="flex items-center gap-0.5">
+        <ToolbarButton
+          icon={<FolderOpen className="w-4 h-4" />}
+          label="Assets Library"
+          onClick={toggleAssetsPanel}
+          isActive={state.isAssetsPanelOpen}
+        />
         <ToolbarButton
           icon={<Sparkles className="w-4 h-4" />}
           label="AI Assistant"
@@ -399,26 +482,45 @@ export function KonvaElementToolbar({ className = '' }: KonvaElementToolbarProps
               </button>
               
               <button
-                onClick={() => exportAs('svg')}
+                onClick={() => exportAs('png-hires')}
+                disabled={isExporting}
+                className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg border border-gray-200 transition-colors"
+              >
+                <FileImage className="w-5 h-5 text-gray-600" />
+                <div className="text-left">
+                  <div className="font-medium text-gray-900">High-Res PNG</div>
+                  <div className="text-xs text-gray-500">3x resolution for print quality</div>
+                </div>
+              </button>
+              
+              <button
+                onClick={() => exportAs('pdf')}
                 disabled={isExporting}
                 className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg border border-gray-200 transition-colors"
               >
                 <FileText className="w-5 h-5 text-gray-600" />
                 <div className="text-left">
-                  <div className="font-medium text-gray-900">High-Res PNG</div>
-                  <div className="text-xs text-gray-500">3x resolution for print quality</div>
+                  <div className="font-medium text-gray-900">PDF</div>
+                  <div className="text-xs text-gray-500">Print-ready document format</div>
                 </div>
               </button>
             </div>
             
             {isExporting && (
               <div className="mt-4 text-center text-sm text-gray-500">
+                <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
                 Exporting...
               </div>
             )}
           </div>
         </div>
       )}
+      
+      {/* Canvas Size Panel */}
+      <KonvaCanvasSizePanel 
+        isOpen={showCanvasSizePanel} 
+        onClose={() => setShowCanvasSizePanel(false)} 
+      />
     </div>
   );
 }
