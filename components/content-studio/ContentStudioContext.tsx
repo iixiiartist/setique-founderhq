@@ -383,6 +383,10 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
         workspaceId: currentWorkspaceId !== 'offline' ? currentWorkspaceId : state.document.workspaceId,
         createdBy: state.document.createdBy || userId || '',
         pages: updatedPages,
+        metadata: {
+          ...state.document.metadata,
+          version: (state.document.metadata.version || 0) + 1, // Always increment version
+        },
         updatedAt: new Date().toISOString(),
       };
       
@@ -461,6 +465,7 @@ export function ContentStudioProvider({ children }: ContentStudioProviderProps) 
 
     dispatch({ type: 'SET_DOCUMENT', payload: updatedDocument });
     dispatch({ type: 'SET_PAGE', payload: updatedDocument.pages.length - 1 });
+    dispatch({ type: 'MARK_DIRTY' });
   }, [state.document]);
 
   const deletePage = useCallback((index: number) => {

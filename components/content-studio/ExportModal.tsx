@@ -1,7 +1,7 @@
 /**
  * Export Modal Component
  * Export canvas content to various formats (PDF, PNG, SVG, HTML)
- * Supports multi-page PDF export
+ * Supports multi-page PDF export with CORS-safe image handling
  */
 
 import React, { useState, useCallback } from 'react';
@@ -31,6 +31,81 @@ import { Select } from '../ui/Select';
 import { RadioGroup, RadioGroupItem } from '../ui/RadioGroup';
 import { ExportFormat, ContentPage } from './types';
 import { showError, showSuccess } from '../../lib/utils/toast';
+
+/**
+ * Preload all images in canvas objects with CORS handling
+ * This prevents "tainted canvas" errors during export
+ */
+async function preloadCanvasImages(canvas: fabric.Canvas): Promise<void> {
+  const objects = canvas.getObjects();
+  const imageObjects = objects.filter(obj => obj.type === 'image') as fabric.FabricImage[];
+  
+  if (imageObjects.length === 0) return;
+
+  const loadPromises = imageObjects.map(async (imgObj) => {
+    const src = imgObj.getSrc?.() || (imgObj as any)._element?.src;
+    if (!src || src.startsWith('data:')) return; // Skip base64 images
+    
+    try {
+      // Reload image with crossOrigin to avoid tainting
+      const newImg = await fabric.FabricImage.fromURL(src, {
+        crossOrigin: 'anonymous'
+      });
+      
+      // Copy properties from original
+      newImg.set({
+        left: imgObj.left,
+        top: imgObj.top,
+        scaleX: imgObj.scaleX,
+        scaleY: imgObj.scaleY,
+        angle: imgObj.angle,
+        opacity: imgObj.opacity,
+        flipX: imgObj.flipX,
+        flipY: imgObj.flipY,
+      });
+      
+      // Replace the object
+      const index = objects.indexOf(imgObj);
+      canvas.remove(imgObj);
+      canvas.insertAt(index, newImg);
+    } catch (e) {
+      console.warn('[Export] Failed to reload image for CORS:', src, e);
+    }
+  });
+  
+  await Promise.allSettled(loadPromises);
+  canvas.renderAll();
+}
+
+/**
+ * Pre-load fonts used in canvas before export
+ * This ensures text renders correctly in exported files
+ */
+async function preloadFonts(canvas: fabric.Canvas): Promise<void> {
+  const objects = canvas.getObjects();
+  const textObjects = objects.filter(
+    obj => obj.type === 'i-text' || obj.type === 'textbox' || obj.type === 'text'
+  ) as fabric.IText[];
+  
+  const fontFamilies = new Set<string>();
+  textObjects.forEach(obj => {
+    if (obj.fontFamily) {
+      fontFamilies.add(obj.fontFamily);
+    }
+  });
+  
+  // Use document.fonts API to ensure fonts are loaded
+  if (fontFamilies.size > 0 && 'fonts' in document) {
+    const loadPromises = Array.from(fontFamilies).map(async (font) => {
+      try {
+        await document.fonts.load(`16px "${font}"`);
+      } catch (e) {
+        console.warn('[Export] Font not available:', font);
+      }
+    });
+    await Promise.allSettled(loadPromises);
+  }
+}
 
 interface ExportModalProps {
   open: boolean;
@@ -123,7 +198,7 @@ export function ExportModal({ open, onClose }: ExportModalProps) {
     format: 'png' | 'jpeg',
     multiplier: number
   ): Promise<string> => {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       try {
         // Create a temporary canvas element
         const tempCanvasEl = document.createElement('canvas');
@@ -133,9 +208,13 @@ export function ExportModal({ open, onClose }: ExportModalProps) {
           backgroundColor: page.canvas.backgroundColor || '#ffffff',
         });
 
-        const loadAndRender = () => {
+        const loadAndRender = async () => {
           if (page.canvas.json) {
-            tempCanvas.loadFromJSON(JSON.parse(page.canvas.json), () => {
+            tempCanvas.loadFromJSON(JSON.parse(page.canvas.json), async () => {
+              // Preload images and fonts before export
+              await preloadCanvasImages(tempCanvas);
+              await preloadFonts(tempCanvas);
+              
               tempCanvas.renderAll();
               const dataUrl = tempCanvas.toDataURL({
                 format,
@@ -296,6 +375,11 @@ export function ExportModal({ open, onClose }: ExportModalProps) {
     setExportProgress('');
 
     try {
+      // Preload images and fonts for CORS-safe export
+      setExportProgress('Preparing assets...');
+      await preloadCanvasImages(canvas);
+      await preloadFonts(canvas);
+      
       const multiplier = getQualityMultiplier(quality);
       const fileName = state.document.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
 

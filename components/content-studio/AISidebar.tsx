@@ -1,6 +1,7 @@
 /**
  * AI Sidebar Component
  * Research and AI-powered content generation for Content Studio
+ * Production-ready with real backend integration
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
@@ -27,6 +28,7 @@ import {
   List,
   Heading,
   Plus,
+  AlertTriangle,
 } from 'lucide-react';
 import * as fabric from 'fabric';
 import { useContentStudio } from './ContentStudioContext';
@@ -41,6 +43,8 @@ import {
   CollapsibleTrigger,
 } from '../ui/Collapsible';
 import { ResearchResult } from './types';
+import { supabase } from '../../lib/supabase';
+import { showError, showSuccess } from '../../lib/utils/toast';
 
 interface AISidebarProps {
   className?: string;
@@ -95,6 +99,8 @@ export function AISidebar({ className = '' }: AISidebarProps) {
   const [inputValue, setInputValue] = useState('');
   const [researchQuery, setResearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [rateLimitRemaining, setRateLimitRemaining] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
@@ -114,27 +120,55 @@ export function AISidebar({ className = '' }: AISidebarProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Mock response generator for demo
-  const generateMockResponse = (prompt: string): string => {
-    const lowercasePrompt = prompt.toLowerCase();
-    
-    if (lowercasePrompt.includes('headline')) {
-      return `Here are 5 compelling headlines for your content:\n\n1. **Transform Your Workflow in Just 5 Minutes**\n2. **The Secret to 10x Productivity Revealed**\n3. **Why Top Companies Are Making the Switch**\n4. **Stop Wasting Time: A Better Way Exists**\n5. **Unlock Your Team's True Potential Today**\n\nWould you like me to adjust the tone or focus for any of these?`;
+  // Determine content type from prompt
+  const getContentType = (prompt: string): string => {
+    const lower = prompt.toLowerCase();
+    if (lower.includes('headline') || lower.includes('title')) return 'headline';
+    if (lower.includes('bullet') || lower.includes('point') || lower.includes('list')) return 'bullets';
+    if (lower.includes('testimonial') || lower.includes('review')) return 'testimonial';
+    if (lower.includes('cta') || lower.includes('call to action') || lower.includes('button')) return 'cta';
+    if (lower.includes('research') || lower.includes('data') || lower.includes('stats')) return 'research';
+    return 'body';
+  };
+
+  // Call the AI edge function
+  const callAI = async (type: string, prompt: string, context?: string): Promise<string> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error('Please sign in to use AI features');
     }
-    
-    if (lowercasePrompt.includes('bullet') || lowercasePrompt.includes('point')) {
-      return `Here are key bullet points:\n\n• **Streamlined Operations** - Reduce manual tasks by 80%\n• **Real-time Collaboration** - Work together seamlessly\n• **Enterprise Security** - Bank-grade encryption\n• **24/7 Support** - Help when you need it\n• **Proven Results** - Trusted by 10,000+ teams\n\nShall I expand on any of these?`;
+
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/content-studio-ai`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ type, prompt, context, stream: false }),
+    });
+
+    // Handle rate limiting
+    const remaining = response.headers.get('X-RateLimit-Remaining');
+    if (remaining) {
+      setRateLimitRemaining(parseInt(remaining, 10));
     }
-    
-    if (lowercasePrompt.includes('testimonial')) {
-      return `Here's a customer testimonial:\n\n> "Since implementing this solution, our team has saved over 20 hours per week. The intuitive interface meant zero training time, and the results spoke for themselves within the first month. I can't imagine going back to our old workflow."\n\n— **Sarah Chen**, VP of Operations at TechCorp\n\nWant me to create variations for different industries?`;
+
+    if (response.status === 429) {
+      const data = await response.json();
+      throw new Error(`Rate limit exceeded. Try again in ${data.resetIn} seconds.`);
     }
-    
-    if (lowercasePrompt.includes('cta') || lowercasePrompt.includes('call')) {
-      return `Here are CTA options:\n\n**Primary:**\n"Start Your Free Trial →"\n\n**Urgency:**\n"Limited Time: Get 50% Off Today"\n\n**Value-focused:**\n"See How Much You'll Save"\n\n**Social proof:**\n"Join 10,000+ Happy Customers"\n\n**Low commitment:**\n"Book a 15-Minute Demo"\n\nWhich style resonates most with your audience?`;
+
+    if (response.status === 401) {
+      throw new Error('Please sign in to use AI features');
     }
-    
-    return `I can help you with that! Here are some suggestions:\n\n1. **Be specific** - Share more details about your target audience\n2. **Set the tone** - Professional, casual, or playful?\n3. **Define the goal** - What action should readers take?\n\nTry asking me to:\n- Generate headlines or taglines\n- Write bullet points or feature lists\n- Create testimonial copy\n- Draft call-to-action text\n\nWhat would you like to create?`;
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || 'AI generation failed');
+    }
+
+    const data = await response.json();
+    return data.content;
   };
 
   // Handle chat message send
@@ -142,6 +176,7 @@ export function AISidebar({ className = '' }: AISidebarProps) {
     const messageText = prompt || inputValue.trim();
     if (!messageText || isLoading) return;
 
+    setError(null);
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
@@ -163,71 +198,100 @@ export function AISidebar({ className = '' }: AISidebarProps) {
     };
     setMessages((prev) => [...prev, assistantMessage]);
 
-    // Simulate streaming response
-    const mockResponse = generateMockResponse(messageText);
-    let currentContent = '';
-    
-    for (let i = 0; i < mockResponse.length; i++) {
-      await new Promise(resolve => setTimeout(resolve, 10));
-      currentContent += mockResponse[i];
+    try {
+      const contentType = getContentType(messageText);
+      const response = await callAI(contentType, messageText);
+      
+      // Simulate streaming for better UX
+      let currentContent = '';
+      for (let i = 0; i < response.length; i += 5) {
+        await new Promise(resolve => setTimeout(resolve, 10));
+        currentContent = response.slice(0, i + 5);
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantMessage.id
+              ? { ...msg, content: currentContent }
+              : msg
+          )
+        );
+      }
+
+      // Mark as done streaming
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === assistantMessage.id
-            ? { ...msg, content: currentContent }
+            ? { ...msg, content: response, isStreaming: false }
             : msg
         )
       );
+    } catch (err: any) {
+      console.error('[AISidebar] Error:', err);
+      setError(err.message);
+      
+      // Update message with error
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantMessage.id
+            ? { ...msg, content: `Error: ${err.message}`, isStreaming: false }
+            : msg
+        )
+      );
+    } finally {
+      setIsLoading(false);
     }
-
-    // Mark as done streaming
-    setMessages((prev) =>
-      prev.map((msg) =>
-        msg.id === assistantMessage.id
-          ? { ...msg, isStreaming: false }
-          : msg
-      )
-    );
-    
-    setIsLoading(false);
   }, [inputValue, isLoading]);
 
-  // Handle research
+  // Handle research (uses the You.com API via existing edge function)
   const handleResearch = useCallback(async () => {
     if (!researchQuery.trim() || isLoading) return;
 
     setIsLoading(true);
+    setError(null);
 
-    // Mock results
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setResearchResults([
-      {
-        id: '1',
-        title: 'Industry Trends Report 2024',
-        snippet: 'Key findings show a 45% increase in adoption rates across enterprise segments...',
-        url: 'https://example.com/report',
-        source: 'Industry Reports',
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Please sign in to use research features');
+      }
+
+      // Use the ai-search edge function
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-search`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query: researchQuery }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Research failed. Please try again.');
+      }
+
+      const data = await response.json();
+      
+      // Transform results to our format
+      const results: ResearchResult[] = (data.results || data.hits || []).slice(0, 5).map((item: any, index: number) => ({
+        id: String(index + 1),
+        title: item.title || item.name || 'Untitled',
+        snippet: item.snippet || item.description || item.text || '',
+        url: item.url || item.link || '#',
+        source: new URL(item.url || 'https://example.com').hostname.replace('www.', ''),
         timestamp: new Date().toISOString(),
-      },
-      {
-        id: '2',
-        title: 'Market Analysis: Competitive Landscape',
-        snippet: 'The market is projected to reach $50B by 2025, with significant growth in...',
-        url: 'https://example.com/analysis',
-        source: 'Market Research',
-        timestamp: new Date().toISOString(),
-      },
-      {
-        id: '3',
-        title: 'Best Practices for Go-to-Market Strategy',
-        snippet: 'Successful GTM strategies focus on customer-centric messaging and clear value propositions...',
-        url: 'https://example.com/gtm',
-        source: 'GTM Guide',
-        timestamp: new Date().toISOString(),
-      },
-    ]);
-    
-    setIsLoading(false);
+      }));
+
+      setResearchResults(results);
+      
+      if (results.length === 0) {
+        setError('No results found. Try a different search term.');
+      }
+    } catch (err: any) {
+      console.error('[AISidebar] Research error:', err);
+      setError(err.message);
+      setResearchResults([]);
+    } finally {
+      setIsLoading(false);
+    }
   }, [researchQuery, isLoading]);
 
   // Insert content to canvas
@@ -278,13 +342,26 @@ export function AISidebar({ className = '' }: AISidebarProps) {
           </div>
           <div>
             <span className="font-semibold text-gray-900">AI Assistant</span>
-            <p className="text-xs text-gray-500">Powered by AI</p>
+            <p className="text-xs text-gray-500">
+              {rateLimitRemaining !== null ? `${rateLimitRemaining} requests remaining` : 'Powered by AI'}
+            </p>
           </div>
         </div>
         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={toggleAIPanel}>
           <X className="w-4 h-4" />
         </Button>
       </div>
+
+      {/* Error Banner */}
+      {error && (
+        <div className="px-4 py-2 bg-red-50 border-b border-red-100 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
+          <p className="text-xs text-red-700 flex-1">{error}</p>
+          <button onClick={() => setError(null)} className="text-red-500 hover:text-red-700">
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      )}
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'chat' | 'research')} className="flex-1 flex flex-col">

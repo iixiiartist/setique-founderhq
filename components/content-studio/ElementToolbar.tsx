@@ -44,7 +44,8 @@ import {
 } from 'lucide-react';
 import { useContentStudio } from './ContentStudioContext';
 import { validateImageSize } from '../../lib/services/contentStudioService';
-import { showError } from '../../lib/utils/toast';
+import { uploadImage } from '../../lib/services/contentStudioStorage';
+import { showError, showSuccess } from '../../lib/utils/toast';
 import { Button } from '../ui/Button';
 import {
   Popover,
@@ -80,6 +81,7 @@ interface ToolItem {
 
 export function ElementToolbar({ className = '' }: ElementToolbarProps) {
   const { state, setActiveTool, addObject, canvasRef, toggleAIPanel } = useContentStudio();
+  const contentDocument = state.document;
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
   // Helper to create text objects
@@ -539,38 +541,59 @@ export function ElementToolbar({ className = '' }: ElementToolbarProps) {
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = 'image/*';
-            input.onchange = (e) => {
+            input.onchange = async (e) => {
               const file = (e.target as HTMLInputElement).files?.[0];
-              if (file) {
-                // Validate file size before processing
-                const validation = validateImageSize(file);
-                if (!validation.valid) {
-                  showError(validation.error || 'Image too large');
-                  return;
+              if (!file) return;
+              
+              // Validate file size before processing
+              const validation = validateImageSize(file);
+              if (!validation.valid) {
+                showError(validation.error || 'Image too large');
+                return;
+              }
+              
+              try {
+                // Get current document info for proper folder organization
+                const documentId = contentDocument?.id;
+                const workspaceId = contentDocument?.workspaceId || 'local';
+                
+                // Upload to Supabase Storage instead of base64 embedding
+                const result = await uploadImage(
+                  file, 
+                  workspaceId, 
+                  documentId, 
+                  file.size > 1024 * 1024 // Compress if > 1MB
+                );
+                
+                if (!result.success || !result.url) {
+                  throw new Error(result.error || 'Upload failed');
                 }
                 
-                const reader = new FileReader();
-                reader.onload = async (event) => {
-                  // Also check base64 size (roughly 1.37x file size)
-                  const base64Data = event.target?.result as string;
-                  const base64Size = base64Data?.length || 0;
-                  const MAX_BASE64_SIZE = 2 * 1024 * 1024; // 2MB base64 limit for JSON storage
-                  
-                  if (base64Size > MAX_BASE64_SIZE) {
-                    showError(`Image too large for canvas storage (${(base64Size / 1024 / 1024).toFixed(1)}MB). Please use a smaller image or compress it.`);
-                    return;
-                  }
-                  
-                  const img = await fabric.FabricImage.fromURL(base64Data);
-                  // Scale to reasonable size
-                  const maxSize = 400;
-                  const scale = Math.min(maxSize / (img.width || 1), maxSize / (img.height || 1), 1);
-                  img.scale(scale);
-                  img.set({ left: 100, top: 100 });
-                  (img as any).name = file.name;
-                  addObject(img);
-                };
-                reader.readAsDataURL(file);
+                // Load image from hosted URL
+                const img = await fabric.FabricImage.fromURL(result.url, {
+                  crossOrigin: 'anonymous'
+                });
+                
+                // Scale to reasonable size for canvas
+                const maxSize = 400;
+                const scale = Math.min(
+                  maxSize / (img.width || 1), 
+                  maxSize / (img.height || 1), 
+                  1
+                );
+                img.scale(scale);
+                img.set({ left: 100, top: 100 });
+                
+                // Store metadata for export and reference
+                (img as any).name = file.name;
+                (img as any).storageUrl = result.url;
+                (img as any).storagePath = result.path;
+                
+                addObject(img);
+                showSuccess('Image uploaded successfully');
+              } catch (error) {
+                console.error('Image upload failed:', error);
+                showError(error instanceof Error ? error.message : 'Failed to upload image');
               }
             };
             input.click();
