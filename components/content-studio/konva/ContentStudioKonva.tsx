@@ -116,13 +116,18 @@ function TextRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
       {isSelected && (
         <Transformer
           ref={trRef}
-          rotateEnabled
+          rotateEnabled={true}
+          enabledAnchors={['top-left', 'top-center', 'top-right', 'middle-left', 'middle-right', 'bottom-left', 'bottom-center', 'bottom-right']}
           borderStroke="#6366f1"
+          borderStrokeWidth={2}
+          borderDash={[4, 4]}
           anchorStroke="#6366f1"
-          anchorFill="#fff"
-          anchorSize={8}
+          anchorFill="#ffffff"
+          anchorSize={10}
+          anchorCornerRadius={2}
+          rotateAnchorOffset={25}
+          rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
           boundBoxFunc={(oldBox, newBox) => {
-            // Limit minimum size
             if (newBox.width < 20 || newBox.height < 10) {
               return oldBox;
             }
@@ -204,11 +209,23 @@ function RectRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
       {isSelected && (
         <Transformer
           ref={trRef}
-          rotateEnabled
+          rotateEnabled={true}
+          enabledAnchors={['top-left', 'top-center', 'top-right', 'middle-left', 'middle-right', 'bottom-left', 'bottom-center', 'bottom-right']}
           borderStroke="#6366f1"
+          borderStrokeWidth={2}
+          borderDash={[4, 4]}
           anchorStroke="#6366f1"
-          anchorFill="#fff"
-          anchorSize={8}
+          anchorFill="#ffffff"
+          anchorSize={10}
+          anchorCornerRadius={2}
+          rotateAnchorOffset={25}
+          rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
+          boundBoxFunc={(oldBox, newBox) => {
+            if (newBox.width < 5 || newBox.height < 5) {
+              return oldBox;
+            }
+            return newBox;
+          }}
         />
       )}
     </>
@@ -281,31 +298,31 @@ function CircleRenderer({ element, isSelected, onSelect, onChange, onDragStart, 
       {isSelected && (
         <Transformer
           ref={trRef}
-          rotateEnabled
+          rotateEnabled={true}
           enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right']}
           borderStroke="#6366f1"
+          borderStrokeWidth={2}
+          borderDash={[4, 4]}
           anchorStroke="#6366f1"
-          anchorFill="#fff"
-          anchorSize={8}
+          anchorFill="#ffffff"
+          anchorSize={10}
+          anchorCornerRadius={2}
+          rotateAnchorOffset={25}
+          rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
+          keepRatio={true}
+          centeredScaling={true}
         />
       )}
     </>
   );
 }
 
-// Line/Arrow Element
+// Line/Arrow Element with draggable endpoint handles
 function LineRenderer({ element, isSelected, onSelect, onChange, onDragStart, onDragEnd }: ElementRendererProps) {
   const lineRef = useRef<any>(null);
-  const trRef = useRef<Konva.Transformer>(null);
   const el = element as any;
   const isArrow = element.type === 'arrow';
-  
-  useEffect(() => {
-    if (isSelected && lineRef.current && trRef.current) {
-      trRef.current.nodes([lineRef.current]);
-      trRef.current.getLayer()?.batchDraw();
-    }
-  }, [isSelected]);
+  const points = el.points || [0, 0, 200, 0];
   
   const handleClick = useCallback((e: any) => {
     onSelect(element.id, e.evt?.shiftKey || false);
@@ -316,42 +333,109 @@ function LineRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
     onDragEnd?.();
   }, [element.id, onChange, onDragEnd]);
   
+  // Handle dragging of start point
+  const handleStartPointDrag = useCallback((e: any) => {
+    const node = e.target;
+    const newPoints = [...points];
+    newPoints[0] = node.x();
+    newPoints[1] = node.y();
+    // Reset handle position
+    node.x(0);
+    node.y(0);
+    onChange(element.id, { points: newPoints } as any);
+  }, [element.id, points, onChange]);
+  
+  // Handle dragging of end point
+  const handleEndPointDrag = useCallback((e: any) => {
+    const node = e.target;
+    const newPoints = [...points];
+    newPoints[2] = node.x();
+    newPoints[3] = node.y();
+    // Reset handle position
+    node.x(0);
+    node.y(0);
+    onChange(element.id, { points: newPoints } as any);
+  }, [element.id, points, onChange]);
+  
   if (!element.visible) return null;
   
   const LineComponent = isArrow ? Arrow : Line;
   
   return (
-    <>
+    <Group x={element.x} y={element.y}>
       <LineComponent
         ref={lineRef}
         id={element.id}
         name="element"
-        x={element.x}
-        y={element.y}
-        points={el.points || [0, 0, 200, 0]}
+        points={points}
         stroke={element.stroke || element.fill || '#6366f1'}
         strokeWidth={element.strokeWidth || 2}
         rotation={element.rotation || 0}
         opacity={element.opacity ?? 1}
         pointerLength={isArrow ? (el.pointerLength || 10) : undefined}
         pointerWidth={isArrow ? (el.pointerWidth || 10) : undefined}
+        hitStrokeWidth={20}
         draggable={!element.locked}
         onClick={handleClick}
         onTap={handleClick}
         onDragStart={onDragStart}
         onDragEnd={handleDragEnd}
       />
+      {/* Endpoint handles when selected */}
       {isSelected && (
-        <Transformer
-          ref={trRef}
-          rotateEnabled
-          borderStroke="#6366f1"
-          anchorStroke="#6366f1"
-          anchorFill="#fff"
-          anchorSize={8}
-        />
+        <>
+          {/* Start point handle */}
+          <Circle
+            x={points[0]}
+            y={points[1]}
+            radius={8}
+            fill="#ffffff"
+            stroke="#6366f1"
+            strokeWidth={2}
+            draggable={!element.locked}
+            onDragMove={handleStartPointDrag}
+            onMouseEnter={(e) => {
+              const stage = e.target.getStage();
+              if (stage) stage.container().style.cursor = 'move';
+            }}
+            onMouseLeave={(e) => {
+              const stage = e.target.getStage();
+              if (stage) stage.container().style.cursor = 'default';
+            }}
+          />
+          {/* End point handle */}
+          <Circle
+            x={points[2]}
+            y={points[3]}
+            radius={8}
+            fill="#ffffff"
+            stroke="#6366f1"
+            strokeWidth={2}
+            draggable={!element.locked}
+            onDragMove={handleEndPointDrag}
+            onMouseEnter={(e) => {
+              const stage = e.target.getStage();
+              if (stage) stage.container().style.cursor = 'move';
+            }}
+            onMouseLeave={(e) => {
+              const stage = e.target.getStage();
+              if (stage) stage.container().style.cursor = 'default';
+            }}
+          />
+          {/* Selection border */}
+          <Rect
+            x={Math.min(points[0], points[2]) - 5}
+            y={Math.min(points[1], points[3]) - 5}
+            width={Math.abs(points[2] - points[0]) + 10}
+            height={Math.abs(points[3] - points[1]) + 10}
+            stroke="#6366f1"
+            strokeWidth={1}
+            dash={[4, 4]}
+            listening={false}
+          />
+        </>
       )}
-    </>
+    </Group>
   );
 }
 
@@ -403,11 +487,19 @@ function PolygonRenderer({ element, isSelected, onSelect, onChange, onDragStart,
       {isSelected && (
         <Transformer
           ref={trRef}
-          rotateEnabled
+          rotateEnabled={true}
+          enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right']}
           borderStroke="#6366f1"
+          borderStrokeWidth={2}
+          borderDash={[4, 4]}
           anchorStroke="#6366f1"
-          anchorFill="#fff"
-          anchorSize={8}
+          anchorFill="#ffffff"
+          anchorSize={10}
+          anchorCornerRadius={2}
+          rotateAnchorOffset={25}
+          rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
+          keepRatio={true}
+          centeredScaling={true}
         />
       )}
     </>
@@ -463,11 +555,19 @@ function StarRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
       {isSelected && (
         <Transformer
           ref={trRef}
-          rotateEnabled
+          rotateEnabled={true}
+          enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right']}
           borderStroke="#6366f1"
+          borderStrokeWidth={2}
+          borderDash={[4, 4]}
           anchorStroke="#6366f1"
-          anchorFill="#fff"
-          anchorSize={8}
+          anchorFill="#ffffff"
+          anchorSize={10}
+          anchorCornerRadius={2}
+          rotateAnchorOffset={25}
+          rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
+          keepRatio={true}
+          centeredScaling={true}
         />
       )}
     </>
@@ -553,12 +653,25 @@ function ImageRenderer({ element, isSelected, onSelect, onChange, onDragStart, o
       {isSelected && (
         <Transformer
           ref={trRef}
-          rotateEnabled
-          keepRatio
+          rotateEnabled={true}
+          keepRatio={false}
+          enabledAnchors={['top-left', 'top-center', 'top-right', 'middle-left', 'middle-right', 'bottom-left', 'bottom-center', 'bottom-right']}
           borderStroke="#6366f1"
+          borderStrokeWidth={2}
+          borderDash={[4, 4]}
           anchorStroke="#6366f1"
-          anchorFill="#fff"
-          anchorSize={8}
+          anchorFill="#ffffff"
+          anchorSize={10}
+          anchorCornerRadius={2}
+          rotateAnchorOffset={25}
+          rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
+          boundBoxFunc={(oldBox, newBox) => {
+            // Limit minimum size
+            if (newBox.width < 10 || newBox.height < 10) {
+              return oldBox;
+            }
+            return newBox;
+          }}
         />
       )}
     </>
