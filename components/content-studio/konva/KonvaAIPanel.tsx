@@ -1,13 +1,13 @@
 /**
  * Konva AI Panel
  * AI-powered content generation sidebar for the Content Studio
+ * Supports both text generation and layout element generation
  */
 
 import React, { useState, useCallback } from 'react';
 import {
   Sparkles,
   X,
-  Send,
   Loader2,
   Copy,
   Check,
@@ -20,14 +20,29 @@ import {
   MessageSquare,
   Search,
   List,
+  Layout,
+  Layers,
+  AlertCircle,
+  Zap,
 } from 'lucide-react';
 import { useKonvaContext } from './KonvaContext';
 import {
   generateContent,
+  generateElements,
   ContentType,
   CONTENT_TYPE_LABELS,
   QUICK_PROMPTS,
+  LAYOUT_TYPE_LABELS,
+  LAYOUT_QUICK_PROMPTS,
+  getQuotaInfo,
+  StreamingCallbacks,
 } from './contentStudioAIService';
+import { AiGenerationType, AiSummary } from './aiSchema';
+import { KonvaElement } from './types';
+
+// ============================================================================
+// Sub-components
+// ============================================================================
 
 interface QuickPromptProps {
   prompt: string;
@@ -43,12 +58,6 @@ function QuickPrompt({ prompt, onClick }: QuickPromptProps) {
       {prompt}
     </button>
   );
-}
-
-interface ContentTypeButtonProps {
-  type: ContentType;
-  isActive: boolean;
-  onClick: () => void;
 }
 
 function getContentTypeIcon(type: ContentType) {
@@ -70,6 +79,29 @@ function getContentTypeIcon(type: ContentType) {
   }
 }
 
+function getLayoutTypeIcon(type: AiGenerationType) {
+  switch (type) {
+    case 'hero-section':
+      return <Layout className="w-4 h-4" />;
+    case 'feature-grid':
+      return <Layers className="w-4 h-4" />;
+    case 'testimonial-card':
+      return <MessageSquare className="w-4 h-4" />;
+    case 'cta-block':
+      return <Target className="w-4 h-4" />;
+    case 'stats-row':
+      return <Zap className="w-4 h-4" />;
+    default:
+      return <Layout className="w-4 h-4" />;
+  }
+}
+
+interface ContentTypeButtonProps {
+  type: ContentType;
+  isActive: boolean;
+  onClick: () => void;
+}
+
 function ContentTypeButton({ type, isActive, onClick }: ContentTypeButtonProps) {
   const info = CONTENT_TYPE_LABELS[type];
   return (
@@ -83,6 +115,31 @@ function ContentTypeButton({ type, isActive, onClick }: ContentTypeButtonProps) 
       title={info.description}
     >
       {getContentTypeIcon(type)}
+      <span className="font-medium">{info.label}</span>
+    </button>
+  );
+}
+
+interface LayoutTypeButtonProps {
+  type: AiGenerationType;
+  isActive: boolean;
+  onClick: () => void;
+}
+
+function LayoutTypeButton({ type, isActive, onClick }: LayoutTypeButtonProps) {
+  const info = LAYOUT_TYPE_LABELS[type];
+  if (!info) return null;
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
+        isActive
+          ? 'bg-purple-100 text-purple-700 ring-1 ring-purple-300'
+          : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+      }`}
+      title={info.description}
+    >
+      {getLayoutTypeIcon(type)}
       <span className="font-medium">{info.label}</span>
     </button>
   );
@@ -123,15 +180,85 @@ function GeneratedContent({ content, onCopy, onInsertAsText, copied }: Generated
           </button>
         </div>
       </div>
-      <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+      <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
         {content}
       </div>
     </div>
   );
 }
 
+interface GeneratedElementsProps {
+  elements: KonvaElement[];
+  summary?: AiSummary;
+  onInsert: () => void;
+}
+
+function GeneratedElements({ elements, summary, onInsert }: GeneratedElementsProps) {
+  return (
+    <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4 border border-purple-100">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-medium text-purple-600 flex items-center gap-1">
+          <Layers className="w-3 h-3" />
+          Generated Elements ({elements.length})
+        </span>
+        <button
+          onClick={onInsert}
+          className="px-2 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+        >
+          Insert Elements
+        </button>
+      </div>
+      <div className="text-sm text-gray-700 space-y-1">
+        {elements.slice(0, 5).map((el, i) => (
+          <div key={i} className="flex items-center gap-2 text-xs">
+            <span className="w-2 h-2 rounded-full bg-purple-400" />
+            <span className="capitalize">{el.type}</span>
+            {el.name && <span className="text-gray-400">- {el.name}</span>}
+          </div>
+        ))}
+        {elements.length > 5 && (
+          <div className="text-xs text-gray-400">
+            +{elements.length - 5} more elements
+          </div>
+        )}
+      </div>
+      {summary && (
+        <div className="mt-2 pt-2 border-t border-purple-200 text-xs text-purple-600">
+          {summary.warnings.length > 0 && (
+            <div className="flex items-center gap-1 text-amber-600">
+              <AlertCircle className="w-3 h-3" />
+              {summary.warnings.length} warning(s)
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// Main Panel
+// ============================================================================
+
+type GenerationMode = 'text' | 'elements';
+
+// Layout types shown in the UI
+const LAYOUT_TYPES: AiGenerationType[] = [
+  'hero-section',
+  'feature-grid',
+  'testimonial-card',
+  'cta-block',
+  'stats-row',
+  'custom',
+];
+
 export function KonvaAIPanel() {
-  const { state, toggleAIPanel, addCustomElement } = useKonvaContext();
+  const { state, toggleAIPanel, addCustomElement, applyAiPatch } = useKonvaContext();
+  
+  // Mode: text generation vs element generation
+  const [mode, setMode] = useState<GenerationMode>('text');
+  
+  // Text generation state
   const [selectedType, setSelectedType] = useState<ContentType>('headline');
   const [prompt, setPrompt] = useState('');
   const [context, setContext] = useState('');
@@ -141,8 +268,18 @@ export function KonvaAIPanel() {
   const [copied, setCopied] = useState(false);
   const [showContext, setShowContext] = useState(false);
   const [showQuickPrompts, setShowQuickPrompts] = useState(true);
+  
+  // Element generation state
+  const [selectedLayoutType, setSelectedLayoutType] = useState<AiGenerationType>('hero-section');
+  const [generatedElements, setGeneratedElements] = useState<KonvaElement[]>([]);
+  const [generationSummary, setGenerationSummary] = useState<AiSummary | undefined>();
+  const [progress, setProgress] = useState<{ value: number; message?: string } | null>(null);
 
-  const handleGenerate = useCallback(async () => {
+  // Get quota info
+  const quotaInfo = getQuotaInfo();
+
+  // Text generation handler
+  const handleGenerateText = useCallback(async () => {
     if (!prompt.trim()) return;
 
     setIsLoading(true);
@@ -162,6 +299,64 @@ export function KonvaAIPanel() {
       setIsLoading(false);
     }
   }, [prompt, context, selectedType]);
+
+  // Element generation handler
+  const handleGenerateElements = useCallback(async () => {
+    if (!prompt.trim()) return;
+
+    setIsLoading(true);
+    setError(null);
+    setGeneratedElements([]);
+    setGenerationSummary(undefined);
+    setProgress({ value: 0, message: 'Starting generation...' });
+
+    const callbacks: StreamingCallbacks = {
+      onPatch: (elements, patchId) => {
+        setGeneratedElements(prev => [...prev, ...elements]);
+        setProgress({ value: 50, message: `Received ${elements.length} elements...` });
+      },
+      onProgress: (value, message) => {
+        setProgress({ value, message });
+      },
+      onError: (err) => {
+        setError(err);
+      },
+      onComplete: (summary) => {
+        setGenerationSummary(summary);
+        setProgress(null);
+      },
+    };
+
+    try {
+      const result = await generateElements({
+        type: selectedLayoutType,
+        prompt: prompt.trim(),
+        context: context.trim() || undefined,
+        documentId: state.document?.id,
+        options: {
+          stream: true,
+        },
+      }, callbacks);
+
+      if (!result.success && result.error) {
+        setError(result.error);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to generate elements');
+    } finally {
+      setIsLoading(false);
+      setProgress(null);
+    }
+  }, [prompt, context, selectedLayoutType, state.document?.id]);
+
+  // Handle generation based on mode
+  const handleGenerate = useCallback(() => {
+    if (mode === 'text') {
+      handleGenerateText();
+    } else {
+      handleGenerateElements();
+    }
+  }, [mode, handleGenerateText, handleGenerateElements]);
 
   const handleQuickPrompt = useCallback((quickPrompt: string) => {
     setPrompt(quickPrompt);
@@ -199,9 +394,20 @@ export function KonvaAIPanel() {
       locked: false,
     } as any);
 
-    // Close panel after inserting
     toggleAIPanel();
   }, [generatedContent, state.document, state.currentPageIndex, selectedType, addCustomElement, toggleAIPanel]);
+
+  const handleInsertElements = useCallback(() => {
+    if (generatedElements.length === 0) return;
+
+    const result = applyAiPatch(generatedElements);
+    console.log(`[KonvaAIPanel] Inserted ${result.applied} elements, skipped ${result.skipped}`);
+    
+    // Clear generated elements after insert
+    setGeneratedElements([]);
+    setGenerationSummary(undefined);
+    toggleAIPanel();
+  }, [generatedElements, applyAiPatch, toggleAIPanel]);
 
   const handleRegenerate = useCallback(() => {
     if (prompt.trim()) {
@@ -229,22 +435,61 @@ export function KonvaAIPanel() {
         </button>
       </div>
 
+      {/* Mode Toggle */}
+      <div className="px-4 py-2 border-b border-gray-100">
+        <div className="flex bg-gray-100 rounded-lg p-1">
+          <button
+            onClick={() => setMode('text')}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+              mode === 'text'
+                ? 'bg-white text-indigo-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            <Type className="w-3.5 h-3.5" />
+            Text
+          </button>
+          <button
+            onClick={() => setMode('elements')}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+              mode === 'elements'
+                ? 'bg-white text-purple-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            <Layout className="w-3.5 h-3.5" />
+            Elements
+          </button>
+        </div>
+      </div>
+
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* Content Type Selection */}
+        {/* Type Selection */}
         <div>
           <label className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2 block">
-            Content Type
+            {mode === 'text' ? 'Content Type' : 'Layout Type'}
           </label>
           <div className="grid grid-cols-2 gap-2">
-            {(Object.keys(CONTENT_TYPE_LABELS) as ContentType[]).map((type) => (
-              <ContentTypeButton
-                key={type}
-                type={type}
-                isActive={selectedType === type}
-                onClick={() => setSelectedType(type)}
-              />
-            ))}
+            {mode === 'text' ? (
+              (Object.keys(CONTENT_TYPE_LABELS) as ContentType[]).map((type) => (
+                <ContentTypeButton
+                  key={type}
+                  type={type}
+                  isActive={selectedType === type}
+                  onClick={() => setSelectedType(type)}
+                />
+              ))
+            ) : (
+              LAYOUT_TYPES.map((type) => (
+                <LayoutTypeButton
+                  key={type}
+                  type={type}
+                  isActive={selectedLayoutType === type}
+                  onClick={() => setSelectedLayoutType(type)}
+                />
+              ))
+            )}
           </div>
         </div>
 
@@ -259,9 +504,15 @@ export function KonvaAIPanel() {
               <ChevronUp className="w-3 h-3" />
             </button>
             <div className="flex flex-col gap-1">
-              {QUICK_PROMPTS[selectedType].map((qp, i) => (
-                <QuickPrompt key={i} prompt={qp} onClick={handleQuickPrompt} />
-              ))}
+              {mode === 'text' ? (
+                QUICK_PROMPTS[selectedType].map((qp, i) => (
+                  <QuickPrompt key={i} prompt={qp} onClick={handleQuickPrompt} />
+                ))
+              ) : (
+                LAYOUT_QUICK_PROMPTS[selectedLayoutType]?.map((qp, i) => (
+                  <QuickPrompt key={i} prompt={qp} onClick={handleQuickPrompt} />
+                ))
+              )}
             </div>
           </div>
         )}
@@ -284,7 +535,10 @@ export function KonvaAIPanel() {
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder={`Describe what you want to create...`}
+            placeholder={mode === 'text' 
+              ? 'Describe what you want to create...'
+              : 'Describe the layout you want to generate...'
+            }
             className="w-full h-24 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -317,30 +571,50 @@ export function KonvaAIPanel() {
         <button
           onClick={handleGenerate}
           disabled={!prompt.trim() || isLoading}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-medium hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all ${
+            mode === 'text'
+              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700'
+              : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
+          }`}
         >
           {isLoading ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              Generating...
+              {progress ? progress.message || 'Generating...' : 'Generating...'}
             </>
           ) : (
             <>
-              <Sparkles className="w-4 h-4" />
-              Generate Content
+              {mode === 'text' ? <Sparkles className="w-4 h-4" /> : <Layout className="w-4 h-4" />}
+              {mode === 'text' ? 'Generate Content' : 'Generate Elements'}
             </>
           )}
         </button>
 
-        {/* Error */}
-        {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
-            {error}
+        {/* Progress Bar */}
+        {progress && (
+          <div className="space-y-1">
+            <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300"
+                style={{ width: `${progress.value}%` }}
+              />
+            </div>
+            {progress.message && (
+              <p className="text-xs text-gray-500">{progress.message}</p>
+            )}
           </div>
         )}
 
-        {/* Generated Content */}
-        {generatedContent && (
+        {/* Error */}
+        {error && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600 flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Generated Content (Text Mode) */}
+        {mode === 'text' && generatedContent && (
           <>
             <GeneratedContent
               content={generatedContent}
@@ -358,13 +632,39 @@ export function KonvaAIPanel() {
             </button>
           </>
         )}
+
+        {/* Generated Elements (Elements Mode) */}
+        {mode === 'elements' && generatedElements.length > 0 && (
+          <>
+            <GeneratedElements
+              elements={generatedElements}
+              summary={generationSummary}
+              onInsert={handleInsertElements}
+            />
+            <button
+              onClick={handleRegenerate}
+              disabled={isLoading}
+              className="flex items-center justify-center gap-2 w-full px-3 py-2 text-sm text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Regenerate
+            </button>
+          </>
+        )}
       </div>
 
-      {/* Footer */}
+      {/* Footer with Quota */}
       <div className="px-4 py-3 border-t border-gray-100 bg-gray-50">
-        <p className="text-xs text-gray-500 text-center">
-          Press <kbd className="px-1.5 py-0.5 bg-white border rounded text-xs">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 bg-white border rounded text-xs">Enter</kbd> to generate
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-gray-500">
+            <kbd className="px-1.5 py-0.5 bg-white border rounded text-xs">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 bg-white border rounded text-xs">Enter</kbd>
+          </p>
+          {quotaInfo && (
+            <div className="text-xs text-gray-500">
+              {quotaInfo.remaining}/{quotaInfo.limit} remaining
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

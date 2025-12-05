@@ -410,6 +410,13 @@ interface KonvaContextValue {
   deleteSelectedElements: () => void;
   duplicateSelectedElements: () => void;
   
+  // AI operations
+  applyAiPatch: (elements: KonvaElement[], options?: { 
+    replaceSelection?: boolean; 
+    pageId?: string;
+    skipUndo?: boolean;
+  }) => { applied: number; skipped: number };
+  
   // History
   pushUndo: () => void;
   undo: () => void;
@@ -693,6 +700,72 @@ export function KonvaProvider({ children, documentId, onClose, onSave }: KonvaPr
     dispatch({ type: 'MARK_DIRTY' });
   }, []);
 
+  // Apply AI-generated elements patch
+  const applyAiPatch = useCallback((
+    elements: KonvaElement[],
+    options?: { 
+      replaceSelection?: boolean; 
+      pageId?: string;
+      skipUndo?: boolean;
+    }
+  ): { applied: number; skipped: number } => {
+    if (!state.document || elements.length === 0) {
+      return { applied: 0, skipped: 0 };
+    }
+
+    // Push undo before applying (unless skipped, e.g., for streaming)
+    if (!options?.skipUndo) {
+      pushUndo();
+    }
+
+    // Get current page elements to check for ID collisions
+    const currentPage = state.document.pages[state.currentPageIndex];
+    const existingIds = new Set(currentPage?.canvas.elements.map(e => e.id) || []);
+
+    // If replacing selection, delete selected elements first
+    if (options?.replaceSelection && state.selectedIds.length > 0) {
+      dispatch({ type: 'DELETE_ELEMENTS', payload: state.selectedIds });
+    }
+
+    // Apply each element, generating new IDs if collision
+    let applied = 0;
+    let skipped = 0;
+
+    elements.forEach(element => {
+      try {
+        // Ensure unique ID
+        let finalId = element.id;
+        if (existingIds.has(finalId)) {
+          finalId = crypto.randomUUID();
+        }
+        existingIds.add(finalId);
+
+        const patchedElement: KonvaElement = {
+          ...element,
+          id: finalId,
+          draggable: element.draggable ?? true,
+          visible: element.visible ?? true,
+          locked: element.locked ?? false,
+        };
+
+        dispatch({ type: 'ADD_ELEMENT', payload: patchedElement });
+        applied++;
+      } catch (err) {
+        console.error('[KonvaContext] Failed to apply element:', err);
+        skipped++;
+      }
+    });
+
+    dispatch({ type: 'MARK_DIRTY' });
+
+    // Select the new elements
+    const newIds = elements.slice(0, applied).map(e => e.id);
+    dispatch({ type: 'SELECT', payload: newIds });
+
+    console.log(`[KonvaContext] Applied ${applied} elements, skipped ${skipped}`);
+    return { applied, skipped };
+  }, [state.document, state.currentPageIndex, state.selectedIds, pushUndo]);
+
   // Update element
   const updateElement = useCallback((id: string, attrs: Partial<KonvaElement>) => {
     dispatch({ type: 'UPDATE_ELEMENT', payload: { id, attrs } });
@@ -872,6 +945,7 @@ export function KonvaProvider({ children, documentId, onClose, onSave }: KonvaPr
     updateElement,
     deleteSelectedElements,
     duplicateSelectedElements,
+    applyAiPatch,
     pushUndo,
     undo,
     redo,

@@ -5,12 +5,16 @@ import { corsHeaders } from '../_shared/apiAuth.ts';
 /**
  * Content Studio AI Edge Function
  * Provides AI-powered content generation for the Content Studio
- * Features: rate limiting, safety moderation, streaming support
+ * Features: rate limiting, safety moderation, streaming support, element generation
  */
 
 // Rate limiting: requests per minute per user
 const RATE_LIMIT = 20;
 const RATE_WINDOW_MS = 60 * 1000;
+
+// Element generation limits
+const MAX_ELEMENTS_PER_PATCH = 20;
+const MAX_ELEMENT_SIZE = 800; // px
 
 // In-memory rate limit store (resets on cold start, production should use Redis/Upstash)
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
@@ -46,6 +50,122 @@ const CONTENT_PROMPTS: Record<string, string> = {
   
   research: `You are a market research analyst. Provide factual, well-researched information about the given topic. Include relevant statistics, trends, and insights. Cite general sources where applicable. Be objective and data-driven.`,
 };
+
+// Element generation system prompt
+const ELEMENT_GENERATION_PROMPT = `You are a design element generator for a canvas-based document editor. 
+Generate canvas elements based on the user's request. Output ONLY valid JSON.
+
+Available element types:
+- text: { type: "text", x, y, width, height, text, fontSize, fontFamily, fill, align }
+- rect: { type: "rect", x, y, width, height, fill, stroke, strokeWidth, cornerRadius }
+- circle: { type: "circle", x, y, radius, fill, stroke, strokeWidth }
+- line: { type: "line", x, y, points: [x1, y1, x2, y2], stroke, strokeWidth }
+
+Rules:
+1. All coordinates must be positive numbers within canvas bounds (0-1200 for x, 0-800 for y)
+2. Colors must be valid hex codes (e.g., "#FF5733")
+3. Font sizes should be 12-72
+4. Maximum ${MAX_ELEMENTS_PER_PATCH} elements per response
+5. Keep element dimensions reasonable (max ${MAX_ELEMENT_SIZE}px)
+
+Output format (strict JSON only):
+{
+  "elements": [...],
+  "summary": "Brief description of what was created"
+}`;
+
+// Validate and sanitize AI-generated elements
+interface AiElement {
+  type: string;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  radius?: number;
+  text?: string;
+  fontSize?: number;
+  fontFamily?: string;
+  fill?: string;
+  stroke?: string;
+  strokeWidth?: number;
+  cornerRadius?: number;
+  align?: string;
+  points?: number[];
+}
+
+function validateAndSanitizeElements(elements: unknown[]): AiElement[] {
+  if (!Array.isArray(elements)) return [];
+  
+  const validTypes = ['text', 'rect', 'circle', 'line', 'ellipse', 'polygon', 'star'];
+  const result: AiElement[] = [];
+  
+  for (const el of elements.slice(0, MAX_ELEMENTS_PER_PATCH)) {
+    if (!el || typeof el !== 'object') continue;
+    const elem = el as Record<string, unknown>;
+    
+    if (!validTypes.includes(String(elem.type))) continue;
+    
+    const sanitized: AiElement = {
+      type: String(elem.type),
+      x: clamp(Number(elem.x) || 100, 0, 1200),
+      y: clamp(Number(elem.y) || 100, 0, 800),
+    };
+    
+    // Type-specific properties
+    if (sanitized.type === 'text') {
+      sanitized.text = String(elem.text || 'Text').slice(0, 5000);
+      sanitized.fontSize = clamp(Number(elem.fontSize) || 16, 8, 200);
+      sanitized.fontFamily = String(elem.fontFamily || 'Inter');
+      sanitized.fill = sanitizeColor(elem.fill) || '#000000';
+      sanitized.width = clamp(Number(elem.width) || 200, 10, MAX_ELEMENT_SIZE);
+      sanitized.align = ['left', 'center', 'right'].includes(String(elem.align)) ? String(elem.align) : 'left';
+    } else if (sanitized.type === 'rect') {
+      sanitized.width = clamp(Number(elem.width) || 100, 10, MAX_ELEMENT_SIZE);
+      sanitized.height = clamp(Number(elem.height) || 100, 10, MAX_ELEMENT_SIZE);
+      sanitized.fill = sanitizeColor(elem.fill) || '#3B82F6';
+      sanitized.stroke = sanitizeColor(elem.stroke);
+      sanitized.strokeWidth = clamp(Number(elem.strokeWidth) || 0, 0, 20);
+      sanitized.cornerRadius = clamp(Number(elem.cornerRadius) || 0, 0, 100);
+    } else if (sanitized.type === 'circle') {
+      sanitized.radius = clamp(Number(elem.radius) || 50, 5, MAX_ELEMENT_SIZE / 2);
+      sanitized.fill = sanitizeColor(elem.fill) || '#3B82F6';
+      sanitized.stroke = sanitizeColor(elem.stroke);
+      sanitized.strokeWidth = clamp(Number(elem.strokeWidth) || 0, 0, 20);
+    } else if (sanitized.type === 'line') {
+      sanitized.points = Array.isArray(elem.points) 
+        ? (elem.points as number[]).slice(0, 4).map(n => clamp(Number(n) || 0, -1000, 2000))
+        : [0, 0, 100, 0];
+      sanitized.stroke = sanitizeColor(elem.stroke) || '#000000';
+      sanitized.strokeWidth = clamp(Number(elem.strokeWidth) || 2, 1, 20);
+    }
+    
+    result.push(sanitized);
+  }
+  
+  return result;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function sanitizeColor(color: unknown): string | undefined {
+  if (typeof color !== 'string') return undefined;
+  // Accept hex colors
+  if (/^#[0-9A-Fa-f]{6}$/.test(color) || /^#[0-9A-Fa-f]{3}$/.test(color)) {
+    return color;
+  }
+  // Accept rgba
+  if (/^rgba?\([^)]+\)$/i.test(color)) {
+    return color;
+  }
+  // Accept named colors
+  const namedColors = ['transparent', 'white', 'black', 'red', 'blue', 'green', 'yellow', 'orange', 'purple', 'pink', 'gray', 'grey'];
+  if (namedColors.includes(color.toLowerCase())) {
+    return color;
+  }
+  return undefined;
+}
 
 // Moderation - check for inappropriate content
 const BLOCKED_PATTERNS = [
@@ -115,7 +235,7 @@ serve(async (req) => {
 
     // Parse request
     const body = await req.json();
-    const { type, prompt, context, stream = false } = body;
+    const { type, prompt, context, stream = false, mode = 'text', canvasContext } = body;
 
     if (!type || !prompt) {
       return new Response(JSON.stringify({ error: 'Missing type or prompt' }), {
@@ -136,8 +256,19 @@ serve(async (req) => {
       });
     }
 
-    // Get system prompt for content type
-    const systemPrompt = CONTENT_PROMPTS[type] || CONTENT_PROMPTS.body;
+    // Determine if this is element generation mode
+    const isElementMode = mode === 'elements' || mode === 'layout';
+    
+    // Get system prompt based on mode
+    let systemPrompt: string;
+    if (isElementMode) {
+      systemPrompt = ELEMENT_GENERATION_PROMPT;
+      if (canvasContext) {
+        systemPrompt += `\n\nCurrent canvas context:\n- Canvas size: ${canvasContext.width || 1200}x${canvasContext.height || 800}\n- Existing elements: ${canvasContext.elementCount || 0}`;
+      }
+    } else {
+      systemPrompt = CONTENT_PROMPTS[type] || CONTENT_PROMPTS.body;
+    }
 
     // Build messages
     const messages = [
@@ -154,19 +285,27 @@ serve(async (req) => {
       });
     }
 
+    // Build request options
+    const groqRequestBody: Record<string, unknown> = {
+      model: 'llama-3.3-70b-versatile',
+      messages,
+      max_tokens: isElementMode ? 2048 : 1024,
+      temperature: isElementMode ? 0.3 : 0.7, // Lower temp for structured output
+      stream: stream && !isElementMode, // Don't stream for element mode (need full JSON)
+    };
+
+    // Use JSON mode for element generation if supported
+    if (isElementMode) {
+      groqRequestBody.response_format = { type: 'json_object' };
+    }
+
     const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${groqApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages,
-        max_tokens: 1024,
-        temperature: 0.7,
-        stream,
-      }),
+      body: JSON.stringify(groqRequestBody),
     });
 
     if (!groqResponse.ok) {
@@ -189,8 +328,8 @@ serve(async (req) => {
       });
     }
 
-    // Handle streaming response
-    if (stream) {
+    // Handle streaming response (text mode only)
+    if (stream && !isElementMode) {
       const transformStream = new TransformStream();
       const writer = transformStream.writable.getWriter();
       
@@ -223,6 +362,63 @@ serve(async (req) => {
     const data = await groqResponse.json();
     const content = data.choices?.[0]?.message?.content || '';
 
+    // Handle element generation response
+    if (isElementMode) {
+      try {
+        // Parse JSON response
+        let parsed: { elements?: unknown[]; summary?: string };
+        try {
+          parsed = JSON.parse(content);
+        } catch {
+          // Try to extract JSON from the response if wrapped in markdown
+          const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || 
+                           content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            parsed = JSON.parse(jsonMatch[1] || jsonMatch[0]);
+          } else {
+            throw new Error('No valid JSON found in response');
+          }
+        }
+
+        // Validate and sanitize elements
+        const elements = validateAndSanitizeElements(parsed.elements || []);
+        
+        if (elements.length === 0) {
+          return new Response(JSON.stringify({ 
+            error: 'Failed to generate valid elements',
+            raw: content.slice(0, 500) // Include partial raw for debugging
+          }), {
+            status: 422,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+        return new Response(JSON.stringify({ 
+          elements,
+          summary: parsed.summary || `Generated ${elements.length} element(s)`,
+          usage: data.usage,
+          remaining: rateCheck.remaining
+        }), {
+          status: 200,
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'X-RateLimit-Remaining': String(rateCheck.remaining),
+          }
+        });
+      } catch (parseError) {
+        console.error('[content-studio-ai] Element parse error:', parseError);
+        return new Response(JSON.stringify({ 
+          error: 'Failed to parse element response',
+          details: String(parseError)
+        }), {
+          status: 422,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    // Text content response
     return new Response(JSON.stringify({ 
       content,
       usage: data.usage,
