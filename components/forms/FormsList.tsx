@@ -277,7 +277,10 @@ export const FormsList: React.FC<FormsListProps> = ({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-black">📝 Forms & Surveys</h2>
+          <h2 className="text-2xl font-bold text-black flex items-center gap-2">
+            <FileText className="w-6 h-6" />
+            Forms & Surveys
+          </h2>
           <p className="text-sm text-gray-600">Create and manage forms, surveys, and polls</p>
         </div>
         <Button onClick={onCreateForm} variant="primary">
@@ -304,11 +307,11 @@ export const FormsList: React.FC<FormsListProps> = ({
           id="forms-type-filter"
           options={[
             { value: 'all', label: 'All Types' },
-            { value: 'form', label: '📝 Forms' },
-            { value: 'survey', label: '📊 Surveys' },
-            { value: 'poll', label: '📈 Polls' },
-            { value: 'quiz', label: '❓ Quizzes' },
-            { value: 'feedback', label: '💬 Feedback' },
+            { value: 'form', label: 'Forms' },
+            { value: 'survey', label: 'Surveys' },
+            { value: 'poll', label: 'Polls' },
+            { value: 'quiz', label: 'Quizzes' },
+            { value: 'feedback', label: 'Feedback' },
           ]}
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
@@ -375,7 +378,7 @@ export const FormsList: React.FC<FormsListProps> = ({
       ) : error ? null : sortedForms.length === 0 ? (
         <Card>
           <div className="p-12 text-center">
-            <span className="text-6xl mb-4 block">📋</span>
+            <Inbox className="w-16 h-16 mx-auto mb-4 text-gray-400" />
             <h3 className="text-lg font-bold text-black mb-2">
               {searchQuery || statusFilter !== 'all' || typeFilter !== 'all' ? 'No forms found' : 'No forms yet'}
             </h3>
@@ -679,12 +682,16 @@ export const FormsList: React.FC<FormsListProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold">🔗 Share "{shareModalForm.name}"</h3>
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <Link2 className="w-5 h-5" />
+                Share "{shareModalForm.name}"
+              </h3>
               <button 
                 onClick={() => setShareModalForm(null)}
-                className="p-1 hover:bg-gray-100 rounded"
+                className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-700"
+                aria-label="Close"
               >
-                ✕
+                <span className="text-xl font-bold">&times;</span>
               </button>
             </div>
 
@@ -703,7 +710,7 @@ export const FormsList: React.FC<FormsListProps> = ({
                     variant={copiedId === 'direct' ? 'success' : 'outline'}
                     onClick={() => handleCopyLink(getFormUrl(shareModalForm.slug!), 'direct')}
                   >
-                    {copiedId === 'direct' ? '✓ Copied!' : 'Copy'}
+                    {copiedId === 'direct' ? 'Copied!' : 'Copy'}
                   </Button>
                 </div>
               </div>
@@ -722,7 +729,7 @@ export const FormsList: React.FC<FormsListProps> = ({
                     variant={copiedId === 'iframe' ? 'success' : 'outline'}
                     onClick={() => handleCopyLink(generateEmbedCode(shareModalForm.id, shareModalForm.slug!, { mode: 'iframe' }), 'iframe')}
                   >
-                    {copiedId === 'iframe' ? '✓' : 'Copy'}
+                    {copiedId === 'iframe' ? 'Copied!' : 'Copy'}
                   </Button>
                 </div>
               </div>
@@ -740,7 +747,7 @@ export const FormsList: React.FC<FormsListProps> = ({
                     variant={copiedId === 'popup' ? 'success' : 'outline'}
                     onClick={() => handleCopyLink(generateEmbedCode(shareModalForm.id, shareModalForm.slug!, { mode: 'popup' }), 'popup')}
                   >
-                    {copiedId === 'popup' ? '✓' : 'Copy'}
+                    {copiedId === 'popup' ? 'Copied!' : 'Copy'}
                   </Button>
                 </div>
               </div>
@@ -759,7 +766,7 @@ export const FormsList: React.FC<FormsListProps> = ({
                           rel="noopener noreferrer"
                           className="px-4 py-2 rounded-xl border border-gray-200 hover:bg-blue-50 text-sm font-medium transition-colors"
                         >
-                          🐦 Twitter
+                          Twitter
                         </a>
                         <a
                           href={links.linkedin}
@@ -767,7 +774,7 @@ export const FormsList: React.FC<FormsListProps> = ({
                           rel="noopener noreferrer"
                           className="px-4 py-2 rounded-xl border border-gray-200 hover:bg-blue-50 text-sm font-medium transition-colors"
                         >
-                          💼 LinkedIn
+                          LinkedIn
                         </a>
                         <a
                           href={links.facebook}
@@ -775,13 +782,13 @@ export const FormsList: React.FC<FormsListProps> = ({
                           rel="noopener noreferrer"
                           className="px-4 py-2 rounded-xl border border-gray-200 hover:bg-blue-50 text-sm font-medium transition-colors"
                         >
-                          📘 Facebook
+                          Facebook
                         </a>
                         <a
                           href={links.email}
                           className="px-4 py-2 rounded-xl border border-gray-200 hover:bg-yellow-50 text-sm font-medium transition-colors"
                         >
-                          ✉️ Email
+                          Email
                         </a>
                       </>
                     );
@@ -792,7 +799,7 @@ export const FormsList: React.FC<FormsListProps> = ({
               {/* QR Code hint */}
               <div className="pt-4 border-t border-gray-200">
                 <p className="text-xs text-gray-500">
-                  💡 Tip: Use a QR code generator with the direct link for print materials
+                  Tip: Use a QR code generator with the direct link for print materials
                 </p>
               </div>
 
@@ -801,9 +808,10 @@ export const FormsList: React.FC<FormsListProps> = ({
                   href={getFormUrl(shareModalForm.slug)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-4 py-2 bg-purple-600 text-white font-medium rounded-xl hover:bg-purple-700 hover:shadow-md transition-all"
+                  className="px-4 py-2 bg-purple-600 text-white font-medium rounded-xl hover:bg-purple-700 hover:shadow-md transition-all flex items-center gap-2"
                 >
-                  👁️ Preview Form
+                  <ExternalLink className="w-4 h-4" />
+                  Preview Form
                 </a>
                 <Button variant="outline" onClick={() => setShareModalForm(null)}>
                   Close
@@ -817,7 +825,7 @@ export const FormsList: React.FC<FormsListProps> = ({
       {/* Copy notification toast */}
       {copiedId && (
         <div className="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded shadow-lg animate-pulse z-50">
-          ✓ Copied to clipboard!
+          Copied to clipboard!
         </div>
       )}
 
