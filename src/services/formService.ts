@@ -329,6 +329,62 @@ export async function getWorkspaceForms(
   }
 }
 
+/**
+ * Get aggregate stats for workspace forms using efficient count queries
+ * This avoids fetching all form data just for counts
+ */
+export async function getWorkspaceFormStats(workspaceId: string): Promise<{
+  data: { totalPublished: number; totalDraft: number; totalArchived: number; totalResponses: number } | null;
+  error: string | null;
+}> {
+  try {
+    // Run count queries in parallel for efficiency
+    const [publishedResult, draftResult, archivedResult, responsesResult] = await Promise.all([
+      supabase
+        .from('forms')
+        .select('*', { count: 'exact', head: true })
+        .eq('workspace_id', workspaceId)
+        .eq('status', 'published'),
+      supabase
+        .from('forms')
+        .select('*', { count: 'exact', head: true })
+        .eq('workspace_id', workspaceId)
+        .eq('status', 'draft'),
+      supabase
+        .from('forms')
+        .select('*', { count: 'exact', head: true })
+        .eq('workspace_id', workspaceId)
+        .eq('status', 'archived'),
+      supabase
+        .from('forms')
+        .select('total_submissions')
+        .eq('workspace_id', workspaceId),
+    ]);
+
+    if (publishedResult.error || draftResult.error || archivedResult.error || responsesResult.error) {
+      throw new Error('Failed to fetch form stats');
+    }
+
+    const totalResponses = (responsesResult.data || []).reduce(
+      (sum, form) => sum + (form.total_submissions || 0),
+      0
+    );
+
+    return {
+      data: {
+        totalPublished: publishedResult.count || 0,
+        totalDraft: draftResult.count || 0,
+        totalArchived: archivedResult.count || 0,
+        totalResponses,
+      },
+      error: null,
+    };
+  } catch (error: any) {
+    console.error('[FormService] Error fetching form stats:', error);
+    return { data: null, error: error.message };
+  }
+}
+
 export async function updateForm(
   formId: string,
   data: Partial<Form> & { type?: DbFormType; default_campaign_id?: string | null; auto_create_contact?: boolean; default_crm_type?: string | null; default_account_id?: string | null }

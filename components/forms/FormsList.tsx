@@ -7,7 +7,7 @@ import { Card, CardContent } from '../ui/Card';
 import { Select } from '../ui/Select';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { Form, FormStatus } from '../../types/forms';
-import { getWorkspaceForms, deleteForm, duplicateForm, archiveForm, publishForm, unpublishForm, generateEmbedCode, generateShareLinks } from '../../src/services/formService';
+import { getWorkspaceForms, getWorkspaceFormStats, deleteForm, duplicateForm, archiveForm, publishForm, unpublishForm, generateEmbedCode, generateShareLinks } from '../../src/services/formService';
 import { formatDistanceToNow } from 'date-fns';
 import { ChevronLeft, ChevronRight, FileText, BarChart2, TrendingUp, HelpCircle, MessageSquare, Globe, Lock, KeyRound, Megaphone, User, MoreVertical, Pencil, BarChart, Rocket, FileEdit, Copy, Link2, ExternalLink, Archive, Trash2, Inbox, Clock, RefreshCw, AlertCircle } from 'lucide-react';
 
@@ -143,21 +143,17 @@ export const FormsList: React.FC<FormsListProps> = ({
     setIsSearching(false);
   }, [workspaceId, currentPage, statusFilter, typeFilter, debouncedSearch]);
   
-  // Fetch aggregate stats (total published, draft, responses across ALL forms)
+  // Fetch aggregate stats using efficient count queries (no over-fetching)
   const fetchAggregateStats = useCallback(async () => {
     if (!workspaceId) return;
     
-    // Fetch all forms without pagination to get accurate stats
-    const { data: allForms, error: statsError } = await getWorkspaceForms(workspaceId, {
-      limit: 1000, // High limit to get all forms
-      offset: 0,
-    });
+    const { data: stats, error: statsError } = await getWorkspaceFormStats(workspaceId);
     
-    if (!statsError && allForms) {
+    if (!statsError && stats) {
       setAggregateStats({
-        totalPublished: allForms.filter(f => f.status === 'published').length,
-        totalDraft: allForms.filter(f => f.status === 'draft').length,
-        totalResponses: allForms.reduce((sum, f) => sum + (f.total_submissions || 0), 0),
+        totalPublished: stats.totalPublished,
+        totalDraft: stats.totalDraft,
+        totalResponses: stats.totalResponses,
       });
     }
   }, [workspaceId]);
@@ -178,6 +174,12 @@ export const FormsList: React.FC<FormsListProps> = ({
     setIsDeleting(true);
     const { error: deleteError } = await deleteForm(formId);
     if (!deleteError) {
+      // Calculate if we need to go back a page (deleted last item on current page)
+      const newTotalCount = totalCount - 1;
+      const newTotalPages = Math.ceil(newTotalCount / PAGE_SIZE);
+      if (currentPage > newTotalPages && newTotalPages > 0) {
+        setCurrentPage(newTotalPages);
+      }
       // Refresh both forms list and aggregate stats
       await Promise.all([loadForms(), fetchAggregateStats()]);
     }
@@ -205,6 +207,14 @@ export const FormsList: React.FC<FormsListProps> = ({
   const handleArchive = async (formId: string) => {
     const { error: archiveError } = await archiveForm(formId);
     if (!archiveError) {
+      // If filtering by non-archived status, archiving removes item from view
+      if (statusFilter !== 'all' && statusFilter !== 'archived') {
+        const newTotalCount = totalCount - 1;
+        const newTotalPages = Math.ceil(newTotalCount / PAGE_SIZE);
+        if (currentPage > newTotalPages && newTotalPages > 0) {
+          setCurrentPage(newTotalPages);
+        }
+      }
       // Refresh both forms list and aggregate stats
       await Promise.all([loadForms(), fetchAggregateStats()]);
     }
@@ -276,13 +286,18 @@ export const FormsList: React.FC<FormsListProps> = ({
 
       {/* Filters */}
       <div className="flex items-center gap-4 flex-wrap">
-        <div className="flex-1 min-w-[200px]">
+        <div className="flex-1 min-w-[200px] relative">
           <Input
             id="forms-search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="🔍 Search forms..."
+            placeholder="Search forms..."
           />
+          {isSearching && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <RefreshCw className="w-4 h-4 text-gray-400 animate-spin" />
+            </div>
+          )}
         </div>
         <Select
           id="forms-type-filter"
