@@ -3,7 +3,7 @@
  * Main wrapper component for the React-Konva based Content Studio
  */
 
-import React, { useEffect, useCallback, useRef, useState } from 'react';
+import React, { useEffect, useCallback, useRef, useState, useMemo } from 'react';
 import { Stage, Layer, Rect, Text, Circle, Line, Arrow, RegularPolygon, Star, Transformer, Group, Image as KonvaImage } from 'react-konva';
 import Konva from 'konva';
 import useImage from 'use-image';
@@ -16,11 +16,38 @@ import { KonvaAIPanel } from './KonvaAIPanel';
 import { KonvaAssetPanel } from './KonvaAssetPanel';
 import { KonvaTextToolbar } from './KonvaTextToolbar';
 import { KonvaTextEditor } from './KonvaTextEditor';
-import { KonvaElement } from './types';
+import { KonvaElement, GuideLine } from './types';
+import { 
+  calculateSnap, 
+  getNodeBounds, 
+  SNAP_THRESHOLD, 
+  GRID_SIZE,
+  SnapConfig,
+  ElementBounds,
+} from './snapUtils';
 import { ConfirmDialogProvider } from '../../ui/ConfirmDialog';
 import { showSuccess, showError } from '../../../lib/utils/toast';
 import { uploadImage } from '../../../lib/services/contentStudioStorage';
 import { useWorkspace } from '../../../contexts/WorkspaceContext';
+
+// ============================================================================
+// Snap Context - Shared state for snap guides
+// ============================================================================
+
+interface SnapContextValue {
+  guides: GuideLine[];
+  setGuides: React.Dispatch<React.SetStateAction<GuideLine[]>>;
+  snapConfig: SnapConfig;
+  elements: KonvaElement[];
+}
+
+const SnapContext = React.createContext<SnapContextValue | null>(null);
+
+function useSnapContext() {
+  const ctx = React.useContext(SnapContext);
+  if (!ctx) throw new Error('useSnapContext must be used within SnapContext.Provider');
+  return ctx;
+}
 
 // ============================================================================
 // Element Renderers
@@ -34,6 +61,52 @@ interface ElementRendererProps {
   onDragStart?: () => void;
   onDragEnd?: () => void;
   onDoubleClick?: (id: string) => void;
+  onDragMove?: (id: string, pos: { x: number; y: number }) => void;
+}
+
+// Shared drag handler with snapping
+function useDragWithSnap(
+  elementId: string,
+  nodeRef: React.RefObject<Konva.Node>,
+  onChange: (id: string, attrs: Partial<KonvaElement>) => void,
+  onDragStart?: () => void,
+  onDragEnd?: () => void
+) {
+  const snapCtx = React.useContext(SnapContext);
+  
+  const handleDragStart = useCallback(() => {
+    onDragStart?.();
+  }, [onDragStart]);
+  
+  const handleDragMove = useCallback((e: Konva.KonvaEventObject<DragEvent>) => {
+    if (!snapCtx) return;
+    
+    const node = e.target;
+    const bounds = getNodeBounds(node);
+    
+    const snapResult = calculateSnap(bounds, snapCtx.snapConfig, snapCtx.elements);
+    
+    // Apply snap
+    if (snapResult.x !== undefined) {
+      node.x(snapResult.x);
+    }
+    if (snapResult.y !== undefined) {
+      node.y(snapResult.y);
+    }
+    
+    // Update guides
+    snapCtx.setGuides(snapResult.guides);
+  }, [snapCtx]);
+  
+  const handleDragEnd = useCallback((e: Konva.KonvaEventObject<DragEvent>) => {
+    if (snapCtx) {
+      snapCtx.setGuides([]); // Clear guides
+    }
+    onChange(elementId, { x: e.target.x(), y: e.target.y() });
+    onDragEnd?.();
+  }, [elementId, onChange, onDragEnd, snapCtx]);
+  
+  return { handleDragStart, handleDragMove, handleDragEnd };
 }
 
 // Text Element
@@ -41,6 +114,14 @@ function TextRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
   const textRef = useRef<Konva.Text>(null);
   const trRef = useRef<Konva.Transformer>(null);
   const el = element as any;
+  
+  const { handleDragStart, handleDragMove, handleDragEnd } = useDragWithSnap(
+    element.id,
+    textRef,
+    onChange,
+    onDragStart,
+    onDragEnd
+  );
   
   useEffect(() => {
     if (isSelected && textRef.current && trRef.current) {
@@ -57,11 +138,6 @@ function TextRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
   const handleDoubleClick = useCallback(() => {
     onDoubleClick?.(element.id);
   }, [element.id, onDoubleClick]);
-  
-  const handleDragEnd = useCallback((e: any) => {
-    onChange(element.id, { x: e.target.x(), y: e.target.y() });
-    onDragEnd?.();
-  }, [element.id, onChange, onDragEnd]);
   
   const handleTransformEnd = useCallback(() => {
     const node = textRef.current;
@@ -109,7 +185,8 @@ function TextRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
         onTap={handleClick}
         onDblClick={handleDoubleClick}
         onDblTap={handleDoubleClick}
-        onDragStart={onDragStart}
+        onDragStart={handleDragStart}
+        onDragMove={handleDragMove}
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
       />
@@ -118,10 +195,9 @@ function TextRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
           ref={trRef}
           rotateEnabled={true}
           enabledAnchors={['top-left', 'top-center', 'top-right', 'middle-left', 'middle-right', 'bottom-left', 'bottom-center', 'bottom-right']}
-          borderStroke="#4b5563"
-          borderStrokeWidth={2}
-          borderDash={[4, 4]}
-          anchorStroke="#4b5563"
+          borderStroke="#18181b"
+          borderStrokeWidth={1.5}
+          anchorStroke="#18181b"
           anchorFill="#ffffff"
           anchorSize={10}
           anchorCornerRadius={2}
@@ -145,6 +221,14 @@ function RectRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
   const trRef = useRef<Konva.Transformer>(null);
   const el = element as any;
   
+  const { handleDragStart, handleDragMove, handleDragEnd } = useDragWithSnap(
+    element.id,
+    rectRef,
+    onChange,
+    onDragStart,
+    onDragEnd
+  );
+  
   useEffect(() => {
     if (isSelected && rectRef.current && trRef.current) {
       trRef.current.nodes([rectRef.current]);
@@ -155,11 +239,6 @@ function RectRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
   const handleClick = useCallback((e: any) => {
     onSelect(element.id, e.evt?.shiftKey || false);
   }, [element.id, onSelect]);
-  
-  const handleDragEnd = useCallback((e: any) => {
-    onChange(element.id, { x: e.target.x(), y: e.target.y() });
-    onDragEnd?.();
-  }, [element.id, onChange, onDragEnd]);
   
   const handleTransformEnd = useCallback(() => {
     const node = rectRef.current;
@@ -202,7 +281,8 @@ function RectRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
         draggable={!element.locked}
         onClick={handleClick}
         onTap={handleClick}
-        onDragStart={onDragStart}
+        onDragStart={handleDragStart}
+        onDragMove={handleDragMove}
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
       />
@@ -211,10 +291,9 @@ function RectRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
           ref={trRef}
           rotateEnabled={true}
           enabledAnchors={['top-left', 'top-center', 'top-right', 'middle-left', 'middle-right', 'bottom-left', 'bottom-center', 'bottom-right']}
-          borderStroke="#4b5563"
-          borderStrokeWidth={2}
-          borderDash={[4, 4]}
-          anchorStroke="#4b5563"
+          borderStroke="#18181b"
+          borderStrokeWidth={1.5}
+          anchorStroke="#18181b"
           anchorFill="#ffffff"
           anchorSize={10}
           anchorCornerRadius={2}
@@ -238,6 +317,14 @@ function CircleRenderer({ element, isSelected, onSelect, onChange, onDragStart, 
   const trRef = useRef<Konva.Transformer>(null);
   const el = element as any;
   
+  const { handleDragStart, handleDragMove, handleDragEnd } = useDragWithSnap(
+    element.id,
+    circleRef,
+    onChange,
+    onDragStart,
+    onDragEnd
+  );
+  
   useEffect(() => {
     if (isSelected && circleRef.current && trRef.current) {
       trRef.current.nodes([circleRef.current]);
@@ -248,11 +335,6 @@ function CircleRenderer({ element, isSelected, onSelect, onChange, onDragStart, 
   const handleClick = useCallback((e: any) => {
     onSelect(element.id, e.evt?.shiftKey || false);
   }, [element.id, onSelect]);
-  
-  const handleDragEnd = useCallback((e: any) => {
-    onChange(element.id, { x: e.target.x(), y: e.target.y() });
-    onDragEnd?.();
-  }, [element.id, onChange, onDragEnd]);
   
   const handleTransformEnd = useCallback(() => {
     const node = circleRef.current;
@@ -291,7 +373,8 @@ function CircleRenderer({ element, isSelected, onSelect, onChange, onDragStart, 
         draggable={!element.locked}
         onClick={handleClick}
         onTap={handleClick}
-        onDragStart={onDragStart}
+        onDragStart={handleDragStart}
+        onDragMove={handleDragMove}
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
       />
@@ -300,10 +383,9 @@ function CircleRenderer({ element, isSelected, onSelect, onChange, onDragStart, 
           ref={trRef}
           rotateEnabled={true}
           enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right']}
-          borderStroke="#4b5563"
-          borderStrokeWidth={2}
-          borderDash={[4, 4]}
-          anchorStroke="#4b5563"
+          borderStroke="#18181b"
+          borderStrokeWidth={1.5}
+          anchorStroke="#18181b"
           anchorFill="#ffffff"
           anchorSize={10}
           anchorCornerRadius={2}
@@ -323,15 +405,43 @@ function LineRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
   const el = element as any;
   const isArrow = element.type === 'arrow';
   const points = el.points || [0, 0, 200, 0];
+  const snapCtx = React.useContext(SnapContext);
   
   const handleClick = useCallback((e: any) => {
     onSelect(element.id, e.evt?.shiftKey || false);
   }, [element.id, onSelect]);
   
-  const handleDragEnd = useCallback((e: any) => {
+  const handleDragStart = useCallback(() => {
+    onDragStart?.();
+  }, [onDragStart]);
+  
+  const handleDragMove = useCallback((e: Konva.KonvaEventObject<DragEvent>) => {
+    if (!snapCtx) return;
+    
+    const node = e.target;
+    const bounds = getNodeBounds(node);
+    
+    const snapResult = calculateSnap(bounds, snapCtx.snapConfig, snapCtx.elements);
+    
+    // Apply snap
+    if (snapResult.x !== undefined) {
+      node.x(snapResult.x);
+    }
+    if (snapResult.y !== undefined) {
+      node.y(snapResult.y);
+    }
+    
+    // Update guides
+    snapCtx.setGuides(snapResult.guides);
+  }, [snapCtx]);
+  
+  const handleDragEnd = useCallback((e: Konva.KonvaEventObject<DragEvent>) => {
+    if (snapCtx) {
+      snapCtx.setGuides([]); // Clear guides
+    }
     onChange(element.id, { x: e.target.x(), y: e.target.y() });
     onDragEnd?.();
-  }, [element.id, onChange, onDragEnd]);
+  }, [element.id, onChange, onDragEnd, snapCtx]);
   
   // Handle dragging of start point
   const handleStartPointDrag = useCallback((e: any) => {
@@ -378,7 +488,8 @@ function LineRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
         draggable={!element.locked}
         onClick={handleClick}
         onTap={handleClick}
-        onDragStart={onDragStart}
+        onDragStart={handleDragStart}
+        onDragMove={handleDragMove}
         onDragEnd={handleDragEnd}
       />
       {/* Endpoint handles when selected */}
@@ -390,7 +501,7 @@ function LineRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
             y={points[1]}
             radius={8}
             fill="#ffffff"
-            stroke="#4b5563"
+            stroke="#18181b"
             strokeWidth={2}
             draggable={!element.locked}
             onDragMove={handleStartPointDrag}
@@ -409,7 +520,7 @@ function LineRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
             y={points[3]}
             radius={8}
             fill="#ffffff"
-            stroke="#4b5563"
+            stroke="#18181b"
             strokeWidth={2}
             draggable={!element.locked}
             onDragMove={handleEndPointDrag}
@@ -428,7 +539,7 @@ function LineRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
             y={Math.min(points[1], points[3]) - 5}
             width={Math.abs(points[2] - points[0]) + 10}
             height={Math.abs(points[3] - points[1]) + 10}
-            stroke="#4b5563"
+            stroke="#18181b"
             strokeWidth={1}
             dash={[4, 4]}
             listening={false}
@@ -445,6 +556,14 @@ function PolygonRenderer({ element, isSelected, onSelect, onChange, onDragStart,
   const trRef = useRef<Konva.Transformer>(null);
   const el = element as any;
   
+  const { handleDragStart, handleDragMove, handleDragEnd } = useDragWithSnap(
+    element.id,
+    polyRef,
+    onChange,
+    onDragStart,
+    onDragEnd
+  );
+  
   useEffect(() => {
     if (isSelected && polyRef.current && trRef.current) {
       trRef.current.nodes([polyRef.current]);
@@ -456,10 +575,19 @@ function PolygonRenderer({ element, isSelected, onSelect, onChange, onDragStart,
     onSelect(element.id, e.evt?.shiftKey || false);
   }, [element.id, onSelect]);
   
-  const handleDragEnd = useCallback((e: any) => {
-    onChange(element.id, { x: e.target.x(), y: e.target.y() });
-    onDragEnd?.();
-  }, [element.id, onChange, onDragEnd]);
+  const handleTransformEnd = useCallback(() => {
+    const node = polyRef.current;
+    if (!node) return;
+    const scaleX = node.scaleX();
+    node.scaleX(1);
+    node.scaleY(1);
+    onChange(element.id, {
+      x: node.x(),
+      y: node.y(),
+      radius: Math.max(10, (el.radius || 50) * scaleX),
+      rotation: node.rotation(),
+    });
+  }, [element.id, el.radius, onChange]);
   
   if (!element.visible) return null;
   
@@ -481,18 +609,19 @@ function PolygonRenderer({ element, isSelected, onSelect, onChange, onDragStart,
         draggable={!element.locked}
         onClick={handleClick}
         onTap={handleClick}
-        onDragStart={onDragStart}
+        onDragStart={handleDragStart}
+        onDragMove={handleDragMove}
         onDragEnd={handleDragEnd}
+        onTransformEnd={handleTransformEnd}
       />
       {isSelected && (
         <Transformer
           ref={trRef}
           rotateEnabled={true}
           enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right']}
-          borderStroke="#4b5563"
-          borderStrokeWidth={2}
-          borderDash={[4, 4]}
-          anchorStroke="#4b5563"
+          borderStroke="#18181b"
+          borderStrokeWidth={1.5}
+          anchorStroke="#18181b"
           anchorFill="#ffffff"
           anchorSize={10}
           anchorCornerRadius={2}
@@ -512,6 +641,14 @@ function StarRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
   const trRef = useRef<Konva.Transformer>(null);
   const el = element as any;
   
+  const { handleDragStart, handleDragMove, handleDragEnd } = useDragWithSnap(
+    element.id,
+    starRef,
+    onChange,
+    onDragStart,
+    onDragEnd
+  );
+  
   useEffect(() => {
     if (isSelected && starRef.current && trRef.current) {
       trRef.current.nodes([starRef.current]);
@@ -523,10 +660,20 @@ function StarRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
     onSelect(element.id, e.evt?.shiftKey || false);
   }, [element.id, onSelect]);
   
-  const handleDragEnd = useCallback((e: any) => {
-    onChange(element.id, { x: e.target.x(), y: e.target.y() });
-    onDragEnd?.();
-  }, [element.id, onChange, onDragEnd]);
+  const handleTransformEnd = useCallback(() => {
+    const node = starRef.current;
+    if (!node) return;
+    const scaleX = node.scaleX();
+    node.scaleX(1);
+    node.scaleY(1);
+    onChange(element.id, {
+      x: node.x(),
+      y: node.y(),
+      innerRadius: Math.max(5, (el.innerRadius || 20) * scaleX),
+      outerRadius: Math.max(10, (el.outerRadius || 50) * scaleX),
+      rotation: node.rotation(),
+    });
+  }, [element.id, el.innerRadius, el.outerRadius, onChange]);
   
   if (!element.visible) return null;
   
@@ -549,18 +696,19 @@ function StarRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
         draggable={!element.locked}
         onClick={handleClick}
         onTap={handleClick}
-        onDragStart={onDragStart}
+        onDragStart={handleDragStart}
+        onDragMove={handleDragMove}
         onDragEnd={handleDragEnd}
+        onTransformEnd={handleTransformEnd}
       />
       {isSelected && (
         <Transformer
           ref={trRef}
           rotateEnabled={true}
           enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right']}
-          borderStroke="#4b5563"
-          borderStrokeWidth={2}
-          borderDash={[4, 4]}
-          anchorStroke="#4b5563"
+          borderStroke="#18181b"
+          borderStrokeWidth={1.5}
+          anchorStroke="#18181b"
           anchorFill="#ffffff"
           anchorSize={10}
           anchorCornerRadius={2}
@@ -581,6 +729,14 @@ function ImageRenderer({ element, isSelected, onSelect, onChange, onDragStart, o
   const el = element as any;
   const [image, status] = useImage(el.src || '', 'anonymous');
   
+  const { handleDragStart, handleDragMove, handleDragEnd } = useDragWithSnap(
+    element.id,
+    imageRef,
+    onChange,
+    onDragStart,
+    onDragEnd
+  );
+  
   useEffect(() => {
     if (isSelected && imageRef.current && trRef.current) {
       trRef.current.nodes([imageRef.current]);
@@ -591,11 +747,6 @@ function ImageRenderer({ element, isSelected, onSelect, onChange, onDragStart, o
   const handleClick = useCallback((e: any) => {
     onSelect(element.id, e.evt?.shiftKey || false);
   }, [element.id, onSelect]);
-  
-  const handleDragEnd = useCallback((e: any) => {
-    onChange(element.id, { x: e.target.x(), y: e.target.y() });
-    onDragEnd?.();
-  }, [element.id, onChange, onDragEnd]);
   
   const handleTransformEnd = useCallback(() => {
     const node = imageRef.current;
@@ -646,7 +797,8 @@ function ImageRenderer({ element, isSelected, onSelect, onChange, onDragStart, o
         draggable={!element.locked}
         onClick={handleClick}
         onTap={handleClick}
-        onDragStart={onDragStart}
+        onDragStart={handleDragStart}
+        onDragMove={handleDragMove}
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
       />
@@ -656,10 +808,9 @@ function ImageRenderer({ element, isSelected, onSelect, onChange, onDragStart, o
           rotateEnabled={true}
           keepRatio={false}
           enabledAnchors={['top-left', 'top-center', 'top-right', 'middle-left', 'middle-right', 'bottom-left', 'bottom-center', 'bottom-right']}
-          borderStroke="#4b5563"
-          borderStrokeWidth={2}
-          borderDash={[4, 4]}
-          anchorStroke="#4b5563"
+          borderStroke="#18181b"
+          borderStrokeWidth={1.5}
+          anchorStroke="#18181b"
           anchorFill="#ffffff"
           anchorSize={10}
           anchorCornerRadius={2}
@@ -686,6 +837,10 @@ interface GroupRendererProps extends ElementRendererProps {
 function GroupRenderer({ element, isSelected, onSelect, onChange, onDragStart, onDragEnd, renderChild }: GroupRendererProps) {
   const groupRef = useRef<Konva.Group>(null);
   const trRef = useRef<Konva.Transformer>(null);
+  const snapCtx = React.useContext(SnapContext);
+  
+  // Track starting position for delta calculation
+  const startPosRef = useRef<{ x: number; y: number } | null>(null);
   
   useEffect(() => {
     if (isSelected && trRef.current && groupRef.current) {
@@ -697,30 +852,51 @@ function GroupRenderer({ element, isSelected, onSelect, onChange, onDragStart, o
   const groupElement = element as any; // Cast to access children
   const children: KonvaElement[] = groupElement.children || [];
   
-  const handleDragStart = useCallback(() => {
+  const handleDragStart = useCallback((e: Konva.KonvaEventObject<DragEvent>) => {
+    // Store starting position at drag start
+    startPosRef.current = { x: e.target.x(), y: e.target.y() };
     onDragStart?.();
   }, [onDragStart]);
   
-  const handleDragEnd = useCallback((e: Konva.KonvaEventObject<DragEvent>) => {
+  const handleDragMove = useCallback((e: Konva.KonvaEventObject<DragEvent>) => {
+    if (!snapCtx) return;
+    
     const node = e.target;
-    const dx = node.x() - (element.x || 0);
-    const dy = node.y() - (element.y || 0);
+    const bounds = getNodeBounds(node);
     
-    // Update group position and all children positions
-    const updatedChildren = children.map(child => ({
-      ...child,
-      x: (child.x || 0) + dx,
-      y: (child.y || 0) + dy,
-    }));
+    const snapResult = calculateSnap(bounds, snapCtx.snapConfig, snapCtx.elements);
     
+    // Apply snap
+    if (snapResult.x !== undefined) {
+      node.x(snapResult.x);
+    }
+    if (snapResult.y !== undefined) {
+      node.y(snapResult.y);
+    }
+    
+    // Update guides
+    snapCtx.setGuides(snapResult.guides);
+  }, [snapCtx]);
+  
+  const handleDragEnd = useCallback((e: Konva.KonvaEventObject<DragEvent>) => {
+    if (snapCtx) {
+      snapCtx.setGuides([]); // Clear guides
+    }
+    
+    const node = e.target;
+    const newX = node.x();
+    const newY = node.y();
+    
+    // Group children are stored with relative positions, so we only update the group's x/y
+    // The children's relative positions stay the same
     onChange(element.id, {
-      x: node.x(),
-      y: node.y(),
-      children: updatedChildren,
+      x: newX,
+      y: newY,
     });
     
+    startPosRef.current = null;
     onDragEnd?.();
-  }, [element, children, onChange, onDragEnd]);
+  }, [element.id, onChange, onDragEnd, snapCtx]);
   
   const handleTransformEnd = useCallback((e: Konva.KonvaEventObject<Event>) => {
     const node = groupRef.current;
@@ -734,14 +910,18 @@ function GroupRenderer({ element, isSelected, onSelect, onChange, onDragStart, o
     node.scaleX(1);
     node.scaleY(1);
     
-    // Scale all children
-    const updatedChildren = children.map(child => ({
-      ...child,
-      x: (child.x || 0) * scaleX,
-      y: (child.y || 0) * scaleY,
-      width: (child.width || 100) * scaleX,
-      height: (child.height || 100) * scaleY,
-    }));
+    // Scale all children relative positions and dimensions
+    const updatedChildren = children.map(child => {
+      const childAny = child as any;
+      return {
+        ...child,
+        x: (child.x || 0) * scaleX,
+        y: (child.y || 0) * scaleY,
+        width: childAny.width ? childAny.width * scaleX : undefined,
+        height: childAny.height ? childAny.height * scaleY : undefined,
+        radius: childAny.radius ? childAny.radius * Math.max(scaleX, scaleY) : undefined,
+      };
+    });
     
     onChange(element.id, {
       x: node.x(),
@@ -749,7 +929,7 @@ function GroupRenderer({ element, isSelected, onSelect, onChange, onDragStart, o
       rotation,
       children: updatedChildren,
     });
-  }, [element, children, onChange]);
+  }, [element.id, children, onChange]);
   
   return (
     <>
@@ -760,7 +940,7 @@ function GroupRenderer({ element, isSelected, onSelect, onChange, onDragStart, o
         y={element.y || 0}
         rotation={element.rotation || 0}
         opacity={(element as any).opacity ?? 1}
-        draggable
+        draggable={!element.locked}
         onClick={(e) => {
           e.cancelBubble = true;
           onSelect(element.id, e.evt.shiftKey);
@@ -770,6 +950,7 @@ function GroupRenderer({ element, isSelected, onSelect, onChange, onDragStart, o
           onSelect(element.id, false);
         }}
         onDragStart={handleDragStart}
+        onDragMove={handleDragMove}
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
       >
@@ -781,10 +962,9 @@ function GroupRenderer({ element, isSelected, onSelect, onChange, onDragStart, o
           rotateEnabled={true}
           keepRatio={false}
           enabledAnchors={['top-left', 'top-center', 'top-right', 'middle-left', 'middle-right', 'bottom-left', 'bottom-center', 'bottom-right']}
-          borderStroke="#4b5563"
-          borderStrokeWidth={2}
-          borderDash={[4, 4]}
-          anchorStroke="#4b5563"
+          borderStroke="#18181b"
+          borderStrokeWidth={1.5}
+          anchorStroke="#18181b"
           anchorFill="#ffffff"
           anchorSize={10}
           anchorCornerRadius={2}
@@ -877,12 +1057,34 @@ function KonvaCanvasInternal() {
   const [isPanning, setIsPanning] = useState(false);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   
+  // Snap guides state
+  const [guides, setGuides] = useState<GuideLine[]>([]);
+  
   // Get current page
   const currentPage = getCurrentPage();
   const elements = currentPage?.canvas.elements || [];
   const canvasWidth = currentPage?.canvas.width || 1920;
   const canvasHeight = currentPage?.canvas.height || 1080;
   const bgColor = currentPage?.canvas.backgroundColor || '#ffffff';
+  
+  // Snap configuration
+  const snapConfig = useMemo<SnapConfig>(() => ({
+    snapToGrid: state.document?.settings?.snapToGrid ?? true,
+    snapToElements: true,
+    snapToCanvas: true,
+    gridSize: state.document?.settings?.grid?.size ?? GRID_SIZE,
+    threshold: SNAP_THRESHOLD,
+    canvasWidth,
+    canvasHeight,
+  }), [state.document?.settings?.snapToGrid, state.document?.settings?.grid?.size, canvasWidth, canvasHeight]);
+  
+  // Snap context value
+  const snapContextValue = useMemo<SnapContextValue>(() => ({
+    guides,
+    setGuides,
+    snapConfig,
+    elements,
+  }), [guides, snapConfig, elements]);
   
   // Get selected element for toolbar positioning
   const selectedElement = selectedIds.length === 1 
@@ -1342,16 +1544,36 @@ function KonvaCanvasInternal() {
         
         {/* Content Layer */}
         <Layer>
-          {elements.map((element) => (
-            <ElementRenderer
-              key={element.id}
-              element={element}
-              isSelected={selectedIds.includes(element.id)}
-              onSelect={handleSelect}
-              onChange={handleChange}
-              onDragStart={handleDragStart}
-              onDragEnd={() => {}}
-              onDoubleClick={handleTextDoubleClick}
+          <SnapContext.Provider value={snapContextValue}>
+            {elements.map((element) => (
+              <ElementRenderer
+                key={element.id}
+                element={element}
+                isSelected={selectedIds.includes(element.id)}
+                onSelect={handleSelect}
+                onChange={handleChange}
+                onDragStart={handleDragStart}
+                onDragEnd={() => {}}
+                onDoubleClick={handleTextDoubleClick}
+              />
+            ))}
+          </SnapContext.Provider>
+        </Layer>
+        
+        {/* Snap Guides Layer */}
+        <Layer listening={false}>
+          {guides.map(guide => (
+            <Line
+              key={guide.id}
+              points={
+                guide.orientation === 'vertical'
+                  ? [guide.position, 0, guide.position, canvasHeight]
+                  : [0, guide.position, canvasWidth, guide.position]
+              }
+              stroke="#18181b"
+              strokeWidth={1}
+              dash={guide.type === 'center' ? [8, 4] : [4, 2]}
+              opacity={0.6}
             />
           ))}
         </Layer>

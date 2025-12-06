@@ -122,7 +122,7 @@ function KonvaTextNode({ element, isSelected, onSelect, onChange }: KonvaTextNod
     textarea.style.fontSize = `${element.fontSize || 16}px`;
     textarea.style.fontFamily = element.fontFamily || 'Inter';
     textarea.style.color = element.fill || '#000';
-    textarea.style.border = '2px solid #6366f1';
+    textarea.style.border = '2px solid #18181b';
     textarea.style.padding = '4px';
     textarea.style.margin = '0';
     textarea.style.overflow = 'hidden';
@@ -725,8 +725,8 @@ export function KonvaCanvas({ className = '', showGrid = true }: KonvaCanvasProp
             }}
             anchorSize={8}
             anchorCornerRadius={2}
-            borderStroke="#6366f1"
-            anchorStroke="#6366f1"
+            borderStroke="#18181b"
+            anchorStroke="#18181b"
             anchorFill="#ffffff"
             enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right', 'middle-left', 'middle-right', 'top-center', 'bottom-center']}
             rotateEnabled={true}

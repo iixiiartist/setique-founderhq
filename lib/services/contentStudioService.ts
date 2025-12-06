@@ -163,18 +163,34 @@ export async function saveDocument(
 
 /**
  * Load document from Supabase
+ * Scoped by workspace_id to prevent cross-tenant access
  */
-export async function loadDocument(documentId: string): Promise<ContentDocument | null> {
+export async function loadDocument(
+  documentId: string, 
+  workspaceId?: string
+): Promise<ContentDocument | null> {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('content_studio_documents')
-      .select('data')
-      .eq('id', documentId)
-      .single();
+      .select('data, workspace_id')
+      .eq('id', documentId);
+    
+    // If workspace_id provided, scope the query for security
+    if (workspaceId) {
+      query = query.eq('workspace_id', workspaceId);
+    }
+    
+    const { data, error } = await query.single();
 
     if (error) {
       if (error.code === 'PGRST116') return null; // Not found
       throw error;
+    }
+
+    // If workspace_id was provided but doesn't match, return null (unauthorized)
+    if (workspaceId && data?.workspace_id && data.workspace_id !== workspaceId) {
+      console.warn('[ContentStudioService] Document workspace mismatch - unauthorized access attempt');
+      return null;
     }
 
     return data?.data as ContentDocument;

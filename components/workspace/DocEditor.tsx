@@ -41,7 +41,7 @@ import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { AICommandPalette } from './AICommandPalette';
 import { ImageUploadModal } from './ImageUploadModal';
 import { ChartQuickInsert } from './ChartQuickInsert';
-import { ResearchCopilot } from '../docs/ResearchCopilot';
+import EnhancedResearchCopilot from '../docs/EnhancedResearchCopilot';
 import { useAIWorkspaceContext } from '../../hooks/useAIWorkspaceContext';
 import { uploadToSupabase, validateImageFile } from '../../lib/services/imageUploadService';
 import { exportToMarkdown, exportToPDF, exportToHTML, exportToText, generateFilename } from '../../lib/services/documentExport';
@@ -2724,7 +2724,7 @@ export const DocEditor: React.FC<DocEditorProps> = ({
             />
 
             {/* Research Copilot */}
-            <ResearchCopilot
+            <EnhancedResearchCopilot
                 isOpen={showResearchSidebar && !isFocusMode}
                 onClose={() => setShowResearchSidebar(false)}
                 editor={editor}

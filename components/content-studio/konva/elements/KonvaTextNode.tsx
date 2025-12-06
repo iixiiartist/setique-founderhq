@@ -74,7 +74,7 @@ export function KonvaTextNode({
     textarea.style.fontStyle = element.fontStyle || 'normal';
     textarea.style.textAlign = element.textAlign || 'left';
     textarea.style.color = element.fill || '#000000';
-    textarea.style.border = '2px solid #6366f1';
+    textarea.style.border = '2px solid #18181b';
     textarea.style.padding = '4px';
     textarea.style.margin = '0';
     textarea.style.overflow = 'auto';
@@ -193,9 +193,9 @@ export function KonvaTextNode({
           ref={trRef}
           enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right', 'middle-left', 'middle-right']}
           rotateEnabled={true}
-          borderStroke="#6366f1"
-          borderStrokeWidth={1}
-          anchorStroke="#6366f1"
+          borderStroke="#18181b"
+          borderStrokeWidth={1.5}
+          anchorStroke="#18181b"
           anchorFill="#ffffff"
           anchorSize={8}
           anchorCornerRadius={2}

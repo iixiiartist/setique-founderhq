@@ -67,6 +67,7 @@ interface KonvaState {
   isDirty: boolean;
   isLoading: boolean;
   isSaving: boolean;
+  saveError: string | null;
   lastSavedAt: string | null;
   undoStack: HistoryEntry[];
   redoStack: HistoryEntry[];
@@ -119,6 +120,7 @@ type KonvaAction =
   | { type: 'MARK_CLEAN' }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_SAVING'; payload: boolean }
+  | { type: 'SET_SAVE_ERROR'; payload: string | null }
   | { type: 'SET_LAST_SAVED'; payload: string }
   | { type: 'PUSH_UNDO'; payload: HistoryEntry }
   | { type: 'UNDO' }
@@ -459,6 +461,7 @@ interface KonvaProviderProps {
 }
 
 export function KonvaProvider({ children, documentId, onClose, onSave }: KonvaProviderProps) {
+  // Use properly typed reducer - TypeScript infers types from the reducer function signature
   const [state, dispatch] = useReducer(reducer, initialState);
   const stageRef = useRef<Konva.Stage>(null);
 
@@ -552,13 +555,15 @@ export function KonvaProvider({ children, documentId, onClose, onSave }: KonvaPr
   }, []);
 
   // Load document by ID from Supabase
+  // Scoped by workspace to prevent cross-tenant access
   const loadDocumentById = useCallback(async (documentId: string): Promise<boolean> => {
     dispatch({ type: 'SET_LOADING', payload: true });
     
     try {
-      const rawDoc = await loadDocumentFromSupabase(documentId);
+      // Pass workspaceId to scope the query and prevent cross-tenant access
+      const rawDoc = await loadDocumentFromSupabase(documentId, workspaceId);
       if (!rawDoc) {
-        showError('Document not found');
+        showError('Document not found or access denied');
         dispatch({ type: 'SET_LOADING', payload: false });
         return false;
       }
@@ -585,7 +590,7 @@ export function KonvaProvider({ children, documentId, onClose, onSave }: KonvaPr
       }
 
       dispatch({ type: 'SET_DOCUMENT', payload: sanitizedDoc });
-      dispatch({ type: 'SET_LAST_SAVED', payload: sanitizedDoc.metadata?.updated_at || new Date().toISOString() });
+      dispatch({ type: 'SET_LAST_SAVED', payload: sanitizedDoc.updatedAt || new Date().toISOString() });
       dispatch({ type: 'SET_LOADING', payload: false });
       showSuccess('Document loaded');
       return true;
@@ -595,7 +600,7 @@ export function KonvaProvider({ children, documentId, onClose, onSave }: KonvaPr
       showError('Failed to load document');
       return false;
     }
-  }, []);
+  }, [workspaceId]);
 
   // Save document to Supabase
   const saveDocument = useCallback(async (): Promise<boolean> => {
@@ -744,6 +749,7 @@ export function KonvaProvider({ children, documentId, onClose, onSave }: KonvaPr
     // Apply each element, generating new IDs if collision
     let applied = 0;
     let skipped = 0;
+    const appliedFinalIds: string[] = [];
 
     elements.forEach(element => {
       try {
@@ -763,6 +769,7 @@ export function KonvaProvider({ children, documentId, onClose, onSave }: KonvaPr
         };
 
         dispatch({ type: 'ADD_ELEMENT', payload: patchedElement });
+        appliedFinalIds.push(finalId); // Track the ACTUAL final ID
         applied++;
       } catch (err) {
         console.error('[KonvaContext] Failed to apply element:', err);
@@ -772,9 +779,8 @@ export function KonvaProvider({ children, documentId, onClose, onSave }: KonvaPr
 
     dispatch({ type: 'MARK_DIRTY' });
 
-    // Select the new elements
-    const newIds = elements.slice(0, applied).map(e => e.id);
-    dispatch({ type: 'SELECT', payload: newIds });
+    // Select the new elements using their FINAL IDs (not original IDs)
+    dispatch({ type: 'SELECT', payload: appliedFinalIds });
 
     console.log(`[KonvaContext] Applied ${applied} elements, skipped ${skipped}`);
     return { applied, skipped };

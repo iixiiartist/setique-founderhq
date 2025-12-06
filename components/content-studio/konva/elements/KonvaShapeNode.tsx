@@ -154,9 +154,9 @@ export function KonvaShapeNode({
   const transformerProps = {
     ref: trRef,
     rotateEnabled: true,
-    borderStroke: '#6366f1',
-    borderStrokeWidth: 1,
-    anchorStroke: '#6366f1',
+    borderStroke: '#18181b',
+    borderStrokeWidth: 1.5,
+    anchorStroke: '#18181b',
     anchorFill: '#ffffff',
     anchorSize: 8,
     anchorCornerRadius: 2,
