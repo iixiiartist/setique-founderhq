@@ -97,6 +97,7 @@ export function KonvaElementToolbar({ className = '', onClose }: KonvaElementToo
     ungroupSelectedElements,
     getSelectedElements,
     getCurrentPage,
+    goToPage,
   } = useKonvaContext();
   
   const [isExporting, setIsExporting] = useState(false);
@@ -207,22 +208,30 @@ export function KonvaElementToolbar({ className = '', onClose }: KonvaElementToo
 
     setIsExporting(true);
     
-    // Helper function to export just the canvas area
-    const exportCanvas = (pixelRatio: number, mimeType: string, quality?: number) => {
-      const currentPage = getCurrentPage();
-      const canvasWidth = currentPage?.canvas?.width || 1920;
-      const canvasHeight = currentPage?.canvas?.height || 1080;
-      
-      // Save current stage transform
+    // Helper function to wait for next render cycle
+    const waitForRender = () => new Promise<void>(resolve => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => resolve());
+      });
+    });
+    
+    // Helper function to export just the canvas area at full resolution
+    // Temporarily resizes stage to full canvas dimensions to avoid clipping
+    const exportCanvas = (canvasWidth: number, canvasHeight: number, pixelRatio: number, mimeType: string, quality?: number) => {
+      // Save current stage dimensions and transform
+      const originalWidth = stage.width();
+      const originalHeight = stage.height();
       const originalScale = { x: stage.scaleX(), y: stage.scaleY() };
       const originalPosition = { x: stage.x(), y: stage.y() };
       
-      // Reset stage transform to export at 1:1
+      // Temporarily resize stage to full canvas size and reset transform
+      stage.width(canvasWidth);
+      stage.height(canvasHeight);
       stage.scale({ x: 1, y: 1 });
       stage.position({ x: 0, y: 0 });
       stage.batchDraw();
       
-      // Export only the canvas area
+      // Export the full canvas area (no clipping now)
       const uri = stage.toDataURL({
         x: 0,
         y: 0,
@@ -233,7 +242,9 @@ export function KonvaElementToolbar({ className = '', onClose }: KonvaElementToo
         quality,
       });
       
-      // Restore original transform
+      // Restore original stage dimensions and transform
+      stage.width(originalWidth);
+      stage.height(originalHeight);
       stage.scale(originalScale);
       stage.position(originalPosition);
       stage.batchDraw();
@@ -244,6 +255,7 @@ export function KonvaElementToolbar({ className = '', onClose }: KonvaElementToo
     try {
       const docTitle = state.document?.title || 'canvas-export';
       const safeTitle = docTitle.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+      const originalPageIndex = state.currentPageIndex;
       
       if (format === 'pdf' || format === 'pdf-all') {
         // For PDF export, we need to use jspdf
@@ -271,23 +283,38 @@ export function KonvaElementToolbar({ className = '', onClose }: KonvaElementToo
           format: [width, height],
         });
         
-        // Export each page
+        // Export each page - for multi-page, switch to each page before exporting
         for (let i = 0; i < pages.length; i++) {
           const page = pages[i];
           if (!page) continue;
           
-          if (format === 'pdf-all' && i > 0) {
-            // Add new page for multi-page export (skip first since we already have it)
-            const pageCanvas = page.canvas;
-            const pageWidth = pageCanvas?.width || width;
-            const pageHeight = pageCanvas?.height || height;
+          const pageCanvas = page.canvas;
+          const pageWidth = pageCanvas?.width || width;
+          const pageHeight = pageCanvas?.height || height;
+          
+          // For multi-page export, navigate to the page and wait for render
+          if (format === 'pdf-all') {
+            const pageIndex = state.document?.pages.indexOf(page) ?? i;
+            goToPage(pageIndex);
+            // Wait for the canvas to re-render with new page content
+            await waitForRender();
+            await new Promise(resolve => setTimeout(resolve, 100)); // Extra delay for complex pages
+          }
+          
+          if (i > 0) {
+            // Add new page (skip first since we already have it)
             const pageOrientation = pageWidth > pageHeight ? 'landscape' : 'portrait';
             pdf.addPage([pageWidth, pageHeight], pageOrientation);
           }
           
-          // Export the canvas area only
-          const { uri, width: exportWidth, height: exportHeight } = exportCanvas(2, 'image/png');
-          pdf.addImage(uri, 'PNG', 0, 0, exportWidth, exportHeight);
+          // Export the canvas area at full resolution
+          const { uri } = exportCanvas(pageWidth, pageHeight, 2, 'image/png');
+          pdf.addImage(uri, 'PNG', 0, 0, pageWidth, pageHeight);
+        }
+        
+        // Restore original page after multi-page export
+        if (format === 'pdf-all' && pages.length > 1) {
+          goToPage(originalPageIndex);
         }
         
         const suffix = format === 'pdf-all' ? '-all-pages' : '';
@@ -295,14 +322,20 @@ export function KonvaElementToolbar({ className = '', onClose }: KonvaElementToo
         showSuccess(format === 'pdf-all' ? 'All pages exported as PDF' : 'PDF exported');
       } else if (format === 'png-hires') {
         // High-res PNG at 3x
-        const { uri } = exportCanvas(3, 'image/png');
+        const currentPage = getCurrentPage();
+        const canvasWidth = currentPage?.canvas?.width || 1920;
+        const canvasHeight = currentPage?.canvas?.height || 1080;
+        const { uri } = exportCanvas(canvasWidth, canvasHeight, 3, 'image/png');
         downloadFile(uri, `${safeTitle}-hires-${Date.now()}.png`);
         showSuccess('High-res PNG exported');
       } else {
         // Standard PNG or JPEG
+        const currentPage = getCurrentPage();
+        const canvasWidth = currentPage?.canvas?.width || 1920;
+        const canvasHeight = currentPage?.canvas?.height || 1080;
         const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
         const quality = format === 'jpeg' ? 0.92 : undefined;
-        const { uri } = exportCanvas(2, mimeType, quality);
+        const { uri } = exportCanvas(canvasWidth, canvasHeight, 2, mimeType, quality);
         downloadFile(uri, `${safeTitle}-${Date.now()}.${format}`);
         showSuccess(`${format.toUpperCase()} exported`);
       }
@@ -313,7 +346,7 @@ export function KonvaElementToolbar({ className = '', onClose }: KonvaElementToo
       setIsExporting(false);
       setShowExportModal(false);
     }
-  }, [stageRef, state.document, state.currentPageIndex, getCurrentPage]);
+  }, [stageRef, state.document, state.currentPageIndex, getCurrentPage, goToPage]);
 
   const downloadFile = (dataUrl: string, filename: string) => {
     const link = document.createElement('a');

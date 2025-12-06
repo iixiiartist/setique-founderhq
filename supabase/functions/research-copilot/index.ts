@@ -565,26 +565,48 @@ serve(async (req: Request): Promise<Response> => {
   const startTime = performance.now();
 
   try {
-    // Auth check
+    // Auth check - REQUIRE authentication to prevent API abuse
     const authHeader = req.headers.get('authorization');
-    let userId = 'anonymous';
-
-    if (authHeader) {
-      try {
-        const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-        const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-        const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-          global: { headers: { Authorization: authHeader } },
-        });
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) userId = user.id;
-      } catch (e) {
-        console.warn('[research-copilot] Auth check failed');
-      }
+    
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authentication required. Please sign in to use research features.' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Rate limiting
-    const rateCheck = checkRateLimit(userId);
+    let userId: string | null = null;
+    let workspaceId: string | null = null;
+
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+      const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid or expired session. Please sign in again.' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      userId = user.id;
+      
+      // Optionally get workspace from user metadata for scoped rate limiting
+      workspaceId = user.user_metadata?.current_workspace_id || null;
+    } catch (e) {
+      console.error('[research-copilot] Auth validation failed:', e);
+      return new Response(
+        JSON.stringify({ error: 'Authentication failed. Please sign in again.' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Rate limiting - now always uses authenticated userId (guaranteed non-null at this point)
+    const rateCheck = checkRateLimit(userId!);
     if (!rateCheck.allowed) {
       return new Response(
         JSON.stringify({
