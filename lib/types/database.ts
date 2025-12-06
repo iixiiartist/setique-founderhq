@@ -285,6 +285,7 @@ export interface Database {
         Row: {
           id: string
           user_id: string
+          workspace_id: string
           created_at: string
           updated_at: string
           name: string
@@ -294,10 +295,20 @@ export interface Database {
           company_id: string | null
           contact_id: string | null
           notes: Json | null
+          description: string | null
+          tags: string[] | null
+          is_starred: boolean
+          file_size: number | null
+          last_accessed_at: string | null
+          view_count: number
+          link_task_id: string | null
+          link_deal_id: string | null
+          link_event_id: string | null
         }
         Insert: {
           id?: string
           user_id: string
+          workspace_id: string
           created_at?: string
           updated_at?: string
           name: string
@@ -307,10 +318,20 @@ export interface Database {
           company_id?: string | null
           contact_id?: string | null
           notes?: Json | null
+          description?: string | null
+          tags?: string[] | null
+          is_starred?: boolean
+          file_size?: number | null
+          last_accessed_at?: string | null
+          view_count?: number
+          link_task_id?: string | null
+          link_deal_id?: string | null
+          link_event_id?: string | null
         }
         Update: {
           id?: string
           user_id?: string
+          workspace_id?: string
           created_at?: string
           updated_at?: string
           name?: string
@@ -320,6 +341,15 @@ export interface Database {
           company_id?: string | null
           contact_id?: string | null
           notes?: Json | null
+          description?: string | null
+          tags?: string[] | null
+          is_starred?: boolean
+          file_size?: number | null
+          last_accessed_at?: string | null
+          view_count?: number
+          link_task_id?: string | null
+          link_deal_id?: string | null
+          link_event_id?: string | null
         }
       }
       expenses: {
