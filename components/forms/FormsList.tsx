@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useDebouncedValue, useCopyToClipboard } from '../../hooks';
+import { useDebouncedValue, useCopyWithId } from '../../hooks';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Badge } from '../ui/Badge';
@@ -9,7 +9,7 @@ import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { Form, FormStatus } from '../../types/forms';
 import { getWorkspaceForms, deleteForm, duplicateForm, archiveForm, publishForm, unpublishForm, generateEmbedCode, generateShareLinks } from '../../src/services/formService';
 import { formatDistanceToNow } from 'date-fns';
-import { ChevronLeft, ChevronRight, FileText, BarChart2, TrendingUp, HelpCircle, MessageSquare, Globe, Lock, KeyRound, Megaphone, User, MoreVertical, Pencil, BarChart, Rocket, FileEdit, Copy, Link2, ExternalLink, Archive, Trash2, Inbox, Clock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, BarChart2, TrendingUp, HelpCircle, MessageSquare, Globe, Lock, KeyRound, Megaphone, User, MoreVertical, Pencil, BarChart, Rocket, FileEdit, Copy, Link2, ExternalLink, Archive, Trash2, Inbox, Clock, RefreshCw, AlertCircle } from 'lucide-react';
 
 // Form type from database
 type FormType = 'form' | 'survey' | 'poll' | 'quiz' | 'feedback';
@@ -70,9 +70,17 @@ export const FormsList: React.FC<FormsListProps> = ({
   const [sortBy, setSortBy] = useState<'updated' | 'created' | 'name' | 'submissions'>('updated');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [shareModalForm, setShareModalForm] = useState<ExtendedForm | null>(null);
-  const { copiedText, copy: copyToClipboard } = useCopyToClipboard();
+  const { copiedId, copyWithId } = useCopyWithId<string>();
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; formId: string | null; formName: string }>({ isOpen: false, formId: null, formName: '' });
   const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Aggregate stats (fetched separately to show correct totals)
+  const [aggregateStats, setAggregateStats] = useState<{
+    totalPublished: number;
+    totalDraft: number;
+    totalResponses: number;
+  } | null>(null);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -109,9 +117,10 @@ export const FormsList: React.FC<FormsListProps> = ({
     }
     
     setLoading(true);
+    setError(null);
     console.log('[FormsList] Loading forms for workspace:', workspaceId);
     
-    const { data, error, totalCount: count } = await getWorkspaceForms(workspaceId, {
+    const { data, error: fetchError, totalCount: count } = await getWorkspaceForms(workspaceId, {
       limit: PAGE_SIZE,
       offset: (currentPage - 1) * PAGE_SIZE,
       status: statusFilter,
@@ -119,32 +128,58 @@ export const FormsList: React.FC<FormsListProps> = ({
       search: debouncedSearch,
     });
     
-    console.log('[FormsList] Forms loaded:', { count: data?.length, totalCount: count, error });
+    console.log('[FormsList] Forms loaded:', { count: data?.length, totalCount: count, error: fetchError });
     
-    if (!error) {
-      setForms(data as ExtendedForm[]);
-      setTotalCount(count || data.length);
+    if (fetchError) {
+      setError(fetchError);
+      setLoading(false);
+      setIsSearching(false);
+      return;
     }
+    
+    setForms(data as ExtendedForm[]);
+    setTotalCount(count || data.length);
     setLoading(false);
     setIsSearching(false);
   }, [workspaceId, currentPage, statusFilter, typeFilter, debouncedSearch]);
+  
+  // Fetch aggregate stats (total published, draft, responses across ALL forms)
+  const fetchAggregateStats = useCallback(async () => {
+    if (!workspaceId) return;
+    
+    // Fetch all forms without pagination to get accurate stats
+    const { data: allForms, error: statsError } = await getWorkspaceForms(workspaceId, {
+      limit: 1000, // High limit to get all forms
+      offset: 0,
+    });
+    
+    if (!statsError && allForms) {
+      setAggregateStats({
+        totalPublished: allForms.filter(f => f.status === 'published').length,
+        totalDraft: allForms.filter(f => f.status === 'draft').length,
+        totalResponses: allForms.reduce((sum, f) => sum + (f.total_submissions || 0), 0),
+      });
+    }
+  }, [workspaceId]);
 
   useEffect(() => {
     console.log('[FormsList] workspaceId:', workspaceId);
     if (workspaceId) {
       loadForms();
+      fetchAggregateStats();
     } else {
       setLoading(false);
     }
-  }, [workspaceId, loadForms]);
+  }, [workspaceId, loadForms, fetchAggregateStats]);
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const handleDelete = async (formId: string) => {
     setIsDeleting(true);
-    const { error } = await deleteForm(formId);
-    if (!error) {
-      setForms(prev => prev.filter(f => f.id !== formId));
+    const { error: deleteError } = await deleteForm(formId);
+    if (!deleteError) {
+      // Refresh both forms list and aggregate stats
+      await Promise.all([loadForms(), fetchAggregateStats()]);
     }
     setIsDeleting(false);
     setDeleteConfirm({ isOpen: false, formId: null, formName: '' });
@@ -159,43 +194,48 @@ export const FormsList: React.FC<FormsListProps> = ({
     const userId = localStorage.getItem('userId') || '';
     if (!workspaceId || !userId) return;
     
-    const { data, error } = await duplicateForm(form.id, workspaceId, userId);
-    if (!error && data) {
-      setForms(prev => [data as ExtendedForm, ...prev]);
+    const { error: dupError } = await duplicateForm(form.id, workspaceId, userId);
+    if (!dupError) {
+      // Refresh both forms list and aggregate stats
+      await Promise.all([loadForms(), fetchAggregateStats()]);
     }
     setOpenMenuId(null);
   };
 
   const handleArchive = async (formId: string) => {
-    const { error } = await archiveForm(formId);
-    if (!error) {
-      setForms(prev => prev.map(f => f.id === formId ? { ...f, status: 'archived' as FormStatus } : f));
+    const { error: archiveError } = await archiveForm(formId);
+    if (!archiveError) {
+      // Refresh both forms list and aggregate stats
+      await Promise.all([loadForms(), fetchAggregateStats()]);
     }
     setOpenMenuId(null);
   };
 
   const handlePublish = async (formId: string) => {
-    const { data, error } = await publishForm(formId);
-    if (!error && data) {
-      setForms(prev => prev.map(f => f.id === formId ? { ...f, status: 'published' as FormStatus, published_at: data.published_at } : f));
+    const { error: publishError } = await publishForm(formId);
+    if (!publishError) {
+      // Refresh both forms list and aggregate stats
+      await Promise.all([loadForms(), fetchAggregateStats()]);
     }
     setOpenMenuId(null);
   };
 
   const handleUnpublish = async (formId: string) => {
-    const { error } = await unpublishForm(formId);
-    if (!error) {
-      setForms(prev => prev.map(f => f.id === formId ? { ...f, status: 'draft' as FormStatus } : f));
+    const { error: unpublishError } = await unpublishForm(formId);
+    if (!unpublishError) {
+      // Refresh both forms list and aggregate stats
+      await Promise.all([loadForms(), fetchAggregateStats()]);
     }
     setOpenMenuId(null);
   };
 
   const handleCopyLink = async (text: string, label: string) => {
-    await copyToClipboard(text);
+    await copyWithId(label, text);
   };
 
   const getFormUrl = (slug: string) => {
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    // Use configured APP_URL for consistent URLs across environments (SSR, Electron, etc.)
+    const baseUrl = import.meta.env.VITE_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'https://founderhq.setique.com');
     return `${baseUrl}/forms/${slug}`;
   };
 
@@ -284,6 +324,25 @@ export const FormsList: React.FC<FormsListProps> = ({
         />
       </div>
 
+      {/* Error State */}
+      {error && !loading && (
+        <Card>
+          <div className="p-12 text-center">
+            <AlertCircle className="w-16 h-16 mx-auto mb-4 text-red-500" />
+            <h3 className="text-lg font-bold text-black mb-2">
+              Failed to load forms
+            </h3>
+            <p className="text-sm text-gray-600 mb-6">
+              {error}
+            </p>
+            <Button onClick={loadForms} variant="primary">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Try Again
+            </Button>
+          </div>
+        </Card>
+      )}
+
       {/* Forms Grid */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -297,7 +356,7 @@ export const FormsList: React.FC<FormsListProps> = ({
             </Card>
           ))}
         </div>
-      ) : sortedForms.length === 0 ? (
+      ) : error ? null : sortedForms.length === 0 ? (
         <Card>
           <div className="p-12 text-center">
             <span className="text-6xl mb-4 block">📋</span>
@@ -340,10 +399,14 @@ export const FormsList: React.FC<FormsListProps> = ({
                       {VISIBILITY_ICONS[form.visibility] || VISIBILITY_ICONS.link}
                     </span>
                     {form.default_campaign_id && (
-                      <Megaphone className="w-4 h-4 text-slate-500" title="Linked to campaign" />
+                      <span title="Linked to campaign">
+                        <Megaphone className="w-4 h-4 text-slate-500" />
+                      </span>
                     )}
                     {form.auto_create_contact && (
-                      <User className="w-4 h-4 text-slate-500" title="Auto-creates contacts" />
+                      <span title="Auto-creates contacts">
+                        <User className="w-4 h-4 text-slate-500" />
+                      </span>
                     )}
                   </div>
                   <div className="relative">
@@ -556,8 +619,8 @@ export const FormsList: React.FC<FormsListProps> = ({
         </div>
       )}
 
-      {/* Stats */}
-      {forms.length > 0 && (
+      {/* Stats - Use aggregate stats for accurate totals across all pages */}
+      {(forms.length > 0 || aggregateStats) && (
         <div className="grid grid-cols-4 gap-4">
           <Card className="text-center">
             <CardContent>
@@ -568,7 +631,7 @@ export const FormsList: React.FC<FormsListProps> = ({
           <Card className="text-center">
             <CardContent>
               <p className="text-2xl font-bold text-green-600">
-                {forms.filter(f => f.status === 'published').length}
+                {aggregateStats?.totalPublished ?? forms.filter(f => f.status === 'published').length}
               </p>
               <p className="text-xs text-gray-600">Published</p>
             </CardContent>
@@ -576,7 +639,7 @@ export const FormsList: React.FC<FormsListProps> = ({
           <Card className="text-center">
             <CardContent>
               <p className="text-2xl font-bold text-yellow-600">
-                {forms.filter(f => f.status === 'draft').length}
+                {aggregateStats?.totalDraft ?? forms.filter(f => f.status === 'draft').length}
               </p>
               <p className="text-xs text-gray-600">Drafts</p>
             </CardContent>
@@ -584,7 +647,7 @@ export const FormsList: React.FC<FormsListProps> = ({
           <Card className="text-center">
             <CardContent>
               <p className="text-2xl font-bold text-purple-600">
-                {forms.reduce((sum, f) => sum + (f.total_submissions || 0), 0)}
+                {aggregateStats?.totalResponses ?? forms.reduce((sum, f) => sum + (f.total_submissions || 0), 0)}
               </p>
               <p className="text-xs text-gray-600">Total Responses</p>
             </CardContent>
@@ -621,10 +684,10 @@ export const FormsList: React.FC<FormsListProps> = ({
                     className="flex-1 p-2 border-2 border-gray-300 bg-gray-50 text-sm font-mono"
                   />
                   <Button 
-                    variant={copiedText === 'direct' ? 'success' : 'outline'}
+                    variant={copiedId === 'direct' ? 'success' : 'outline'}
                     onClick={() => handleCopyLink(getFormUrl(shareModalForm.slug!), 'direct')}
                   >
-                    {copiedText === 'direct' ? '✓ Copied!' : '📋 Copy'}
+                    {copiedId === 'direct' ? '✓ Copied!' : 'Copy'}
                   </Button>
                 </div>
               </div>
@@ -640,10 +703,10 @@ export const FormsList: React.FC<FormsListProps> = ({
                     rows={3}
                   />
                   <Button 
-                    variant={copiedText === 'iframe' ? 'success' : 'outline'}
+                    variant={copiedId === 'iframe' ? 'success' : 'outline'}
                     onClick={() => handleCopyLink(generateEmbedCode(shareModalForm.id, shareModalForm.slug!, { mode: 'iframe' }), 'iframe')}
                   >
-                    {copiedText === 'iframe' ? '✓' : '📋'}
+                    {copiedId === 'iframe' ? '✓' : 'Copy'}
                   </Button>
                 </div>
               </div>
@@ -658,10 +721,10 @@ export const FormsList: React.FC<FormsListProps> = ({
                     rows={2}
                   />
                   <Button 
-                    variant={copiedText === 'popup' ? 'success' : 'outline'}
+                    variant={copiedId === 'popup' ? 'success' : 'outline'}
                     onClick={() => handleCopyLink(generateEmbedCode(shareModalForm.id, shareModalForm.slug!, { mode: 'popup' }), 'popup')}
                   >
-                    {copiedText === 'popup' ? '✓' : '📋'}
+                    {copiedId === 'popup' ? '✓' : 'Copy'}
                   </Button>
                 </div>
               </div>
@@ -736,7 +799,7 @@ export const FormsList: React.FC<FormsListProps> = ({
       )}
 
       {/* Copy notification toast */}
-      {copiedText && (
+      {copiedId && (
         <div className="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded shadow-lg animate-pulse z-50">
           ✓ Copied to clipboard!
         </div>
