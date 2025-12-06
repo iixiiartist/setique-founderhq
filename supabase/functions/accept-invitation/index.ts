@@ -104,21 +104,92 @@ serve(async (req) => {
 
     console.log('[accept-invitation] Invitation valid for:', inviteeEmail, 'to workspace:', workspaceName);
 
-    // Check if user already exists
-    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-    const existingUser = existingUsers?.users?.find(
-      u => u.email?.toLowerCase() === inviteeEmail.toLowerCase()
+    // Try to create user first - this is more reliable than listUsers() which has database issues
+    console.log('[accept-invitation] Attempting to create user for:', inviteeEmail);
+    
+    const tempPassword = generateTempPassword();
+    
+    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email: inviteeEmail,
+      password: tempPassword,
+      email_confirm: true, // Auto-confirm since they clicked the invite link
+      user_metadata: {
+        invited_to_workspace: workspaceId,
+        invitation_token: token
+      }
+    });
+
+    // Check if user already exists (createUser returns specific error for this)
+    const userAlreadyExists = createError && (
+      createError.message?.includes('already been registered') ||
+      createError.message?.includes('already exists') ||
+      (createError as any).status === 422
     );
 
-    if (existingUser) {
-      console.log('[accept-invitation] User exists:', existingUser.id);
+    if (userAlreadyExists) {
+      console.log('[accept-invitation] User already exists, looking up by email:', inviteeEmail);
+      
+      // Get existing user by email using getUserByEmail (more reliable than listUsers)
+      // Fall back to looking up profile by email if auth lookup fails
+      let existingUserId: string | null = null;
+      
+      // Try to get user via profiles table (more reliable)
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('email', inviteeEmail.toLowerCase())
+        .single();
+      
+      if (profile) {
+        existingUserId = profile.id;
+        console.log('[accept-invitation] Found user via profiles:', existingUserId);
+      }
+      
+      if (!existingUserId) {
+        // If profile lookup fails, try auth.admin method with pagination to avoid memory issues
+        try {
+          const { data: usersData, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+            page: 1,
+            perPage: 1000
+          });
+          
+          if (!listError && usersData?.users) {
+            const foundUser = usersData.users.find(
+              u => u.email?.toLowerCase() === inviteeEmail.toLowerCase()
+            );
+            if (foundUser) {
+              existingUserId = foundUser.id;
+              console.log('[accept-invitation] Found user via auth.admin.listUsers:', existingUserId);
+            }
+          }
+        } catch (listError) {
+          console.log('[accept-invitation] listUsers failed, trying alternative method');
+        }
+      }
+      
+      if (!existingUserId) {
+        // Last resort: send them to login page and let them sign up normally
+        console.log('[accept-invitation] Could not find existing user, redirecting to login');
+        
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: 'An account exists with this email. Please log in to accept the invitation.',
+            workspace_name: workspaceName,
+            workspace_id: workspaceId,
+            needsAuth: true,
+            email: inviteeEmail
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
       
       // Check if already a member
       const { data: existingMember } = await supabaseAdmin
         .from('workspace_members')
         .select('id')
         .eq('workspace_id', workspaceId)
-        .eq('user_id', existingUser.id)
+        .eq('user_id', existingUserId)
         .single();
 
       if (existingMember) {
@@ -146,7 +217,7 @@ serve(async (req) => {
         .from('workspace_members')
         .insert({
           workspace_id: workspaceId,
-          user_id: existingUser.id,
+          user_id: existingUserId,
           role: role,
           invited_by: invitation.invited_by
         });
@@ -160,7 +231,9 @@ serve(async (req) => {
       }
 
       // Update used_seats in subscription
-      await supabaseAdmin.rpc('increment_used_seats', { p_workspace_id: workspaceId });
+      await supabaseAdmin.rpc('increment_used_seats', { p_workspace_id: workspaceId }).catch(() => {
+        console.log('[accept-invitation] increment_used_seats RPC not available, skipping');
+      });
 
       // Mark invitation as accepted
       await supabaseAdmin
@@ -183,29 +256,16 @@ serve(async (req) => {
       );
     }
 
-    // New user - create account with temporary password
-    console.log('[accept-invitation] Creating new user for:', inviteeEmail);
-    
-    const tempPassword = generateTempPassword();
-    
-    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email: inviteeEmail,
-      password: tempPassword,
-      email_confirm: true, // Auto-confirm since they clicked the invite link
-      user_metadata: {
-        invited_to_workspace: workspaceId,
-        invitation_token: token
-      }
-    });
-
-    if (createError || !newUser.user) {
+    // Handle other creation errors
+    if (createError || !newUser?.user) {
       console.error('[accept-invitation] Error creating user:', createError);
       return new Response(
-        JSON.stringify({ success: false, error: 'Failed to create your account' }),
+        JSON.stringify({ success: false, error: 'Failed to create your account: ' + (createError?.message || 'Unknown error') }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    // New user created successfully
     console.log('[accept-invitation] User created:', newUser.user.id);
 
     // Create profile for new user
