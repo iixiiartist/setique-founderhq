@@ -161,15 +161,22 @@ export const FormsList: React.FC<FormsListProps> = ({
     }
   }, [workspaceId]);
 
+  // Load forms when workspace, page, or filters change
   useEffect(() => {
     console.log('[FormsList] workspaceId:', workspaceId);
     if (workspaceId) {
       loadForms();
-      fetchAggregateStats();
     } else {
       setLoading(false);
     }
-  }, [workspaceId, loadForms, fetchAggregateStats]);
+  }, [workspaceId, loadForms]);
+
+  // Fetch aggregate stats only when workspace changes (not on every page/filter change)
+  useEffect(() => {
+    if (workspaceId) {
+      fetchAggregateStats();
+    }
+  }, [workspaceId, fetchAggregateStats]);
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
