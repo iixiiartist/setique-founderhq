@@ -110,20 +110,22 @@ export const FormsList: React.FC<FormsListProps> = ({
     setCurrentPage(1);
   }, [statusFilter, typeFilter]);
 
-  // Load forms with pagination
-  const loadForms = useCallback(async () => {
+  // Load forms with pagination (pageOverride allows loading a specific page without waiting for state)
+  const loadForms = useCallback(async (pageOverride?: number) => {
     if (!workspaceId) {
       setLoading(false);
       return;
     }
     
+    const pageToLoad = pageOverride ?? currentPage;
+    
     setLoading(true);
     setError(null);
-    console.log('[FormsList] Loading forms for workspace:', workspaceId);
+    console.log('[FormsList] Loading forms for workspace:', workspaceId, 'page:', pageToLoad);
     
     const { data, error: fetchError, totalCount: count } = await getWorkspaceForms(workspaceId, {
       limit: PAGE_SIZE,
-      offset: (currentPage - 1) * PAGE_SIZE,
+      offset: (pageToLoad - 1) * PAGE_SIZE,
       status: statusFilter,
       type: typeFilter,
       search: debouncedSearch,
@@ -178,11 +180,12 @@ export const FormsList: React.FC<FormsListProps> = ({
       // Calculate if we need to go back a page (deleted last item on current page)
       const newTotalCount = totalCount - 1;
       const newTotalPages = Math.ceil(newTotalCount / PAGE_SIZE);
-      if (currentPage > newTotalPages && newTotalPages > 0) {
-        setCurrentPage(newTotalPages);
+      const targetPage = (currentPage > newTotalPages && newTotalPages > 0) ? newTotalPages : currentPage;
+      if (targetPage !== currentPage) {
+        setCurrentPage(targetPage);
       }
-      // Refresh both forms list and aggregate stats
-      await Promise.all([loadForms(), fetchAggregateStats()]);
+      // Refresh both forms list and aggregate stats (pass targetPage to avoid stale closure)
+      await Promise.all([loadForms(targetPage), fetchAggregateStats()]);
     }
     setIsDeleting(false);
     setDeleteConfirm({ isOpen: false, formId: null, formName: '' });
@@ -209,15 +212,17 @@ export const FormsList: React.FC<FormsListProps> = ({
     const { error: archiveError } = await archiveForm(formId);
     if (!archiveError) {
       // If filtering by non-archived status, archiving removes item from view
+      let targetPage = currentPage;
       if (statusFilter !== 'all' && statusFilter !== 'archived') {
         const newTotalCount = totalCount - 1;
         const newTotalPages = Math.ceil(newTotalCount / PAGE_SIZE);
         if (currentPage > newTotalPages && newTotalPages > 0) {
-          setCurrentPage(newTotalPages);
+          targetPage = newTotalPages;
+          setCurrentPage(targetPage);
         }
       }
-      // Refresh both forms list and aggregate stats
-      await Promise.all([loadForms(), fetchAggregateStats()]);
+      // Refresh both forms list and aggregate stats (pass targetPage to avoid stale closure)
+      await Promise.all([loadForms(targetPage), fetchAggregateStats()]);
     }
     setOpenMenuId(null);
   };
