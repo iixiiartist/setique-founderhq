@@ -698,9 +698,10 @@ export const FormsList: React.FC<FormsListProps> = ({
             {/* Direct Link */}
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold mb-2">Direct Link</label>
+                <label htmlFor="share-direct-link" className="block text-sm font-semibold mb-2">Direct Link</label>
                 <div className="flex gap-2">
                   <input
+                    id="share-direct-link"
                     type="text"
                     readOnly
                     value={getFormUrl(shareModalForm.slug)}
@@ -717,9 +718,10 @@ export const FormsList: React.FC<FormsListProps> = ({
 
               {/* Embed Options */}
               <div>
-                <label className="block text-sm font-semibold mb-2">Embed Code (iFrame)</label>
+                <label htmlFor="share-iframe-code" className="block text-sm font-semibold mb-2">Embed Code (iFrame)</label>
                 <div className="flex gap-2">
                   <textarea
+                    id="share-iframe-code"
                     readOnly
                     value={generateEmbedCode(shareModalForm.id, shareModalForm.slug, { mode: 'iframe' })}
                     className="flex-1 p-2 border-2 border-gray-300 bg-gray-50 text-xs font-mono resize-none"
@@ -735,9 +737,10 @@ export const FormsList: React.FC<FormsListProps> = ({
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2">Popup Button</label>
+                <label htmlFor="share-popup-code" className="block text-sm font-semibold mb-2">Popup Button</label>
                 <div className="flex gap-2">
                   <textarea
+                    id="share-popup-code"
                     readOnly
                     value={generateEmbedCode(shareModalForm.id, shareModalForm.slug, { mode: 'popup' })}
                     className="flex-1 p-2 border-2 border-gray-300 bg-gray-50 text-xs font-mono resize-none"
@@ -754,7 +757,7 @@ export const FormsList: React.FC<FormsListProps> = ({
 
               {/* Social Share */}
               <div>
-                <label className="block text-sm font-semibold mb-2">Share on Social</label>
+                <p className="block text-sm font-semibold mb-2">Share on Social</p>
                 <div className="flex gap-2 flex-wrap">
                   {(() => {
                     const links = generateShareLinks(shareModalForm.slug!);
