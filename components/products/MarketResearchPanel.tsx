@@ -181,10 +181,10 @@ const generateHtmlReport = (
     
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      background: #f4f4f5;
       min-height: 100vh;
       padding: 40px 20px;
-      color: #1e293b;
+      color: #18181b;
       line-height: 1.6;
     }
     
@@ -198,7 +198,7 @@ const generateHtmlReport = (
     }
     
     .header {
-      background: linear-gradient(135deg, #0f172a 0%, #3730a3 50%, #2563eb 100%);
+      background: #18181b;
       color: white;
       padding: 48px;
       position: relative;
@@ -211,7 +211,7 @@ const generateHtmlReport = (
       left: 0;
       right: 0;
       bottom: 0;
-      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
     }
     
     .header-content { position: relative; z-index: 1; }
@@ -268,7 +268,7 @@ const generateHtmlReport = (
       font-weight: 700;
       letter-spacing: 0.3em;
       text-transform: uppercase;
-      color: #64748b;
+      color: #52525b;
       margin-bottom: 20px;
       display: flex;
       align-items: center;
@@ -279,7 +279,7 @@ const generateHtmlReport = (
       content: '';
       flex: 1;
       height: 1px;
-      background: linear-gradient(90deg, #e2e8f0, transparent);
+      background: linear-gradient(90deg, #e4e4e7, transparent);
     }
     
     .facts-grid {
@@ -289,8 +289,8 @@ const generateHtmlReport = (
     }
     
     .fact-card {
-      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-      border: 1px solid #e2e8f0;
+      background: #fafafa;
+      border: 1px solid #e4e4e7;
       border-radius: 16px;
       padding: 20px;
     }
@@ -300,19 +300,19 @@ const generateHtmlReport = (
       font-weight: 600;
       letter-spacing: 0.2em;
       text-transform: uppercase;
-      color: #64748b;
+      color: #71717a;
       margin-bottom: 8px;
     }
     
     .fact-value {
       font-size: 16px;
       font-weight: 600;
-      color: #1e293b;
+      color: #18181b;
     }
     
     .pricing-box {
-      background: linear-gradient(135deg, #fef3c7 0%, #fce7f3 100%);
-      border: 1px solid #fcd34d;
+      background: #f4f4f5;
+      border: 1px solid #e4e4e7;
       border-radius: 20px;
       padding: 28px;
     }
@@ -322,7 +322,7 @@ const generateHtmlReport = (
       font-weight: 700;
       letter-spacing: 0.3em;
       text-transform: uppercase;
-      color: #b45309;
+      color: #3f3f46;
       margin-bottom: 16px;
     }
     
@@ -335,7 +335,7 @@ const generateHtmlReport = (
       align-items: flex-start;
       gap: 12px;
       padding: 10px 0;
-      border-bottom: 1px solid rgba(180, 83, 9, 0.1);
+      border-bottom: 1px solid rgba(63, 63, 70, 0.1);
     }
     
     .pricing-item:last-child {
@@ -345,7 +345,7 @@ const generateHtmlReport = (
     .pricing-dot {
       width: 8px;
       height: 8px;
-      background: #f59e0b;
+      background: #3f3f46;
       border-radius: 50%;
       margin-top: 6px;
       flex-shrink: 0;
@@ -353,7 +353,7 @@ const generateHtmlReport = (
     
     .pricing-text {
       font-size: 15px;
-      color: #78350f;
+      color: #27272a;
       line-height: 1.5;
     }
     
@@ -364,8 +364,8 @@ const generateHtmlReport = (
     }
     
     .insight-card {
-      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-      border: 2px solid #f1f5f9;
+      background: #ffffff;
+      border: 1px solid #e4e4e7;
       border-radius: 20px;
       padding: 24px;
     }
@@ -375,7 +375,7 @@ const generateHtmlReport = (
       font-weight: 700;
       letter-spacing: 0.25em;
       text-transform: uppercase;
-      color: #64748b;
+      color: #52525b;
       margin-bottom: 16px;
     }
     
@@ -407,7 +407,7 @@ const generateHtmlReport = (
     
     .raw-report {
       background: #ffffff;
-      border: 1px solid #e2e8f0;
+      border: 1px solid #e4e4e7;
       border-radius: 20px;
       padding: 32px;
       margin-top: 40px;
@@ -419,15 +419,15 @@ const generateHtmlReport = (
       font-weight: 700;
       letter-spacing: 0.15em;
       text-transform: uppercase;
-      color: #3730a3;
+      color: #27272a;
       margin-bottom: 24px;
       padding-bottom: 16px;
-      border-bottom: 2px solid #e2e8f0;
+      border-bottom: 2px solid #e4e4e7;
     }
     
     .raw-report-content {
       font-size: 15px;
-      color: #334155;
+      color: #3f3f46;
       line-height: 1.8;
     }
     
@@ -435,44 +435,44 @@ const generateHtmlReport = (
     .md-h1 {
       font-size: 28px;
       font-weight: 800;
-      color: #0f172a;
+      color: #18181b;
       margin: 32px 0 16px 0;
       padding-bottom: 12px;
-      border-bottom: 3px solid #3730a3;
+      border-bottom: 3px solid #27272a;
     }
     
     .md-h2 {
       font-size: 22px;
       font-weight: 700;
-      color: #1e293b;
+      color: #27272a;
       margin: 28px 0 14px 0;
       padding-bottom: 8px;
-      border-bottom: 2px solid #e2e8f0;
+      border-bottom: 2px solid #e4e4e7;
     }
     
     .md-h3 {
       font-size: 18px;
       font-weight: 600;
-      color: #334155;
+      color: #3f3f46;
       margin: 24px 0 12px 0;
     }
     
     .md-h4 {
       font-size: 15px;
       font-weight: 600;
-      color: #475569;
+      color: #52525b;
       margin: 20px 0 10px 0;
     }
     
     .md-p {
       margin: 16px 0;
-      color: #475569;
+      color: #52525b;
     }
     
     .md-hr {
       border: none;
       height: 2px;
-      background: linear-gradient(90deg, #e2e8f0, #3730a3, #e2e8f0);
+      background: linear-gradient(90deg, #e4e4e7, #52525b, #e4e4e7);
       margin: 32px 0;
     }
     
@@ -491,7 +491,7 @@ const generateHtmlReport = (
     }
     
     .md-table th {
-      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      background: #27272a;
       color: white;
       font-weight: 600;
       text-align: left;
@@ -503,16 +503,16 @@ const generateHtmlReport = (
     
     .md-table td {
       padding: 12px 16px;
-      border-bottom: 1px solid #e2e8f0;
-      color: #475569;
+      border-bottom: 1px solid #e4e4e7;
+      color: #52525b;
     }
     
     .md-table tr:nth-child(even) {
-      background: #f8fafc;
+      background: #fafafa;
     }
     
     .md-table tr:hover {
-      background: #f1f5f9;
+      background: #f4f4f5;
     }
     
     .md-ul, .md-ol {
@@ -522,40 +522,40 @@ const generateHtmlReport = (
     
     .md-li, .md-li-ordered {
       margin: 8px 0;
-      color: #475569;
+      color: #52525b;
       line-height: 1.6;
     }
     
     .md-li::marker {
-      color: #3730a3;
+      color: #27272a;
     }
     
     .md-blockquote {
-      border-left: 4px solid #3730a3;
-      background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+      border-left: 4px solid #52525b;
+      background: #f4f4f5;
       padding: 16px 20px;
       margin: 20px 0;
       border-radius: 0 12px 12px 0;
       font-style: italic;
-      color: #475569;
+      color: #52525b;
     }
     
     .md-link {
-      color: #2563eb;
+      color: #18181b;
       text-decoration: none;
       font-weight: 500;
-      border-bottom: 1px solid #93c5fd;
+      border-bottom: 1px solid #a1a1aa;
       transition: all 0.2s;
     }
     
     .md-link:hover {
-      color: #1d4ed8;
-      border-bottom-color: #2563eb;
+      color: #3f3f46;
+      border-bottom-color: #52525b;
     }
     
     .md-code-block {
-      background: #1e293b;
-      color: #e2e8f0;
+      background: #18181b;
+      color: #e4e4e7;
       padding: 20px;
       border-radius: 12px;
       overflow-x: auto;
@@ -566,8 +566,8 @@ const generateHtmlReport = (
     }
     
     .md-inline-code {
-      background: #f1f5f9;
-      color: #be185d;
+      background: #f4f4f5;
+      color: #18181b;
       padding: 2px 8px;
       border-radius: 6px;
       font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
@@ -576,26 +576,26 @@ const generateHtmlReport = (
     
     strong {
       font-weight: 600;
-      color: #1e293b;
+      color: #18181b;
     }
     
     em {
       font-style: italic;
-      color: #475569;
+      color: #52525b;
     }
     
     .footer {
-      background: #f8fafc;
-      border-top: 1px solid #e2e8f0;
+      background: #fafafa;
+      border-top: 1px solid #e4e4e7;
       padding: 24px 48px;
       text-align: center;
       font-size: 12px;
-      color: #64748b;
+      color: #71717a;
     }
     
     .footer-logo {
       font-weight: 700;
-      color: #3730a3;
+      color: #18181b;
     }
     
     @media print {
@@ -977,11 +977,11 @@ export const MarketResearchPanel: React.FC<MarketResearchPanelProps> = ({
 
   return (
     <div className="relative rounded-2xl border border-gray-200 shadow-lg bg-white overflow-hidden animate-fadeIn">
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-800 to-blue-600 text-white px-6 py-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="bg-zinc-900 text-white px-6 py-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-white/70">Market Research Brief</p>
           <h3 className="text-2xl font-extrabold tracking-tight text-white drop-shadow-sm">{query}</h3>
-          <p className="text-blue-100 text-sm mt-1 flex items-center gap-2">
+          <p className="text-gray-300 text-sm mt-1 flex items-center gap-2">
             <Globe className="w-4 h-4" /> {heroLine}
           </p>
         </div>
@@ -1137,19 +1137,19 @@ export const MarketResearchPanel: React.FC<MarketResearchPanelProps> = ({
             )}
 
             {pricingHighlights.length > 0 ? (
-              <div className="rounded-3xl border border-black/10 bg-gradient-to-r from-amber-50 to-rose-50 p-5 shadow-inner">
-                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-amber-600">Pricing Signals</p>
-                <ul className="mt-3 space-y-2 text-sm text-slate-800">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-zinc-700">Pricing Signals</p>
+                <ul className="mt-3 space-y-2 text-sm text-zinc-800">
                   {pricingHighlights.map((line, index) => (
                     <li key={`${line}-${index}`} className="flex items-start gap-3">
-                      <span className="mt-1 h-2 w-2 rounded-full bg-amber-500" />
+                      <span className="mt-1 h-2 w-2 rounded-full bg-zinc-700" />
                       <span className="leading-relaxed">{line}</span>
                     </li>
                   ))}
                 </ul>
               </div>
             ) : (
-              <div className="rounded-3xl border-2 border-dashed border-amber-200 p-5 text-center text-sm text-amber-700">
+              <div className="rounded-xl border-2 border-dashed border-gray-200 p-5 text-center text-sm text-gray-500">
                 No live pricing trends detected yet. Try refining the query with a SKU or retailer.
               </div>
             )}
@@ -1157,13 +1157,13 @@ export const MarketResearchPanel: React.FC<MarketResearchPanelProps> = ({
             {insightSections.length > 0 ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {insightSections.map((section) => (
-                  <div key={section.title} className="rounded-3xl border-2 border-slate-900/5 bg-gradient-to-br from-white to-slate-50 p-5 shadow-sm">
-                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">{section.title}</p>
-                    <ul className="mt-3 space-y-2 text-sm text-slate-800">
+                  <div key={section.title} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-zinc-600">{section.title}</p>
+                    <ul className="mt-3 space-y-2 text-sm text-zinc-800">
                       {section.bullets.map((bullet, idx) => (
                         <li key={`${section.title}-${idx}`} className="flex gap-3">
-                          <span className="mt-1 inline-flex h-2 w-2 rounded-full bg-slate-400" />
-                          <span className="leading-relaxed text-slate-700">{bullet}</span>
+                          <span className="mt-1 inline-flex h-2 w-2 rounded-full bg-zinc-500" />
+                          <span className="leading-relaxed text-zinc-700">{bullet}</span>
                         </li>
                       ))}
                     </ul>

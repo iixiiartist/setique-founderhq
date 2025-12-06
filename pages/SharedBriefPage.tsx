@@ -13,36 +13,36 @@ import { getSharedMarketBrief, type SharedMarketBrief } from '../lib/services/re
 import { useCopyToClipboard } from '../hooks';
 import { useSEO, generateDescription } from '../hooks/useSEO';
 
-// Section icons mapping for professional look
+// Section icons mapping for professional look - black/white/gray theme
 const SECTION_ICONS: Record<string, React.ReactNode> = {
-  'market': <TrendingUp size={16} className="text-indigo-600" />,
-  'overview': <FileText size={16} className="text-slate-600" />,
-  'competitor': <Target size={16} className="text-orange-600" />,
-  'competitive': <Target size={16} className="text-orange-600" />,
-  'landscape': <BarChart3 size={16} className="text-blue-600" />,
-  'pricing': <DollarSign size={16} className="text-emerald-600" />,
-  'price': <DollarSign size={16} className="text-emerald-600" />,
-  'trend': <TrendingUp size={16} className="text-purple-600" />,
-  'growth': <Rocket size={16} className="text-green-600" />,
-  'driver': <Zap size={16} className="text-amber-600" />,
-  'challenge': <AlertTriangle size={16} className="text-red-500" />,
-  'risk': <AlertTriangle size={16} className="text-red-500" />,
-  'opportunity': <Lightbulb size={16} className="text-yellow-500" />,
-  'customer': <Users size={16} className="text-blue-500" />,
-  'consumer': <Users size={16} className="text-blue-500" />,
-  'segment': <Users size={16} className="text-cyan-600" />,
-  'product': <Package size={16} className="text-violet-600" />,
-  'brand': <Building size={16} className="text-slate-700" />,
-  'company': <Building2 size={16} className="text-slate-700" />,
-  'key': <Zap size={16} className="text-amber-500" />,
-  'summary': <BookOpen size={16} className="text-indigo-500" />,
-  'takeaway': <Lightbulb size={16} className="text-yellow-600" />,
-  'recommendation': <Lightbulb size={16} className="text-green-500" />,
-  'production': <Package size={16} className="text-slate-600" />,
-  'consumption': <Users size={16} className="text-blue-600" />,
-  'country': <Globe size={16} className="text-teal-600" />,
-  'region': <Globe size={16} className="text-teal-600" />,
-  'global': <Globe size={16} className="text-blue-500" />,
+  'market': <TrendingUp size={16} className="text-zinc-700" />,
+  'overview': <FileText size={16} className="text-zinc-600" />,
+  'competitor': <Target size={16} className="text-zinc-700" />,
+  'competitive': <Target size={16} className="text-zinc-700" />,
+  'landscape': <BarChart3 size={16} className="text-zinc-700" />,
+  'pricing': <DollarSign size={16} className="text-zinc-700" />,
+  'price': <DollarSign size={16} className="text-zinc-700" />,
+  'trend': <TrendingUp size={16} className="text-zinc-700" />,
+  'growth': <Rocket size={16} className="text-zinc-700" />,
+  'driver': <Zap size={16} className="text-zinc-700" />,
+  'challenge': <AlertTriangle size={16} className="text-zinc-700" />,
+  'risk': <AlertTriangle size={16} className="text-zinc-700" />,
+  'opportunity': <Lightbulb size={16} className="text-zinc-700" />,
+  'customer': <Users size={16} className="text-zinc-700" />,
+  'consumer': <Users size={16} className="text-zinc-700" />,
+  'segment': <Users size={16} className="text-zinc-700" />,
+  'product': <Package size={16} className="text-zinc-700" />,
+  'brand': <Building size={16} className="text-zinc-700" />,
+  'company': <Building2 size={16} className="text-zinc-700" />,
+  'key': <Zap size={16} className="text-zinc-700" />,
+  'summary': <BookOpen size={16} className="text-zinc-700" />,
+  'takeaway': <Lightbulb size={16} className="text-zinc-700" />,
+  'recommendation': <Lightbulb size={16} className="text-zinc-700" />,
+  'production': <Package size={16} className="text-zinc-600" />,
+  'consumption': <Users size={16} className="text-zinc-700" />,
+  'country': <Globe size={16} className="text-zinc-700" />,
+  'region': <Globe size={16} className="text-zinc-700" />,
+  'global': <Globe size={16} className="text-zinc-700" />,
 };
 
 const getIconForHeading = (heading: string): React.ReactNode => {
@@ -91,7 +91,7 @@ function formatInlineMarkdown(text: string): React.ReactNode {
           href={linkMatch[2]} 
           target="_blank" 
           rel="noopener noreferrer"
-          className="text-indigo-600 underline underline-offset-2 hover:text-indigo-800 font-medium transition-colors"
+          className="text-zinc-900 underline underline-offset-2 hover:text-zinc-700 font-medium transition-colors"
         >
           {linkMatch[1]}
         </a>
@@ -120,7 +120,7 @@ function formatInlineMarkdown(text: string): React.ReactNode {
     const codeMatch = remaining.match(/^`([^`]+)`/);
     if (codeMatch) {
       parts.push(
-        <code key={key++} className="px-1.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded text-xs font-mono">
+        <code key={key++} className="px-1.5 py-0.5 bg-gray-100 text-zinc-800 border border-gray-200 rounded text-xs font-mono">
           {codeMatch[1]}
         </code>
       );
@@ -170,7 +170,7 @@ const MarketBriefContent: React.FC<{ content: string }> = ({ content }) => {
           {currentList.items.map((item, i) => (
             <li key={i} className={`text-sm leading-relaxed ${currentList?.type === 'ul' ? 'flex gap-3' : ''}`}>
               {currentList?.type === 'ul' && (
-                <span className="mt-2 h-1.5 w-1.5 rounded-full bg-indigo-400 flex-shrink-0" />
+                <span className="mt-2 h-1.5 w-1.5 rounded-full bg-zinc-500 flex-shrink-0" />
               )}
               <span>{formatInlineMarkdown(item)}</span>
             </li>
@@ -186,10 +186,10 @@ const MarketBriefContent: React.FC<{ content: string }> = ({ content }) => {
       elements.push(
         <div key={key++} className="overflow-x-auto my-6 rounded-xl border border-gray-200 shadow-sm">
           <table className="min-w-full text-sm">
-            <thead className="bg-gradient-to-r from-slate-50 to-gray-50">
+            <thead className="bg-zinc-100">
               <tr>
                 {currentTable.headers.map((h, i) => (
-                  <th key={i} className="px-4 py-3 text-left font-semibold text-gray-800 border-b border-gray-200">
+                  <th key={i} className="px-4 py-3 text-left font-semibold text-zinc-900 border-b border-gray-200">
                     {formatInlineMarkdown(h.trim())}
                   </th>
                 ))}
@@ -197,7 +197,7 @@ const MarketBriefContent: React.FC<{ content: string }> = ({ content }) => {
             </thead>
             <tbody className="divide-y divide-gray-100 bg-white">
               {currentTable.rows.map((row, ri) => (
-                <tr key={ri} className="hover:bg-indigo-50/50 transition-colors">
+                <tr key={ri} className="hover:bg-gray-50 transition-colors">
                   {row.map((cell, ci) => (
                     <td key={ci} className="px-4 py-3 text-gray-700">
                       {formatInlineMarkdown(cell.trim())}
@@ -292,15 +292,15 @@ const MarketBriefContent: React.FC<{ content: string }> = ({ content }) => {
       
       if (level === 1) {
         elements.push(
-          <h2 key={key++} className="text-xl font-bold text-slate-900 mt-8 mb-4 flex items-center gap-3 pb-2 border-b border-gray-200">
-            <span className="p-1.5 bg-indigo-100 rounded-lg">{icon}</span>
+          <h2 key={key++} className="text-xl font-bold text-zinc-900 mt-8 mb-4 flex items-center gap-3 pb-2 border-b border-gray-200">
+            <span className="p-1.5 bg-gray-100 rounded-lg">{icon}</span>
             <span>{content}</span>
           </h2>
         );
       } else if (level === 2) {
         elements.push(
-          <h3 key={key++} className="text-lg font-semibold text-slate-800 mt-6 mb-3 flex items-center gap-2.5">
-            <span className="p-1 bg-slate-100 rounded-md">{icon}</span>
+          <h3 key={key++} className="text-lg font-semibold text-zinc-800 mt-6 mb-3 flex items-center gap-2.5">
+            <span className="p-1 bg-gray-100 rounded-md">{icon}</span>
             <span>{content}</span>
           </h3>
         );
@@ -352,7 +352,7 @@ const MarketBriefContent: React.FC<{ content: string }> = ({ content }) => {
       flushTable();
       const quoteContent = trimmedLine.slice(1).trim();
       elements.push(
-        <blockquote key={key++} className="border-l-4 border-indigo-400 pl-4 py-3 my-4 bg-indigo-50/50 rounded-r-xl text-slate-700 italic text-sm">
+        <blockquote key={key++} className="border-l-4 border-zinc-400 pl-4 py-3 my-4 bg-gray-50 rounded-r-xl text-zinc-700 italic text-sm">
           {formatInlineMarkdown(quoteContent)}
         </blockquote>
       );
@@ -513,7 +513,7 @@ export const SharedBriefPage: React.FC = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter password"
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900/20 focus:border-zinc-900"
               autoFocus
             />
             <button
@@ -569,7 +569,7 @@ export const SharedBriefPage: React.FC = () => {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-zinc-900 rounded-lg flex items-center justify-center">
               <Globe className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -592,15 +592,15 @@ export const SharedBriefPage: React.FC = () => {
       {/* Content */}
       <main className="max-w-4xl mx-auto px-4 py-8">
         {/* Brief header */}
-        <div className="bg-gradient-to-r from-slate-900 via-indigo-800 to-blue-600 text-white rounded-xl p-6 mb-6">
+        <div className="bg-zinc-900 text-white rounded-xl p-6 mb-6">
           <p className="text-xs uppercase tracking-[0.3em] text-white/70">Market Research Brief</p>
           <h2 className="text-2xl font-extrabold tracking-tight mt-1">{brief.query}</h2>
           {brief.hero_line && (
-            <p className="text-blue-100 text-sm mt-2 flex items-center gap-2">
+            <p className="text-gray-300 text-sm mt-2 flex items-center gap-2">
               <Sparkles className="w-4 h-4" /> {brief.hero_line}
             </p>
           )}
-          <div className="flex items-center gap-4 mt-4 text-sm text-blue-100/80">
+          <div className="flex items-center gap-4 mt-4 text-sm text-gray-300">
             <span className="flex items-center gap-1.5">
               <Clock className="w-4 h-4" />
               {createdDate}
@@ -631,12 +631,12 @@ export const SharedBriefPage: React.FC = () => {
 
         {/* Pricing Highlights */}
         {pricingHighlights.length > 0 && (
-          <div className="rounded-3xl border border-amber-200 bg-gradient-to-r from-amber-50 to-rose-50 p-5 mb-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-amber-600">Pricing Signals</p>
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-zinc-700">Pricing Signals</p>
             <ul className="mt-3 space-y-2 text-sm text-gray-800">
               {pricingHighlights.map((highlight: { label: string; value: string }, idx: number) => (
                 <li key={`price-${idx}`} className="flex items-start gap-3">
-                  <span className="mt-1 h-2 w-2 rounded-full bg-amber-500 flex-shrink-0" />
+                  <span className="mt-1 h-2 w-2 rounded-full bg-zinc-700 flex-shrink-0" />
                   <span className="leading-relaxed">{highlight.value || highlight.label}</span>
                 </li>
               ))}
@@ -665,11 +665,11 @@ export const SharedBriefPage: React.FC = () => {
 
         {/* Raw Report - Professionally Rendered */}
         {brief.raw_report && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+          <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm">
             <div className="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-gray-200">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-indigo-100 to-blue-100 rounded-lg">
-                  <FileText className="w-5 h-5 text-indigo-600" />
+                <div className="p-2 bg-gray-100 rounded-lg">
+                  <FileText className="w-5 h-5 text-zinc-700" />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-gray-900">Full Research Report</h3>
@@ -690,7 +690,7 @@ export const SharedBriefPage: React.FC = () => {
               href="https://founderhq.setique.com" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-blue-600 hover:underline"
+              className="text-zinc-900 hover:underline"
             >
               Setique: FounderHQ
             </a>
