@@ -14,6 +14,7 @@ interface InvitationPayload {
   role: string;
   token: string;
   expiresAt: string;
+  workspaceId: string; // Required for authorization check
 }
 
 serve(async (req) => {
@@ -25,15 +26,45 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
     const appUrl = Deno.env.get('APP_URL') || 'https://setique.com';
 
-    // Initialize Supabase client with service role
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // ========== SECURITY: Validate caller's authorization ==========
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Create client with user's JWT to validate their identity
+    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false }
+    });
+
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
+    if (authError || !user) {
+      console.error('[send-invitation] Auth error:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - invalid or expired session' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('[send-invitation] Authenticated user:', user.id);
+
+    // Initialize Supabase client with service role for DB queries
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { persistSession: false }
+    });
 
     // Parse request body
     const payload: InvitationPayload = await req.json();
-    const { email, workspaceName, inviterName, inviterEmail, role, token, expiresAt } = payload;
+    const { email, workspaceName, inviterName, inviterEmail, role, token, expiresAt, workspaceId } = payload;
 
     if (!email || !token) {
       return new Response(
@@ -41,6 +72,71 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // ========== SECURITY: Verify caller can invite for this workspace ==========
+    if (!workspaceId) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required field: workspaceId' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check that the user is an owner of this workspace
+    const { data: membership, error: memberError } = await supabaseAdmin
+      .from('workspace_members')
+      .select('role')
+      .eq('workspace_id', workspaceId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (memberError || !membership) {
+      console.error('[send-invitation] User not a member:', memberError);
+      return new Response(
+        JSON.stringify({ error: 'You are not a member of this workspace' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (membership.role !== 'owner') {
+      console.error('[send-invitation] User is not an owner:', membership.role);
+      return new Response(
+        JSON.stringify({ error: 'Only workspace owners can send invitations' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ========== SECURITY: Verify the invitation token exists and belongs to this workspace ==========
+    const { data: invitation, error: inviteError } = await supabaseAdmin
+      .from('workspace_invitations')
+      .select('id, workspace_id, invited_by')
+      .eq('token', token)
+      .single();
+
+    if (inviteError || !invitation) {
+      console.error('[send-invitation] Invalid token:', inviteError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid invitation token' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (invitation.workspace_id !== workspaceId) {
+      console.error('[send-invitation] Token workspace mismatch');
+      return new Response(
+        JSON.stringify({ error: 'Invitation token does not match workspace' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (invitation.invited_by !== user.id) {
+      console.error('[send-invitation] Token inviter mismatch');
+      return new Response(
+        JSON.stringify({ error: 'You did not create this invitation' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('[send-invitation] Authorization verified for user:', user.id, 'workspace:', workspaceId);
 
     // Build the invitation URL
     const inviteUrl = `${appUrl}/app?token=${encodeURIComponent(token)}`;

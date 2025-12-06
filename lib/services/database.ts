@@ -1333,7 +1333,8 @@ export class DatabaseService {
               inviterEmail: profile?.email || user.email || '',
               role: data.role,
               token: data.token,
-              expiresAt: data.expires_at
+              expiresAt: data.expires_at,
+              workspaceId: workspaceId  // Required for authorization check
             }
           })
 

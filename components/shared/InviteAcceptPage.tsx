@@ -181,7 +181,9 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
                     <p className="text-gray-600 mb-6">{message}</p>
                     <button
                         onClick={() => {
-                            navigate('/app', { replace: true });
+                            // Clear the inviteToken state so AppRoutes shows LoginForm
+                            // Token is already persisted in tokenStorage for post-login acceptance
+                            onComplete();
                         }}
                         className="w-full bg-blue-600 text-white rounded-xl border border-blue-700 p-4 font-bold text-lg shadow-sm hover:shadow-md hover:bg-blue-700 transition-all"
                     >

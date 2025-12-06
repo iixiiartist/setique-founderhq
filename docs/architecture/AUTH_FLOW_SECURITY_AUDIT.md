@@ -146,6 +146,25 @@
 | Admin Access | ✅ | Flag-based with RLS |
 | CSRF Protection | ✅ | Supabase handles |
 | XSS Protection | ✅ | React escaping |
+| Invitation Security | ✅ | Auth gate + email verification (see below) |
+
+### Invitation Security (December 2024 Hardening)
+
+1. **`send-invitation` Edge Function** - Now requires:
+   - Valid Authorization header with authenticated session
+   - User must be an owner of the target workspace
+   - Invitation token must exist and belong to the workspace
+   - Token must have been created by the calling user
+
+2. **`accept_workspace_invitation` RPC** - Validates:
+   - User must be authenticated
+   - Token must be valid and not expired
+   - **CRITICAL:** User's email must match the invitation email
+   - This prevents stolen tokens from being used by unauthorized accounts
+
+3. **Token State Management** - Fixed:
+   - "Go to Login" button now properly clears state
+   - Token persisted in tokenStorage for post-login acceptance
 
 ## 📊 Metrics to Monitor
 
