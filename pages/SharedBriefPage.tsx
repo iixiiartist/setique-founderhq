@@ -594,7 +594,7 @@ export const SharedBriefPage: React.FC = () => {
         {/* Brief header */}
         <div className="bg-zinc-900 text-white rounded-xl p-6 mb-6">
           <p className="text-xs uppercase tracking-[0.3em] text-white/70">Market Research Brief</p>
-          <h2 className="text-2xl font-extrabold tracking-tight mt-1">{brief.query}</h2>
+          <h2 className="text-2xl font-extrabold tracking-tight mt-1 text-white">{brief.query}</h2>
           {brief.hero_line && (
             <p className="text-gray-300 text-sm mt-2 flex items-center gap-2">
               <Sparkles className="w-4 h-4" /> {brief.hero_line}

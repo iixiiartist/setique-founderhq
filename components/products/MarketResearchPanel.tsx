@@ -1004,18 +1004,18 @@ export const MarketResearchPanel: React.FC<MarketResearchPanelProps> = ({
             </button>
             
             {showExportMenu && (
-              <div className="absolute right-0 mt-2 w-52 rounded-xl bg-white shadow-xl border border-slate-200 overflow-hidden z-50">
+              <div className="absolute right-0 mt-2 w-52 rounded-xl bg-white shadow-xl border border-gray-200 overflow-hidden z-50">
                 {/* Save Brief Button */}
                 {workspaceId && (
                   <button
                     onClick={handleSaveBrief}
                     disabled={isSaving || !!savedBrief}
-                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-slate-700 hover:bg-green-50 hover:text-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-zinc-700 hover:bg-gray-100 hover:text-zinc-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     <div className="text-left">
                       <div className="font-medium">{savedBrief ? 'Saved ✓' : 'Save Brief'}</div>
-                      <div className="text-xs text-slate-500">{savedBrief ? 'Brief is saved' : 'Save to workspace'}</div>
+                      <div className="text-xs text-gray-500">{savedBrief ? 'Brief is saved' : 'Save to workspace'}</div>
                     </div>
                   </button>
                 )}
@@ -1035,56 +1035,56 @@ export const MarketResearchPanel: React.FC<MarketResearchPanelProps> = ({
                       }
                     }}
                     disabled={isSaving}
-                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-slate-700 hover:bg-zinc-100 hover:text-zinc-900 transition-colors border-t border-slate-100 disabled:opacity-50"
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-zinc-700 hover:bg-gray-100 hover:text-zinc-900 transition-colors border-t border-gray-100 disabled:opacity-50"
                   >
                     <Share2 className="w-4 h-4" />
                     <div className="text-left">
                       <div className="font-medium">Share Brief</div>
-                      <div className="text-xs text-slate-500">{savedBrief ? 'Create share link' : 'Save & share'}</div>
+                      <div className="text-xs text-gray-500">{savedBrief ? 'Create share link' : 'Save & share'}</div>
                     </div>
                   </button>
                 )}
                 
-                {workspaceId && <div className="border-t border-slate-200 my-1" />}
+                {workspaceId && <div className="border-t border-gray-200 my-1" />}
                 
                 <button
                   onClick={handleDownloadHtml}
-                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-slate-700 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
+                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-zinc-700 hover:bg-gray-100 hover:text-zinc-900 transition-colors"
                 >
                   <FileText className="w-4 h-4" />
                   <div className="text-left">
                     <div className="font-medium">Download HTML</div>
-                    <div className="text-xs text-slate-500">Beautiful styled report</div>
+                    <div className="text-xs text-gray-500">Beautiful styled report</div>
                   </div>
                 </button>
                 <button
                   onClick={handleDownloadPdf}
-                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-slate-700 hover:bg-zinc-100 hover:text-zinc-900 transition-colors border-t border-slate-100"
+                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-zinc-700 hover:bg-gray-100 hover:text-zinc-900 transition-colors border-t border-gray-100"
                 >
                   <FileText className="w-4 h-4" />
                   <div className="text-left">
                     <div className="font-medium">Save as PDF</div>
-                    <div className="text-xs text-slate-500">Print dialog for PDF</div>
+                    <div className="text-xs text-gray-500">Print dialog for PDF</div>
                   </div>
                 </button>
                 <button
                   onClick={handleOpenInNewTab}
-                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-slate-700 hover:bg-zinc-100 hover:text-zinc-900 transition-colors border-t border-slate-100"
+                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-zinc-700 hover:bg-gray-100 hover:text-zinc-900 transition-colors border-t border-gray-100"
                 >
                   <Globe className="w-4 h-4" />
                   <div className="text-left">
                     <div className="font-medium">Open in New Tab</div>
-                    <div className="text-xs text-slate-500">View full report</div>
+                    <div className="text-xs text-gray-500">View full report</div>
                   </div>
                 </button>
                 <button
                   onClick={handleDownloadMarkdown}
-                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-slate-700 hover:bg-zinc-100 hover:text-zinc-900 transition-colors border-t border-slate-100"
+                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-zinc-700 hover:bg-gray-100 hover:text-zinc-900 transition-colors border-t border-gray-100"
                 >
                   <Download className="w-4 h-4" />
                   <div className="text-left">
                     <div className="font-medium">Download Markdown</div>
-                    <div className="text-xs text-slate-500">Plain text format</div>
+                    <div className="text-xs text-gray-500">Plain text format</div>
                   </div>
                 </button>
               </div>
@@ -1102,7 +1102,7 @@ export const MarketResearchPanel: React.FC<MarketResearchPanelProps> = ({
 
       <div className="p-6 space-y-6">
         {isLoading && !rawReport && (
-          <div className="rounded-2xl border-2 border-dashed border-slate-300 p-8 text-center text-slate-500">
+          <div className="rounded-xl border-2 border-dashed border-gray-300 p-8 text-center text-gray-500">
             <div className="flex items-center justify-center gap-2 text-sm font-semibold">
               <Sparkles className="w-4 h-4 animate-pulse" /> Running market scan...
             </div>
@@ -1111,7 +1111,7 @@ export const MarketResearchPanel: React.FC<MarketResearchPanelProps> = ({
         )}
 
         {rawReport && isLoading && (
-          <div className="rounded-2xl border border-dashed border-slate-200 p-3 text-center text-xs text-slate-500">
+          <div className="rounded-xl border border-dashed border-gray-200 p-3 text-center text-xs text-gray-500">
             Updating this brief with the freshest data...
           </div>
         )}
@@ -1123,15 +1123,15 @@ export const MarketResearchPanel: React.FC<MarketResearchPanelProps> = ({
                 {keyFacts.map((fact) => (
                   <div
                     key={`${fact.label}-${fact.value}`}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 shadow-inner"
+                    className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-4"
                   >
-                    <p className="text-[11px] uppercase tracking-[0.35em] text-slate-500">{fact.label}</p>
-                    <p className="text-base font-medium text-slate-800 mt-2 leading-snug">{fact.value}</p>
+                    <p className="text-[11px] uppercase tracking-[0.35em] text-zinc-600">{fact.label}</p>
+                    <p className="text-base font-medium text-zinc-800 mt-2 leading-snug">{fact.value}</p>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="rounded-2xl border-2 border-dashed border-slate-200 px-4 py-4 text-center text-sm text-slate-500">
+              <div className="rounded-xl border-2 border-dashed border-gray-200 px-4 py-4 text-center text-sm text-gray-500">
                 We’ll add brand snapshots here once we detect non-pricing facts.
               </div>
             )}
@@ -1171,7 +1171,7 @@ export const MarketResearchPanel: React.FC<MarketResearchPanelProps> = ({
                 ))}
               </div>
             ) : (
-              <div className="rounded-3xl border-2 border-dashed border-slate-200 p-6 text-center text-slate-500">
+              <div className="rounded-xl border-2 border-dashed border-gray-200 p-6 text-center text-gray-500">
                 {rawReport ? 'Insights ready, but the formatter could not extract highlighted sections.' : 'No findings yet. Ask another question to build a research brief.'}
               </div>
             )}
