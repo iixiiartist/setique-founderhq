@@ -50,13 +50,31 @@ const FABRIC_TO_KONVA_TYPE: Record<string, string> = {
  */
 export function fabricToKonva(fabricDoc: ContentDocument): KonvaDocument {
   // Determine page size from settings or default
-  const pageSize = fabricDoc.settings?.pageSize 
-    ? { 
-        name: fabricDoc.settings.pageSize, 
-        width: fabricDoc.width || 1080, 
-        height: fabricDoc.height || 1080 
-      }
-    : { name: 'custom', width: fabricDoc.width || 1080, height: fabricDoc.height || 1080 };
+  const settingsPageSize = fabricDoc.settings?.pageSize;
+  let pageSize: { name: string; width: number; height: number };
+  
+  if (typeof settingsPageSize === 'object' && settingsPageSize !== null) {
+    // pageSize is already an object with dimensions
+    pageSize = {
+      name: settingsPageSize.label || 'custom',
+      width: settingsPageSize.width,
+      height: settingsPageSize.height,
+    };
+  } else if (typeof settingsPageSize === 'string') {
+    // pageSize is a key name
+    pageSize = {
+      name: settingsPageSize,
+      width: fabricDoc.width || 1080,
+      height: fabricDoc.height || 1080,
+    };
+  } else {
+    // Default
+    pageSize = {
+      name: 'custom',
+      width: fabricDoc.width || 1080,
+      height: fabricDoc.height || 1080,
+    };
+  }
   
   return {
     id: fabricDoc.id,

@@ -266,7 +266,7 @@ export function validateAiElement(element: AiElementPatch, index: number): Valid
       }
     }
     
-    if (element.fontFamily && !AI_LIMITS.ALLOWED_FONTS.includes(element.fontFamily)) {
+    if (element.fontFamily && !AI_LIMITS.ALLOWED_FONTS.includes(element.fontFamily as typeof AI_LIMITS.ALLOWED_FONTS[number])) {
       warnings.push(`Element ${index}: unsupported font '${element.fontFamily}', using Inter`);
     }
   }
@@ -402,7 +402,7 @@ export function sanitizeAiElement(element: AiElementPatch): KonvaElement {
         type: 'text',
         text: (element.text || '').substring(0, AI_LIMITS.MAX_TEXT_LENGTH),
         fontSize: Math.max(AI_LIMITS.MIN_FONT_SIZE, Math.min(AI_LIMITS.MAX_FONT_SIZE, element.fontSize || 16)),
-        fontFamily: AI_LIMITS.ALLOWED_FONTS.includes(element.fontFamily || '') ? element.fontFamily : 'Inter',
+        fontFamily: AI_LIMITS.ALLOWED_FONTS.includes((element.fontFamily || '') as typeof AI_LIMITS.ALLOWED_FONTS[number]) ? element.fontFamily : 'Inter',
         fontStyle: element.fontStyle || 'normal',
         align: element.align || 'left',
         width: element.width || 300,

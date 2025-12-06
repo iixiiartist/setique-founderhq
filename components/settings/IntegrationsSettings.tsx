@@ -5,6 +5,7 @@ import { useWorkspace } from '../../contexts/WorkspaceContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDeleteConfirm } from '../../hooks';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
+import { Mail } from 'lucide-react';
 
 interface IntegratedAccount {
   id: string;
@@ -99,19 +100,21 @@ export const IntegrationsSettings: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-        <h3 className="text-xl font-semibold text-slate-900 mb-4">Email Integrations</h3>
-        <p className="text-slate-600 mb-6">
+      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+        <h3 className="text-lg font-semibold text-slate-900 mb-2">Email Integrations</h3>
+        <p className="text-sm text-slate-600 mb-6">
           Connect your email accounts to sync messages, draft replies with AI, and trigger automations.
         </p>
 
         <div className="grid gap-4">
           {/* Gmail */}
-          <div className="flex items-center justify-between p-4 rounded-xl border border-gray-200 bg-gray-50">
+          <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-slate-50">
             <div className="flex items-center gap-3">
-              <div className="text-2xl">📧</div>
+              <div className="w-10 h-10 bg-white rounded-lg border border-slate-200 flex items-center justify-center">
+                <Mail className="w-5 h-5 text-slate-700" />
+              </div>
               <div>
-                <h4 className="font-semibold text-slate-900">Gmail</h4>
+                <h4 className="font-medium text-slate-900">Gmail</h4>
                 <p className="text-sm text-slate-500">Connect your Google Workspace or Gmail account</p>
               </div>
             </div>

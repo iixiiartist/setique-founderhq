@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { BusinessProfile } from '../../types';
+import { Building2, CheckCircle2, Clock } from 'lucide-react';
 
 interface AiContextSummary {
     percent: number;
@@ -67,25 +68,25 @@ export function BusinessProfileSection({ businessProfile, isOwner, onEditProfile
                     {businessProfile && aiContextSummary ? (
                         <>
                             <div>
-                                <div className="flex items-center justify-between text-sm font-mono mb-1">
-                                    <span>{aiContextSummary.completed} of {aiContextSummary.total} key fields complete</span>
-                                    <span>{aiContextSummary.percent}%</span>
+                                <div className="flex items-center justify-between text-sm mb-1">
+                                    <span className="text-slate-700">{aiContextSummary.completed} of {aiContextSummary.total} key fields complete</span>
+                                    <span className="font-medium text-slate-900">{aiContextSummary.percent}%</span>
                                 </div>
-                                <div className="h-3 border border-gray-300 rounded-full bg-gray-100">
+                                <div className="h-3 border border-slate-200 rounded-full bg-slate-100">
                                     <div
-                                        className="h-full bg-blue-600 rounded-full"
+                                        className="h-full bg-slate-900 rounded-full transition-all"
                                         style={{ width: `${aiContextSummary.percent}%` }}
                                     />
                                 </div>
-                                <p className="text-xs text-gray-500 font-mono mt-1">Last updated {aiContextSummary.lastUpdated}</p>
+                                <p className="text-xs text-slate-500 mt-1 flex items-center gap-1"><Clock className="w-3 h-3" /> Last updated {aiContextSummary.lastUpdated}</p>
                             </div>
 
                             {aiContextSummary.highlights.length > 0 && (
                                 <div className="grid grid-cols-1 gap-3">
                                     {aiContextSummary.highlights.map(({ label, value }) => (
-                                        <div key={label} className="border border-gray-200 rounded-md p-3 bg-gray-50">
-                                            <div className="text-xs uppercase text-gray-500 font-mono">{label}</div>
-                                            <div className="text-sm font-semibold font-mono text-black mt-1 whitespace-pre-wrap">
+                                        <div key={label} className="border border-slate-200 rounded-xl p-3 bg-slate-50">
+                                            <div className="text-xs uppercase text-slate-500">{label}</div>
+                                            <div className="text-sm font-medium text-slate-900 mt-1 whitespace-pre-wrap">
                                                 {value}
                                             </div>
                                         </div>
@@ -95,10 +96,10 @@ export function BusinessProfileSection({ businessProfile, isOwner, onEditProfile
 
                             {aiContextSummary.missing.length > 0 && (
                                 <div>
-                                    <div className="text-xs uppercase text-gray-500 font-mono mb-1">Suggested next fields</div>
+                                    <div className="text-xs uppercase text-slate-500 mb-1">Suggested next fields</div>
                                     <div className="flex flex-wrap gap-2">
                                         {aiContextSummary.missing.map(field => (
-                                            <span key={field.key} className="text-xs font-mono border border-gray-300 rounded px-2 py-1 bg-yellow-50">
+                                            <span key={field.key} className="text-xs border border-slate-200 rounded-lg px-2 py-1 bg-slate-100">
                                                 {field.label}
                                             </span>
                                         ))}
@@ -107,42 +108,42 @@ export function BusinessProfileSection({ businessProfile, isOwner, onEditProfile
                             )}
                         </>
                     ) : (
-                        <div className="border border-dashed border-gray-300 rounded-md p-4 bg-gray-50">
-                            <p className="text-sm font-mono text-gray-600">
+                        <div className="border border-dashed border-slate-300 rounded-xl p-4 bg-slate-50">
+                            <p className="text-sm text-slate-600">
                                 You haven't saved a full AI context yet. Share your ICP, positioning, and pricing so Copilot can tailor answers.
                             </p>
                         </div>
                     )}
                 </div>
 
-                <div className="border border-gray-200 rounded-lg bg-gray-50 p-4 space-y-3">
+                <div className="border border-slate-200 rounded-xl bg-slate-50 p-4 space-y-3">
                     <div className="flex items-center justify-between">
-                        <h3 className="font-mono font-semibold text-sm uppercase tracking-wide">Business Profile Snapshot</h3>
+                        <h3 className="font-semibold text-sm uppercase tracking-wide text-slate-900 flex items-center gap-2"><Building2 className="w-4 h-4" /> Business Profile</h3>
                         {businessProfile?.isComplete ? (
-                            <span className="text-xs font-bold text-green-600">Complete</span>
+                            <span className="text-xs font-medium text-green-600 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Complete</span>
                         ) : (
-                            <span className="text-xs font-bold text-yellow-600">Draft</span>
+                            <span className="text-xs font-medium text-amber-600">Draft</span>
                         )}
                     </div>
                     <dl className="grid grid-cols-1 gap-3">
                         <div>
-                            <dt className="text-xs uppercase text-gray-500 font-mono">Company</dt>
-                            <dd className="text-sm font-semibold text-black">{businessProfile?.companyName || 'Not set'}</dd>
+                            <dt className="text-xs uppercase text-slate-500">Company</dt>
+                            <dd className="text-sm font-medium text-slate-900">{businessProfile?.companyName || 'Not set'}</dd>
                         </div>
                         <div>
-                            <dt className="text-xs uppercase text-gray-500 font-mono">Industry</dt>
-                            <dd className="text-sm font-semibold text-black">{businessProfile?.industry || 'Not set'}</dd>
+                            <dt className="text-xs uppercase text-slate-500">Industry</dt>
+                            <dd className="text-sm font-medium text-slate-900">{businessProfile?.industry || 'Not set'}</dd>
                         </div>
                         <div>
-                            <dt className="text-xs uppercase text-gray-500 font-mono">Team Size</dt>
-                            <dd className="text-sm font-semibold text-black">{businessProfile?.teamSize || businessProfile?.companySize || 'Not set'}</dd>
+                            <dt className="text-xs uppercase text-slate-500">Team Size</dt>
+                            <dd className="text-sm font-medium text-slate-900">{businessProfile?.teamSize || businessProfile?.companySize || 'Not set'}</dd>
                         </div>
                         <div>
-                            <dt className="text-xs uppercase text-gray-500 font-mono">Growth Stage</dt>
-                            <dd className="text-sm font-semibold text-black">{businessProfile?.growthStage || 'Not set'}</dd>
+                            <dt className="text-xs uppercase text-slate-500">Growth Stage</dt>
+                            <dd className="text-sm font-medium text-slate-900">{businessProfile?.growthStage || 'Not set'}</dd>
                         </div>
                     </dl>
-                    <p className="text-xs text-gray-600 font-mono">
+                    <p className="text-xs text-slate-600">
                         All changes autosave immediately and update Copilot context.
                     </p>
                 </div>
@@ -152,11 +153,11 @@ export function BusinessProfileSection({ businessProfile, isOwner, onEditProfile
                 <div className="flex flex-col gap-2">
                     <button
                         onClick={onEditProfile}
-                        className="font-mono bg-black text-white border border-gray-300 px-4 py-2 rounded-md font-semibold hover:bg-gray-800 transition-colors"
+                        className="bg-slate-900 text-white border border-slate-900 px-4 py-2.5 rounded-xl font-medium hover:bg-slate-800 transition-colors"
                     >
                         Edit Business Profile & AI Context
                     </button>
-                    <span className="text-xs text-gray-500 font-mono">Need to finish later? Close the modal—your draft stays synced.</span>
+                    <span className="text-xs text-slate-500">Need to finish later? Close the modal—your draft stays synced.</span>
                 </div>
             ) : (
                 <p className="text-xs text-gray-500 font-mono">

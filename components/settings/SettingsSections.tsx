@@ -32,20 +32,20 @@ export function SubscriptionSection({
     return (
         <div className="space-y-6">
             {/* Current Plan Card */}
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-5">
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5">
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-black">
+                        <h3 className="font-semibold text-slate-900">
                             Current Plan: {formattedPlanName}
                         </h3>
                         {isPaidPlan && (
-                            <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                            <span className="bg-green-100 text-green-700 text-xs font-medium px-2 py-0.5 rounded-full">
                                 Active
                             </span>
                         )}
                     </div>
                 </div>
-                <p className="text-sm text-gray-600 mb-4">
+                <p className="text-sm text-slate-600 mb-4">
                     {subscriptionDescription}
                 </p>
                 
@@ -53,7 +53,7 @@ export function SubscriptionSection({
                     {!isPaidPlan && (
                         <button
                             onClick={onUpgradeClick}
-                            className="font-mono bg-blue-600 border border-blue-700 text-white cursor-pointer py-2 px-6 rounded-md font-semibold transition-colors hover:bg-blue-700"
+                            className="bg-slate-900 border border-slate-900 text-white cursor-pointer py-2 px-6 rounded-xl font-medium transition-colors hover:bg-slate-800"
                         >
                             Upgrade to Team Pro
                         </button>
@@ -62,7 +62,7 @@ export function SubscriptionSection({
                     {isPaidPlan && (
                         <button
                             onClick={onUpgradeClick}
-                            className="font-mono bg-white border border-gray-300 text-gray-700 cursor-pointer py-2 px-6 rounded-md font-semibold transition-colors hover:bg-gray-50"
+                            className="bg-white border border-slate-200 text-slate-700 cursor-pointer py-2 px-6 rounded-xl font-medium transition-colors hover:bg-slate-50"
                         >
                             View Other Plans
                         </button>
@@ -72,9 +72,9 @@ export function SubscriptionSection({
 
             {/* Billing Management Card - Show for paid plans */}
             {isPaidPlan && (
-                <div className="bg-white border border-gray-200 rounded-lg p-5">
-                    <h4 className="font-bold text-black mb-2">Billing & Payment</h4>
-                    <p className="text-sm text-gray-600 mb-4">
+                <div className="bg-white border border-slate-200 rounded-xl p-5">
+                    <h4 className="font-semibold text-slate-900 mb-2">Billing & Payment</h4>
+                    <p className="text-sm text-slate-600 mb-4">
                         {stripeCustomerId 
                             ? 'Manage your payment method, view invoices, update billing details, or cancel your subscription.'
                             : 'Your plan was activated manually. Contact support to manage billing or make changes to your subscription.'}
@@ -82,14 +82,14 @@ export function SubscriptionSection({
                     {stripeCustomerId ? (
                         <button
                             onClick={onManageSubscription}
-                            className="font-mono bg-gray-800 border border-gray-900 text-white cursor-pointer py-2 px-6 rounded-md font-semibold transition-colors hover:bg-gray-900"
+                            className="bg-slate-900 border border-slate-900 text-white cursor-pointer py-2 px-6 rounded-xl font-medium transition-colors hover:bg-slate-800"
                         >
                             Manage Billing
                         </button>
                     ) : (
                         <a
                             href="mailto:support@setique.com?subject=Billing%20Inquiry"
-                            className="inline-block font-mono bg-gray-800 border border-gray-900 text-white py-2 px-6 rounded-md font-semibold transition-colors hover:bg-gray-900"
+                            className="inline-block bg-slate-900 border border-slate-900 text-white py-2 px-6 rounded-xl font-medium transition-colors hover:bg-slate-800"
                         >
                             Contact Support
                         </a>
@@ -143,15 +143,15 @@ export function NotificationsSection({
                         type="checkbox"
                         checked={desktopNotifications && notificationPermission === 'granted'}
                         onChange={handleChange}
-                        className="focus:ring-blue-500 h-5 w-5 text-blue-600 border border-gray-300 rounded accent-blue-500"
+                        className="focus:ring-slate-500 h-5 w-5 text-slate-900 border border-slate-300 rounded accent-slate-900"
                         aria-describedby="desktop-notifications-description"
                     />
                 </div>
                 <div className="ml-3 text-sm">
-                    <label htmlFor="desktop-notifications" className="font-bold text-black">
+                    <label htmlFor="desktop-notifications" className="font-medium text-slate-900">
                         Desktop Notifications
                     </label>
-                    <p id="desktop-notifications-description" className="text-gray-600">
+                    <p id="desktop-notifications-description" className="text-slate-600">
                         Receive a native desktop notification for any CRM next actions that become overdue.
                         {notificationPermission === 'denied' && (
                             <span className="block font-bold text-red-600 mt-1">
@@ -174,18 +174,18 @@ interface DangerZoneSectionProps {
 export function DangerZoneSection({ userEmail, isDeleting, onDeleteAccount }: DangerZoneSectionProps) {
     return (
         <div className="space-y-4">
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                <h3 className="font-bold text-red-800 mb-2">Delete Account</h3>
-                <p className="text-sm text-gray-700 mb-2">
+            <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+                <h3 className="font-semibold text-red-800 mb-2">Delete Account</h3>
+                <p className="text-sm text-slate-700 mb-2">
                     Permanently delete your account and all associated data. This action cannot be undone.
                 </p>
-                <p className="text-xs text-gray-600 mb-4">
-                    Email: <span className="font-mono font-semibold">{userEmail}</span>
+                <p className="text-xs text-slate-600 mb-4">
+                    Email: <span className="font-medium">{userEmail}</span>
                 </p>
                 <button
                     onClick={onDeleteAccount}
                     disabled={isDeleting}
-                    className="font-mono bg-red-700 border border-red-800 text-white cursor-pointer py-2 px-4 rounded-md font-semibold transition-colors hover:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-red-600 border border-red-700 text-white cursor-pointer py-2 px-4 rounded-xl font-medium transition-colors hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {isDeleting ? 'Deleting...' : 'Delete My Account'}
                 </button>

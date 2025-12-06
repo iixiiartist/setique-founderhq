@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { logger } from '../../lib/logger';
 import { fetchOrCreateAutomationPreferences, AutomationPreferences } from '../../lib/services/automationService';
+import { Power, Settings, Lightbulb } from 'lucide-react';
 
 interface AutomationSettingsProps {
     workspaceId: string;
@@ -106,10 +107,9 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
         return (
             <div className="p-8 flex flex-col items-center justify-center gap-4">
                 <div className="relative w-8 h-8">
-                    <div className="absolute inset-0 border-2 border-black animate-spin" style={{ animationDuration: '1.2s' }} />
-                    <div className="absolute inset-1.5 border border-gray-400 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
+                    <div className="absolute inset-0 border-2 border-slate-900 rounded-full border-t-transparent animate-spin" style={{ animationDuration: '1s' }} />
                 </div>
-                <p className="text-sm text-black font-mono">Loading automation settings...</p>
+                <p className="text-sm text-slate-600">Loading automation settings...</p>
             </div>
         );
     }
@@ -142,8 +142,8 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
             )}
 
             {/* Global Toggle */}
-            <fieldset className="rounded-2xl border border-gray-200 p-6 bg-amber-50">
-                <legend className="text-lg font-semibold px-2 text-slate-900">🔌 Global Automation Control</legend>
+            <fieldset className="rounded-xl border border-slate-200 p-6 bg-slate-50">
+                <legend className="text-base font-semibold px-2 text-slate-900 flex items-center gap-2"><Power className="w-4 h-4" /> Global Automation Control</legend>
                 <div className="space-y-4">
                     <div className="flex items-start gap-4">
                         <label className="flex items-center gap-3 cursor-pointer">
@@ -183,8 +183,8 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
             </fieldset>
 
             {/* Feature Toggles */}
-            <fieldset className="rounded-2xl border border-gray-200 p-6">
-                <legend className="text-lg font-semibold px-2 text-slate-900">⚙️ Automation Features</legend>
+            <fieldset className="rounded-xl border border-slate-200 p-6">
+                <legend className="text-base font-semibold px-2 text-slate-900 flex items-center gap-2"><Settings className="w-4 h-4" /> Automation Features</legend>
                 <div className="space-y-4">
                     <label className="flex items-center gap-3 cursor-pointer">
                         <input
@@ -419,9 +419,9 @@ export function AutomationSettings({ workspaceId }: AutomationSettingsProps) {
             </div>
 
             {/* Info Footer */}
-            <div className="bg-blue-50 rounded-xl border border-blue-200 p-4">
-                <p className="text-sm text-blue-900">
-                    💡 <strong>Tip:</strong> Changes take effect immediately. All automation rules will respect these preferences.
+            <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+                <p className="text-sm text-slate-700 flex items-start gap-2">
+                    <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0" /> <span><strong>Tip:</strong> Changes take effect immediately. All automation rules will respect these preferences.</span>
                 </p>
             </div>
         </div>

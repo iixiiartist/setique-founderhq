@@ -1,5 +1,6 @@
 import React from 'react';
 import { WorkspaceMember } from '../../types';
+import { UserPlus } from 'lucide-react';
 
 interface TeamSectionProps {
     workspaceName: string;
@@ -35,14 +36,14 @@ export function TeamSection({
     return (
         <div className="space-y-6">
             <div>
-                <h3 className="font-bold text-black mb-2">Workspace: {workspaceName}</h3>
-                <p className="text-sm text-gray-600">
-                    Plan: <span className="font-mono font-semibold">{planType}</span>
+                <h3 className="font-semibold text-slate-900 mb-2">Workspace: {workspaceName}</h3>
+                <p className="text-sm text-slate-600">
+                    Plan: <span className="font-medium">{planType}</span>
                 </p>
             </div>
 
             <div>
-                <h4 className="font-bold text-black mb-3">Team Members ({members.length})</h4>
+                <h4 className="font-semibold text-slate-900 mb-3">Team Members ({members.length})</h4>
                 {isLoadingMembers ? (
                     <p className="text-sm text-gray-600">Loading team members...</p>
                 ) : members.length > 0 ? (
@@ -53,23 +54,23 @@ export function TeamSection({
                             const displayEmail = member.email || 'No email found';
                             
                             return (
-                                <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-md">
+                                <div key={member.id} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
                                     <div className="flex-1">
-                                        <p className="font-mono text-sm font-semibold">
+                                        <p className="text-sm font-medium text-slate-900">
                                             {displayName}
-                                            {isCurrentUser && <span className="ml-2 text-xs text-blue-600">(You)</span>}
-                                            {!member.fullName && !member.email && <span className="ml-2 text-xs text-orange-600">(Profile missing)</span>}
+                                            {isCurrentUser && <span className="ml-2 text-xs text-slate-500">(You)</span>}
+                                            {!member.fullName && !member.email && <span className="ml-2 text-xs text-amber-600">(Profile missing)</span>}
                                         </p>
-                                        <p className="text-xs text-gray-600">{displayEmail}</p>
+                                        <p className="text-xs text-slate-500">{displayEmail}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span className="px-3 py-1 text-xs font-bold border border-gray-300 bg-white rounded">
+                                        <span className="px-3 py-1 text-xs font-medium border border-slate-200 bg-white rounded-lg">
                                             {member.role.toUpperCase()}
                                         </span>
                                         {!isCurrentUser && isCurrentUserOwner && (
                                             <button
                                                 onClick={() => onRemoveMember(member.id, member.email, member.role)}
-                                                className="px-3 py-1 text-xs font-bold border border-gray-300 bg-red-500 text-white hover:bg-red-600 transition-colors rounded"
+                                                className="px-3 py-1 text-xs font-medium bg-red-500 text-white hover:bg-red-600 transition-colors rounded-lg"
                                                 title={`Remove ${member.email}`}
                                                 disabled={member.role === 'owner'}
                                             >
@@ -88,27 +89,27 @@ export function TeamSection({
 
             {pendingInvitations.length > 0 && (
                 <div>
-                    <h4 className="font-bold text-black mb-3">Pending Invitations ({pendingInvitations.length})</h4>
+                    <h4 className="font-semibold text-slate-900 mb-3">Pending Invitations ({pendingInvitations.length})</h4>
                     {isLoadingInvitations ? (
-                        <p className="text-sm text-gray-600">Loading invitations...</p>
+                        <p className="text-sm text-slate-600">Loading invitations...</p>
                     ) : (
                         <div className="space-y-2">
                             {pendingInvitations.map((invitation: any) => (
-                                <div key={invitation.id} className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-300 rounded-md">
+                                <div key={invitation.id} className="flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-xl">
                                     <div className="flex-1">
-                                        <p className="font-mono text-sm font-semibold">{invitation.email}</p>
-                                        <p className="text-xs text-gray-600">
+                                        <p className="text-sm font-medium text-slate-900">{invitation.email}</p>
+                                        <p className="text-xs text-slate-500">
                                             Invited {new Date(invitation.created_at).toLocaleDateString()} • 
                                             Expires {new Date(invitation.expires_at).toLocaleDateString()}
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span className="px-2 py-1 text-xs font-bold border border-gray-300 bg-white rounded">
+                                        <span className="px-2 py-1 text-xs font-medium border border-slate-200 bg-white rounded-lg">
                                             {invitation.role.toUpperCase()}
                                         </span>
                                         <button
                                             onClick={() => onRevokeInvitation(invitation.id)}
-                                            className="px-3 py-1 text-xs font-bold border border-gray-300 bg-red-500 text-white hover:bg-red-600 rounded"
+                                            className="px-3 py-1 text-xs font-medium bg-red-500 text-white hover:bg-red-600 rounded-lg"
                                             title="Revoke invitation"
                                         >
                                             Revoke
@@ -124,10 +125,10 @@ export function TeamSection({
             <div>
                 <button
                     onClick={onInviteClick}
-                    className="font-mono bg-green-600 border border-gray-300 text-white cursor-pointer py-2 px-6 rounded-md font-semibold transition-colors hover:bg-green-700"
+                    className="bg-slate-900 text-white cursor-pointer py-2.5 px-6 rounded-xl font-medium transition-colors hover:bg-slate-800 flex items-center gap-2"
                     data-testid="open-invite-team-modal"
                 >
-                    + Invite Team Member
+                    <UserPlus className="w-4 h-4" /> Invite Team Member
                 </button>
             </div>
         </div>

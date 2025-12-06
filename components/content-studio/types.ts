@@ -146,17 +146,17 @@ export interface ContentDocument {
   // Metadata
   metadata: DocumentMetadata;
   
-  // Additional settings
+  // Additional settings - pageSize can be a key or an object with dimensions
   settings?: {
     gridEnabled?: boolean;
     gridSize?: number;
     snapToGrid?: boolean;
     showRulers?: boolean;
     showGuides?: boolean;
-    pageSize?: PageSizeKey;
+    pageSize?: PageSizeKey | { width: number; height: number; label?: string };
     orientation?: 'portrait' | 'landscape';
     margins?: { top: number; right: number; bottom: number; left: number };
-    grid?: { enabled: boolean; size: number; snap: boolean };
+    grid?: { enabled: boolean; size: number; snap: boolean; color?: string };
   };
   
   // Tags/categories
@@ -210,3 +210,110 @@ export interface AIGenerationResult {
   elements?: FabricObject[];
   error?: string;
 }
+
+// ============================================================================
+// Export Types
+// ============================================================================
+
+export type ExportFormat = 'png' | 'jpeg' | 'jpg' | 'pdf' | 'svg' | 'html' | 'pptx';
+
+// ============================================================================
+// Layer/Element Types for UI
+// ============================================================================
+
+export type ElementType = 
+  | 'heading' | 'subheading' | 'body-text' | 'caption' | 'quote'
+  | 'rectangle' | 'circle' | 'image'
+  | 'metric-card' | 'testimonial' | 'comparison-table' | 'feature-grid' | 'team-member'
+  | 'bar-chart' | 'line-chart' | 'pie-chart'
+  | 'text' | 'rect' | 'ellipse' | 'line' | 'path' | 'group';
+
+export interface Layer {
+  id: string;
+  name: string;
+  type: ElementType;
+  visible: boolean;
+  locked: boolean;
+  selected?: boolean;
+  object?: FabricObject;
+}
+
+// ============================================================================
+// Research/AI Types
+// ============================================================================
+
+export interface ResearchResult {
+  id: string;
+  title: string;
+  url?: string;
+  snippet: string;
+  source?: string;
+  relevance?: number;
+}
+
+// ============================================================================
+// Document Settings
+// ============================================================================
+
+export interface DocumentSettings {
+  width: number;
+  height: number;
+  backgroundColor: string;
+  gridEnabled: boolean;
+  gridSize: number;
+  snapToGrid: boolean;
+  showRulers: boolean;
+  showGuides: boolean;
+  pageSize?: PageSizeKey | { width: number; height: number; label?: string };
+  orientation?: 'portrait' | 'landscape';
+  margins?: { top: number; right: number; bottom: number; left: number };
+  grid?: { enabled: boolean; size: number; snap: boolean; color?: string };
+}
+
+// ============================================================================
+// Canvas State (for undo/redo) - JSON string of canvas state
+// ============================================================================
+
+export type CanvasState = string;
+
+// ============================================================================
+// Content Studio State & Actions
+// ============================================================================
+
+export interface ContentStudioState {
+  document: ContentDocument | null;
+  currentPageIndex: number;
+  selectedObjectIds: string[];
+  activeTool: string;
+  zoom: number;
+  panOffset: { x: number; y: number };
+  isAIPanelOpen: boolean;
+  isLayersPanelOpen: boolean;
+  isPropertiesPanelOpen: boolean;
+  undoStack: CanvasState[];
+  redoStack: CanvasState[];
+  isSaving: boolean;
+  lastSaved?: string;
+  isDirty: boolean;
+  saveError?: string;
+}
+
+export type ContentStudioAction =
+  | { type: 'SET_DOCUMENT'; payload: ContentDocument }
+  | { type: 'UPDATE_DOCUMENT'; payload: ContentDocument }
+  | { type: 'SET_PAGE'; payload: number }
+  | { type: 'SELECT_OBJECTS'; payload: string[] }
+  | { type: 'SET_TOOL'; payload: string }
+  | { type: 'SET_ZOOM'; payload: number }
+  | { type: 'SET_PAN'; payload: { x: number; y: number } }
+  | { type: 'TOGGLE_AI_PANEL' }
+  | { type: 'TOGGLE_LAYERS_PANEL' }
+  | { type: 'TOGGLE_PROPERTIES_PANEL' }
+  | { type: 'PUSH_UNDO'; payload: CanvasState }
+  | { type: 'UNDO'; payload: CanvasState }
+  | { type: 'REDO'; payload: CanvasState }
+  | { type: 'SAVE_START' }
+  | { type: 'SAVE_COMPLETE'; payload: string }
+  | { type: 'SAVE_ERROR'; payload: string }
+  | { type: 'MARK_DIRTY' }
+  | { type: 'MARK_CLEAN' };

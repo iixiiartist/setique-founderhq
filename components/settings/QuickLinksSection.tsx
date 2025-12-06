@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { QuickLink, SettingsData } from '../../types';
+import { Link2, X, Plus, Save } from 'lucide-react';
 
 interface QuickLinkEditorProps {
     link: QuickLink;
@@ -32,9 +33,9 @@ export function QuickLinkEditor({ link, onUpdate, onDelete }: QuickLinkEditorPro
     };
 
     return (
-        <div className="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
-            <div className="text-2xl shrink-0">
-                🌐
+        <div className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+            <div className="w-10 h-10 bg-white rounded-lg border border-slate-200 flex items-center justify-center flex-shrink-0">
+                <Link2 className="w-5 h-5 text-slate-600" />
             </div>
             <div className="flex-1 grid grid-cols-2 gap-2">
                 <input
@@ -42,31 +43,31 @@ export function QuickLinkEditor({ link, onUpdate, onDelete }: QuickLinkEditorPro
                     value={text || ''}
                     onChange={(e) => setText(e.target.value)}
                     placeholder="Link Text"
-                    className="border border-gray-300 rounded px-2 py-1 font-mono text-sm focus:ring-2 focus:ring-black focus:outline-none"
+                    className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 focus:outline-none"
                 />
                 <input
                     type="url"
                     value={href || ''}
                     onChange={(e) => setHref(e.target.value)}
                     placeholder="https://example.com"
-                    className="border border-gray-300 rounded px-2 py-1 font-mono text-sm focus:ring-2 focus:ring-black focus:outline-none"
+                    className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 focus:outline-none"
                 />
             </div>
             {hasChanges && (
                 <button
                     onClick={handleSave}
-                    className="bg-green-600 text-white px-3 py-1 text-sm font-mono font-semibold border border-green-700 rounded hover:bg-green-700"
+                    className="bg-slate-900 text-white p-2 rounded-lg hover:bg-slate-800"
                     title="Save changes"
                 >
-                    Save
+                    <Save className="w-4 h-4" />
                 </button>
             )}
             <button
                 onClick={onDelete}
-                className="text-xl font-bold hover:text-red-500 px-2"
+                className="p-2 hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors"
                 title="Delete link"
             >
-                ×
+                <X className="w-4 h-4" />
             </button>
         </div>
     );
@@ -105,17 +106,17 @@ export function QuickLinksSection({ quickLinks, onUpdateSettings }: QuickLinksSe
 
     return (
         <div className="space-y-4">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-slate-600">
                 Add custom quick links to your dashboard for easy access to your frequently used tools.
             </p>
             {(!quickLinks || quickLinks.length === 0) ? (
-                <div className="text-center py-8 border border-dashed border-gray-300 rounded-lg bg-gray-50">
-                    <p className="text-gray-500 mb-4">No quick links added yet</p>
+                <div className="text-center py-8 border border-dashed border-slate-300 rounded-xl bg-slate-50">
+                    <p className="text-slate-500 mb-4">No quick links added yet</p>
                     <button
                         onClick={handleAddLink}
-                        className="font-mono bg-blue-600 border border-gray-300 text-white py-2 px-4 font-semibold rounded-md hover:bg-blue-700"
+                        className="bg-slate-900 text-white py-2.5 px-4 font-medium rounded-xl hover:bg-slate-800 inline-flex items-center gap-2"
                     >
-                        + Add First Quick Link
+                        <Plus className="w-4 h-4" /> Add First Quick Link
                     </button>
                 </div>
             ) : (
@@ -130,9 +131,9 @@ export function QuickLinksSection({ quickLinks, onUpdateSettings }: QuickLinksSe
                     ))}
                     <button
                         onClick={handleAddLink}
-                        className="w-full font-mono bg-white border border-gray-300 text-black py-2 px-4 font-semibold hover:bg-gray-100 rounded-md"
+                        className="w-full bg-white border border-slate-200 text-slate-900 py-2.5 px-4 font-medium hover:bg-slate-50 rounded-xl flex items-center justify-center gap-2"
                     >
-                        + Add Another Link
+                        <Plus className="w-4 h-4" /> Add Another Link
                     </button>
                 </div>
             )}

@@ -9,7 +9,7 @@ import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { Form, FormStatus } from '../../types/forms';
 import { getWorkspaceForms, deleteForm, duplicateForm, archiveForm, publishForm, unpublishForm, generateEmbedCode, generateShareLinks } from '../../src/services/formService';
 import { formatDistanceToNow } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, BarChart2, TrendingUp, HelpCircle, MessageSquare, Globe, Lock, KeyRound, Megaphone, User, MoreVertical, Pencil, BarChart, Rocket, FileEdit, Copy, Link2, ExternalLink, Archive, Trash2, Inbox, Clock } from 'lucide-react';
 
 // Form type from database
 type FormType = 'form' | 'survey' | 'poll' | 'quiz' | 'feedback';
@@ -29,12 +29,19 @@ interface FormsListProps {
 }
 
 // Form type icons
-const FORM_TYPE_ICONS: Record<FormType, string> = {
-  form: '📝',
-  survey: '📊',
-  poll: '📈',
-  quiz: '❓',
-  feedback: '💬',
+const FORM_TYPE_ICONS: Record<FormType, React.ReactNode> = {
+  form: <FileText className="w-4 h-4" />,
+  survey: <BarChart2 className="w-4 h-4" />,
+  poll: <TrendingUp className="w-4 h-4" />,
+  quiz: <HelpCircle className="w-4 h-4" />,
+  feedback: <MessageSquare className="w-4 h-4" />,
+};
+
+// Visibility icons
+const VISIBILITY_ICONS: Record<string, React.ReactNode> = {
+  public: <Globe className="w-4 h-4 text-slate-500" />,
+  private: <Lock className="w-4 h-4 text-slate-500" />,
+  link: <KeyRound className="w-4 h-4 text-slate-500" />,
 };
 
 // Form type labels
@@ -323,20 +330,20 @@ export const FormsList: React.FC<FormsListProps> = ({
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2 flex-wrap">
                     {/* Type Badge */}
-                    <span className="text-lg" title={FORM_TYPE_LABELS[formType]}>
+                    <span className="text-slate-600" title={FORM_TYPE_LABELS[formType]}>
                       {FORM_TYPE_ICONS[formType]}
                     </span>
                     <Badge variant={getStatusVariant(form.status)} size="sm">
                       {form.status}
                     </Badge>
-                    <span className="text-gray-500" title={form.visibility}>
-                      {form.visibility === 'public' ? '🌐' : form.visibility === 'private' ? '🔒' : '🔑'}
+                    <span title={form.visibility}>
+                      {VISIBILITY_ICONS[form.visibility] || VISIBILITY_ICONS.link}
                     </span>
                     {form.default_campaign_id && (
-                      <span className="text-gray-500" title="Linked to campaign">📣</span>
+                      <Megaphone className="w-4 h-4 text-slate-500" title="Linked to campaign" />
                     )}
                     {form.auto_create_contact && (
-                      <span className="text-gray-500" title="Auto-creates contacts">👤</span>
+                      <User className="w-4 h-4 text-slate-500" title="Auto-creates contacts" />
                     )}
                   </div>
                   <div className="relative">
@@ -345,10 +352,10 @@ export const FormsList: React.FC<FormsListProps> = ({
                         e.stopPropagation();
                         setOpenMenuId(openMenuId === form.id ? null : form.id);
                       }}
-                      className="p-2 hover:bg-gray-100 rounded text-black font-bold text-lg"
+                      className="p-2 hover:bg-slate-100 rounded-lg text-slate-600"
                       title="Options"
                     >
-                      ⋮
+                      <MoreVertical className="w-4 h-4" />
                     </button>
                     {openMenuId === form.id && (
                       <>
@@ -359,36 +366,36 @@ export const FormsList: React.FC<FormsListProps> = ({
                             setOpenMenuId(null);
                           }}
                         />
-                        <div className="absolute right-0 top-full mt-1 bg-white rounded-xl border border-gray-200 shadow-xl z-20 min-w-[180px] overflow-hidden">
+                        <div className="absolute right-0 top-full mt-1 bg-white rounded-xl border border-slate-200 shadow-xl z-20 min-w-[180px] overflow-hidden">
                           <button
                             onClick={(e) => { e.stopPropagation(); onEditForm(form); setOpenMenuId(null); }}
-                            className="w-full px-4 py-2 text-left text-sm hover:bg-yellow-100 flex items-center gap-2"
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-slate-100 flex items-center gap-2"
                           >
-                            ✏️ Edit
+                            <Pencil className="w-4 h-4" /> Edit
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); onViewAnalytics(form); setOpenMenuId(null); }}
-                            className="w-full px-4 py-2 text-left text-sm hover:bg-yellow-100 flex items-center gap-2"
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-slate-100 flex items-center gap-2"
                           >
-                            📊 Analytics
+                            <BarChart className="w-4 h-4" /> Analytics
                           </button>
                           
-                          <hr className="border-gray-200" />
+                          <hr className="border-slate-200" />
                           
                           {/* Publish / Unpublish */}
                           {form.status === 'draft' || form.status === 'archived' ? (
                             <button
                               onClick={(e) => { e.stopPropagation(); handlePublish(form.id); }}
-                              className="w-full px-4 py-2 text-left text-sm hover:bg-green-100 text-green-700 flex items-center gap-2"
+                              className="w-full px-4 py-2 text-left text-sm hover:bg-green-50 text-green-700 flex items-center gap-2"
                             >
-                              🚀 Publish
+                              <Rocket className="w-4 h-4" /> Publish
                             </button>
                           ) : (
                             <button
                               onClick={(e) => { e.stopPropagation(); handleUnpublish(form.id); }}
-                              className="w-full px-4 py-2 text-left text-sm hover:bg-yellow-100 flex items-center gap-2"
+                              className="w-full px-4 py-2 text-left text-sm hover:bg-slate-100 flex items-center gap-2"
                             >
-                              📝 Unpublish
+                              <FileEdit className="w-4 h-4" /> Unpublish
                             </button>
                           )}
                           
@@ -401,9 +408,9 @@ export const FormsList: React.FC<FormsListProps> = ({
                                   handleCopyLink(getFormUrl(form.slug!), 'link');
                                   setOpenMenuId(null);
                                 }}
-                                className="w-full px-4 py-2 text-left text-sm hover:bg-yellow-100 flex items-center gap-2"
+                                className="w-full px-4 py-2 text-left text-sm hover:bg-slate-100 flex items-center gap-2"
                               >
-                                📋 Copy Link
+                                <Copy className="w-4 h-4" /> Copy Link
                               </button>
                               <button
                                 onClick={(e) => { 
@@ -411,44 +418,44 @@ export const FormsList: React.FC<FormsListProps> = ({
                                   setShareModalForm(form);
                                   setOpenMenuId(null);
                                 }}
-                                className="w-full px-4 py-2 text-left text-sm hover:bg-yellow-100 flex items-center gap-2"
+                                className="w-full px-4 py-2 text-left text-sm hover:bg-slate-100 flex items-center gap-2"
                               >
-                                🔗 Share & Embed
+                                <Link2 className="w-4 h-4" /> Share & Embed
                               </button>
                               <a
                                 href={getFormUrl(form.slug)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                className="w-full px-4 py-2 text-left text-sm hover:bg-yellow-100 flex items-center gap-2 block"
+                                className="w-full px-4 py-2 text-left text-sm hover:bg-slate-100 flex items-center gap-2 block"
                               >
-                                👁️ View Live
+                                <ExternalLink className="w-4 h-4" /> View Live
                               </a>
                             </>
                           )}
                           
-                          <hr className="border-gray-200" />
+                          <hr className="border-slate-200" />
                           
                           <button
                             onClick={(e) => { e.stopPropagation(); handleDuplicate(form); }}
-                            className="w-full px-4 py-2 text-left text-sm hover:bg-yellow-100 flex items-center gap-2"
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-slate-100 flex items-center gap-2"
                           >
-                            📋 Duplicate
+                            <Copy className="w-4 h-4" /> Duplicate
                           </button>
                           {form.status !== 'archived' && (
                             <button
                               onClick={(e) => { e.stopPropagation(); handleArchive(form.id); }}
-                              className="w-full px-4 py-2 text-left text-sm hover:bg-yellow-100 flex items-center gap-2"
+                              className="w-full px-4 py-2 text-left text-sm hover:bg-slate-100 flex items-center gap-2"
                             >
-                              📦 Archive
+                              <Archive className="w-4 h-4" /> Archive
                             </button>
                           )}
-                          <hr className="border-gray-200" />
+                          <hr className="border-slate-200" />
                           <button
                             onClick={(e) => { e.stopPropagation(); openDeleteConfirm(form); }}
-                            className="w-full px-4 py-2 text-left text-sm hover:bg-red-100 text-red-600 flex items-center gap-2"
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
                           >
-                            🗑️ Delete
+                            <Trash2 className="w-4 h-4" /> Delete
                           </button>
                         </div>
                       </>
@@ -461,12 +468,12 @@ export const FormsList: React.FC<FormsListProps> = ({
                   <p className="text-sm text-gray-600 mb-4 line-clamp-2">{form.description}</p>
                 )}
 
-                <div className="flex items-center justify-between text-xs text-gray-500">
+                <div className="flex items-center justify-between text-xs text-slate-500">
                   <div className="flex items-center gap-1">
-                    📥 {form.total_submissions || 0} responses
+                    <Inbox className="w-3 h-3" /> {form.total_submissions || 0} responses
                   </div>
                   <div className="flex items-center gap-1">
-                    🕐 {formatDistanceToNow(new Date(form.updated_at), { addSuffix: true })}
+                    <Clock className="w-3 h-3" /> {formatDistanceToNow(new Date(form.updated_at), { addSuffix: true })}
                   </div>
                 </div>
 

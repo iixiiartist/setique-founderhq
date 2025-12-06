@@ -7,6 +7,7 @@ import { useCopyToClipboard } from '../../hooks';
 import { useApiKeys, type CreateApiKeyInput } from '../../hooks/useApiKeys';
 import { useAuth } from '../../contexts/AuthContext';
 import { ApiScope, ApiKey } from '../../lib/services/apiKeyService';
+import { CheckCircle2, AlertTriangle, Copy, Check, Link2, Plus, Key } from 'lucide-react';
 
 // ============================================
 // CONSTANTS
@@ -109,11 +110,11 @@ const handleCreate = async () => {
     return (
       <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
         <div className="bg-white rounded-2xl border border-gray-200 p-6 max-w-lg w-full mx-4 shadow-2xl">
-          <h3 className="text-xl font-semibold text-slate-900 mb-4">✅ API Key Created</h3>
+          <h3 className="text-xl font-semibold text-slate-900 mb-4 flex items-center gap-2"><CheckCircle2 className="w-5 h-5 text-green-500" /> API Key Created</h3>
           
-          <div className="bg-yellow-50 rounded-xl border border-yellow-200 p-4 mb-4">
-            <p className="text-sm font-medium text-yellow-800 mb-2">
-              ⚠️ Copy your API key now! It will not be shown again.
+          <div className="bg-amber-50 rounded-xl border border-amber-200 p-4 mb-4">
+            <p className="text-sm font-medium text-amber-800 mb-2 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" /> Copy your API key now! It will not be shown again.
             </p>
           </div>
 
@@ -124,9 +125,9 @@ const handleCreate = async () => {
           <div className="flex gap-3">
             <button
               onClick={handleCopy}
-              className="flex-1 bg-slate-900 text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-slate-800 transition-colors"
+              className="flex-1 bg-slate-900 text-white px-4 py-2.5 rounded-xl font-medium hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
             >
-              {copied ? '✓ Copied!' : '📋 Copy to Clipboard'}
+              {copied ? <><Check className="w-4 h-4" /> Copied!</> : <><Copy className="w-4 h-4" /> Copy to Clipboard</>}
             </button>
             <button
               onClick={handleClose}
@@ -288,7 +289,7 @@ const ApiKeyRow: React.FC<ApiKeyRowProps> = ({ apiKey, onRevoke, onDelete, isUpd
             <button
               onClick={() => onRevoke(apiKey.id)}
               disabled={isUpdating}
-              className="px-3 py-1.5 text-sm font-medium rounded-lg border border-yellow-400 text-yellow-700 hover:bg-yellow-50 disabled:opacity-50 transition-colors"
+              className="px-3 py-1.5 text-sm font-medium rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition-colors"
             >
               Revoke
             </button>
@@ -355,43 +356,43 @@ export const ApiKeysSettings: React.FC<ApiKeysSettingsProps> = ({ workspaceId })
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-xl font-bold font-mono">API Keys</h3>
-          <p className="text-sm text-gray-600 mt-1">
+          <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2"><Key className="w-5 h-5" /> API Keys</h3>
+          <p className="text-sm text-slate-600 mt-1">
             Manage API keys for programmatic access to your workspace data.
           </p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="bg-black text-white px-4 py-2 font-bold hover:bg-gray-800 transition-colors"
+          className="bg-slate-900 text-white px-4 py-2.5 rounded-xl font-medium hover:bg-slate-800 transition-colors flex items-center gap-2"
         >
-          + Create API Key
+          <Plus className="w-4 h-4" /> Create API Key
         </button>
       </div>
 
       {/* Error */}
       {error && (
-        <div className="p-3 bg-red-50 border-2 border-red-300 text-red-800 text-sm">
-          {error}
+        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-800 text-sm flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4" /> {error}
         </div>
       )}
 
       {/* API Docs Reference */}
-      <div className="p-4 bg-blue-50 border-2 border-blue-300">
-        <h4 className="font-bold text-blue-800 mb-2">🔗 API Endpoints</h4>
-        <div className="text-sm font-mono text-blue-700 space-y-1">
-          <p><span className="text-blue-500">GET/POST</span> {apiBaseUrl}/contacts</p>
-          <p><span className="text-blue-500">GET/POST</span> {apiBaseUrl}/tasks</p>
-          <p><span className="text-blue-500">GET/POST</span> {apiBaseUrl}/deals</p>
-          <p><span className="text-blue-500">GET/POST</span> {apiBaseUrl}/documents</p>
-          <p><span className="text-blue-500">GET/POST</span> {apiBaseUrl}/crm</p>
-          <p><span className="text-blue-500">GET/POST</span> {apiBaseUrl}/financials</p>
-          <p><span className="text-blue-500">GET/POST</span> {apiBaseUrl}/marketing</p>
-          <p><span className="text-blue-500">GET/POST</span> {apiBaseUrl}/products</p>
-          <p><span className="text-blue-500">GET/POST</span> {apiBaseUrl}/calendar</p>
-          <p><span className="text-blue-500">POST</span> {apiBaseUrl}/agents/run</p>
+      <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+        <h4 className="font-semibold text-slate-900 mb-2 flex items-center gap-2"><Link2 className="w-4 h-4" /> API Endpoints</h4>
+        <div className="text-sm text-slate-700 space-y-1 font-mono">
+          <p><span className="text-slate-500">GET/POST</span> {apiBaseUrl}/contacts</p>
+          <p><span className="text-slate-500">GET/POST</span> {apiBaseUrl}/tasks</p>
+          <p><span className="text-slate-500">GET/POST</span> {apiBaseUrl}/deals</p>
+          <p><span className="text-slate-500">GET/POST</span> {apiBaseUrl}/documents</p>
+          <p><span className="text-slate-500">GET/POST</span> {apiBaseUrl}/crm</p>
+          <p><span className="text-slate-500">GET/POST</span> {apiBaseUrl}/financials</p>
+          <p><span className="text-slate-500">GET/POST</span> {apiBaseUrl}/marketing</p>
+          <p><span className="text-slate-500">GET/POST</span> {apiBaseUrl}/products</p>
+          <p><span className="text-slate-500">GET/POST</span> {apiBaseUrl}/calendar</p>
+          <p><span className="text-slate-500">POST</span> {apiBaseUrl}/agents/run</p>
         </div>
-        <p className="text-xs text-blue-600 mt-2">
-          Use <code className="bg-blue-100 px-1">Authorization: Bearer fhq_live_...</code> header
+        <p className="text-xs text-slate-600 mt-2">
+          Use <code className="bg-slate-200 px-1 rounded">Authorization: Bearer fhq_live_...</code> header
         </p>
         <a 
           href="/api-docs" 
