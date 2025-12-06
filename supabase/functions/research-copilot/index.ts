@@ -96,12 +96,29 @@ interface ResearchResponse {
 // Rate Limiting
 // ============================================================================
 
-const checkRateLimit = (userId: string): { allowed: boolean; remaining: number; resetIn: number } => {
+// NOTE: This in-memory rate limiter is per-edge-instance. For stronger abuse
+// protection in high-scale scenarios, consider moving to a shared store:
+// - Supabase table with atomic increment (simple, no external deps)
+// - Redis/Upstash (low latency, supports TTL natively)
+// - KV store like Deno KV or Cloudflare KV
+
+/**
+ * Check and update rate limit for a user+workspace combination.
+ * Uses workspace-scoped keys to prevent cross-workspace abuse while
+ * allowing legitimate multi-workspace usage.
+ */
+const checkRateLimit = (
+  userId: string,
+  workspaceId?: string | null
+): { allowed: boolean; remaining: number; resetIn: number } => {
   const now = Date.now();
-  const userLimit = rateLimits.get(userId);
+  
+  // Scope rate limit to user+workspace for multi-tenant isolation
+  const rateLimitKey = workspaceId ? `${userId}:${workspaceId}` : userId;
+  const userLimit = rateLimits.get(rateLimitKey);
 
   if (!userLimit || now >= userLimit.resetAt) {
-    rateLimits.set(userId, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    rateLimits.set(rateLimitKey, { count: 1, resetAt: now + RATE_WINDOW_MS });
     return { allowed: true, remaining: RATE_LIMIT - 1, resetIn: RATE_WINDOW_MS };
   }
 
@@ -605,8 +622,8 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Rate limiting - now always uses authenticated userId (guaranteed non-null at this point)
-    const rateCheck = checkRateLimit(userId!);
+    // Rate limiting - now uses authenticated userId with workspace scope
+    const rateCheck = checkRateLimit(userId!, workspaceId);
     if (!rateCheck.allowed) {
       return new Response(
         JSON.stringify({
