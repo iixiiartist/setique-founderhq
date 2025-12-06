@@ -88,9 +88,19 @@ export async function runResearch(
     throw createResearchError('Please provide a topic or question to research.', 'validation');
   }
 
+  // Verify user is authenticated before making request
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    throw createResearchError('Please sign in to use research features.', 'auth');
+  }
+
   console.log('[researchCopilotService] Running research:', { query: trimmedQuery, mode });
 
+  // Explicitly pass auth header - supabase.functions.invoke doesn't always include it
   const { data, error } = await supabase.functions.invoke('research-copilot', {
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
     body: {
       query: trimmedQuery,
       mode,

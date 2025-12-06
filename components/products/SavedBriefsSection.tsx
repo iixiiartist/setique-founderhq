@@ -94,14 +94,14 @@ export const SavedBriefsSection: React.FC<SavedBriefsSectionProps> = ({
   return (
     <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-slate-900 via-indigo-800 to-blue-600">
+      <div className="flex items-center justify-between px-5 py-4 bg-zinc-900">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-white/10 backdrop-blur rounded-lg flex items-center justify-center">
             <Globe className="w-5 h-5 text-white" />
           </div>
           <div>
             <h3 className="font-semibold text-white">AI Market Research</h3>
-            <p className="text-xs text-blue-100">
+            <p className="text-xs text-zinc-400">
               {briefs.length} saved {briefs.length === 1 ? 'brief' : 'briefs'}
             </p>
           </div>
@@ -133,7 +133,7 @@ export const SavedBriefsSection: React.FC<SavedBriefsSectionProps> = ({
                 onMarketResearch();
               }
             }}
-            className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+            className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-500/20 focus:border-zinc-500 transition-all"
           />
         </div>
 
@@ -156,7 +156,7 @@ export const SavedBriefsSection: React.FC<SavedBriefsSectionProps> = ({
           <button
             onClick={onMarketResearch}
             disabled={isSearching || !isAIEnabled || !searchTerm.trim()}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 text-white text-sm font-medium rounded-xl hover:from-indigo-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-900 text-white text-sm font-medium rounded-xl hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
           >
             {isSearching ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -203,7 +203,7 @@ export const SavedBriefsSection: React.FC<SavedBriefsSectionProps> = ({
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="w-8 h-8 bg-white border border-gray-200 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
-                      <Globe className="w-4 h-4 text-indigo-500" />
+                      <Globe className="w-4 h-4 text-zinc-700" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-gray-900 truncate text-sm">{brief.query}</p>
@@ -226,7 +226,7 @@ export const SavedBriefsSection: React.FC<SavedBriefsSectionProps> = ({
                         e.stopPropagation();
                         onViewBrief(brief);
                       }}
-                      className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                      className="p-2 text-gray-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg transition-colors"
                       title="View Brief"
                     >
                       <Eye className="w-4 h-4" />
@@ -236,7 +236,7 @@ export const SavedBriefsSection: React.FC<SavedBriefsSectionProps> = ({
                         e.stopPropagation();
                         handleShare(brief);
                       }}
-                      className="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                      className="p-2 text-gray-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg transition-colors"
                       title="Share Brief"
                     >
                       <Share2 className="w-4 h-4" />

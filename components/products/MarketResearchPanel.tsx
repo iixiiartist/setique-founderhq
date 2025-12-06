@@ -1035,7 +1035,7 @@ export const MarketResearchPanel: React.FC<MarketResearchPanelProps> = ({
                       }
                     }}
                     disabled={isSaving}
-                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-slate-700 hover:bg-purple-50 hover:text-purple-700 transition-colors border-t border-slate-100 disabled:opacity-50"
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-slate-700 hover:bg-zinc-100 hover:text-zinc-900 transition-colors border-t border-slate-100 disabled:opacity-50"
                   >
                     <Share2 className="w-4 h-4" />
                     <div className="text-left">
@@ -1049,7 +1049,7 @@ export const MarketResearchPanel: React.FC<MarketResearchPanelProps> = ({
                 
                 <button
                   onClick={handleDownloadHtml}
-                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-slate-700 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
                 >
                   <FileText className="w-4 h-4" />
                   <div className="text-left">
@@ -1059,7 +1059,7 @@ export const MarketResearchPanel: React.FC<MarketResearchPanelProps> = ({
                 </button>
                 <button
                   onClick={handleDownloadPdf}
-                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors border-t border-slate-100"
+                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-slate-700 hover:bg-zinc-100 hover:text-zinc-900 transition-colors border-t border-slate-100"
                 >
                   <FileText className="w-4 h-4" />
                   <div className="text-left">
@@ -1069,7 +1069,7 @@ export const MarketResearchPanel: React.FC<MarketResearchPanelProps> = ({
                 </button>
                 <button
                   onClick={handleOpenInNewTab}
-                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors border-t border-slate-100"
+                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-slate-700 hover:bg-zinc-100 hover:text-zinc-900 transition-colors border-t border-slate-100"
                 >
                   <Globe className="w-4 h-4" />
                   <div className="text-left">
@@ -1079,7 +1079,7 @@ export const MarketResearchPanel: React.FC<MarketResearchPanelProps> = ({
                 </button>
                 <button
                   onClick={handleDownloadMarkdown}
-                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors border-t border-slate-100"
+                  className="flex items-center gap-3 w-full px-4 py-3 text-sm text-slate-700 hover:bg-zinc-100 hover:text-zinc-900 transition-colors border-t border-slate-100"
                 >
                   <Download className="w-4 h-4" />
                   <div className="text-left">

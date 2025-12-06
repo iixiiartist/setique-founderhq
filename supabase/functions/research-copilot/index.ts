@@ -597,13 +597,19 @@ serve(async (req: Request): Promise<Response> => {
 
     try {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-      const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-      const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-        global: { headers: { Authorization: authHeader } },
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      
+      // Use service role key to validate the JWT token
+      const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+        auth: { persistSession: false },
       });
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      // Extract the token from the header
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
       
       if (authError || !user) {
+        console.error('[research-copilot] Auth error:', authError?.message || 'No user');
         return new Response(
           JSON.stringify({ error: 'Invalid or expired session. Please sign in again.' }),
           { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

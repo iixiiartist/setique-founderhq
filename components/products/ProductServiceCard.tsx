@@ -160,7 +160,7 @@ export function ProductServiceCard({
                                 e.stopPropagation();
                                 onEdit();
                             }}
-                            className="px-3 py-1.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                            className="px-3 py-1.5 bg-zinc-900 text-white font-medium rounded-lg hover:bg-zinc-800 transition-colors"
                         >
                             Edit
                         </button>
@@ -253,7 +253,7 @@ export function ProductServiceCard({
                             e.stopPropagation();
                             onEdit();
                         }}
-                        className="flex-1 px-3 py-2 bg-blue-500 text-white font-semibold rounded-xl shadow-sm hover:shadow-md hover:bg-blue-600 transition-all"
+                        className="flex-1 px-3 py-2 bg-zinc-900 text-white font-semibold rounded-xl shadow-sm hover:shadow-md hover:bg-zinc-800 transition-all"
                     >
                         Edit
                     </button>

@@ -386,7 +386,7 @@ export function ProductsServicesTab({
                 </div>
                 <button
                     onClick={handleCreateProduct}
-                    className="px-4 py-2 bg-blue-500 text-white font-bold border border-blue-600 rounded-md shadow-sm hover:bg-blue-600 transition-colors"
+                    className="px-4 py-2 bg-zinc-900 text-white font-bold border border-zinc-900 rounded-md shadow-sm hover:bg-zinc-800 transition-colors"
                 >
                     + Add Product/Service
                 </button>
@@ -554,7 +554,7 @@ export function ProductsServicesTab({
                             onClick={() => setViewMode('grid')}
                             className={`px-3 py-1 border border-gray-300 rounded-md font-bold ${
                                 viewMode === 'grid' 
-                                    ? 'bg-blue-500 text-white' 
+                                    ? 'bg-zinc-900 text-white' 
                                     : 'bg-white hover:bg-gray-100'
                             }`}
                         >
@@ -564,7 +564,7 @@ export function ProductsServicesTab({
                             onClick={() => setViewMode('list')}
                             className={`px-3 py-1 border border-gray-300 rounded-md font-bold ${
                                 viewMode === 'list' 
-                                    ? 'bg-blue-500 text-white' 
+                                    ? 'bg-zinc-900 text-white' 
                                     : 'bg-white hover:bg-gray-100'
                             }`}
                         >
@@ -587,7 +587,7 @@ export function ProductsServicesTab({
                     {!searchTerm && categoryFilter === 'all' && typeFilter === 'all' && statusFilter === 'all' && (
                         <button
                             onClick={handleCreateProduct}
-                            className="px-6 py-3 bg-blue-500 text-white font-bold border border-blue-600 rounded-md shadow-sm hover:bg-blue-600 transition-colors"
+                            className="px-6 py-3 bg-zinc-900 text-white font-bold border border-zinc-900 rounded-md shadow-sm hover:bg-zinc-800 transition-colors"
                         >
                             + Add Your First Item
                         </button>

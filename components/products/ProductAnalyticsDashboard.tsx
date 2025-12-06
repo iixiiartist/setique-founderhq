@@ -164,12 +164,12 @@ function ProductAnalyticsDashboard({
                     </div>
                 </div>
                 
-                <div className="bg-green-50 p-4 rounded-2xl border border-green-200 shadow-sm">
+                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
                         <TrendingUp className="w-4 h-4" />
                         Total Profit
                     </div>
-                    <div className="text-2xl font-bold text-green-700">
+                    <div className="text-2xl font-bold text-zinc-900">
                         {formatCurrency(summary.totalProfit)}
                     </div>
                     <div className="text-xs text-gray-600 mt-1">
@@ -177,32 +177,32 @@ function ProductAnalyticsDashboard({
                     </div>
                 </div>
                 
-                <div className="bg-blue-50 p-4 rounded-2xl border border-blue-200 shadow-sm">
+                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
                         <Package className="w-4 h-4" />
                         Units Sold
                     </div>
-                    <div className="text-2xl font-bold text-blue-700">
+                    <div className="text-2xl font-bold text-zinc-900">
                         {summary.totalUnits.toLocaleString()}
                     </div>
                 </div>
                 
-                <div className="bg-purple-50 p-4 rounded-2xl border border-purple-200 shadow-sm">
+                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
                         <Target className="w-4 h-4" />
                         Pipeline Value
                     </div>
-                    <div className="text-2xl font-bold text-purple-700">
+                    <div className="text-2xl font-bold text-zinc-900">
                         {formatCurrency(summary.totalPipelineValue)}
                     </div>
                 </div>
                 
-                <div className="bg-orange-50 p-4 rounded-2xl border border-orange-200 shadow-sm">
+                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 shadow-sm">
                     <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
                         <Package className="w-4 h-4" />
                         Inventory Value
                     </div>
-                    <div className="text-2xl font-bold text-orange-700">
+                    <div className="text-2xl font-bold text-zinc-900">
                         {formatCurrency(summary.totalInventoryValue)}
                     </div>
                 </div>
