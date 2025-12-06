@@ -1,4 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { FileText, ClipboardList, Palette } from 'lucide-react';
 import { GTMDocMetadata, AppActions, DashboardData } from '../../types';
 import { DocsList } from './DocsList';
 import { DocEditor } from './DocEditor';
@@ -135,33 +136,33 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId,
                     <div className="flex gap-1 p-1">
                         <button
                             onClick={() => setView('docs')}
-                            className={`flex-1 px-4 py-2.5 font-semibold text-sm rounded-lg transition-all ${
+                            className={`flex-1 px-4 py-2.5 font-semibold text-sm rounded-lg transition-all flex items-center justify-center gap-2 ${
                                 view === 'docs'
                                     ? 'bg-slate-900 text-white shadow-sm'
                                     : 'bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                             }`}
                         >
-                            📄 Documents
+                            <FileText className="w-4 h-4" /> Documents
                         </button>
                         <button
                             onClick={() => setView('forms')}
-                            className={`flex-1 px-4 py-2.5 font-semibold text-sm rounded-lg transition-all ${
+                            className={`flex-1 px-4 py-2.5 font-semibold text-sm rounded-lg transition-all flex items-center justify-center gap-2 ${
                                 view === 'forms'
                                     ? 'bg-slate-900 text-white shadow-sm'
                                     : 'bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                             }`}
                         >
-                            📝 Forms
+                            <ClipboardList className="w-4 h-4" /> Forms
                         </button>
                         <button
                             onClick={() => setView('studio')}
-                            className={`flex-1 px-4 py-2.5 font-semibold text-sm rounded-lg transition-all ${
+                            className={`flex-1 px-4 py-2.5 font-semibold text-sm rounded-lg transition-all flex items-center justify-center gap-2 ${
                                 view === 'studio'
                                     ? 'bg-slate-900 text-white shadow-sm'
                                     : 'bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                             }`}
                         >
-                            🎨 Design Studio
+                            <Palette className="w-4 h-4" /> Design Studio
                         </button>
                     </div>
                 </div>
@@ -306,16 +307,18 @@ export const WorkspaceTab: React.FC<WorkspaceTabProps> = ({ workspaceId, userId,
                                     onClose={() => setIsStudioOpen(false)}
                                 />
                             ) : (
-                                <div className="h-full flex items-center justify-center p-4 lg:p-8 bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+                                <div className="h-full flex items-center justify-center p-4 lg:p-8 bg-gradient-to-br from-slate-50 via-white to-gray-100">
                                     <div className="text-center max-w-md">
-                                        <div className="text-4xl lg:text-6xl mb-4">🎨</div>
-                                        <h2 className="text-xl lg:text-2xl font-bold mb-2">Design Studio</h2>
+                                        <div className="w-16 h-16 lg:w-20 lg:h-20 mx-auto mb-4 bg-slate-100 rounded-2xl flex items-center justify-center">
+                                            <Palette className="w-8 h-8 lg:w-10 lg:h-10 text-slate-700" />
+                                        </div>
+                                        <h2 className="text-xl lg:text-2xl font-bold mb-2 text-slate-900">Design Studio</h2>
                                         <p className="text-sm lg:text-base text-gray-600 mb-6">
                                             Create beautiful presentations, social graphics, and marketing collateral with our canvas-based designer.
                                         </p>
                                         <button
                                             onClick={() => setIsStudioOpen(true)}
-                                            className="px-4 lg:px-6 py-2 lg:py-3 text-sm lg:text-base bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-sm hover:from-indigo-700 hover:to-purple-700 transition-all"
+                                            className="px-4 lg:px-6 py-2 lg:py-3 text-sm lg:text-base bg-slate-900 text-white font-bold rounded-xl shadow-sm hover:bg-slate-800 transition-all"
                                         >
                                             Open Design Studio
                                         </button>
