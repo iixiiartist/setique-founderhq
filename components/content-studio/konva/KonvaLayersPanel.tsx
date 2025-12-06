@@ -21,6 +21,7 @@ import {
   Hexagon,
   Star,
   ArrowRight,
+  Group,
 } from 'lucide-react';
 import { useKonvaContext } from './KonvaContext';
 import { KonvaElement } from './types';
@@ -58,6 +59,8 @@ function getElementIcon(type: string) {
       return <Hexagon className="w-4 h-4" />;
     case 'star':
       return <Star className="w-4 h-4" />;
+    case 'group':
+      return <Group className="w-4 h-4" />;
     default:
       return <Square className="w-4 h-4" />;
   }
@@ -86,6 +89,9 @@ function getElementLabel(element: KonvaElement): string {
       return 'Polygon';
     case 'star':
       return 'Star';
+    case 'group':
+      const groupEl = element as any;
+      return `Group (${groupEl.children?.length || 0} items)`;
     default:
       return 'Element';
   }

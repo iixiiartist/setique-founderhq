@@ -539,7 +539,7 @@ export function KonvaAssetPanel() {
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-            <FolderOpen className="w-5 h-5 text-indigo-600" />
+            <FolderOpen className="w-5 h-5 text-gray-600" />
             Assets
           </h3>
           <button
@@ -558,7 +558,7 @@ export function KonvaAssetPanel() {
             placeholder="Search assets..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent"
           />
         </div>
       </div>
@@ -567,7 +567,7 @@ export function KonvaAssetPanel() {
       <div className="px-4 py-2 border-b border-gray-100 flex items-center gap-1 text-xs text-gray-500 overflow-x-auto">
         <button
           onClick={() => setCurrentPath('')}
-          className="hover:text-indigo-600 flex items-center gap-1"
+          className="hover:text-gray-600 flex items-center gap-1"
         >
           <Folder className="w-3 h-3" />
           Root
@@ -577,7 +577,7 @@ export function KonvaAssetPanel() {
             <span>/</span>
             <button
               onClick={() => setCurrentPath(breadcrumbs.slice(0, i + 1).join('/'))}
-              className="hover:text-indigo-600 truncate max-w-[80px]"
+              className="hover:text-gray-600 truncate max-w-[80px]"
               title={crumb}
             >
               {crumb}
@@ -629,7 +629,7 @@ export function KonvaAssetPanel() {
             <button
               onClick={handleUploadClick}
               disabled={uploading}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gray-600 rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {uploading ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
@@ -687,7 +687,7 @@ export function KonvaAssetPanel() {
             </p>
             <button
               onClick={handleUploadClick}
-              className="mt-2 text-xs text-indigo-600 hover:text-indigo-700"
+              className="mt-2 text-xs text-gray-600 hover:text-gray-700"
             >
               Upload your first image
             </button>
@@ -725,7 +725,7 @@ export function KonvaAssetPanel() {
                   onContextMenu={(e) => handleContextMenu(e, asset)}
                   className={`aspect-square rounded-lg border overflow-hidden flex flex-col items-center justify-center gap-1 transition-all cursor-pointer relative ${
                     isSelected
-                      ? 'border-indigo-500 ring-2 ring-indigo-200' 
+                      ? 'border-gray-500 ring-2 ring-gray-200' 
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
@@ -734,7 +734,7 @@ export function KonvaAssetPanel() {
                     <div className="absolute top-1 left-1 z-10">
                       <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
                         isSelected 
-                          ? 'bg-indigo-600 border-indigo-600' 
+                          ? 'bg-gray-600 border-gray-600' 
                           : 'bg-white/80 border-gray-300'
                       }`}>
                         {isSelected && <span className="text-white text-xs">✓</span>}
@@ -762,7 +762,7 @@ export function KonvaAssetPanel() {
                           if (e.key === 'Escape') setRenamingAsset(null);
                         }}
                         onClick={(e) => e.stopPropagation()}
-                        className="w-full text-xs border border-indigo-500 rounded px-2 py-1 focus:outline-none"
+                        className="w-full text-xs border border-gray-500 rounded px-2 py-1 focus:outline-none"
                       />
                     </div>
                   ) : (
@@ -822,7 +822,7 @@ export function KonvaAssetPanel() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => insertAsImage(selectedAsset)}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gray-600 rounded-lg hover:bg-gray-700"
             >
               <ImageIcon className="w-4 h-4" />
               Add to Canvas

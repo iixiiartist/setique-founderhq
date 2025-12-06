@@ -117,7 +117,7 @@ export function KonvaTextEditor({
         onChange={(e) => setText(e.target.value)}
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
-        className="absolute outline-none resize-none border-2 border-indigo-500 bg-white/90 rounded-sm"
+        className="absolute outline-none resize-none border-2 border-gray-500 bg-white/90 rounded-sm"
         style={{
           left: screenX,
           top: screenY,

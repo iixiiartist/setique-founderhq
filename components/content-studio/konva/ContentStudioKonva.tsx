@@ -118,10 +118,10 @@ function TextRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
           ref={trRef}
           rotateEnabled={true}
           enabledAnchors={['top-left', 'top-center', 'top-right', 'middle-left', 'middle-right', 'bottom-left', 'bottom-center', 'bottom-right']}
-          borderStroke="#6366f1"
+          borderStroke="#4b5563"
           borderStrokeWidth={2}
           borderDash={[4, 4]}
-          anchorStroke="#6366f1"
+          anchorStroke="#4b5563"
           anchorFill="#ffffff"
           anchorSize={10}
           anchorCornerRadius={2}
@@ -189,7 +189,7 @@ function RectRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
         y={element.y}
         width={el.width || 200}
         height={el.height || 150}
-        fill={element.fill || '#6366f1'}
+        fill={element.fill || '#4b5563'}
         stroke={element.stroke}
         strokeWidth={element.strokeWidth || 0}
         cornerRadius={element.cornerRadius || 0}
@@ -211,10 +211,10 @@ function RectRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
           ref={trRef}
           rotateEnabled={true}
           enabledAnchors={['top-left', 'top-center', 'top-right', 'middle-left', 'middle-right', 'bottom-left', 'bottom-center', 'bottom-right']}
-          borderStroke="#6366f1"
+          borderStroke="#4b5563"
           borderStrokeWidth={2}
           borderDash={[4, 4]}
-          anchorStroke="#6366f1"
+          anchorStroke="#4b5563"
           anchorFill="#ffffff"
           anchorSize={10}
           anchorCornerRadius={2}
@@ -279,7 +279,7 @@ function CircleRenderer({ element, isSelected, onSelect, onChange, onDragStart, 
         x={element.x}
         y={element.y}
         radius={el.radius || 75}
-        fill={element.fill || '#6366f1'}
+        fill={element.fill || '#4b5563'}
         stroke={element.stroke}
         strokeWidth={element.strokeWidth || 0}
         rotation={element.rotation || 0}
@@ -300,10 +300,10 @@ function CircleRenderer({ element, isSelected, onSelect, onChange, onDragStart, 
           ref={trRef}
           rotateEnabled={true}
           enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right']}
-          borderStroke="#6366f1"
+          borderStroke="#4b5563"
           borderStrokeWidth={2}
           borderDash={[4, 4]}
-          anchorStroke="#6366f1"
+          anchorStroke="#4b5563"
           anchorFill="#ffffff"
           anchorSize={10}
           anchorCornerRadius={2}
@@ -368,7 +368,7 @@ function LineRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
         id={element.id}
         name="element"
         points={points}
-        stroke={element.stroke || element.fill || '#6366f1'}
+        stroke={element.stroke || element.fill || '#4b5563'}
         strokeWidth={element.strokeWidth || 2}
         rotation={element.rotation || 0}
         opacity={element.opacity ?? 1}
@@ -390,7 +390,7 @@ function LineRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
             y={points[1]}
             radius={8}
             fill="#ffffff"
-            stroke="#6366f1"
+            stroke="#4b5563"
             strokeWidth={2}
             draggable={!element.locked}
             onDragMove={handleStartPointDrag}
@@ -409,7 +409,7 @@ function LineRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
             y={points[3]}
             radius={8}
             fill="#ffffff"
-            stroke="#6366f1"
+            stroke="#4b5563"
             strokeWidth={2}
             draggable={!element.locked}
             onDragMove={handleEndPointDrag}
@@ -428,7 +428,7 @@ function LineRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
             y={Math.min(points[1], points[3]) - 5}
             width={Math.abs(points[2] - points[0]) + 10}
             height={Math.abs(points[3] - points[1]) + 10}
-            stroke="#6366f1"
+            stroke="#4b5563"
             strokeWidth={1}
             dash={[4, 4]}
             listening={false}
@@ -473,7 +473,7 @@ function PolygonRenderer({ element, isSelected, onSelect, onChange, onDragStart,
         y={element.y}
         sides={el.sides || 6}
         radius={el.radius || 50}
-        fill={element.fill || '#6366f1'}
+        fill={element.fill || '#4b5563'}
         stroke={element.stroke}
         strokeWidth={element.strokeWidth || 0}
         rotation={element.rotation || 0}
@@ -489,10 +489,10 @@ function PolygonRenderer({ element, isSelected, onSelect, onChange, onDragStart,
           ref={trRef}
           rotateEnabled={true}
           enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right']}
-          borderStroke="#6366f1"
+          borderStroke="#4b5563"
           borderStrokeWidth={2}
           borderDash={[4, 4]}
-          anchorStroke="#6366f1"
+          anchorStroke="#4b5563"
           anchorFill="#ffffff"
           anchorSize={10}
           anchorCornerRadius={2}
@@ -541,7 +541,7 @@ function StarRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
         numPoints={el.numPoints || 5}
         innerRadius={el.innerRadius || 20}
         outerRadius={el.outerRadius || 50}
-        fill={element.fill || '#6366f1'}
+        fill={element.fill || '#4b5563'}
         stroke={element.stroke}
         strokeWidth={element.strokeWidth || 0}
         rotation={element.rotation || 0}
@@ -557,10 +557,10 @@ function StarRenderer({ element, isSelected, onSelect, onChange, onDragStart, on
           ref={trRef}
           rotateEnabled={true}
           enabledAnchors={['top-left', 'top-right', 'bottom-left', 'bottom-right']}
-          borderStroke="#6366f1"
+          borderStroke="#4b5563"
           borderStrokeWidth={2}
           borderDash={[4, 4]}
-          anchorStroke="#6366f1"
+          anchorStroke="#4b5563"
           anchorFill="#ffffff"
           anchorSize={10}
           anchorCornerRadius={2}
@@ -656,10 +656,10 @@ function ImageRenderer({ element, isSelected, onSelect, onChange, onDragStart, o
           rotateEnabled={true}
           keepRatio={false}
           enabledAnchors={['top-left', 'top-center', 'top-right', 'middle-left', 'middle-right', 'bottom-left', 'bottom-center', 'bottom-right']}
-          borderStroke="#6366f1"
+          borderStroke="#4b5563"
           borderStrokeWidth={2}
           borderDash={[4, 4]}
-          anchorStroke="#6366f1"
+          anchorStroke="#4b5563"
           anchorFill="#ffffff"
           anchorSize={10}
           anchorCornerRadius={2}
@@ -667,6 +667,130 @@ function ImageRenderer({ element, isSelected, onSelect, onChange, onDragStart, o
           rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
           boundBoxFunc={(oldBox, newBox) => {
             // Limit minimum size
+            if (newBox.width < 10 || newBox.height < 10) {
+              return oldBox;
+            }
+            return newBox;
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+// Group Element - allows grouping multiple elements together
+interface GroupRendererProps extends ElementRendererProps {
+  renderChild: (child: KonvaElement, isChildSelected: boolean) => React.ReactNode;
+}
+
+function GroupRenderer({ element, isSelected, onSelect, onChange, onDragStart, onDragEnd, renderChild }: GroupRendererProps) {
+  const groupRef = useRef<Konva.Group>(null);
+  const trRef = useRef<Konva.Transformer>(null);
+  
+  useEffect(() => {
+    if (isSelected && trRef.current && groupRef.current) {
+      trRef.current.nodes([groupRef.current]);
+      trRef.current.getLayer()?.batchDraw();
+    }
+  }, [isSelected]);
+  
+  const groupElement = element as any; // Cast to access children
+  const children: KonvaElement[] = groupElement.children || [];
+  
+  const handleDragStart = useCallback(() => {
+    onDragStart?.();
+  }, [onDragStart]);
+  
+  const handleDragEnd = useCallback((e: Konva.KonvaEventObject<DragEvent>) => {
+    const node = e.target;
+    const dx = node.x() - (element.x || 0);
+    const dy = node.y() - (element.y || 0);
+    
+    // Update group position and all children positions
+    const updatedChildren = children.map(child => ({
+      ...child,
+      x: (child.x || 0) + dx,
+      y: (child.y || 0) + dy,
+    }));
+    
+    onChange(element.id, {
+      x: node.x(),
+      y: node.y(),
+      children: updatedChildren,
+    });
+    
+    onDragEnd?.();
+  }, [element, children, onChange, onDragEnd]);
+  
+  const handleTransformEnd = useCallback((e: Konva.KonvaEventObject<Event>) => {
+    const node = groupRef.current;
+    if (!node) return;
+    
+    const scaleX = node.scaleX();
+    const scaleY = node.scaleY();
+    const rotation = node.rotation();
+    
+    // Reset scale and apply to dimensions
+    node.scaleX(1);
+    node.scaleY(1);
+    
+    // Scale all children
+    const updatedChildren = children.map(child => ({
+      ...child,
+      x: (child.x || 0) * scaleX,
+      y: (child.y || 0) * scaleY,
+      width: (child.width || 100) * scaleX,
+      height: (child.height || 100) * scaleY,
+    }));
+    
+    onChange(element.id, {
+      x: node.x(),
+      y: node.y(),
+      rotation,
+      children: updatedChildren,
+    });
+  }, [element, children, onChange]);
+  
+  return (
+    <>
+      <Group
+        ref={groupRef}
+        id={element.id}
+        x={element.x || 0}
+        y={element.y || 0}
+        rotation={element.rotation || 0}
+        opacity={(element as any).opacity ?? 1}
+        draggable
+        onClick={(e) => {
+          e.cancelBubble = true;
+          onSelect(element.id, e.evt.shiftKey);
+        }}
+        onTap={(e) => {
+          e.cancelBubble = true;
+          onSelect(element.id, false);
+        }}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onTransformEnd={handleTransformEnd}
+      >
+        {children.map((child) => renderChild(child, false))}
+      </Group>
+      {isSelected && (
+        <Transformer
+          ref={trRef}
+          rotateEnabled={true}
+          keepRatio={false}
+          enabledAnchors={['top-left', 'top-center', 'top-right', 'middle-left', 'middle-right', 'bottom-left', 'bottom-center', 'bottom-right']}
+          borderStroke="#4b5563"
+          borderStrokeWidth={2}
+          borderDash={[4, 4]}
+          anchorStroke="#4b5563"
+          anchorFill="#ffffff"
+          anchorSize={10}
+          anchorCornerRadius={2}
+          rotateAnchorOffset={25}
+          rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
+          boundBoxFunc={(oldBox, newBox) => {
             if (newBox.width < 10 || newBox.height < 10) {
               return oldBox;
             }
@@ -697,6 +821,25 @@ function ElementRenderer(props: ElementRendererProps) {
       return <StarRenderer {...props} />;
     case 'image':
       return <ImageRenderer {...props} />;
+    case 'group':
+      // Groups render their children recursively
+      return (
+        <GroupRenderer 
+          {...props} 
+          renderChild={(child, isChildSelected) => (
+            <ElementRenderer
+              key={child.id}
+              element={child}
+              isSelected={isChildSelected}
+              onSelect={props.onSelect}
+              onChange={props.onChange}
+              onDragStart={props.onDragStart}
+              onDragEnd={props.onDragEnd}
+              onDoubleClick={props.onDoubleClick}
+            />
+          )}
+        />
+      );
     default:
       return null;
   }
@@ -723,6 +866,9 @@ function KonvaCanvasInternal() {
     pushUndo,
     deleteSelectedElements,
     addCustomElement,
+    groupSelectedElements,
+    ungroupSelectedElements,
+    getSelectedElements,
   } = useKonvaContext();
   const { workspace } = useWorkspace();
   
@@ -869,10 +1015,31 @@ function KonvaCanvasInternal() {
       if (e.key === 'Escape') {
         setSelectedIds([]);
       }
+      
+      // Group (Ctrl+G)
+      if (e.key === 'g' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
+        if (selectedIds.length >= 2) {
+          e.preventDefault();
+          groupSelectedElements();
+          showSuccess('Elements grouped');
+        }
+      }
+      
+      // Ungroup (Ctrl+Shift+G)
+      if (e.key === 'g' && (e.ctrlKey || e.metaKey) && e.shiftKey) {
+        if (selectedIds.length > 0) {
+          e.preventDefault();
+          const selected = getSelectedElements();
+          if (selected.some(el => el.type === 'group')) {
+            ungroupSelectedElements();
+            showSuccess('Elements ungrouped');
+          }
+        }
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIds, elements, deleteSelectedElements, setSelectedIds, editingTextId, clipboardElements, pushUndo, addCustomElement]);
+  }, [selectedIds, elements, deleteSelectedElements, setSelectedIds, editingTextId, clipboardElements, pushUndo, addCustomElement, groupSelectedElements, ungroupSelectedElements, getSelectedElements]);
   
   // Clipboard paste handler
   useEffect(() => {

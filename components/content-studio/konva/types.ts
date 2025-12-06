@@ -301,7 +301,7 @@ export function createDefaultElement(type: KonvaElementType): Partial<KonvaEleme
         category: 'shape',
         width: 200,
         height: 150,
-        fill: '#6366f1',
+        fill: '#4b5563',
         stroke: '#4f46e5',
         strokeWidth: 0,
         cornerRadius: 8,
@@ -312,7 +312,7 @@ export function createDefaultElement(type: KonvaElementType): Partial<KonvaEleme
         type: 'circle',
         category: 'shape',
         radius: 75,
-        fill: '#6366f1',
+        fill: '#4b5563',
         stroke: '#4f46e5',
         strokeWidth: 0,
       };
@@ -334,7 +334,7 @@ export function createDefaultElement(type: KonvaElementType): Partial<KonvaEleme
         type: 'line',
         category: 'shape',
         points: [0, 0, 200, 0],
-        stroke: '#6366f1',
+        stroke: '#4b5563',
         strokeWidth: 2,
       };
     case 'arrow':
@@ -343,7 +343,7 @@ export function createDefaultElement(type: KonvaElementType): Partial<KonvaEleme
         type: 'arrow',
         category: 'shape',
         points: [0, 0, 200, 0],
-        stroke: '#6366f1',
+        stroke: '#4b5563',
         strokeWidth: 2,
         pointerLength: 10,
         pointerWidth: 10,
@@ -355,7 +355,7 @@ export function createDefaultElement(type: KonvaElementType): Partial<KonvaEleme
         category: 'shape',
         sides: 6,
         radius: 50,
-        fill: '#6366f1',
+        fill: '#4b5563',
         stroke: '#4f46e5',
         strokeWidth: 0,
       };
@@ -367,7 +367,7 @@ export function createDefaultElement(type: KonvaElementType): Partial<KonvaEleme
         numPoints: 5,
         innerRadius: 25,
         outerRadius: 50,
-        fill: '#6366f1',
+        fill: '#4b5563',
         stroke: '#4f46e5',
         strokeWidth: 0,
       };
@@ -378,7 +378,7 @@ export function createDefaultElement(type: KonvaElementType): Partial<KonvaEleme
         category: 'shape',
         radiusX: 100,
         radiusY: 60,
-        fill: '#6366f1',
+        fill: '#4b5563',
         stroke: '#4f46e5',
         strokeWidth: 0,
       };

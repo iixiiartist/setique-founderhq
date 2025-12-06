@@ -30,6 +30,8 @@ import {
   Loader2,
   FolderOpen,
   Maximize,
+  Group,
+  Ungroup,
 } from 'lucide-react';
 import { useKonvaContext } from './KonvaContext';
 import { KonvaElement, createDefaultElement } from './types';
@@ -91,6 +93,9 @@ export function KonvaElementToolbar({ className = '', onClose }: KonvaElementToo
     dispatch,
     pushUndo,
     stageRef,
+    groupSelectedElements,
+    ungroupSelectedElements,
+    getSelectedElements,
   } = useKonvaContext();
   
   const [isExporting, setIsExporting] = useState(false);
@@ -397,6 +402,24 @@ export function KonvaElementToolbar({ className = '', onClose }: KonvaElementToo
           label="Redo (Ctrl+Y)"
           onClick={redo}
           disabled={!canRedo}
+        />
+      </div>
+      
+      <ToolbarDivider />
+      
+      {/* Group/Ungroup Controls */}
+      <div className="flex items-center gap-0.5">
+        <ToolbarButton
+          icon={<Group className="w-4 h-4" />}
+          label="Group Elements (Ctrl+G)"
+          onClick={groupSelectedElements}
+          disabled={state.selectedIds.length < 2}
+        />
+        <ToolbarButton
+          icon={<Ungroup className="w-4 h-4" />}
+          label="Ungroup Elements (Ctrl+Shift+G)"
+          onClick={ungroupSelectedElements}
+          disabled={!getSelectedElements().some(el => el.type === 'group')}
         />
       </div>
       

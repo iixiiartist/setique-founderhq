@@ -53,7 +53,7 @@ function QuickPrompt({ prompt, onClick }: QuickPromptProps) {
   return (
     <button
       onClick={() => onClick(prompt)}
-      className="text-left text-xs px-2 py-1.5 bg-gray-50 hover:bg-indigo-50 text-gray-600 hover:text-indigo-600 rounded transition-colors truncate"
+      className="text-left text-xs px-2 py-1.5 bg-gray-50 hover:bg-gray-200 text-gray-600 hover:text-gray-900 rounded transition-colors truncate"
     >
       {prompt}
     </button>
@@ -109,8 +109,8 @@ function ContentTypeButton({ type, isActive, onClick }: ContentTypeButtonProps) 
       onClick={onClick}
       className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
         isActive
-          ? 'bg-indigo-100 text-indigo-700 ring-1 ring-indigo-300'
-          : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+          ? 'bg-gray-900 text-white ring-1 ring-gray-700'
+          : 'bg-gray-50 text-gray-600 hover:bg-gray-200'
       }`}
       title={info.description}
     >
@@ -134,8 +134,8 @@ function LayoutTypeButton({ type, isActive, onClick }: LayoutTypeButtonProps) {
       onClick={onClick}
       className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
         isActive
-          ? 'bg-purple-100 text-purple-700 ring-1 ring-purple-300'
-          : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+          ? 'bg-gray-900 text-white ring-1 ring-gray-700'
+          : 'bg-gray-50 text-gray-600 hover:bg-gray-200'
       }`}
       title={info.description}
     >
@@ -154,27 +154,27 @@ interface GeneratedContentProps {
 
 function GeneratedContent({ content, onCopy, onInsertAsText, copied }: GeneratedContentProps) {
   return (
-    <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg p-4 border border-indigo-100">
+    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-medium text-indigo-600 flex items-center gap-1">
+        <span className="text-xs font-medium text-gray-700 flex items-center gap-1">
           <Sparkles className="w-3 h-3" />
           Generated Content
         </span>
         <div className="flex items-center gap-1">
           <button
             onClick={onCopy}
-            className="p-1.5 hover:bg-white/50 rounded transition-colors"
+            className="p-1.5 hover:bg-gray-200 rounded transition-colors"
             title="Copy to clipboard"
           >
             {copied ? (
-              <Check className="w-4 h-4 text-green-600" />
+              <Check className="w-4 h-4 text-gray-900" />
             ) : (
               <Copy className="w-4 h-4 text-gray-500" />
             )}
           </button>
           <button
             onClick={onInsertAsText}
-            className="px-2 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
+            className="px-2 py-1 text-xs bg-gray-900 text-white rounded hover:bg-gray-800 transition-colors"
           >
             Insert as Text
           </button>
@@ -195,15 +195,15 @@ interface GeneratedElementsProps {
 
 function GeneratedElements({ elements, summary, onInsert }: GeneratedElementsProps) {
   return (
-    <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4 border border-purple-100">
+    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-medium text-purple-600 flex items-center gap-1">
+        <span className="text-xs font-medium text-gray-700 flex items-center gap-1">
           <Layers className="w-3 h-3" />
           Generated Elements ({elements.length})
         </span>
         <button
           onClick={onInsert}
-          className="px-2 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+          className="px-2 py-1 text-xs bg-gray-900 text-white rounded hover:bg-gray-800 transition-colors"
         >
           Insert Elements
         </button>
@@ -211,7 +211,7 @@ function GeneratedElements({ elements, summary, onInsert }: GeneratedElementsPro
       <div className="text-sm text-gray-700 space-y-1">
         {elements.slice(0, 5).map((el, i) => (
           <div key={i} className="flex items-center gap-2 text-xs">
-            <span className="w-2 h-2 rounded-full bg-purple-400" />
+            <span className="w-2 h-2 rounded-full bg-gray-400" />
             <span className="capitalize">{el.type}</span>
             {el.name && <span className="text-gray-400">- {el.name}</span>}
           </div>
@@ -223,7 +223,7 @@ function GeneratedElements({ elements, summary, onInsert }: GeneratedElementsPro
         )}
       </div>
       {summary && (
-        <div className="mt-2 pt-2 border-t border-purple-200 text-xs text-purple-600">
+        <div className="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-600">
           {summary.warnings.length > 0 && (
             <div className="flex items-center gap-1 text-amber-600">
               <AlertCircle className="w-3 h-3" />
@@ -377,6 +377,17 @@ export function KonvaAIPanel() {
     const centerX = currentPage.canvas.width / 2 - 150;
     const centerY = currentPage.canvas.height / 2 - 50;
 
+    // Clean markdown formatting from content
+    const cleanedContent = generatedContent
+      .replace(/\*\*([^*]+)\*\*/g, '$1')  // Remove bold **text**
+      .replace(/\*([^*]+)\*/g, '$1')       // Remove italic *text*
+      .replace(/__([^_]+)__/g, '$1')       // Remove bold __text__
+      .replace(/_([^_]+)_/g, '$1')         // Remove italic _text_
+      .replace(/^#+\s+/gm, '')             // Remove heading markers
+      .replace(/^[-*]\s+/gm, '• ')         // Convert markdown bullets to bullet points
+      .replace(/^\d+\.\s+/gm, (m) => m)    // Keep numbered lists
+      .trim();
+
     addCustomElement({
       id: crypto.randomUUID(),
       type: 'text',
@@ -384,7 +395,7 @@ export function KonvaAIPanel() {
       name: `AI ${CONTENT_TYPE_LABELS[selectedType].label}`,
       x: centerX,
       y: centerY,
-      text: generatedContent,
+      text: cleanedContent,
       fontSize: 16,
       fontFamily: 'Inter',
       fill: '#1f2937',
@@ -422,7 +433,7 @@ export function KonvaAIPanel() {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg">
+          <div className="p-1.5 bg-gray-900 rounded-lg">
             <Sparkles className="w-4 h-4 text-white" />
           </div>
           <span className="font-semibold text-gray-800">AI Assistant</span>
@@ -442,7 +453,7 @@ export function KonvaAIPanel() {
             onClick={() => setMode('text')}
             className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
               mode === 'text'
-                ? 'bg-white text-indigo-600 shadow-sm'
+                ? 'bg-white text-gray-900 shadow-sm'
                 : 'text-gray-600 hover:text-gray-800'
             }`}
           >
@@ -453,7 +464,7 @@ export function KonvaAIPanel() {
             onClick={() => setMode('elements')}
             className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
               mode === 'elements'
-                ? 'bg-white text-purple-600 shadow-sm'
+                ? 'bg-white text-gray-900 shadow-sm'
                 : 'text-gray-600 hover:text-gray-800'
             }`}
           >
@@ -520,7 +531,7 @@ export function KonvaAIPanel() {
         {!showQuickPrompts && (
           <button
             onClick={() => setShowQuickPrompts(true)}
-            className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-700"
+            className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900"
           >
             <ChevronDown className="w-3 h-3" />
             Show quick prompts
@@ -539,7 +550,7 @@ export function KonvaAIPanel() {
               ? 'Describe what you want to create...'
               : 'Describe the layout you want to generate...'
             }
-            className="w-full h-24 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+            className="w-full h-24 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-gray-400 resize-none"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                 handleGenerate();
@@ -562,7 +573,7 @@ export function KonvaAIPanel() {
               value={context}
               onChange={(e) => setContext(e.target.value)}
               placeholder="Add any relevant context about your business, audience, or brand..."
-              className="w-full h-20 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+              className="w-full h-20 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-400 focus:border-gray-400 resize-none"
             />
           )}
         </div>
@@ -571,11 +582,7 @@ export function KonvaAIPanel() {
         <button
           onClick={handleGenerate}
           disabled={!prompt.trim() || isLoading}
-          className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all ${
-            mode === 'text'
-              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700'
-              : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
-          }`}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all bg-gray-900 hover:bg-gray-800"
         >
           {isLoading ? (
             <>
@@ -595,7 +602,7 @@ export function KonvaAIPanel() {
           <div className="space-y-1">
             <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
               <div 
-                className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300"
+                className="h-full bg-gray-700 transition-all duration-300"
                 style={{ width: `${progress.value}%` }}
               />
             </div>
@@ -625,7 +632,7 @@ export function KonvaAIPanel() {
             <button
               onClick={handleRegenerate}
               disabled={isLoading}
-              className="flex items-center justify-center gap-2 w-full px-3 py-2 text-sm text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+              className="flex items-center justify-center gap-2 w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
               Regenerate
@@ -644,7 +651,7 @@ export function KonvaAIPanel() {
             <button
               onClick={handleRegenerate}
               disabled={isLoading}
-              className="flex items-center justify-center gap-2 w-full px-3 py-2 text-sm text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+              className="flex items-center justify-center gap-2 w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
               Regenerate

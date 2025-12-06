@@ -243,12 +243,15 @@ export async function generateElements(
     } else {
       // Non-streaming response
       const data = await response.json();
+      console.log('[ContentStudioAI] Element response:', data);
       
       if (data.error) {
         throw new Error(data.error);
       }
       
-      if (data.elements) {
+      if (data.elements && Array.isArray(data.elements)) {
+        console.log('[ContentStudioAI] Received elements:', data.elements.length);
+        
         const patch: AiLayoutPatch = {
           elements: data.elements,
           patchId: crypto.randomUUID(),
@@ -257,13 +260,21 @@ export async function generateElements(
         };
         
         const validation = validateAiPatch(patch);
+        console.log('[ContentStudioAI] Validation result:', validation);
+        
         if (validation.valid) {
-          const { elements } = sanitizeAiPatch(patch);
+          const { elements, warnings: sanitizeWarnings } = sanitizeAiPatch(patch);
+          console.log('[ContentStudioAI] Sanitized elements:', elements.length);
+          warnings.push(...sanitizeWarnings);
           allElements.push(...elements);
           callbacks?.onPatch?.(elements, patch.patchId);
         } else {
+          console.error('[ContentStudioAI] Validation failed:', validation.errors);
           errors.push(...validation.errors);
+          callbacks?.onError?.(validation.errors.join('; '));
         }
+      } else {
+        console.warn('[ContentStudioAI] No elements in response');
       }
       
       if (data.remaining !== undefined) {

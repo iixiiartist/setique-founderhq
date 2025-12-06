@@ -283,7 +283,7 @@ export function KonvaCanvasSizePanel({ isOpen, onClose }: KonvaCanvasSizePanelPr
             placeholder="Search templates..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-gray-500 focus:border-transparent"
           />
         </div>
 
@@ -305,7 +305,7 @@ export function KonvaCanvasSizePanel({ isOpen, onClose }: KonvaCanvasSizePanelPr
                     max={10000}
                     value={customWidth}
                     onChange={(e) => handleWidthChange(parseInt(e.target.value) || 1)}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-gray-500 focus:border-transparent"
                   />
                 </div>
                 
@@ -314,7 +314,7 @@ export function KonvaCanvasSizePanel({ isOpen, onClose }: KonvaCanvasSizePanelPr
                     onClick={toggleAspectRatio}
                     className={`p-1.5 rounded-lg transition-colors ${
                       maintainAspectRatio 
-                        ? 'bg-indigo-100 text-indigo-600' 
+                        ? 'bg-gray-100 text-gray-600' 
                         : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
                     }`}
                     title={maintainAspectRatio ? 'Unlock aspect ratio' : 'Lock aspect ratio'}
@@ -342,13 +342,13 @@ export function KonvaCanvasSizePanel({ isOpen, onClose }: KonvaCanvasSizePanelPr
                     max={10000}
                     value={customHeight}
                     onChange={(e) => handleHeightChange(parseInt(e.target.value) || 1)}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-gray-500 focus:border-transparent"
                   />
                 </div>
                 
                 <button
                   onClick={() => applySize(customWidth, customHeight)}
-                  className="px-4 py-2 mt-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm"
+                  className="px-4 py-2 mt-4 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm"
                 >
                   Apply
                 </button>
@@ -392,19 +392,19 @@ export function KonvaCanvasSizePanel({ isOpen, onClose }: KonvaCanvasSizePanelPr
                             onClick={() => applySize(template.width, template.height)}
                             className={`flex items-center justify-between p-3 rounded-lg text-left transition-all ${
                               isActive
-                                ? 'bg-indigo-100 border-2 border-indigo-500'
-                                : 'bg-white border border-gray-200 hover:border-indigo-300 hover:shadow-sm'
+                                ? 'bg-gray-100 border-2 border-gray-500'
+                                : 'bg-white border border-gray-200 hover:border-gray-300 hover:shadow-sm'
                             }`}
                           >
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className={`font-medium text-sm truncate ${isActive ? 'text-indigo-700' : 'text-gray-900'}`}>
+                                <span className={`font-medium text-sm truncate ${isActive ? 'text-gray-700' : 'text-gray-900'}`}>
                                   {template.name}
                                 </span>
-                                {isActive && <Check className="w-4 h-4 text-indigo-600 flex-shrink-0" />}
+                                {isActive && <Check className="w-4 h-4 text-gray-600 flex-shrink-0" />}
                               </div>
                               <div className="flex items-center gap-2 mt-0.5">
-                                <span className={`text-xs ${isActive ? 'text-indigo-600' : 'text-gray-500'}`}>
+                                <span className={`text-xs ${isActive ? 'text-gray-600' : 'text-gray-500'}`}>
                                   {template.width} × {template.height}
                                 </span>
                                 {template.description && (
@@ -416,7 +416,7 @@ export function KonvaCanvasSizePanel({ isOpen, onClose }: KonvaCanvasSizePanelPr
                             </div>
                             {/* Preview aspect ratio */}
                             <div 
-                              className={`ml-3 rounded border flex-shrink-0 ${isActive ? 'border-indigo-400 bg-indigo-200' : 'border-gray-300 bg-gray-100'}`}
+                              className={`ml-3 rounded border flex-shrink-0 ${isActive ? 'border-gray-400 bg-gray-200' : 'border-gray-300 bg-gray-100'}`}
                               style={{
                                 width: Math.min(40, 40 * (template.width / template.height)),
                                 height: Math.min(40, 40 * (template.height / template.width)),

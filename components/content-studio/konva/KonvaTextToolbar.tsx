@@ -89,7 +89,7 @@ function ToolbarButton({ icon, onClick, isActive, title, disabled }: ToolbarButt
       title={title}
       className={`
         p-1.5 rounded transition-colors
-        ${isActive ? 'bg-indigo-100 text-indigo-600' : 'hover:bg-gray-100 text-gray-700'}
+        ${isActive ? 'bg-gray-100 text-gray-600' : 'hover:bg-gray-100 text-gray-700'}
         ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
       `}
     >

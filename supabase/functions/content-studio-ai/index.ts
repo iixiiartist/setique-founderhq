@@ -105,8 +105,11 @@ function validateAndSanitizeElements(elements: unknown[]): AiElement[] {
     
     if (!validTypes.includes(String(elem.type))) continue;
     
-    const sanitized: AiElement = {
-      type: String(elem.type),
+    const elementType = String(elem.type);
+    const sanitized: AiElement & { category: string; id: string } = {
+      id: crypto.randomUUID(),
+      type: elementType,
+      category: elementType === 'text' ? 'text' : 'shape',
       x: clamp(Number(elem.x) || 100, 0, 1200),
       y: clamp(Number(elem.y) || 100, 0, 800),
     };
@@ -139,7 +142,7 @@ function validateAndSanitizeElements(elements: unknown[]): AiElement[] {
       sanitized.strokeWidth = clamp(Number(elem.strokeWidth) || 2, 1, 20);
     }
     
-    result.push(sanitized);
+    result.push(sanitized as any);
   }
   
   return result;

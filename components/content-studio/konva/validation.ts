@@ -346,3 +346,85 @@ export function validateAIGeneratedElement(data: any): ValidationResult {
     warnings,
   };
 }
+
+/**
+ * Sanitize an entire Konva document
+ * Ensures all pages and elements have valid default values
+ */
+export function sanitizeDocument(doc: any): KonvaDocument {
+  const now = new Date().toISOString();
+  
+  // Ensure basic document structure
+  const sanitized: KonvaDocument = {
+    id: doc?.id || crypto.randomUUID(),
+    title: doc?.title || 'Untitled Document',
+    description: doc?.description || '',
+    workspaceId: doc?.workspaceId,
+    pages: [],
+    metadata: {
+      tags: Array.isArray(doc?.metadata?.tags) ? doc.metadata.tags : [],
+      category: doc?.metadata?.category || 'uncategorized',
+      version: typeof doc?.metadata?.version === 'number' ? doc.metadata.version : 1,
+      lastEditedBy: doc?.metadata?.lastEditedBy,
+    },
+    settings: {
+      pageSize: doc?.settings?.pageSize || { name: 'custom', width: 1200, height: 800 },
+      orientation: doc?.settings?.orientation || 'landscape',
+      margins: doc?.settings?.margins || { top: 0, right: 0, bottom: 0, left: 0 },
+      grid: doc?.settings?.grid || { enabled: false, size: 20, color: '#e0e0e0', opacity: 0.5 },
+      snapToGrid: doc?.settings?.snapToGrid ?? false,
+      showRulers: doc?.settings?.showRulers ?? false,
+    },
+    createdAt: doc?.createdAt || now,
+    updatedAt: now,
+    createdBy: doc?.createdBy || '',
+  };
+
+  // Sanitize pages
+  if (Array.isArray(doc?.pages) && doc.pages.length > 0) {
+    sanitized.pages = doc.pages.map((page: any, index: number) => sanitizePage(page, index));
+  } else {
+    // Create default page
+    const defaultPage: KonvaPage = {
+      id: crypto.randomUUID(),
+      name: 'Page 1',
+      order: 0,
+      canvas: {
+        width: sanitized.settings.pageSize.width,
+        height: sanitized.settings.pageSize.height,
+        backgroundColor: '#ffffff',
+        elements: [],
+      },
+    };
+    sanitized.pages = [defaultPage];
+  }
+
+  return sanitized;
+}
+
+/**
+ * Sanitize a single page
+ */
+function sanitizePage(page: any, index: number): KonvaPage {
+  const sanitized: KonvaPage = {
+    id: page?.id || crypto.randomUUID(),
+    name: page?.name || `Page ${index + 1}`,
+    order: typeof page?.order === 'number' ? page.order : index,
+    canvas: {
+      width: typeof page?.canvas?.width === 'number' && page.canvas.width > 0 ? page.canvas.width : 1200,
+      height: typeof page?.canvas?.height === 'number' && page.canvas.height > 0 ? page.canvas.height : 800,
+      backgroundColor: page?.canvas?.backgroundColor || '#ffffff',
+      elements: [],
+    },
+    thumbnail: page?.thumbnail,
+  };
+
+  // Sanitize elements
+  if (Array.isArray(page?.canvas?.elements)) {
+    sanitized.canvas.elements = page.canvas.elements
+      .filter((el: any) => el && typeof el === 'object')
+      .map((el: any) => sanitizeElement(el));
+  }
+
+  return sanitized;
+}

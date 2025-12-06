@@ -410,6 +410,10 @@ interface KonvaContextValue {
   deleteSelectedElements: () => void;
   duplicateSelectedElements: () => void;
   
+  // Grouping operations
+  groupSelectedElements: () => void;
+  ungroupSelectedElements: () => void;
+  
   // AI operations
   applyAiPatch: (elements: KonvaElement[], options?: { 
     replaceSelection?: boolean; 
@@ -700,6 +704,16 @@ export function KonvaProvider({ children, documentId, onClose, onSave }: KonvaPr
     dispatch({ type: 'MARK_DIRTY' });
   }, []);
 
+  // History - push undo (defined early for use by applyAiPatch and other functions)
+  const pushUndo = useCallback(() => {
+    if (!state.document) return;
+    const elements = state.document.pages[state.currentPageIndex]?.canvas.elements || [];
+    dispatch({ 
+      type: 'PUSH_UNDO', 
+      payload: { elements: JSON.parse(JSON.stringify(elements)), timestamp: Date.now() } 
+    });
+  }, [state.document, state.currentPageIndex]);
+
   // Apply AI-generated elements patch
   const applyAiPatch = useCallback((
     elements: KonvaElement[],
@@ -799,15 +813,100 @@ export function KonvaProvider({ children, documentId, onClose, onSave }: KonvaPr
     setSelectedIds(newElements.map(el => el.id));
   }, [state.document, state.currentPageIndex, state.selectedIds]);
 
-  // History - push undo
-  const pushUndo = useCallback(() => {
-    if (!state.document) return;
-    const elements = state.document.pages[state.currentPageIndex]?.canvas.elements || [];
-    dispatch({ 
-      type: 'PUSH_UNDO', 
-      payload: { elements: JSON.parse(JSON.stringify(elements)), timestamp: Date.now() } 
+  // Group selected elements
+  const groupSelectedElements = useCallback(() => {
+    const page = state.document?.pages[state.currentPageIndex];
+    if (!page) return;
+    const elements = page.canvas.elements.filter(el => state.selectedIds.includes(el.id));
+    if (elements.length < 2) return;
+    
+    pushUndo();
+    
+    // Calculate group bounds
+    let minX = Infinity, minY = Infinity;
+    let maxX = -Infinity, maxY = -Infinity;
+    
+    elements.forEach(el => {
+      const x = el.x || 0;
+      const y = el.y || 0;
+      const width = (el as any).width || (el as any).radius * 2 || 100;
+      const height = (el as any).height || (el as any).radius * 2 || 100;
+      
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x + width);
+      maxY = Math.max(maxY, y + height);
     });
-  }, [state.document, state.currentPageIndex]);
+    
+    // Create children with relative positions
+    const children = elements.map(el => ({
+      ...el,
+      x: (el.x || 0) - minX,
+      y: (el.y || 0) - minY,
+    }));
+    
+    // Create group element
+    const groupElement: KonvaElement = {
+      id: crypto.randomUUID(),
+      type: 'group',
+      category: 'shape',
+      name: `Group (${elements.length} items)`,
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+      draggable: true,
+      visible: true,
+      locked: false,
+      children,
+    } as any;
+    
+    // Delete original elements
+    dispatch({ type: 'DELETE_ELEMENTS', payload: state.selectedIds });
+    
+    // Add group
+    dispatch({ type: 'ADD_ELEMENT', payload: groupElement });
+    
+    // Select the new group
+    setSelectedIds([groupElement.id]);
+    
+    dispatch({ type: 'MARK_DIRTY' });
+  }, [state.document, state.currentPageIndex, state.selectedIds, pushUndo, setSelectedIds]);
+
+  // Ungroup selected group
+  const ungroupSelectedElements = useCallback(() => {
+    const page = state.document?.pages[state.currentPageIndex];
+    if (!page) return;
+    const elements = page.canvas.elements.filter(el => state.selectedIds.includes(el.id));
+    if (elements.length !== 1 || elements[0]?.type !== 'group') return;
+    
+    pushUndo();
+    
+    const group = elements[0] as any;
+    const groupX = group.x || 0;
+    const groupY = group.y || 0;
+    
+    // Restore children with absolute positions
+    const restoredElements = (group.children || []).map((child: any) => ({
+      ...child,
+      id: crypto.randomUUID(), // New IDs for ungrouped elements
+      x: (child.x || 0) + groupX,
+      y: (child.y || 0) + groupY,
+    }));
+    
+    // Delete the group
+    dispatch({ type: 'DELETE_ELEMENTS', payload: [group.id] });
+    
+    // Add ungrouped elements
+    restoredElements.forEach((el: KonvaElement) => {
+      dispatch({ type: 'ADD_ELEMENT', payload: el });
+    });
+    
+    // Select the ungrouped elements
+    setSelectedIds(restoredElements.map((el: KonvaElement) => el.id));
+    
+    dispatch({ type: 'MARK_DIRTY' });
+  }, [state.document, state.currentPageIndex, state.selectedIds, pushUndo, setSelectedIds]);
 
   // Undo
   const undo = useCallback(() => {
@@ -945,6 +1044,8 @@ export function KonvaProvider({ children, documentId, onClose, onSave }: KonvaPr
     updateElement,
     deleteSelectedElements,
     duplicateSelectedElements,
+    groupSelectedElements,
+    ungroupSelectedElements,
     applyAiPatch,
     pushUndo,
     undo,
