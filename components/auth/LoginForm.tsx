@@ -4,7 +4,7 @@ import { normalizeEmail } from '../../lib/utils/emailHelpers'
 import { supabase } from '../../lib/supabase'
 import { sanitizeAuthError } from '../../lib/utils/errorMessages'
 import { useAnalytics } from '../../hooks/useAnalytics'
-import { AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Mail } from 'lucide-react'
 
 interface Props {
   onSuccess?: () => void
@@ -181,7 +181,7 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
 
   const handleResendConfirmation = async () => {
     if (!email) {
-      setError('⚠️ Please enter your email address')
+      setError('Please enter your email address')
       return
     }
 
@@ -342,8 +342,8 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
 
             {awaitingConfirmation && (
               <div className="bg-slate-50 p-4 rounded-xl border border-gray-200">
-                <p className="text-sm text-slate-700 mb-3">
-                  📧 <strong>Check your email!</strong>
+                <p className="text-sm text-slate-700 mb-3 flex items-center gap-2">
+                  <Mail className="w-4 h-4" /> <strong>Check your email!</strong>
                 </p>
                 <p className="text-xs text-slate-600 mb-2">
                   We sent a confirmation link to <strong>{email}</strong>
