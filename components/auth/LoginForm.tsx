@@ -4,6 +4,7 @@ import { normalizeEmail } from '../../lib/utils/emailHelpers'
 import { supabase } from '../../lib/supabase'
 import { sanitizeAuthError } from '../../lib/utils/errorMessages'
 import { useAnalytics } from '../../hooks/useAnalytics'
+import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 
 interface Props {
   onSuccess?: () => void
@@ -289,7 +290,7 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
             {error && (
               <div className="bg-red-50 p-4 rounded-xl border border-red-200">
                 <div className="flex items-center">
-                  <span className="text-red-500 text-xl mr-3">⚠️</span>
+                  <AlertTriangle className="w-5 h-5 text-red-500 mr-3 flex-shrink-0" />
                   <div className="text-sm font-medium text-red-800">{error}</div>
                 </div>
               </div>
@@ -298,7 +299,7 @@ export const LoginForm: React.FC<Props> = ({ onSuccess }) => {
             {message && (
               <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200">
                 <div className="flex items-center">
-                  <span className="text-emerald-500 text-xl mr-3">✅</span>
+                  <CheckCircle2 className="w-5 h-5 text-emerald-500 mr-3 flex-shrink-0" />
                   <div className="text-sm font-medium text-emerald-800">{message}</div>
                 </div>
                 {awaitingConfirmation && (

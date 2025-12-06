@@ -5,6 +5,7 @@ import { clearInvitationToken } from '../../lib/utils/tokenStorage';
 import { PasswordSetupForm } from './PasswordSetupForm';
 import { supabase } from '../../lib/supabase';
 import { sanitizeAuthError } from '../../lib/utils/errorMessages';
+import { Hand, CheckCircle, XCircle, Mail, Lightbulb, Loader2 } from 'lucide-react';
 
 interface InviteAcceptPageProps {
     token: string;
@@ -176,7 +177,9 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 to-blue-600 p-4">
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl p-8 max-w-md w-full text-center">
-                    <div className="text-6xl mb-4">👋</div>
+                    <div className="flex justify-center mb-4">
+                        <Hand className="w-16 h-16 text-purple-600" />
+                    </div>
                     <h2 className="text-2xl font-bold mb-4">Welcome Back!</h2>
                     <p className="text-gray-600 mb-6">{message}</p>
                     <button
@@ -198,13 +201,15 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-600 to-blue-600 p-4">
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl p-8 max-w-md w-full text-center">
-                    <div className="text-6xl mb-4">✅</div>
+                    <div className="flex justify-center mb-4">
+                        <CheckCircle className="w-16 h-16 text-green-600" />
+                    </div>
                     <h2 className="text-2xl font-bold mb-4">Success!</h2>
                     <p className="text-gray-600 whitespace-pre-line mb-6">{message}</p>
                     
                     {(inviteData?.isNewUser || inviteData?.passwordResetSent) && (
                         <div className="bg-blue-50 rounded-xl border border-blue-200 p-4 mb-4 text-left">
-                            <h3 className="font-bold mb-2">📧 Next Steps:</h3>
+                            <h3 className="font-bold mb-2 flex items-center gap-2"><Mail className="w-5 h-5 text-blue-600" /> Next Steps:</h3>
                             <ol className="list-decimal list-inside space-y-1 text-sm">
                                 <li>Check your email inbox</li>
                                 <li>Click the password reset link</li>
@@ -212,8 +217,8 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
                                 <li>Log in and start collaborating!</li>
                             </ol>
                             {inviteData?.passwordResetSent && (
-                                <p className="mt-3 text-xs text-blue-700 border-t border-blue-300 pt-2">
-                                    💡 We sent you a password reset email to complete your account setup. If you don't receive it within a few minutes, check your spam folder.
+                                <p className="mt-3 text-xs text-blue-700 border-t border-blue-300 pt-2 flex items-start gap-1">
+                                    <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5" /> We sent you a password reset email to complete your account setup. If you don't receive it within a few minutes, check your spam folder.
                                 </p>
                             )}
                         </div>
@@ -234,7 +239,9 @@ export const InviteAcceptPage: React.FC<InviteAcceptPageProps> = ({ token, onCom
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-600 to-pink-600 p-4">
             <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl p-8 max-w-md w-full text-center">
-                <div className="text-6xl mb-4">❌</div>
+                <div className="flex justify-center mb-4">
+                    <XCircle className="w-16 h-16 text-red-600" />
+                </div>
                 <h2 className="text-2xl font-bold mb-4">Oops!</h2>
                 <p className="text-gray-600 mb-6">{message}</p>
                 <button

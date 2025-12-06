@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import { DatabaseService } from '../../lib/services/database';
+import { AlertTriangle, CheckCircle2, Lightbulb } from 'lucide-react';
 
 interface InviteTeamMemberModalProps {
     workspaceId: string;
@@ -63,7 +64,7 @@ export const InviteTeamMemberModal: React.FC<InviteTeamMemberModalProps> = ({
             } else {
                 toast(
                     `Invitation created! Email service not configured - share this link: ${inviteLink}`,
-                    { duration: 8000, icon: '⚠️' }
+                    { duration: 8000, icon: '⚡' }
                 );
             }
 
@@ -162,16 +163,18 @@ export const InviteTeamMemberModal: React.FC<InviteTeamMemberModalProps> = ({
 
                         {/* Error Message */}
                         {error && (
-                            <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-                                <p className="text-sm text-red-700">⚠️ {error}</p>
+                            <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center gap-2">
+                                <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                                <p className="text-sm text-red-700">{error}</p>
                             </div>
                         )}
 
                         {/* Success Message */}
                         {success && (
-                            <div className="bg-green-50 border border-green-200 rounded-xl p-3">
+                            <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-2">
+                                <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
                                 <p className="text-sm text-green-700">
-                                    ✅ Invitation sent successfully!
+                                    Invitation sent successfully!
                                 </p>
                             </div>
                         )}
@@ -200,8 +203,8 @@ export const InviteTeamMemberModal: React.FC<InviteTeamMemberModalProps> = ({
 
                     {/* Info Note */}
                     <div className="mt-4 pt-4 border-t border-gray-200">
-                        <p className="text-xs text-slate-500">
-                            💡 The invitation link will expire in 7 days. The invited person must have
+                        <p className="text-xs text-slate-500 flex items-start gap-1">
+                            <Lightbulb className="w-3 h-3 mt-0.5 flex-shrink-0" /> The invitation link will expire in 7 days. The invited person must have
                             an account or sign up to accept the invitation.
                         </p>
                     </div>

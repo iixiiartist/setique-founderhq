@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthService } from '../../lib/services/auth';
 import { sanitizeAuthError } from '../../lib/utils/errorMessages';
+import { Lock, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 interface ResetPasswordProps {
     onSuccess?: () => void;
@@ -137,8 +138,8 @@ export const ResetPassword: React.FC<ResetPasswordProps> = ({ onSuccess }) => {
                         </div>
 
                         <div className="bg-slate-50 rounded-xl border border-gray-200 p-4">
-                            <p className="text-xs font-medium text-slate-700 mb-2">
-                                🔒 Password Requirements:
+                            <p className="text-xs font-medium text-slate-700 mb-2 flex items-center gap-1">
+                                <Lock className="w-3 h-3" /> Password Requirements:
                             </p>
                             <ul className="text-xs text-slate-600 space-y-1 list-disc list-inside">
                                 <li>At least 8 characters</li>
@@ -151,7 +152,7 @@ export const ResetPassword: React.FC<ResetPasswordProps> = ({ onSuccess }) => {
                         {error && (
                             <div className="bg-red-50 p-4 rounded-xl border border-red-200">
                                 <div className="flex items-center">
-                                    <span className="text-red-500 text-xl mr-3">⚠️</span>
+                                    <AlertTriangle className="w-5 h-5 text-red-500 mr-3 flex-shrink-0" />
                                     <div className="text-sm font-medium text-red-800">{error}</div>
                                 </div>
                             </div>
@@ -160,7 +161,7 @@ export const ResetPassword: React.FC<ResetPasswordProps> = ({ onSuccess }) => {
                         {message && (
                             <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200">
                                 <div className="flex items-center">
-                                    <span className="text-emerald-500 text-xl mr-3">✅</span>
+                                    <CheckCircle2 className="w-5 h-5 text-emerald-500 mr-3 flex-shrink-0" />
                                     <div className="text-sm font-medium text-emerald-800">{message}</div>
                                 </div>
                             </div>
