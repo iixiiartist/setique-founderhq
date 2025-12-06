@@ -6,6 +6,7 @@ import { Badge } from '../ui/Badge';
 import { Card, CardContent } from '../ui/Card';
 import { Select } from '../ui/Select';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
+import { SquareSpinner } from '../shared/Loading';
 import { Form, FormStatus } from '../../types/forms';
 import { getWorkspaceForms, getWorkspaceFormStats, deleteForm, duplicateForm, archiveForm, publishForm, unpublishForm, generateEmbedCode, generateShareLinks } from '../../src/services/formService';
 import { formatDistanceToNow } from 'date-fns';
@@ -295,7 +296,7 @@ export const FormsList: React.FC<FormsListProps> = ({
           />
           {isSearching && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              <RefreshCw className="w-4 h-4 text-gray-400 animate-spin" />
+              <SquareSpinner size="xs" />
             </div>
           )}
         </div>
